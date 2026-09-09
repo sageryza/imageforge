@@ -219,9 +219,14 @@ before this landed, is filed with `node scripts/apiframe-video-log-backfill.js
 --chat <slug> <jobId>:<scene>:<title>…` (`--file jobs.json` for a batch;
 reads the job back from APIFRAME, so nothing is reconstructed).** **APIFRAME
 DOES have a job list — `GET https://api.apiframe.ai/v2/jobs?limit=100&cursor=`
-with `x-api-key`, every job back to July with `creditCost` per job (measured
-2026-09-09: 147 jobs, 40 FAILED still carrying a cost — the ledger for a
-refund ask); this line said "no job-list endpoint" until then.** A job id a
+with `x-api-key`, every job back to July with `creditCost` per job, and `GET /v2/team/usage` totals them. BOTH ARE
+GROSS — a FAILED job keeps its `creditCost` and stays inside `totalCreditsUsed`
+forever, while the BALANCE (`/v2/me` → `team.credits`) gets it back within
+minutes (measured 2026-09-09: a 450-credit 30s job failed at 99% and the
+balance reconciled to the ledger only with +450 put back). So the balance is
+the bill; a chat that reads `creditCost` on a failed job as money lost — this
+one did, and drafted a refund email for $49 that was never owed — is wrong.
+This line said "no job-list endpoint" until then.** A job id a
 chat did not keep is therefore recoverable from there, not gone with its
 container — the ward chat's earlier clips are only recoverable from that
 chat's own `af-*-job.json` files. Test: `node scripts/test-video-log.js`.
