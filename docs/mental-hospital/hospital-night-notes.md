@@ -200,3 +200,31 @@ Her words verbatim; each is a new job and waits for her "go" with the card
   viraltwin.app "pass Seedance face filter", Comfy-Org workflow_templates
   issue #822, apiframe.ai's Seedance 2.5 page (refund on failure; no
   real-person clause of its own).
+
+## Character voices — an mp3 per character, and it works on the cheap door
+
+**Measured 2026-09-09.** A character's voice can ride a Seedance job as
+`referenceAudioUrls`, and the prompt names it by slot exactly like a picture:
+
+    her mother is the woman in [Image1] and her voice is in [Audio1].
+
+`mom-character-clip` sent both parents' voices with two stills through
+**OpenRouter on `bytedance/seedance-2.0-mini`** and it completed for 5.6¢ — the
+person filter did not trip on the audio. So a voice reference is cheap, works on
+the cheap door, and is how a character stops sounding like a different person in
+every clip.
+
+**Pulling one is free** — ffmpeg in the container, no model call, nothing sent:
+`docs/mental-hospital/voices/pull-voice.py <name> <clip-url> <start> <end>`. It
+cuts the span, files the mp3 in the Dump under "Ward → voices" and records the
+url in `voices/voices.json`.
+
+**Cut only a stretch where that character alone speaks.** Read the card's script
+and confirm nobody else has a line inside the span — a voice built on the wrong
+speaker poisons every clip that references it, and nothing on screen says so.
+
+On file: **Edna** (soap 43a, hers are the only lines in that card) and the two
+**parents**. Missing: **Sophie, Dr. Grayson, the assistant** — no clip with any
+of them speaking has been shot yet, since every belt card with dialogue is still
+`ready` rather than shot. `mom-character-clip` has those three named as its own
+next job, so check with it before pulling them twice.

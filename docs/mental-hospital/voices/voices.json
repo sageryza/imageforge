@@ -1,0 +1,18 @@
+{
+ "edna-voice": {
+  "id": "6Z372Ugov6kDx1lmmwws",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d84149294f111068eb02dc0d9b7e1616.mp3"
+ },
+ "edna-voice-alt": {
+  "id": "iINirDlnmQ5ZQrLVvOF5",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/5b406221ef41a6f1d1b12d8cf9484d7f.mp3"
+ },
+ "mom-voice": {
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/parents-voice/mom-voice.mp3",
+  "from": "mom-character-clip"
+ },
+ "dad-voice": {
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/parents-voice/dad-voice.mp3",
+  "from": "mom-character-clip"
+ }
+}

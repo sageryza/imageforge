@@ -2,6 +2,7 @@
 # runor.py — send ONE Seedance job through the OpenRouter door (no video references),
 # poll it, and file the landed clip the way runsoap.py does. Usage:
 #   MODEL=seedance-2.0-mini AR=3:4 IMGS='["url",…]' python3 runor.py <key> "<title>" <prompt.txt>
+# AUD='["url"]' rides a character voice as [Audio1] (measured 2026-09-09: Mini accepts it).
 # No duration is ever sent (Sophie, 2026-09-08: the model picks). Her "go" rule lives in the chat.
 import json, os, sys, time, urllib.request, subprocess
 key, title, pfile = sys.argv[1:4]
@@ -9,7 +10,8 @@ B = 'https://imageforge-q125.onrender.com'
 S = os.environ.get('CLAUDE_CODE_REMOTE_SESSION_ID', '').replace('cse_', '')
 body = {"prompt": open(pfile).read().rstrip('\n'), "model": os.environ.get('MODEL', 'seedance-2.0-mini'),
         "resolution": os.environ.get('RES', '480p'), "aspectRatio": os.environ.get('AR', '3:4'), "generateAudio": True,
-        "referenceImageUrls": json.loads(os.environ.get('IMGS', '[]')), "chat": "soap-pill-scene", "scene": key,
+        "referenceImageUrls": json.loads(os.environ.get('IMGS', '[]')),
+        "referenceAudioUrls": json.loads(os.environ.get('AUD', '[]')), "chat": "soap-pill-scene", "scene": key,
         "title": title, "session": S}
 print('BODY', json.dumps(body)[:400], flush=True)
 req = urllib.request.Request(B + '/api/openrouter/video', data=json.dumps(body).encode(), headers={'content-type': 'application/json'})
