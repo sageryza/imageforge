@@ -2135,7 +2135,7 @@ them off the reference sheet, not off the old filenames.
   bold-led paragraphs draws a box at the head of each item (`tickList` in
   chats.html). One press ticks (red), two crosses out (the dislike badge's
   grey, the item struck), three opens a NOTE BOX under the item, four clears.
-  A press CYCLES here on purpose — a 19px box has nothing to aim at, unlike
+  A press CYCLES here on purpose — the box has nothing to aim at, unlike
   the three-way TRACK the house rule forbids cycling on. The state is
   `ticks[key]` on the MESSAGE doc (`true` · `'x'` · `'note'`, keyed by a hash
   of the item's words), `POST /api/chatfeed/tick {id, key, state, note?, to?}`.
@@ -2156,6 +2156,20 @@ them off the reference sheet, not off the old filenames.
     and `msgId` + `key`. **Answer it ON THE NOTE**, the picture-note rule:
     `POST /api/chatfeed/tick/reply {id: msgId, key, text}` — it reads back
     under her note in the app. A just-for-me note is in no inbox.
+  - **THE TARGET IS BIGGER THAN THE BOX, AND A MISS NEVER MOVES THE PAGE
+    (2026-09-09, Sophie: "can you make the targets for the message X checklist
+    bigger or make it so it doesn't also scroll the page").** Both halves,
+    because they are one complaint: the box was 19px in a line of 16.5px
+    prose — a **20×20 tap area, measured** — and a MISS landed on `.m-full`,
+    whose tap toggles the autoscroll, so missing set the page moving under her
+    thumb (measured: 54px on one tap). The box is 22px and carries an
+    INVISIBLE hit area around it (`.mtick::before`) — **38×30 now** — which
+    buys the size without making the mark heavier or moving a line of her
+    words; it reaches LEFT into the indent and only ~5px right, so the words
+    stay the words, and its vertical reach is held inside the line box so two
+    boxes in a run never fight over the same pixel. The whole item — its
+    words, its saved note, its open note box — is off the tap gesture beside
+    `pre`/`code`; the rest of the message still toggles.
   - **The words live in `ticknotes[key]`, a SEPARATE map**, so cycling the box
     past the note stop never deletes a sentence she wrote; the box ships
     EMPTY. `forge-item-notes` is the inbox's copy (`node

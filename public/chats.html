@@ -766,10 +766,24 @@ button.dayrule{border:none; background:none; padding:0; cursor:pointer;
    body is pre-wrapped prose and the item is a line of it. Hers to tick;
    nothing derives it. A ticked item's words go quiet (never struck through:
    the tick is the mark, and a paragraph struck through is unreadable). */
-.mtick{display:inline-flex; vertical-align:-3px; margin:0 7px 0 0; width:19px; height:19px; padding:0; cursor:pointer;
+/* THE TARGET IS BIGGER THAN THE BOX (2026-09-09, Sophie: "can you make the
+   targets for the message X checklist bigger or make it so it doesn't also
+   scroll the page"). Both halves of that, because they are one complaint: a
+   19px box between lines of 16.5px prose is under any tap target worth the
+   name, and a MISS landed on `.m-full`, whose tap toggles the autoscroll — so
+   missing the box set the page moving under her thumb. The box is 22px now
+   and carries an INVISIBLE hit area around it (`::before`), which is what
+   buys the size without making the mark heavier or moving a line of her
+   words. It reaches LEFT into the indent and only ~5px right, into the gap
+   before the item's first letter — the words stay the words. The vertical
+   reach is held to the line box so two boxes in a run never fight over the
+   same pixel; `line-height` is what separates them, and the taller box grows
+   it a little by itself. */
+.mtick{display:inline-flex; position:relative; vertical-align:-4px; margin:0 7px 0 0; width:22px; height:22px; padding:0; cursor:pointer;
   border:1.5px solid var(--line); border-radius:6px; background:transparent;
   align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent;}
-.mtick svg{width:12px; height:12px; display:block; visibility:hidden;}
+.mtick::before{content:''; position:absolute; top:-5px; bottom:-5px; left:-13px; right:-5px;}
+.mtick svg{width:13px; height:13px; display:block; visibility:hidden;}
 .mtick.on{border-color:var(--chg); background:var(--chg);}
 .mtick.on svg{visibility:visible; color:var(--paper);}
 .mtitem.done{color:var(--ink2);}
@@ -792,14 +806,14 @@ button.dayrule{border:none; background:none; padding:0; cursor:pointer;
    (2026-09-04, Sophie: "doesn't need to ring doorbell · just see it when
    they're up by me"), so the chat reads it whenever it is next up; "Just for
    me" keeps it on the item and tells nobody. */
-.mtnote{margin:6px 0 8px 26px; padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--barbg);}
+.mtnote{margin:6px 0 8px 29px; padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--barbg);}
 .mtnote textarea{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; min-height:48px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); resize:vertical;}
 .mtnote textarea:focus{outline:none; border-color:var(--rose);}
 .mtnote .mtbar{display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap;}
 .mtnote .mtstat{flex:1; min-width:0; font-style:italic; font-size:.85em; color:var(--ink2);}
 /* A saved note reads back under its item in her italic, with who it was for
    in small caps in front. Tapping it reopens the box with her words in it. */
-.mtnotev{display:block; margin:2px 0 6px 26px; font-style:italic; color:var(--ink2); cursor:pointer; white-space:pre-wrap;}
+.mtnotev{display:block; margin:2px 0 6px 29px; font-style:italic; color:var(--ink2); cursor:pointer; white-space:pre-wrap;}
 /* A SCRIPT BLOCK — a `>` quote in a reply — IS EDITABLE IN PLACE (2026-09-07,
    Sophie: "can u make it possible to edit the script blocks right in
    message"). The words are the thing she is approving, so a pencil at the
@@ -7833,8 +7847,17 @@ function renderMsg(m){
   // a document-level listener, so it runs after this one, too late to help).
   // pre/code stay on top of that list: selecting text in a code block is not
   // a tap on the page.
+  // A CHECKLIST LINE IS A CONTROL, NOT PAGE (2026-09-09, Sophie: "make the
+  // targets for the message X checklist bigger or make it so it doesn't also
+  // scroll the page"). A tap ON the box was always exempt — it is a <button>,
+  // which PILL_SKIP names — but a MISS beside one landed here and started the
+  // autoscroll, which is the page moving as the answer to a tap she meant for
+  // a 19px box. So the whole item — its words, its saved note, its open note
+  // box — is off the tap gesture, alongside pre/code. The rest of the message
+  // still toggles.
   row.querySelector('.m-full').onclick=function(e){
     if(e.target.closest('pre')||e.target.closest('code')) return;
+    if(e.target.closest('.mtick,.mtitem,.mtnote,.mtnotev')) return;
     window.__scrollTap(e);
   };
   row.querySelector('.m-head').onclick=function(){

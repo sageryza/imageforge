@@ -228,6 +228,40 @@ const items = (page, mid) => page.$$eval('#thread .msg[data-mid="' + mid + '"] .
   const y1 = await page.evaluate(() => window.scrollY);
   if (y1 === y0) ok('tapping a box does not start the autoscroll'); else fail('scrolled ' + y0 + ' → ' + y1);
 
+  // 4a. THE TARGET IS BIGGER THAN THE BOX, AND A MISS DOES NOT MOVE THE PAGE
+  //     (2026-09-09, Sophie: "can you make the targets for the message X
+  //     checklist bigger or make it so it doesn't also scroll the page").
+  //     Every assertion here is a MEASUREMENT: a wider `width` and an
+  //     invisible hit area are the same markup to any style assertion, and
+  //     only elementFromPoint says what a finger really reaches.
+  const reach = (sel) => page.$eval(sel, (b) => {
+    const r = b.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const walk = (dx, dy) => { let n = 0; for (let i = 1; i <= 80; i++) { const el = document.elementFromPoint(cx + dx * i, cy + dy * i); if (!el || !el.closest || el.closest('.mtick') !== b) break; n = i; } return n; };
+    return { box: Math.round(r.width), cy, up: walk(0, -1), down: walk(0, 1), w: walk(-1, 0) + walk(1, 0) + 1, h: walk(0, -1) + walk(0, 1) + 1 };
+  });
+  const hit = await reach(pig);
+  if (hit.box >= 22 && hit.w >= 32 && hit.h >= 28) ok('the box is ' + hit.box + 'px and its tap area measures ' + hit.w + '×' + hit.h);
+  else fail('tap area too small: ' + JSON.stringify(hit));
+  // …and two boxes in a run never fight over the same pixel
+  const keys = (await items(page, 'lst')).map((x) => x.key);
+  const reaches = [];
+  for (const k of keys) reaches.push(await reach('#thread .msg[data-mid="lst"] .mtick[data-key="' + k + '"]'));
+  const clash = reaches.slice(1).filter((r, i) => r.cy - r.up <= reaches[i].cy + reaches[i].down);
+  if (!clash.length) ok('no two boxes\' tap areas overlap'); else fail('overlapping targets: ' + JSON.stringify(clash));
+  // a MISS — a tap on the item's own words — leaves the page where it is
+  const y2 = await page.evaluate(() => window.scrollY);
+  await page.click(pig + ' + .mtitem');
+  await page.waitForTimeout(700);
+  const y3 = await page.evaluate(() => window.scrollY);
+  if (y3 === y2) ok('tapping the words of a checklist item does not start the autoscroll'); else fail('a miss scrolled ' + y2 + ' → ' + y3);
+  // …and the exemption is NARROW: the message's own prose still toggles it
+  await page.click('#thread .msg[data-mid="lst"] .m-full');
+  await page.waitForTimeout(700);
+  const y4 = await page.evaluate(() => window.scrollY);
+  await page.evaluate(() => window.__scrollStop && window.__scrollStop());
+  await page.evaluate(() => window.scrollTo(0, 0));
+  if (y4 !== y3) ok('a tap on the message\'s own prose still toggles the autoscroll'); else fail('the prose tap no longer scrolls: ' + y3 + ' → ' + y4);
+
   // 4b. a FOR-CLAUDE note: typed, sent — it posts into the thread through
   //     /reply naming the item, rings /wake, then files state:note + the words
   posts.length = 0;
