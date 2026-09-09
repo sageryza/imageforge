@@ -1,0 +1,420 @@
+[
+ {
+  "key": "13",
+  "title": "Morning meds — the jolly nurse (SHOT, two clips)",
+  "secs": "",
+  "status": "shot · the prompt is not on file in the repo",
+  "videos": [
+   [
+    "Morning meds — the jolly nurse (shot)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/37d01bc7779c7216a3f41015f90d6761.mp4"
+   ],
+   [
+    "Morning meds — the tail (shot)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/f6138a818f436df0ce0cf4591c62f434.mp4"
+   ]
+  ],
+  "images": [],
+  "text": "",
+  "mine": [],
+  "pre": "",
+  "note": "Both clips are in the rough cut as 13 and 13b. The words they were drawn from live in the chat that shot them, not in the repo.",
+  "redo": ""
+ },
+ {
+  "key": "21",
+  "title": "\"It just made me sluggish\" — sluggish, the pill on the desk, the orange",
+  "secs": 20,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the meds clip (the jamaican nurse)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/f6138a818f436df0ce0cf4591c62f434.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a26b474c31334b9e2b32d1d10b6ec5bc.png"
+   ]
+  ],
+  "text": "“It just made me sluggish and my thoughts were unclear,” says Sophie the next morning to the nurse who has once again brought her two cups - one with water and one with a pill.\n\n“Well, at least you gave it a try” she says “If you decide to take the pill it’ll be right here.” She leaves it on the desk and after she leaves the room Sophie stares at it, then pushes the tissue box in front of it so it’s out of her line of vision. She leans her head back against her pillow, then takes the orange that is on her night table, presses one long fingernail into it’s pristine back, and begins to peel.",
+  "mine": [
+   "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
+   "the nurse: the jamaican nurse in [Video2].",
+   "setting: mental hospital. her room in [Image4]."
+  ],
+  "pre": "",
+  "note": "",
+  "redo": ""
+ },
+ {
+  "key": "42",
+  "title": "The hallway goodbye — the hallway goodbye",
+  "secs": 10,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the doctor and the assistant (hall b-roll, head on)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2d26ca4e4f944ccdd43772e5b1184885.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "text": "Outside in the hallway, Sophie crosses her arms over her chest as she watches her parents leave. The assistant is listing things to her father as he nods in anxious understanding.\n\n“Sophie,” her mother whispers, already stepping out the door, “I think it’s best you take any pills they give you.” she says and she is gone.",
+  "mine": [
+   "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
+   "the assistant: the woman with the clipboard in [Video2].",
+   "her parents: the two people in [Video3].",
+   "setting: mental hospital."
+  ],
+  "pre": "",
+  "note": "",
+  "redo": ""
+ },
+ {
+  "key": "43a",
+  "title": "Nurse Edna — you're lucky, wan peel, the half pill, veery good",
+  "secs": "",
+  "status": "redo · your rewrite, ready to go",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Nurse Edna — the Meds clip (the morning meds nurse)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/f6138a818f436df0ce0cf4591c62f434.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a26b474c31334b9e2b32d1d10b6ec5bc.png"
+   ]
+  ],
+  "text": "setting: nighttime, same room as [Image4], but at night\n\nnurse edna walks in through the doorway of sophie's room. sophie is standing there, waiting for her, pretending she isn't. nurse edna is smiling, and carrying two small white cups - one with a single blue pill and no water, the other with a little bit of water.\n\n“You’re lucky,” she says, continuing to smile at her though it’s now unmistakeable from a grimace. “Dr. Grayson has only given you one pill. Some of the other patients take a whole cup full,\"\n\n\nshe mimes holding a heavy cup full of pills\n\nSophie takes the pill out of the cup and stares at it for a second. Then she puts the pill to her mouth but as she’s doing so, breaks off half of it in her hand. She swallows half of the pill and surrepititiously places the other half in her water cup.\n\n“Veery Goood” says the nurse, smiling proudly, and Sophie beams back at her. The nurse takes both cups back and puts one inside the other.",
+  "mine": [
+   "sophie is the woman in [Video1] and the patient in [Video2].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
+   "Nurse Edna: the nurse in [Video2]."
+  ],
+  "pre": "",
+  "note": "",
+  "redo": "night time\nsophie is cousins\ndoesn't show her chewing the pill or close up on her mouth\npill is in water cup\nspeech is mangled\nplaque granson\nshe's laying in bed",
+  "textWas": "That night Nurse Edna, the nurse in [Video2], walks into her room smiling and carrying the two cups: one with a pill, one with the water. “You’re lucky,” she says, continuing to smile at her though it’s now unmistakeable from a grimace. “Dr. Grayson haz onley geeven yo wan peel. Sahm of de oder patients take a whole cap full,” she mimes holding a heavy cup full of pills belonging to one of the other patients.\n\nSophie pulls the pill out of it’s resting place in the cup and stares at it for a lengthy pause. Then she puts the pill to her mouth but as she’s doing so, breaks off half of it in her hand. She swallows half of the pill and surrepititiously places the other half in her water cup.\n\n“Veery Goood” says the nurse, smiling proudly, and Sophie beams back at her. The nurse takes both cups back and puts one inside the other."
+ },
+ {
+  "key": "43b",
+  "title": "Nurse Edna — the pill in the cup, eet eez ahp to you",
+  "secs": "",
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Nurse Edna — the Meds clip (the morning meds nurse)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/f6138a818f436df0ce0cf4591c62f434.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a26b474c31334b9e2b32d1d10b6ec5bc.png"
+   ]
+  ],
+  "text": "As she’s walking out the door she glances down into the water cup which is on top and notices the pill is sitting there listlessly, barely dissolved still sitting in flakes and chunks at the bottom of the cup. “There is steel moh peel Mees Sophie,” says the nurse as though Sophie would have no idea and Sophie’s smile wavers. The nurse walks back over to where she is standing and Sophie puts the cup to her mouth but doesn’t let any liquid drip down past the barrier of her teeth. The nurse takes the cup. “You must swallow the peel.” “I already took half. I don’t want the other half. It’s too big. It’s not the right size for me,” she says, hoping that perhaps the nurse might grasp the simple concept of ratio as its been presented in this context. “Eet eez ahp to you.” says the nurse and Sophie beams at her once again. “But if you do not take de whole theeng I will have to write that you refuse.” The nurse leaves the cup with the very small amount of water and the half disintegrated pill on her night table and repeats: “Eet eez ahp to you,” then leaves the room.",
+  "mine": [
+   "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
+   "Nurse Edna: the nurse in [Video2].",
+   "setting: mental hospital. her room in [Image4], but lit by fluorescent lights from above, not the lamp."
+  ],
+  "pre": "",
+  "note": "",
+  "redo": ""
+ },
+ {
+  "key": "43c",
+  "title": "The soap — the window over New York, the bar of soap, the cup",
+  "secs": "",
+  "status": "ready — no Edna in it",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a26b474c31334b9e2b32d1d10b6ec5bc.png"
+   ]
+  ],
+  "text": "Sophie stares repeatedly at the pill and then goes to the window and undoes the blinds so the city of New York unfolds before her, filtered through the shatter proof plastic of the windows. She holds the pill cup in her hand, goes to the bathroom and unwraps the new bar of soap she’s gotten delivered that day. She breaks off tiny pieces of it and, after flushing the contents of the cup down the toilet, drips a small amount of water into the cup and sprinkles the cracked pieces of soap in the bottom of the cup. Then she leaves the room holding the cup triumphantly out in front of her.",
+  "mine": [
+   "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
+   "setting: mental hospital. her room in [Image4], but lit by fluorescent lights from above, not the lamp."
+  ],
+  "pre": "",
+  "note": "",
+  "redo": ""
+ },
+ {
+  "key": "43d",
+  "title": "The nurses' station — I've decided, good job",
+  "secs": "",
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Nurse Edna — the Meds clip (the morning meds nurse)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/f6138a818f436df0ce0cf4591c62f434.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a26b474c31334b9e2b32d1d10b6ec5bc.png"
+   ]
+  ],
+  "text": "She goes to the nurses station and asks politely “Where is the nurse that did my pills?” “Meez Ednah eez done with her rounds tonight. Pleez go back to your room.” Sophie turns dejectedly and walks slowly down the hall where she runs into the nurse. “Nurse Edna I’ve decided. I’m going to take my pill.” Sophie shows her the cup with the soap and water in it, then swallows it and Ms. Edna marks something on her chart. “Ok Sophie. Good job foh takeeng yoh peel. Go to sleep now.” Sophie shuffles back to her room and closes the door then turns on the light.",
+  "mine": [
+   "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
+   "Nurse Edna: the nurse in [Video2].",
+   "setting: mental hospital. her room in [Image4], but lit by fluorescent lights from above, not the lamp."
+  ],
+  "pre": "",
+  "note": "",
+  "redo": ""
+ },
+ {
+  "key": "43e",
+  "title": "The half pill takes hold — crayon, butter, sugar, the push-up",
+  "secs": "",
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Nurse Edna — the Meds clip (the morning meds nurse)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/f6138a818f436df0ce0cf4591c62f434.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a26b474c31334b9e2b32d1d10b6ec5bc.png"
+   ]
+  ],
+  "text": "As she sits in the dark she begins to feel strange as the half pill takes ahold of her. She opens her drawer and pulls out a blue crayon, using it to create thick strokes on a blank menu, repeating the action violently until the paper rips in multiple places. Then she opens her drawer once again and pulls out one of her beloved butter pats. She peels off the lid but instead of taking it to the bathroom to carefully wash, dry, and include in one of her sculptures, she smears it on the pictures she’s been working on and then all over the walls and floor near the entrance of her room. Where she has smeared the butter, she opens a packet of sugar and empties it everywhere the butter is smeared so the butter is being used as glue. She arranges herself in a push-up position on the floor, over a pile of butter and sugar and holds herself there, with her eyes shut tight, grimacing. She stays there for a long time as the clock ticks loudly on the wall.",
+  "mine": [
+   "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
+   "Nurse Edna: the nurse in [Video2].",
+   "setting: mental hospital. her room in [Image4], but lit by fluorescent lights from above, not the lamp."
+  ],
+  "pre": "",
+  "note": "",
+  "redo": ""
+ },
+ {
+  "key": "47",
+  "title": "The pill-cup sculpture · \"Sage, that's a nice name\" — the pill-cup sculpture — Sage",
+  "secs": 15,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the meds clip (the jamaican nurse)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/f6138a818f436df0ce0cf4591c62f434.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "text": "She is in the art room making something. it is a beaded sclupture where the animal's hang inside pill cups. the nurse says “the final pice.” Sophie supplies “masterpiece” it is .\n\n“Sage,” she says, replacing the sign on the door. “That’s a nice name.” They look at the door and gesture uninterested at it. “Oh and her name is Sage, not Sophie.”",
+  "mine": [
+   "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
+   "the nurse: the jamaican nurse in [Video2].",
+   "setting: mental hospital."
+  ],
+  "pre": "",
+  "note": "",
+  "redo": ""
+ },
+ {
+  "key": "48",
+  "title": "The end of the hallway — take the pill / don't take the pill",
+  "secs": 20,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "text": "She sits at the end of the hallway, next to the hallway which patients go in as they choose. It’s never been locked so long as she’s been there but there is no handle on the inside of the door. mulling over the matter of whether or not to take the pill she’s been prescribed. “Take the pill,” she mutters, clenching her fists tightly, then releasing, and the antithesis: “Don’t take the pill,” she clenches her fists again. She repeats these two phrases eleven times in a row before screwing up her eyes in concentration as though the decision were laid out in front of her and she has just to interpret it in order to know what to do. She gives up and resorts to clenching her fists again, muttering those words over and over so it sounds like a mantra.",
+  "mine": [
+   "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
+   "setting: mental hospital."
+  ],
+  "pre": "",
+  "note": "",
+  "redo": ""
+ },
+ {
+  "key": "karen",
+  "title": "Karen — the horse pills in her gums, 15 minutes at the TV",
+  "secs": "",
+  "status": "not on any belt yet · your notes verbatim, no scene written",
+  "videos": [],
+  "images": [],
+  "text": "karen - same small oval room w table where dr sugarman and i had our final convo watched me. they changed the pills to hiuuge horse lookin pills like light blue and oval but i had to take them, and pretend i wasnt\nput them in my gums \nidk if karen pretended not to notice cause she said we had to sit there for 15 minutes so i didn't spit them out but she wasn't angry. she was mad i deceived her but realized making ppl take medicine is against human rights\nanyway i just watched whatever was on tv - turned to face it and passed 15 mins pretending to be extremely interested. might've been football",
+  "mine": [],
+  "pre": "",
+  "note": "Your dictated notes, word for word (timeline.txt). Nothing wired — send the scene and the refs you want and it gets carded like the others.",
+  "redo": ""
+ },
+ {
+  "key": "yellow",
+  "title": "The padded room — \"these r actually for your health\", the little yellow pills",
+  "secs": "",
+  "status": "not on any belt yet · your notes verbatim, no scene written",
+  "videos": [],
+  "images": [],
+  "text": "there was a scene where they diagnosed me w a thyroid condition\nhow do u know\nim not lethargic \ni haven't gained any weight\nhow'd u know? looks disbelieving\nwe were in the padded room but unlocked\nw the blue mars against the wall so i can't hurt urself.\n\"but these r actually for your health\" little yellow pills, 2 maybe, tiny white cup\nshook my head \nshe left the room\nfinally when i was leaving, she was like \"how'd. you know\nlethargy etc\nlooked at me like a genius or superpowers",
+  "mine": [],
+  "pre": "",
+  "note": "Your dictated notes, word for word (timeline.txt). Nothing wired.",
+  "redo": ""
+ }
+]
