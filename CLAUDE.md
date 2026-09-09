@@ -217,8 +217,12 @@ and the clip's permanent url; `GET /api/apiframe/video-log?chat=` is the
 read. `video-log.js` is the shape. **A clip drawn outside the route, or made
 before this landed, is filed with `node scripts/apiframe-video-log-backfill.js
 --chat <slug> <jobId>:<scene>:<title>…` (`--file jobs.json` for a batch;
-reads the job back from APIFRAME, so nothing is reconstructed).** APIFRAME
-has no job-list endpoint, so a job id a chat did not keep is gone with its
+reads the job back from APIFRAME, so nothing is reconstructed).** **APIFRAME
+DOES have a job list — `GET https://api.apiframe.ai/v2/jobs?limit=100&cursor=`
+with `x-api-key`, every job back to July with `creditCost` per job (measured
+2026-09-09: 147 jobs, 40 FAILED still carrying a cost — the ledger for a
+refund ask); this line said "no job-list endpoint" until then.** A job id a
+chat did not keep is therefore recoverable from there, not gone with its
 container — the ward chat's earlier clips are only recoverable from that
 chat's own `af-*-job.json` files. Test: `node scripts/test-video-log.js`.
 
