@@ -33,3 +33,35 @@ https://storage.googleapis.com/membry-df528.firebasestorage.app/claude-deliverie
 ```
 an entire tiny city built out of hospital meal-cart junk and masking tape, climbing a bare hospital room wall at night. photograph.
 ```
+
+## The materials (same sitting) — grid page `jiX4laJRmYzTh28Cw3W2`
+
+Sophie: "also make some pictures of standard half-and-half, butter, pads, sugar, packets, things like that, mentioned". Same recipe (ChatGPT tile, 1152x1536, low). `drawer` and `tray` are her sentences verbatim off cards 23c and 15a.
+
+### drawer — The materials — the drawer: cleaned half-and-half cups, salt packets, torn calendar blurbs (your words) · low
+https://storage.googleapis.com/membry-df528.firebasestorage.app/claude-deliveries/1788995743015-6ekghv.webp
+
+```
+A collection of carefully cleaned and dried half-and-half cups, salt packets and more blurbs from the calendar, all carefully torn along the edges.
+```
+
+### tray — The materials — the tray edge: milk carton, butter pat, wrapped roll (your words) · low
+https://storage.googleapis.com/membry-df528.firebasestorage.app/claude-deliveries/1788995744900-lryr35.webp
+
+```
+On the edge of the tray is a carton of milk, a pat of butter in a mini plastic container, and a bread roll wrapped in plastic.
+```
+
+### pocket — The materials — the pajama pocket stash (my words) · low
+https://storage.googleapis.com/membry-df528.firebasestorage.app/claude-deliveries/1788995746700-ao9dgu.webp
+
+```
+the front pocket of blue hospital pajamas, stuffed with a butter pat, salt and pepper packets and a sugar packet saved from the meal tray. close up, photograph.
+```
+
+### flatlay — The materials — the tray things laid out on a bedsheet (my words) · low
+https://storage.googleapis.com/membry-df528.firebasestorage.app/claude-deliveries/1788995748413-3bk4iy.webp
+
+```
+the little things off a hospital meal tray, laid out on a white bedsheet: half-and-half cups, butter pats, salt, pepper and sugar packets, a plastic-wrapped spoon, a torn menu. photograph from above, daylight.
+```
