@@ -387,7 +387,15 @@ line is the PERSON, not the video:
   billed as tokens (a reference video is). Radcliffe is refused on the POST,
   free, as COPYRIGHT — with the black bar too: Atlas's gate is a famous-face
   check that sees through the bar, not a real-person check.** So Atlas takes
-  every person reference the film has except a public figure. The console is
+  every person reference the film has except a public figure. **AND FAST'S OUTPUT GATE FIRES ON A PLAIN TEXT PROMPT (measured
+  2026-09-09, Sophie: "go on the fast vs mini dialogue test"):** the same
+  4s · 480p · 16:9 dialogue prompt — a woman at a kitchen table speaking one
+  line to camera, NO reference of any kind — was refused TWICE on 2.0 Fast
+  with the copyright line (`error_code 1012004`, `price "0"`, ~110s each,
+  unbilled) and drawn once on Mini (job `0fae510554ad4dbea977d4484990f716`,
+  ~4¢). So the output gate is per MODEL and probabilistic, and Fast is the
+  strict one; a plain prompt is not safe from it. Page: "Dialogue test — 2.0
+  Fast vs Mini" in this chat's Compare tab. The console is
   the only billing read (no API), and Atlas's slot word is `video 1` /
   `image 1`. **AND IT IS THE FOOTAGE
   PAGE'S ONLY DOOR AND `doorFor`'s AUTO DEFAULT SINCE THE SAME EVENING
