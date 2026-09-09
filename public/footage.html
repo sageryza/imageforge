@@ -209,10 +209,10 @@
   <p class="bal" id="discline" hidden></p>
   <p><b>Say what the clip is.</b> Add references &mdash; a picture, a clip, a sound &mdash; and name each one in the prompt by its slot: <b>[Image1]</b>, <b>[Video1]</b>, <b>[Audio1]</b>. Tap a slot name to drop it into the box. Never describe what a reference shows; the picture is the point.</p>
   <p><b>The star sends it.</b> One tap, and the line beside it says about what that tap costs. The real cost lands on the card when the clip finishes.</p>
-  <p><b>Through OpenRouter</b> &mdash; ByteDance's own price. ByteDance refuses a reference with a person in it, free, before anything draws; a chat can send that one through APIFRAME. A real photo passes with only the eyes blurred, and a drawn face passes as it is.</p>
+  <p><b>Through Atlas Cloud</b> &mdash; it takes a reference with a person in it, a real photo or a clip, and draws the likeness. A famous face is refused, free, before anything draws; a chat can try that one through APIFRAME.</p>
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
-  <p>Credits cost 5% more to buy than they show, so a $10 top-up buys $10 of clips and costs $10.50.</p>
+  <p>What is left is on the Atlas console &mdash; it has no balance to read from here.</p>
 </div>
 
 <div class="panel">
@@ -299,32 +299,32 @@ function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function 
 // WHAT IS LEFT LIVES BEHIND THE "?" (2026-09-09, Sophie: the balance line came
 // off the panel — it is a fact about the account, not a control, and it was
 // sitting where the price of the tap belongs). Read LIVE on the way open, so a
-// card opened an hour later is not quoting a stale number. OpenRouter's only:
-// APIFRAME is not this page's door any more.
+// card opened an hour later is not quoting a stale number. Atlas Cloud has
+// no balance to read (its console is the only billing read), so the card
+// carries the sale line and the words, and no balance.
 $('help').addEventListener('click', function (e) {
   e.stopPropagation();
   var card = $('helpcard'), opening = card.hidden;
   card.hidden = !opening;
-  // the whole status, not just the balance: the sale OpenRouter is passing on
-  // today is one of the facts this card shows, and the price line under the
-  // star has to agree with it
+  // the whole status: the sale Atlas is passing on today is one of the facts
+  // this card shows, and the price line under the star has to agree with it
   if (opening) { paintBal(); api('/status').then(function (d) { if (d && d.models) { CFG = d; paintControls(); } paintBal(); }).catch(function () {}); }
 });
 document.addEventListener('click', function () { if (!$('helpcard').hidden) $('helpcard').hidden = true; });
 
 // ── State ─────────────────────────────────────────────────────────────────
 var CFG = null;                      // GET /status
-// ONLY OPENROUTER (2026-09-09, Sophie: the door row came off the page).
-// APIFRAME is still a door — footage.js keeps it, and a chat sends a job with
-// a person in a reference through it — it is just not one of her choices here,
-// so there is nothing to pick and nothing to remember. Sound is always on, and
-// sent explicitly rather than left to the model's own default.
-var DOOR = 'openrouter';
-// …AND ATLAS CLOUD RIDES AS A MODEL ROW, NOT A DOOR ROW (2026-09-09, Sophie:
-// "did you add it to the footage tile?"). "2.0 Mini · Atlas" is one more line
-// in the model drop-down; picking it is what sends through the third door, so
-// the door is DERIVED from the model and there is still nothing to pick.
-function doorNow() { var m = modelOf(S.model); return (m && m.atlascloud && !m.openrouter) ? 'atlascloud' : DOOR; }
+// ONLY ATLAS CLOUD (2026-09-09, Sophie: "make atlas the default and only
+// route through footage"). The door row came off the page that morning
+// (OpenRouter only, then), Atlas rode for an afternoon as its own model row,
+// and by the evening it was the page's one door: it takes a person in a
+// reference and prices Mini at a fifth of list. OpenRouter and APIFRAME are
+// still doors — footage.js keeps them, and a chat sends a job through either
+// by hand — they are just not choices here, so there is nothing to pick and
+// nothing to remember. Sound is always on, and sent explicitly rather than
+// left to the model's own default.
+var DOOR = 'atlascloud';
+function doorNow() { return DOOR; }
 var S = { model: 'mini', seconds: 4, res: '480p', ratio: '3:4' };
 var refs = [];                       // [{url, kind, poster, name}]
 var jobsById = {};
@@ -344,9 +344,9 @@ function loadCtl() {
 function saveCtl() { try { localStorage.setItem('footage_ctl', JSON.stringify({ model: S.model, ratio: S.ratio })); } catch (e) {} }
 function saveDraft() { try { localStorage.setItem('footage_draft', JSON.stringify({ prompt: $('prompt').value, refs: refs })); } catch (e) {} }
 // THE LIST IS DERIVED, NEVER TYPED: the models this page offers are the ones
-// OpenRouter carries, which is what takes 1.5 Pro off it — that one exists
+// Atlas Cloud carries, which is what takes 1.5 Pro off it — that one exists
 // only on APIFRAME, and this page has only the one door.
-function models() { return (CFG && CFG.models ? CFG.models : []).filter(function (m) { return m.openrouter || m.atlascloud; }); }
+function models() { return (CFG && CFG.models ? CFG.models : []).filter(function (m) { return m.atlascloud; }); }
 function modelOf(id) { return models().filter(function (m) { return m.id === id; })[0]; }
 
 // ── The controls ──────────────────────────────────────────────────────────
@@ -424,22 +424,24 @@ function updateCost() {
   api('/estimate' + q).then(function (d) {
     if (seq !== costSeq) return;
     if (!d || d.error) { $('cost').textContent = (d && d.error) || ''; $('cost').dataset.cents = ''; return; }
-    // "about" ONLY where the server says the number is not pinned — a
-    // reference video is the one shape still unmeasured on OpenRouter.
+    // "about" ONLY where the server says the number is not pinned — Atlas
+    // bills per second, so the live rate is exact; a reference video and the
+    // list-rate fallback are the shapes that are not.
     $('cost').textContent = (d.about ? 'about ' : '') + cents(d.cents);
     $('cost').dataset.cents = d.cents;
     $('cost').dataset.about = d.about ? '1' : '';
   }).catch(function () {});
 }
 function paintBal() {
-  var b = CFG && CFG.balances, or = b && b.openrouter;
-  var line = (or && or.left != null) ? 'OpenRouter \u2014 $' + or.left.toFixed(2) + ' left' : '';
-  $('balline').textContent = line;
-  $('balline').hidden = !line;
-  // THE SALE IS READ, NEVER WRITTEN DOWN — the server asks OpenRouter what
-  // discount it is passing on today and says so here only while there is one.
-  var off = models().filter(function (m) { return m.discount > 0; })
-    .map(function (m) { return m.label + ' is ' + Math.round(m.discount * 100) + '% off right now'; });
+  // ATLAS HAS NO BALANCE TO READ (every billing endpoint answered 404,
+  // 2026-09-09) — the console is the only read, so no balance line is drawn.
+  $('balline').textContent = '';
+  $('balline').hidden = true;
+  // THE SALE IS READ, NEVER WRITTEN DOWN — the server asks Atlas what it is
+  // charging today (`atlasPays`, the percent of list she pays) and says so
+  // here only while there is a sale.
+  var off = models().filter(function (m) { return m.atlasPays != null && m.atlasPays < 100; })
+    .map(function (m) { return m.label + ' is ' + Math.round(100 - m.atlasPays) + '% off right now'; });
   $('discline').textContent = off.join(' · ');
   $('discline').hidden = !off.length;
 }
@@ -593,8 +595,9 @@ $('go').addEventListener('click', function () {
       var msg = (d && d.error) || 'Could not start';
       // A CONTENT REFUSAL IS FREE AND COMES BACK BEFORE ANYTHING DRAWS, and
       // this page has only the one door — so it says, in her own terms, who
-      // can send that job instead.
-      if (d && d.refusal === 'content') msg += ' — a person in a reference. A chat can send this one through APIFRAME.';
+      // can try that job instead. On Atlas the refusal is a FAMOUS face (a
+      // real photo of anyone else passes).
+      if (d && d.refusal === 'content') msg += ' — a famous face in a reference. A chat can try this one through APIFRAME.';
       else if (d && d.hint) msg += ' — ' + d.hint;
       $('err').textContent = msg; $('err').hidden = false;
       return;

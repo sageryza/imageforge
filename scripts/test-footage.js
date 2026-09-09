@@ -42,7 +42,7 @@ function report() {
 {
   const F = require('../footage');
   const both = { openrouter: true, apiframe: true };
-  ok('auto: a 2.x model goes OpenRouter first with APIFRAME as the fallback',
+  ok('auto with no Atlas: a 2.x model goes OpenRouter first with APIFRAME as the fallback',
     JSON.stringify(F.doorFor({ model: 'mini', door: 'auto', resolution: '480p' }, both)) === '{"door":"openrouter","fallback":"apiframe"}');
   ok('1.5 Pro is APIFRAME only, whatever auto says', F.doorFor({ model: '1.5', door: 'auto', resolution: '480p' }, both).door === 'apiframe');
   ok('pinning OpenRouter on 1.5 Pro is refused with a reason', /only on APIFRAME/.test(F.doorFor({ model: '1.5', door: 'openrouter', resolution: '480p' }, both).error || ''));
@@ -54,20 +54,31 @@ function report() {
   ok('1080p on APIFRAME is unpriced and refused as a pinned door', Boolean(F.doorFor({ model: '2.0', door: 'apiframe', resolution: '1080p' }, both).error));
   ok('1080p auto goes OpenRouter with NO fallback (APIFRAME cannot price it)',
     JSON.stringify(F.doorFor({ model: '2.0', door: 'auto', resolution: '1080p' }, both)) === '{"door":"openrouter","fallback":null}');
-  // THE THIRD DOOR rides as a model ROW (mini-atlas), pinned by its row, no fallback
+  // ATLAS IS THE DEFAULT (2026-09-09, Sophie: "make atlas the default and
+  // only route through footage") — every 2.x row carries an Atlas id, auto
+  // goes there first with APIFRAME behind it for a famous face, and a pinned
+  // Atlas door never falls back
   const three = { openrouter: true, apiframe: true, atlascloud: true };
-  ok('the Atlas Mini row lands on Atlas Cloud with no fallback, whatever auto says',
-    JSON.stringify(F.doorFor({ model: 'mini-atlas', door: 'auto', resolution: '480p' }, three)) === '{"door":"atlascloud","fallback":null}');
-  ok('with no ATLASCLOUD_API_KEY the Atlas row is refused with a reason, never sent elsewhere',
-    /ATLASCLOUD_API_KEY/.test(F.doorFor({ model: 'mini-atlas', door: 'atlascloud', resolution: '480p' }, both).error || '')
-    && Boolean(F.doorFor({ model: 'mini-atlas', door: 'auto', resolution: '480p' }, both).error));
-  ok('the plain Mini row never goes to Atlas on its own', F.doorFor({ model: 'mini', door: 'auto', resolution: '480p' }, three).door === 'openrouter');
-  ok('pinning Atlas on a row that is not there is refused', /not on Atlas Cloud/.test(F.doorFor({ model: 'mini', door: 'atlascloud', resolution: '480p' }, three).error || ''));
-  const at = F.estimate({ model: 'mini-atlas', resolution: '480p', ratio: '3:4', seconds: 4, door: 'auto' }, three);
+  ok('auto with Atlas configured: a 2.x model goes Atlas first with APIFRAME as the fallback',
+    JSON.stringify(F.doorFor({ model: 'mini', door: 'auto', resolution: '480p' }, three)) === '{"door":"atlascloud","fallback":"apiframe"}');
+  ok('every 2.x row is on Atlas; 1.5 Pro is not', ['mini', 'fast', '2.0', '2.5'].every((id) => F.doorFor({ model: id, door: 'atlascloud', resolution: '480p' }, three).door === 'atlascloud')
+    && /not on Atlas Cloud/.test(F.doorFor({ model: '1.5', door: 'atlascloud', resolution: '480p' }, three).error || ''));
+  ok('a pinned Atlas door has no fallback',
+    JSON.stringify(F.doorFor({ model: 'mini', door: 'atlascloud', resolution: '480p' }, three)) === '{"door":"atlascloud","fallback":null}');
+  ok('with no ATLASCLOUD_API_KEY a pinned Atlas door is refused with a reason, never sent elsewhere',
+    /ATLASCLOUD_API_KEY/.test(F.doorFor({ model: 'mini', door: 'atlascloud', resolution: '480p' }, both).error || ''));
+  ok('2.0 at 1080p is unpriced on Atlas, so auto goes OpenRouter there',
+    F.doorFor({ model: '2.0', door: 'auto', resolution: '1080p' }, three).door === 'openrouter');
+  ok('there is no mini-atlas row any more — the door rides the rows', !F.publicModels().some((m) => m.id === 'mini-atlas'));
+  const at = F.estimate({ model: 'mini', resolution: '480p', ratio: '3:4', seconds: 4, door: 'atlascloud' }, three);
   ok('an Atlas price with no live read is per second off its LIST rate and "about"', at.door === 'atlascloud' && at.about === true && at.cents === 22.4);
-  ok('publicModels flags the Atlas row for the page', F.publicModels().some((m) => m.id === 'mini-atlas' && m.atlascloud && !m.openrouter && !m.apiframe));
-  ok('cardOf reads an Atlas job back onto its row', (() => { const c = F.cardOf('x', { prompt: 'p', model: 'bytedance/seedance-2.0-mini/reference-to-video', provider: 'atlascloud', params: { duration: 4 }, status: 'completed' }); return c.model === 'mini-atlas' && c.door === 'atlascloud'; })());
-  ok('a pinned OpenRouter door is what the page always sends, and it is obeyed',
+  ok('the Atlas list rates per row: Fast 9¢/s · 2.0 11.2¢/s · 2.5 16.7¢/s',
+    F.estimate({ model: 'fast', resolution: '480p', ratio: '3:4', seconds: 4, door: 'atlascloud' }, three).cents === 36
+    && F.estimate({ model: '2.0', resolution: '480p', ratio: '3:4', seconds: 4, door: 'atlascloud' }, three).cents === 44.8
+    && F.estimate({ model: '2.5', resolution: '480p', ratio: '3:4', seconds: 4, door: 'atlascloud' }, three).cents === 66.8);
+  ok('publicModels flags every 2.x row for Atlas', F.publicModels().filter((m) => m.atlascloud).map((m) => m.id).join(',') === 'mini,fast,2.0,2.5');
+  ok('cardOf reads an Atlas job back onto its row', (() => { const c = F.cardOf('x', { prompt: 'p', model: 'bytedance/seedance-2.0-mini/reference-to-video', provider: 'atlascloud', params: { duration: 4 }, status: 'completed' }); return c.model === 'mini' && c.door === 'atlascloud'; })());
+  ok('a pinned OpenRouter door is still obeyed (a chat\'s door, not the page\'s any more)',
     JSON.stringify(F.doorFor({ model: 'mini', door: 'openrouter', resolution: '480p' }, both)) === '{"door":"openrouter","fallback":null}');
 
   // ── THE PRICE, PINNED TO THE HUNDREDTH OF A CENT AGAINST REAL CHARGES ──
@@ -140,10 +151,10 @@ function report() {
     c.model === 'mini' && c.door === 'openrouter' && c.status === 'done' && c.cost === 5.4 && c.seconds === 4 && c.refs[0].slot === '[Image1]');
 
   // the page's own model list is DERIVED — every model it can offer is one
-  // OpenRouter carries, and 1.5 Pro is the one that is not
-  const orModels = F.publicModels().filter((m) => m.openrouter).map((m) => m.id);
-  ok('the OpenRouter table is what the page can offer, and 1.5 Pro is not in it',
-    orModels.length === 4 && orModels.indexOf('1.5') < 0 && orModels.indexOf('mini') === 0);
+  // Atlas Cloud carries, and 1.5 Pro is the one that is not
+  const atModels = F.publicModels().filter((m) => m.atlascloud).map((m) => m.id);
+  ok('the Atlas table is what the page can offer, and 1.5 Pro is not in it',
+    atModels.length === 4 && atModels.indexOf('1.5') < 0 && atModels.indexOf('mini') === 0);
 
   // source pins
   const sv = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8');
@@ -195,6 +206,10 @@ const estQ = [];          // every /estimate the page asked for, so the ONE-DOOR
                           // claim is measured rather than asserted as true
 let statusCalls = 0;
 let discount = 0;        // what OpenRouter is passing on today, as /status says AND /estimate prices
+let atlasPays = 100;     // the percent of list Atlas charges today — 100 is no sale, 20 is the 80%-off Mini
+// cents per second on Atlas for a model, off its list rate × what it charges today
+const ATLAS_LIST = { mini: 5.6, fast: 9, '2.0': 11.2, '2.5': 16.7 };
+const atlasRate = (id) => (ATLAS_LIST[id] || 0) * atlasPays / 100;
 let refuse = false;      // the next POST comes back as a ByteDance content refusal
 let slow = 0;            // ms the next POST is held, so the one-tap guard is measurable
 
@@ -228,12 +243,19 @@ const server = http.createServer((req, res) => {
     if (u.pathname === '/clip.mp4') { res.writeHead(200, { 'content-type': 'video/mp4' }); return res.end(''); }
     if (u.pathname === '/api/footage/status') {
       statusCalls += 1;
-      return json({ ok: true, doors: { openrouter: true, apiframe: true }, balances: { openrouter: { configured: true, left: 35.72 }, apiframe: { configured: true, credits: 817 } },
-        models: F.publicModels().map((m) => (m.openrouter ? { ...m, discount } : m)), ratios: F.RATIOS, sizes: F.SIZES, fee: F.OR_FEE });
+      return json({ ok: true, doors: { openrouter: true, apiframe: true, atlascloud: true }, balances: { openrouter: { configured: true, left: 35.72 }, apiframe: { configured: true, credits: 817 }, atlascloud: { configured: true } },
+        models: F.publicModels().map((m) => ({ ...m, ...(m.openrouter ? { discount } : {}), ...(m.atlascloud ? { atlasPerSec: atlasRate(m.id) / 100, atlasPays } : {}) })), ratios: F.RATIOS, sizes: F.SIZES, fee: F.OR_FEE });
     }
     if (u.pathname === '/api/footage/estimate') {
       const q = Object.fromEntries(u.searchParams);
       estQ.push(q);
+      // the Atlas door is priced by the stub the way footage.js prices it —
+      // the live per-second rate (the sale applied) × seconds, exact with no
+      // reference video
+      if (q.door === 'atlascloud') {
+        const c = Math.round(atlasRate(q.model) * Number(q.seconds) * 100) / 100;
+        return json({ ok: true, cents: c, door: 'atlascloud', ...(q.video === '1' ? { about: true } : { exact: true }) });
+      }
       return json({ ok: true, ...F.estimate({ model: q.model, resolution: q.res, ratio: q.ratio, seconds: q.seconds, hasVideo: q.video === '1', door: q.door, discount }, { openrouter: true, apiframe: true }) });
     }
     if (u.pathname === '/api/footage/jobs' && req.method === 'GET') return json({ ok: true, jobs });
@@ -242,9 +264,9 @@ const server = http.createServer((req, res) => {
       posted.push(b);
       const answer = () => {
         if (refuse) { refuse = false; return json({ error: 'ByteDance refused a reference', refusal: 'content', hint: 'that job goes through /api/apiframe/video' }, 400); }
-        jobs.unshift({ id: 'new1', prompt: b.prompt, model: 'mini', modelLabel: '2.0 Mini', door: 'openrouter', seconds: b.seconds, resolution: b.resolution, ratio: b.ratio,
+        jobs.unshift({ id: 'new1', prompt: b.prompt, model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', seconds: b.seconds, resolution: b.resolution, ratio: b.ratio,
           sound: true, refs: [], status: 'drawing', sentAt: new Date().toISOString(), estimate: 7, vote: '' });
-        json({ ok: true, jobId: 'new1', door: 'openrouter', fellBack: false, estimate: 7 }, 202);
+        json({ ok: true, jobId: 'new1', door: 'atlascloud', fellBack: false, estimate: 7 }, 202);
       };
       if (slow) { const ms = slow; slow = 0; return setTimeout(answer, ms); }
       return answer();
@@ -306,9 +328,12 @@ async function pillSweep(pg, where) {
     const three = { openrouter: true, apiframe: true, atlascloud: true };
     F.init({ atlascloud: { configured: () => true, api: async (p) => (p === '/models' ? { data: [{ model: 'bytedance/seedance-2.0-mini/reference-to-video', price: { discount: '20', actual: { base_price: '0.011' }, origin: { base_price: '0.056' } } }] } : null) } });
     await F.atlasPrices();
-    const atLive = F.estimate({ model: 'mini-atlas', resolution: '480p', ratio: '16:9', seconds: 4, door: 'auto' }, three);
-    ok('with the live read the Atlas price is the SALE rate per second (1.1¢/s × 4s), still "about"', atLive.door === 'atlascloud' && atLive.about === true && atLive.cents === 4.4);
-    ok('publicModels carries the live per-second rate for the "?" card', F.publicModels().some((m) => m.id === 'mini-atlas' && m.atlasPerSec === 0.011 && m.atlasPays === 20));
+    const atLive = F.estimate({ model: 'mini', resolution: '480p', ratio: '16:9', seconds: 4, door: 'auto' }, three);
+    ok('with the live read the Atlas price is the SALE rate per second (1.1¢/s × 4s), EXACT — Atlas bills per second', atLive.door === 'atlascloud' && atLive.exact === true && atLive.cents === 4.4);
+    const atVid = F.estimate({ model: 'mini', resolution: '480p', ratio: '16:9', seconds: 4, hasVideo: true, door: 'auto' }, three);
+    ok('a reference video is still "about" on Atlas (one job measured ~19% more)', atVid.door === 'atlascloud' && atVid.about === true && atVid.cents === 4.4);
+    ok('publicModels carries the live per-second rate for the "?" card', F.publicModels().some((m) => m.id === 'mini' && m.atlasPerSec === 0.011 && m.atlasPays === 20));
+    ok('a row Atlas did not price keeps its list fallback', F.estimate({ model: 'fast', resolution: '480p', ratio: '16:9', seconds: 4, door: 'auto' }, three).about === true);
   }
   // `await` is not legal in the pure block above, so the one asynchronous
   // pure check rides here: a read that cannot happen answers 0 — full list —
@@ -345,15 +370,16 @@ async function pillSweep(pg, where) {
     return /left|OpenRouter \$|APIFRAME \$/.test(t);
   });
   ok('the balance is NOT in the page body any more', !balInBody);
-  ok('the balance line lives inside the ? card', await page.$eval('#balline', (e) => !!e.closest('.helpcard')));
   const before = statusCalls;
   await page.click('#help');
   await page.waitForTimeout(300);
   ok('tapping ? opens the card', !(await page.$eval('#helpcard', (e) => e.hidden)));
-  ok('opening it reads the balance LIVE', statusCalls > before);
-  const balText = await page.$eval('#balline', (e) => e.textContent);
-  ok('the card says what OpenRouter has left, and never APIFRAME: ' + balText,
-    /OpenRouter — \$35\.72 left/.test(balText) && !/APIFRAME/.test(balText));
+  ok('opening it reads the status LIVE', statusCalls > before);
+  // ATLAS HAS NO BALANCE TO READ — the card must not quote OpenRouter's or
+  // APIFRAME's as if it were the page's door's
+  ok('the card quotes no balance at all (Atlas has none to read), and names Atlas as the door',
+    (await page.$eval('#balline', (e) => e.hidden)) && /Through Atlas Cloud/.test(await page.$eval('#helpcard', (e) => e.textContent))
+    && !/Through OpenRouter|5% more/.test(await page.$eval('#helpcard', (e) => e.textContent)));
   await page.click('body', { position: { x: 5, y: 820 } });
   ok('any tap closes it', await page.$eval('#helpcard', (e) => e.hidden));
 
@@ -368,8 +394,8 @@ async function pillSweep(pg, where) {
       value: m.value, rvalue: r.value };
   });
   ok('the model is a <select> and the resolution is a <select>', sel.mTag === 'SELECT' && sel.rTag === 'SELECT');
-  ok('1.5 Pro is off the list — APIFRAME is not one of this page\'s doors — and Atlas\'s Mini is ON it as a model row',
-    sel.models.indexOf('1.5') < 0 && sel.models.join(',') === 'mini,mini-atlas,fast,2.0,2.5');
+  ok('1.5 Pro is off the list — APIFRAME is not one of this page\'s doors — and the four 2.x rows are the list',
+    sel.models.indexOf('1.5') < 0 && sel.models.join(',') === 'mini,fast,2.0,2.5');
   ok('the native chrome is off and the box is the house 6px', sel.appearance === 'none' && sel.radius === '6px');
   ok('each drop-down draws our own inline chevron', sel.chevs === 2);
   ok('the resolution opens at the model\'s minimum', sel.rvalue === '480p' && sel.reses.join(',') === '480p,720p');
@@ -415,7 +441,7 @@ async function pillSweep(pg, where) {
   await page.waitForFunction(() => /¢$/.test(document.getElementById('cost').textContent));
   const cost0 = await page.$eval('#cost', (e) => e.textContent);
   ok('the price line is a price and nothing about a door: ' + cost0, /^\d+(\.\d{1,2})?¢$/.test(cost0));
-  ok('a pinned price does not hedge — no "about" on a job with no reference video', !/about/.test(cost0));
+  ok('a pinned price does not hedge — no "about" on a job with no reference video (Atlas bills per second)', !/about/.test(cost0));
   const beside = await page.evaluate(() => {
     const g = document.getElementById('go').getBoundingClientRect(), c = document.getElementById('cost').getBoundingClientRect();
     return { sameRow: Math.abs((g.top + g.height / 2) - (c.top + c.height / 2)) < 14, gap: Math.round(c.left - g.right) };
@@ -533,12 +559,12 @@ async function pillSweep(pg, where) {
     sent && sent.prompt === 'her mother is the woman in [Image1]' && sent.refs.length === 1 && sent.refs[0].kind === 'image' && /ref\.png$/.test(sent.refs[0].url)
     && sent.model === 'mini' && sent.seconds === 4 && sent.resolution === '480p' && sent.ratio === '9:16');
   ok('sound is always on and always sent, never left to the model\'s default', sent.sound === true);
-  ok('the door is always openrouter — this page offers no other', sent.door === 'openrouter');
+  ok('the door is always atlascloud — this page offers no other', sent.door === 'atlascloud');
   // ONE DOOR, MEASURED — every price this page ever quoted was quoted for the
   // door it actually sends through. A page that priced APIFRAME and sent
-  // OpenRouter would show her the wrong number all day and look perfect.
-  ok('every estimate this page asked for was OpenRouter\'s (' + estQ.length + ' asked)',
-    estQ.length > 0 && estQ.every((q) => q.door === 'openrouter'));
+  // Atlas would show her the wrong number all day and look perfect.
+  ok('every estimate this page asked for was Atlas\'s (' + estQ.length + ' asked)',
+    estQ.length > 0 && estQ.every((q) => q.door === 'atlascloud'));
   ok('the new card is on top, drawing', await page.$eval('#feed', (f) => f.firstElementChild.id === 'job-new1' && /drawing/.test(f.firstElementChild.textContent)));
   ok('the draft is cleared once sent', await page.evaluate(() => localStorage.getItem('footage_draft') == null));
 
@@ -547,8 +573,8 @@ async function pillSweep(pg, where) {
   await page.click('#go');
   await page.waitForSelector('#err:not([hidden])');
   const err = await page.$eval('#err', (e) => e.textContent);
-  ok('a ByteDance refusal shows on the page with the page\'s own hint: ' + err,
-    /refused/.test(err) && /APIFRAME/.test(err) && /chat/.test(err));
+  ok('an Atlas refusal shows on the page with the page\'s own hint (a famous face; a chat can try APIFRAME): ' + err,
+    /refused/.test(err) && /famous face/.test(err) && /APIFRAME/.test(err) && /chat/.test(err));
 
   // ── ♥ / ✕ — what the server really received ──────────────────────────────
   await page.click('#job-old1 .heart');
@@ -565,11 +591,11 @@ async function pillSweep(pg, where) {
 
   // ── the sale is READ, and the card and the price line tell one story ─────
   ok('with no sale running the card says nothing about one', await page.$eval('#discline', (e) => e.hidden));
-  discount = 0.6;                              // OpenRouter starts passing ByteDance's 60% on again
+  atlasPays = 20;                              // Atlas's 80%-off Mini sale, read off its own model list
   await page.click('#help');
   await page.waitForFunction(() => !document.getElementById('discline').hidden);
   ok('opening the card picks the sale up live: ' + (await page.$eval('#discline', (e) => e.textContent)),
-    /2\.0 Mini is 60% off right now/.test(await page.$eval('#discline', (e) => e.textContent)));
+    /2\.0 Mini is 80% off right now/.test(await page.$eval('#discline', (e) => e.textContent)));
   await page.waitForFunction(() => /¢$/.test(document.getElementById('cost').textContent));
   ok('and the price under the star drops with it', parseFloat(await page.$eval('#cost', (e) => e.textContent)) < parseFloat(cost0));
   await page.click('body', { position: { x: 5, y: 820 } });

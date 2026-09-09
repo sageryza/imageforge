@@ -389,10 +389,14 @@ line is the PERSON, not the video:
   check that sees through the bar, not a real-person check.** So Atlas takes
   every person reference the film has except a public figure. The console is
   the only billing read (no API), and Atlas's slot word is `video 1` /
-  `image 1`. **It is on the Footage
-  tile as a MODEL ROW, "2.0 Mini · Atlas" (same day, her "did you add it to
-  the footage tile?") — the door row is gone, so the row is the door.** Full
-  note: *ATLAS CLOUD — THE THIRD DOOR* in `docs/modules/audio-and-film.md`.
+  `image 1`. **AND IT IS THE FOOTAGE
+  PAGE'S ONLY DOOR AND `doorFor`'s AUTO DEFAULT SINCE THE SAME EVENING
+  (Sophie: "make atlas the default and only route through footage")** — it
+  rode for an afternoon as its own "2.0 Mini · Atlas" row; now every 2.x row
+  carries an Atlas id, the page pins `door:'atlascloud'`, and auto goes Atlas
+  → APIFRAME (a famous face) → OpenRouter only for a shape Atlas does not
+  price. Full note: *ATLAS CLOUD — THE THIRD DOOR* in
+  `docs/modules/audio-and-film.md`.
   The "go" rule applies word for word.** Likeliest
   reading of APIFRAME's looseness is a Runway-style backend rather than a
   ByteDance key — unmeasured; APIFRAME calls itself an "official partner"
@@ -7287,17 +7291,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   opens — it is a fact about the account, not a control, and it was sitting
   where the price of the tap belongs; OpenRouter's balance only, since APIFRAME
   is not this page's door.
-  **ONLY OPENROUTER (same list).** The DOOR row is gone and the page always
-  sends `door:'openrouter'` — so **1.5 Pro is off the model list** (it exists
-  only on APIFRAME), and the list is DERIVED from which models OpenRouter
-  carries rather than typed. **APIFRAME is still a door and `footage.js` keeps
-  it**: a reference with a person in it has nowhere else to go, and a chat
-  sends those. It is simply not one of her choices here. A content refusal is
-  free and comes back before anything draws, and the page shows it with its own
-  line — *a person in a reference; a chat can send this one through APIFRAME*.
-  The module's own AUTO (OpenRouter first, the identical job through APIFRAME
-  on a content refusal, saying so on the card) is untouched and is what a chat
-  calling the route still gets.
+  **ONLY ATLAS CLOUD (2026-09-09, Sophie: "make atlas the default and only
+  route through footage").** The DOOR row came off the page that morning
+  (OpenRouter only, then) and by the evening the one door was Atlas: it takes
+  a person in a reference — a real photo, a Seedance clip with people in it —
+  and prices Mini at a fifth of list (the 80% sale, read live off its own
+  model list; see the Atlas bullet above). The page always sends
+  `door:'atlascloud'`, its model list is DERIVED from which rows Atlas carries
+  (every 2.x row; **1.5 Pro stays off**, APIFRAME-only), its "?" card quotes
+  no balance (Atlas has none to read — the console is the only billing read)
+  and says "2.0 Mini is 80% off right now" while there is a sale, and a
+  content refusal — a FAMOUS face, free, on the POST — shows with its own
+  line (*a famous face in a reference; a chat can try this one through
+  APIFRAME*). The price beside the star is EXACT with no reference video
+  (Atlas bills per second) and "about" with one. **OpenRouter and APIFRAME
+  are still doors and `footage.js` keeps them** — a chat pins either by hand,
+  and the module's own AUTO is Atlas first with APIFRAME behind it for a
+  refused face (re-sent with a note saying so on the card), OpenRouter for a
+  shape Atlas does not price (2.0 at 1080p).
   **PLAN BEFORE GO IS HISTORY (2026-09-09, "no plan button").** She asked for
   it the day before — "plan before go" — and retired it within the day: the
   first button used to open a read-back card under the controls (her words
