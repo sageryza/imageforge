@@ -766,5 +766,13 @@
  "otherChat": {
   "chat": "mom-character-clip",
   "finding": "converged independently on black/solid bars; its newest probe is Solid bar probe E (0.26/0.22), accepted"
- }
+ },
+ "axisSplit": {
+  "height floor": "between 0.08 (REFUSED) and 0.10 (ACCEPTED)",
+  "width floor": "none found \u2014 0.00 padding (bar = the eye span, 66px) still ACCEPTED",
+  "shortest accepted": "6px tall",
+  "narrowest accepted": "66px wide",
+  "conclusion": "height is the whole constraint; width is not a constraint"
+ },
+ "faceSize": "does not predict anything \u2014 640px and 90px faces pass a blur, 119px and 159px refuse it; recropping to 80/62/48 percent of frame changed nothing"
 }

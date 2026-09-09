@@ -289,31 +289,64 @@ crop to at least 420px wide before sending.** Cropping tight is free and often
 necessary (it is how a second person is removed); falling under 300px is the
 trap, and it looks exactly like a face refusal if you do not read the code.
 
-### A SOLID bar can be tiny — Michael's floor is a 79x7px sliver
+### A SOLID bar can be tiny — and only its HEIGHT matters
 
-Measured 2026-09-09 after the solid finding. On his head-on crop (420px wide),
-solid bars going down:
+Measured 2026-09-09 on Michael's head-on crop (420px wide, his face ~159px).
+The first ladder moved both numbers together, which confounds them, so a second
+pass split the axes:
 
-| rung | bar | result |
+**The diagonal (both moving together):**
+
+| rung | h / w | bar | result |
+|---|---|---|---|
+| E | 0.26 / 0.22 | 95×17 | ACCEPTED |
+| F | 0.18 / 0.15 | 85×11 | ACCEPTED |
+| G | 0.12 / 0.10 | 79×7 | ACCEPTED |
+| H | 0.08 / 0.06 | 73×5 | REFUSED |
+
+**The split — which axis was H failing on:**
+
+| probe | h / w | bar | result |
+|---|---|---|---|
+| H's height, G's width | 0.08 / 0.10 | 79×5 | **REFUSED** |
+| G's height, H's width | 0.12 / 0.06 | 73×7 | **ACCEPTED** |
+| G's height, NO width pad | 0.12 / 0.00 | **66×7** | **ACCEPTED** |
+| between the two heights | 0.10 / 0.10 | 79×**6** | **ACCEPTED** |
+
+**HEIGHT is the whole constraint. Width is not a constraint at all.**
+
+- **Shortest accepted: 6px tall** (height_frac 0.10). The floor sits between
+  0.08 (refused) and 0.10 (accepted).
+- **Narrowest accepted: 66px wide** — the eye span exactly, `width_pad` 0.00,
+  no padding beyond the eyes themselves. **No width floor was ever found**: it
+  never refused however far the width came in.
+
+So the bar only has to be tall enough to cover the eye vertically; sideways it
+need only reach from one eye to the other. **A 66×7px solid sliver passes on
+the face whose 122×51 BLUR was refused.**
+
+**The floor was found in ONE direction, not both** — height has a bracket
+(0.08 no, 0.10 yes), width has only a floor-not-reached at zero padding.
+
+**Michael has TWO views** (her ask) — `michael-view1` head-on from table f0284,
+`michael-view2` looking off from f0704 — both accepted, both on model.
+
+### Face size does NOT predict any of this
+
+Worth stating because it is the obvious hypothesis and it is wrong:
+
+| face | size | blurred bar |
 |---|---|---|
-| E (0.26/0.22) | 95×17 | ACCEPTED |
-| F (0.18/0.15) | 85×11 | ACCEPTED |
-| **G (0.12/0.10)** | **79×7** | **ACCEPTED — his floor** |
-| H (0.08/0.06) | 73×5 | REFUSED |
+| Sophie (intake A) | 640px | PASSES |
+| the parents | ~90px | PASSES |
+| the white-coat nurse | 119px | refuses at every crop |
+| Michael | 159px | refuses at every width |
 
-**A 79×7 solid sliver passes on the face whose 122×51 BLUR was refused.** That
-is the information model at its starkest: seven pixels of destroyed data beat
-fifty-one pixels of attenuated data. Nothing about area explains it.
-
-**So solid is not only the fallback, it is the CHEAPER treatment in face.** At
-G almost the whole face survives — brows, lids, lashes, everything but a hairline
-across the pupils — so the likeness that reaches the clip is better than under
-any blur that would have passed.
-
-**Michael now has TWO views** (her ask: "not bad to have two options, or views
-of his face") — `michael-view1` head-on from table f0284, `michael-view2`
-looking off from f0704 — both at solid G, both accepted, both drawing him on
-model.
+The biggest face and the smallest face both pass; the two that refuse are in
+the middle. And re-cropping the known-good Sophie still to 80%, 62% and 48% of
+its frame — changing how much of the picture her face fills — was accepted
+every time. **It is the individual face, not its size, and there is no way to
+predict which is which except by sending it.** Which is free, so send it.
 
 ### The other chat found the same thing independently
 
