@@ -162,6 +162,61 @@ both modes.
 3. The stills gap is closed for Sophie, the doctor and the assistant. **The
    voices are still the open item**, plus the nurse.
 
+## A solid bar goes one rung narrower than a blurred one — MEASURED 2026-09-09
+
+Run here on `sophie-face-A`, the same 640px still their ladder used, so the
+numbers are directly comparable. Narrowest-first, one at a time; the refusals
+were free and the search cost one accepted clip.
+
+| rung | solid (here) | blur (theirs) |
+|---|---|---|
+| F-hairline 0.18 / 0.15 | REFUSED | REFUSED |
+| **E-slit 0.26 / 0.22** | **ACCEPTED — $0.0558, job `MNibLXAnUYHj0wwVdnPC`** | REFUSED |
+| D-narrower 0.34 / 0.30 | — | ACCEPTED |
+
+So **`mode=solid` clears the filter a rung below `mode=blur`** — about 16px less
+face on a 640px head. Anything below E still bounces in either mode, so
+E-slit-solid is the new narrowest known-good setting and D stays the safe one
+for blur.
+
+## Michael — the best close take is hall2 frame 565
+
+Every frame of `table`, `hall`, `hall2` and `michaelAud2` was pulled at native
+resolution and every face on every frame scored (YuNet box + size-normalised
+Laplacian).
+
+| clip | his best face | verdict |
+|---|---|---|
+| **`hall2` frame 0565** | **501px, head-on, mouth closed, eyes open** | **the pick** |
+| `table` (cafeteria) frame 0620 | 175px, mouth wide open | ~3x smaller, mid-word |
+| `hall` (v1, braid) ~frame 0318 | ~139px | Sophie carries that clip; he is far off |
+| `michaelAud2` | 20–32px | confirmed unusable, as their doc says |
+
+The hall2 frames after 565 (586, 592, 603, 614) are all smiling or laughing —
+bad identity references, their `sophie-face-B` lesson.
+
+Filed in the chat's Assets tab, labeled: the plain still, the solid bar at
+E-slit, and the blurred bar at D-narrower. Dump bundle **"Michael stills"**.
+
+**So `michaelAud2` does not need re-shooting.** Their doc lists his close
+audition as owed; hall2 already has a 501px head-on frame of him.
+
+## The tools
+
+`scripts/ward-facetool.py` and `scripts/ward-pullstills.py` live on branch
+`claude/seedance-reference-stills-faqg6e` and reach main with that chat's PR —
+they are deliberately NOT duplicated here. To use them before then:
+
+    git show origin/claude/seedance-reference-stills-faqg6e:scripts/ward-facetool.py > scripts/ward-facetool.py
+    pip install opencv-python-headless
+    mkdir -p scripts/models && curl -sL -o scripts/models/yunet.onnx \
+      https://media.githubusercontent.com/media/opencv/opencv_zoo/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx
+
+**The `media.githubusercontent.com` host is load-bearing.** The ordinary
+`raw.githubusercontent.com` url for that file answers a **131-byte git-LFS
+pointer**, which opencv rejects with "Failed to parse ONNX model" — a failure
+that reads like a broken model rather than a wrong download.
+
 ## Filing
 
 Every clip goes to the Dump under **Mom auditions**, pins to the chat as the
