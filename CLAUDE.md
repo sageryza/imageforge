@@ -13,6 +13,20 @@ five-turn reminder still fires and is to be ignored. The wrap-up (3b), the
 pin (3a), the deliverables list (3c) and self-filing (3y) are untouched.
 Temporary, hers to lift — remove this paragraph when she does.
 
+**WHAT WE ARE ON RIGHT NOW (2026-09-09, Sophie: "our current goal is making
+a 480p draft of the film on Mini" · "15 seconds means more continuity work"
+· "the answer is APIFRAME I guess. Let's build the pipeline around that for
+now" · "update Claude so that everyone knows what the current thing we're
+working on is").** A 480p DRAFT of the ward film (the belt pages under
+`docs/mental-hospital/`), every clip on Seedance 2.0 MINI, every clip sent
+through APIFRAME — the one door that takes a reference with a person in it,
+and she has decided not to split jobs across two doors while the draft is
+being made. Mini clips run 4-15 seconds, so a 15-second shot is where the
+continuity work is (the same person, the same room, from one clip into the
+next), and that is the work in front of every chat cutting this film. The
+"go" rule, the exact-prompt log and the never-describe-a-reference rule all
+stand exactly as written. Hers to move; replace this paragraph when she does.
+
 **Every FIVE turns, not every turn (2026-09-07, Sophie: "change the rule to
 every 5 turns")** — the hook's reminder fires on every fifth prompt of a
 session, and that is when the two cards below get refreshed; a turn that
@@ -174,7 +188,16 @@ Read back what the API really received after sending, and say it.
 
 **A SEEDANCE JOB WITH NO VIDEO REFERENCE GOES THROUGH OPENROUTER, NOT
 APIFRAME (2026-09-08, Sophie: "make a note so any reference w no video uses
-open router instead").** OpenRouter bills ByteDance's list price; the ~5%
+open router instead").** **PARKED 2026-09-09 — EVERYTHING GOES THROUGH
+APIFRAME WHILE THE 480p MINI DRAFT IS MADE (Sophie: "the answer is APIFRAME
+I guess. Let's build the pipeline around that for now").** Two things
+decided it the same day: OpenRouter stopped passing on the Mini sale (its
+discount reads 0 and today's jobs billed full list) and every other
+reseller carries the same face filter, so a film full of person references
+has one door anyway. The OpenRouter route, its log and its price reader stay
+built; the `/footage` page still sends `door:'openrouter'` and is NOT
+changed by this note — flipping it is hers to ask for. The rest of this
+paragraph is how the two doors work, kept for when she lifts this. OpenRouter bills ByteDance's list price; the ~5%
 top-up fee is paid when credit is BOUGHT, not per job. **SUPERSEDED
 2026-09-09 — the "480p Seedance 2.5 is 10.9¢/s all in against APIFRAME's 13¢,
 a 4s clip 44¢ against 52¢" figure was list × the fee on the WRONG CANVAS and
@@ -311,8 +334,13 @@ line is the PERSON, not the video:
   public figures and non-consenting people and it monitors output), PiAPI's
   "Less Restriction" mode (consented images), HeyGen (a verified digital
   twin of YOURSELF, her own face only), EvoLink (after verification), and
-  the official Volcengine liveness route above. Reddit could not be read
-  from this container and the searches surfaced no thread on it. Likeliest
+  the official Volcengine liveness route above. **Reddit is unreadable from
+  this container by every door tried (2026-09-09: reddit.com answers a block
+  page, the pullpush archive refuses automated readers, the redlib mirrors
+  are down) and the web searches surfaced no thread** — so whether Atlas
+  Cloud quietly accepts a real face in practice, the way APIFRAME does, is
+  UNMEASURED beyond its own FAQ saying no. The only honest test is one 5¢
+  Mini job there with the eyes-blurred photo, which needs an account. Likeliest
   reading of APIFRAME's looseness is a Runway-style backend rather than a
   ByteDance key — unmeasured; APIFRAME calls itself an "official partner"
   and says nothing about faces. Whether any of those doors also skip the
