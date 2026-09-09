@@ -1,8 +1,11 @@
 # PICKUPS — hospital night
 
 **The word is PICKUPS.** A *pickup* is a short extra shot grabbed after the
-scene is already shot, to cut into it — an insert, a detail, a reaction. A
-*reshoot* is redoing the whole scene. Almost everything here is a pickup.
+scene is already shot, **to SLOT INTO it** — an insert, a detail, a reaction,
+a shot the scene needs and does not have. A *reshoot* is redoing a whole clip
+because it came out wrong. **This list is pickups only** (Sophie, 2026-09-09:
+"these r all reshoots not things to slot in"); reshoots are parked at the
+bottom so they are not lost.
 
 **Shooting these on Seedance 2.0 Mini** (Sophie, 2026-09-09), 480p, 3:4 unless
 the shot says otherwise — about 5-6¢ a clip. **Mini's shortest clip is 4s**, so
@@ -61,72 +64,91 @@ The standing version is the same prompt with the walk line cut.
 
 # The pass over the footage (2026-09-09)
 
-All 43 clips in `belt/clips.json` pulled, scene-detected and read as frame
-strips. Nothing below has been shot or changed — this is the list.
+**A pickup is a shot to SLOT IN — not a clip to redo (Sophie, 2026-09-09:
+"these r all reshoots not things to slot in · ex. sophie mirror shot is
+missing").** The first pass listed clips that came out wrong, which is a
+different list. This one is coverage: the shot the scene needs and does not
+have. The film already works this way — `s8broll` (the pudding cups) and
+`s9broll` (the socks on the linoleum) are slot-ins sitting in the rough cut.
 
-## NEW — found in this pass
+All 43 clips in `belt/clips.json` plus the climax and sculpture clips pulled,
+scene-detected and read as frame strips. Nothing here has been shot.
 
-## 2. The milk cartons carry garbled text
+## 2. THE MIRROR — Climax 4 and Climax 5 · HER ITEM
 
-`milk1` and `milk2` both hold a big close-up of the carton and the label reads
-as nonsense — **"MILGLK MESIER"**, **"MAOLLEH … DHJOMILK"**. In `milk1` it is
-three frames of tight close-up, so it is unmissable.
+**There is no mirror on screen anywhere.** Measured on the clip that landed
+2026-09-09 (`md-32b`, Climax 4, 15s): she floats down the hall with the ghost
+double behind her, reaches her room, the double rejoins her, and she puts her
+hands in her hair — **in a medium shot of the room, with no mirror in frame,
+no reflection, and no shot of her looking into one.**
 
-Pickup: one insert of the carton with no legible lettering — a plain red-and-
-white carton, or the label turned away / out of focus. Both clips can take the
-same insert.
+Her script asks for it twice:
+- Climax 4 — *"In her room, she looks into the mirror, and her ghostly clone
+  floats down to where the mirror is, and tentatively reconnects with her
+  body. Looking in the mirror, she begins tugging at the ends of her hair.
+  'I don't know who I am anymore.'"*
+- Climax 5 — *"the assistant appears behind her in the mirror."* The whole
+  scene is played at a mirror, and there is no mirror shot to cut to.
 
-## 3. `meds3` is the wrong Sophie
+Three shots to slot in, all in the same setup:
+- her reflection as she arrives at it, the ghost double sliding into the glass
+- the hair-tug in the reflection, with the whisper
+- the assistant appearing behind her in the mirror
 
-The woman in the bed has straight strawberry-blonde hair. Sophie is the
-short-brown-curls woman everywhere else. This is not a drift — it is a
-different person, for the whole clip. Reshoot, not a pickup.
+## 3. Sophie's face at the cafeteria table — `8b`, already carded
 
-## 4. The music class instruments came out as bunches of berries
+`table` never cuts to her while she talks — it holds on Michael and Anastasia
+from her side of the table for the whole scene. The card is already on the
+belt (`8b`, "The dining room — face insert"); it belongs on this list.
 
-`music5` — the maracas are lumpy clusters of beads on sticks; on the crying
-woman it reads as an ice-cream cone. Pickup: an insert of a real maraca /
-tambourine, or a reshoot of the wide with the instrument named plainly.
+## 4. Her hand — Climax 2a
 
-## 5. Michael's audition is a WIDE — his face is unreadable
+The scene is *"cut my hand off?"* and there is no shot of her hand. Her hands
+are clasped in her lap, held wide, for every frame of `climax2a2`. One insert.
 
-`michaelAud2` (4s) is a single locked-off shot of a tiny figure at the far end
-of a long corridor. That is why it is useless as his origin clip: an audition
-has to carry a legible face for every later scene to ride. Reshoot as a medium
-or close shot. (She has already asked for a new Michael audition on Mini, and
-this is why.)
+## 5. A clean milk carton — the metaphor machine
 
-## 6. The parents read as GRANDparents
+`milk1` and `milk2` both hold a close-up of a carton whose label reads as
+nonsense — **"MAOLLEH / DHJOMILK"**, **"MILGLK MESIER"**. One insert of a
+carton with no legible lettering covers both.
 
-`parentsAud` and `s39a3` — white hair, stooped, mid-seventies. For a woman in
-her early twenties they should be somewhere around fifty. The audition is the
-origin clip every parents scene rides, so the age carries into all of them —
-redo the audition first, then anything already shot off it.
+## 6. The finished sculpture wall, wide — scene 23
 
-## 7. Three different hallways
+`md-23a2` builds it beautifully in close-up — the tape torn into tabs, the
+spoons and packets going up — and then ends on a medium of her standing beside
+it. Nothing shows the whole wall as one thing, which is what "the sculptures"
+means for the rest of the story (23b is her finding it gone).
 
-The same corridor is a different place in every clip: `hall` is bright white
-with a high ceiling, `hall2` is grimy with peeling walls and a teal grade,
-`climax1b` / `michaelAud2` are pale institutional green. Whichever one is the
-ward, the others do not match it.
+## 7. The restraint going on — the tranquilizer
 
-## 8. `annie1c` is very dark
+Her text is *"wide, yellow rubber bands"*, strapped over both wrists and her
+feet. On screen it is a thin yellow ribbon looped around one wrist. One insert
+of a wide band pulled across her wrist and tightened.
 
-Faces are hard to read even allowing for night. Worth a brighten in the cut
-before it is worth a reshoot — that is free.
+## 8. The nurse rolling up her pajamas — `9b`, already carded
 
-## 9. Minor — the restraints in `tranq`
+Her own b-roll idea, on the belt and never shot: Sophie walking the halls
+alone, a nurse coming up and rolling her pajamas up. It is a slot-in, so it
+belongs here.
 
-Her text is "wide, yellow rubber bands"; on screen it is a thin yellow ribbon
-looped around one wrist rather than strapped down. It plays, but it is not what
-the writing says.
+---
 
-## CONFIRMED — already in her notes, no new finding
+# NOT pickups — reshoots, parked so they are not lost
 
-- `table` (the cafeteria): the seated Sophie is the braid woman, she is across
-  the table instead of between Michael and Anastasia, and it never cuts to her
-  face — 8b on the belt is the insert that fixes the last one.
-- `hall` (v1): the braid Sophie.
-- `art`: the paper is bright party crinkle in primary colours; the teacher
-  reads kindly and older.
-- `climax1b`: the pants — item 1 above.
+These came out of the same pass. They are whole clips to redo, not shots to
+slot in, so they do not belong on this list — but they are real.
+
+- **`meds3` is the wrong Sophie** — strawberry-blonde and straight, the whole
+  clip.
+- **The parents read as grandparents** — white hair, stooped, mid-seventies,
+  in `parentsAud` and in `s39a3`. The audition is the origin every parents
+  scene rides.
+- **Michael's audition is a wide** — a speck at the end of a corridor, face
+  unreadable. That is why it is useless as his origin clip.
+- **The music class instruments are bunches of berries on sticks** — on the
+  crying woman it reads as an ice-cream cone.
+- **Three different hallways** — `hall` bright white, `hall2` grimy and teal,
+  `climax1b` pale institutional green.
+- **`annie1c` is very dark** — try a brighten in the cut first; that is free.
+- Already in her notes: the braid Sophie in `table` and `hall`, and the art
+  room's party-crinkle paper and too-kindly teacher.
