@@ -143,23 +143,48 @@ video references. Every one landed; nothing was refused.
 every take — the reference still is `s31b`'s own first frame plus one line,
 `Dr. Grayson does not lean forward at any point.` Never describe the still.
 
-### PIN THE SEED AND AN A/B ON A PROMPT LINE BECOMES A REAL MEASUREMENT
+### THE SEED IS A NUDGE, NOT A PIN — AND IT DOES NOT MAKE A PROMPT A/B REAL
 
-`POST /api/openrouter/video` passes `seed` straight through to ByteDance
-(`buildRequest` in `openrouter.js`). Two 15s clips at **seed 7** whose prompts
-differ in ONE sentence and nothing else (asserted character by character
-before sending) came back with **identical opening frames** and then diverged
-— so the difference is the sentence, not the dice. Use this for any "does
-this line do anything?" question; it costs one extra clip.
+**This section replaces a WRONG claim that stood here for one turn.** It said
+a seed-pinned pair "came back with identical opening frames" and that a
+difference between two such clips is therefore the changed sentence. That was
+read off two low-resolution tile strips by eye. Measured properly with
+`ffmpeg psnr` (identical video would be infinite; all four md5s differ):
 
-**The result: her line beat mine.** With her own sentence
-(`sophie and her doctor are in the middle of a discussion about when she can
-leave the mental hospital.`) the model cut to an **insert of the pill bottle
-on the desk** at 0:07 — a shot her scene text asks for ("he nods meaningfully
-at a bottle of pills on his desk"). With mine, 20 characters longer and spent
-on backstory, it stayed on the wide and drew no insert. One pair, so not a
-law; but it is the shape to expect — **words spent on what the camera cannot
-see are words the shot does not get.**
+| pair | seed | prompt | PSNR (y) |
+|-|-|-|-|
+| T1 vs T2 | same (7) | **identical** | **27.1 dB** |
+| T1 vs T3 | 7 vs 99 | identical | 21.5 dB |
+| L1 vs L2 | same (7) | one sentence differs | 16.8 dB (first 2s: 18.6) |
+| A vs B | none | different | 16.1 dB |
+
+So: **the same seed with the identical prompt still draws a different take** —
+same framing, same wardrobe, same room, different performance frame by frame.
+The seed narrows the spread by about 5.7 dB when nothing else moves, and the
+moment the prompt changes by one sentence its effect is gone into the noise
+(16.8 against an uncontrolled 16.1).
+
+**Consequences, both of which matter:**
+- **You cannot isolate one prompt line with a seed on this model.** To attribute
+  a difference to a line you need several takes per arm and a judgement about
+  the whole set, not one pair.
+- **The context-line result below does NOT stand.** The pill-bottle insert
+  appeared in the take carrying her sentence and not in the take carrying the
+  chat's, but at 16.8 dB that pair is no more controlled than two unrelated
+  runs. It is a thing that happened once, not a finding.
+
+`seed` IS passed through by both doors (`buildRequest` in `openrouter.js`;
+`apiframe.js` hands the whole body to `seedanceVideo`, which reads
+`opts.seed`), and all four Seedance models declare seed support — so the field
+works. It just does not buy reproducibility.
+
+**What happened in the one pair, recorded as an anecdote and nothing more:**
+the take carrying her own sentence (`sophie and her doctor are in the middle
+of a discussion about when she can leave the mental hospital.`) cut to an
+insert of the pill bottle on the desk at 0:07 — a shot her scene text asks for
+("he nods meaningfully at a bottle of pills on his desk"). The take carrying
+the chat's longer backstory sentence stayed on the wide. Suggestive, not
+demonstrated; the pair is uncontrolled.
 
 Pages: "Climax 3 redo — three shapes v1" (`lWkWRlZC37pAmsOK3EkQ`) and
 "Context line — yours vs mine v2" (`xJrgMSzIPF9xIrWKrHD9`, sheet
