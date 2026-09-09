@@ -1,0 +1,50 @@
+Subject: Refund request — 30 failed Seedance jobs charged in full (4921 credits)
+
+Hi APIFRAME team,
+
+Account: sageryza's Team (team id 48cfbae8-0070-4dba-8ac0-f7fcb3dd65fe), API key "Claude" (prefix afk_4691).
+
+GET /v2/team/usage reports 22,697 credits used since 2026-08-10, and that figure is exactly the sum of creditCost over every job in GET /v2/jobs for the period — including the 27 jobs whose status is FAILED. So failed jobs are being counted as credits used in full (the 13 midjourney-video failures from Aug 2 and one from July fall before that period but show the same creditCost on the job). I'm asking for the credits back on the ones that failed on your side or were refused before anything was generated:
+
+1. Timed out at 99% on your side — "Polling timed out after 1200s" (6 jobs, 2116 credits = $21.16)
+  556e87e5-f91d-408c-8d14-8e33ab40be8d  2026-07-08 05:16 UTC  midjourney  16 credits  progress 99%  — Task timed out — please retry
+  b27e1e0f-fa5c-4c3d-a0d1-68025ebea71a  2026-09-07 06:41 UTC  seedance-2.5  450 credits  progress 99%  — Polling timed out after 1200s
+  8aba207a-53be-41e7-a687-1940273b432d  2026-09-07 17:23 UTC  seedance-2.5  300 credits  progress 99%  — Polling timed out after 1200s
+  bcb0991d-31d0-41d1-96f4-e0a0fc6712f9  2026-09-07 18:01 UTC  seedance-2.5  450 credits  progress 99%  — Polling timed out after 1200s
+  136c4a4b-5cd1-448b-965a-2bdc9d52c7dd  2026-09-07 19:30 UTC  seedance-2.5  450 credits  progress 99%  — Polling timed out after 1200s
+  5edfdab2-3b74-4149-b66b-0539b50c238f  2026-09-08 22:51 UTC  seedance-2.5  450 credits  progress 99%  — Polling timed out after 1200s
+
+2. No capacity / generation failed on your side (16 jobs, 810 credits = $8.10)
+  b99bf93a-d58a-4e62-a36a-7c76c2248311  2026-08-02 01:45 UTC  midjourney-video  48 credits  progress 0%  — No available capacity — please retry shortly
+  f1677414-28af-4705-b675-e537eb1cbc5e  2026-08-02 01:46 UTC  midjourney-video  48 credits  progress 0%  — No available capacity — please retry shortly
+  09d14e3c-69ea-4a25-b74d-4b57beb0640c  2026-08-02 01:47 UTC  midjourney-video  48 credits  progress 0%  — Generation failed — please retry or contact support
+  c0cd05e3-d829-4f43-b229-44dac9aeec87  2026-08-02 01:47 UTC  midjourney-video  48 credits  progress 0%  — Generation failed — please retry or contact support
+  b83af86a-5538-4f1e-b0d0-51f95034d788  2026-08-02 01:48 UTC  midjourney-video  48 credits  progress 0%  — No available capacity — please retry shortly
+  4ebac623-003f-41ee-b6db-45082c83909e  2026-08-02 01:48 UTC  midjourney-video  48 credits  progress 0%  — Generation failed — please retry or contact support
+  403ee8d8-f7d7-4e04-b34d-31eddfb3f322  2026-08-02 01:49 UTC  midjourney-video  48 credits  progress 0%  — No available capacity — please retry shortly
+  f59782d3-8629-4d92-86d1-9605989ab52f  2026-08-02 01:49 UTC  midjourney-video  48 credits  progress 0%  — Generation failed — please retry or contact support
+  1397ede2-eb8a-4f7b-8380-0f21f65133f7  2026-08-02 01:49 UTC  midjourney-video  48 credits  progress 0%  — No available capacity — please retry shortly
+  a8f2378a-34d9-41b5-af1c-057d067e8d8b  2026-08-02 01:50 UTC  midjourney-video  48 credits  progress 0%  — No available capacity — please retry shortly
+  4b0624c4-5e3d-4d3f-9d9c-5d30dc53fe95  2026-08-02 01:50 UTC  midjourney-video  48 credits  progress 0%  — No available capacity — please retry shortly
+  56b995be-e916-4ad0-8d0a-6b83f933db4e  2026-08-02 02:24 UTC  midjourney-video  48 credits  progress 0%  — Generation failed — please retry or contact support
+  28e212e9-b594-44a7-bc6d-b350f4fb6e78  2026-08-15 03:15 UTC  seedance-2-mini  24 credits  progress 0%  — No available capacity for model "seedance-2-mini" — please retry shortly
+  2484d59d-a30e-4f65-a3c8-8d02c3bfe9d8  2026-09-05 02:44 UTC  seedance-1.5-pro  90 credits  progress 100%  — Generation failed — could not recover, please retry
+  b275e856-3152-4b6a-ab00-a577cf94185e  2026-09-05 02:44 UTC  seedance-1.5-pro  60 credits  progress 100%  — Generation failed — could not recover, please retry
+  310e5a36-8364-482c-906e-72d3885d1c9b  2026-09-05 02:44 UTC  seedance-1.5-pro  60 credits  progress 100%  — Generation failed — could not recover, please retry
+
+3. Refused at 0% progress because a reference "may contain a real person" — nothing was generated (8 jobs, 1995 credits = $19.95)
+  c16a771e-26f4-4be6-90dd-01ae3a07c1ac  2026-09-07 06:36 UTC  seedance-2.5  450 credits  progress 0%  — Generation failed: The request failed because the input image 'content[1]' 'cont
+  2515d0ef-3469-4cb6-ad69-6c97ccac1f81  2026-09-07 07:30 UTC  seedance-2.5  450 credits  progress 0%  — Generation failed: The request failed because the input video 'content[2]' may c
+  3c201a79-fad2-4f7e-a363-18c959d4baf9  2026-09-07 07:40 UTC  seedance-2.5  225 credits  progress 0%  — Generation failed: The request failed because the input video 'content[2]' may c
+  a40dda0a-9e1e-419c-a2a0-edf229be11c7  2026-09-07 07:55 UTC  seedance-2.5  150 credits  progress 0%  — Generation failed: The request failed because the input video 'content[2]' may c
+  00ab4596-130b-4807-bee2-8b674a55b0cd  2026-09-07 08:35 UTC  seedance-2.5  450 credits  progress 0%  — Generation failed: The request failed because the input image 'content[1]' 'cont
+  53aed57d-72b3-4c96-a759-e1171cefb6a5  2026-09-08 04:56 UTC  seedance-2.5  60 credits  progress 0%  — Generation failed: The request failed because the input image 'content[1]' may c
+  0f8c6913-2264-4f41-8cc2-4b4b1d7a0aaa  2026-09-08 05:01 UTC  seedance-2.5  60 credits  progress 0%  — Generation failed: The request failed because the input image 'content[1]' may c
+  f2b50e05-f8da-45fc-8b94-e7b834d40f63  2026-09-08 19:06 UTC  seedance-2.5  150 credits  progress 0%  — Generation failed: The request failed because the input video 'content[2]' may c
+
+Total: 30 jobs, 4921 credits ($49.21).
+
+Every one of these returned no video. Could you credit them back to the team balance? Happy to send anything else you need.
+
+Thanks,
+Sophie
