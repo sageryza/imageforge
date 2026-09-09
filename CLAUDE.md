@@ -362,7 +362,14 @@ line is the PERSON, not the video:
   are down) and the web searches surfaced no thread** — so whether Atlas
   Cloud quietly accepts a real face in practice, the way APIFRAME does, is
   UNMEASURED beyond its own FAQ saying no. The only honest test is one 5¢
-  Mini job there with the eyes-blurred photo, which needs an account. Likeliest
+  Mini job there with the eyes-blurred photo, which needs an account. **THE
+  DOOR IS BUILT FOR THAT TEST (2026-09-09, her API reference):
+  `atlascloud.js` at `/api/atlascloud` — the same body and the same
+  `forge-video-jobs` log as the other two doors, `provider:'atlascloud'`,
+  `ATLASCLOUD_API_KEY` a managed key that is NOT set yet; nothing has been
+  sent, so price, canvas, slot word (`@image1` there, not `[Image1]`) and
+  the filter are all unmeasured. Full note: *ATLAS CLOUD — THE THIRD DOOR*
+  in `docs/modules/audio-and-film.md`. The "go" rule applies word for word.** Likeliest
   reading of APIFRAME's looseness is a Runway-style backend rather than a
   ByteDance key — unmeasured; APIFRAME calls itself an "official partner"
   and says nothing about faces. Whether any of those doors also skip the

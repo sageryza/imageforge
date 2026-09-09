@@ -342,6 +342,45 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     `node scripts/openrouter-video.js` sends one job the same way (prints the
     exact body first, never retries or reshapes, `--video` rides through) — but it
     files NO log, so a clip drawn that way is written up by hand in the reply.
+  - **ATLAS CLOUD — THE THIRD DOOR, BUILT BUT UNMEASURED (2026-09-09,
+    Sophie handed over Atlas Cloud's `bytedance/seedance-2.0-mini/
+    reference-to-video` API reference the same day the reseller research
+    landed).** `atlascloud.js`, mounted at `/api/atlascloud`, takes the SAME
+    body as the OpenRouter and APIFRAME routes (`POST /video` → 202 `{jobId,
+    poll, sent}`, `GET /video-job/:id` to poll, the clip mirrored to Storage
+    under `atlascloud-video/`) and files the SAME `forge-video-jobs` doc,
+    stamped `provider:'atlascloud'`. `ATLASCLOUD_API_KEY` is a managed key
+    (config-loader) and is NOT set anywhere yet — the door answers 503 until
+    it is. From a container: `node scripts/atlascloud-video.js` (prints the
+    exact body, `--dry` sends nothing, files no log). Test: `node
+    scripts/test-atlascloud-video.js`. **Nothing has gone through it** — so
+    four things are unmeasured and the first ~5¢ Mini job is the measurement:
+    - **THE PRICE.** Atlas bills in TOKENS (`completion_tokens` /
+      `total_tokens` on the prediction) and its Mini deal banner is
+      unverified (CLAUDE.md); the poll files the token counts on the log and
+      invents no dollar figure. Read the charge off the console after the
+      first job, then put it in footage.js's table.
+    - **THE FACE FILTER.** Atlas forwards to ByteDance, its FAQ says no real
+      faces, and the one honest test is the eyes-blurred Mayra photo on a
+      Mini job here. A refusal on the POST throws `{refusal:'content'}` and
+      logs nothing; a prediction that FAILS with the refusal text patches
+      `refusal:'content'` onto the log — which of the two Atlas does is
+      unknown, and both are handled.
+    - **THE SLOT WORD.** Atlas names references `image 1` / `@image1` in
+      order; the house says `[Image1]`. Nothing rewrites her prompt. The first
+      job should carry Atlas's spelling; whether the bracket form lands is a
+      second cheap clip.
+    - **THE OTHER MODELS.** Only the Mini id is on file. A full
+      `bytedance/seedance-…/reference-to-video` id is passed through as
+      given and Atlas decides; a short name other than Mini's is refused
+      rather than guessed. Its resolutions are `480p · 720p · 720p-SR ·
+      1080p-SR · 1440p-SR`, seconds 4-15 (or -1), ratios the six plus
+      `adaptive`, up to 9 images / 3 videos / 3 audios (audio needs a
+      picture or video beside it — refused before sending).
+    **NOT wired into `/footage`'s door table or the AUTO fallback** — that
+    page sends `door:'openrouter'` and flipping it is hers to ask for
+    (CLAUDE.md). Wiring it is a row in `MODELS` (`atlas` id + cents) once
+    the price is measured, and a third entry in `getDoors()`.
   - **A probe that went wrong, so it is not repeated:** the first probe
     script treated every 400 as a shape error and, after ByteDance's real
     refusal, tried a passthrough envelope that dropped the videos silently;
