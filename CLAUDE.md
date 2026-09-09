@@ -6,6 +6,13 @@ Everything below is written out properly further down; this is the short list,
 at the top, because being on line 1,400 of a long file is why these got missed.
 The numbers are measured, not guessed.
 
+**CARDS ARE OFF FOR NOW — EVERY CHAT (2026-09-08, Sophie: "don't worry about
+cards · temporary nix for every chat").** Skip items 1 and 2 below (the
+status card and the Update card) until she says otherwise; the hook's
+five-turn reminder still fires and is to be ignored. The wrap-up (3b), the
+pin (3a), the deliverables list (3c) and self-filing (3y) are untouched.
+Temporary, hers to lift — remove this paragraph when she does.
+
 **Every FIVE turns, not every turn (2026-09-07, Sophie: "change the rule to
 every 5 turns")** — the hook's reminder fires on every fifth prompt of a
 session, and that is when the two cards below get refreshed; a turn that
