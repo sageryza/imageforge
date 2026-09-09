@@ -25,7 +25,29 @@ being made. Mini clips run 4-15 seconds, so a 15-second shot is where the
 continuity work is (the same person, the same room, from one clip into the
 next), and that is the work in front of every chat cutting this film. The
 "go" rule, the exact-prompt log and the never-describe-a-reference rule all
-stand exactly as written. Hers to move; replace this paragraph when she does.
+stand exactly as written.
+**THE PLAN FROM HERE (2026-09-09, Sophie, the same evening: "I think the plan
+is to re-shoot all the footage landscape style, but just get the main shots
+so we can move forward" · "Next step is landscape 720p 2.5 Seedance" ·
+"Maybe we'll start that in a week and transition off mini in a week and a
+half").** Three steps, in order:
+1. **NOW — the 480p Mini draft, re-shot LANDSCAPE, MAIN SHOTS ONLY.** Every
+   clip drawn from here on is landscape (16:9 on Mini), not the 3:4 the
+   earlier ward clips were; the portrait clips are not re-cut, they are
+   re-shot. "Main shots only" is a scope rule as well as a shape rule — the
+   shot that carries the scene, not the coverage — so the draft can move
+   forward instead of stalling on B-roll and inserts.
+2. **~2026-09-16 — landscape 720p on Seedance 2.5**, still through APIFRAME.
+   A 2.5 clip is $3-5 each, so the "go" rule matters more, not less, and a
+   prompt and its references go on the belt page for her approval before
+   anything is sent. The exact-prompt log is what makes this step a REDO
+   rather than a rewrite: every Mini clip's prompt and references are on
+   file to be re-sent at the new size.
+3. **~2026-09-19 — off Mini.** From about a week and a half out, nothing new
+   is drawn on Mini; 2.5 at 720p landscape is the model. The dates are her
+   "in a week" and "a week and a half" counted from 2026-09-09 and are
+   approximate — her word moves them, not the calendar.
+Hers to move; replace this paragraph when she does.
 
 **Every FIVE turns, not every turn (2026-09-07, Sophie: "change the rule to
 every 5 turns")** — the hook's reminder fires on every fifth prompt of a
