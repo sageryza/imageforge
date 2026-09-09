@@ -167,6 +167,14 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     **same seed + same prompt 27.1 dB · different seed + same prompt 21.5 dB ·
     same seed + ONE sentence changed 16.8 dB · no seed + different prompts
     16.1 dB · same seed + same prompt at 720p instead of 480p 16.2 dB.**
+    **AND THE GRIP FALLS OFF HARD WITH LENGTH (2026-09-09).** The same test
+    at **15 seconds** — two clips sent byte-identical, seed 7, verified field
+    by field before either went — is **17.8 dB at t=0 and 13.5 overall**,
+    against 33.2 and 27.1 on the 4s pair and 16.1 for two unrelated runs. The
+    two takes open on different framings and are on different shots by 0:08.
+    So the seed holds a SHORT clip's opening and does close to nothing at the
+    lengths this film actually shoots: mint it for the record, never plan a
+    shot around it. Page: "Same seed at 15 seconds v1" (`erZTQLqTs3Ys5bkQbsKy`).
     **BUT A WHOLE-CLIP AVERAGE HIDES THE STRUCTURE, and Sophie read the clips
     better than the number did (2026-09-09: "the same seeds are identical,
     other markedly different").** Measured per 0.5s window, the same-seed pair

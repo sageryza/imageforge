@@ -10,7 +10,11 @@
 //   same seed, ONE sentence moved  16.8 dB
 //   same seed at 720p not 480p     16.2 dB
 //   no seed, different prompts     16.1 dB
-// So a seed REPRODUCES THE OPENING AND THEN DRIFTS. It does not reproduce a
+// AND THE GRIP FALLS OFF HARD WITH LENGTH — the same test at 15s (two clips
+// sent byte-identical, seed 7) is 17.8 dB at t=0 and 13.5 overall, against
+// 33.2 and 27.1 on the 4s pair and 16.1 for two unrelated runs. So at the
+// lengths this film actually shoots, a pinned seed does close to nothing.
+// So a seed REPRODUCES THE OPENING OF A SHORT CLIP AND THEN DRIFTS. It does not reproduce a
 // clip, it does not survive a changed prompt, and it does not survive a
 // resolution change — you cannot block a shot at 480p and re-render the
 // keeper at 720p, and you cannot isolate one prompt line with it.
