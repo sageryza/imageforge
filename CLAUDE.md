@@ -397,7 +397,17 @@ line is the PERSON, not the video:
   strict one; a plain prompt is not safe from it. Page: "Dialogue test — 2.0
   Fast vs Mini" in this chat's Compare tab. The console is
   the only billing read (no API), and Atlas's slot word is `video 1` /
-  `image 1`. **AND IT IS THE FOOTAGE
+  `image 1`. **AND ATLAS IS THE ONE DOOR THAT HANDS BACK A LAST FRAME —
+  `return_last_frame` works there, is FREE, and beats an ffmpeg decode
+  (measured 2026-09-09; a no-op on OpenRouter, measured the day before).** A
+  job sent `returnLastFrame: true` answers a second output, `…_last-frame.png`,
+  billed at the clip's own token price to the token — and against the decoded
+  final frame it is 1.18x sharper with **118x the horizontal chroma detail**,
+  i.e. rendered before the h264 encode rather than pulled out of it. That is
+  the shot-to-shot chaining tool this film keeps needing. Off by default;
+  mirrored to Storage and filed on the log as `lastFrame`. Full numbers:
+  *`return_last_frame`* in `docs/modules/audio-and-film.md`; test
+  `node scripts/test-atlas-lastframe.js`. **AND IT IS THE FOOTAGE
   PAGE'S ONLY DOOR AND `doorFor`'s AUTO DEFAULT SINCE THE SAME EVENING
   (Sophie: "make atlas the default and only route through footage")** — it
   rode for an afternoon as its own "2.0 Mini · Atlas" row; now every 2.x row
