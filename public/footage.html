@@ -320,6 +320,11 @@ var CFG = null;                      // GET /status
 // so there is nothing to pick and nothing to remember. Sound is always on, and
 // sent explicitly rather than left to the model's own default.
 var DOOR = 'openrouter';
+// …AND ATLAS CLOUD RIDES AS A MODEL ROW, NOT A DOOR ROW (2026-09-09, Sophie:
+// "did you add it to the footage tile?"). "2.0 Mini · Atlas" is one more line
+// in the model drop-down; picking it is what sends through the third door, so
+// the door is DERIVED from the model and there is still nothing to pick.
+function doorNow() { var m = modelOf(S.model); return (m && m.atlascloud && !m.openrouter) ? 'atlascloud' : DOOR; }
 var S = { model: 'mini', seconds: 4, res: '480p', ratio: '3:4' };
 var refs = [];                       // [{url, kind, poster, name}]
 var jobsById = {};
@@ -341,7 +346,7 @@ function saveDraft() { try { localStorage.setItem('footage_draft', JSON.stringif
 // THE LIST IS DERIVED, NEVER TYPED: the models this page offers are the ones
 // OpenRouter carries, which is what takes 1.5 Pro off it — that one exists
 // only on APIFRAME, and this page has only the one door.
-function models() { return (CFG && CFG.models ? CFG.models : []).filter(function (m) { return m.openrouter; }); }
+function models() { return (CFG && CFG.models ? CFG.models : []).filter(function (m) { return m.openrouter || m.atlascloud; }); }
 function modelOf(id) { return models().filter(function (m) { return m.id === id; })[0]; }
 
 // ── The controls ──────────────────────────────────────────────────────────
@@ -415,7 +420,7 @@ var costSeq = 0;
 function updateCost() {
   var seq = ++costSeq;
   var hasVideo = refs.some(function (r) { return r.kind === 'video'; });
-  var q = '?model=' + S.model + '&res=' + S.res + '&ratio=' + encodeURIComponent(S.ratio) + '&seconds=' + S.seconds + '&video=' + (hasVideo ? 1 : 0) + '&door=' + DOOR;
+  var q = '?model=' + S.model + '&res=' + S.res + '&ratio=' + encodeURIComponent(S.ratio) + '&seconds=' + S.seconds + '&video=' + (hasVideo ? 1 : 0) + '&door=' + doorNow();
   api('/estimate' + q).then(function (d) {
     if (seq !== costSeq) return;
     if (!d || d.error) { $('cost').textContent = (d && d.error) || ''; $('cost').dataset.cents = ''; return; }
@@ -580,7 +585,7 @@ $('go').addEventListener('click', function () {
   $('err').hidden = true;
   if (!prompt.trim()) return toast('Say what the clip is first');
   var body = { prompt: prompt, model: S.model, seconds: S.seconds, resolution: S.res, ratio: S.ratio,
-    sound: true, door: DOOR, refs: orderedRefs() };
+    sound: true, door: doorNow(), refs: orderedRefs() };
   btn.disabled = true;
   api('/jobs', { method: 'POST', body: JSON.stringify(body) }).then(function (d) {
     btn.disabled = false;
@@ -735,7 +740,7 @@ function jobCard(j) {
   }
   el.classList.toggle('nay', j.vote === 'dislike');
   var tags = [j.modelLabel || j.model, j.seconds != null ? j.seconds + 's' : '', j.resolution, j.ratio, j.sound ? 'sound' : 'silent',
-    j.door === 'openrouter' ? 'OpenRouter' : 'APIFRAME',
+    j.door === 'openrouter' ? 'OpenRouter' : j.door === 'atlascloud' ? 'Atlas Cloud' : 'APIFRAME',
     j.cost != null ? cents(j.cost) : (j.estimate != null ? 'about ' + cents(j.estimate) : '')].filter(Boolean).join(' · ');
   var thumbInner = j.poster ? '<img src="' + esc(j.poster) + '" alt="">' + ICONS.play : (j.status === 'done' ? ICONS.play : (j.status === 'failed' ? ICONS.x : ''));
   var html = '<div class="jobrow">' +

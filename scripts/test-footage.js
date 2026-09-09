@@ -54,6 +54,19 @@ function report() {
   ok('1080p on APIFRAME is unpriced and refused as a pinned door', Boolean(F.doorFor({ model: '2.0', door: 'apiframe', resolution: '1080p' }, both).error));
   ok('1080p auto goes OpenRouter with NO fallback (APIFRAME cannot price it)',
     JSON.stringify(F.doorFor({ model: '2.0', door: 'auto', resolution: '1080p' }, both)) === '{"door":"openrouter","fallback":null}');
+  // THE THIRD DOOR rides as a model ROW (mini-atlas), pinned by its row, no fallback
+  const three = { openrouter: true, apiframe: true, atlascloud: true };
+  ok('the Atlas Mini row lands on Atlas Cloud with no fallback, whatever auto says',
+    JSON.stringify(F.doorFor({ model: 'mini-atlas', door: 'auto', resolution: '480p' }, three)) === '{"door":"atlascloud","fallback":null}');
+  ok('with no ATLASCLOUD_API_KEY the Atlas row is refused with a reason, never sent elsewhere',
+    /ATLASCLOUD_API_KEY/.test(F.doorFor({ model: 'mini-atlas', door: 'atlascloud', resolution: '480p' }, both).error || '')
+    && Boolean(F.doorFor({ model: 'mini-atlas', door: 'auto', resolution: '480p' }, both).error));
+  ok('the plain Mini row never goes to Atlas on its own', F.doorFor({ model: 'mini', door: 'auto', resolution: '480p' }, three).door === 'openrouter');
+  ok('pinning Atlas on a row that is not there is refused', /not on Atlas Cloud/.test(F.doorFor({ model: 'mini', door: 'atlascloud', resolution: '480p' }, three).error || ''));
+  const at = F.estimate({ model: 'mini-atlas', resolution: '480p', ratio: '3:4', seconds: 4, door: 'auto' }, three);
+  ok('an Atlas price is per second off its published rate and ALWAYS "about" — nothing has gone through it', at.door === 'atlascloud' && at.about === true && at.cents === 22.4);
+  ok('publicModels flags the Atlas row for the page', F.publicModels().some((m) => m.id === 'mini-atlas' && m.atlascloud && !m.openrouter && !m.apiframe));
+  ok('cardOf reads an Atlas job back onto its row', (() => { const c = F.cardOf('x', { prompt: 'p', model: 'bytedance/seedance-2.0-mini/reference-to-video', provider: 'atlascloud', params: { duration: 4 }, status: 'completed' }); return c.model === 'mini-atlas' && c.door === 'atlascloud'; })());
   ok('a pinned OpenRouter door is what the page always sends, and it is obeyed',
     JSON.stringify(F.doorFor({ model: 'mini', door: 'openrouter', resolution: '480p' }, both)) === '{"door":"openrouter","fallback":null}');
 
@@ -345,8 +358,8 @@ async function pillSweep(pg, where) {
       value: m.value, rvalue: r.value };
   });
   ok('the model is a <select> and the resolution is a <select>', sel.mTag === 'SELECT' && sel.rTag === 'SELECT');
-  ok('1.5 Pro is off the list — this page has one door and 1.5 Pro is not on it',
-    sel.models.indexOf('1.5') < 0 && sel.models.join(',') === 'mini,fast,2.0,2.5');
+  ok('1.5 Pro is off the list — APIFRAME is not one of this page\'s doors — and Atlas\'s Mini is ON it as a model row',
+    sel.models.indexOf('1.5') < 0 && sel.models.join(',') === 'mini,mini-atlas,fast,2.0,2.5');
   ok('the native chrome is off and the box is the house 6px', sel.appearance === 'none' && sel.radius === '6px');
   ok('each drop-down draws our own inline chevron', sel.chevs === 2);
   ok('the resolution opens at the model\'s minimum', sel.rvalue === '480p' && sel.reses.join(',') === '480p,720p');

@@ -373,8 +373,12 @@ line is the PERSON, not the video:
   `forge-video-jobs` log as the other two doors, `provider:'atlascloud'`,
   `ATLASCLOUD_API_KEY` a managed key that is NOT set yet; nothing has been
   sent, so price, canvas, slot word (`@image1` there, not `[Image1]`) and
-  the filter are all unmeasured. Full note: *ATLAS CLOUD — THE THIRD DOOR*
-  in `docs/modules/audio-and-film.md`. The "go" rule applies word for word.** Likeliest
+  the filter are all unmeasured. **It is on the Footage tile as a MODEL ROW,
+  "2.0 Mini · Atlas" (same day, her "did you add it to the footage tile?")
+  — the door row is gone, so the row is the door; priced "about" off
+  Atlas's published rate until a job measures it.** Full note: *ATLAS CLOUD
+  — THE THIRD DOOR* in `docs/modules/audio-and-film.md`. The "go" rule
+  applies word for word.** Likeliest
   reading of APIFRAME's looseness is a Runway-style backend rather than a
   ByteDance key — unmeasured; APIFRAME calls itself an "official partner"
   and says nothing about faces. Whether any of those doors also skip the

@@ -111,6 +111,17 @@ const MODELS = [
     res: ['480p', '720p'], secs: [4, 15], family: '2.0', sizes: '2.5',
     orTok: { '480p': 3.5e-6, '720p': 3.5e-6 },
     afCents: { '480p': 4, '720p': 9 }, afVid: { '480p': 5 }, afExact: ['480p+video'] },
+  // ATLAS CLOUD'S MINI — a MODEL-ROW CHOICE, not a door row (2026-09-09,
+  // Sophie: "did you add it to the footage tile?" — the door row came off the
+  // page the same day, so the third door rides as one more line in the model
+  // drop-down). `atlas` = Atlas Cloud's id. NOTHING HAS GONE THROUGH IT:
+  // `atlasCents` is Atlas's own published Mini rate ($0.056/s, CLAUDE.md —
+  // its "-80%" banner unverified) on both resolutions and answers "about"
+  // until a real job's tokens price it. It renders on the 2.5 canvases like
+  // the other Mini — assumed, not measured, and unused for the price here.
+  { id: 'mini-atlas', label: '2.0 Mini · Atlas', atlas: 'bytedance/seedance-2.0-mini/reference-to-video',
+    res: ['480p', '720p'], secs: [4, 15], family: '2.0', sizes: '2.5',
+    atlasCents: { '480p': 5.6, '720p': 5.6 } },
   { id: 'fast', label: '2.0 Fast', or: 'bytedance/seedance-2.0-fast', af: 'seedance-2-fast',
     res: ['480p', '720p'], secs: [4, 15], family: '2.0',
     orTok: { '480p': 4.2e-6, '720p': 4.2e-6 },
@@ -201,15 +212,21 @@ function canvasOf(m, res, ratio) {
 function doorFor({ model, door, hasVideo, resolution }, cfg) {
   const m = typeof model === 'string' ? modelOf(model) : model;
   if (!m) return { error: 'unknown model' };
-  cfg = cfg || { openrouter: true, apiframe: true };
+  cfg = cfg || { openrouter: true, apiframe: true, atlascloud: true };
   const want = String(door || 'auto').toLowerCase();
   const orOk = Boolean(m.or) && cfg.openrouter && m.res.includes(resolution || '480p');
   const afOk = Boolean(m.af) && cfg.apiframe && m.afCents && m.afCents[resolution || '480p'] != null;
-  if (want === 'openrouter') return orOk ? { door: 'openrouter', fallback: null } : { error: m.or ? 'OpenRouter is not configured for that' : `${m.label} is only on APIFRAME` };
+  const atOk = Boolean(m.atlas) && cfg.atlascloud && m.atlasCents && m.atlasCents[resolution || '480p'] != null;
+  if (want === 'openrouter') return orOk ? { door: 'openrouter', fallback: null } : { error: m.or ? 'OpenRouter is not configured for that' : (m.atlas ? `${m.label} is only on Atlas Cloud` : `${m.label} is only on APIFRAME`) };
   if (want === 'apiframe') return afOk ? { door: 'apiframe', fallback: null } : { error: 'APIFRAME does not offer that' };
+  // THE THIRD DOOR IS ALWAYS PINNED BY ITS ROW — no fallback and never a
+  // fallback: a refusal there is a measurement, and a chat sends a person
+  // through APIFRAME by hand.
+  if (want === 'atlascloud') return atOk ? { door: 'atlascloud', fallback: null } : { error: m.atlas ? 'Atlas Cloud is not configured (ATLASCLOUD_API_KEY)' : `${m.label} is not on Atlas Cloud` };
   if (orOk) return { door: 'openrouter', fallback: afOk ? 'apiframe' : null };
+  if (atOk) return { door: 'atlascloud', fallback: null };
   if (afOk) return { door: 'apiframe', fallback: null };
-  return { error: 'neither door is configured for that' };
+  return { error: 'no door is configured for that' };
 }
 
 // WHAT THE TAP COSTS, in list-credit cents. EXACT where it is measured —
@@ -246,6 +263,10 @@ function estimate({ model, resolution, ratio, seconds, hasVideo, door, discount 
     const off = Number.isFinite(discount) ? discount : discountOf(m.id);
     const usd = tokens * m.orTok[res] * (1 - off);
     return { cents: Math.round(usd * 10000) / 100, door: 'openrouter', ...(hasVideo ? { about: true } : { exact: true }) };
+  }
+  if (d.door === 'atlascloud') {
+    // Atlas's published per-second rate, never measured — always "about"
+    return { cents: Math.round(m.atlasCents[res] * s * 100) / 100, door: 'atlascloud', about: true };
   }
   const per = (hasVideo && m.afVid && m.afVid[res] != null) ? m.afVid[res] : m.afCents[res];
   const measured = (m.afExact || []).indexOf(res + (hasVideo ? '+video' : '')) >= 0;
@@ -302,23 +323,25 @@ function titleOf(prompt) {
 }
 
 // ─── Doors and balances ─────────────────────────────────────────────────
-let doors = null;   // { openrouter, apiframe } — the two modules, handed in or required
+let doors = null;   // { openrouter, apiframe, atlascloud } — the three modules, handed in or required
 function getDoors() {
   if (doors) return doors;
-  doors = { openrouter: require('./openrouter'), apiframe: require('./apiframe') };
+  doors = { openrouter: require('./openrouter'), apiframe: require('./apiframe'), atlascloud: require('./atlascloud') };
   return doors;
 }
-function init(opts) { if (opts && (opts.openrouter || opts.apiframe)) doors = { ...getDoors(), ...opts }; }
+function init(opts) { if (opts && (opts.openrouter || opts.apiframe || opts.atlascloud)) doors = { ...getDoors(), ...opts }; }
 function cfg() {
   const d = getDoors();
-  return { openrouter: Boolean(d.openrouter && d.openrouter.configured()), apiframe: Boolean(d.apiframe && d.apiframe.configured()) };
+  return { openrouter: Boolean(d.openrouter && d.openrouter.configured()), apiframe: Boolean(d.apiframe && d.apiframe.configured()),
+    atlascloud: Boolean(d.atlascloud && d.atlascloud.configured()) };
 }
 
 let balCache = { at: 0, val: null };
 async function balances() {
   if (Date.now() - balCache.at < BAL_CACHE_MS && balCache.val) return balCache.val;
   const c = cfg();
-  const out = { openrouter: { configured: c.openrouter, left: null }, apiframe: { configured: c.apiframe, credits: null } };
+  // Atlas Cloud publishes no balance endpoint here — configured is all it says
+  const out = { openrouter: { configured: c.openrouter, left: null }, apiframe: { configured: c.apiframe, credits: null }, atlascloud: { configured: c.atlascloud } };
   const base = process.env.RENDER_EXTERNAL_URL || `http://127.0.0.1:${process.env.PORT || 3000}`;
   const h = STUDIO_TOKEN ? { 'x-studio-token': STUDIO_TOKEN } : {};
   await Promise.all([
@@ -336,7 +359,7 @@ function bucketOrNull() { try { return admin.apps.length ? admin.storage().bucke
 
 // The card the page draws, off the log doc.
 function cardOf(id, d) {
-  const m = MODELS.find((x) => x.or === d.model || x.af === d.model) || null;
+  const m = MODELS.find((x) => x.or === d.model || x.af === d.model || x.atlas === d.model) || null;
   const p = d.params || {};
   const st = String(d.status || 'sent').toLowerCase();
   return {
@@ -366,7 +389,7 @@ async function pollOne(id, d) {
   if (now - (lastPoll.get(id) || 0) < POLL_EVERY_MS) return null;
   lastPoll.set(id, now);
   const door = d.door || d.provider || 'apiframe';
-  const mod = getDoors()[door === 'openrouter' ? 'openrouter' : 'apiframe'];
+  const mod = getDoors()[door] || getDoors().apiframe;
   if (!mod || !mod.pollVideo) return null;
   try {
     const r = await mod.pollVideo(id);
@@ -423,7 +446,7 @@ async function startJob(b) {
   const mods = getDoors();
   const send = async (door, note) => {
     const mod = mods[door];
-    const req = { ...body, model: door === 'openrouter' ? m.or : m.af };
+    const req = { ...body, model: door === 'openrouter' ? m.or : door === 'atlascloud' ? m.atlas : m.af };
     if (note) req.note = note;
     const r = await mod.startVideo(req, { ...extra, door, ...(note ? { note } : {}) });
     return { jobId: r.jobId, door, sent: r.sent || req };
@@ -455,7 +478,7 @@ router.use(express.json({ limit: '2mb' }));
 
 // The model table the page draws its controls and its prices from.
 function publicModels() {
-  return MODELS.map((m) => ({ id: m.id, label: m.label, openrouter: Boolean(m.or), apiframe: Boolean(m.af),
+  return MODELS.map((m) => ({ id: m.id, label: m.label, openrouter: Boolean(m.or), apiframe: Boolean(m.af), atlascloud: Boolean(m.atlas),
     res: m.res, secs: m.secs, family: m.family, sizes: m.sizes || m.family, orTok: m.orTok || null, discount: m.or ? discountOf(m.id) : 0,
     afCents: m.afCents || null, afVid: m.afVid || null, audioDefault: m.audioDefault !== false }));
 }
