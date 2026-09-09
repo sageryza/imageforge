@@ -390,8 +390,8 @@ Every accepted mask, both faces, ranked by how many pixels it covers:
 
 | face | mask | covered | likeness |
 |---|---|---|---|
-| Michael | **two dots, r=5** | **157 px** | **0.8292** |
-| Michael | bar 59×7 | 413 px | 0.8093 |
+| Michael | two dots, r=5 *(1/4 — fluke, unusable)* | 157 px | 0.8292 |
+| Michael | **bar 59×7** *(4/4)* | **413 px** | **0.8093** |
 | Michael | bar 79×7 | 553 px | 0.7378 |
 | Michael | two dots, r=11 | 760 px | 0.7753 |
 | Michael | bar 81×17 | 1,377 px | 0.6858 |
@@ -404,22 +404,49 @@ with one inversion on Michael. It is not "dots beat bars" or "bars beat
 blurs": those are proxies. **The rule is minimum covered area, and which
 SHAPE achieves it is face-specific.**
 
-- On **Michael** two dots pass at r=5, covering 157px — dots win easily.
+- On **Michael** the best RELIABLE mask is the 59×7 bar. (Two dots at r=5 cover far less and score higher, but pass only 1 try in 4 — see the repeat table below.)
 - On **Sophie** the dots had to grow to r=55 before they passed, covering
   19,006px against her bar's 6,890 — so on her face the bar wins.
 
 **So ladder both shapes and take whichever passes while covering less.** That
 is a free search: every refusal along the way costs nothing.
 
-### A mask can be non-monotonic, and the filter is deterministic
+### A REFUSAL REPEATS; AN ACCEPT DOES NOT — the threshold has a soft band
 
-Two dots at r=7 are REFUSED on Michael while r=5 — smaller — is ACCEPTED. That
-is not noise: the same image resent four times refused four times, and the
-height-0.09 refusal repeated four times too. **The filter is deterministic on
-identical input.** No mechanism is offered here for why a smaller dot passes
-where a larger one fails; it is recorded as observed. The practical
-consequence is that **you cannot extrapolate a ladder** — test the
-configuration you intend to use.
+This section previously claimed the filter was deterministic. **It was
+half-tested and half-wrong** (Angelo, 2026-09-09: "did the R equals five pass
+more than once? if not, try it"). Refusals were repeated four times each and
+held; an ACCEPT was never repeated at all. Repeating them:
+
+| mask | passes out of 4 |
+|---|---|
+| Sophie, black bar 265×26 | **4 / 4** |
+| Michael, bar 79×7 | **4 / 4** |
+| Michael, bar 59×7 | **4 / 4** |
+| Michael, two dots r=11 | **4 / 4** |
+| Michael, two dots r=5 | **1 / 4** |
+| Michael, two dots r=7 | 0 / 4 |
+| Michael, bar height 0.09 | 0 / 4 |
+
+**So the r=5 dots pass was a FLUKE**, and two things that were reported off it
+are withdrawn:
+
+- **"Two dots r=5 is the best mask (0.829)" is retired.** The clip is real and
+  the likeness score is real, but a mask that lands one try in four cannot be
+  used. The best RELIABLE masks are **Sophie's black bar 265×26 (0.803)** and
+  **Michael's bar 59×7 (0.809)**.
+- **The "non-monotonic ladder" dissolves.** r=7 refusing while r=5 accepted
+  looked like an inversion; with repeats, r=7 is 0/4 and r=5 is 1/4 — both are
+  simply below the line, and the single pass was noise being read as structure.
+
+**The model that fits: a mask well inside the threshold passes every time; a
+mask sitting ON the threshold passes intermittently.** A refusal is a reliable
+signal, an accept near the edge is not.
+
+**THE RULE THAT FOLLOWS: never commit a mask to a batch on one pass. Send it
+four times.** Three of those four are free if it is a bad mask, and the one
+that is not costs 5.6¢ — against a batch of clips drawn from a reference that
+turns out to bounce halfway through.
 
 ### The other chat found the same thing independently
 
