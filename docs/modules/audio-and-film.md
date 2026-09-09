@@ -342,19 +342,49 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     `node scripts/openrouter-video.js` sends one job the same way (prints the
     exact body first, never retries or reshapes, `--video` rides through) — but it
     files NO log, so a clip drawn that way is written up by hand in the reply.
-  - **ATLAS CLOUD — THE THIRD DOOR, BUILT BUT UNMEASURED (2026-09-09,
+  - **ATLAS CLOUD — THE THIRD DOOR, AND IT TAKES A PERSON VIDEO (2026-09-09,
     Sophie handed over Atlas Cloud's `bytedance/seedance-2.0-mini/
     reference-to-video` API reference the same day the reseller research
-    landed).** `atlascloud.js`, mounted at `/api/atlascloud`, takes the SAME
+    landed; measured the same night on her "try the hardest thing first").**
+    **MEASURED — one job, `2b0b451548d84902988d01faf8bbcf99`, logged in
+    `forge-video-jobs` under chat `seedance-reference-to-video`:** the
+    O'Hara stretcher clip (`drops/_/3c1e96d9f2034fc6a6a496b25926746a.mp4`,
+    three people in frame, the clip OpenRouter REFUSED as
+    `InputVideoSensitiveContentDetected`) as the ONLY reference, prompt
+    `the woman in video 1 looks up at the ceiling, camera at eye level`,
+    Mini · 4s · 480p · 16:9 · sound on → ACCEPTED on the POST, `completed`
+    in 80s, and it drew HER (a likeness, in landscape). So Atlas's FAQ ("no
+    real faces") is not what its Mini door does with a Seedance-made person
+    video — the person filter did not fire. The output url is on
+    `volces.com` under `dreamina-seedance-2-0-mini/`, i.e. ByteDance's own
+    storage on the Dreamina route, not a Runway-style backend. A REAL photo
+    (the eyes-blurred Mayra) and a real-person video are still unmeasured
+    here — her ladder stopped at the first rung because it passed.
+    **THE CANVAS:** 864x496 at 480p 16:9 (a 16px taller frame than the 2.5
+    table's 864x480). **THE TOKENS:** 80,770 — the output (864·496·97/1024
+    ≈ 40.6k) plus the reference video (560·752·97/1024 ≈ 39.9k), so a
+    reference video is billed as input tokens on top. **THE PRICE — THE 80%
+    SALE IS REAL, read off Atlas's own `GET /models`:** `price.actual.
+    base_price` is dollars per SECOND with the sale applied and
+    `price.discount` is the percent she PAYS — Mini `0.011` (origin 0.056,
+    pays 20 → 4.4¢ for the 4s clip against APIFRAME's ~16¢ and OpenRouter's
+    14¢ at full list); 2.5 `0.134` (origin 0.167, pays 80); 2.0 `0.09`
+    (origin 0.112); Fast `0.027` (origin 0.09). `footage.js` reads it live
+    (`atlasPrices()`, ten-minute cache, the list rate as the fallback) and
+    the estimate stays "about" until her console pins dollars to the token
+    count — Atlas has NO balance or billing endpoint (every path probed
+    answers 404; only https://console.atlascloud.ai). Whether `base_price`
+    changes with resolution is unmeasured (the readme says billing follows
+    "the selected resolution"). `atlascloud.js`, mounted at `/api/atlascloud`, takes the SAME
     body as the OpenRouter and APIFRAME routes (`POST /video` → 202 `{jobId,
     poll, sent}`, `GET /video-job/:id` to poll, the clip mirrored to Storage
     under `atlascloud-video/`) and files the SAME `forge-video-jobs` doc,
     stamped `provider:'atlascloud'`. `ATLASCLOUD_API_KEY` is a managed key
-    (config-loader) and is NOT set anywhere yet — the door answers 503 until
-    it is. From a container: `node scripts/atlascloud-video.js` (prints the
+    (config-loader), set on the Render service by API 2026-09-09 (live on
+    the next deploy). From a container: `node scripts/atlascloud-video.js` (prints the
     exact body, `--dry` sends nothing, files no log). Test: `node
-    scripts/test-atlascloud-video.js`. **Nothing has gone through it** — so
-    four things are unmeasured and the first ~5¢ Mini job is the measurement:
+    scripts/test-atlascloud-video.js`. What the first job settled is above;
+    what it was built to measure, as written before it ran:
     - **THE PRICE.** Atlas bills in TOKENS (`completion_tokens` /
       `total_tokens` on the prediction) and its Mini deal banner is
       unverified (CLAUDE.md); the poll files the token counts on the log and

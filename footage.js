@@ -114,11 +114,14 @@ const MODELS = [
   // ATLAS CLOUD'S MINI — a MODEL-ROW CHOICE, not a door row (2026-09-09,
   // Sophie: "did you add it to the footage tile?" — the door row came off the
   // page the same day, so the third door rides as one more line in the model
-  // drop-down). `atlas` = Atlas Cloud's id. NOTHING HAS GONE THROUGH IT:
-  // `atlasCents` is Atlas's own published Mini rate ($0.056/s, CLAUDE.md —
-  // its "-80%" banner unverified) on both resolutions and answers "about"
-  // until a real job's tokens price it. It renders on the 2.5 canvases like
-  // the other Mini — assumed, not measured, and unused for the price here.
+  // drop-down). `atlas` = Atlas Cloud's id. MEASURED THE SAME NIGHT (one 4s
+  // 480p 16:9 Mini job, a PERSON video as the reference — it drew, 864x496,
+  // 80s, 80,770 tokens; see CLAUDE.md): `atlasCents` is Atlas's published
+  // LIST rate ($0.056/s) and is only the FALLBACK — the live price comes off
+  // Atlas's own `GET /models` (`price.actual.base_price` per second, the sale
+  // already applied; `atlasPrices()` below), so the 80%-off Mini sale is read,
+  // never written down, exactly as OpenRouter's discount is. The estimate
+  // stays "about" until a console read pins dollars to the token count.
   { id: 'mini-atlas', label: '2.0 Mini · Atlas', atlas: 'bytedance/seedance-2.0-mini/reference-to-video',
     res: ['480p', '720p'], secs: [4, 15], family: '2.0', sizes: '2.5',
     atlasCents: { '480p': 5.6, '720p': 5.6 } },
@@ -183,6 +186,36 @@ async function discounts() {
   return out;
 }
 function discountOf(id) { const v = discCache.val[id]; return Number.isFinite(v) ? v : 0; }
+// ─── Atlas Cloud's price, read off its own model list ───────────────────
+// `GET /models` on Atlas carries `price.actual.base_price` (dollars per
+// second, the sale ALREADY applied) and `price.discount` (the percent she
+// PAYS — "20" on Mini is the 80%-off sale, measured 2026-09-09: 0.011 against
+// an origin of 0.056). Cached ten minutes; a failed read leaves the table's
+// LIST rate in place — full price, the safe direction, never a stale sale.
+let atlasCache = { at: 0, val: {} };   // model id → { perSec, pays }
+async function atlasPrices() {
+  if (Date.now() - atlasCache.at < DISC_CACHE_MS && atlasCache.at) return atlasCache.val;
+  const mod = getDoors().atlascloud;
+  const out = {};
+  if (mod && mod.api && mod.configured && mod.configured()) {
+    try {
+      const j = await mod.api('/models');
+      const list = (j && j.data) || [];
+      for (const m of MODELS.filter((x) => x.atlas)) {
+        const row = list.find((x) => x && x.model === m.atlas);
+        const per = Number(row && row.price && row.price.actual && row.price.actual.base_price);
+        const pays = Number(row && row.price && row.price.discount);
+        if (Number.isFinite(per) && per > 0) out[m.id] = { perSec: per, pays: Number.isFinite(pays) ? pays : null };
+      }
+    } catch { /* full list */ }
+  }
+  atlasCache = { at: Date.now(), val: out };
+  return out;
+}
+function atlasPerSecOf(m, res) {
+  const v = atlasCache.val[m.id];
+  return v && Number.isFinite(v.perSec) ? v.perSec : m.atlasCents[res] / 100;
+}
 // THE 5% IS PAID AT TOP-UP, NOT PER JOB, so it is NOT in the price this page
 // shows (2026-09-09): OpenRouter's balance and its per-job charge are both in
 // list dollars, so a price with the fee folded in does not subtract from the
@@ -265,8 +298,9 @@ function estimate({ model, resolution, ratio, seconds, hasVideo, door, discount 
     return { cents: Math.round(usd * 10000) / 100, door: 'openrouter', ...(hasVideo ? { about: true } : { exact: true }) };
   }
   if (d.door === 'atlascloud') {
-    // Atlas's published per-second rate, never measured — always "about"
-    return { cents: Math.round(m.atlasCents[res] * s * 100) / 100, door: 'atlascloud', about: true };
+    // Atlas's live per-second rate (the sale applied), the list rate when the
+    // read failed — "about" until a console read pins dollars to the tokens
+    return { cents: Math.round(atlasPerSecOf(m, res) * 100 * s * 100) / 100, door: 'atlascloud', about: true };
   }
   const per = (hasVideo && m.afVid && m.afVid[res] != null) ? m.afVid[res] : m.afCents[res];
   const measured = (m.afExact || []).indexOf(res + (hasVideo ? '+video' : '')) >= 0;
@@ -435,6 +469,7 @@ async function bakePoster(id, videoUrl) {
 // Answers { jobId, door, sent, fellBack } or throws with status/hint.
 async function startJob(b) {
   await discounts().catch(() => {});
+  await atlasPrices().catch(() => {});
   const built = buildJob(b);
   if (built.error) { const e = new Error(built.error); e.status = 400; throw e; }
   const { body, refs, m, res, ratio, seconds } = built;
@@ -479,6 +514,7 @@ router.use(express.json({ limit: '2mb' }));
 // The model table the page draws its controls and its prices from.
 function publicModels() {
   return MODELS.map((m) => ({ id: m.id, label: m.label, openrouter: Boolean(m.or), apiframe: Boolean(m.af), atlascloud: Boolean(m.atlas),
+    ...(m.atlas && atlasCache.val[m.id] ? { atlasPerSec: atlasCache.val[m.id].perSec, atlasPays: atlasCache.val[m.id].pays } : {}),
     res: m.res, secs: m.secs, family: m.family, sizes: m.sizes || m.family, orTok: m.orTok || null, discount: m.or ? discountOf(m.id) : 0,
     afCents: m.afCents || null, afVid: m.afVid || null, audioDefault: m.audioDefault !== false }));
 }
@@ -486,6 +522,7 @@ router.get('/status', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   const bal = await balances().catch(() => null);
   await discounts().catch(() => {});
+  await atlasPrices().catch(() => {});
   res.json({ ok: true, chat: CHAT, doors: cfg(), balances: bal, models: publicModels(), ratios: RATIOS, sizes: SIZES, fee: OR_FEE });
 });
 
@@ -495,6 +532,7 @@ router.get('/status', async (req, res) => {
 // and the live discount is refreshed (cached ten minutes) before it answers.
 router.get('/estimate', async (req, res) => {
   await discounts().catch(() => {});
+  await atlasPrices().catch(() => {});
   const q = req.query || {};
   const e = estimate({ model: q.model, resolution: q.res, ratio: q.ratio, seconds: q.seconds,
     hasVideo: q.video === '1', door: q.door }, cfg());
@@ -553,6 +591,6 @@ module.exports = {
   router, init,
   MODELS, RATIOS, SIZES, CHAT, OR_FEE,
   modelOf, doorFor, estimate, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, secondsOk, framesOf,
-  discounts, discountOf, endpointDiscount,
+  discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf,
   startJob, bakePoster,
 };
