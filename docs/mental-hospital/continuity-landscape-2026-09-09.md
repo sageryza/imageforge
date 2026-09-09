@@ -148,8 +148,8 @@ exact-prompt log to re-send at 1080p.
 
 **What to build next, in order:** (1) a stills-first step — draw each shot's
 first frame as a picture, approve it, then animate it; (2) last-frame
-chaining through the ledger (`return_last_frame` on Mini already hands the
-frame back); (3) a finishing pass on the 720p redo. None of it replaces the
+chaining through the ledger (by ffmpeg — `return_last_frame` is a measured
+no-op on OpenRouter); (3) a finishing pass on the 720p redo. None of it replaces the
 "go" rule.
 
 ## The plan (2026-09-09, on Sophie's ask; upscaling left out at her word)
@@ -160,9 +160,35 @@ card she approves.
 
 **1. Chain the last frame — free, first.** The ledger grows two fields:
 `lastFrame` (the approved clip's final frame, pulled with ffmpeg in the
-container — free, and needs nothing from the door; Atlas's
-`return_last_frame` flag exists and is off, unmeasured whether it answers)
-and `chainFrom` (which card it came from). When she approves shot N, shot
+container — free, and needs nothing from the door) and `chainFrom` (which
+card it came from).
+
+**`return_last_frame` IS NOT THE WAY IN — MEASURED 2026-09-08 ON OPENROUTER
+AND IT IS A NO-OP.** The flag is on Mini's card, a job sent with it `true` is
+ACCEPTED with no shape error, and the completed job answers exactly one video
+and nothing else (`content?index=1` → *"Video index 1 out of range (1 videos
+available)"*). Cost of finding out: one 5.6¢ probe. **Atlas has the same field
+and `atlascloud.js` hardcodes it `false`; whether Atlas really answers with a
+frame is UNMEASURED** — its poll already reads `outputs` as an array, so if it
+does, the frame would arrive as a second entry with no new plumbing. One ~4¢
+Mini clip on her go settles it; ffmpeg is the fallback either way and costs
+nothing.
+
+**AND THE LAST FRAME IS THE WORST FRAME IN THE FILE — the same night's
+finding, and it is the real limit on chaining.** The video is `yuv420p`, so any
+decoded frame already carries a quarter of the colour detail, and the LAST
+frame specifically is a **P-frame, never a keyframe** (read off a real clip):
+the tail of a prediction chain, where the encoder spends fewest bits. Fine to
+look at; it COMPOUNDS if every clip starts on the previous clip's softest
+frame. Three ways to not eat that, in order of preference:
+- **chain a frame that is not the last one** — pick the best nearby keyframe
+  or the crispest face in the last half-second (`ward-pullstills.py` already
+  scores exactly this), and let the join be a cut rather than a splice;
+- **chain a still, not a frame** — piece 2's approved opening frame is drawn
+  clean at full quality and is the better thing to carry forward;
+- **use it as a REFERENCE, not as `start_image`** — a soft frame in an image
+  slot informs the room and the wardrobe without the model having to reproduce
+  its exact pixels. When she approves shot N, shot
 N+1's card gets that frame in its first image slot with one line of ours,
 NAMED as ours: `the shot begins on [Image1]` — never a description. A card
 she re-orders re-chains; a card with no approved predecessor chains nothing.
