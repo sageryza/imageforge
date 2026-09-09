@@ -1,0 +1,98 @@
+[
+ {
+  "label": "BASE-intakeA3-apiframe-videoref",
+  "n": 290,
+  "eyeV_over_faceV": 0.835,
+  "eyeS": 65.1,
+  "catch": 0.0,
+  "meanFaceH": 252
+ },
+ {
+  "label": "BASE-quest2-apiframe",
+  "n": 68,
+  "eyeV_over_faceV": 0.698,
+  "eyeS": 85.6,
+  "catch": 3.1,
+  "meanFaceH": 451
+ },
+ {
+  "label": "BASE-parentsAud-apiframe-textonly",
+  "n": 52,
+  "eyeV_over_faceV": 0.602,
+  "eyeS": 26.9,
+  "catch": 0.0,
+  "meanFaceH": 77
+ },
+ {
+  "label": "mom1b-BLUR",
+  "n": 50,
+  "eyeV_over_faceV": 0.627,
+  "eyeS": 84.1,
+  "catch": 0.3,
+  "meanFaceH": 294
+ },
+ {
+  "label": "mom1d-BLACK",
+  "n": 50,
+  "eyeV_over_faceV": 0.704,
+  "eyeS": 86.7,
+  "catch": 0.1,
+  "meanFaceH": 256
+ },
+ {
+  "label": "40c-og-BLUR-2faces",
+  "n": 52,
+  "eyeV_over_faceV": 0.655,
+  "eyeS": 63.4,
+  "catch": 0.0,
+  "meanFaceH": 152
+ },
+ {
+  "label": "40c-BLACK-clipframes",
+  "n": 52,
+  "eyeV_over_faceV": 0.65,
+  "eyeS": 69.8,
+  "catch": 0.0,
+  "meanFaceH": 180
+ },
+ {
+  "label": "40b1v2-mom-browbar",
+  "n": 86,
+  "eyeV_over_faceV": 0.782,
+  "eyeS": 77.4,
+  "catch": 0.1,
+  "meanFaceH": 222
+ },
+ {
+  "label": "40c1v2-3faces-solidE",
+  "n": 78,
+  "eyeV_over_faceV": 0.804,
+  "eyeS": 98.3,
+  "catch": 0.1,
+  "meanFaceH": 96
+ },
+ {
+  "label": "41a2v2-office",
+  "n": 118,
+  "eyeV_over_faceV": 0.833,
+  "eyeS": 69.9,
+  "catch": 0.1,
+  "meanFaceH": 207
+ },
+ {
+  "label": "41c2v2-office",
+  "n": 124,
+  "eyeV_over_faceV": 0.753,
+  "eyeS": 87.5,
+  "catch": 0.1,
+  "meanFaceH": 202
+ },
+ {
+  "label": "39a1v2-sophie-edna",
+  "n": 32,
+  "eyeV_over_faceV": 0.694,
+  "eyeS": 87.1,
+  "catch": 0.0,
+  "meanFaceH": 374
+ }
+]

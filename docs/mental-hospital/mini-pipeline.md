@@ -587,3 +587,146 @@ C-narrow set is superseded — wider, so it also passes, but it eats more face.
   so it is NOT a reference for her intended Anastasia. Hers to decide.
 - Whether Mini's output quality holds up against 2.5 on a real scene — one
   card shot both ways would settle it and has not been done.
+
+## REVIEW OF BOTH CHATS — 2026-09-09 (the `mom-chat-filter-review` chat)
+
+Sophie asked for the `mom-character-clip` and `seedance-reference-stills`
+threads to be read against each other: what was missed, where they
+contradict, what still needs testing. Read from the two threads, the video
+log (`GET /api/apiframe/video-log?chat=`), the references AS SENT, and the
+clips themselves. Pictures and scripts: `refs/review-2026-09-09/`.
+
+### The black-eye question was already answered, for free, by clips both chats had
+
+- **The decisive test both chats said still needed 11¢ was drawn at 11:35pm
+  the night before.** `mom-aud-1b` (blurred portrait) and `mom-aud-1d` (black
+  bar on the SAME portrait, the SAME prompt byte for byte) differ only in the
+  masking. Both draw a brown iris with a catchlight; the annulus lightness is
+  23.4% (blur) against 25.3% (black) — the black bar is not darker.
+  `refs/review-2026-09-09/eye-strips-baseline-vs-mini.png`, last two rows.
+- **Every frontal face in all 23 v2 clips has an iris and a catchlight**
+  (`v2-shoot-eyes.png`, the four biggest frontal eye crops per clip). What
+  Sophie is seeing is real but it is not "no iris": Sophie's irises are drawn
+  a very dark blue-grey against the light blue-grey of the APIFRAME-era clips
+  (`quest2`, jazz video reference, unbarred). The dim rooms make it worse.
+- **The likeliest cause is the one line nobody wrote.** Every v2 prompt names
+  the MOM's eyes (hazel) and the DAD's (dark brown) and says nothing about
+  Sophie's — and she is the one whose eyes are masked in every reference and
+  who is in every clip. The mom's clips came back hazel/brown. Test: one
+  4s clip, the same references, plus `sophie's eyes are light blue-grey`
+  (read off `quest2`). 6¢.
+- **`ward-eyecolor.py`'s number cannot see this symptom.** eye-V/face-V is a
+  patch centred on the PUPIL, so a light iris and a dark iris score the same
+  (the baseline `quest2` scores 0.698, inside the v2 range 0.50–0.79), and it
+  takes only the LARGEST face per frame, whichever person that is, and reads a
+  cheek or a nostril on a turned head (the office clips, `intakeA3`). It
+  measured nothing wrong because it could not. `catchlight_pct` is 0.0–0.1 on
+  every arm in `eye-brightness.json`, including the ones the doc calls "a
+  readable iris with a catchlight" — that claim was by eye, and by eye it is
+  right.
+
+### What the mom chat sent is not what it thought it sent — look at the references
+
+- **`mom-og-barE.png` (the mom, on all 23 v2 clips): the automated bar sits on
+  her BROW. Both eyes are visible under it**, one of them fully (YuNet: eyes
+  at y=452/465, bar rows 429–462). ByteDance accepted it — so either an
+  illustrated face near the threshold passes with its eyes open (CLAUDE.md
+  already records drawn faces passing unbarred, and the plain version of this
+  same portrait being refused at 11:24pm), or the filter's accept is as soft
+  as the stills chat measured. Either way the "her eyes are deleted, so the
+  model reinvents her" explanation the mom chat gave twice was wrong for the
+  mom: her eyes were never deleted.
+- **`rot-doctor.png` carries Sophie on an EXAM BED in a red floral dress**,
+  unbarred, beside the doctor with a clipboard. The v2 prompt says she wears
+  the pajamas in [Image5]/[Image6]. The chat blamed "the office reads as a
+  clinic and Sophie ends up on an exam bed" on the missing office still. The
+  reference it DID send is a picture of exactly that.
+- **`cont-pjA-barE.png` / `cont-pjC-barE.png` (her pajamas) have a MOSAIC
+  over the whole face** plus a bar — a pixelated Sophie labelled as Sophie.
+  Nothing wrong for the filter; worth knowing when likeness drifts.
+- **`dad-og-barE.png` is the whole hall walk with the old mom in it** — the
+  chat found this itself at 5:55am. The dad's bar bottom edge sits ON his eye
+  line (rows 83–90, eyes at 90–91): marginal, not covering.
+- **`sophie-solid-E.png` is a smiling, open-mouthed frame** — the stills
+  chat's own `sophie-face-B` rule ("a laughing frame is a bad identity
+  reference") and it was the only Sophie face on the whole shoot.
+- **The three missing voices: the log confirms every office clip carried only
+  the mom's and the dad's mp3.** Doctor, assistant and Sophie had no voice on
+  any of the 23; the doctor's lines were drawn with two voices that are not
+  his. Cut at 6:33pm, unconfirmed.
+
+### Where the two chats contradict each other, and who is right
+
+- **"Blur is stochastic — retry rather than rebuild" (mom shot list) vs "a
+  refusal repeats 4/4" (stills doc).** The stills doc is right. The mom chat's
+  evidence was two DIFFERENT images (clip frames refused, og pair accepted),
+  not one image resent. Its shot list still says retry; that line is wrong.
+- **"Feed the OG stills, never a frame pulled out of a finished clip" (mom
+  shot list, 2:26am) vs its own dad test at 6:07am**, where the take-1 FRAME
+  beat the og hall walk and both together beat either. The 2:26 rule was one
+  comparison confounded two ways (og+blur vs frame+black, and the old mom
+  riding in the frame arm). Retired by its own author; the shot list still
+  carries it.
+- **"Blur at D is the default, solid the fallback — do not switch the whole
+  set to solid" vs "solid at the height floor is the best treatment on both
+  counts"** — both sentences are in THIS doc. The likeness section is the
+  measured one. The ladder section's rule predates it and should read:
+  ladder both, take the least-covering mask that passes 4/4.
+- **"Width is not a constraint at all" (the solid-bar header) vs the width
+  floor found an hour later (46px refused, 59px accepted).** Same section,
+  both still there. The header is stale.
+- **Geometry hypothesis (this doc: "theirs are small per-eye patches, that is
+  the dot case").** Only the dad take-1 still is per-eye patches. Sophie's
+  reference on every v2 clip is ONE wide solid bar (`sophie-solid-E`), the
+  same shape as the 265×26 bar measured here. The hypothesis does not apply
+  to the face she reported on.
+- **`stills.json` still said the filter is deterministic and non-monotonic**
+  after the doc withdrew both. Fixed in this commit.
+
+### Things one chat settled that the other listed as open
+
+- **Longer clips hold (this doc's open #2).** The mom chat drew 5–15s clips
+  from barred stills all day, 46 of them accepted first try in v2.
+- **Four barred faces on one card pass (open #3).** Every v2 office clip
+  carried Sophie, the mom, the dad AND the old mom (in the hall-walk frame),
+  plus the doctor: five barred faces, accepted.
+- **References are free** — a 4s clip billed 5.58¢ with one still, seven
+  stills, or seven stills plus two mp3s (mom chat, measured on every job).
+- **Voice references must be mp3** — m4a is refused as an invalid format.
+- **Michael has two candidate stills in two docs**: `hall2` frame 565 (501px,
+  mom chat) and `table` frames 284/704 (150–170px, this doc). Nobody put
+  them side by side or on one card. More references of one person help, so
+  the answer is probably all three.
+- **"The filter checks EVERY face" (mom chat).** Plausible and useful, but the
+  assistant refusals were never re-sent after the doctor's half-face was
+  cropped off, so it is a reading of the error text, not a measurement.
+
+### The mom chat's branch is not mergeable as it stands
+
+`claude/mom-character-clip-1zwikk` is 4,762 lines BEHIND main (it deletes
+`footage.js`, the ward scripts and more — the #2048 shape). Its one real
+file, `docs/mental-hospital/parents/MINI-SHOT-LIST.md`, needs main merged
+in first and the two retired rules above corrected before it lands.
+
+### Tests worth running, cheapest first (an accepted Mini 4s clip is ~5.6¢, a refusal free)
+
+1. **Sophie's eye colour in one line** — the v2 refs + `sophie's eyes are
+   light blue-grey`. 6¢. If that fixes it, the whole black-eye thread was a
+   missing sentence.
+2. **Re-bar the mom by hand, ON the eyes, and re-run 40b-1** — the one
+   reference of hers that has actually been used all day has its eyes open.
+   6¢, and it says whether the accept was the illustration or the bar.
+3. **A neutral, closed-mouth Sophie face at the same rung** in place of the
+   smiling `sophie-solid-E`, one clip, same prompt. 6¢.
+4. **The doctor's still without Sophie-on-a-bed in it** (crop him alone or
+   take an office2 frame) on one 41 clip — the exam-bed problem may be the
+   reference, not the missing room. 6¢.
+5. **Score the repeats that already exist.** Four clips each of Sophie's
+   265×26 and Michael's 59×7/79×7 are drawn; the likeness table is one clip
+   per arm. `ward-likeness.py` over the repeats gives the spread that says
+   whether 0.759 vs 0.803 is a difference at all. Free.
+6. **The doctor's voice** — the mp3 cut at 6:33pm on one 41 clip, so his
+   lines stop coming out in the dad's voice. 6¢, after Sophie confirms the span.
+7. **Aspect floor.** Sophie said a 620×1360 still (h/w 2.19) "doesn't accept
+   narrow"; the chat recut without reading the error. One free refusal
+   settles whether there is a third refusal type under the documented 2.5.

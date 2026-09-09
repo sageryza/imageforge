@@ -812,5 +812,5 @@
    "big blur 354x75 (26550px)": 0.7594
   }
  },
- "determinism": "the filter is deterministic \u2014 an identical image resent 4x refused 4x, twice over; but a mask ladder is NOT monotonic (dots r=7 refused, r=5 accepted), so test the exact configuration you intend to use"
+ "determinism": "CORRECTED 2026-09-09 (Angelo): a REFUSAL repeats reliably (same image 4/4 refused, twice over) but an ACCEPT near the threshold does not (Michael dots r=5 passed 1 of 4). The 'non-monotonic ladder' reading dissolved with the repeats. Never commit a mask to a batch on one pass; send it four times."
 }
