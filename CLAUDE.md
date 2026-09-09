@@ -13,6 +13,20 @@ five-turn reminder still fires and is to be ignored. The wrap-up (3b), the
 pin (3a), the deliverables list (3c) and self-filing (3y) are untouched.
 Temporary, hers to lift — remove this paragraph when she does.
 
+**WHAT WE ARE ON RIGHT NOW (2026-09-09, Sophie: "our current goal is making
+a 480p draft of the film on Mini" · "15 seconds means more continuity work"
+· "the answer is APIFRAME I guess. Let's build the pipeline around that for
+now" · "update Claude so that everyone knows what the current thing we're
+working on is").** A 480p DRAFT of the ward film (the belt pages under
+`docs/mental-hospital/`), every clip on Seedance 2.0 MINI, every clip sent
+through APIFRAME — the one door that takes a reference with a person in it,
+and she has decided not to split jobs across two doors while the draft is
+being made. Mini clips run 4-15 seconds, so a 15-second shot is where the
+continuity work is (the same person, the same room, from one clip into the
+next), and that is the work in front of every chat cutting this film. The
+"go" rule, the exact-prompt log and the never-describe-a-reference rule all
+stand exactly as written. Hers to move; replace this paragraph when she does.
+
 **Every FIVE turns, not every turn (2026-09-07, Sophie: "change the rule to
 every 5 turns")** — the hook's reminder fires on every fifth prompt of a
 session, and that is when the two cards below get refreshed; a turn that
@@ -174,7 +188,16 @@ Read back what the API really received after sending, and say it.
 
 **A SEEDANCE JOB WITH NO VIDEO REFERENCE GOES THROUGH OPENROUTER, NOT
 APIFRAME (2026-09-08, Sophie: "make a note so any reference w no video uses
-open router instead").** OpenRouter bills ByteDance's list price; the ~5%
+open router instead").** **PARKED 2026-09-09 — EVERYTHING GOES THROUGH
+APIFRAME WHILE THE 480p MINI DRAFT IS MADE (Sophie: "the answer is APIFRAME
+I guess. Let's build the pipeline around that for now").** Two things
+decided it the same day: OpenRouter stopped passing on the Mini sale (its
+discount reads 0 and today's jobs billed full list) and every other
+reseller carries the same face filter, so a film full of person references
+has one door anyway. The OpenRouter route, its log and its price reader stay
+built; the `/footage` page still sends `door:'openrouter'` and is NOT
+changed by this note — flipping it is hers to ask for. The rest of this
+paragraph is how the two doors work, kept for when she lifts this. OpenRouter bills ByteDance's list price; the ~5%
 top-up fee is paid when credit is BOUGHT, not per job. **SUPERSEDED
 2026-09-09 — the "480p Seedance 2.5 is 10.9¢/s all in against APIFRAME's 13¢,
 a 4s clip 44¢ against 52¢" figure was list × the fee on the WRONG CANVAS and
@@ -291,6 +314,65 @@ line is the PERSON, not the video:
   registration certificate); the entry tier is free (50 assets), the paid
   tiers $1,400/mo and up. The ChatGPT-character workflow is exactly the
   virtual-portrait door. NOT BUILT — hers to decide (Cod God Inc?).
+- **OTHER RESELLERS CARRY THE SAME FACE FILTER — RESEARCHED 2026-09-09
+  (Sophie: "research other platforms like OpenArt and Atlas Cloud and see if
+  they have the same restrictions as OpenRouter").** The face check runs
+  INSIDE ByteDance's model service, so every door that forwards to
+  Volcengine/BytePlus gets the identical `PrivacyInformation` refusal: Atlas
+  Cloud, fal, Kie, WaveSpeed, PiAPI (standard mode), OpenArt, Higgsfield,
+  Dreamina. Read off the vendors' own pages, not guides: **Atlas Cloud's June
+  blog says "supports realistic human faces … does not have this
+  limitation", and its CURRENT model FAQ says the opposite** ("Can I upload a
+  real person's face photo? No"), with the Mini page naming "the restriction
+  on uploading real human faces" across the family — the marketing line is
+  stale, the FAQ is live. OpenArt's own pages say nothing either way; every
+  third-party guide lists it among the standard-model doors. Kie's
+  "realistic human support" means GENERATED humans. **The doors that do take
+  a real photo are the ones with their own consent layer or a different
+  backend**: Runway's Seedance 2.0 (its API is documented as having no
+  real-face input filter and lighter moderation — Runway's ToS still bans
+  public figures and non-consenting people and it monitors output), PiAPI's
+  "Less Restriction" mode (consented images), HeyGen (a verified digital
+  twin of YOURSELF, her own face only), EvoLink (after verification), and
+  the official Volcengine liveness route above. **Reddit is unreadable from
+  this container by every door tried (2026-09-09: reddit.com answers a block
+  page, the pullpush archive refuses automated readers, the redlib mirrors
+  are down) and the web searches surfaced no thread** — so whether Atlas
+  Cloud quietly accepts a real face in practice, the way APIFRAME does, is
+  UNMEASURED beyond its own FAQ saying no. The only honest test is one 5¢
+  Mini job there with the eyes-blurred photo, which needs an account. Likeliest
+  reading of APIFRAME's looseness is a Runway-style backend rather than a
+  ByteDance key — unmeasured; APIFRAME calls itself an "official partner"
+  and says nothing about faces. Whether any of those doors also skip the
+  OUTPUT copyright gate (the Radcliffe failure) is unmeasured everywhere.
+  **PRICED THE SAME DAY (Sophie: "check on the pricing compared to
+  OpenRouter, APIFRAME and ByteDance itself"), one 4s 480p 3:4 clip, no
+  reference video, off each vendor's own price page:** BytePlus direct and
+  OpenRouter share ByteDance's per-token list (OpenRouter's `orTok` IS the
+  SKU) — Mini 14¢ · Fast 17¢ · 2.0 28¢ · 2.5 ~43¢ (2.0/Fast/2.5 canvases
+  unmeasured) — **but OpenRouter is NOT the same price: its card fee is 5.5%
+  ($0.80 minimum) on every top-up, 5% by crypto, so a job costs list × 1.055
+  (Sophie's correction, 2026-09-09; this line first said "~5%" and "the same
+  list").** Measured the same hour: OpenRouter's `pricing.discount` on every
+  Seedance model reads **0**, and both of the day's `/footage` Mini jobs
+  billed $0.1396 — full list. **Atlas Cloud's "-80%" Mini banner is
+  UNVERIFIED and probably stale**: its own deal pages date the Seedance sale
+  window to "May 7, 2026, 23:59 UTC" and "June 15", its June Mini post says
+  $0.056/s with no sale, and its lowest-price page stacks a TOP-UP bonus
+  (up to +30% credit at $50,000) into the headline. At its undiscounted
+  $0.056/s Atlas is 22¢ for the 4s Mini clip — DEARER than OpenRouter — and
+  only 4.4¢ if the banner is real; a real charge needs an account and is
+  hers. Same face filter either way. APIFRAME: Mini ~16¢ · Fast 28¢
+  · 2.0 32¢ · 2.5 52¢. The doors that take a real photo are all dearer:
+  PiAPI less-restriction Mini 31¢ · 2.0 44¢ · 2.5 66¢ (a +10% markup, AND
+  the face still has to go through its asset library with the person
+  verified — the official route with a fee on it, not a loose door); EvoLink
+  2.0 37¢ · Fast 30¢ (no Mini); Runway Mini 64¢ (16¢/s with a 64-credit
+  minimum) · 2.0 $1.44 · 2.5 80¢ minimum (20¢/s plus 10¢ per second of input
+  video). So APIFRAME stays the cheapest door for a reference with a person
+  in it by 2-4x; for a person-free job OpenRouter at list + 5.5% is the
+  measured floor, and Atlas Cloud only beats it if its banner discount is
+  real.
 The "go" rule above applies to both doors word for word. A no-video job
 sent to APIFRAME is not wrong, it is 16% dearer. Full note: *OpenRouter for
 Seedance* in `docs/modules/audio-and-film.md`.
