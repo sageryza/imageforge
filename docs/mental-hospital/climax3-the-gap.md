@@ -178,6 +178,21 @@ moment the prompt changes by one sentence its effect is gone into the noise
 `opts.seed`), and all four Seedance models declare seed support — so the field
 works. It just does not buy reproducibility.
 
+**AND THE SEED DOES NOT CARRY ACROSS RESOLUTION EITHER.** T4 — same prompt,
+same seed 7, same reference, 4s, only `resolution: "720p"` — is **16.2 dB**
+against its 480p twin, i.e. as different as two unrelated runs (T3 vs T4 is
+15.3). So **you cannot block a shot cheaply at 480p and re-render the keeper
+at 720p**: the 720p run is a fresh take, not the same shot larger. A clip you
+like at 480p is the clip you have.
+
+**What 720p costs and looks like:** "480p" 3:4 comes back **560x752** and
+"720p" **834x1112** — 2.20x the pixels, so ~2.1¢/s against ~0.93¢/s. The 720p
+take is visibly sharper AND drew more: a filing cabinet and a plant behind
+her, brighter and whiter, where the 480p take is close and moody in the ward's
+green. **Caveat: the test prompt carried only [Image1]** (her close-up) and no
+office still, so the room was unconstrained in both — that background
+difference is the model inventing, not proof that 720p breaks continuity.
+
 **What happened in the one pair, recorded as an anecdote and nothing more:**
 the take carrying her own sentence (`sophie and her doctor are in the middle
 of a discussion about when she can leave the mental hospital.`) cut to an
