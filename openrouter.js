@@ -62,6 +62,7 @@ const express = require('express');
 const fetch = require('node-fetch');
 const admin = require('firebase-admin');
 const videoLog = require('./video-log');
+const videoSeed = require('./video-seed');
 
 const KEY = process.env.OPENROUTER_API_KEY || '';
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
@@ -121,7 +122,12 @@ function buildRequest(b) {
   if (b.duration != null) params.duration = Number(b.duration);
   if (b.aspectRatio) params.aspect_ratio = String(b.aspectRatio);
   params.generate_audio = b.generateAudio == null ? true : Boolean(b.generateAudio);
-  if (b.seed != null) params.seed = Number(b.seed);
+  // EVERY CLIP CARRIES A SEED, minted when the caller did not pass one
+  // (video-seed.js — what it does and does not buy is measured there).
+  // Nothing ever hands a seed back, so a job sent without one has none
+  // forever; the mint costs nothing and rides `params` into the log.
+  if (videoSeed.takesSeed(model)) params.seed = videoSeed.seedFor(b.seed);
+  else if (b.seed != null) params.seed = Number(b.seed);
   if (imgs.length) params.reference_image_urls = imgs;
   if (vids.length) params.reference_video_urls = vids;
   if (auds.length) params.reference_audio_urls = auds;
@@ -234,54 +240,77 @@ router.get('/models', async (req, res) => {
 // { ok, jobId, poll, sent } — `sent` is the exact body OpenRouter received,
 // for the read-back her rule asks for. A ByteDance refusal answers 400
 // { error, refusal:'content' } and nothing is billed or logged.
+// The route's body, as a function — so the Footage page's own module can send
+// through this door IN PROCESS (2026-09-09) and the route stays a thin call.
+// Answers { jobId, sent, model, params }; throws an Error carrying `status`,
+// `refusal` ('content' | 'shape' | 'other') and `hint` on a refusal. Logs the
+// job (extra fields in `extra` ride onto the same doc) before answering.
+async function startVideo(b, extra) {
+  if (!KEY) { const e = new Error('OPENROUTER_API_KEY not configured'); e.status = 503; throw e; }
+  b = b || {};
+  const built = buildRequest(b);
+  if (built.error) { const e = new Error(built.error); e.status = 400; throw e; }
+  let r;
+  try {
+    r = await api('/videos', { method: 'POST', body: built.body });
+  } catch (e) {
+    const kind = refusalKind(e.body);
+    e.refusal = kind;
+    e.hint = kind === 'content' ? `ByteDance refused a reference (a face or a person) — that job goes through ${APIFRAME_ROUTE}` : undefined;
+    if (!e.status) e.status = 502;
+    throw e;
+  }
+  const jobId = r.id;
+  if (!jobId) { const e = new Error('OpenRouter gave no job id: ' + JSON.stringify(r).slice(0, 200)); e.status = 502; throw e; }
+  try {
+    await logDoc(jobId).set({
+      ...videoLog.sentRecord({ jobId, prompt: b.prompt, model: built.model, params: built.params,
+        tag: { chat: b.chat, scene: b.scene, title: b.title, session: b.session, note: b.note } }),
+      provider: 'openrouter',
+      ...(extra && typeof extra === 'object' ? extra : {}),
+    }, { merge: true });
+  } catch (e) { console.warn('[openrouter] video log write failed', e.message); }
+  return { jobId, sent: built.body, model: built.model, params: built.params };
+}
+
+// The poll, as a function: reads the job, mirrors the clip once on completion,
+// patches the log. Answers { id, status, video, usage, raw, patch }.
+async function pollVideo(id) {
+  id = String(id);
+  const j = await api(`/videos/${encodeURIComponent(id)}`);
+  const status = apiframeStatus(j.status);
+  let video = null;
+  if (status === 'COMPLETED') {
+    try { const d = await logDoc(id).get(); video = d.exists && d.data().video ? d.data().video : null; } catch { /* no log */ }
+    if (!video) video = await saveContentToFirebase(id);
+  }
+  let patch = null;
+  try {
+    patch = videoLog.finishPatch({ status, error: j.error }, video);
+    if (patch) {
+      if (j.usage && j.usage.cost != null) patch.cost = Number(j.usage.cost);
+      await logDoc(id).set(patch, { merge: true });
+    }
+  } catch { /* the poll answers either way */ }
+  return { id, status: String(j.status || '').toLowerCase(), video, usage: j.usage || null, raw: j, patch };
+}
+
 router.post('/video', async (req, res) => {
   try {
-    if (!KEY) return res.status(503).json({ error: 'OPENROUTER_API_KEY not configured' });
-    const b = req.body || {};
-    const built = buildRequest(b);
-    if (built.error) return res.status(400).json({ error: built.error, refused: built.refused || undefined });
-    let r;
-    try {
-      r = await api('/videos', { method: 'POST', body: built.body });
-    } catch (e) {
-      const kind = refusalKind(e.body);
-      const hint = kind === 'content' ? `ByteDance refused a reference (a face or a person) — that job goes through ${APIFRAME_ROUTE}` : undefined;
-      return res.status(e.status || 502).json({ error: e.message, refusal: kind, hint });
-    }
-    const jobId = r.id;
-    if (!jobId) return res.status(502).json({ error: 'OpenRouter gave no job id: ' + JSON.stringify(r).slice(0, 200) });
-    try {
-      await logDoc(jobId).set({
-        ...videoLog.sentRecord({ jobId, prompt: b.prompt, model: built.model, params: built.params,
-          tag: { chat: b.chat, scene: b.scene, title: b.title, session: b.session, note: b.note } }),
-        provider: 'openrouter',
-      }, { merge: true });
-    } catch (e) { console.warn('[openrouter] video log write failed', e.message); }
-    res.status(202).json({ ok: true, jobId, poll: `/api/openrouter/video-job/${jobId}`, sent: built.body });
-  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+    const r = await startVideo(req.body || {});
+    res.status(202).json({ ok: true, jobId: r.jobId, poll: `/api/openrouter/video-job/${r.jobId}`, sent: r.sent });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message, refusal: e.refusal, hint: e.hint });
+  }
 });
 
 // GET /video-job/:id — poll. On completion the clip is downloaded with the
 // key, mirrored to Storage once, and the permanent url written to the log.
 router.get('/video-job/:id', async (req, res) => {
   try {
-    const id = String(req.params.id);
-    const j = await api(`/videos/${encodeURIComponent(id)}`);
-    const status = apiframeStatus(j.status);
-    let video = null;
-    if (status === 'COMPLETED') {
-      try { const d = await logDoc(id).get(); video = d.exists && d.data().video ? d.data().video : null; } catch { /* no log */ }
-      if (!video) video = await saveContentToFirebase(id);
-    }
-    try {
-      const patch = videoLog.finishPatch({ status, error: j.error }, video);
-      if (patch) {
-        if (j.usage && j.usage.cost != null) patch.cost = Number(j.usage.cost);
-        await logDoc(id).set(patch, { merge: true });
-      }
-    } catch { /* the poll answers either way */ }
+    const r = await pollVideo(req.params.id);
     res.set('Cache-Control', 'no-store');
-    res.json({ id, status: String(j.status || '').toLowerCase(), video, usage: j.usage || null, raw: j });
+    res.json({ id: r.id, status: r.status, video: r.video, usage: r.usage, raw: r.raw });
   } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
 });
 
@@ -289,5 +318,6 @@ module.exports = {
   router,
   configured: () => Boolean(KEY),
   buildRequest, modelIdOf, apiframeStatus, refusalKind,
+  startVideo, pollVideo,
   MODELS, DEFAULT_MODEL, APIFRAME_ROUTE,
 };

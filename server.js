@@ -363,6 +363,7 @@ loadConfig().then(() => {
   app.use('/api/mpc-upload', mpcUpload.router); // full auto-upload (stops at cart)
   app.use('/api/apiframe', apiframe.router); // Midjourney deck-art generator
   app.use('/api/openrouter', openrouter.router); // Seedance at ByteDance's price, no video references (the second door)
+  app.use('/api/footage', require('./footage').router); // Footage: she makes Seedance clips herself — both doors, one log
   app.use('/api/ingest', ingest.router); // import externally-made art (bring-your-own-MJ)
   app.use('/api/crystals', crystals.router); // crystal drop box (photos + metadata → Etsy listings)
   app.use('/api/drop', dropbox.router); // the Dump — one inbox for anything, labelled later
@@ -929,6 +930,9 @@ app.get('/scratchpad', serveGated('scratchpad.html', { pill: true }));
 // Freeform: upload your own references, type your own words, pick the quality.
 // Nothing is added to the prompt here — that's the whole point of the page.
 app.get('/freeform', serveGated('freeform.html', { pill: true }));
+// Footage — Seedance clips by her own hand: describe it, attach references,
+// the star is the go (2026-09-09). footage.js is the module.
+app.get('/footage', serveGated('footage.html', { pill: true }));
 // Vector: describe drawings -> art that scales, and change its colours after
 // the fact for nothing. The front for /api/vector; see docs/vector-pipeline.md.
 app.get('/vector', serveGated('vector.html', { pill: true }));

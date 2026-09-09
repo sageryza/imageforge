@@ -5,7 +5,7 @@ import UIKit   // UIImage(systemName:) — the SF Symbol existence check in Tool
 /// fixed: Home (the grid) and Gallery at the ends, and the three in `barTools`
 /// between them. Everything else is reached from the home grid or a deep link.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, pausing, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, assembly, filmeditor, timeline, review, crop, shoebox
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, pausing, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, assembly, filmeditor, timeline, review, crop, shoebox, footage
     var id: String { rawValue }
 
     var title: String {
@@ -48,6 +48,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .review:    return "Review Queue"
         case .crop:      return "Squaring"
         case .shoebox:   return "Shoebox"
+        case .footage:   return "Footage"
         }
     }
 
@@ -91,6 +92,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .review:    return "Everything still waiting on your swipe — one pile."
         case .crop:      return "Crop pictures square with arrows — nothing to drag."
         case .shoebox:   return "Every polaroid in your Memory Library — one shelf."
+        case .footage:   return "Describe a clip, add references — Seedance draws it."
         }
     }
 
@@ -140,6 +142,8 @@ enum Tool: String, CaseIterable, Identifiable {
         // An archive box — a shoebox of kept things. Distinct from the Dump's
         // tray-with-arrow (an inbox) and Product Creator's shippingbox.
         case .shoebox:   return "archivebox"
+        // A clapperboard — footage being shot.
+        case .footage:   return "movieclapper"
         // A stack of playable pieces — the library of PARTS you already own.
         //
         // It was `rectangle.split.3x1`, which is the SAME symbol .blocks wears
@@ -240,6 +244,9 @@ enum Tool: String, CaseIterable, Identifiable {
         // its own header via pagehead.js — no Apple bar (the Aug 2026 rule).
         case .shoebox:   GatedWebTool(path: "/shoebox", name: "the Shoebox", icon: "archivebox",
                                       navTitle: "Shoebox")
+        // Footage: Seedance clips by her own hand. The page owns its header.
+        case .footage:   GatedWebTool(path: "/footage", name: "Footage", icon: "movieclapper",
+                                      navTitle: "Footage")
         // Chunking: the clip library. A shelf + a search box, so the native
         // bar carries the name and the page never repeats it (?embed=1).
         case .chunking:  GatedWebTool(path: "/chunking", name: "Chunking", icon: "play.square.stack",
@@ -308,6 +315,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .review:     return "/review"
         case .crop:       return "/crop"
         case .shoebox:    return "/shoebox"
+        case .footage:    return "/footage"
         // Native screens — nothing to collide with.
         case .movie, .sticker, .coloring, .storybook, .greeting, .instagram,
              .ads, .test, .dump:
@@ -330,9 +338,9 @@ let forgePillPages: Set<String> = [
     "/assembly", "/assets", "/audio", "/blocks", "/blog", "/brief", "/character",
     "/chunking", "/clips", "/crystals", "/crystalsplit", "/cutmarks", "/cuttingroom",
     "/deliverables", "/desktop", "/dreams", "/dreams-archive", "/dump", "/editor",
-    "/films", "/freeform", "/import", "/instagram", "/pausing", "/photo", "/playground",
+    "/films", "/footage", "/freeform", "/import", "/instagram", "/pausing", "/photo", "/playground",
     "/promptlab", "/report", "/review", "/scratchpad", "/search", "/shoebox", "/song",
-    "/storyroom", "/studio", "/timeline", "/vector", "/voice",
+    "/storyroom", "/studio", "/timeline", "/vector", "/voice", "/worklog",
     // baked in-page from scripts/pill.py, not injected
     "/chats", "/gallery", "/wall", "/writing",
 ]
@@ -860,7 +868,7 @@ private struct HomeGrid: View {
                    tools: [.cutroom, .pausing]),
         MovieStage(n: 5, name: "The pictures",
                    line: "Faces first, so they stay the same — then the film.",
-                   tools: [.character, .movie, .dreams]),
+                   tools: [.character, .movie, .dreams, .footage]),
         MovieStage(n: 6, name: "The shelf",
                    line: "What is already made — to cut from, or to watch.",
                    tools: [.chunking, .assembly, .filmeditor, .films]),

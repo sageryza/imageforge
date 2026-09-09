@@ -17,6 +17,7 @@ const express = require('express');
 const fetch = require('node-fetch');
 const admin = require('firebase-admin');
 const videoLog = require('./video-log');
+const videoSeed = require('./video-seed');
 
 const APIFRAME_KEY = process.env.APIFRAME_KEY || process.env.APIFRAME_API_KEY || '';
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
@@ -136,7 +137,12 @@ async function seedanceVideo(prompt, opts = {}) {
     if (list && list.length) params[key] = list;
   }
   if (opts.cameraFixed != null) params.camera_fixed = Boolean(opts.cameraFixed);
-  if (opts.seed != null) params.seed = Number(opts.seed);
+  // EVERY 2.x CLIP CARRIES A SEED, minted when the caller did not pass one
+  // (video-seed.js). Scoped to the 2.x family on purpose: the 1.x models
+  // have no seed control and APIFRAME refuses an unknown param rather
+  // than ignoring it, so a 1-lite job is left exactly as it was.
+  if (videoSeed.takesSeed(opts.model)) params.seed = videoSeed.seedFor(opts.seed);
+  else if (opts.seed != null) params.seed = Number(opts.seed);
   const body = {
     prompt,
     // The catalogue's own ids carry the dot (GET /v2/models: "seedance-1.5-pro",
@@ -236,21 +242,52 @@ router.get('/me', async (req, res) => {
 // the cheapest tier: seedance-1-lite, 480p. The reference lists are the
 // Seedance 2.x multi-reference door (see seedanceVideo) — a chat's nine panels
 // as one clip, spent from the server's key, so no container needs one.
+// The route's body as a function, so the Footage page's module can send
+// through this door in process (2026-09-09). Answers { jobId, model, params };
+// `extra` rides onto the log doc. Throws with `status` on a refusal.
+async function startVideo(b, extra) {
+  b = b || {};
+  if (!b.prompt) { const e = new Error('prompt is required'); e.status = 400; throw e; }
+  const jobId = await seedanceVideo(b.prompt, b);
+  const model = String(b.model || 'seedance-1-lite');
+  const params = lastSentParams.get(String(jobId)) || {};
+  // THE LOG (video-log.js): the exact prompt and every reference of every
+  // clip, filed the moment the job is accepted. Best-effort — a log write
+  // must never fail a send that APIFRAME has already taken money for.
+  try {
+    await admin.firestore().collection(videoLog.COLL).doc(String(jobId))
+      .set({ ...videoLog.sentRecord({ jobId, prompt: b.prompt, model, params,
+        tag: { chat: b.chat, scene: b.scene, title: b.title, session: b.session, note: b.note } }),
+      ...(extra && typeof extra === 'object' ? extra : {}) }, { merge: true });
+  } catch (e) { console.warn('[apiframe] video log write failed', e.message); }
+  return { jobId, model, params };
+}
+
+// The poll as a function: mirrors the clip on completion (unless save is
+// false) and patches the log. Answers { id, status, video, raw, patch }.
+async function pollVideo(id, save = true) {
+  id = String(id);
+  const j = await api(`/jobs/${id}`);
+  let video = videoUrlOf(j.result);
+  if (j.status === 'COMPLETED' && video && save) video = await saveVideoToFirebase(video);
+  // The log's outcome half — only once the job has ended, only the
+  // permanent url (a ?save=0 poll leaves `video` for the saving poll).
+  let patch = null;
+  try {
+    patch = videoLog.finishPatch(j, save ? video : null);
+    if (patch) await admin.firestore().collection(videoLog.COLL).doc(id).set(patch, { merge: true });
+  } catch (e) { /* the poll answers either way */ }
+  return { id, status: j.status, video, raw: j, patch };
+}
+
 router.post('/video', async (req, res) => {
   try {
-    const b = req.body || {};
-    if (!b.prompt) return res.status(400).json({ error: 'prompt is required' });
-    const jobId = await seedanceVideo(b.prompt, b);
-    // THE LOG (video-log.js): the exact prompt and every reference of every
-    // clip, filed the moment the job is accepted. Best-effort — a log write
-    // must never fail a send that APIFRAME has already taken money for.
-    try {
-      const params = lastSentParams.get(jobId) || {};
-      await admin.firestore().collection(videoLog.COLL).doc(String(jobId))
-        .set(videoLog.sentRecord({ jobId, prompt: b.prompt, model: b.model || 'seedance-1-lite', params,
-          tag: { chat: b.chat, scene: b.scene, title: b.title, session: b.session, note: b.note } }), { merge: true });
-    } catch (e) { console.warn('[apiframe] video log write failed', e.message); }
-    res.status(202).json({ ok: true, jobId, poll: `/api/apiframe/video-job/${jobId}` });
+    const r = await startVideo(req.body || {});
+    // The seed rides back so a chat can report the number it was actually sent
+    // with — video-seed.js mints one when the caller passed none, and nothing
+    // downstream ever hands a seed back.
+    res.status(202).json({ ok: true, jobId: r.jobId, poll: `/api/apiframe/video-job/${r.jobId}`,
+      seed: r.params && r.params.seed, sent: r.params });
   } catch (e) {
     res.status(e.status || 500).json({ error: e.message });
   }
@@ -260,18 +297,8 @@ router.post('/video', async (req, res) => {
 // clip to Firebase (pass ?save=0 for the raw CDN URL).
 router.get('/video-job/:id', async (req, res) => {
   try {
-    const j = await api(`/jobs/${req.params.id}`);
-    let video = videoUrlOf(j.result);
-    if (j.status === 'COMPLETED' && video && req.query.save !== '0') {
-      video = await saveVideoToFirebase(video);
-    }
-    // The log's outcome half — only once the job has ended, only the
-    // permanent url (a ?save=0 poll leaves `video` for the saving poll).
-    try {
-      const patch = videoLog.finishPatch(j, req.query.save !== '0' ? video : null);
-      if (patch) await admin.firestore().collection(videoLog.COLL).doc(String(req.params.id)).set(patch, { merge: true });
-    } catch (e) { /* the poll answers either way */ }
-    res.json({ id: req.params.id, status: j.status, video, raw: j });
+    const r = await pollVideo(req.params.id, req.query.save !== '0');
+    res.json({ id: r.id, status: r.status, video: r.video, raw: r.raw });
   } catch (e) {
     res.status(e.status || 500).json({ error: e.message });
   }
@@ -326,6 +353,6 @@ module.exports = {
   router,
   configured: () => Boolean(APIFRAME_KEY),
   imagine, job, deckCardPrompt, saveImagesToFirebase,
-  seedanceVideo, saveVideoToFirebase,
+  seedanceVideo, saveVideoToFirebase, startVideo, pollVideo,
   STYLE_SUFFIX,
 };

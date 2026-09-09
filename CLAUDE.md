@@ -235,6 +235,27 @@ line is the PERSON, not the video:
   eyes-blurred photo drew HER (job `OudXGDf91uEk1um3pZUt`, Mini 3:4, 5.6¢) —
   the eyes are the filter's key and not the model's; the likeness rides on
   the rest of the face. Mini has no 2:3; its portrait shapes are 3:4 and 9:16.
+  **AND A HARD BLACK BAR PASSES THE INPUT FILTER TOO — BUT A FAMOUS FACE
+  THEN HITS A SECOND GATE ON THE OUTPUT (measured 2026-09-09, Sophie: "i
+  wanna test black bar over danielle radcliffe eyes").** A press photo of
+  Daniel Radcliffe, whole, was refused at validation like every real photo
+  (`InputImageSensitiveContentDetected.PrivacyInformation`, free, in twelve
+  seconds); the identical photo with a solid black rectangle over both eyes
+  (PIL, nothing else touched) was **ACCEPTED and drew for a full minute**,
+  then died at the far end with a refusal nothing here had seen before:
+  `status:'failed'`, *"the output video may be related to copyright
+  restrictions"* (job `3SL74kD3vCOePxCzjgh4`, Mini 480p 3:4 4s, the "the man
+  in [Image1]" wording). So the bar defeats the eyes check exactly as the
+  blur does — **and there are TWO filters, not one**: an INPUT check that
+  reads the reference's eyes, and an OUTPUT check on the drawn video that the
+  Mayra rounds never reached. No `generation_id` record exists for the failed
+  job, so it reads as unbilled; the shared key had another chat's batch
+  running, so the charge could not be isolated exactly. **Which half of that
+  photo tripped the output gate is UNMEASURED** — Radcliffe's own likeness,
+  or the branded premiere step-and-repeat filling the background. The cheap
+  next test is the same bar on a tight crop of the face with no backdrop in
+  frame: it still fails on copyright → the likeness; it draws → the
+  backdrop. Hers to say go.
 - **WHY APIFRAME IS LOOSER, from ByteDance's own docs:** a face is only ever
   allowed as a `asset://` from its trusted asset library — a VIRTUAL portrait
   (a drawn or AI-made character that "must not resemble any real human
@@ -7078,6 +7099,42 @@ before working on that module. Nothing was deleted — the moved text is verbati
   session. **Full details: `docs/modules/pictures.md`.**
 
 ### Audio & film
+- **Footage** (`footage.js`, `/api/footage`, page at `/footage`, iOS tile
+  under the FILM filter's pictures stage — 2026-09-09, Sophie: "the next step
+  is to build a point so I can just make things on my own time by describing
+  them or uploading references") — **she sends a Seedance clip herself.** The
+  chat ritual as a page: her words in the box, references through the Dump
+  (each wearing its slot name — tap `[Image1]` and it lands in the prompt, so
+  a reference is named by its slot and never described), model · seconds ·
+  resolution · shape · sound, the DOOR (Auto · OpenRouter · APIFRAME), the
+  "about N¢" line, and **PLAN BEFORE GO (her word the same hour: "plan
+  before go")** — the first button only opens THE PLAN under the controls
+  (her words verbatim, every reference by its slot, model · seconds ·
+  resolution · shape · sound · the door it will really take, "This tap:
+  about N¢"), and **Go, the star, is the one tap that spends**. The plan is
+  built from the live state when Plan is tapped and takes itself down the
+  moment anything in it changes (a word, a control, a reference), so Go can
+  never send a plan she is not looking at. Never a native confirm(). (A
+  second chat built the same tool as `/motion` the same hour — PR #2231,
+  tag `motion-page-3f0fce9` — and it was NOT merged: one ask, one tile.) **Auto is the filter rule made automatic**:
+  OpenRouter first (ByteDance's price), and a content refusal — free, before
+  anything draws — sends the identical job through APIFRAME with the reason on
+  the card. 1.5 Pro is APIFRAME only. **One log**: both doors are called in
+  process (`startVideo`/`pollVideo`, exported from `openrouter.js` and
+  `apiframe.js`) and file the same `forge-video-jobs` doc, `chat:'footage'`,
+  so the 1080p redo reads it like any chat's. The server polls the unfinished
+  jobs itself (12s throttle per job) and bakes a poster, so the feed resumes
+  from any phone. **The price is SERVED** (`GET /estimate`, the model table on
+  `GET /status`) — the page holds no cost figure; the OpenRouter estimate is
+  video tokens × the published SKU × the measured sale factor × the 5% fee,
+  and the real cost replaces it on the card when OpenRouter reports it
+  (APIFRAME does not, so its cards keep "about"). Seconds and resolution open
+  at the minimum on every load; model, shape, door and sound are remembered.
+  Nothing is deleted — ♥/✕ marks, `hidden` is the verb. **A chat's clips do
+  NOT go here** — this is her feed, the Playground's rule; a chat's clips are
+  tagged with the chat's own slug. Test: `node scripts/test-footage.js`.
+  Full note: *FOOTAGE* under the OpenRouter note in
+  `docs/modules/audio-and-film.md`.
 - **Movies** (`movies.js`, `/api/movies`, iOS Movies tab — no web page) — story ->
   ~8-12 self-contained scenes -> gpt-image-2 panels -> Replicate image-to-video ->
   ffmpeg stitch, ~$1.35 for a 12-scene film.
