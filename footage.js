@@ -29,16 +29,18 @@
 // door. Seedance 1.5 Pro exists only on APIFRAME.
 //
 // THE PRICE IS SERVED, NEVER COPIED INTO THE PAGE (the Playground's rule):
-// `GET /status` carries the model table with its per-token and per-second
-// figures, and the page computes "about N¢" from that. OpenRouter bills per
-// VIDEO TOKEN — (w × h × 24 × seconds) / 1024 — at the SKU price OpenRouter
-// publishes (read live 2026-09-09 off /api/openrouter/models), cheaper when a
-// reference VIDEO rides, plus the ~5% credit top-up fee; ByteDance's sale on
-// Mini/Fast is applied at billing time, so those two carry a measured `sale`
-// factor (Mini: 5.4¢ measured against 7.6¢ list on a 480×480×4s job). APIFRAME
-// is per second by resolution (its own catalogue, ~1¢ a credit). The REAL
-// cost lands on the card when the job finishes (OpenRouter reports it; APIFRAME
-// does not, so an APIFRAME card keeps the estimate, marked as one).
+// `GET /status` carries the model table and `GET /estimate` answers the price
+// of the tap as the controls stand. OpenRouter bills per VIDEO TOKEN —
+// (w × h × (24·seconds + 1)) / 1024 — at the SKU price it publishes, times
+// ByteDance's sale factor, in LIST credit dollars (the ~5% top-up fee is paid
+// when credit is bought, not per job, so it is not in the shown price).
+// APIFRAME is per second by resolution, with its own rate when a reference
+// video rides. Both halves are MEASURED off real charges — see the model
+// table's own note, which carries the job counts and the dates. An estimate
+// answers `exact:true` where it is pinned and `about:true` where it is not,
+// and the page prints "about" only for the second. The REAL cost lands on the
+// card when the job finishes (OpenRouter reports it; APIFRAME does not, so an
+// APIFRAME card keeps the estimate, marked as one).
 //
 // Routes (mounted at /api/footage by server.js; STUDIO_TOKEN-gated):
 //   GET  /status             doors + balances (60s cache) + the model table
@@ -70,33 +72,67 @@ if (process.env.HTTPS_PROXY) {
 // ─── The model table ────────────────────────────────────────────────────
 // `or` = OpenRouter's id (null = not on that door), `af` = APIFRAME's id.
 // `orTok` = $ per video token by resolution (OpenRouter's published SKU);
-// `orVidTok` = the same with a reference video riding; `sale` = ByteDance's
-// promo as measured at billing; `afCents` = APIFRAME cents per second by
-// resolution (null = not offered / unpriced). `secs` = [min, max] or a list.
+// `sale` = ByteDance's promo as measured at billing; `afCents` = APIFRAME
+// cents per second by resolution (null = not offered / unpriced), `afVid` the
+// same WITH a reference video riding, `afExact` the (resolution[+video]) pairs
+// those figures are MEASURED on. `secs` = [min, max]. `sizes` names the canvas
+// table the door really renders on, when that is not the model's own family.
+//
+// THE PRICE IS EXACT NOW, AND THE 60% SALE ENDED 2026-09-09 — measured off
+// 113 completed OpenRouter jobs (their `usage.cost`) and 44 APIFRAME jobs
+// (their `creditCost`), with ffprobe on the output clips:
+//   · MINI RENDERS ON THE 2.5 CANVASES, not the 2.0 ones — 480p 1:1 is
+//     640×640, 480p 3:4 is 560×752, 720p 3:4 is 834×1112 (ffprobe, every
+//     clip). 2.0, Fast and 2.5 have NEVER gone through OpenRouter, so their
+//     canvases are unmeasured and keep the published table.
+//   · A CLIP IS 24·s + 1 FRAMES, not 24·s — the billed count fits 97 exactly
+//     on a 4s ask, and that +1 is what makes the formula land on the cent.
+//   · THE SALE IS READ LIVE, NEVER WRITTEN DOWN. Measured: Mini was billed
+//     at 0.40 × list — a real 60% off — on all 111 jobs from 2026-09-08 21:13
+//     UTC through 2026-09-09 06:39 UTC, and the two jobs since (18:09 and
+//     18:22 UTC, both from /footage) at FULL LIST: 13.96¢ for a 4s 3:4 480p
+//     Mini against 5.58¢. ByteDance's own campaign page is still running
+//     (Seedance 2.0 mini 40% of list and 2.0 fast 75%, both to 2026-10-07
+//     14:00 UTC+8; 2.5 at 1080p only 72%, to 2026-09-17; plain 2.0 is not in
+//     it) — so it is OPENROUTER that stopped passing the discount on today.
+//     It exposes it per model as `pricing.discount` on the endpoints route,
+//     which reads 0 right now and used to advertise mini "from
+//     $0.01345/second" (= 0.40 × $0.03363). So the factor is fetched (see
+//     `discounts()`), cached ten minutes, and a failed read is 0 — full list,
+//     the safe direction — never a stale sale. The old hardcoded 0.72 / 0.75
+//     are gone: they were wrong numbers that only looked right on 1:1, where
+//     the canvas was wrong too.
+//   · `orTok` IS WHAT OPENROUTER LISTS, which is what it bills against — and
+//     its Fast figure ($4.20/M) is already ByteDance's DISCOUNTED fast price.
+//     Don't try to reconcile that in code; the discount field is the only
+//     factor applied.
 const MODELS = [
   { id: 'mini', label: '2.0 Mini', or: 'bytedance/seedance-2.0-mini', af: 'seedance-2-mini',
-    res: ['480p', '720p'], secs: [4, 15], family: '2.0',
-    orTok: { '480p': 3.5e-6, '720p': 3.5e-6 }, orVidTok: { '480p': 2.1e-6, '720p': 2.1e-6 }, sale: 0.72,
-    afCents: { '480p': 4, '720p': 9 } },
+    res: ['480p', '720p'], secs: [4, 15], family: '2.0', sizes: '2.5',
+    orTok: { '480p': 3.5e-6, '720p': 3.5e-6 },
+    afCents: { '480p': 4, '720p': 9 }, afVid: { '480p': 5 }, afExact: ['480p+video'] },
   { id: 'fast', label: '2.0 Fast', or: 'bytedance/seedance-2.0-fast', af: 'seedance-2-fast',
     res: ['480p', '720p'], secs: [4, 15], family: '2.0',
-    orTok: { '480p': 4.2e-6, '720p': 4.2e-6 }, orVidTok: { '480p': 2.475e-6, '720p': 2.475e-6 }, sale: 0.75,
+    orTok: { '480p': 4.2e-6, '720p': 4.2e-6 },
     afCents: { '480p': 7, '720p': 16 } },
   { id: '2.0', label: '2.0', or: 'bytedance/seedance-2.0', af: 'seedance-2',
     res: ['480p', '720p', '1080p'], secs: [4, 15], family: '2.0',
-    orTok: { '480p': 7e-6, '720p': 7e-6, '1080p': 7.7e-6 }, orVidTok: { '480p': 4.3e-6, '720p': 4.3e-6, '1080p': 4.7e-6 }, sale: 1,
+    orTok: { '480p': 7e-6, '720p': 7e-6, '1080p': 7.7e-6 },
     afCents: { '480p': 8, '720p': 18, '1080p': null } },
   { id: '2.5', label: '2.5', or: 'bytedance/seedance-2.5', af: 'seedance-2.5',
     res: ['480p', '720p'], secs: [4, 30], family: '2.5',
-    orTok: { '480p': 1.07e-5, '720p': 1.07e-5 }, orVidTok: { '480p': 6.4e-6, '720p': 6.4e-6 }, sale: 1,
-    afCents: { '480p': 13, '720p': 29 } },
+    orTok: { '480p': 1.07e-5, '720p': 1.07e-5 },
+    afCents: { '480p': 13, '720p': 29 }, afVid: { '480p': 15 }, afExact: ['480p', '480p+video'] },
   { id: '1.5', label: '1.5 Pro', or: null, af: 'seedance-1.5-pro',
     res: ['480p', '720p'], secs: [4, 8, 12], family: '2.0', audioDefault: false,
     afCents: { '480p': 1.5, '720p': 3.4 } },
 ];
 const RATIOS = ['1:1', '3:4', '9:16', '4:3', '16:9', '21:9'];
 // The canvas ByteDance renders for a shape at a resolution (OpenRouter's
-// `supported_sizes`, read 2026-09-09) — what the token count is made of.
+// `supported_sizes`, read 2026-09-09) — what the token count is made of. Mini
+// is MEASURED onto the 2.5 table (`sizes: '2.5'` above); the rest is the
+// published table and unmeasured, because nothing else has gone through
+// OpenRouter yet.
 const SIZES = {
   '2.0': {
     '480p': { '1:1': [480, 480], '3:4': [480, 640], '9:16': [480, 854], '4:3': [640, 480], '16:9': [854, 480], '21:9': [1120, 480] },
@@ -108,6 +144,39 @@ const SIZES = {
     '720p': { '1:1': [960, 960], '3:4': [834, 1112], '9:16': [720, 1280], '4:3': [1112, 834], '16:9': [1280, 720], '21:9': [1470, 630] },
   },
 };
+// A CLIP IS 24·s + 1 FRAMES (measured; see the table's note).
+function framesOf(s) { return 24 * Number(s) + 1; }
+
+// ─── The sale, read from OpenRouter rather than written down ────────────
+// `pricing.discount` on a model's endpoints record is the fraction OFF, so the
+// price is list × (1 − discount). Cached ten minutes; **a failed read is 0**,
+// which is full list — the safe direction — so a sale can never go stale and
+// under-quote her. Free: it is OpenRouter's own metadata, not a model call.
+const DISC_CACHE_MS = 600000;
+let discCache = { at: 0, val: {} };
+async function endpointDiscount(orId) {
+  const mod = getDoors().openrouter;
+  if (!mod || !mod.api || !mod.configured || !mod.configured()) return 0;
+  try {
+    const j = await mod.api(`/models/${orId}/endpoints`);
+    const eps = (j && j.data && j.data.endpoints) || [];
+    const d = Number(eps[0] && eps[0].pricing && eps[0].pricing.discount);
+    return Number.isFinite(d) && d > 0 && d < 1 ? d : 0;
+  } catch { return 0; }
+}
+async function discounts() {
+  if (Date.now() - discCache.at < DISC_CACHE_MS && discCache.at) return discCache.val;
+  const out = {};
+  await Promise.all(MODELS.filter((m) => m.or).map(async (m) => { out[m.id] = await endpointDiscount(m.or); }));
+  discCache = { at: Date.now(), val: out };
+  return out;
+}
+function discountOf(id) { const v = discCache.val[id]; return Number.isFinite(v) ? v : 0; }
+// THE 5% IS PAID AT TOP-UP, NOT PER JOB, so it is NOT in the price this page
+// shows (2026-09-09): OpenRouter's balance and its per-job charge are both in
+// list dollars, so a price with the fee folded in does not subtract from the
+// balance she is looking at. Kept and exported — the "?" card says once that
+// credits cost 5% more to buy than they show.
 const OR_FEE = 1.05;   // the ~5% top-up fee on bought credit, measured ($2.52 on $50)
 
 function modelOf(id) {
@@ -122,7 +191,7 @@ function secondsOk(m, s) {
 }
 function minSeconds(m) { return m.secs[0]; }
 function canvasOf(m, res, ratio) {
-  const fam = SIZES[m.family] || SIZES['2.0'];
+  const fam = SIZES[m.sizes || m.family] || SIZES['2.0'];
   const byRes = fam[res] || fam['480p'];
   return byRes[ratio] || byRes['1:1'];
 }
@@ -143,8 +212,28 @@ function doorFor({ model, door, hasVideo, resolution }, cfg) {
   return { error: 'neither door is configured for that' };
 }
 
-// "about N¢" before the tap. Answers { cents, door, about:true } or { error }.
-function estimate({ model, resolution, ratio, seconds, hasVideo, door }, cfg) {
+// WHAT THE TAP COSTS, in list-credit cents. EXACT where it is measured —
+// `{ cents, door, exact:true }` — and `{ cents, door, about:true }` where it
+// is not, which the page prints as "about". Or `{ error }`.
+//
+// OpenRouter: tokens = w × h × (24·s + 1) / 1024, × the SKU, × (1 − the live
+// discount OpenRouter is passing on today — read, never written down).
+// The 5% top-up fee is deliberately NOT folded in (see OR_FEE above).
+// A REFERENCE VIDEO IS NOT PINNED — one job only (1:1 480p 4s Mini: 6.48¢
+// with, 5.43¢ without, under the sale), i.e. a video reference cost ~19% MORE
+// rather than the discount OpenRouter's own SKU advertises. So a job with one
+// is estimated at the SAME rate and marked "about" until it is measured; the
+// published `orVidTok` figures are gone rather than left lying around wrong.
+//
+// APIFRAME is cents per second by resolution, and a reference video has its
+// own rate (`afVid`): 2.5 at 480p is 15¢/s with one and 13 without — 44 jobs,
+// every one exact (4s = 60 or 52, 15s = 225, 30s = 450). Mini at 480p with a
+// video is 5¢/s. 720p is unmeasured on every model there, as is Mini with no
+// video, so those answer "about". (A FAILED APIFRAME job still shows a
+// `creditCost` — 60–450 on the refused 2.5 jobs — and the team total sits
+// ~1,100 credits UNDER the sum of them, so some failures are refunded; which
+// ones is unmeasured.)
+function estimate({ model, resolution, ratio, seconds, hasVideo, door, discount }, cfg) {
   const m = typeof model === 'string' ? modelOf(model) : model;
   if (!m) return { error: 'unknown model' };
   const res = m.res.includes(resolution) ? resolution : m.res[0];
@@ -153,13 +242,14 @@ function estimate({ model, resolution, ratio, seconds, hasVideo, door }, cfg) {
   if (d.error) return d;
   if (d.door === 'openrouter') {
     const [w, h] = canvasOf(m, res, RATIOS.includes(ratio) ? ratio : '1:1');
-    const tokens = (w * h * 24 * s) / 1024;
-    const perTok = (hasVideo ? m.orVidTok : m.orTok)[res];
-    const usd = tokens * perTok * (m.sale || 1) * OR_FEE;
-    return { cents: Math.round(usd * 1000) / 10, door: 'openrouter', about: true };
+    const tokens = (w * h * framesOf(s)) / 1024;
+    const off = Number.isFinite(discount) ? discount : discountOf(m.id);
+    const usd = tokens * m.orTok[res] * (1 - off);
+    return { cents: Math.round(usd * 10000) / 100, door: 'openrouter', ...(hasVideo ? { about: true } : { exact: true }) };
   }
-  const per = m.afCents[res];
-  return { cents: Math.round(per * s * 10) / 10, door: 'apiframe', about: true };
+  const per = (hasVideo && m.afVid && m.afVid[res] != null) ? m.afVid[res] : m.afCents[res];
+  const measured = (m.afExact || []).indexOf(res + (hasVideo ? '+video' : '')) >= 0;
+  return { cents: Math.round(per * s * 100) / 100, door: 'apiframe', ...(measured ? { exact: true } : { about: true }) };
 }
 
 // The slot names her prompt uses, in the order both doors attach them:
@@ -261,7 +351,9 @@ function cardOf(id, d) {
     ]),
     status: st === 'completed' ? 'done' : (st === 'failed' || st === 'cancelled' || st === 'expired') ? 'failed' : 'drawing',
     video: d.video || '', poster: d.poster || '',
-    cost: d.cost != null ? Math.round(Number(d.cost) * 1000) / 10 : null, estimate: d.estimate != null ? Number(d.estimate) : null,
+    // to the HUNDREDTH of a cent, like the estimate — the real charge is
+    // exact and rounding it to a tenth throws that away (13.96¢, not 14¢)
+    cost: d.cost != null ? Math.round(Number(d.cost) * 10000) / 100 : null, estimate: d.estimate != null ? Number(d.estimate) : null,
     sentAt: d.sentAt || '', doneAt: d.doneAt || '', error: d.error || '', note: d.note || '',
     vote: d.vote || '', hidden: Boolean(d.hidden), title: d.title || '',
   };
@@ -319,6 +411,7 @@ async function bakePoster(id, videoUrl) {
 // ─── Starting a job: the door, the fallback, the log ───────────────────
 // Answers { jobId, door, sent, fellBack } or throws with status/hint.
 async function startJob(b) {
+  await discounts().catch(() => {});
   const built = buildJob(b);
   if (built.error) { const e = new Error(built.error); e.status = 400; throw e; }
   const { body, refs, m, res, ratio, seconds } = built;
@@ -363,19 +456,22 @@ router.use(express.json({ limit: '2mb' }));
 // The model table the page draws its controls and its prices from.
 function publicModels() {
   return MODELS.map((m) => ({ id: m.id, label: m.label, openrouter: Boolean(m.or), apiframe: Boolean(m.af),
-    res: m.res, secs: m.secs, family: m.family, orTok: m.orTok || null, orVidTok: m.orVidTok || null, sale: m.sale || 1,
-    afCents: m.afCents || null, audioDefault: m.audioDefault !== false }));
+    res: m.res, secs: m.secs, family: m.family, sizes: m.sizes || m.family, orTok: m.orTok || null, discount: m.or ? discountOf(m.id) : 0,
+    afCents: m.afCents || null, afVid: m.afVid || null, audioDefault: m.audioDefault !== false }));
 }
 router.get('/status', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   const bal = await balances().catch(() => null);
+  await discounts().catch(() => {});
   res.json({ ok: true, chat: CHAT, doors: cfg(), balances: bal, models: publicModels(), ratios: RATIOS, sizes: SIZES, fee: OR_FEE });
 });
 
-// GET /estimate?model=&res=&ratio=&seconds=&video=1&door= — "about N¢" for
-// the controls as they stand. Free; the page asks on every change so it
-// holds no copy of a price.
-router.get('/estimate', (req, res) => {
+// GET /estimate?model=&res=&ratio=&seconds=&video=1&door= — the price of the
+// tap as the controls stand, with `exact` or `about` saying whether it is
+// pinned. Free; the page asks on every change so it holds no copy of a price,
+// and the live discount is refreshed (cached ten minutes) before it answers.
+router.get('/estimate', async (req, res) => {
+  await discounts().catch(() => {});
   const q = req.query || {};
   const e = estimate({ model: q.model, resolution: q.res, ratio: q.ratio, seconds: q.seconds,
     hasVideo: q.video === '1', door: q.door }, cfg());
@@ -433,6 +529,7 @@ router.post('/jobs/:id/hide', async (req, res) => {
 module.exports = {
   router, init,
   MODELS, RATIOS, SIZES, CHAT, OR_FEE,
-  modelOf, doorFor, estimate, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, secondsOk,
+  modelOf, doorFor, estimate, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, secondsOk, framesOf,
+  discounts, discountOf, endpointDiscount,
   startJob, bakePoster,
 };
