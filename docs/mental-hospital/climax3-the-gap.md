@@ -204,4 +204,5 @@ demonstrated; the pair is uncontrolled.
 
 Pages: "Climax 3 redo — three shapes v1" (`lWkWRlZC37pAmsOK3EkQ`) and
 "Context line — yours vs mine v2" (`xJrgMSzIPF9xIrWKrHD9`, sheet
-`context-line`).
+`context-line`) and "The seed tests v1" (`ih83XmjyCPm00xKNMhKf`, sheet
+`seed-tests`).
