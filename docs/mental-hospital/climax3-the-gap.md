@@ -67,3 +67,39 @@ APIFRAME 817 credits ($8.17), OpenRouter $48 left.
 `a_scare_peak` (31 @ 0:18) · `a_scare_end` (31 last frame) ·
 `a_ghost_first` (31b first frame) · `a_ghost` (31b @ 0:11), Dump bundle
 "Climax 3 — the gap".
+
+## The redo of 31's back half (2026-09-09, Sophie: "i think we need more
+## breathing room for the dr speaking and the panic music · let's redo that
+## part of the clip")
+
+**`s31` splits cleanly at 10.0s** — that is where it cuts from her close-ups to
+Grayson's wide, so a trim there is invisible. Front half (0-10s, her
+"Tomorrow? / the next day? / the day after that?") is fine and stays; the back
+half is what gets redrawn.
+
+**Why it is cramped, measured:** his two sentences run 10→18s (8s) and her
+horror-stricken reaction + the push-in gets 18→20s (**2s**). Audio is flat
+-21 to -24 dB across the whole tail — no swell anywhere.
+
+**Three takes of `md-31a` are on file** (`GET /api/apiframe/video-log
+?chat=climax-dissociation-accounts`), and **all three carried her FULL text
+including the panic-music paragraph**:
+- take 1, **8s**, completed (`1788906300124-gl2cf6.mp4`) — the whole card in 8s.
+- take 2, **20s**, completed (`1788907720566-b34ok7.mp4`) — **this is the clip
+  in the cut**, md5 `7bc0ac5dfc7d7963fb8ed6a700d546a1`.
+- take 3, **30s**, **FAILED at progress 99** with `Polling timed out after
+  1200s`, `result: null`, no video — the $4.50 already on the refund list.
+
+So **30s on this card has been tried once and lost $4.50**, which is the
+argument for splitting rather than re-running the whole thing longer.
+
+**Seedance ignored the music line at 8s and again at 20s.** The panic swell is
+a Film Editor sound-lane job (free and reliable), not something to buy more
+seconds hoping for.
+
+**References for the redo: unchanged from the take that landed** — 4 videos
+(jazz 15.10s + office2 4.04 + office 4.04 + broll1 4.04 = **27.2s**, under the
+30s cap) and the 5 stills (`pj-optA-solo`, `pj-optC-solo`, the socks still,
+`still2a-sophie-chair-wide-blur`, `still2b-doctor-chair-blur`). The exact
+wired prompt for all three takes is in the video log — read it from there
+rather than rebuilding it.
