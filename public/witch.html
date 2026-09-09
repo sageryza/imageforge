@@ -7263,7 +7263,9 @@
     // one Apple accepts as a real Sign in with Apple — same bridge as Google.
     const bridge = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.witchAuth;
     if (bridge) {
-      const m = $('acct-msg'); if (m) m.textContent = '';
+      // Say something the moment she taps: App Review's 1.0 (10) note was
+      // "no action took" — a tap that reads as nothing is worse than a line.
+      const m = $('acct-msg'); if (m) m.textContent = 'Opening Sign in with Apple…';
       try { bridge.postMessage('apple'); } catch (e) { if (m) m.textContent = e.message; }
       return;
     }
@@ -7295,6 +7297,7 @@
   };
   window.__witchAppleFailed = (msg) => {
     const m = $('acct-msg'); if (m) m.textContent = msg || '';
+    else if (msg) toast('Sign-in error: ' + msg);
   };
   // Email + password sign-in (secondary option; primarily for a demo/reviewer
   // account that can't receive a magic link or complete Google in a web view).
