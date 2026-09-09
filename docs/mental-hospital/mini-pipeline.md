@@ -384,6 +384,13 @@ enough to kill the eye and nothing more; every pixel beyond that costs
 likeness. **So: solid, at the height floor, is the best treatment on both
 counts — it passes where blur cannot, and it draws closer when both pass.**
 
+**What this measure is blind to, named 2026-09-09.** SFace scores IDENTITY —
+the geometry of a face — so a clip could score well and still draw a defect in
+one small feature. The other chat reported exactly that about the eyes; it is
+measured separately below (*THE OTHER CHAT'S BLACK-EYE REPORT*) and does not
+reproduce, but the caveat on this instrument stands whatever that turns out to
+be: **a high cosine is not a statement that the eyes are right.**
+
 ### The real rule: the least-covering mask that passes wins
 
 Every accepted mask, both faces, ranked by how many pixels it covers:
@@ -448,13 +455,85 @@ four times.** Three of those four are free if it is a bad mask, and the one
 that is not costs 5.6¢ — against a batch of clips drawn from a reference that
 turns out to bounce halfway through.
 
-### The other chat found the same thing independently
+### THE OTHER CHAT'S BLACK-EYE REPORT — measured against my own clips 2026-09-09
 
-`mom-character-clip` is doing the same work on her parents and converged on the
-same answer with no contact between the two: its auditions run
-"eyes blurred" → "black bar" → and its newest probe is **"Solid bar probe E
-(0.26/0.22)", accepted**. Two chats, two casts, one conclusion — which is worth
-more than either measurement alone.
+`mom-character-clip` is doing the same work on her parents, and for most of the
+day it corroborated this doc with no contact between us: its auditions ran
+"eyes blurred" → "black bar", it measured independently that **a blur needs a
+much bigger band than a solid to clear the filter**, and its newest probe
+("Solid bar probe E", 0.26/0.22) was accepted. Two chats, two casts, one
+conclusion.
+
+**Then it reported the opposite of a conclusion in this doc, and Sophie
+confirmed the symptom: the drawn eyes are coming out black.** Her words —
+"their eyes are turning black all of them. Sophie included, her eyes were
+green in a different shot." That chat's diagnosis: a solid bar paints black
+pixels where the eyes go, so the model draws a dark blob with no iris, while a
+blur leaves the iris smeared but present. Its proposed fix was to re-bar the
+whole reference set as blur and retire the black bar.
+
+**That diagnosis does not reproduce on my clips.** I already had the clean test
+it wanted to spend 11¢ on — the same face, the same prompt, three maskings,
+already drawn — so it cost nothing to check. Eye brightness measured as a
+fraction of the same face's own brightness (YuNet landmarks, a patch of 0.11
+inter-eye distance at each eye, 26 samples over 13 frames per clip), which
+takes the scene's lighting out of it:
+
+| clip | mask on the reference | eye V / face V |
+|---|---|---|
+| `probe-D` | **blur** bar, 354×75 | 0.739 |
+| `sop-solid` | **solid** bar, 265×26 | 0.732 |
+| `sopdots` | **solid** dots on the pupils | 0.736 |
+
+Three maskings, one face, and the numbers are inside a percent of each other.
+**Looking at the crops rather than the numbers says the same thing** — all
+three have a readable iris with a catchlight in it, the black-bar arm included.
+So on this face a solid bar did not blacken anything.
+
+**What I will not claim.** Michael's clips read much darker on dots (0.349)
+than on a bar (0.654), which looks like a mechanism — a patch sitting exactly
+on the pupil reads as the eye, where a bar across the eye line reads as an
+occluder to be removed and rebuilt. But his face is 177px against Sophie's
+470px and his eyes are half closed and downcast in most of those frames, so
+the measurement is of an eyelid. **It is a hypothesis, not a finding.**
+
+**Where that leaves the two chats.** Sophie's symptom is real; the cause is not
+established, and it is not "solid vs blur" as such. Two differences between the
+two setups are worth testing before anything is re-barred:
+
+- **Mask GEOMETRY.** Mine is one wide bar spanning both eyes; that chat's are
+  small per-eye patches placed by hand (28×19 and 28×18 on the dad). Those are
+  the dot case, not the bar case, and the dots hypothesis above is exactly
+  about that difference.
+- **The reference picture itself.** The affected shoot is that chat's v2 set.
+  Nothing has compared its references against a black-eye-free clip's.
+
+**The decisive test is that chat's own references, not mine** — its stills, the
+same one barred and blurred, one clip each, ~11¢. Until then: **do not re-bar
+the whole set as blur on this.** It is a large irreversible change to every
+reference on the strength of a diagnosis that fails to reproduce.
+
+### What that chat has that this one did not — adopted
+
+Two of its findings do not conflict with anything here and are better than what
+this doc had:
+
+- **More references of the same person HELP; they do not dilute.** It ran the
+  same clip four ways and two pictures of the dad beat either alone. References
+  are free, so there is no reason to ration them.
+- **The same still can be submitted TWICE at two different maskings**, named as
+  the same person — which gives the model more of the face than either masking
+  alone, and is the way to use a character we only have one good frame of.
+  (Its own read that this arm was best was withdrawn as unconfirmed judgement,
+  so treat the *trick* as available and the *ranking* as open.)
+
+### A THIRD refusal, from a third chat — the OUTPUT check
+
+`scripts/bar-eyes.py` (already on main, another chat's manual bar painter)
+records a refusal neither of the two in this doc covers: a famous face cleared
+the INPUT filter, drew for a full minute, and was then refused on the
+**output** — "may be related to copyright restrictions". So clearing the eye
+check is not the whole road, and that one is not free: it burns the draw.
 
 ### So the rule is an escalation ladder, and it costs nothing to walk
 

@@ -1,0 +1,56 @@
+[
+ {
+  "label": "sophie-BLUR",
+  "n": 26,
+  "eyeV_over_faceV": 0.739,
+  "eyeS": 61.1,
+  "catchlight_pct": 0.0,
+  "eyeV": 72.3,
+  "faceV": 97.7
+ },
+ {
+  "label": "sophie-BLACKBAR",
+  "n": 26,
+  "eyeV_over_faceV": 0.732,
+  "eyeS": 63.0,
+  "catchlight_pct": 0.1,
+  "eyeV": 71.3,
+  "faceV": 97.4
+ },
+ {
+  "label": "sophie-BLACKDOTS",
+  "n": 26,
+  "eyeV_over_faceV": 0.736,
+  "eyeS": 62.5,
+  "catchlight_pct": 0.0,
+  "eyeV": 71.1,
+  "faceV": 96.8
+ },
+ {
+  "label": "michael-BLACKBAR",
+  "n": 26,
+  "eyeV_over_faceV": 0.654,
+  "eyeS": 95.4,
+  "catchlight_pct": 0.0,
+  "eyeV": 69.9,
+  "faceV": 107.4
+ },
+ {
+  "label": "michael-BLACKDOTS",
+  "n": 26,
+  "eyeV_over_faceV": 0.349,
+  "eyeS": 119.0,
+  "catchlight_pct": 0.0,
+  "eyeV": 39.1,
+  "faceV": 114.5
+ },
+ {
+  "label": "michael-M3",
+  "n": 26,
+  "eyeV_over_faceV": 0.701,
+  "eyeS": 90.6,
+  "catchlight_pct": 0.2,
+  "eyeV": 80.7,
+  "faceV": 115.6
+ }
+]
