@@ -679,9 +679,9 @@
  },
  "conclusion": "Both axes have a floor and neither trades for the other. D-narrower (0.34/0.30) is close to the minimum and holds from a 640px face down to ~90px faces.",
  "spent": {
-  "accepted": 9,
-  "refused": "~24",
-  "totalUsd": 0.502
+  "accepted": 15,
+  "refused": "~34",
+  "totalUsd": 0.84
  },
  "finalBar": {
   "height_frac": 0.34,
@@ -726,5 +726,28 @@
   "XL (1.20/0.80)": "ACCEPTED",
   "note": "measured 2026-09-09 after Sophie challenged the untested assumption; Sophie is monotonic, Michael is not"
  },
- "model": "The filter asks whether the eye region still carries readable information, not how much area is covered. Blur only attenuates; on some faces (Michael) it never crosses the line at any width. Solid removes the information outright."
+ "model": "The filter asks whether the eye region still carries readable information, not how much area is covered. Blur only attenuates; on some faces (Michael) it never crosses the line at any width. Solid removes the information outright.",
+ "cropRule": {
+  "sizeFloor": "300px width \u2014 Seedance input minimum",
+  "measured": {
+   "420x560": "ACCEPTED",
+   "320x426": "ACCEPTED",
+   "299x398": "REFUSED (size)",
+   "240x320": "REFUSED (size)",
+   "180x240": "REFUSED (size)"
+  },
+  "tightness": {
+   "T100": "ACCEPTED",
+   "T80": "ACCEPTED",
+   "T62": "ACCEPTED",
+   "T48": "ACCEPTED",
+   "note": "crop tightness does not affect the face filter; only pixel width does"
+  },
+  "rule": "crop to isolate the person, then upscale to >=420px wide"
+ },
+ "twoRefusals": {
+  "face": "InputImageSensitiveContentDetected.PrivacyInformation \u2014 names the offending reference",
+  "size": "width under 300px \u2014 nothing to do with faces",
+  "note": "both are free 400s; only the error text tells them apart"
+ }
 }

@@ -252,6 +252,43 @@ That also explains the narrow end of Sophie's curve: at F-hairline the band is
 across the strip. It is the same fact from the other side — coverage matters
 only insofar as it destroys information.
 
+### TWO DIFFERENT REFUSALS, and they look identical unless you read the error
+
+Sophie, 2026-09-09: *"i meant wide/narrow frames. if u crop too narrow it
+refuses for that reason too."* She is right, and it is a separate rule from
+everything above — measured on her face, the one known to pass:
+
+| frame sent | result |
+|---|---|
+| 420×560 | ACCEPTED |
+| 320×426 | ACCEPTED |
+| **299×398** | **REFUSED — size, not the face** |
+| 240×320 | REFUSED — size |
+| 180×240 | REFUSED — size |
+
+The cliff is exactly at **300px of width**, which is Seedance's documented
+input minimum. So:
+
+- **`InputImageSensitiveContentDetected.PrivacyInformation`** — the face
+  filter. It NAMES the offending reference (`content[5]`), which is how the
+  doctor and Michael were each pinned. Fixed with a bigger or solid bar.
+- **A size refusal** — the crop fell under 300px wide. Fixed by upscaling the
+  crop. Nothing to do with faces.
+
+**Both come back as a 400 and both are free, so the only thing that tells them
+apart is the error text — read it before changing the bar.** The earlier
+204×273 crop of Michael was a size refusal misread as a face one.
+
+**Crop TIGHTNESS itself does not affect the face filter.** The known-good
+Sophie still was re-cropped to 80%, 62% and 48% of its frame — the face filling
+almost the whole picture — and all three were accepted. So there is no
+"too tight for the face filter"; there is only "too small in pixels".
+
+**The practical rule: crop to isolate whoever you want copied, then upscale the
+crop to at least 420px wide before sending.** Cropping tight is free and often
+necessary (it is how a second person is removed); falling under 300px is the
+trap, and it looks exactly like a face refusal if you do not read the code.
+
 ### So the rule is an escalation ladder, and it costs nothing to walk
 
 1. **Blur at D** — the default. Sophie, the parents and the doctor all pass here.
