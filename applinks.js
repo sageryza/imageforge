@@ -51,6 +51,7 @@ const LINKS = [
   ['/gallery', 'gallery'],
   ['/playground', 'playground'],
   ['/freeform', 'freeform'],
+  ['/footage', 'footage'],
   ['/vector', 'vector'],
   ['/test', 'test'],
   ['/review', 'review'],

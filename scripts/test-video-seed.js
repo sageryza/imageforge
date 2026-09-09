@@ -35,12 +35,21 @@ ok('2.5 is seeded as well as Mini', Number.isInteger(o.buildRequest({ prompt: 'p
 const af = fs.readFileSync(__dirname + '/../apiframe.js', 'utf8');
 ok('APIFRAME mints through the shared rule',
   /videoSeed\.takesSeed\(opts\.model\)\) params\.seed = videoSeed\.seedFor\(opts\.seed\)/.test(af));
-ok('APIFRAME hands the seed back on the 202 so a chat can report it', /seed: sentParams\.seed/.test(af));
+ok('APIFRAME hands the seed back on the 202 so a chat can report it',
+  /startVideo\(/.test(af) && /return \{ jobId, model, params \}/.test(af) && /seed: r\.params && r\.params\.seed/.test(af));
 const or = fs.readFileSync(__dirname + '/../openrouter.js', 'utf8');
 // Math.random is fine for a storage FILENAME; what must not exist is a
 // second way to make a SEED, which is how the two doors would drift apart.
 const seedLine = (src) => src.split('\n').some((l) => /seed/i.test(l) && /Math\.random|Date\.now\(\)/.test(l));
 ok('neither door mints a seed of its own', !seedLine(or) && !seedLine(af));
+
+// ── WIDESPREAD: every surface that sends a clip inherits the mint, because
+// they all go through the doors' own senders rather than building a body.
+const fg = fs.readFileSync(__dirname + '/../footage.js', 'utf8');
+ok('the Footage page sends through the doors\' startVideo, so its clips are seeded too',
+  /mod\.startVideo\(/.test(fg) && !/Math\.random/.test(fg.split('\n').filter((l) => /seed/i.test(l)).join('\n')));
+ok('both doors export the sender the other surfaces call',
+  /startVideo, pollVideo,/.test(or) && /startVideo,/.test(af));
 
 // ── the measurement that says what a seed is worth, kept where it was made
 const doc = fs.readFileSync(__dirname + '/../video-seed.js', 'utf8');
