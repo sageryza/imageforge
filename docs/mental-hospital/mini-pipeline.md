@@ -371,6 +371,19 @@ passes for most faces; solid is the fallback, not the default.
 
 ## Where things are
 
+**Published findings page** (the eye-bar measurements, every probe, drawn at
+true pixel scale): https://claude.ai/code/artifact/b10d8fff-8ce9-439d-b96b-6c11304e8b4f
+
+**A NOTE ON READING SPEND FROM THE JOB LOG — it undercounts.** `GET
+/api/apiframe/video-log` fills in `cost` only when a job is POLLED to
+completion. An accepted job left unpolled is still billed (OpenRouter charges
+on the 202 and there is no cancel) and shows no cost at all. Measured
+2026-09-09: the log reported $0.39 for this chat against a real $1.23 — 7 of
+22 accepted jobs had a cost on them. **Count accepted jobs x the per-job rate,
+or read `GET /api/openrouter/credits` before and after; do not total the
+log's cost column.**
+
+
 **The barred stills to use are the `-barD` copies** (D-narrower). The first
 C-narrow set is superseded — wider, so it also passes, but it eats more face.
 
