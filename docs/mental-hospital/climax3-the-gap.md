@@ -103,3 +103,25 @@ seconds hoping for.
 `still2a-sophie-chair-wide-blur`, `still2b-doctor-chair-blur`). The exact
 wired prompt for all three takes is in the video log — read it from there
 rather than rebuilding it.
+
+## The Mini redo (2026-09-09, Sophie: "it works till about 8 seconds · also he
+## leans forward and leans back next clip · redo dialogue w open router mini")
+
+- **Cut at 8.0s**, her call. Her third line ("The day after that?") lands ~9s,
+  so the new clip carries it.
+- **The leaning break is real:** `s31` cuts to Grayson at 10.0s **leaning
+  forward, hands on the desk**, and `s31b` opens with him **sitting back,
+  hands clasped**. Fix by construction — the Grayson reference still IS
+  `s31b`'s own first frame, plus one line of direction: `Dr. Grayson does not
+  lean forward at any point.` (Never describe the still; point at it.)
+- **OpenRouter takes NO person video**, so the jazz clip cannot ride. Her
+  likeness comes off a still with **black bars over the eyes** — bars, not
+  blur, are the reliable one on AI-drawn frames (measured 2026-09-08). Two
+  stills built from the existing clips and filed in this chat's Assets tab:
+  `b_sophie.png` (frame of 31 @ 0:07) and `b_grayson.png` (31b first frame).
+- **Mini at 480p 3:4 is 1.4¢/s measured** (job `OudXGDf91uEk1um3pZUt`, 4s =
+  5.6¢) — so 8s ≈ 11¢, 12s ≈ 17¢, 15s ≈ 21¢ against $2.25 for 15s of 2.5 on
+  APIFRAME. Mini supports 4-15s, 480p/720p, 3:4. Another chat is running the
+  same shape right now (`mom-character-clip`, 20 jobs, 15s included), so the
+  path is proven.
+- **A refusal is free** — nothing is billed until it draws.
