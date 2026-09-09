@@ -112,7 +112,16 @@ whatever the threshold turns out to be.
 | F-hairline (0.18/0.15) | 288×40 | REFUSED |
 | E-slit (0.26/0.22) | 319×58 | REFUSED |
 | **D-narrower (0.34/0.30)** | **354×75** | **ACCEPTED — $0.0558, job `1BhEe5n7xp1V60nx3bvW`** |
-| C-narrow, B-measured, A-wide | wider still | untested; wider than a rung that passed |
+| C-narrow (0.45/0.40) | 398×99 | ACCEPTED |
+| B-measured (0.60/0.50) | 443×132 | ACCEPTED |
+| A-wide (0.80/0.60) | 487×177 | ACCEPTED |
+| XL (1.20/0.80) | 576×265 | ACCEPTED |
+
+**Every rung at or above D passes on Sophie, and that was MEASURED, not
+assumed** (Sophie asked, 2026-09-09: "it refuses wide and narrow" — a fair
+challenge to a claim this doc had made without testing it). On her face the
+curve really is monotonic: everything from D up to a band twice D's size is
+accepted.
 
 **The control refusing is what makes the rest of it evidence.** The identical
 still with no bar was refused on the same face at the same second — so the
@@ -219,6 +228,29 @@ warns about ("cropping, sunglasses, blur and drawn-over faces mostly fail").
 **`mode='solid'` at the same D geometry passes on the first try** — and his
 likeness comes through intact: the same flat light-brown hair, the same face,
 looking up and smiling. Cost: one accepted job.
+
+### The two curves, and what the filter is actually asking
+
+Sophie and Michael behave completely differently, and putting them side by side
+is what gives the right mental model:
+
+- **Sophie — monotonic.** No bar and the three narrow rungs refuse; D and
+  every wider rung, up to a band twice its size, accept.
+- **Michael — refuses at EVERY blurred width, narrow and wide alike**, from D
+  through 1.00/0.70. Only a SOLID bar passes.
+
+So **it is not about how much area is covered.** If it were, Michael's widest
+blur would have passed. What the filter is asking is whether the eye region
+still carries readable information — and a Gaussian blur only ever *attenuates*
+it. On most faces a big-enough blur takes it below the line; on Michael's it
+never does at any size, because the low-frequency structure that survives a
+blur is apparently still enough. A solid fill removes the information outright,
+which is why it passes on the first try.
+
+That also explains the narrow end of Sophie's curve: at F-hairline the band is
+40px tall and the blur averages only within it, so the eye still reads straight
+across the strip. It is the same fact from the other side — coverage matters
+only insofar as it destroys information.
 
 ### So the rule is an escalation ladder, and it costs nothing to walk
 

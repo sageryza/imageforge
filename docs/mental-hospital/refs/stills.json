@@ -578,7 +578,7 @@
    "note": "brow to cheekbone",
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c50b23b5b2f8b90086deef31b5287439.png",
    "id": "UjS36w4XyAztONS8K053",
-   "probe": "untested (wider)"
+   "probe": "ACCEPTED"
   },
   {
    "rung": "B-measured",
@@ -596,7 +596,7 @@
    "note": "the rung that passed on Mayra's photo",
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/5c5a50de90d983c446db23ec6063aae7.png",
    "id": "7X3fFzeWJHm24f7EHAqx",
-   "probe": "untested (wider)"
+   "probe": "ACCEPTED"
   },
   {
    "rung": "C-narrow",
@@ -614,7 +614,7 @@
    "note": "eyes only",
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/6270bec4e7beffc8c2c35f8f364ae670.png",
    "id": "MZc3tsAX0ayCPSR4WCMH",
-   "probe": "untested (wider than D, so it passes)"
+   "probe": "ACCEPTED"
   },
   {
    "rung": "D-narrower",
@@ -679,9 +679,9 @@
  },
  "conclusion": "Both axes have a floor and neither trades for the other. D-narrower (0.34/0.30) is close to the minimum and holds from a 640px face down to ~90px faces.",
  "spent": {
-  "accepted": 4,
-  "refused": 8,
-  "totalUsd": 0.2234
+  "accepted": 9,
+  "refused": "~24",
+  "totalUsd": 0.502
  },
  "finalBar": {
   "height_frac": 0.34,
@@ -718,5 +718,13 @@
   "M2 (rotated D, feather bug)": "REFUSED \u2014 both faces; the feather kernel exceeded the band height so the blur was a weak blend",
   "M2 (rotated 0.45, feather bug)": "REFUSED \u2014 same cause",
   "M2 (rotated D, feather fixed)": "ACCEPTED \u2014 two barred faces plus the office in one card"
- }
+ },
+ "wideRungs": {
+  "C-narrow (0.45/0.40)": "ACCEPTED",
+  "B-measured (0.60/0.50)": "ACCEPTED",
+  "A-wide (0.80/0.60)": "ACCEPTED",
+  "XL (1.20/0.80)": "ACCEPTED",
+  "note": "measured 2026-09-09 after Sophie challenged the untested assumption; Sophie is monotonic, Michael is not"
+ },
+ "model": "The filter asks whether the eye region still carries readable information, not how much area is covered. Blur only attenuates; on some faces (Michael) it never crosses the line at any width. Solid removes the information outright."
 }
