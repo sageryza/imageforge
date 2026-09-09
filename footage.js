@@ -12,8 +12,10 @@
 // and the star that spends it. Nothing on this page spends money until she
 // taps the star; opening it costs nothing.
 //
-// TWO DOORS, ONE LOG. The clip goes out through openrouter.js (ByteDance's
-// own price) or apiframe.js (the door that accepts a person in a reference),
+// THREE DOORS, ONE LOG. The clip goes out through atlascloud.js (the page's
+// door and the auto default since 2026-09-09 — it takes a person in a
+// reference and prices Mini at a fifth of list), openrouter.js (ByteDance's
+// own price) or apiframe.js (the last resort for a face Atlas refuses),
 // IN PROCESS — `startVideo` / `pollVideo` on each module — and every job
 // files the same `forge-video-jobs` doc those doors already file
 // (video-log.js: the literal prompt, the exact params, every reference url),
@@ -107,36 +109,42 @@ if (process.env.HTTPS_PROXY) {
 //     Don't try to reconcile that in code; the discount field is the only
 //     factor applied.
 const MODELS = [
+  // ATLAS CLOUD IS THE PAGE'S DOOR AND THE AUTO DEFAULT (2026-09-09, Sophie:
+  // "make atlas the default and only route through footage"). `atlas` is
+  // Atlas's model id on every 2.x row; `atlasCents` is Atlas's published LIST
+  // rate per second (Mini 5.6¢ · Fast 9¢ · 2.0 11.2¢ · 2.5 16.7¢, read off
+  // its own `GET /models` `price.origin` on 2026-09-09) and is only the
+  // FALLBACK — the live price comes off that same `GET /models`
+  // (`price.actual.base_price`, the sale already applied; `atlasPrices()`
+  // below), so the 80%-off Mini sale is read, never written down, exactly as
+  // OpenRouter's discount is. It shipped for one afternoon as its own
+  // "2.0 Mini · Atlas" row beside the OpenRouter one; her ask the same
+  // evening folded the door into the rows. MEASURED (2026-09-09): a PERSON
+  // video and a real untouched photo both pass and draw; only a famous face
+  // is refused (free, on the POST, as copyright). 1080p on 2.0 is unpriced
+  // on Atlas and stays null.
   { id: 'mini', label: '2.0 Mini', or: 'bytedance/seedance-2.0-mini', af: 'seedance-2-mini',
+    atlas: 'bytedance/seedance-2.0-mini/reference-to-video',
     res: ['480p', '720p'], secs: [4, 15], family: '2.0', sizes: '2.5',
     orTok: { '480p': 3.5e-6, '720p': 3.5e-6 },
-    afCents: { '480p': 4, '720p': 9 }, afVid: { '480p': 5 }, afExact: ['480p+video'] },
-  // ATLAS CLOUD'S MINI — a MODEL-ROW CHOICE, not a door row (2026-09-09,
-  // Sophie: "did you add it to the footage tile?" — the door row came off the
-  // page the same day, so the third door rides as one more line in the model
-  // drop-down). `atlas` = Atlas Cloud's id. MEASURED THE SAME NIGHT (one 4s
-  // 480p 16:9 Mini job, a PERSON video as the reference — it drew, 864x496,
-  // 80s, 80,770 tokens; see CLAUDE.md): `atlasCents` is Atlas's published
-  // LIST rate ($0.056/s) and is only the FALLBACK — the live price comes off
-  // Atlas's own `GET /models` (`price.actual.base_price` per second, the sale
-  // already applied; `atlasPrices()` below), so the 80%-off Mini sale is read,
-  // never written down, exactly as OpenRouter's discount is. The estimate
-  // stays "about" until a console read pins dollars to the token count.
-  { id: 'mini-atlas', label: '2.0 Mini · Atlas', atlas: 'bytedance/seedance-2.0-mini/reference-to-video',
-    res: ['480p', '720p'], secs: [4, 15], family: '2.0', sizes: '2.5',
+    afCents: { '480p': 4, '720p': 9 }, afVid: { '480p': 5 }, afExact: ['480p+video'],
     atlasCents: { '480p': 5.6, '720p': 5.6 } },
   { id: 'fast', label: '2.0 Fast', or: 'bytedance/seedance-2.0-fast', af: 'seedance-2-fast',
+    atlas: 'bytedance/seedance-2.0-fast/reference-to-video',
     res: ['480p', '720p'], secs: [4, 15], family: '2.0',
     orTok: { '480p': 4.2e-6, '720p': 4.2e-6 },
-    afCents: { '480p': 7, '720p': 16 } },
+    afCents: { '480p': 7, '720p': 16 }, atlasCents: { '480p': 9, '720p': 9 } },
   { id: '2.0', label: '2.0', or: 'bytedance/seedance-2.0', af: 'seedance-2',
+    atlas: 'bytedance/seedance-2.0/reference-to-video',
     res: ['480p', '720p', '1080p'], secs: [4, 15], family: '2.0',
     orTok: { '480p': 7e-6, '720p': 7e-6, '1080p': 7.7e-6 },
-    afCents: { '480p': 8, '720p': 18, '1080p': null } },
+    afCents: { '480p': 8, '720p': 18, '1080p': null }, atlasCents: { '480p': 11.2, '720p': 11.2, '1080p': null } },
   { id: '2.5', label: '2.5', or: 'bytedance/seedance-2.5', af: 'seedance-2.5',
+    atlas: 'bytedance/seedance-2.5/reference-to-video',
     res: ['480p', '720p'], secs: [4, 30], family: '2.5',
     orTok: { '480p': 1.07e-5, '720p': 1.07e-5 },
-    afCents: { '480p': 13, '720p': 29 }, afVid: { '480p': 15 }, afExact: ['480p', '480p+video'] },
+    afCents: { '480p': 13, '720p': 29 }, afVid: { '480p': 15 }, afExact: ['480p', '480p+video'],
+    atlasCents: { '480p': 16.7, '720p': 16.7 } },
   { id: '1.5', label: '1.5 Pro', or: null, af: 'seedance-1.5-pro',
     res: ['480p', '720p'], secs: [4, 8, 12], family: '2.0', audioDefault: false,
     afCents: { '480p': 1.5, '720p': 3.4 } },
@@ -252,12 +260,17 @@ function doorFor({ model, door, hasVideo, resolution }, cfg) {
   const atOk = Boolean(m.atlas) && cfg.atlascloud && m.atlasCents && m.atlasCents[resolution || '480p'] != null;
   if (want === 'openrouter') return orOk ? { door: 'openrouter', fallback: null } : { error: m.or ? 'OpenRouter is not configured for that' : (m.atlas ? `${m.label} is only on Atlas Cloud` : `${m.label} is only on APIFRAME`) };
   if (want === 'apiframe') return afOk ? { door: 'apiframe', fallback: null } : { error: 'APIFRAME does not offer that' };
-  // THE THIRD DOOR IS ALWAYS PINNED BY ITS ROW — no fallback and never a
-  // fallback: a refusal there is a measurement, and a chat sends a person
-  // through APIFRAME by hand.
+  // A PINNED DOOR NEVER FALLS BACK — the page pins Atlas (its only door), and
+  // a refusal there is a measurement she reads, not a reason to spend on
+  // another door behind her back.
   if (want === 'atlascloud') return atOk ? { door: 'atlascloud', fallback: null } : { error: m.atlas ? 'Atlas Cloud is not configured (ATLASCLOUD_API_KEY)' : `${m.label} is not on Atlas Cloud` };
+  // AUTO: ATLAS FIRST (2026-09-09, her "make atlas the default") — it takes
+  // a person in a reference and is the cheapest door for one; a content
+  // refusal there (a famous face) falls through to APIFRAME. OpenRouter is
+  // the door for a model Atlas does not price (2.0 at 1080p), APIFRAME the
+  // last resort.
+  if (atOk) return { door: 'atlascloud', fallback: afOk ? 'apiframe' : null };
   if (orOk) return { door: 'openrouter', fallback: afOk ? 'apiframe' : null };
-  if (atOk) return { door: 'atlascloud', fallback: null };
   if (afOk) return { door: 'apiframe', fallback: null };
   return { error: 'no door is configured for that' };
 }
@@ -298,9 +311,12 @@ function estimate({ model, resolution, ratio, seconds, hasVideo, door, discount 
     return { cents: Math.round(usd * 10000) / 100, door: 'openrouter', ...(hasVideo ? { about: true } : { exact: true }) };
   }
   if (d.door === 'atlascloud') {
-    // Atlas's live per-second rate (the sale applied), the list rate when the
-    // read failed — "about" until a console read pins dollars to the tokens
-    return { cents: Math.round(atlasPerSecOf(m, res) * 100 * s * 100) / 100, door: 'atlascloud', about: true };
+    // Atlas bills per second: its live rate (the sale applied) is EXACT for
+    // a job with no reference video; the list-rate fallback (the read
+    // failed) and a job carrying a reference video (unpinned there, as on
+    // OpenRouter) answer "about".
+    const live = Boolean(atlasCache.val[m.id] && Number.isFinite(atlasCache.val[m.id].perSec));
+    return { cents: Math.round(atlasPerSecOf(m, res) * 100 * s * 100) / 100, door: 'atlascloud', ...(live && !hasVideo ? { exact: true } : { about: true }) };
   }
   const per = (hasVideo && m.afVid && m.afVid[res] != null) ? m.afVid[res] : m.afCents[res];
   const measured = (m.afExact || []).indexOf(res + (hasVideo ? '+video' : '')) >= 0;
@@ -490,10 +506,12 @@ async function startJob(b) {
     const r = await send(d.door);
     return { ...r, fellBack: false, estimate: est.cents };
   } catch (e) {
-    if (d.door === 'openrouter' && e.refusal === 'content' && d.fallback === 'apiframe') {
+    if (e.refusal === 'content' && d.fallback === 'apiframe') {
       const est2 = estimate({ model: m, resolution: res, ratio, seconds, hasVideo, door: 'apiframe' }, cfg());
       extra.estimate = est2.cents != null ? est2.cents : null;
-      const note = 'OpenRouter refused a reference (a person in it) — sent through APIFRAME instead';
+      const note = d.door === 'atlascloud'
+        ? 'Atlas Cloud refused a reference (a famous face) — sent through APIFRAME instead'
+        : 'OpenRouter refused a reference (a person in it) — sent through APIFRAME instead';
       const r = await send('apiframe', note);
       return { ...r, fellBack: true, estimate: est2.cents, note };
     }

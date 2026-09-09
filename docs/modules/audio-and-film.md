@@ -432,17 +432,33 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       1080p-SR · 1440p-SR`, seconds 4-15 (or -1), ratios the six plus
       `adaptive`, up to 9 images / 3 videos / 3 audios (audio needs a
       picture or video beside it — refused before sending).
-    **ON THE FOOTAGE TILE AS A MODEL ROW — "2.0 Mini · Atlas" (2026-09-09,
-    Sophie: "did you add it to the footage tile?").** The door row came off
-    that page the same day, so the third door rides as one more line in the
-    model drop-down (`mini-atlas` in footage.js's `MODELS`, `atlas` = Atlas's
-    id): picking it is what sends through Atlas (`doorNow()` on the page
-    derives the door from the row), the card's tag says *Atlas Cloud*, and
-    the price is Atlas's published $0.056/s marked "about" until a real job
-    prices it. The row is pinned to its door — no fallback to APIFRAME; a
-    refusal there is a measurement. With no key set the row answers a plain
-    error naming `ATLASCLOUD_API_KEY`. The plain Mini row still goes through
-    OpenRouter, untouched.
+    **THE FOOTAGE PAGE'S ONLY DOOR, AND THE AUTO DEFAULT (2026-09-09,
+    Sophie, the same evening: "make atlas the default and only route through
+    footage").** It rode for an afternoon as its own model row ("2.0 Mini ·
+    Atlas", her "did you add it to the footage tile?") beside the OpenRouter
+    Mini; by the evening the two measurements above — a person video and a
+    real photo both pass, a famous face is refused free — plus the real 80%
+    Mini sale made it the door. So: every 2.x row in footage.js's `MODELS`
+    carries an Atlas id (`atlas`) and Atlas's LIST rate per second
+    (`atlasCents`: Mini 5.6¢ · Fast 9¢ · 2.0 11.2¢ · 2.5 16.7¢, off its own
+    `GET /models` `price.origin`; 2.0 at 1080p is unpriced there and null);
+    the page pins `door:'atlascloud'` on every job, its model list is the
+    rows Atlas carries (1.5 Pro stays off), its "?" card names Atlas and
+    quotes NO balance (Atlas has none to read — the console is the only
+    billing read), and its sale line reads `atlasPays` ("2.0 Mini is 80% off
+    right now" while Atlas charges 20% of list). `doorFor`'s AUTO order is
+    Atlas first with APIFRAME as the content-refusal fallback (a famous face
+    — `startJob` re-sends there with a note saying so), OpenRouter for a
+    shape Atlas does not price, APIFRAME last; a PINNED Atlas door never
+    falls back, so the page's refusal is a measurement she reads, with its
+    own line ("a famous face in a reference; a chat can try this one through
+    APIFRAME"). **The price is EXACT on Atlas with no reference video** —
+    it bills per second, so the live rate × seconds is the bill — and
+    "about" with one (the one job measured ~19% more) or when the live read
+    failed and the list rate stands in. With no key set the page answers a
+    plain error naming `ATLASCLOUD_API_KEY`. OpenRouter and APIFRAME stay
+    built and a chat pins either by hand (`door:'openrouter'` /
+    `'apiframe'`).
   - **A probe that went wrong, so it is not repeated:** the first probe
     script treated every 400 as a shape error and, after ByteDance's real
     refusal, tried a passthrough envelope that dropped the videos silently;
@@ -471,15 +487,17 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     are remembered. Test: `node scripts/test-footage.js`.
     - **HER OWN LIST, THE SAME DAY, IS WHY IT LOOKS LIKE THIS.** No section
       labels; the controls on as few rows as they fit on (flex-wrap, nothing
-      declares a row count); **ONLY OPENROUTER**, so the door row is gone, the
-      page always sends `door:'openrouter'` and **1.5 Pro is off the model
-      list** (APIFRAME-only) — APIFRAME is still a door in the module and a
-      chat still sends a person-in-a-reference job through it, and a content
-      refusal is free and shows on the page with its own line saying so;
+      declares a row count); **ONE DOOR** — OpenRouter that morning, **ATLAS
+      CLOUD since the same evening** (see *ATLAS CLOUD — THE THIRD DOOR*
+      above) — so the door row is gone, the page always sends
+      `door:'atlascloud'` and **1.5 Pro is off the model list** (APIFRAME-only)
+      — OpenRouter and APIFRAME are still doors in the module and a chat
+      pins either by hand, and a content refusal (a famous face, on Atlas) is
+      free and shows on the page with its own line saying so;
       **sound always on**, sent explicitly; **no Plan step** (she asked for
       one the day before and retired it within the day — the price sits
-      beside the star instead); the OpenRouter balance behind the **"?"**,
-      read live when the card opens; and the Playground's **List / Tiles /
+      beside the star instead); the sale and the words behind the **"?"**,
+      read live when the card opens (Atlas has no balance to read); and the Playground's **List / Tiles /
       3-4** switch on the feed, one `--cols` driving the tile wall and a
       card's own reference row. Full rules: the *Footage* bullet in CLAUDE.md.
     - **THE PRICE IS EXACT (2026-09-09, measured off 113 OpenRouter jobs, 44
