@@ -125,3 +125,42 @@ rather than rebuilding it.
   same shape right now (`mom-character-clip`, 20 jobs, 15s included), so the
   path is proven.
 - **A refusal is free** — nothing is billed until it draws.
+
+## The five Mini takes (2026-09-09) — and the seed trick that makes an A/B real
+
+Five clips, **63¢ for 68 seconds = 0.93¢/s measured** (OpenRouter balance
+delta), all Seedance 2.0 Mini · 480p · 3:4 · audio on, two barred stills, no
+video references. Every one landed; nothing was refused.
+
+- **A** — her full text, 15s. her → him → her, and it ends by pushing all the
+  way into her EYE. `drops/_/cddc90189262df707b227493763b4247.mp4`
+- **B** — dialogue only, 15s. `…/f6ceb928586a178c5093ba1cf260064c.mp4`
+- **C** — her reaction alone, 8s. One continuous slow push-in from worried to
+  full terror. `…/b86a5217f607a8d5182bbd57725fc7a3.mp4`
+- **L1 / L2** — the context-line contest, below.
+
+**The leaning fix worked.** Grayson sits back with his hands clasped through
+every take — the reference still is `s31b`'s own first frame plus one line,
+`Dr. Grayson does not lean forward at any point.` Never describe the still.
+
+### PIN THE SEED AND AN A/B ON A PROMPT LINE BECOMES A REAL MEASUREMENT
+
+`POST /api/openrouter/video` passes `seed` straight through to ByteDance
+(`buildRequest` in `openrouter.js`). Two 15s clips at **seed 7** whose prompts
+differ in ONE sentence and nothing else (asserted character by character
+before sending) came back with **identical opening frames** and then diverged
+— so the difference is the sentence, not the dice. Use this for any "does
+this line do anything?" question; it costs one extra clip.
+
+**The result: her line beat mine.** With her own sentence
+(`sophie and her doctor are in the middle of a discussion about when she can
+leave the mental hospital.`) the model cut to an **insert of the pill bottle
+on the desk** at 0:07 — a shot her scene text asks for ("he nods meaningfully
+at a bottle of pills on his desk"). With mine, 20 characters longer and spent
+on backstory, it stayed on the wide and drew no insert. One pair, so not a
+law; but it is the shape to expect — **words spent on what the camera cannot
+see are words the shot does not get.**
+
+Pages: "Climax 3 redo — three shapes v1" (`lWkWRlZC37pAmsOK3EkQ`) and
+"Context line — yours vs mine v2" (`xJrgMSzIPF9xIrWKrHD9`, sheet
+`context-line`).
