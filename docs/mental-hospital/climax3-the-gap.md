@@ -128,8 +128,9 @@ rather than rebuilding it.
 
 ## The five Mini takes (2026-09-09) — and the seed trick that makes an A/B real
 
-Five clips, **63¢ for 68 seconds = 0.93¢/s measured** (OpenRouter balance
-delta), all Seedance 2.0 Mini · 480p · 3:4 · audio on, two barred stills, no
+Five clips, **94¢ for 68 seconds = 1.39¢/s** (read off each job's own
+`usage.cost` — an earlier 0.93¢/s here came from the shared account's balance
+delta while another chat was spending, and was wrong), all Seedance 2.0 Mini · 480p · 3:4 · audio on, two barred stills, no
 video references. Every one landed; nothing was refused.
 
 - **A** — her full text, 15s. her → him → her, and it ends by pushing all the
@@ -186,7 +187,7 @@ at 720p**: the 720p run is a fresh take, not the same shot larger. A clip you
 like at 480p is the clip you have.
 
 **What 720p costs and looks like:** "480p" 3:4 comes back **560x752** and
-"720p" **834x1112** — 2.20x the pixels, so ~2.1¢/s against ~0.93¢/s. The 720p
+"720p" **834x1112** — 2.20x the pixels, so 3.07¢/s against 1.39¢/s. The 720p
 take is visibly sharper AND drew more: a filing cabinet and a plant behind
 her, brighter and whiter, where the 480p take is close and moody in the ward's
 green. **Caveat: the test prompt carried only [Image1]** (her close-up) and no

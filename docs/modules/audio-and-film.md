@@ -157,6 +157,53 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     OpenRouter received), `GET /video-job/:id` to poll (the clip is behind the
     key, so the poll downloads it WITH the bearer, mirrors it to
     `openrouter-video/` once — the log doc is read first — and writes the
+  - **THE SEED IS A NUDGE, NOT A PIN — MEASURED 2026-09-09 on 2.0 Mini, and
+    ByteDance says the same.** Both doors pass `seed` (`buildRequest` in
+    `openrouter.js`; `apiframe.js` hands the whole body to `seedanceVideo`,
+    which reads `opts.seed`) and all four Seedance models declare seed
+    support — but the same seed with the IDENTICAL prompt still draws a
+    different take. Four 4s clips, `ffmpeg psnr` on the luma (identical video
+    would be infinite, and every md5 differed):
+    **same seed + same prompt 27.1 dB · different seed + same prompt 21.5 dB ·
+    same seed + ONE sentence changed 16.8 dB · no seed + different prompts
+    16.1 dB · same seed + same prompt at 720p instead of 480p 16.2 dB.**
+    So it narrows the spread ~5.7 dB when nothing else moves, its effect is
+    gone the moment the prompt changes at all, and it does not survive a
+    resolution change. Consequences: **you cannot isolate one prompt line with
+    a seed** (an A/B needs several takes a side and a judgement over the set),
+    and **you cannot block a shot cheaply at 480p and re-render the keeper at
+    720p** — that is a fresh take, not the same shot larger.
+  - **NO SEED IS EVER RETURNED, so the seeds of clips already made are gone.**
+    APIFRAME echoes back only the `seedanceParams` that were SENT (a job sent
+    without one has none) and OpenRouter's completed response carries id,
+    status and usage and nothing else. Passing a seed and recording it costs
+    nothing and is worth doing — it is the only handle that exists and a later
+    model may honour it better — but do not promise it gets a clip back.
+  - **READ `usage.cost` OFF THE JOB, NEVER THE BALANCE DELTA.** OpenRouter's
+    completed job carries its own exact price, and the account balance is
+    shared: a delta measured while another chat was spending gave 0.93¢/s when
+    the true figure was 1.39¢/s. **Measured exactly, 2.0 Mini 3:4: 480p =
+    1.39¢/s (560x752), 720p = 3.07¢/s (834x1112, 2.20x the pixels).**
+  - **THE AUDIO PATH DOES NOT CHANGE WITH RESOLUTION OR MODEL** — 480p Mini,
+    720p Mini and 2.5 all come back 32kHz stereo AAC at ~128 kb/s. So 720p
+    buys picture only; it is very unlikely to clean up dialogue.
+  - **FEATURES ON EVERY SEEDANCE 2.x THAT NOTHING HERE USES YET** (off the
+    served model cards, `GET /api/openrouter/models`): **`first_frame` /
+    `last_frame` keyframes** — APIFRAME's route already wires them
+    (`imageUrl` → `start_image`, `endImageUrl` → `end_image`), the OpenRouter
+    route deliberately does not, and forcing a clip to END on the next clip's
+    first frame is the continuity tool this film keeps needing;
+    **`return_last_frame`** (a Mini passthrough) hands the last frame back so
+    the next clip can start exactly there; **`camera_fixed`** (`cameraFixed`
+    on the APIFRAME route) locks the camera off. And **a job carrying a
+    reference VIDEO is billed at a LOWER rate** —
+    `video_tokens_with_video_input` is $2.10/M against $3.50/M on Mini and
+    $6.40/M against $10.70/M on 2.5.
+  - **2.5 CANNOT DO 1080p OR 4K — only `seedance-2.0` can.** The served cards:
+    2.5 is 480p/720p and 4-30s; 2.0 is 480p/720p/1080p/4K but 4-15s; Mini and
+    2.0-fast are 480p/720p, 4-15s. So the eventual 1080p redo of the ward film
+    is a different MODEL, not a bigger setting on the one it was shot with —
+    worth knowing before more footage is locked.
     permanent url and the job's real `cost`), and **the same
     `forge-video-jobs` doc APIFRAME's route files**, stamped
     `provider:'openrouter'`, with OpenRouter's statuses mapped onto the log's
