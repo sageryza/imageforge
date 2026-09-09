@@ -20,6 +20,24 @@ import UIKit
 /// the SHA256 of it and Firebase is given the RAW value, which is what stops a
 /// stolen identity token being replayed. Firebase rejects the credential if the
 /// two don't correspond, so both must come from the same `signIn()` call.
+///
+/// **Two things outside this file have to be true or the tap does nothing
+/// useful, and both were measured on 2026-09-09 after App Review rejected
+/// 1.0 (10) with "no action took when we tried to login with Apple" (iPad
+/// Air M3, iPadOS 26.6, guideline 2.1(a)):**
+/// - The sheet must be anchored to a window that is really on screen. It used
+///   to ask `UIWindowScene.keyWindow`, and when that lookup comes back empty
+///   the fallback is a fresh detached `UIWindow` — the sheet is then attached
+///   to nothing, never appears, and NEITHER delegate callback fires: no sheet,
+///   no error, exactly "no action". The web view the button lives in is on
+///   screen by definition, so its `window` is passed in as the anchor and the
+///   scene lookup is only the fallback.
+/// - Firebase verifies the identity token's audience — this app's bundle id —
+///   against the iOS apps registered in the membry-df528 project, and
+///   `com.sageryza.secretlyawitch` was NOT registered (XI, ImageForge and
+///   Miracles were), so a token that did come back was refused as an audience
+///   mismatch. Registered 2026-09-09 through the Firebase Management API; the
+///   app links no Firebase SDK, so no GoogleService-Info.plist is needed.
 final class AppleNativeAuth: NSObject, ASAuthorizationControllerDelegate,
                              ASAuthorizationControllerPresentationContextProviding {
     static let shared = AppleNativeAuth()
@@ -38,11 +56,15 @@ final class AppleNativeAuth: NSObject, ASAuthorizationControllerDelegate,
     private var currentNonce: String?
     /// Held so ARC doesn't release the controller mid-sheet.
     private var controller: ASAuthorizationController?
+    /// The window the sheet is presented over — the web view's own, handed in
+    /// by the caller, so it is one that is really in the hierarchy.
+    private weak var anchor: UIWindow?
 
-    func signIn(completion: @escaping (Result<Tokens, Error>) -> Void) {
+    func signIn(anchor: UIWindow? = nil, completion: @escaping (Result<Tokens, Error>) -> Void) {
         let nonce = Self.randomNonce()
         currentNonce = nonce
         self.completion = completion
+        self.anchor = anchor
 
         let request = ASAuthorizationAppleIDProvider().createRequest()
         request.requestedScopes = [.fullName, .email]
@@ -88,9 +110,20 @@ final class AppleNativeAuth: NSObject, ASAuthorizationControllerDelegate,
     }
 
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        UIApplication.shared.connectedScenes
-            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
-            .first ?? ASPresentationAnchor()
+        anchor ?? Self.onScreenWindow() ?? ASPresentationAnchor()
+    }
+
+    /// A window that is actually on screen: the key window of a foreground
+    /// scene first, then any window of any scene. Shared with the Google sheet.
+    static func onScreenWindow() -> UIWindow? {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let active = scenes.filter { $0.activationState == .foregroundActive }
+        for group in [active, scenes] {
+            if let w = group.compactMap({ $0.keyWindow }).first { return w }
+            if let w = group.flatMap({ $0.windows }).first(where: { $0.isKeyWindow }) { return w }
+            if let w = group.flatMap({ $0.windows }).first { return w }
+        }
+        return nil
     }
 
     /// Apple's own recommended nonce alphabet + rejection sampling.

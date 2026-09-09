@@ -104,7 +104,7 @@ struct WitchWebView: UIViewRepresentable {
         }
 
         private func startGoogle(_ web: WKWebView) {
-            GoogleNativeAuth.shared.signIn { [weak self] result in
+            GoogleNativeAuth.shared.signIn(anchor: web.window) { [weak self] result in
                 switch result {
                 case .success(let t):
                     let access = t.accessToken.map { "'\($0)'" } ?? "null"
@@ -121,7 +121,10 @@ struct WitchWebView: UIViewRepresentable {
         }
 
         private func startApple(_ web: WKWebView) {
-            AppleNativeAuth.shared.signIn { [weak self] result in
+            // The web view's own window is the anchor: it is on screen by
+            // definition, where a key-window lookup can come back empty on iPad
+            // and leave the sheet attached to nothing (the 1.0 (10) rejection).
+            AppleNativeAuth.shared.signIn(anchor: web.window) { [weak self] result in
                 switch result {
                 case .success(let t):
                     // Apple sends the name ONCE, on the very first authorization,
