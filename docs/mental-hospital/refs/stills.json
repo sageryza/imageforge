@@ -679,8 +679,44 @@
  },
  "conclusion": "Both axes have a floor and neither trades for the other. D-narrower (0.34/0.30) is close to the minimum and holds from a 640px face down to ~90px faces.",
  "spent": {
-  "accepted": 2,
-  "refused": 5,
-  "totalUsd": 0.1117
+  "accepted": 4,
+  "refused": 8,
+  "totalUsd": 0.2234
+ },
+ "finalBar": {
+  "height_frac": 0.34,
+  "width_pad": 0.3,
+  "blur_k": 0.55,
+  "rotated": "onto the eye line",
+  "note": "rotated D with the feather drawn OUTSIDE the band"
+ },
+ "finalUrls": {
+  "sophie-face-A": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8d89b8749c97bddb95ceab4078bf5552.png",
+  "sophie-face-B": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/bbd0d797cf813511b5984a119374e9d9.png",
+  "sophie-face-C": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1b822bc12a2d7866255a85727ed3fa88.png",
+  "sophie-face-D": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/de57e14199ba49ceedeb24dae2fefb0a.png",
+  "sophie-jazz-A": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/9ad21eb37ef1d148febd2b0c551cf073.png",
+  "sophie-jazz-B": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/02cd49bbd5ef266eaa1d97b15305a892.png",
+  "sophie-jazz-C": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/63753254830e2b0f50d172a59338428a.png",
+  "doctor-A": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/86064af3393b1ea3c4b8b6861cf21971.png",
+  "doctor-B": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c10792630f014457fc08d9713483b60d.png",
+  "assistant-A": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2eeb52f27625e039f68ae73252cd650c.png",
+  "nurse-white-A": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0bebd32cdd733225fecb2c4970f4ff72.png",
+  "mayra-A": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8eab1f8fd9499e6940357110d55c32d1.png",
+  "parents-A": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/61b685486a76cea75d8947fd8d3e7bcf.png",
+  "office-A": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/7e4069ef6345be703f51b480f96edd90.png",
+  "pj-optA-solo": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0e7139dc94a4418015ae6a692370be87.png",
+  "pj-optC-solo": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e78b0b8ab03512e6fa28415b4ed422e7.png",
+  "still2-doctor-chair": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/de01cfce24b93207f44fb79cafae6880.png",
+  "still-pj-pocket": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png",
+  "still-room3": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a26b474c31334b9e2b32d1d10b6ec5bc.png",
+  "still-dining": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1c9795c66026ee3374ab37bc6eb54b58.png"
+ },
+ "round3": {
+  "M1-room": "ACCEPTED \u2014 5 stills, no video: her face, her pajamas, her room, all correct",
+  "M2-twofaces (axis-aligned D)": "REFUSED \u2014 the doctor, head tilted 11 degrees, half an eye uncovered",
+  "M2 (rotated D, feather bug)": "REFUSED \u2014 both faces; the feather kernel exceeded the band height so the blur was a weak blend",
+  "M2 (rotated 0.45, feather bug)": "REFUSED \u2014 same cause",
+  "M2 (rotated D, feather fixed)": "ACCEPTED \u2014 two barred faces plus the office in one card"
  }
 }

@@ -142,6 +142,45 @@ face-relative fraction is the right unit and the 14 stills ship as they are.
 The parents clip came back with both faces intact and on-model, and brighter
 than the very dark source.
 
+### THE BAR IS ROTATED ONTO THE EYE LINE — and the feather goes outside it
+
+Two bugs, both found by spending nothing (refusals are free), both of which
+would have hit most cards in this film:
+
+**1. An axis-aligned bar only covers a level head.** The doctor's still sits at
+**11°** and half his right eye stayed readable — refused, and the error names
+the offending reference (`content[5]`), which is how it was pinned to him and
+not to Sophie. Most faces here are turned or tilted toward someone, so this is
+the common case: tilts across the set run to 16.8°.
+
+**2. The feather must be drawn OUTSIDE the band, not into it.** Blurring a mask
+whose band is 75px tall with a 55px feather kernel drops the mask's peak well
+below 1.0, so the "blur" becomes a weak blend and the eyes stay readable. That
+is why the first rotated attempt was refused where the axis-aligned one had
+passed — **more coverage on paper, less blur in fact** — and why rotating at
+0.45 was refused too. The rect is grown by the feather radius before the mask
+is blurred, and the kernel is capped against the band's own height.
+
+With both fixed, rotated D (0.34 / 0.30) is accepted. **That is the final
+setting.**
+
+### The pipeline proven end to end — stills only, no video
+
+**M1 — five stills, one card, accepted.** Her face (`sophie-face-A`), her
+pajamas (her three existing stills) and her room (`still-room3`), with the
+prompt pointing at [Image1]…[Image5]. The clip came back with her face on
+model, in the right pajamas, in the right room, walking in and sitting on the
+edge of the bed. **No video reference anywhere.**
+
+**M2 — two barred faces in one card, accepted.** Sophie and the doctor plus
+the office. Both drawn on model. So a card can carry more than one person as
+stills, which is what the 30s reference cap never allowed.
+
+**Her own existing stills need barring too.** Three of the six carry a face
+(`pj-optA-solo` 128px, `pj-optC-solo` 162px, `still2-doctor-chair` 122px) and
+had only ever gone through APIFRAME; `still-pj-pocket`, `still-room3` and
+`still-dining` have no face at all and pass untouched.
+
 ### What the clip showed — the bar is not a limit on the output
 
 **The model drew her eyes back in.** The blurred band came back as real open

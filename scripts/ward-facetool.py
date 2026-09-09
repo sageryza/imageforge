@@ -46,18 +46,25 @@ def scan(folder, out):
     json.dump(rows, open(out, 'w'), indent=1)
     return rows
 
-def eyebar(src, dst, height_frac=0.45, width_pad=0.40, blur_k=0.55, mode='blur',
+def eyebar(src, dst, height_frac=0.34, width_pad=0.30, blur_k=0.55, mode='blur',
            feather_k=0.25, debug=False, blur=None):
     """Blur a band over the eyes — the ByteDance filter's key.
 
     height_frac / width_pad size the band in units of the inter-eye distance,
-    so a "narrower bar" is a smaller height_frac.
+    so a "narrower bar" is a smaller height_frac and the same numbers mean the
+    same thing on any face at any size. D-narrower (0.34 / 0.30) is the rung
+    measured to pass on 2026-09-09; both axes have a floor and neither trades
+    for the other, so this is close to the minimum.
 
-    blur_k SCALES THE BLUR TO THE FACE and that is the whole point: a fixed
-    radius is a cosmetic smudge on a 400px face and a hard black censor slab
-    on a 56px one — measured 2026-09-09 on this set. The kernel is
-    blur_k x the inter-eye distance. `blur` (a fixed radius) is kept only so
-    an older call still runs.
+    THE BAND IS ROTATED ONTO THE EYE LINE. An axis-aligned rectangle only
+    covers a level head: the doctor's still sits at 11 degrees and half his
+    right eye stayed readable, which ByteDance refused (measured 2026-09-09).
+    Most faces in this film are turned or tilted, so this is the common case,
+    not the corner one.
+
+    blur_k SCALES THE BLUR TO THE FACE: a fixed radius is a cosmetic smudge on
+    a 400px face and a hard censor slab on a 56px one. `blur` (a fixed radius)
+    is kept only so an older call still runs.
     """
     img = cv2.imread(src)
     if img is None: raise SystemExit('cannot read ' + src)
@@ -69,38 +76,46 @@ def eyebar(src, dst, height_frac=0.45, width_pad=0.40, blur_k=0.55, mode='blur',
     out = img.copy()
     boxes = []
     for fa in faces:
-        re_, le = (fa[4], fa[5]), (fa[6], fa[7])
+        re_, le = (float(fa[4]), float(fa[5])), (float(fa[6]), float(fa[7]))
         cx, cy = (re_[0] + le[0]) / 2.0, (re_[1] + le[1]) / 2.0
         d = float(np.hypot(le[0] - re_[0], le[1] - re_[1])) or float(fa[2]) * 0.4
+        ang = float(np.degrees(np.arctan2(le[1] - re_[1], le[0] - re_[0])))
         bw, bh = d * (1 + 2 * width_pad), d * height_frac
-        x0, x1 = int(max(0, cx - bw / 2)), int(min(w, cx + bw / 2))
-        y0, y1 = int(max(0, cy - bh / 2)), int(min(h, cy + bh / 2))
-        if x1 <= x0 or y1 <= y0: continue
-        band = out[y0:y1, x0:x1]
         k = int(blur) if blur is not None else max(3, int(d * blur_k))
         k = max(3, k | 1)
         if mode == 'blur':
-            new_ = cv2.GaussianBlur(band, (k, k), 0)
+            blurred = cv2.GaussianBlur(img, (k, k), 0)
         elif mode == 'pixel':
-            n = max(2, int(band.shape[1] / max(2, k)))
-            m = max(2, int(band.shape[0] / max(2, k)))
-            new_ = cv2.resize(cv2.resize(band, (n, m), interpolation=cv2.INTER_AREA),
-                              (band.shape[1], band.shape[0]), interpolation=cv2.INTER_NEAREST)
+            n, m = max(2, w // max(2, k)), max(2, h // max(2, k))
+            blurred = cv2.resize(cv2.resize(img, (n, m), interpolation=cv2.INTER_AREA),
+                                 (w, h), interpolation=cv2.INTER_NEAREST)
         else:
-            new_ = np.zeros_like(band)
-        f = max(0, int(d * feather_k))
+            blurred = np.zeros_like(img)
+        # a rotated-rect mask on the eye axis, feathered, composited once
+        mask = np.zeros((h, w), np.float32)
+        # THE FEATHER IS DRAWN OUTSIDE THE BAND, NOT INTO IT. Blurring a mask
+        # whose band is 75px tall with a 55px kernel drops the peak well below
+        # 1.0, so the "blur" becomes a weak blend and the eyes stay readable —
+        # measured 2026-09-09, it is what made the rotated bar refuse where the
+        # axis-aligned one passed. So the rect is grown by the feather radius
+        # first and the kernel is capped against the band's own height.
+        f = max(0, int(min(d * feather_k, bh / 3.0)))
+        box = cv2.boxPoints(((cx, cy), (bw + 2 * f, bh + 2 * f), ang)).astype(np.int32)
+        cv2.fillConvexPoly(mask, box, 1.0)
         if f > 0:
-            # feather the seam so it reads as an artifact, not a censor bar
-            mask = np.zeros((band.shape[0] + 2 * f, band.shape[1] + 2 * f), np.float32)
-            mask[f:f + band.shape[0], f:f + band.shape[1]] = 1.0
             kk = max(3, f | 1)
-            mask = cv2.GaussianBlur(mask, (kk, kk), 0)[f:f + band.shape[0], f:f + band.shape[1]]
-            mask = mask[..., None]
-            new_ = (new_ * mask + band * (1 - mask)).astype(band.dtype)
-        out[y0:y1, x0:x1] = new_
-        boxes.append([x0, y0, x1 - x0, y1 - y0, k])
+            mask = cv2.GaussianBlur(mask, (kk, kk), 0)
+        m3 = mask[..., None]
+        out = (blurred * m3 + out * (1 - m3)).astype(out.dtype)
+        boxes.append([int(cx - bw / 2), int(cy - bh / 2), int(bw), int(bh), k, round(ang, 1)])
     if debug:
-        for b in boxes: cv2.rectangle(out, (b[0], b[1]), (b[0]+b[2], b[1]+b[3]), (0, 0, 255), 1)
+        for fa in faces:
+            re_, le = (float(fa[4]), float(fa[5])), (float(fa[6]), float(fa[7]))
+            cx, cy = (re_[0] + le[0]) / 2.0, (re_[1] + le[1]) / 2.0
+            d = float(np.hypot(le[0]-re_[0], le[1]-re_[1])) or float(fa[2])*0.4
+            ang = float(np.degrees(np.arctan2(le[1]-re_[1], le[0]-re_[0])))
+            box = cv2.boxPoints(((cx, cy), (d*(1+2*width_pad), d*height_frac), ang)).astype(np.int32)
+            cv2.polylines(out, [box], True, (0, 0, 255), 1)
     cv2.imwrite(dst, out)
     return {'src': src, 'dst': dst, 'w': w, 'h': h, 'bars': boxes, 'mode': mode,
             'height_frac': height_frac, 'width_pad': width_pad, 'blur_k': blur_k,
