@@ -850,9 +850,10 @@ private struct HomeGrid: View {
     /// tab in Aug 2026 ("move everything onto the movies page like the story
     /// boards…") and the film filter's hide-from-home rule then took its home
     /// card away as a side effect — which is not what she asked for either
-    /// time. It is the ONE named exception to that rule (`homeAlso` below);
-    /// the flat movies chip still drops it, on her own reasoning that it is
-    /// "already on the home screen".
+    /// time. It is one of the named exceptions to that rule (`homeAlso`
+    /// below — Footage joined it 2026-09-09); the flat movies chip still drops
+    /// Story Room, on her own reasoning that it is "already on the home
+    /// screen", and keeps Footage, which she has not asked to move.
     private static let pipeline: [MovieStage] = [
         MovieStage(n: 1, name: "The story",
                    line: "What it is about, and what order it happens in.",
@@ -885,10 +886,12 @@ private struct HomeGrid: View {
     /// them off the home screen and in the movie tab, not in both places.
     private static let movieTools: [Tool] = HomeGrid.pipeline.flatMap { $0.tools }
 
-    /// Pipeline tools that ALSO keep a card on the default home. One entry,
-    /// Story Room — see the note in `tools` below. Keep this tiny: the film
-    /// chip's whole point is that its tools are not also on the home screen.
-    private static let homeAlso: Set<Tool> = [.story]
+    /// Pipeline tools that ALSO keep a card on the default home. Story Room —
+    /// see the note in `tools` below — and, since 2026-09-09, Footage (Sophie:
+    /// "add to home grid", the day after asking where its tile was; the film
+    /// chip hid it). Keep this tiny: the film chip's whole point is that its
+    /// tools are not also on the home screen.
+    private static let homeAlso: Set<Tool> = [.story, .footage]
 
     /// THE SECOND MOVIES CHIP — the same tools as one flat pile (Aug 2026,
     /// Sophie: "add a second movies icon but choose a different icon for it …
@@ -966,7 +969,7 @@ private struct HomeGrid: View {
         // two tiles would be the same tool twice; its case and view stay for
         // deep links and history.
         //
-        // STORY ROOM IS THE ONE EXCEPTION TO THE FILM-FILTER HIDE (`homeAlso`,
+        // STORY ROOM AND FOOTAGE ARE THE EXCEPTIONS TO THE FILM-FILTER HIDE (`homeAlso`,
         // Sophie 2026-08-24: "someone took the story room module out of the
         // default icons on the homepage… can you add it back"). It is stop 1
         // of the pipeline AND a card here — losing the card was a side effect

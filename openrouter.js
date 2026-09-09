@@ -318,6 +318,10 @@ module.exports = {
   router,
   configured: () => Boolean(KEY),
   buildRequest, modelIdOf, apiframeStatus, refusalKind,
+  // `api` is exported so another module can ask OpenRouter something through
+  // the ONE place that knows the base url, the key and the proxy agent —
+  // footage.js reads each model's live discount with it.
+  api,
   startVideo, pollVideo,
   MODELS, DEFAULT_MODEL, APIFRAME_ROUTE,
 };

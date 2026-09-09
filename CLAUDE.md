@@ -174,9 +174,14 @@ Read back what the API really received after sending, and say it.
 
 **A SEEDANCE JOB WITH NO VIDEO REFERENCE GOES THROUGH OPENROUTER, NOT
 APIFRAME (2026-09-08, Sophie: "make a note so any reference w no video uses
-open router instead").** OpenRouter bills ByteDance's list price plus a 5%
-top-up fee — 480p Seedance 2.5 is 10.9¢/s all in against APIFRAME's 13¢, a
-4s clip 44¢ against 52¢. **BUT BYTEDANCE'S OWN DOOR REFUSES REFERENCE VIDEOS
+open router instead").** OpenRouter bills ByteDance's list price; the ~5%
+top-up fee is paid when credit is BOUGHT, not per job. **SUPERSEDED
+2026-09-09 — the "480p Seedance 2.5 is 10.9¢/s all in against APIFRAME's 13¢,
+a 4s clip 44¢ against 52¢" figure was list × the fee on the WRONG CANVAS and
+is wrong.** The measured formula (Mini renders on the 2.5 canvases, a clip is
+24·s + 1 frames, no fee in the shown price, the sale read live off
+OpenRouter) is in the Footage bullet under *THE PRICE IS EXACT*.
+**BUT BYTEDANCE'S OWN DOOR REFUSES REFERENCE VIDEOS
 WITH PEOPLE THAT APIFRAME ACCEPTS (measured 2026-09-08, scene 36a1 of the
 ward film):** the two untouched Seedance clips APIFRAME drew that scene from
 came back from OpenRouter as `InputVideoSensitiveContentDetected.
@@ -7126,34 +7131,124 @@ before working on that module. Nothing was deleted — the moved text is verbati
   them or uploading references") — **she sends a Seedance clip herself.** The
   chat ritual as a page: her words in the box, references through the Dump
   (each wearing its slot name — tap `[Image1]` and it lands in the prompt, so
-  a reference is named by its slot and never described), model · seconds ·
-  resolution · shape · sound, the DOOR (Auto · OpenRouter · APIFRAME), the
-  "about N¢" line, and **PLAN BEFORE GO (her word the same hour: "plan
-  before go")** — the first button only opens THE PLAN under the controls
-  (her words verbatim, every reference by its slot, model · seconds ·
-  resolution · shape · sound · the door it will really take, "This tap:
-  about N¢"), and **Go, the star, is the one tap that spends**. The plan is
-  built from the live state when Plan is tapped and takes itself down the
-  moment anything in it changes (a word, a control, a reference), so Go can
-  never send a plan she is not looking at. Never a native confirm(). (A
-  second chat built the same tool as `/motion` the same hour — PR #2231,
-  tag `motion-page-3f0fce9` — and it was NOT merged: one ask, one tile.) **Auto is the filter rule made automatic**:
-  OpenRouter first (ByteDance's price), and a content refusal — free, before
-  anything draws — sends the identical job through APIFRAME with the reason on
-  the card. 1.5 Pro is APIFRAME only. **One log**: both doors are called in
-  process (`startVideo`/`pollVideo`, exported from `openrouter.js` and
-  `apiframe.js`) and file the same `forge-video-jobs` doc, `chat:'footage'`,
-  so the 1080p redo reads it like any chat's. The server polls the unfinished
-  jobs itself (12s throttle per job) and bakes a poster, so the feed resumes
-  from any phone. **The price is SERVED** (`GET /estimate`, the model table on
-  `GET /status`) — the page holds no cost figure; the OpenRouter estimate is
-  video tokens × the published SKU × the measured sale factor × the 5% fee,
-  and the real cost replaces it on the card when OpenRouter reports it
-  (APIFRAME does not, so its cards keep "about"). Seconds and resolution open
-  at the minimum on every load; model, shape, door and sound are remembered.
-  Nothing is deleted — ♥/✕ marks, `hidden` is the verb. **A chat's clips do
-  NOT go here** — this is her feed, the Playground's rule; a chat's clips are
-  tagged with the chat's own slug. Test: `node scripts/test-footage.js`.
+  a reference is named by its slot and never described), the model, the
+  seconds, the size, the shape, the price of the tap, and **the star, which is
+  the one button and sends on its tap**.
+  **HER OWN LIST THE SAME DAY IS WHY THE PAGE LOOKS LIKE THIS (2026-09-09).**
+  "no button word labels above (eg seconds)" — every uppercase section label is
+  gone and the controls stand on their own. "consolidate buttons. same row
+  unless it bleeds over" — every row is flex-wrap, so a group wraps only where
+  it genuinely does not fit, and nothing declares a row count (MEASURED at
+  390pt with the pill's 62px column reserved: the six shapes are 267px of the
+  278 the panel has, so they are one row; with no pill on screen the whole
+  control set is one row). The Add word is a **picture icon** (Lucide `image`
+  in a rounded square at the house 6px, never a circle). Model and resolution
+  are **drop-downs** with the platform's chrome off (`appearance:none`) and our
+  own inline chevron drawn in. The **seconds are typed** into a real number
+  field, clamped to the model's own range on the way OUT — on change and on
+  blur, never on every keystroke, or a "1" on its way to "12" becomes 4 under
+  her. **Sound is always on**, sent explicitly rather than left to the model's
+  default. And **what is left lives behind the "?"**, read live when the card
+  opens — it is a fact about the account, not a control, and it was sitting
+  where the price of the tap belongs; OpenRouter's balance only, since APIFRAME
+  is not this page's door.
+  **ONLY OPENROUTER (same list).** The DOOR row is gone and the page always
+  sends `door:'openrouter'` — so **1.5 Pro is off the model list** (it exists
+  only on APIFRAME), and the list is DERIVED from which models OpenRouter
+  carries rather than typed. **APIFRAME is still a door and `footage.js` keeps
+  it**: a reference with a person in it has nowhere else to go, and a chat
+  sends those. It is simply not one of her choices here. A content refusal is
+  free and comes back before anything draws, and the page shows it with its own
+  line — *a person in a reference; a chat can send this one through APIFRAME*.
+  The module's own AUTO (OpenRouter first, the identical job through APIFRAME
+  on a content refusal, saying so on the card) is untouched and is what a chat
+  calling the route still gets.
+  **PLAN BEFORE GO IS HISTORY (2026-09-09, "no plan button").** She asked for
+  it the day before — "plan before go" — and retired it within the day: the
+  first button used to open a read-back card under the controls (her words
+  verbatim, every reference by its slot, model · seconds · resolution · shape ·
+  sound · door, "This tap: about N¢") and Go was a second tap. Now the star is
+  the one button, the price sits beside it and her words are in the box above
+  it, so the read-back is on screen AT the moment of the tap rather than behind
+  an extra one. **Don't build the card back** — and nothing else may send
+  either: the failed card's "Try again" puts the clip back in the box and stops
+  there. (A second chat built the same tool as `/motion` the same hour — PR
+  #2231, tag `motion-page-3f0fce9` — and it was NOT merged: one ask, one tile.)
+  **THE FEED HAS THE PLAYGROUND'S SWITCH (same list: "add tile/list/3/4 grid
+  feature from playground")** — LIST is a box per clip, TILES is the posters
+  `--cols` across, and the third segment is the NUMBER, 3 or 4, never bars (at
+  16px two bar counts are one grey smudge). ONE variable on the root drives the
+  wall AND a card's own reference row, so the segment is never a dead control
+  in list view; all three choices are sticky under `footage_*` keys. The ✕ mark
+  rides as a CLASS, out of the wall's signature, so hearting a clip cannot
+  rebuild the wall and re-decode every poster — **and a whole page of clips
+  paints the wall ONCE**: `loadJobs` hands every clip to `jobCard` in turn and
+  the signature changes on each one, so a paint per card rebuilt the wall N
+  times to end with N cells (measured on a first load of 40 clips: 39 wipes,
+  820 cells created for the 40 that stayed). Only a BATCH is deferred — a
+  vote, a new job and a view switch still paint on the spot.
+  **THE PRICE IS EXACT, AND THE 60% SALE IS OPENROUTER'S TO PASS ON
+  (2026-09-09 — measured off 113 completed OpenRouter jobs' own `usage.cost`,
+  44 APIFRAME jobs' `creditCost`, and ffprobe on the output clips).** Four
+  things were wrong at once, and each hid the others:
+  - **MINI RENDERS ON THE 2.5 CANVASES**, not the 2.0 ones — 480p 1:1 is
+    640x640, 480p 3:4 is 560x752, 720p 3:4 is 834x1112, on every clip. 2.0,
+    Fast and 2.5 have NEVER gone through OpenRouter, so their canvases are
+    unmeasured and keep the published table (`sizes` on a model row names the
+    canvas table it really renders on).
+  - **A CLIP IS 24·s + 1 FRAMES**, not 24·s — the billed count fits 97 exactly
+    on a 4s ask, and that +1 is what makes the formula land on the cent.
+  - **THE 5% TOP-UP FEE IS NOT IN THE PRICE.** It is paid when credit is
+    bought; OpenRouter's balance and its per-job charge are both in list
+    dollars, so a price with the fee folded in does not subtract from the
+    balance she is looking at. `OR_FEE` is still exported, and the "?" card
+    says once that credits cost 5% more to buy than they show.
+  - **THE SALE IS READ, NEVER WRITTEN DOWN.** Mini was billed at 0.40 × list —
+    a real 60% off — on all 111 jobs from 2026-09-08 21:13 UTC to 2026-09-09
+    06:39 UTC, and the two jobs since (18:09 and 18:22 UTC, both from
+    `/footage`) at FULL LIST: **13.96¢ for a 4s 3:4 480p Mini against 5.58¢.**
+    ByteDance's own campaign is still running (Seedance 2.0 mini at 40% of list
+    and 2.0 fast at 75%, both to 2026-10-07 14:00 UTC+8; 2.5 at 1080p only at
+    72%, to 2026-09-17; plain 2.0 is not in it), so it is OPENROUTER that
+    stopped passing it on. It exposes the factor per model as
+    `pricing.discount` on `GET /models/<id>/endpoints` — 0 right now, and its
+    cached page used to advertise mini "from $0.01345/second" (= 0.40 ×
+    $0.03363). So `footage.js` FETCHES it (`discounts()`, cached ten minutes),
+    prices at `list × (1 − discount)`, and **a failed read is 0 — full list,
+    the safe direction — never a stale sale**. `GET /status` carries it per
+    model and the "?" card says "2.0 Mini is 60% off right now" only while
+    there is one. The old hardcoded `sale: 0.72 / 0.75` are gone: wrong numbers
+    that only looked right on 1:1, where the canvas was wrong too. (`orTok`
+    stays the OpenRouter-LISTED figures, which is what it bills against — its
+    Fast price is already ByteDance's discounted one; don't try to reconcile
+    that in code.)
+  So the formula is **tokens = w × h × (24·s + 1) / 1024, × the SKU, × (1 − the
+  live discount)**, in list-credit cents to the hundredth. An estimate answers
+  `exact:true` where it is pinned and `about:true` where it is not, and the page
+  prints "about" only for the second. **A REFERENCE VIDEO IS THE ONE SHAPE
+  STILL UNPINNED** — one job only (1:1 480p 4s Mini: 6.48¢ with against 5.43¢
+  without, under the sale), i.e. ~19% MORE rather than the discount the
+  published SKU advertises — so it is estimated at the same rate and marked
+  "about"; the published `orVidTok` figures are deleted rather than left lying
+  around wrong. **APIFRAME is per second and has its own rate with a reference
+  video** (`afVid`): 2.5 at 480p is 15¢/s with one and 13 without — 44 jobs,
+  every one exact (4s = 60 or 52, 15s = 225, 30s = 450); Mini at 480p with a
+  video is 5¢/s. 720p is unmeasured on every model there, as is Mini with no
+  video, so those still answer "about". (A FAILED APIFRAME job still shows a
+  `creditCost` — 60-450 on the refused 2.5 jobs — and the team total sits
+  ~1,100 credits UNDER the sum of them, so some failures are refunded; which
+  ones is unmeasured.)
+  **One log**: both doors are called in process (`startVideo`/`pollVideo`,
+  exported from `openrouter.js` and `apiframe.js`) and file the same
+  `forge-video-jobs` doc, `chat:'footage'`, so the 1080p redo reads it like any
+  chat's. The server polls the unfinished jobs itself (12s throttle per job)
+  and bakes a poster, so the feed resumes from any phone. **The price is
+  SERVED** (`GET /estimate`, the model table on `GET /status`) — the page holds
+  no cost figure at all, and a test pins that. Seconds and resolution open at
+  the minimum on every load; the model and the shape are remembered. Nothing is
+  deleted — ♥/✕ marks, `hidden` is the verb. **A chat's clips do NOT go here**
+  — this is her feed, the Playground's rule; a chat's clips are tagged with the
+  chat's own slug. Test: `node scripts/test-footage.js`.
   Full note: *FOOTAGE* under the OpenRouter note in
   `docs/modules/audio-and-film.md`.
 - **Movies** (`movies.js`, `/api/movies`, iOS Movies tab — no web page) — story ->
