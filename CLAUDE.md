@@ -317,6 +317,24 @@ line is the PERSON, not the video:
   ByteDance key — unmeasured; APIFRAME calls itself an "official partner"
   and says nothing about faces. Whether any of those doors also skip the
   OUTPUT copyright gate (the Radcliffe failure) is unmeasured everywhere.
+  **PRICED THE SAME DAY (Sophie: "check on the pricing compared to
+  OpenRouter, APIFRAME and ByteDance itself"), one 4s 480p 3:4 clip, no
+  reference video, off each vendor's own price page:** BytePlus direct and
+  OpenRouter are the SAME list (OpenRouter's `orTok` IS ByteDance's per-token
+  SKU; OpenRouter adds ~5% when credit is bought) — Mini 14¢ · Fast 17¢ · 2.0
+  28¢ · 2.5 ~43¢ (2.0/Fast/2.5 canvases unmeasured). Atlas Cloud is per
+  second of output and was passing on a BIGGER sale than ByteDance's own
+  campaign: Mini 1.1¢/s (4.4¢ a clip, "-80%"), Fast 2.7¢/s, 2.0 9¢/s — same
+  face filter, so only for person-free jobs. APIFRAME: Mini ~16¢ · Fast 28¢
+  · 2.0 32¢ · 2.5 52¢. The doors that take a real photo are all dearer:
+  PiAPI less-restriction Mini 31¢ · 2.0 44¢ · 2.5 66¢ (a +10% markup, AND
+  the face still has to go through its asset library with the person
+  verified — the official route with a fee on it, not a loose door); EvoLink
+  2.0 37¢ · Fast 30¢ (no Mini); Runway Mini 64¢ (16¢/s with a 64-credit
+  minimum) · 2.0 $1.44 · 2.5 80¢ minimum (20¢/s plus 10¢ per second of input
+  video). So APIFRAME stays the cheapest door for a reference with a person
+  in it by 2-4x, and Atlas Cloud undercuts everything for a person-free Mini
+  job while its sale lasts.
 The "go" rule above applies to both doors word for word. A no-video job
 sent to APIFRAME is not wrong, it is 16% dearer. Full note: *OpenRouter for
 Seedance* in `docs/modules/audio-and-film.md`.
