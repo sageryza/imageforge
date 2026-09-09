@@ -148,6 +148,33 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     screened for a person, not a face. Every job is in `forge-video-jobs`
     under `provider:'openrouter'`, chat `openrouter-vs-apiframe`; the clips
     and stills are on that chat's Compare pages.
+  - **TWO FILTERS, NOT ONE — a black bar clears the INPUT check and a famous
+    face is then stopped on the OUTPUT (measured 2026-09-09, Sophie: "i wanna
+    test black bar over danielle radcliffe eyes"; both jobs Mini 480p 3:4 4s,
+    `no-audio`, one reference each, the prompt `The man in [Image1] sits at a
+    kitchen table and looks up. Camera at eye level.`).** The control — a
+    Wikimedia press photo of Daniel Radcliffe, untouched — was refused at
+    validation in twelve seconds, free, `InputImageSensitiveContentDetected.
+    PrivacyInformation` "may contain real person", exactly as Mayra's real
+    photo was. The same file with a solid black rectangle painted over both
+    eyes (PIL `ImageDraw.rectangle`, x 390-900 / y 725-825 of the 1280x1924
+    original, quality 95, nothing else touched) was **ACCEPTED** — `accepted
+    3SL74kD3vCOePxCzjgh4`, four `pending` polls over a full minute, i.e. it
+    really drew — and then came back `failed` with a refusal no round before
+    this had produced: *"The request failed because the output video may be
+    related to copyright restrictions."* So the bar is as good as the blur at
+    the eyes check, and the eyes check is not the only gate: something reads
+    the DRAWN VIDEO afterwards. The Mayra rounds never met it because nothing
+    about her is famous or branded. **UNMEASURED, and the reason to stop
+    rather than guess: which half of that photo did it** — Radcliffe's
+    likeness (the prompt asked for it by slot, and the blur round proved a
+    likeness rides through an obscured-eyes reference), or the studio
+    step-and-repeat filling the frame behind him. One more Mini job settles
+    it: the same bar on a tight face crop with no backdrop in shot. Billing:
+    OpenRouter holds no `generation_id` record for the failed job, so it
+    reads as unbilled, and the key had another chat's Mini batch running at
+    the same time, so the delta could not be attributed — treat an accepted
+    Mini job as ~5.6¢ and an output failure as unknown-but-small.
   - **SO: text, pictures, audio and person-free videos → OpenRouter; any
     reference with a person in it → APIFRAME.** A reference video rides
     through as `video_url` and ByteDance decides; a content refusal answers
