@@ -180,7 +180,8 @@ top-up fee is paid when credit is BOUGHT, not per job. **SUPERSEDED
 a 4s clip 44¢ against 52¢" figure was list × the fee on the WRONG CANVAS and
 is wrong.** The measured formula (Mini renders on the 2.5 canvases, a clip is
 24·s + 1 frames, no fee in the shown price, the sale read live off
-OpenRouter) is in the Footage bullet under *THE PRICE IS EXACT*. **BUT BYTEDANCE'S OWN DOOR REFUSES REFERENCE VIDEOS
+OpenRouter) is in the Footage bullet under *THE PRICE IS EXACT*.
+**BUT BYTEDANCE'S OWN DOOR REFUSES REFERENCE VIDEOS
 WITH PEOPLE THAT APIFRAME ACCEPTS (measured 2026-09-08, scene 36a1 of the
 ward film):** the two untouched Seedance clips APIFRAME drew that scene from
 came back from OpenRouter as `InputVideoSensitiveContentDetected.
@@ -7180,7 +7181,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
   wall AND a card's own reference row, so the segment is never a dead control
   in list view; all three choices are sticky under `footage_*` keys. The ✕ mark
   rides as a CLASS, out of the wall's signature, so hearting a clip cannot
-  rebuild the wall and re-decode every poster.
+  rebuild the wall and re-decode every poster — **and a whole page of clips
+  paints the wall ONCE**: `loadJobs` hands every clip to `jobCard` in turn and
+  the signature changes on each one, so a paint per card rebuilt the wall N
+  times to end with N cells (measured on a first load of 40 clips: 39 wipes,
+  820 cells created for the 40 that stayed). Only a BATCH is deferred — a
+  vote, a new job and a view switch still paint on the spot.
   **THE PRICE IS EXACT, AND THE 60% SALE IS OPENROUTER'S TO PASS ON
   (2026-09-09 — measured off 113 completed OpenRouter jobs' own `usage.cost`,
   44 APIFRAME jobs' `creditCost`, and ffprobe on the output clips).** Four

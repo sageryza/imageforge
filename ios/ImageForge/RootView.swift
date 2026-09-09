@@ -850,9 +850,10 @@ private struct HomeGrid: View {
     /// tab in Aug 2026 ("move everything onto the movies page like the story
     /// boards…") and the film filter's hide-from-home rule then took its home
     /// card away as a side effect — which is not what she asked for either
-    /// time. It is the ONE named exception to that rule (`homeAlso` below);
-    /// the flat movies chip still drops it, on her own reasoning that it is
-    /// "already on the home screen".
+    /// time. It is one of the named exceptions to that rule (`homeAlso`
+    /// below — Footage joined it 2026-09-09); the flat movies chip still drops
+    /// Story Room, on her own reasoning that it is "already on the home
+    /// screen", and keeps Footage, which she has not asked to move.
     private static let pipeline: [MovieStage] = [
         MovieStage(n: 1, name: "The story",
                    line: "What it is about, and what order it happens in.",

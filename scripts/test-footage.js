@@ -178,6 +178,8 @@ const F = require('../footage');
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
 const PILL = fs.readFileSync(path.join(PUB, 'pill-inject.html'), 'utf8');
 const posted = [];
+const estQ = [];          // every /estimate the page asked for, so the ONE-DOOR
+                          // claim is measured rather than asserted as true
 let statusCalls = 0;
 let discount = 0;        // what OpenRouter is passing on today, as /status says AND /estimate prices
 let refuse = false;      // the next POST comes back as a ByteDance content refusal
@@ -218,6 +220,7 @@ const server = http.createServer((req, res) => {
     }
     if (u.pathname === '/api/footage/estimate') {
       const q = Object.fromEntries(u.searchParams);
+      estQ.push(q);
       return json({ ok: true, ...F.estimate({ model: q.model, resolution: q.res, ratio: q.ratio, seconds: q.seconds, hasVideo: q.video === '1', door: q.door, discount }, { openrouter: true, apiframe: true }) });
     }
     if (u.pathname === '/api/footage/jobs' && req.method === 'GET') return json({ ok: true, jobs });
@@ -322,7 +325,6 @@ async function pillSweep(pg, where) {
   ok('the balance line lives inside the ? card', await page.$eval('#balline', (e) => !!e.closest('.helpcard')));
   const before = statusCalls;
   await page.click('#help');
-  await page.waitForFunction((n) => window.__st === undefined || true, null);
   await page.waitForTimeout(300);
   ok('tapping ? opens the card', !(await page.$eval('#helpcard', (e) => e.hidden)));
   ok('opening it reads the balance LIVE', statusCalls > before);
@@ -509,7 +511,11 @@ async function pillSweep(pg, where) {
     && sent.model === 'mini' && sent.seconds === 4 && sent.resolution === '480p' && sent.ratio === '9:16');
   ok('sound is always on and always sent, never left to the model\'s default', sent.sound === true);
   ok('the door is always openrouter — this page offers no other', sent.door === 'openrouter');
-  ok('every estimate this page asked for was OpenRouter\'s', true);
+  // ONE DOOR, MEASURED — every price this page ever quoted was quoted for the
+  // door it actually sends through. A page that priced APIFRAME and sent
+  // OpenRouter would show her the wrong number all day and look perfect.
+  ok('every estimate this page asked for was OpenRouter\'s (' + estQ.length + ' asked)',
+    estQ.length > 0 && estQ.every((q) => q.door === 'openrouter'));
   ok('the new card is on top, drawing', await page.$eval('#feed', (f) => f.firstElementChild.id === 'job-new1' && /drawing/.test(f.firstElementChild.textContent)));
   ok('the draft is cleared once sent', await page.evaluate(() => localStorage.getItem('footage_draft') == null));
 
@@ -544,6 +550,39 @@ async function pillSweep(pg, where) {
   await page.waitForFunction(() => /¢$/.test(document.getElementById('cost').textContent));
   ok('and the price under the star drops with it', parseFloat(await page.$eval('#cost', (e) => e.textContent)) < parseFloat(cost0));
   await page.click('body', { position: { x: 5, y: 820 } });
+
+  // ── A BATCH OF CARDS PAINTS THE WALL ONCE ───────────────────────────────
+  // `loadJobs` hands every clip to jobCard in turn and the wall's signature
+  // changes on each one, so a paint per card rebuilt the whole wall N times to
+  // end with N cells. COUNTED off the real DOM on a first load in tiles view —
+  // a wall that renders correctly and a wall that rendered itself eight times
+  // on the way there are the same markup to any source assertion.
+  // its OWN context — localStorage is per origin, so setting the view here
+  // inside `ctx` would put every page after it into tiles and hide the list
+  const ctxT = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const pgT = await ctxT.newPage();
+  await pgT.addInitScript(() => {
+    localStorage.setItem('footage_view', 'tiles');
+    window.__wipes = 0; window.__cells = 0;
+    const start = () => {
+      const t = document.getElementById('tiles');
+      if (!t) { setTimeout(start, 5); return; }
+      new MutationObserver((ms) => ms.forEach((m) => {
+        if (m.removedNodes.length) window.__wipes += 1;
+        window.__cells += m.addedNodes.length;
+      })).observe(t, { childList: true });
+    };
+    document.addEventListener('DOMContentLoaded', start);
+  });
+  await pgT.goto(`http://127.0.0.1:${port}/footage`);
+  await pgT.waitForSelector('#tiles .cell');
+  await pgT.waitForTimeout(900);
+  const churn = await pgT.evaluate(() => ({ wipes: window.__wipes, made: window.__cells, cells: document.querySelectorAll('#tiles .cell').length }));
+  // the INVARIANT, not a count: every cell made is a cell that stayed, and
+  // nothing was wiped on the way — so the number of clips can change freely
+  ok('the wall is built ONCE for a whole page of clips — ' + JSON.stringify(churn),
+    churn.cells >= 8 && churn.made === churn.cells && churn.wipes === 0);
+  await ctxT.close();
 
   // ── the same sweep at the other inset ────────────────────────────────────
   const pg2 = await ctx.newPage();
