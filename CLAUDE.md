@@ -291,6 +291,32 @@ line is the PERSON, not the video:
   registration certificate); the entry tier is free (50 assets), the paid
   tiers $1,400/mo and up. The ChatGPT-character workflow is exactly the
   virtual-portrait door. NOT BUILT — hers to decide (Cod God Inc?).
+- **OTHER RESELLERS CARRY THE SAME FACE FILTER — RESEARCHED 2026-09-09
+  (Sophie: "research other platforms like OpenArt and Atlas Cloud and see if
+  they have the same restrictions as OpenRouter").** The face check runs
+  INSIDE ByteDance's model service, so every door that forwards to
+  Volcengine/BytePlus gets the identical `PrivacyInformation` refusal: Atlas
+  Cloud, fal, Kie, WaveSpeed, PiAPI (standard mode), OpenArt, Higgsfield,
+  Dreamina. Read off the vendors' own pages, not guides: **Atlas Cloud's June
+  blog says "supports realistic human faces … does not have this
+  limitation", and its CURRENT model FAQ says the opposite** ("Can I upload a
+  real person's face photo? No"), with the Mini page naming "the restriction
+  on uploading real human faces" across the family — the marketing line is
+  stale, the FAQ is live. OpenArt's own pages say nothing either way; every
+  third-party guide lists it among the standard-model doors. Kie's
+  "realistic human support" means GENERATED humans. **The doors that do take
+  a real photo are the ones with their own consent layer or a different
+  backend**: Runway's Seedance 2.0 (its API is documented as having no
+  real-face input filter and lighter moderation — Runway's ToS still bans
+  public figures and non-consenting people and it monitors output), PiAPI's
+  "Less Restriction" mode (consented images), HeyGen (a verified digital
+  twin of YOURSELF, her own face only), EvoLink (after verification), and
+  the official Volcengine liveness route above. Reddit could not be read
+  from this container and the searches surfaced no thread on it. Likeliest
+  reading of APIFRAME's looseness is a Runway-style backend rather than a
+  ByteDance key — unmeasured; APIFRAME calls itself an "official partner"
+  and says nothing about faces. Whether any of those doors also skip the
+  OUTPUT copyright gate (the Radcliffe failure) is unmeasured everywhere.
 The "go" rule above applies to both doors word for word. A no-video job
 sent to APIFRAME is not wrong, it is 16% dearer. Full note: *OpenRouter for
 Seedance* in `docs/modules/audio-and-film.md`.
