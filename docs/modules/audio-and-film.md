@@ -303,9 +303,9 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     `last_frame` keyframes** — APIFRAME's route already wires them
     (`imageUrl` → `start_image`, `endImageUrl` → `end_image`), the OpenRouter
     route deliberately does not, and forcing a clip to END on the next clip's
-    first frame is the continuity tool this film keeps needing;
-    **`return_last_frame`** (a Mini passthrough) hands the last frame back so
-    the next clip can start exactly there; **`camera_fixed`** (`cameraFixed`
+    first frame is the continuity tool this film keeps needing (`return_last_frame`
+    is NOT one of these — it is a measured no-op, see the bullet above);
+    **`camera_fixed`** (`cameraFixed`
     on the APIFRAME route) locks the camera off. And **a job carrying a
     reference VIDEO is billed at a LOWER rate** —
     `video_tokens_with_video_input` is $2.10/M against $3.50/M on Mini and
