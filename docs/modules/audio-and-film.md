@@ -357,9 +357,34 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     real faces") is not what its Mini door does with a Seedance-made person
     video — the person filter did not fire. The output url is on
     `volces.com` under `dreamina-seedance-2-0-mini/`, i.e. ByteDance's own
-    storage on the Dreamina route, not a Runway-style backend. A REAL photo
-    (the eyes-blurred Mayra) and a real-person video are still unmeasured
-    here — her ladder stopped at the first rung because it passed.
+    storage on the Dreamina route, not a Runway-style backend.
+    **THREE MORE THE SAME HOUR (Sophie: "try radcliffe · try a human still
+    not ai"):**
+    - **A REAL, UNTOUCHED PHOTO PASSES AND DRAWS THE LIKENESS** — Mayra's
+      real portrait (`drops/_/0a72c8a0a425afbff32e2c1dccbe74ea.jpg`, the
+      photo OpenRouter refused WHOLE — no blur, no bar) as the only
+      reference, `the woman in image 1 looks up, camera at eye level`, Mini ·
+      4s · 480p · 16:9 → accepted, `completed` in 110s, and the clip is HER,
+      near-exact (job `1341e19bf73f44bd9e038c9b15c35286`). So Atlas runs NO
+      real-person check on a still at all — the eyes trick is unnecessary
+      there. **A reference IMAGE is not billed as tokens** (40,594 = the
+      output alone) where a reference VIDEO is (job 1 above, 80,770).
+    - **A FAMOUS FACE IS REFUSED ON THE POST, FREE, AS COPYRIGHT — WITH OR
+      WITHOUT THE BAR.** Radcliffe's untouched press photo
+      (`drops/_/ff6f86e35eb4e6b3da3d69902d3324d6.jpg`) and the same photo
+      with the black bar over both eyes
+      (`drops/_/1c78121dc1631b8c0ad8b4256d91e1cd.jpg`) both came back 400
+      `InputImageSensitiveContentDetected.PolicyViolation … may be related
+      to copyright restrictions` in under a second, nothing drawn, nothing
+      billed. **So Atlas's gate is a FAMOUS-FACE (copyright) check on the
+      INPUT, not the `PrivacyInformation` real-person check ByteDance's own
+      door runs** — and it recognises him THROUGH the bar, where
+      ByteDance's input gate let the bar through and its output gate caught
+      him (CLAUDE.md, the Radcliffe rounds). Where the famous line sits is
+      still the open question, now on this door too.
+    So for the ward film Atlas is a second door for EVERY person reference
+    she has — her own, her family's, a Seedance-drawn person, a clip with
+    people — and only a recognisable public figure is refused.
     **THE CANVAS:** 864x496 at 480p 16:9 (a 16px taller frame than the 2.5
     table's 864x480). **THE TOKENS:** 80,770 — the output (864·496·97/1024
     ≈ 40.6k) plus the reference video (560·752·97/1024 ≈ 39.9k), so a
