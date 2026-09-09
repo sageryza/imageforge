@@ -377,10 +377,17 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       1080p-SR · 1440p-SR`, seconds 4-15 (or -1), ratios the six plus
       `adaptive`, up to 9 images / 3 videos / 3 audios (audio needs a
       picture or video beside it — refused before sending).
-    **NOT wired into `/footage`'s door table or the AUTO fallback** — that
-    page sends `door:'openrouter'` and flipping it is hers to ask for
-    (CLAUDE.md). Wiring it is a row in `MODELS` (`atlas` id + cents) once
-    the price is measured, and a third entry in `getDoors()`.
+    **ON THE FOOTAGE TILE AS A MODEL ROW — "2.0 Mini · Atlas" (2026-09-09,
+    Sophie: "did you add it to the footage tile?").** The door row came off
+    that page the same day, so the third door rides as one more line in the
+    model drop-down (`mini-atlas` in footage.js's `MODELS`, `atlas` = Atlas's
+    id): picking it is what sends through Atlas (`doorNow()` on the page
+    derives the door from the row), the card's tag says *Atlas Cloud*, and
+    the price is Atlas's published $0.056/s marked "about" until a real job
+    prices it. The row is pinned to its door — no fallback to APIFRAME; a
+    refusal there is a measurement. With no key set the row answers a plain
+    error naming `ATLASCLOUD_API_KEY`. The plain Mini row still goes through
+    OpenRouter, untouched.
   - **A probe that went wrong, so it is not repeated:** the first probe
     script treated every 400 as a shape error and, after ByteDance's real
     refusal, tried a passthrough envelope that dropped the videos silently;
