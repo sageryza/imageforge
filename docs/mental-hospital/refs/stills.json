@@ -679,9 +679,9 @@
  },
  "conclusion": "Both axes have a floor and neither trades for the other. D-narrower (0.34/0.30) is close to the minimum and holds from a 640px face down to ~90px faces.",
  "spent": {
-  "accepted": 15,
-  "refused": "~34",
-  "totalUsd": 0.84
+  "accepted": 19,
+  "refused": "~35",
+  "totalUsd": 1.06
  },
  "finalBar": {
   "height_frac": 0.34,
@@ -749,5 +749,22 @@
   "face": "InputImageSensitiveContentDetected.PrivacyInformation \u2014 names the offending reference",
   "size": "width under 300px \u2014 nothing to do with faces",
   "note": "both are free 400s; only the error text tells them apart"
+ },
+ "solidFloor": {
+  "subject": "Michael, 420px-wide head-on crop",
+  "E (0.26/0.22) 95x17": "ACCEPTED",
+  "F (0.18/0.15) 85x11": "ACCEPTED",
+  "G (0.12/0.10) 79x7": "ACCEPTED \u2014 the floor",
+  "H (0.08/0.06) 73x5": "REFUSED",
+  "note": "a 79x7 SOLID sliver passes on the face whose 122x51 BLUR was refused"
+ },
+ "michaelViews": {
+  "view1": "table f0284, head-on, solid G",
+  "view2": "table f0704, looking off, solid G",
+  "both": "accepted and on model"
+ },
+ "otherChat": {
+  "chat": "mom-character-clip",
+  "finding": "converged independently on black/solid bars; its newest probe is Solid bar probe E (0.26/0.22), accepted"
  }
 }

@@ -289,6 +289,40 @@ crop to at least 420px wide before sending.** Cropping tight is free and often
 necessary (it is how a second person is removed); falling under 300px is the
 trap, and it looks exactly like a face refusal if you do not read the code.
 
+### A SOLID bar can be tiny — Michael's floor is a 79x7px sliver
+
+Measured 2026-09-09 after the solid finding. On his head-on crop (420px wide),
+solid bars going down:
+
+| rung | bar | result |
+|---|---|---|
+| E (0.26/0.22) | 95×17 | ACCEPTED |
+| F (0.18/0.15) | 85×11 | ACCEPTED |
+| **G (0.12/0.10)** | **79×7** | **ACCEPTED — his floor** |
+| H (0.08/0.06) | 73×5 | REFUSED |
+
+**A 79×7 solid sliver passes on the face whose 122×51 BLUR was refused.** That
+is the information model at its starkest: seven pixels of destroyed data beat
+fifty-one pixels of attenuated data. Nothing about area explains it.
+
+**So solid is not only the fallback, it is the CHEAPER treatment in face.** At
+G almost the whole face survives — brows, lids, lashes, everything but a hairline
+across the pupils — so the likeness that reaches the clip is better than under
+any blur that would have passed.
+
+**Michael now has TWO views** (her ask: "not bad to have two options, or views
+of his face") — `michael-view1` head-on from table f0284, `michael-view2`
+looking off from f0704 — both at solid G, both accepted, both drawing him on
+model.
+
+### The other chat found the same thing independently
+
+`mom-character-clip` is doing the same work on her parents and converged on the
+same answer with no contact between the two: its auditions run
+"eyes blurred" → "black bar" → and its newest probe is **"Solid bar probe E
+(0.26/0.22)", accepted**. Two chats, two casts, one conclusion — which is worth
+more than either measurement alone.
+
 ### So the rule is an escalation ladder, and it costs nothing to walk
 
 1. **Blur at D** — the default. Sophie, the parents and the doctor all pass here.
