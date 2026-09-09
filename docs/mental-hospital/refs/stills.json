@@ -1,4 +1,8 @@
 {
+ "measuredAt": "2026-09-09",
+ "rungThatPasses": "D-narrower (height_frac 0.34, width_pad 0.30, blur_k 0.55)",
+ "boundary": "between E-slit (0.26) refused and D-narrower (0.34) accepted, measured on sophie-face-A only",
+ "probeClip": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d3ea224ba18f7a39702a57db64a3f7d4.mp4",
  "stills": [
   {
    "key": "sophie-face-A",
@@ -20,7 +24,17 @@
    "url_plain": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png",
    "id_plain": "rrvRgOlzEzn2DMrPJtCT",
    "url_bar": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/6270bec4e7beffc8c2c35f8f364ae670.png",
-   "id_bar": "gSKTJ0S4tpgwc7oBUSr7"
+   "id_bar": "gSKTJ0S4tpgwc7oBUSr7",
+   "barsD": [
+    [
+     132,
+     235,
+     354,
+     75,
+     121
+    ]
+   ],
+   "url_barD": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/fdc5a00aed674fa52c79a18fe60ab043.png"
   },
   {
    "key": "sophie-face-B",
@@ -42,7 +56,17 @@
    "url_plain": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a40594e3ae3e837ecd569b2549850205.png",
    "id_plain": "3GFEnPXSQJ0pzaxsg0Kr",
    "url_bar": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/faf5d38a9f6aa79aaa0df739b77a7959.png",
-   "id_bar": "VsFlNU4gtpFzrtnqvXc1"
+   "id_bar": "VsFlNU4gtpFzrtnqvXc1",
+   "barsD": [
+    [
+     134,
+     240,
+     343,
+     73,
+     117
+    ]
+   ],
+   "url_barD": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/4c2d142f5dae6ab88ff7b98718b242a3.png"
   },
   {
    "key": "sophie-face-C",
@@ -64,7 +88,17 @@
    "url_plain": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/fe1416ac2bed79672468d5532aa747ca.png",
    "id_plain": "6hA7HnowYpV6sZyELZcC",
    "url_bar": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/da2a2d89e538d0d82555fc9b74b566c8.png",
-   "id_bar": "wfLTPmwGjm7t5UcYnmHA"
+   "id_bar": "wfLTPmwGjm7t5UcYnmHA",
+   "barsD": [
+    [
+     122,
+     248,
+     318,
+     67,
+     109
+    ]
+   ],
+   "url_barD": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/af2cb82fed41ce1bf211d319d3a76afe.png"
   },
   {
    "key": "sophie-face-D",
@@ -86,7 +120,17 @@
    "url_plain": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/9d8e857abcf6969f45539ebcd46314bf.png",
    "id_plain": "pswkhvxuCx0Mke6CKdVD",
    "url_bar": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/ead33a33c995674fb1334490dce1ed8c.png",
-   "id_bar": "bsrC3per9KsYgzaagSDF"
+   "id_bar": "bsrC3per9KsYgzaagSDF",
+   "barsD": [
+    [
+     132,
+     251,
+     339,
+     72,
+     117
+    ]
+   ],
+   "url_barD": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/02489798ecb028a4883fe0c6e5df5765.png"
   },
   {
    "key": "sophie-jazz-A",
@@ -108,7 +152,17 @@
    "url_plain": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/bfce90db708632742f6183f3b8d8ce77.png",
    "id_plain": "LbEphy194qJJJ3NBUdEE",
    "url_bar": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/73e9ff800329095ad6a0949cc68bdde4.png",
-   "id_bar": "3NkjpDGkSJ4jbQhYRFlV"
+   "id_bar": "3NkjpDGkSJ4jbQhYRFlV",
+   "barsD": [
+    [
+     160,
+     238,
+     191,
+     40,
+     65
+    ]
+   ],
+   "url_barD": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a022e59ebb9beecaede46976491de9b0.png"
   },
   {
    "key": "sophie-jazz-B",
@@ -130,7 +184,17 @@
    "url_plain": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/53d7eef594ff757f26027e5b8edf283c.png",
    "id_plain": "jT5v2rkndaPWDuhCjIYV",
    "url_bar": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/56f55b53e5bea282382649f015661818.png",
-   "id_bar": "JlcfSRJpfgWxzCJ60eMf"
+   "id_bar": "JlcfSRJpfgWxzCJ60eMf",
+   "barsD": [
+    [
+     146,
+     237,
+     186,
+     39,
+     65
+    ]
+   ],
+   "url_barD": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/00b2fabfa629085359a3b592eb651c40.png"
   },
   {
    "key": "sophie-jazz-C",
@@ -152,7 +216,17 @@
    "url_plain": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e0a3d5c8a24893877433083e2e4f9912.png",
    "id_plain": "Ddz900HWSOQ0DkjTK7yE",
    "url_bar": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1abe8fc974a78d56263766b297f5ba48.png",
-   "id_bar": "5KpWNUuDddu64PbWArvo"
+   "id_bar": "5KpWNUuDddu64PbWArvo",
+   "barsD": [
+    [
+     144,
+     235,
+     189,
+     40,
+     65
+    ]
+   ],
+   "url_barD": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/66c4fa04ab25a2dd2ae0bfc56f25ce07.png"
   },
   {
    "key": "doctor-A",
@@ -174,7 +248,17 @@
    "url_plain": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3ecf30f1a449b84ff9f397013aaa3cc4.png",
    "id_plain": "gnnnMk9Kc0C0fpmKsIOH",
    "url_bar": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e2d815a96a2c230af624ab25bd99a571.png",
-   "id_bar": "3P3ANzD0p970wok4EBjU"
+   "id_bar": "3P3ANzD0p970wok4EBjU",
+   "barsD": [
+    [
+     402,
+     232,
+     99,
+     21,
+     35
+    ]
+   ],
+   "url_barD": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/01f2e289da10f99b82b3697e5d153caf.png"
   },
   {
    "key": "doctor-B",
@@ -210,7 +294,31 @@
    "url_plain": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/7b4fc65bb136c7f6d3f42669986efea3.png",
    "id_plain": "odJuBeUbGEdMt7X8LBaM",
    "url_bar": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/aa2a7fddc32a4b5a364f3213c581a352.png",
-   "id_bar": "D7NwbUKs4NijPDE4GNRf"
+   "id_bar": "D7NwbUKs4NijPDE4GNRf",
+   "barsD": [
+    [
+     406,
+     234,
+     66,
+     14,
+     23
+    ],
+    [
+     171,
+     229,
+     53,
+     11,
+     19
+    ],
+    [
+     0,
+     265,
+     36,
+     10,
+     17
+    ]
+   ],
+   "url_barD": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c0ff48679fd8498b5dd5609d0fbbac32.png"
   },
   {
    "key": "assistant-A",
@@ -246,7 +354,31 @@
    "url_plain": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/b0d5a66b6ca9476746c909237c633093.png",
    "id_plain": "UTqkgomGlgss0ydZhZLn",
    "url_bar": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/35ee342c47881ddd68d468ab95667e07.png",
-   "id_bar": "255SNvNTKD6TYy0pgB4C"
+   "id_bar": "255SNvNTKD6TYy0pgB4C",
+   "barsD": [
+    [
+     344,
+     204,
+     46,
+     10,
+     15
+    ],
+    [
+     444,
+     341,
+     27,
+     6,
+     9
+    ],
+    [
+     149,
+     393,
+     10,
+     3,
+     3
+    ]
+   ],
+   "url_barD": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e5ffd6afe84fd39b47b871672249706a.png"
   },
   {
    "key": "nurse-white-A",
@@ -268,7 +400,17 @@
    "url_plain": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/732a2368d2b8ecaeb1b1d6cb48ae77a5.png",
    "id_plain": "xwM31EFifJOy9dm2ekMA",
    "url_bar": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8c21ff8ede8489b79bcb23b984c8e46e.png",
-   "id_bar": "SuyI3hxq1eLaXik8HNGR"
+   "id_bar": "SuyI3hxq1eLaXik8HNGR",
+   "barsD": [
+    [
+     257,
+     231,
+     63,
+     13,
+     21
+    ]
+   ],
+   "url_barD": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e9ccbadaa2c4da33018aa13048b201bc.png"
   },
   {
    "key": "mayra-A",
@@ -297,7 +439,24 @@
    "url_plain": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a2a7dfab3e0b626fbfe0826381a20b5e.png",
    "id_plain": "77MpWE0VYVybfnStU0LW",
    "url_bar": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/6a169c6079aaddd3ded4cfdfdf685326.png",
-   "id_bar": "bVfcXrAUOnYDfV8EshjE"
+   "id_bar": "bVfcXrAUOnYDfV8EshjE",
+   "barsD": [
+    [
+     265,
+     210,
+     70,
+     15,
+     23
+    ],
+    [
+     64,
+     552,
+     46,
+     10,
+     15
+    ]
+   ],
+   "url_barD": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8a3f05fe00bbe49dbbaa7b29c4d3b6b6.png"
   },
   {
    "key": "parents-A",
@@ -326,7 +485,24 @@
    "url_plain": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/ced26c0be4b243784a00bcf1811351a6.png",
    "id_plain": "lrh0jNaUcwl6cWRZwoaf",
    "url_bar": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/550580b4dab8a1ac46d1e3d647a912d6.png",
-   "id_bar": "HWIBE3oTLrHFaOH6grxM"
+   "id_bar": "HWIBE3oTLrHFaOH6grxM",
+   "barsD": [
+    [
+     385,
+     133,
+     42,
+     9,
+     15
+    ],
+    [
+     157,
+     111,
+     50,
+     11,
+     17
+    ]
+   ],
+   "url_barD": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3dc4c584b8d6e1fd7ea1963796741c09.png"
   },
   {
    "key": "office-A",
@@ -355,7 +531,24 @@
    "url_plain": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3a7641babddfac6d72c3dc3b6bd7c012.png",
    "id_plain": "N6Fo5lUS0aR4zjP4iroZ",
    "url_bar": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/5131fc4e1f2063b347040c0edff39a0c.png",
-   "id_bar": "sS2ERJReCz6S8XvattV0"
+   "id_bar": "sS2ERJReCz6S8XvattV0",
+   "barsD": [
+    [
+     439,
+     279,
+     28,
+     6,
+     9
+    ],
+    [
+     211,
+     371,
+     23,
+     4,
+     7
+    ]
+   ],
+   "url_barD": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/36ade5bc81d342385618d3f013f82fe8.png"
   }
  ],
  "ladder": [
@@ -366,7 +559,8 @@
    "bars": [],
    "note": "no bar at all \u2014 the control; this SHOULD be refused",
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png",
-   "id": "7fKTuPYsYUeM2m3638aN"
+   "id": "7fKTuPYsYUeM2m3638aN",
+   "probe": "refused"
   },
   {
    "rung": "A-wide",
@@ -383,7 +577,8 @@
    ],
    "note": "brow to cheekbone",
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c50b23b5b2f8b90086deef31b5287439.png",
-   "id": "UjS36w4XyAztONS8K053"
+   "id": "UjS36w4XyAztONS8K053",
+   "probe": "untested (wider)"
   },
   {
    "rung": "B-measured",
@@ -400,7 +595,8 @@
    ],
    "note": "the rung that passed on Mayra's photo",
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/5c5a50de90d983c446db23ec6063aae7.png",
-   "id": "7X3fFzeWJHm24f7EHAqx"
+   "id": "7X3fFzeWJHm24f7EHAqx",
+   "probe": "untested (wider)"
   },
   {
    "rung": "C-narrow",
@@ -417,7 +613,8 @@
    ],
    "note": "eyes only",
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/6270bec4e7beffc8c2c35f8f364ae670.png",
-   "id": "MZc3tsAX0ayCPSR4WCMH"
+   "id": "MZc3tsAX0ayCPSR4WCMH",
+   "probe": "untested (wider than D, so it passes)"
   },
   {
    "rung": "D-narrower",
@@ -434,7 +631,8 @@
    ],
    "note": "lids in, brows out",
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/fdc5a00aed674fa52c79a18fe60ab043.png",
-   "id": "HSf6yb4zEtCbF4Y377BB"
+   "id": "HSf6yb4zEtCbF4Y377BB",
+   "probe": "ACCEPTED \u2014 $0.0558, job 1BhEe5n7xp1V60nx3bvW"
   },
   {
    "rung": "E-slit",
@@ -451,7 +649,8 @@
    ],
    "note": "a slit across the pupils",
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/577b11d8f06c08d035735e2d05693dac.png",
-   "id": "SMsTKYdR1K2dd1D7QXjR"
+   "id": "SMsTKYdR1K2dd1D7QXjR",
+   "probe": "refused"
   },
   {
    "rung": "F-hairline",
@@ -468,7 +667,8 @@
    ],
    "note": "barely a line",
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/7a5b2e3326574f8ad446b96fed493c8f.png",
-   "id": "UFSplMuiXv8XFCDzRso4"
+   "id": "UFSplMuiXv8XFCDzRso4",
+   "probe": "refused"
   }
  ]
 }

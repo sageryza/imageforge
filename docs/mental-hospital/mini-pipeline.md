@@ -99,36 +99,52 @@ reads as an artifact rather than a drawn-on censor bar.
 
 `mode=` takes `blur` (default), `pixel` or `solid`; `debug=1` outlines the band.
 
-## What is still unmeasured — the ladder
+## The ladder — MEASURED 2026-09-09, and the answer is D-narrower
 
-**Which rung the filter actually accepts is not known.** Only one point on the
-curve has ever been measured: a soft band over Mayra's eyes passed on 2026-09-08
-(`aY9LbIGMe9T5lEcA984a`, Mini 1:1, 5.4¢), and the whole photo without it was
-refused. Nobody has tested whether a *narrower* bar also passes.
+Sent on her go, narrowest-first, one at a time. **Refusals are free, so the
+whole search cost one accepted job: $0.0558.** Sending all seven would have
+been 39¢; going narrowest-first and stopping at the first pass is 5.6¢
+whatever the threshold turns out to be.
 
-Seven rungs are built and uploaded, all on `sophie-face-A`:
-
-| rung | band | what survives |
+| rung | band on a 640px face | result |
 |---|---|---|
-| Z-none | — | the control; this should be REFUSED |
-| A-wide | 488×177 | brow to cheekbone |
-| B-measured | 443×133 | the rung that passed on Mayra |
-| C-narrow | 399×100 | eyes only |
-| D-narrower | 354×75 | lids in, brows out |
-| E-slit | 319×58 | a slit across the pupils |
-| F-hairline | 288×40 | barely a line |
+| Z-none (control) | no bar | **REFUSED** `InputImageSensitiveContentDetected.PrivacyInformation` |
+| F-hairline (0.18/0.15) | 288×40 | REFUSED |
+| E-slit (0.26/0.22) | 319×58 | REFUSED |
+| **D-narrower (0.34/0.30)** | **354×75** | **ACCEPTED — $0.0558, job `1BhEe5n7xp1V60nx3bvW`** |
+| C-narrow, B-measured, A-wide | wider still | untested; wider than a rung that passed |
 
-**A refusal is free and an accepted job is 5.6¢**, so the probe costs
-(however many pass) × 5.6¢ — at most 39¢ for all seven, and the control
-costing nothing is what proves the test is real rather than measuring an
-already-permissive filter.
+**The control refusing is what makes the rest of it evidence.** The identical
+still with no bar was refused on the same face at the same second — so the
+accepts are the bar working, not a filter in a permissive mood.
 
-Narrower is worth chasing for a reason beyond looks: the measurement of
-2026-09-08 found the likeness rides on **the rest of the face** — the
-eyes-blurred photo still drew Mayra — so the less of the face the bar eats,
-the closer the clip lands.
+**The boundary is between `height_frac` 0.26 and 0.34.** Both axes moved
+together down the ladder, so which of the two the filter actually reads is
+still unknown; a run holding `width_pad` and moving only `height_frac` would
+separate them, at 5.6¢ a rung.
+
+**This is one face at one size.** The filter may well read absolute pixels
+rather than the face-relative fraction, in which case a small face (the
+parents' 42×9 band) could still be refused at D. That self-corrects for free —
+a refusal costs nothing and comes back before anything draws — so the rule is
+*send at D, widen only the ones that bounce*.
+
+### What the clip showed — the bar is not a limit on the output
+
+**The model drew her eyes back in.** The blurred band came back as real open
+eyes, and the face reads as Sophie: her freckles, nose, mouth, jaw and hair all
+survived, and she looks at the camera and away as the prompt asked. So the bar
+is a key that opens the door, not a hole in the reference — which is what makes
+the whole pipeline viable rather than a compromise.
+
+That also confirms the 2026-09-08 finding from the other direction: **the
+likeness rides on the rest of the face**, so every millimetre the bar gives back
+is worth having, and narrower is worth chasing.
 
 ## Where things are
+
+**The barred stills to use are the `-barD` copies** (D-narrower). The first
+C-narrow set is superseded — wider, so it also passes, but it eats more face.
 
 - `docs/mental-hospital/refs/stills.json` — every still and rung, with its
   source clip, source frame, bar geometry and Dump url.
@@ -142,7 +158,7 @@ the closer the clip lands.
 
 - Her pick between `sophie-face-*` (intake A, bigger) and `sophie-jazz-*`
   (the canonical origin) as the Sophie reference.
-- The ladder probe — needs her "go"; ≤39¢.
+- Which AXIS the filter reads — height or width. One run at 5.6¢ a rung.
 - Michael's close audition, and the auditions still owed words (Yolanda,
   Nurse Edna, Ms. O'Hara, Nurse Mary + Juanita, the Superintendent +
   Anastasia).
