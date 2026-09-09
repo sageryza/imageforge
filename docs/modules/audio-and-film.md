@@ -175,6 +175,44 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     reads as unbilled, and the key had another chat's Mini batch running at
     the same time, so the delta could not be attributed — treat an accepted
     Mini job as ~5.6¢ and an output failure as unknown-but-small.
+  - **IT IS HIS FACE, NOT THE BACKDROP — measured the same hour.** The same
+    bar on a tight crop of the face (`crop((300,420,990,1290))` of the
+    original, so the studio step-and-repeat is out of frame entirely, then
+    `bar-eyes.py 90 305 600 405`) was ACCEPTED, drew for four polls, and
+    came back with the identical refusal: *"the output video may be related
+    to copyright restrictions"* (job `YMyKELvY54v87oTEhVG8`). Two independent
+    photos of one man, one with branded background and one without, both
+    reach the output gate and both are stopped there. So the gate reads the
+    LIKENESS.
+  - **THE PUBLIC RECORD, so the gate is not mistaken for a bug (researched
+    2026-09-09).** Seedance 2.0 drew a Disney cease-and-desist on
+    2026-02-13 calling it "a virtual smash-and-grab", with Paramount
+    Skydance, Netflix, Warner Bros. Discovery, Sony Pictures and Universal
+    following; Douyin VP Li Liang said on 02-15 that Seedance 2.0 would
+    temporarily stop generating realistic human faces and IP-protected
+    characters, and the API access that reopened in April carries those
+    filters. What the guides do NOT cover is the half we hit: they all
+    document the INPUT face filter (real photographic faces refused, AI or
+    illustrated ones passing — which is our own drawn-face measurement
+    arrived at from the other side) and mention a post-generation rejection
+    only in passing, and the output-copyright error they DO document is an
+    AUDIO match. **Ours had `generate_audio:false`, so the audio reading is
+    ruled out by construction.** Two more things from the same reading, both
+    load-bearing for any test designed here: the filters are described as
+    scoring PROBABILISTICALLY rather than pass/fail, so a single job near
+    the threshold can pass once and fail the next run — one job is an
+    anecdote, not a measurement — and a failed generation is not billed,
+    which is exactly what both blocked jobs look like from our side.
+  - **THE FAME LADDER IS UNBUILT AND IS THE NEXT PASS (Sophie's own idea,
+    2026-09-09: "you could use progressively less famous people to see where
+    the bar is").** Nobody has published where the output gate's threshold
+    sits, and both ends of the ladder are already on file here: Radcliffe
+    (global) blocked twice, Mayra (not famous) drawn. The design: the black
+    bar stays on EVERY rung — without it nothing reaches the output gate at
+    all, so fame is the only variable — same prompt, same Mini 480p 3:4 4s,
+    free-licensed Wikimedia photos, and MORE THAN ONE run per rung because
+    of the probabilistic scoring above. Cheap by construction: a blocked
+    rung costs nothing and only a rung that draws bills ~5.6¢.
   - **SO: text, pictures, audio and person-free videos → OpenRouter; any
     reference with a person in it → APIFRAME.** A reference video rides
     through as `video_url` and ByteDance decides; a content refusal answers
