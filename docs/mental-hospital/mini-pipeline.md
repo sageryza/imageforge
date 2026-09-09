@@ -75,10 +75,10 @@ are filed and the pick is hers.
 Every clip in this film is 480p 3:4 = **560×752**, so a frame is comfortably
 over Seedance's 300px minimum width with no upscaling.
 
-**Michael has no usable still.** `michaelAud2` is a single figure at the end of
-a long hall — the face measures **20–32px** across all 97 frames. Her verdict
-("too far away", "4s auditions don't rly work") is confirmed by measurement.
-He needs a new audition, close, before he can be referenced at all.
+**Michael's still is in the `table` clip, not his audition** — see the Michael
+section below. `michaelAud2` is a 20-32px figure at the end of a hall (her
+"too far away", confirmed), but it is an OFFCUT of the 25s cafeteria clip where
+his face is 150-170px and head-on. He needs no new audition.
 
 ## The eye bar — `scripts/ward-facetool.py`
 
@@ -193,6 +193,46 @@ That also confirms the 2026-09-08 finding from the other direction: **the
 likeness rides on the rest of the face**, so every millimetre the bar gives back
 is worth having, and narrower is worth chasing.
 
+## Michael — a blurred bar NEVER passes on him, a SOLID one does
+
+He is in **6 cards, 74 seconds** (the dinner, the poem and the walk, the
+montage), so he is not a corner case.
+
+**And the good Michael was there all along.** The 4s `michaelAud2` is a distant
+hallway figure with a 20-32px face — useless, exactly as she said — but it was
+CUT FROM the `table` clip, his 25s origin, the one her notes call "LITERALLY
+perfect". His face is **150-170px and head-on** there. So the earlier
+"Michael has no usable still" was wrong: it measured the offcut, not the source.
+
+**Then every blurred bar was refused, and all of it was free:**
+
+- D (0.34/0.30) on the full frame — refused
+- cropped to Michael alone, Anastasia off the frame — refused
+- 0.45, 0.60, 0.80 and **1.00/0.70** (a band over the whole eye region) — all refused
+- a tight face-only crop, and the same upscaled 3.5x — refused
+- five other frames of the same clip — all refused
+
+So it is not the bar's size, the crop or the frame. **A blurred bar simply does
+not clear this face**, which is the multi-pass detector the research note
+warns about ("cropping, sunglasses, blur and drawn-over faces mostly fail").
+
+**`mode='solid'` at the same D geometry passes on the first try** — and his
+likeness comes through intact: the same flat light-brown hair, the same face,
+looking up and smiling. Cost: one accepted job.
+
+### So the rule is an escalation ladder, and it costs nothing to walk
+
+1. **Blur at D** — the default. Sophie, the parents and the doctor all pass here.
+2. **Solid at D** when blur is refused. Michael needs this.
+3. Only if both bounce: that character's cards go through APIFRAME (2.5), or
+   he gets a drawn reference (her workaround #2).
+
+A refusal comes back before anything draws and is never billed, so the ladder
+is walked for free and only the rung that works is ever paid for.
+
+**Do not switch the whole set to solid.** Blur is the gentler treatment and it
+passes for most faces; solid is the fallback, not the default.
+
 ## Where things are
 
 **The barred stills to use are the `-barD` copies** (D-narrower). The first
@@ -211,8 +251,11 @@ C-narrow set is superseded — wider, so it also passes, but it eats more face.
 - Her pick between `sophie-face-*` (intake A, bigger) and `sophie-jazz-*`
   (the canonical origin) as the Sophie reference.
 - Which AXIS the filter reads — height or width. One run at 5.6¢ a rung.
-- Michael's close audition, and the auditions still owed words (Yolanda,
-  Nurse Edna, Ms. O'Hara, Nurse Mary + Juanita, the Superintendent +
-  Anastasia).
+- The auditions still owed her words (Yolanda, Nurse Edna, Ms. O'Hara,
+  Nurse Mary + Juanita, the Superintendent + Anastasia). Michael no longer
+  needs one.
+- **Anastasia**: she is in the table clip beside Michael, but her notes say
+  that one "came out with the braid but not as pictured" (a blond ballerina),
+  so it is NOT a reference for her intended Anastasia. Hers to decide.
 - Whether Mini's output quality holds up against 2.5 on a real scene — one
   card shot both ways would settle it and has not been done.
