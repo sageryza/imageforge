@@ -447,9 +447,12 @@ function cardOf(id, d) {
 
 // ─── Polling the unfinished ones, throttled ────────────────────────────
 const lastPoll = new Map();   // job id → ms
-async function pollOne(id, d) {
+// `force` is her own Check now tap, which asks past the throttle. It costs a
+// status read at the door and never a draw, so a tap always really asks —
+// otherwise the button is a control that can do nothing and say nothing.
+async function pollOne(id, d, force) {
   const now = Date.now();
-  if (now - (lastPoll.get(id) || 0) < POLL_EVERY_MS) return null;
+  if (!force && now - (lastPoll.get(id) || 0) < POLL_EVERY_MS) return null;
   lastPoll.set(id, now);
   const door = d.door || d.provider || 'apiframe';
   const mod = getDoors()[door] || getDoors().apiframe;
@@ -748,6 +751,7 @@ router.post('/jobs', async (req, res) => {
 router.get('/jobs', async (req, res) => {
   try {
     const limit = Math.min(Number(req.query.limit) || 40, 200);
+    const fresh = String(req.query.fresh || '') === '1';
     const snap = await coll().where('chat', '==', CHAT).get();
     const docs = snap.docs.map((d) => ({ id: d.id, d: d.data() }))
       .sort((a, b) => String(b.d.sentAt || '').localeCompare(String(a.d.sentAt || '')))
@@ -757,7 +761,7 @@ router.get('/jobs', async (req, res) => {
     await Promise.all(docs.map(async (x) => {
       const st = String(x.d.status || 'sent').toLowerCase();
       if (st !== 'sent' && st !== 'processing' && st !== 'pending' && st !== 'queued' && st !== 'starting') return;
-      const r = await pollOne(x.id, x.d);
+      const r = await pollOne(x.id, x.d, fresh);
       if (r && r.patch) Object.assign(x.d, r.patch, r.video ? { video: r.video } : {});
     }));
     res.set('Cache-Control', 'no-store');

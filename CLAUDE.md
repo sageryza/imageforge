@@ -7444,7 +7444,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
   page open, and arbitrarily late without it. **Read a draw time off `doneAt`
   with that in mind** (measured 2026-09-10 over the 28 completed clips: a
   median ~111s for 4s and ~160s for 15s, and one 12s clip reading 28 minutes
-  because nobody was looking). It bakes a poster on the same pass. **The price is
+  because nobody was looking). It bakes a poster on the same pass. **AND A
+  DRAWING CARD CARRIES *CHECK NOW* (2026-09-10, Sophie: "maybe we can just add
+  a refresh button if i'm sitting there waiting")** — a bare circular arrow
+  beside the `drawing… 42s` clock, the ONE thing that asks past the throttle
+  (`fresh=1` → `pollOne(…, force)`); the automatic polls never send it. Four
+  things not to undo: it is drawn **only while that clip is drawing**, so it is
+  never a control that does nothing; the clock lives in its own `[data-clock]`
+  span, because the once-a-second tick used to write the whole line and would
+  take the button with it; it **spends nothing** (a status read at the door,
+  never a draw), which is why her tap always really asks; and it re-arms after
+  ~700ms rather than staying dead. **The price is
   SERVED** (`GET /estimate`, the model table on `GET /status`) — the page holds
   no cost figure at all, and a test pins that. Seconds and resolution open at
   the minimum on every load; the model and the shape are remembered. Nothing is

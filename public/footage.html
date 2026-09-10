@@ -272,6 +272,15 @@
         justify-content:center;background:#fdfbf7;color:#6f675e}
   .seedrow button svg{width:13px;height:13px;display:block}
   .st{font-size:12px;color:#6f675e;margin-top:3px;overflow-wrap:anywhere}
+  /* Check now — a bare glyph, no plate (the house rule's plateless case: the
+     card's own line is calm enough to read it against). Drawn ONLY while a
+     clip is drawing, so it is never a control that does nothing. */
+  .recheck{border:0;background:none;padding:0 0 0 6px;margin:0;color:#8a8177;
+    width:22px;height:16px;vertical-align:-3px;cursor:pointer;line-height:0}
+  .recheck svg{width:14px;height:14px;display:block}
+  .recheck:disabled{opacity:.45;cursor:default}
+  .recheck.spin svg{animation:reck .7s linear infinite}
+  @keyframes reck{to{transform:rotate(360deg)}}
   .st.bad{color:#a0402a}
   /* A CARD'S OWN PICTURE ROW HONOURS `--cols` TOO — the Playground's rule:
      ONE number drives the tile wall and the row inside a card, so the two can
@@ -381,6 +390,7 @@ var ICONS = {
   audio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>',
   image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
   history: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>',
+  refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>',
   chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
   maximize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
   minimize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
@@ -995,7 +1005,12 @@ function jobCard(j) {
     (j.seed != null ? '<div class="seedrow"><span>seed ' + esc(j.seed) + '</span>' +
       '<button type="button" class="seedcopy" aria-label="Put this seed in the box" title="Put this seed in the box">' + ICONS.copy + '</button></div>' : '') +
     (j.note ? '<div class="st">' + esc(j.note) + '</div>' : '') +
-    '<div class="st' + (j.status === 'failed' ? ' bad' : '') + '" data-st>' + (j.status === 'failed' ? esc(j.error || 'failed') : '') + '</div>';
+    // The clock lives in its own span because the once-a-second tick writes to
+    // it — textContent on the whole line would wipe the button beside it.
+    '<div class="st' + (j.status === 'failed' ? ' bad' : '') + '" data-st>' +
+      (j.status === 'failed' ? esc(j.error || 'failed') : '<span data-clock></span>') +
+      (j.status === 'drawing' ? '<button type="button" class="recheck" aria-label="Check now" title="Check now">' + ICONS.refresh + '</button>' : '') +
+    '</div>';
   if ((j.refs || []).length) {
     html += '<div class="usedrefs">';
     slotsOf(j.refs).forEach(function (slot, i) { var r = j.refs[i]; html += '<div class="ur"><div>' + thumbHtml(r) + '</div>' + esc(slot.replace(/[\[\]]/g, '')) + '</div>'; });
@@ -1023,9 +1038,24 @@ function jobCard(j) {
     // star is the one tap that spends, so nothing else may send.
     var again = el.querySelector('.again');
     if (again) again.addEventListener('click', function () { copyBack(j); });
+    // Check now — the page already asks every 4-7s while anything is drawing,
+    // so this is only worth a tap because it goes PAST the server's 12s
+    // per-job throttle (`fresh=1`). It spends nothing: a status read at the
+    // door, never a draw.
+    var reck = el.querySelector('.recheck');
+    if (reck) reck.addEventListener('click', function () {
+      if (reck.disabled) return;
+      reck.disabled = true; reck.classList.add('spin');
+      loadJobs(true).then(function () {
+        // the card is rebuilt the moment it lands, so this node may be gone
+        if (!reck.isConnected) return;
+        reck.classList.remove('spin');
+        setTimeout(function () { if (reck.isConnected) reck.disabled = false; }, 700);
+      });
+    });
   }
-  var st = el.querySelector('[data-st]');
-  if (j.status === 'drawing') st.textContent = 'drawing… ' + ago(j.sentAt);
+  var ck = el.querySelector('[data-clock]');
+  if (ck && j.status === 'drawing') ck.textContent = 'drawing… ' + ago(j.sentAt);
   paintFeed();
 }
 // the opener is added only where the words are really cut (measured), on the
@@ -1171,8 +1201,10 @@ function loadStatus() {
     paintControls();
   }).catch(function () {});
 }
-function loadJobs() {
-  return api('/jobs?limit=40').then(function (d) {
+// `fresh` is her own tap on Check now — it asks the door past the 12s
+// per-job throttle. The automatic polls never send it.
+function loadJobs(fresh) {
+  return api('/jobs?limit=40' + (fresh ? '&fresh=1' : '')).then(function (d) {
     var jobs = (d && d.jobs) || [];
     batching = true;
     try { jobs.slice().reverse().forEach(jobCard); } finally { batching = false; }
@@ -1191,7 +1223,7 @@ function schedulePoll(soon) {
 setInterval(function () {
   Object.keys(jobsById).forEach(function (k) {
     var j = jobsById[k]; if (j.status !== 'drawing') return;
-    var el = document.querySelector('#job-' + CSS.escape(k) + ' [data-st]');
+    var el = document.querySelector('#job-' + CSS.escape(k) + ' [data-clock]');
     if (el) el.textContent = 'drawing… ' + ago(j.sentAt);
   });
 }, 1000);

@@ -212,6 +212,7 @@ const F = require('../footage');
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
 const PILL = fs.readFileSync(path.join(PUB, 'pill-inject.html'), 'utf8');
 const posted = [];
+const jobGets = [];   // every GET /jobs the page really made, with its query
 const estQ = [];          // every /estimate the page asked for, so the ONE-DOOR
                           // claim is measured rather than asserted as true
 let statusCalls = 0;
@@ -274,7 +275,7 @@ const server = http.createServer((req, res) => {
       }
       return json({ ok: true, ...F.estimate({ model: q.model, resolution: q.res, ratio: q.ratio, seconds: q.seconds, hasVideo: q.video === '1', door: q.door, discount }, { openrouter: true, apiframe: true }) });
     }
-    if (u.pathname === '/api/footage/jobs' && req.method === 'GET') return json({ ok: true, jobs });
+    if (u.pathname === '/api/footage/jobs' && req.method === 'GET') { jobGets.push(Object.fromEntries(u.searchParams)); return json({ ok: true, jobs }); }
     if (u.pathname === '/api/footage/jobs' && req.method === 'POST') {
       const b = JSON.parse(body);
       posted.push(b);
@@ -938,6 +939,53 @@ async function pillSweep(pg, where) {
   ok('the wall is built ONCE for a whole page of clips — ' + JSON.stringify(churn),
     churn.cells >= 8 && churn.made === churn.cells && churn.wipes === 0);
   await ctxT.close();
+
+  // ── CHECK NOW — the one tap that asks past the 12s throttle ─────────────
+  // Every assertion here is a MEASUREMENT or a reading of what the server
+  // really received: a button that renders and sends the ordinary poll, one
+  // the once-a-second clock wipes off the card, and one that sits under a
+  // finished clip all look identical in the source.
+  jobs.unshift({ id: 'draw1', prompt: 'the girl in [Video1] walks out', model: 'mini', modelLabel: '2.0 Mini',
+    door: 'atlascloud', seconds: 15, resolution: '480p', ratio: '3:4', sound: true, refs: [],
+    status: 'drawing', seed: 5150, sentAt: new Date(Date.now() - 42000).toISOString(), estimate: 16, vote: '' });
+  const pgR = await ctx.newPage();
+  await pgR.addInitScript(INSET(47), 47);
+  await pgR.goto(`http://127.0.0.1:${port}/footage`);
+  await pgR.waitForSelector('#job-draw1 .recheck');
+  ok('a DRAWING clip carries Check now', await pgR.locator('#job-draw1 .recheck').count() === 1);
+  ok('a finished clip carries none — never a control that does nothing',
+    await pgR.locator('#job-old1 .recheck').count() === 0);
+  // the trap this exists for: the clock used to write the whole line, which
+  // would take the button with it on the very next tick
+  const clock0 = await pgR.textContent('#job-draw1 [data-clock]');
+  await pgR.waitForTimeout(1300);
+  const after = await pgR.evaluate(() => ({
+    clock: document.querySelector('#job-draw1 [data-clock]').textContent,
+    btns: document.querySelectorAll('#job-draw1 .recheck').length,
+  }));
+  ok('the clock ticks and the button survives it — ' + JSON.stringify(after),
+    /^drawing… /.test(clock0) && after.clock !== clock0 && after.btns === 1);
+  // the tap must REACH the button: it sits on the card's own status line and
+  // the injected pill owns the top-right column
+  const hit = await pgR.evaluate(() => {
+    const b = document.querySelector('#job-draw1 .recheck'), r = b.getBoundingClientRect();
+    const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return { own: b.contains(el) || el === b, w: Math.round(r.width), h: Math.round(r.height) };
+  });
+  ok('the tap reaches it — ' + JSON.stringify(hit), hit.own === true);
+  const getsBefore = jobGets.length;
+  await pgR.click('#job-draw1 .recheck');
+  await pgR.waitForTimeout(400);
+  const fresh = jobGets.slice(getsBefore);
+  ok('her tap asks with fresh=1 — ' + JSON.stringify(fresh),
+    fresh.length >= 1 && fresh.some((q) => q.fresh === '1'));
+  ok('the automatic polls never send it',
+    jobGets.slice(0, getsBefore).every((q) => q.fresh !== '1'));
+  await pgR.waitForTimeout(900);
+  ok('it comes back armed for the next tap',
+    await pgR.evaluate(() => { const b = document.querySelector('#job-draw1 .recheck'); return !b || !b.disabled; }));
+  await pgR.close();
+  jobs = jobs.filter((j) => j.id !== 'draw1');
 
   // ── the same sweep at the other inset ────────────────────────────────────
   const pg2 = await ctx.newPage();
