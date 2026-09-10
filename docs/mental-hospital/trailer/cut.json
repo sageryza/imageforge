@@ -1,0 +1,259 @@
+{
+ "clips": [
+  {
+   "key": "spin",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0bbd7e598ecc5737245fdd1f6a744b23.mp4",
+   "title": "the spinning (c4) \u2014 her VO \"the city gets very hot\"",
+   "in": 0,
+   "out": 9.8,
+   "mute": true,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0bbd7e598ecc5737245fdd1f6a744b23-poster.jpg"
+  },
+  {
+   "key": "amb",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/373492726e22f51f3aa6bdbbb73620b4.mp4",
+   "title": "the ambulance (c9)",
+   "in": 5.0,
+   "out": 8.5
+  },
+  {
+   "key": "spun",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a59ab8130c2303616ed573c598bff00e.mp4",
+   "title": "intake \u2014 \"the paramedics reported\u2026 spinning around in circles\"",
+   "in": 1.0,
+   "out": 8.7
+  },
+  {
+   "key": "leave",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0486bbb4b8d57fd7bfe0ab616167b3c1.mp4",
+   "title": "dining room \u2014 \"not sure why everyone wants to leave so quickly\"",
+   "in": 26.2,
+   "out": 29.6
+  },
+  {
+   "key": "ohara",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8501884860756b1a6b9e8e90d705f5a4.mp4",
+   "title": "Ms. O'Hara \u2014 \"ready to be wheeled\" (36b part 2)",
+   "in": 7.3,
+   "out": 9.6
+  },
+  {
+   "key": "yol",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2457f4d94f48fb4a69eb140a731026b3.mp4",
+   "title": "music class \u2014 Yolanda scolded (the Francesca beat)",
+   "in": 18.3,
+   "out": 21.8
+  },
+  {
+   "key": "judge",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/7bc0ac5dfc7d7963fb8ed6a700d546a1.mp4",
+   "title": "the doctor \u2014 \"forced to get a judge to determine\u2026\"",
+   "in": 9.8,
+   "out": 17.9
+  },
+  {
+   "key": "ghost",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/fa36a5c3fb9c6d019e959849ea347ddf.mp4",
+   "title": "the grin, the ghost leaves her body (31b)",
+   "in": 4.5,
+   "out": 11.4,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/fa36a5c3fb9c6d019e959849ea347ddf-poster.jpg"
+  },
+  {
+   "key": "mirror",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788916217372-ypsm6s.mp4",
+   "title": "the hall float, the mirror, the hair \u2014 \"I don't know who I am anymore\"",
+   "in": 2.5,
+   "out": 15.07
+  },
+  {
+   "key": "c33",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/fca411b3572bd9d2f9bd892aa7ddc865.png",
+   "title": "NOT SHOT \u2014 climax 5: the assistant, \"you're having a psychotic episode\u2026 very normal\u2026 a normal life\"",
+   "in": 0,
+   "out": 1.6
+  },
+  {
+   "key": "pill",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789024241054-3jj6re.mp4",
+   "title": "the purple pill (your trim)",
+   "in": 0.3,
+   "out": 3.8
+  },
+  {
+   "key": "bath",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789023381333-vb7u9y.mp4",
+   "title": "the bathroom, everything hot (your trim)",
+   "in": 5.1,
+   "out": 8.6
+  },
+  {
+   "key": "faintish",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789024247468-bpiodb.mp4",
+   "title": "\"I think I'm about to faint\"",
+   "in": 10.6,
+   "out": 13.0
+  },
+  {
+   "key": "floor",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789030253367-29cd99.mp4",
+   "title": "fainted in the hall \u2014 \"Sophie!\"",
+   "in": 2.6,
+   "out": 4.6
+  },
+  {
+   "key": "edna",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/80c055508344cad64a97f819bc288b16.mp4",
+   "title": "Nurse Edna \u2014 the half pill",
+   "in": 12.0,
+   "out": 18.6,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/80c055508344cad64a97f819bc288b16-poster.jpg"
+  },
+  {
+   "key": "c43e",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/994165fd4f2162a38d61427d5544c679.png",
+   "title": "NOT SHOT \u2014 43e: butter drawing, the push-ups, back to bed",
+   "in": 0,
+   "out": 1.6
+  },
+  {
+   "key": "letsee",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/37d01bc7779c7216a3f41015f90d6761.mp4",
+   "title": "the nurse \u2014 \"tilt your head back\u2026 let's see.\"",
+   "in": 12.4,
+   "out": 15.0
+  },
+  {
+   "key": "verygood",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/80c055508344cad64a97f819bc288b16.mp4",
+   "title": "Nurse Edna \u2014 \"very good.\"",
+   "in": 18.7,
+   "out": 20.5,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/80c055508344cad64a97f819bc288b16-poster.jpg"
+  },
+  {
+   "key": "t1",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/6fe6e0a1de878c07e2706cb9ef368107.png",
+   "title": "title \u2014 notes from the asylum",
+   "in": 0,
+   "out": 2.2
+  },
+  {
+   "key": "t2",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/ce03fb999c9ed6c7605140e4f649c4a8.png",
+   "title": "title \u2014 in theatres never, probably",
+   "in": 0,
+   "out": 2.4
+  },
+  {
+   "key": "t3",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0da50d4774424a7002c109245b999cd2.png",
+   "title": "title \u2014 based on a true story",
+   "in": 0,
+   "out": 2.0
+  },
+  {
+   "key": "t4",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3215166ace1672345f1f90c67a2fa030.png",
+   "title": "title \u2014 not me though. definitely not me.",
+   "in": 0,
+   "out": 2.6
+  },
+  {
+   "key": "michael",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/55544f47ab3f2f654e3bc32961408db4.mp4",
+   "title": "Michael \u2014 \"I know the feeling\"",
+   "in": 17.6,
+   "out": 19.4
+  },
+  {
+   "key": "c17",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/dfafdd077801e491230d981b03c4013c.png",
+   "title": "NOT SHOT \u2014 the poem",
+   "in": 0,
+   "out": 1.3
+  },
+  {
+   "key": "basura",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/81e1d6a54c005ddf09cc0e2e41286277.mp4",
+   "title": "\"where did all my sculptures go? esta es basura. they're not trash\"",
+   "in": 5.3,
+   "out": 10.3,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/81e1d6a54c005ddf09cc0e2e41286277-poster.jpg"
+  },
+  {
+   "key": "c23d",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/eef21fb845130f89ff8919ae4079df10.png",
+   "title": "NOT SHOT \u2014 Mary and Juanita: she's a genius / it's just the city",
+   "in": 0,
+   "out": 1.3
+  },
+  {
+   "key": "c45",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/53cb52497491ffdd7e8eaa9f564da497.png",
+   "title": "NOT SHOT \u2014 the window shots, the cartwheels, the weighing",
+   "in": 0,
+   "out": 1.3
+  },
+  {
+   "key": "cend",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/323cba78ca3b9f4794847b2f77647d92.png",
+   "title": "NOT SHOT \u2014 end: Francesca at the window, \"such a beautiful city\"",
+   "in": 0,
+   "out": 2.4
+  }
+ ],
+ "sounds": [
+  {
+   "key": "vo",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/74718feefd645658e06cbe80fc823f0c.m4a",
+   "name": "Sophie \u2014 VO \"the city gets very hot at night\u2026\"",
+   "in": 0,
+   "out": 9.8,
+   "gain": 0,
+   "fadeOut": 0.3,
+   "anchor": {
+    "piece": "spin",
+    "offset": 0
+   }
+  },
+  {
+   "key": "bedA",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a09fcc852c696c4d3abb5747b49919b0.mp3",
+   "name": "eerie riser A \u2014 builds from the ghost to the mirror, stops before \"I don't know who I am\"",
+   "in": 4.5,
+   "out": 22,
+   "gain": -3,
+   "fadeIn": 1.5,
+   "fadeOut": 0.15,
+   "anchor": {
+    "piece": "ghost",
+    "offset": 0
+   }
+  },
+  {
+   "key": "bedB",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a09fcc852c696c4d3abb5747b49919b0.mp3",
+   "name": "eerie riser B \u2014 builds from the purple pill to \"let's see\", stops before \"very good\"",
+   "in": 0,
+   "out": 22,
+   "gain": -3,
+   "fadeIn": 2,
+   "fadeOut": 0.15,
+   "anchor": {
+    "piece": "pill",
+    "offset": 0
+   }
+  }
+ ]
+}
