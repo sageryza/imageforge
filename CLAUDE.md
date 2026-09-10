@@ -7735,7 +7735,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **A TILE CARRIES BOTH DOORS, AND THE NOTE ON IT ALONG THE TOP (2026-09-10,
   Sophie: "can u have a play button, and a list view button on tiles · so both
   options are available" · "i also wanted notes to show as the firs words that
-  fit on just the top of the tile").** Two chips in the MIDDLE of every tile —
+  fit on just the top of the tile" · "just my notes · not claude's").** Two chips in the MIDDLE of every tile —
   **▶** plays it, the list mark opens its card — and **the poster itself is not
   a button**: with two doors drawn on it, a third meaning hidden under the
   picture is the thing that started this thread. The middle is the one place a
@@ -7744,9 +7744,15 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `pointer-events:none` — a transparent strip across every tile would swallow
   whatever it lies over (the toast's own lesson, one page down). A clip with no
   url yet carries the CARD door alone rather than a play button that would do
-  nothing. Along the top: the **NEWEST message in that clip's thread**, whoever
-  wrote it — where the conversation on it stands, and what tells one poster
-  from the next when she is scanning for the one she said something about.
+  nothing. Along the top: **HER newest note, never a chat's answer** — the strip
+  is what tells one poster from the next when she is scanning for the one SHE
+  said something about, and a chat's reply is the answer to a question she
+  already knows she asked (the whole exchange is on the card). It shipped as
+  the newest message whoever wrote it and she cut that within the hour; **a
+  clip only a chat has spoken on draws no strip at all.** "Hers" is anything
+  not stamped `chat`, which is exactly how `paintThread` draws the same thread
+  one function up — one page, one meaning of whose words those are, so a legacy
+  note carrying no `from` reads as hers in both places.
   Four things not to undo: **"the words that fit" is the BROWSER's answer**
   (one line, `text-overflow:ellipsis`) — a character count guesses at a width
   that changes with the column count; **it wears the marks' own flat plate**,

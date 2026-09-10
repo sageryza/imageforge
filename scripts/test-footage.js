@@ -1203,15 +1203,17 @@ async function pillSweep(pg, where) {
   await page.waitForTimeout(150);
   await page.click('#job-old1 .notebox .ncancel');
 
-  // ── THE NOTE'S FIRST WORDS, ON TOP OF THE TILE (2026-09-10, Sophie: "i also
+  // ── HER NOTE'S FIRST WORDS, ON TOP OF THE TILE (2026-09-10, Sophie: "i also
   // wanted notes to show as the firs words that fit on just the top of the
-  // tile") ────────────────────────────────────────────────────────────────
+  // tile" · "just my notes · not claude's") ───────────────────────────────
   // MEASURED, not asserted: a strip that carries the right words below the
   // fold of its own tile, one that wraps to three lines, and one that eats the
-  // taps under it are the same markup to any source assertion.
+  // taps under it are the same markup to any source assertion. The thread at
+  // this point is HERS then a chat's answer on top of it, so a strip reading
+  // the newest message and one reading her newest are told apart here.
   await page.click('#v-tiles');
   await page.waitForFunction(() => document.querySelectorAll('#tiles .cell .tnote').length > 0);
-  await page.waitForFunction(() => /redrawn, mirrored/.test(
+  await page.waitForFunction(() => /the dog is on the wrong side/.test(
     document.querySelector('#tiles .cell[data-id="old1"] .tnote').textContent));
   const strip = await page.evaluate(() => {
     const c = document.querySelector('#tiles .cell[data-id="old1"]');
@@ -1222,8 +1224,8 @@ async function pillSweep(pg, where) {
       insideTile: nr.right <= cr.right + 1 && nr.left >= cr.left - 1,
       eatsTaps: !!(mid && mid.closest('.ttop')) };
   });
-  ok('the newest thing said about the clip is on top of its tile ' + JSON.stringify(strip),
-    strip.text === 'redrawn, mirrored' && strip.noted && strip.fromTop <= 4
+  ok('HER newest note is on top of its tile, and a chat\'s answer never is ' + JSON.stringify(strip),
+    strip.text === 'the dog is on the wrong side' && strip.noted && strip.fromTop <= 4
     && strip.lines === 1 && strip.insideTile);
   ok('and the strip is a message, never a control that eats the tap under it', !strip.eatsTaps);
   // A LONG NOTE IS CUT BY THE BROWSER at whatever the column count leaves —
@@ -1240,6 +1242,17 @@ async function pillSweep(pg, where) {
   });
   ok('a long note is cut to the words that fit, on ONE line ' + JSON.stringify(longNote),
     longNote.cut && longNote.lines === 1);
+  // A CLIP ONLY A CHAT HAS SPOKEN ON STAYS QUIET — the strip is her side of it
+  const key = Object.keys(threads)[0];
+  const kept = threads[key];
+  threads[key] = [{ from: 'chat', text: 'redrawn, mirrored', at: new Date().toISOString() }];
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await page.waitForFunction(() => !document.querySelector('#tiles .cell[data-id="old1"]').classList.contains('noted'));
+  ok('a clip only a chat has spoken on draws no strip at all',
+    (await page.$eval('#tiles .cell[data-id="old1"] .tnote', (n) => n.textContent)) === '');
+  threads[key] = kept;
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await page.waitForFunction(() => document.querySelector('#tiles .cell[data-id="old1"]').classList.contains('noted'));
   const quiet = await page.evaluate(() => {
     const c = [...document.querySelectorAll('#tiles .cell')].find((x) => !x.querySelector('.tdoor.play'));
     if (!c) return null;
