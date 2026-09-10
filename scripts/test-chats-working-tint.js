@@ -102,8 +102,19 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 
   await page.goto(base + '/chats');
   await page.waitForSelector('#grid [data-chat="chat-a"]');
-  // TINT defaults true on the live page since v3; forcing it keeps this test
-  // meaningful even if the default ever flips again.
+
+  // 0. THE FEATURE IS OFF BY DEFAULT (2026-09-10, Sophie: "can you get rid of
+  //    the tint feature?"). chat-p is parked AND carries a live ping, so with
+  //    the tint on the closed bar reads "· 1 working" — asserted in 1b below
+  //    once the test forces it on. At the page's OWN default it must say
+  //    nothing, on the bar or anywhere else. Her word turns this back on; a
+  //    tidy-up must not.
+  const barAtRest = await page.$eval('.hidebar', (n) => n.textContent.replace(/\s+/g, ' ').trim());
+  if (/working/.test(barAtRest)) fail('TINT is on by default — she asked for it off: ' + barAtRest);
+  if ((await liveChats()).length) fail('TINT is on by default — tinted rows on the home list');
+
+  // TINT is OFF on the live page since 2026-09-10; forcing it on keeps the
+  // machinery below tested, so turning it back on for her is one flag.
   await page.evaluate(() => window.__setTint(true));
   await page.evaluate(() => window.__repaintLive && window.__repaintLive());
 
