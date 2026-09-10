@@ -242,6 +242,22 @@
   #tiles .tmark.nope{right:4px}
   #tiles .tmark.heart.on{background:#c96a5e;border-color:#c96a5e}
   #tiles .tmark.nope.on{background:#3a3530;border-color:#3a3530}
+  /* A CLIP SHE HAS TRIMMED SAYS SO ON THE WALL TOO (2026-09-10, Sophie: "can
+     you put a little icon on clips that have been trimmed even in the tile
+     view?"). TOP-LEFT: the two marks own the bottom corners. It rides as a
+     CLASS, out of the wall's signature exactly like the ✕ — a trim landing
+     must never rebuild the wall and re-decode every poster. The number shows
+     only when there is more than one part, the way the card's rows number
+     themselves; `:empty` is what keeps the flex gap off a lone scissors. */
+  /* 16px tall is MEASURED, not picked: at four across a 16:9 tile is 49px
+     high and the heart's 26px box starts 19px down, so anything taller sits
+     on it — 15px at top:2 clears the heart's own top edge by a pixel. */
+  #tiles .tcut{position:absolute;top:2px;left:4px;display:none;align-items:center;gap:3px;
+        height:15px;padding:0 4px;border-radius:5px;font-size:10px;line-height:1;color:#fff;
+        background:rgba(20,17,14,.55);border:1px solid rgba(255,255,255,.28)}
+  #tiles .tcut svg{width:10px;height:10px;display:block}
+  #tiles .tcut .n:empty{display:none}
+  #tiles .cell.cut .tcut{display:inline-flex}
   .filttog{display:flex;flex:none;border:1px solid #d8cfc0;border-radius:6px;overflow:hidden;background:#fdfbf7}
   .likefilt{display:flex;align-items:center;justify-content:center;width:34px;height:32px;
             border:0;border-radius:0;background:none;color:#6f675e;padding:0}
@@ -365,6 +381,11 @@
   .trimbar .striphit{width:100%;height:34px;padding:0;border:none;background:none;
                      display:flex;align-items:center;border-radius:6px}
   .trimbar .strip{position:relative;width:100%;height:10px;border-radius:6px;background:rgba(255,255,255,.17)}
+  /* THE PARTS SHE HAS ALREADY CUT, dim under the bright keep band — so
+     picking a DIFFERENT bit of the clip is looking at the strip rather than
+     remembering what she took */
+  .trimbar .bands{position:absolute;inset:0}
+  .trimbar .part{position:absolute;top:0;bottom:0;background:rgba(201,106,94,.42);border-radius:6px}
   .trimbar .keep{position:absolute;top:0;bottom:0;background:#c96a5e;border-radius:6px}
   .trimbar .head{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;border-radius:1px}
   .trimbar .tspan{font-size:12.5px;text-align:center;color:#e7dfd2;min-height:16px}
@@ -377,6 +398,18 @@
   .trimbar .tgo.undo{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.32)}
   .trimbar button[disabled]{opacity:.45}
   .trimbar .treset{background:none;border:none;padding:0 2px;text-decoration:underline;height:auto}
+  /* one row per part she has kept: its span (tap to put its marks back), how
+     it is doing, and the ✕ that takes it off — which IS the undo */
+  /* a dozen parts must not push the picture off the screen — the stage
+     yields first, so the list is the thing that has to stop growing */
+  .trimbar .tparts{display:flex;flex-direction:column;gap:2px;max-height:22vh;overflow-y:auto}
+  .trimbar .tpart{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#e7dfd2}
+  .trimbar .tpart .tpspan{flex:1;min-width:0;text-align:left;background:none;border:none;padding:0 2px;
+                          height:26px;font-size:12.5px;text-decoration:underline;color:inherit;
+                          overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .trimbar .tpart.on .tpspan{color:#f0b6ac}
+  .trimbar .tpart .tpst{color:#9a8f7d;flex:none}
+  .trimbar .tpart .tpx{width:26px;height:26px;padding:0;font-size:15px;flex:none}
   /* the card's own line: what is kept, and while it bakes, that it is baking */
   .trimtag{display:flex;align-items:center;gap:5px;font-size:12px;color:#8a7f70;margin-top:3px}
   .trimtag svg{width:13px;height:13px;flex:none}
@@ -467,7 +500,7 @@
 <div id="player" hidden><button class="pclose" type="button" aria-label="Close"></button>
   <div class="pstage"></div>
   <div class="trimbar" id="trimbar" hidden>
-    <button type="button" class="striphit" id="tstrip" aria-label="Tap to put the playhead here"><span class="strip"><span class="keep" id="tkeep"></span><span class="head" id="thead"></span></span></button>
+    <button type="button" class="striphit" id="tstrip" aria-label="Tap to put the playhead here"><span class="strip"><span class="bands" id="tbands"></span><span class="keep" id="tkeep"></span><span class="head" id="thead"></span></span></button>
     <div class="tspan" id="tspan"></div>
     <div class="trow">
       <button type="button" class="tstep" id="tback" aria-label="Back a tenth of a second" title="Back 0.1s">&lsaquo;</button>
@@ -475,8 +508,10 @@
       <button type="button" id="tout">End here</button>
       <button type="button" class="tstep" id="tfwd" aria-label="On a tenth of a second" title="On 0.1s">&rsaquo;</button>
     </div>
+    <div class="tparts" id="tparts"></div>
     <div class="trow2">
       <button type="button" class="treset" id="treset">Whole clip</button>
+      <button type="button" class="treset" id="tall" hidden>Play it all</button>
       <button type="button" class="tgo" id="tgo">Trim</button>
     </div>
   </div>
@@ -1025,6 +1060,18 @@ function applyFilt() {
     var hb = el.querySelector('.tmark.heart'), nb = el.querySelector('.tmark.nope');
     if (hb) { hb.classList.toggle('on', j.vote === 'like'); hb.setAttribute('aria-pressed', j.vote === 'like' ? 'true' : 'false'); }
     if (nb) { nb.classList.toggle('on', j.vote === 'dislike'); nb.setAttribute('aria-pressed', j.vote === 'dislike' ? 'true' : 'false'); }
+    // A TRIMMED CLIP WEARS THE SCISSORS. Only a part that really BAKED counts
+    // — one still baking has cut nothing yet, and the list's own row is where
+    // "trimming…" is said.
+    var parts = jobParts(j).filter(function (t) { return t && t.status === 'ready' && t.url; });
+    el.classList.toggle('cut', parts.length > 0);
+    var cm = el.querySelector('.tcut');
+    if (cm) {
+      var lbl = parts.length > 1 ? parts.length + ' parts trimmed out of this clip' : 'Trimmed';
+      cm.title = lbl; cm.setAttribute('aria-label', lbl);
+      var num = cm.querySelector('.n');
+      if (num) num.textContent = parts.length > 1 ? String(parts.length) : '';
+    }
     if (s && tiles) any = true;
   });
   var n = Object.keys(jobsById).length;
@@ -1112,6 +1159,11 @@ function renderTiles() {
     // the SOURCE opens, so the marks are always in the original's own seconds
     face.addEventListener('click', function () { var jj = jobsById[j.id]; if (jj && jj.video) openPlayer(jj.source || jj.video, jj); });
     c.appendChild(face);
+    // the trimmed mark — built here, LIT in applyFilt, so it stays out of the
+    // signature above and a part landing costs no poster a re-decode
+    var cut = document.createElement('span'); cut.className = 'tcut';
+    cut.innerHTML = ICONS.scissors + '<span class="n"></span>';
+    c.appendChild(cut);
     // THE SAME TWO MARKS AS THE LIST CARD'S, through the same castVote — a
     // clip hearted on the wall is hearted in the list and on the server.
     // They are siblings of the face, so a mark's tap can never play the clip.
@@ -1242,12 +1294,21 @@ function sendNote(j, box) {
     });
 }
 
+// EVERY PART SHE HAS KEPT, one line each — a clip cut into three that said so
+// on one line would be a clip she cannot tell from one cut into one.
+function jobParts(j) {
+  if (j && Array.isArray(j.trims)) return j.trims;
+  return j && j.trim && j.trim.status ? [j.trim] : [];   // a page cached before parts
+}
 function trimLine(j) {
-  var t = j.trim;
-  if (!t || !t.status) return '';
-  if (t.status === 'baking') return '<div class="trimtag">' + ICONS.scissors + '<span>trimming to ' + esc(fsec(t.start)) + '–' + esc(fsec(t.end)) + 's…</span></div>';
-  if (t.status === 'failed') return '<div class="st bad">that trim did not bake' + (t.error ? ' — ' + esc(t.error) : '') + '</div>';
-  return '<div class="trimtag">' + ICONS.scissors + '<span>trimmed ' + esc(fsec(t.start)) + '–' + esc(fsec(t.end)) + 's · keeping ' + esc(fsec(t.seconds)) + 's</span></div>';
+  var ps = jobParts(j);
+  if (!ps.length) return '';
+  return ps.map(function (t, i) {
+    var n = ps.length > 1 ? 'part ' + (i + 1) + ' · ' : '';
+    if (t.status === 'baking') return '<div class="trimtag">' + ICONS.scissors + '<span>' + n + 'trimming to ' + esc(fsec(t.start)) + '–' + esc(fsec(t.end)) + 's…</span></div>';
+    if (t.status === 'failed') return '<div class="st bad">' + n + 'that trim did not bake' + (t.error ? ' — ' + esc(t.error) : '') + '</div>';
+    return '<div class="trimtag">' + ICONS.scissors + '<span>' + n + 'trimmed ' + esc(fsec(t.start)) + '–' + esc(fsec(t.end)) + 's · keeping ' + esc(fsec(t.seconds)) + 's</span></div>';
+  }).join('');
 }
 function jobCard(j) {
   jobsById[j.id] = j;
@@ -1320,6 +1381,11 @@ function jobCard(j) {
   if (j.status === 'drawing') st.textContent = 'drawing… ' + ago(j.sentAt);
   paintThread(el, j);
   paintFeed();
+  // THE OPEN PLAYER IS THIS CLIP TOO — a part that finishes baking while she
+  // is standing in the trimmer has to stop saying "trimming…" there as well
+  // as on the card, or the one screen she is looking at is the last to know.
+  // Her MARKS are hers and are never touched by a poll.
+  if (TR && TR.j && TR.j.id === j.id) { TR.j = j; TR.parts = jobParts(j); paintTrim(); }
 }
 // the opener is added only where the words are really cut (measured), on the
 // last line, underlined — never a boxed button
@@ -1488,7 +1554,7 @@ function loadJobs() {
 function anyDrawing() {
   return Object.keys(jobsById).some(function (k) {
     var j = jobsById[k];
-    return j.status === 'drawing' || (j.trim && j.trim.status === 'baking');
+    return j.status === 'drawing' || jobParts(j).some(function (t) { return t.status === 'baking'; });
   });
 }
 function schedulePoll(soon) {
@@ -1533,10 +1599,22 @@ document.addEventListener('visibilitychange', function () {
 //     where the play head goes". That reasoning is HISTORY, not a rule.)
 //   · PLAYING PLAYS THE SPAN, AND LOOPS IT — that is how she judges a trim
 //     before she commits it — but SCRUBBING IS NEVER YANKED, or finding the
-//     out-mark would be a fight with the loop.
-//   · THE BUTTON'S MEANING FOLLOWS THE MARKS. Marks at the two ends of a
-//     trimmed clip means Undo; anywhere else means Trim. A control that would
-//     do nothing is hidden rather than shown dead.
+//     out-mark would be a fight with the loop. "Play the whole clip" is the
+//     one pass that is allowed past the out-mark (2026-09-10, Sophie: "can
+//     you make it possible to play the whole clip to make sure I cut the
+//     right part?") — ONE PASS, never a mode: it ends with the clip, and any
+//     mark she moves ends it too.
+//   · ONE CLIP HOLDS SEVERAL PARTS (2026-09-10, Sophie: "re-cut the same
+//     whole clip after I've cut it to also get a second part"). The marks
+//     always open on the WHOLE clip; what she has already cut is the dim
+//     bands on the strip and a row each under it. A row's span puts its marks
+//     back (the next cut REPLACES that part, in its own place in the order)
+//     and its ✕ takes it off — which is the undo, and the only one that can
+//     mean the right part when there are several.
+//   · THE BUTTON'S MEANING FOLLOWS THE MARKS: Trim with nothing cut yet, Add
+//     part once something is, Replace while a row is picked, and nothing at
+//     all when the marks span the whole clip. A control that would do nothing
+//     is hidden rather than shown dead.
 var savedY = 0;
 var fnote = null;                    // the shared tap-to-note, alive with the player
 var TR = null;           // { j, v, dur, in, out, had } while the trimmer is armed
@@ -1592,15 +1670,18 @@ function armTrim(j, v) {
   $('trimbar').hidden = !j;
   TR = null;
   if (!j) return;
-  // a trim still baking, or one that failed, is not a mark to open on
-  var t = j.trim && j.trim.status === 'ready' ? j.trim : null;
-  TR = { j: j, v: v, dur: 0, in: t ? Number(t.start) || 0 : 0, out: t ? Number(t.end) || 0 : 0, had: Boolean(t) };
+  // THE MARKS OPEN ON THE WHOLE CLIP, whatever she has already cut
+  // (2026-09-10, Sophie: "re-cut the same whole clip … to also get a second
+  // part"). The parts she has are the dim bands on the strip and the rows
+  // under it, so the natural next tap is marking a DIFFERENT bit; tapping a
+  // part's row is what puts its own marks back for a nudge.
+  TR = { j: j, v: v, dur: 0, in: 0, out: 0, parts: jobParts(j), editing: '', all: false };
   function settle() {
     var d = Number(v.duration);
     if (!isFinite(d) || d <= 0) return;
     TR.dur = r3(d);
-    // an out-mark from a trim baked against the real file can sit a frame
-    // past what this element reports — clamp rather than refuse
+    // a mark from a part baked against the real file can sit a frame past
+    // what this element reports — clamp rather than refuse
     if (!TR.out || TR.out > TR.dur) TR.out = TR.dur;
     if (TR.in >= TR.out - TRIM_MIN) { TR.in = 0; TR.out = TR.dur; }
     paintTrim();
@@ -1609,13 +1690,17 @@ function armTrim(j, v) {
   v.addEventListener('durationchange', settle);
   v.addEventListener('timeupdate', trimTick);
   v.addEventListener('ended', function () {
-    if (!TR || !TR.dur || TR.in <= TRIM_EPS) return;
+    if (!TR || !TR.dur) return;
+    // a whole-clip run is over when the clip is — it is one pass, never a mode
+    if (TR.all) { TR.all = false; paintTrim(); return; }
+    if (TR.in <= TRIM_EPS) return;
     try { v.currentTime = TR.in; v.play().catch(function () {}); } catch (e) {}
   });
   // play from the mark when the playhead is outside the span — she taps play
-  // to judge the trim, not to watch what she is cutting
+  // to judge the trim, not to watch what she is cutting. A whole-clip run is
+  // the one thing that is allowed to sit outside it.
   v.addEventListener('play', function () {
-    if (!TR || !TR.dur) return;
+    if (!TR || !TR.dur || TR.all) return;
     var t2 = v.currentTime;
     if (t2 < TR.in - 0.05 || t2 >= TR.out - TRIM_EPS) { try { v.currentTime = TR.in; } catch (e) {} }
   });
@@ -1625,8 +1710,9 @@ function armTrim(j, v) {
 function trimTick() {
   if (!TR || !TR.dur) return;
   var v = TR.v;
-  // the loop, and ONLY while it is really playing — a seek is her finger
-  if (!v.paused && !v.seeking && TR.out < TR.dur - TRIM_EPS && v.currentTime >= TR.out - 0.02) {
+  // the loop, and ONLY while it is really playing — a seek is her finger, and
+  // a whole-clip run is her asking to see past the out-mark
+  if (!TR.all && !v.paused && !v.seeking && TR.out < TR.dur - TRIM_EPS && v.currentTime >= TR.out - 0.02) {
     try { v.currentTime = TR.in; } catch (e) {}
   }
   paintHead();
@@ -1637,26 +1723,63 @@ function paintHead() {
   $('thead').style.left = ((t / TR.dur) * 100) + '%';
 }
 function trimWhole() { return !TR || !TR.dur || (TR.in <= TRIM_EPS && TR.out >= TR.dur - TRIM_EPS); }
+function paintParts() {
+  var ps = (TR && TR.parts) || [], d = TR ? TR.dur : 0;
+  $('tbands').innerHTML = !d ? '' : ps.filter(function (t) { return t.status !== 'failed'; }).map(function (t) {
+    var a = (Number(t.start) / d) * 100, b = (Number(t.end) / d) * 100;
+    return '<span class="part" style="left:' + Math.max(0, a) + '%;width:' + Math.max(0, Math.min(100, b) - Math.max(0, a)) + '%"></span>';
+  }).join('');
+  $('tparts').innerHTML = ps.map(function (t, i) {
+    var st = t.status === 'baking' ? 'trimming…' : t.status === 'failed' ? 'did not bake' : '';
+    return '<div class="tpart' + (TR.editing && TR.editing === t.key ? ' on' : '') + '">'
+      + '<button type="button" class="tpspan" data-pick="' + esc(t.key || '') + '">'
+      + (ps.length > 1 ? 'part ' + (i + 1) + ' · ' : '') + esc(fsec(t.start)) + '–' + esc(fsec(t.end)) + 's · '
+      + esc(fsec(t.seconds)) + 's</button>'
+      + (st ? '<span class="tpst">' + st + '</span>' : '')
+      + '<button type="button" class="tpx" data-drop="' + esc(t.key || '') + '" aria-label="Take this part off" title="Take it off">&times;</button>'
+      + '</div>';
+  }).join('');
+}
 function paintTrim() {
   if (!TR) return;
-  var d = TR.dur, whole = trimWhole();
+  var d = TR.dur, whole = trimWhole(), n = (TR.parts || []).length;
   var a = d ? (TR.in / d) * 100 : 0, b = d ? (TR.out / d) * 100 : 100;
+  // WITH THE MARKS ON THE WHOLE CLIP THE KEEP BAR IS NOT DRAWN (PHOTOgraphed
+  // at 390x844): a bright band over the whole strip covers the dim bands of
+  // the parts she has already cut — and the whole clip is exactly the state
+  // the trimmer OPENS on now, so it would hide them every time. The grey
+  // track already says "the whole clip"; the line under it says how long.
+  $('tkeep').style.display = whole ? 'none' : '';
   $('tkeep').style.left = a + '%';
   $('tkeep').style.width = Math.max(0, b - a) + '%';
   $('tspan').textContent = !d ? ''
     : whole ? 'the whole clip · ' + fsec(d) + 's'
       : fsec(TR.in) + 's – ' + fsec(TR.out) + 's · keeping ' + fsec(TR.out - TR.in) + 's';
   $('treset').hidden = whole;
+  // PLAY THE WHOLE CLIP TO CHECK THE CUT (2026-09-10, Sophie: "can you make
+  // it possible to play the whole clip to make sure I cut the right part?").
+  // ONE PASS, never a mode: it ends when the clip does, and any mark she
+  // moves ends it too. Drawn only while the span is narrower than the clip —
+  // with the marks at the two ends, play already plays it all.
+  var all = $('tall');
+  all.hidden = whole && !TR.all;
+  // "Play it all", not "Play the whole clip" — PHOTOgraphed at 390x844 beside
+  // "Whole clip" (which resets the MARKS), where the two long labels read as
+  // one thing said twice.
+  all.textContent = TR.all ? 'Back to the part' : 'Play it all';
   var go = $('tgo');
-  // nothing to do → no button at all, rather than a dead one
-  go.hidden = whole && !TR.had;
+  // nothing to cut → no button at all, rather than a dead one. Taking a part
+  // OFF is its own row's ✕ — with several parts, one "undo" could only ever
+  // mean the wrong one.
+  go.hidden = whole;
   go.disabled = false;
-  go.classList.toggle('undo', whole);
-  go.textContent = whole ? 'Undo the trim' : (TR.had ? 'Re-trim' : 'Trim');
+  go.textContent = TR.editing ? 'Replace' : (n ? 'Add part' : 'Trim');
+  paintParts();
   paintHead();
 }
 function setMark(which) {
   if (!TR || !TR.dur) return;
+  TR.all = false;               // moving a mark is the end of a whole-clip run
   var t = r3(Math.min(Math.max(TR.v.currentTime || 0, 0), TR.dur));
   if (which === 'in') {
     if (t > TR.out - TRIM_MIN) return toast('That is too close to the end mark');
@@ -1669,6 +1792,7 @@ function setMark(which) {
 }
 function stepHead(by) {
   if (!TR || !TR.dur) return;
+  TR.all = false;
   try { TR.v.pause(); } catch (e) {}
   try { TR.v.currentTime = Math.min(Math.max((TR.v.currentTime || 0) + by, 0), TR.dur); } catch (e) {}
   paintHead();
@@ -1682,35 +1806,83 @@ $('tstrip').addEventListener('click', function (e) {
   var r = $('tstrip').querySelector('.strip').getBoundingClientRect();
   if (!r.width) return;
   var f = Math.min(Math.max((e.clientX - r.left) / r.width, 0), 1);
+  TR.all = false;
   try { TR.v.pause(); } catch (err) {}
   try { TR.v.currentTime = r3(f * TR.dur); } catch (err) {}
-  paintHead();
+  paintTrim();
 });
 $('tin').addEventListener('click', function () { setMark('in'); });
 $('tout').addEventListener('click', function () { setMark('out'); });
 $('tback').addEventListener('click', function () { stepHead(-0.1); });
 $('tfwd').addEventListener('click', function () { stepHead(0.1); });
-$('treset').addEventListener('click', function () { if (!TR || !TR.dur) return; TR.in = 0; TR.out = TR.dur; paintTrim(); });
+$('treset').addEventListener('click', function () {
+  if (!TR || !TR.dur) return;
+  TR.in = 0; TR.out = TR.dur; TR.editing = ''; TR.all = false; paintTrim();
+});
+// ONE PASS OVER THE WHOLE CLIP, so she can see what she cut against what she
+// did not. Tapping it again goes back to the part and plays that.
+$('tall').addEventListener('click', function () {
+  if (!TR || !TR.dur) return;
+  TR.all = !TR.all;
+  try { TR.v.currentTime = TR.all ? 0 : TR.in; } catch (e) {}
+  try { TR.v.play().catch(function () {}); } catch (e) {}
+  paintTrim();
+});
+// A PART'S OWN ROW: its span puts its marks back (and the next Replace swaps
+// that part in place, keeping its place in the order), its ✕ takes it off —
+// which is the undo, and the only one that can mean the right part when there
+// are several.
+$('tparts').addEventListener('click', function (e) {
+  var pick = e.target.closest && e.target.closest('[data-pick]');
+  if (pick) {
+    var t = (TR && TR.parts || []).filter(function (x) { return x.key === pick.dataset.pick; })[0];
+    if (!t || !TR.dur) return;
+    TR.editing = t.key; TR.all = false;
+    TR.in = Math.min(Math.max(Number(t.start) || 0, 0), TR.dur);
+    TR.out = Math.min(Math.max(Number(t.end) || 0, TR.in + TRIM_MIN), TR.dur);
+    try { TR.v.pause(); TR.v.currentTime = TR.in; } catch (err) {}
+    return paintTrim();
+  }
+  var drop = e.target.closest && e.target.closest('[data-drop]');
+  if (drop) sendTrim({ remove: drop.dataset.drop }, 'That part is off — the whole clip is back');
+});
 $('tgo').addEventListener('click', doTrim);
 
-// The one write. Undoing is the same door with `clear` — the original was
-// never written over, so nothing has to be restored. Free either way; the
-// bake runs behind the answer and the card polls it in.
-function doTrim() {
-  if (!TR || !TR.dur) return;
-  var j = TR.j, whole = trimWhole(), go = $('tgo');
-  var body = whole ? { clear: true } : { start: r3(TR.in), end: r3(TR.out) };
+// The one write, whichever shape: add a part, replace one, take one off.
+// The original is never written over, so a removal restores nothing — it is
+// one entry off a list beside the clip. Free every way; the bake runs behind
+// the answer and the card polls it in.
+// AND THE PLAYER STAYS OPEN (2026-09-10) — she is cutting a SECOND part out
+// of the same clip, so closing on every cut would mean finding the clip and
+// re-opening it between every one.
+function sendTrim(body, said) {
+  if (!TR) return;
+  var j = TR.j, go = $('tgo');
   go.disabled = true;
   api('/jobs/' + encodeURIComponent(j.id) + '/trim', { method: 'POST', body: JSON.stringify(body) }).then(function (d) {
-    if (!d || d.error) { go.disabled = false; return toast((d && d.error) || 'That trim was refused'); }
-    if (d.job) { jobCard(d.job); paintRecent(); }
-    closePlayer();
-    toast(whole ? 'Trim undone — the whole clip is back' : 'Trimming… it lands on the card in a moment');
+    go.disabled = false;
+    if (!d || d.error) return toast((d && d.error) || 'That trim was refused');
+    if (d.job) {
+      jobCard(d.job); paintRecent();
+      if (TR && TR.j && TR.j.id === d.job.id) {
+        TR.j = d.job; TR.parts = jobParts(d.job);
+        TR.editing = ''; TR.all = false;
+        TR.in = 0; TR.out = TR.dur;          // ready to mark the next bit
+        paintTrim();
+      }
+    }
+    toast(said);
     schedulePoll(true);
   }).catch(function () {
     go.disabled = false;
     toast('The server did not answer — the clip is untouched');
   });
+}
+function doTrim() {
+  if (!TR || !TR.dur || trimWhole()) return;
+  var body = { start: r3(TR.in), end: r3(TR.out) };
+  if (TR.editing) body.replace = TR.editing;
+  sendTrim(body, TR.editing ? 'Re-cutting that part…' : 'Trimming… it lands on the card in a moment');
 }
 
 // ── The pill's corner (Freeform's measured reserve, verbatim in shape) ────

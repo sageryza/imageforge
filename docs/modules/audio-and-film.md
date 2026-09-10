@@ -555,12 +555,62 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       { start, end }`; `{ clear: true }` undoes it.
       **IT COSTS NOTHING** — ffmpeg on our own box, no model call, no door;
       what she paid for is the clip, and trimming and undoing are both free.
-      Six rules, none of them optional:
-      - **HER CLIP IS NEVER TOUCHED.** The trim is a NEW object under
+      The rules, none of them optional:
+      - **HER CLIP IS NEVER TOUCHED.** A part is a NEW object under
         `footage/trims/` and `video` on the log doc — the clip the door drew —
-        is never written. `trim` is a field beside it, so the poll, the
+        is never written. `trims` is a list beside it, so the poll, the
         exact-prompt log and the 1080p-redo reading list all go on seeing the
-        original, and the undo is one field off the doc rather than a restore.
+        original, and taking a part off is one entry off that list rather than
+        a restore.
+      - **ONE CLIP HOLDS SEVERAL PARTS (2026-09-10, Sophie: "Can you also make
+        it possible to re-cut the same whole clip after I've cut it to also get
+        a second part").** `trims` is the shape, and the singular `trim` this
+        shipped with is READ as a list of one (`trimsOf`), so nothing already
+        on file needed migrating and `cardOf` still answers `trim` as the first
+        part for a page cached from before. `POST /jobs/:id/trim` is the one
+        door: `{start,end}` ADDS a part, `{start,end,replace:<key>}` swaps one
+        span for another IN ITS OWN PLACE in the order, `{remove:<key>}` takes
+        one off, `{clear:true}` takes them all off; re-adding a span already
+        cut is a no-op. Four things not to undo:
+        - **THE MARKS OPEN ON THE WHOLE CLIP.** What she has cut is the dim
+          bands on the strip and a row each under it, so the next tap is
+          marking a different bit rather than editing the last one. A row's
+          span puts its own marks back (and the next cut REPLACES that part);
+          its ✕ is the undo — the only one that can mean the right part once
+          there are several, which is why the single "Undo the trim" button
+          is history.
+        - **THE PLAYER STAYS OPEN ON A CUT.** She is taking a second part out
+          of the same clip; closing every time would mean finding the clip on
+          the wall and re-opening it between every one.
+        - **`video` — what Save and a note key off — is the FIRST baked part**,
+          and `source` is always the original the marks are measured in.
+        - **THE BAKE GUARD PATCHES ITS OWN ENTRY** rather than writing back the
+          list it planned, or a part she cut while another was encoding is
+          dropped when the slower bake lands.
+      - **AND SHE CAN PLAY THE WHOLE CLIP TO CHECK THE CUT (2026-09-10, her
+        first ask that morning: "can you make it possible to play the whole
+        clip to make sure I cut the right part?").** *Play it all* is ONE PASS
+        past the out mark, never a mode: it ends when the clip does, and any
+        mark she moves ends it too; tapping it again goes back to the part and
+        plays that. It is drawn only while the span is narrower than the clip
+        — with the marks at the two ends, play already plays it all. **The
+        label is short on purpose** (PHOTOgraphed beside "Whole clip", which
+        resets the MARKS: two long labels there read as one thing said twice).
+      - **A TRIMMED CLIP SAYS SO ON THE WALL TOO (2026-09-10, Sophie: "can
+        you put a little icon on clips that have been trimmed even in the tile
+        view?").** A small scissors chip in the tile's TOP-LEFT corner — the
+        heart and the ✕ own the bottom corners — carrying the NUMBER only when
+        the clip holds more than one part, the way the card's rows number
+        themselves. Three things not to undo: it counts only a part that
+        really BAKED (one still baking has cut nothing yet, and "trimming…" is
+        said on the card's own row, where there is room for it); it rides as a
+        CLASS toggled in `applyFilt`, OUT of the wall's signature exactly like
+        the ✕, so a trim landing can never rebuild the wall and re-decode
+        every poster; and its **15px at top:2 is MEASURED** — at four across a
+        16:9 tile is 49px high and the heart's 26px box starts 19px down, so
+        the first cut sat on it (measured at three AND four across, both ways
+        round: the mark drawn, the mark off the heart, and every control still
+        taking its own tap).
       - **THE SPAN IS ALWAYS IN THE ORIGINAL'S OWN SECONDS,** so the player
         opens the SOURCE even on a clip that is already trimmed: a trim can be
         widened back out, re-cut or undone. Trimming a trim would make the
@@ -596,9 +646,13 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         where a tap lands, and it pauses like the steppers. Playing plays the SPAN and loops it — that is how a trim is judged
         before it is committed — but **scrubbing is never yanked**, or finding
         the out-mark would be a fight with the loop. The button's meaning
-        follows the marks: at the two ends of a trimmed clip it is **Undo the
-        trim**, anywhere else **Trim** / **Re-trim**, and where it would do
-        nothing it is not drawn at all.
+        follows the marks: **Trim** with nothing cut yet, **Add part** once
+        something is, **Replace** while a part's row is picked, and where it
+        would do nothing it is not drawn at all. **AND THE KEEP BAR IS NOT
+        DRAWN AT ALL WHEN THE MARKS SPAN THE WHOLE CLIP** (PHOTOgraphed): a
+        bright band over the whole strip covers the dim bands of the parts she
+        has already cut, and the whole clip is exactly the state the trimmer
+        opens on now.
       - **/filmnote.js IS HOSTED ON THE STAGE, NOT THE WHOLE PLAYER.** It
         anchors everything it draws to its wrap's BOTTOM edge, so with
         `#player` as the wrap its Note button landed ON the trim controls

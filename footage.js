@@ -427,15 +427,36 @@ function statusOf(d) {
   return 'drawing';
 }
 
+// EVERY PART SHE HAS CUT OUT OF ONE CLIP, in the order she cut them
+// (2026-09-10, Sophie: "Can you also make it possible to re-cut the same
+// whole clip after I've cut it to also get a second part"). `trims` is the
+// shape; the singular `trim` is the ONE-PART record this shipped with and
+// reads as a list of one, so a clip trimmed before parts existed needs no
+// migration and no backfill — and a doc carrying `trims` ignores it.
+function trimsOf(d) {
+  const list = Array.isArray(d && d.trims) ? d.trims
+    : (d && d.trim && typeof d.trim === 'object' ? [d.trim] : []);
+  return list.filter((t) => t && typeof t === 'object' && t.key);
+}
+function trimCard(t) {
+  return {
+    start: Number(t.start) || 0, end: Number(t.end) || 0,
+    seconds: Number(t.seconds) || Math.round(((Number(t.end) || 0) - (Number(t.start) || 0)) * 1000) / 1000,
+    key: String(t.key || ''), status: String(t.status || ''), url: t.url || '', poster: t.poster || '', error: t.error || '',
+  };
+}
+
 // The card the page draws, off the log doc.
 function cardOf(id, d) {
   const m = MODELS.find((x) => x.or === d.model || x.af === d.model || x.atlas === d.model) || null;
   const p = d.params || {};
-  // THE TRIM RIDES BESIDE THE CLIP, NEVER OVER IT: `video` is what she
-  // plays, saves and hands on (the trimmed copy once it is baked), `source`
-  // is always the clip the door drew, and `trim` is what the card says.
-  const tr = d.trim && typeof d.trim === 'object' ? d.trim : null;
-  const trimmed = Boolean(tr && tr.status === 'ready' && tr.url);
+  // THE PARTS RIDE BESIDE THE CLIP, NEVER OVER IT: `video` is what she
+  // plays, saves and hands on (the first baked part once there is one),
+  // `source` is always the clip the door drew, and `trims` is what the card
+  // says. `trim` is still answered as the FIRST part, for a page cached from
+  // before parts existed.
+  const parts = trimsOf(d);
+  const ready = parts.find((t) => t.status === 'ready' && t.url) || null;
   return {
     id, prompt: d.prompt || '', model: m ? m.id : (d.model || ''), modelLabel: m ? m.label : (d.model || ''),
     door: d.door || d.provider || (d.model && String(d.model).startsWith('bytedance/') ? 'openrouter' : 'apiframe'),
@@ -452,13 +473,10 @@ function cardOf(id, d) {
       ...((d.references && d.references.audio) || []).map((url) => ({ url, kind: 'audio' })),
     ]),
     status: statusOf(d),
-    video: (trimmed ? tr.url : d.video) || '', source: d.video || '',
-    poster: (trimmed && tr.poster ? tr.poster : d.poster) || '',
-    trim: tr ? {
-      start: Number(tr.start) || 0, end: Number(tr.end) || 0,
-      seconds: Number(tr.seconds) || Math.round(((Number(tr.end) || 0) - (Number(tr.start) || 0)) * 1000) / 1000,
-      status: String(tr.status || ''), url: tr.url || '', error: tr.error || '',
-    } : null,
+    video: (ready ? ready.url : d.video) || '', source: d.video || '',
+    poster: (ready && ready.poster ? ready.poster : d.poster) || '',
+    trims: parts.map(trimCard),
+    trim: parts.length ? trimCard(parts[0]) : null,
     // to the HUNDREDTH of a cent, like the estimate — the real charge is
     // exact and rounding it to a tenth throws that away (13.96¢, not 14¢)
     cost: d.cost != null ? Math.round(Number(d.cost) * 10000) / 100 : null, estimate: d.estimate != null ? Number(d.estimate) : null,
@@ -619,21 +637,24 @@ async function cutSpan(src, out, start, end, withAudio) {
 // must leave the original exactly as it was.
 async function bakeTrim(id, plan) {
   return gateTrim(async () => {
-    // A LATE BAKE MUST NOT SPEAK FOR A TRIM SHE HAS MOVED ON FROM. Trims
+    // A LATE BAKE MUST NOT SPEAK FOR A PART SHE HAS MOVED ON FROM. Bakes
     // queue, so a second tap can land while the first is still encoding —
-    // and the write that matters is the UNDO: without this guard a bake
-    // finishing after `clear` would put the trim back on the doc by itself,
-    // with nothing on screen saying why. The doc's own `trim.key` is the
-    // authority; a bake whose key is no longer there stands down silently.
+    // and the write that matters is the REMOVAL: without this guard a bake
+    // finishing after her ✕ would put the part back on the doc by itself,
+    // with nothing on screen saying why. The part's own `key` in the doc's
+    // list is the authority; a bake whose key is no longer there stands down
+    // silently. It PATCHES ITS OWN ENTRY rather than writing the list it
+    // read, so a part she cut while this one was encoding is never dropped.
     const write = async (patch) => {
       try {
         const ref = coll().doc(String(id));
         const snap = await ref.get();
-        const cur = snap.exists ? snap.data().trim : null;
-        if (!cur || cur.key !== plan.key) return null;
-        await ref.set({
-          trim: { start: plan.start, end: plan.end, seconds: plan.span, key: plan.key, source: plan.source, at: new Date().toISOString(), url: '', poster: '', error: '', ...patch },
-        }, { merge: true });
+        const cur = snap.exists ? trimsOf(snap.data()) : [];
+        const i = cur.findIndex((t) => t.key === plan.key);
+        if (i < 0) return null;
+        const next = cur.slice();
+        next[i] = { ...next[i], ...patch };
+        await ref.set({ trims: next, trim: admin.firestore.FieldValue.delete() }, { merge: true });
       } catch { /* the card keeps saying it is baking; the next tap re-plans */ }
       return null;
     };
@@ -992,10 +1013,14 @@ router.post('/jobs/:id/hide', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST /jobs/:id/trim { start, end } — keep this span of the clip; the bake
-// runs behind the answer and the card polls it in. { clear: true } undoes it,
-// which is one field off the doc: the original was never written, so nothing
-// has to be restored. Free either way.
+// POST /jobs/:id/trim — the ONE door onto her parts, and every shape of it
+// leaves the clip the door drew exactly as it was:
+//   { start, end }            adds a part (the bake runs behind the answer)
+//   { start, end, replace }   swaps one part's span for another, in place
+//   { remove: <key> }         takes one part off
+//   { clear: true }           takes them all off
+// Free every way — ffmpeg on our own box, no model call, no door.
+const TRIM_MAX_PARTS = 12;
 router.post('/jobs/:id/trim', async (req, res) => {
   try {
     const id = String(req.params.id);
@@ -1003,18 +1028,40 @@ router.post('/jobs/:id/trim', async (req, res) => {
     if (!snap.exists) return res.status(404).json({ error: 'no such clip' });
     const d = snap.data();
     const body = req.body || {};
+    const parts = trimsOf(d);
+    // the two REMOVALS: nothing to restore, because the original was never
+    // written over — a part is one entry off a list beside it
+    const drop = (next) => coll().doc(id).set({ trims: next, trim: admin.firestore.FieldValue.delete() }, { merge: true });
     if (body.clear) {
-      await coll().doc(id).set({ trim: admin.firestore.FieldValue.delete() }, { merge: true });
-      const { trim, ...rest } = d;
-      return res.json({ ok: true, cleared: true, job: cardOf(id, rest) });
+      await drop([]);
+      return res.json({ ok: true, cleared: true, job: cardOf(id, { ...d, trims: [], trim: null }) });
+    }
+    if (body.remove) {
+      const gone = String(body.remove);
+      const next = parts.filter((t) => t.key !== gone);
+      await drop(next);
+      return res.json({ ok: true, removed: parts.length !== next.length, job: cardOf(id, { ...d, trims: next, trim: null }) });
     }
     const plan = trimPlan(d, body);
     if (plan.error) return res.status(400).json({ error: plan.error });
-    const trim = { start: plan.start, end: plan.end, seconds: plan.span, key: plan.key,
+    // A part is content-addressed by its span, so cutting the SAME span twice
+    // is one part, not two — and re-tapping a part that is already baked is a
+    // no-op rather than a second encode of identical bytes.
+    const replacing = body.replace ? String(body.replace) : '';
+    const kept = replacing ? parts.filter((t) => t.key !== replacing) : parts;
+    const already = kept.find((t) => t.key === plan.key);
+    if (already) return res.json({ ok: true, job: cardOf(id, { ...d, trims: kept, trim: null }) });
+    if (kept.length >= TRIM_MAX_PARTS) return res.status(400).json({ error: `that is ${TRIM_MAX_PARTS} parts already — take one off first` });
+    const part = { start: plan.start, end: plan.end, seconds: plan.span, key: plan.key,
       source: plan.source, at: new Date().toISOString(), status: 'baking', url: '', poster: '', error: '' };
-    await coll().doc(id).set({ trim }, { merge: true });
+    // REPLACING KEEPS ITS PLACE IN THE ORDER — the parts are the order she
+    // cut them and a nudged mark is the same part, not a new last one.
+    const next = replacing && parts.some((t) => t.key === replacing)
+      ? parts.map((t) => (t.key === replacing ? part : t))
+      : kept.concat([part]);
+    await coll().doc(id).set({ trims: next, trim: admin.firestore.FieldValue.delete() }, { merge: true });
     bakeTrim(id, plan).catch(() => {});
-    res.status(202).json({ ok: true, job: cardOf(id, { ...d, trim }) });
+    res.status(202).json({ ok: true, job: cardOf(id, { ...d, trims: next, trim: null }) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1024,5 +1071,5 @@ module.exports = {
   modelOf, doorFor, estimate, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, secondsOk, framesOf,
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf,
   startJob, bakePoster, ensureVideoFloor, floorDecided,
-  statusOf, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_FOLDER,
+  statusOf, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
 };
