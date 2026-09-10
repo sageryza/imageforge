@@ -7491,6 +7491,37 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - Test: `node scripts/test-footage.js` (the seed section — the box ships
     empty, nothing sticky, the card's line, the copy filling the box, what the
     job REALLY receives, and copyBack filling then clearing).
+  **A REFERENCE UNDER BYTEDANCE'S PIXEL FLOOR IS UPSCALED BEFORE IT IS SENT —
+  AND THE CARD SAYS SO (2026-09-10, Sophie: "the first was just an iPhone ·
+  why failed").** Her first video reference was refused at validation, free,
+  with `InvalidParameter.PixelCountTooSmall: Pixel count must be between
+  407696 and 8295044` — the clip was **480×360 = 172,800 pixels**. **It really
+  was an iPhone recording (the file still carries Apple's `com.apple.quicktime`
+  camera keys) and NOTHING HERE SHRANK IT**: the page sends raw bytes and the
+  Dump stores video untouched (its one re-encode is HEIC stills, explicitly at
+  original size). iOS downscaled it on its way out of Photos through the web
+  file picker, so a reference she picked in good faith failed with an error
+  that reads like a bug in the tool. `video-floor.js` is the rule (the floor
+  and the ceiling are ByteDance's, so it is door-agnostic) and
+  `ensureVideoFloor` in footage.js bakes the copy. Four things not to undo:
+  **her original is never touched** (a new object under `footage/upscaled/`,
+  the webp rule applied to video), **it is baked once** (content-addressed by
+  the source url and the canvas, so a reference re-used on ten clips encodes
+  once and every later send is a HEAD), **it is best-effort and never blocks a
+  send** (no ffmpeg, no bucket, a probe that will not read, a failed encode —
+  every one answers the ORIGINAL url, so the job goes as it would have gone
+  and fails honestly at the door rather than the guard being what breaks it),
+  and **it is LOUD** — the card says what the clip was, what was sent, and
+  that her original is untouched, because a step that silently transforms what
+  she attached is exactly what *nothing stands between the source and the
+  output* forbids. **The probe reads DISPLAY dimensions**, so a phone clip
+  carrying a rotation matrix is measured the way the model will see it.
+  **IMAGES ARE DELIBERATELY NOT COVERED** — a reference still has its own floor
+  and nothing has measured it; applying this number to stills would be a guess
+  wearing a measurement's clothes. Test: `node scripts/test-video-floor.js`
+  (the rule pure, then a REAL encode measured with ffprobe — a plan that reads
+  perfect and a file still under the floor look identical to any source
+  assertion).
   Full note: *FOOTAGE* under the OpenRouter note in
   `docs/modules/audio-and-film.md`.
 - **Movies** (`movies.js`, `/api/movies`, iOS Movies tab — no web page) — story ->

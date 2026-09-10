@@ -59,8 +59,10 @@ const path = require('path');
 const { spawn } = require('child_process');
 const admin = require('firebase-admin');
 const fetch = require('node-fetch');
+const crypto = require('crypto');
 const videoLog = require('./video-log');
 const videoSeed = require('./video-seed');
+const videoFloor = require('./video-floor');
 
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 const CHAT = 'footage';
@@ -492,6 +494,104 @@ async function bakePoster(id, videoUrl) {
   }
 }
 
+// ─── A reference too small to send: bake an upscaled COPY ──────────────
+// Her first /footage job with a video reference was refused before anything
+// drew — 400 PixelCountTooSmall — because iOS had shrunk an iPhone clip to
+// 480×360 on its way out of Photos through the web file picker. The page
+// sends raw bytes and the Dump stores video untouched, so nothing on our
+// side did it and nothing on our side could have warned her. This is the
+// guard: a reference under ByteDance's floor is sent as an upscaled copy
+// (video-floor.js decides the canvas), and the card SAYS so.
+//
+// Three rules, none of them optional:
+//   · HER ORIGINAL IS NEVER TOUCHED. The copy is a new object under
+//     footage/upscaled/; the Dump file is left exactly as it is.
+//   · IT IS BAKED ONCE. The object is content-addressed by the source url
+//     and the canvas, so a reference she re-uses on ten clips is encoded
+//     once and every later send is a HEAD.
+//   · IT IS BEST-EFFORT AND NEVER BLOCKS A SEND. No ffmpeg, no bucket, a
+//     probe that will not read, an encode that fails — every one of them
+//     answers the ORIGINAL url, so the job goes as it would have gone
+//     today (and fails honestly at the door) rather than the guard being
+//     the thing that breaks a send.
+function ffprobeBin() {
+  try { return require('ffprobe-static').path; } catch { return null; }
+}
+function runBin(bin, args) {
+  return new Promise((resolve, reject) => {
+    let out = '';
+    const p = spawn(bin, args, { stdio: ['ignore', 'pipe', 'ignore'] });
+    p.stdout.on('data', (d) => { out += d.toString(); });
+    p.on('error', reject);
+    p.on('close', (code) => (code === 0 ? resolve(out) : reject(new Error('exit ' + code))));
+  });
+}
+// The DISPLAY dimensions, so a phone clip carrying a rotation is measured
+// the way the model will see it — a portrait recording is stored landscape
+// with a matrix on the track, and reading the coded size alone would call a
+// tall clip wide.
+async function probeSize(file) {
+  const bin = ffprobeBin();
+  if (!bin) return null;
+  try {
+    const out = await runBin(bin, ['-v', 'error', '-select_streams', 'v:0',
+      '-show_entries', 'stream=width,height:stream_side_data=rotation',
+      '-of', 'json', file]);
+    const j = JSON.parse(out);
+    const st = (j.streams || [])[0];
+    if (!st || !st.width || !st.height) return null;
+    const sd = (st.side_data_list || [])[0] || {};
+    const rot = Math.abs(Number(sd.rotation) || 0) % 180;
+    return rot === 90 ? { w: st.height, h: st.width } : { w: st.width, h: st.height };
+  } catch { return null; }
+}
+async function ensureVideoFloor(url, name) {
+  const bin = ffmpegBin();
+  const bucket = bucketOrNull();
+  if (!bin || !bucket || !/^https?:\/\//.test(String(url))) return { url, note: '' };
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'floor-'));
+  const src = path.join(dir, 'in');
+  const out = path.join(dir, 'out.mp4');
+  try {
+    const r = await fetch(url, { agent: proxyAgent || undefined });
+    if (!r.ok) return { url, note: '' };
+    fs.writeFileSync(src, await r.buffer());
+    const size = await probeSize(src);
+    const plan = videoFloor.planUpscale(size && size.w, size && size.h);
+    if (!plan) return { url, note: '' };          // clears the floor — send hers
+    const key = crypto.createHash('sha1').update(`${url}|${plan.w}x${plan.h}`).digest('hex');
+    const objectPath = `footage/upscaled/${key}.mp4`;
+    const f = bucket.file(objectPath);
+    const done = `https://storage.googleapis.com/${bucket.name}/${objectPath}`;
+    const [exists] = await f.exists();
+    if (exists) return { url: done, note: videoFloor.upscaleNote(plan, name) };
+    await runBin(bin, ['-y', '-i', src,
+      '-vf', `scale=${plan.w}:${plan.h}:flags=lanczos`,
+      '-c:v', 'libx264', '-crf', '18', '-preset', 'veryfast', '-pix_fmt', 'yuv420p',
+      '-c:a', 'copy', '-movflags', '+faststart', out]);
+    await f.save(fs.readFileSync(out), { metadata: { contentType: 'video/mp4' } });
+    await f.makePublic();
+    return { url: done, note: videoFloor.upscaleNote(plan, name) };
+  } catch { return { url, note: '' }; } finally {
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* temp */ }
+  }
+}
+// Every reference video in the body, walked once. Answers the urls to SEND
+// and the notes to say; `refs` (what the card shows) keeps her originals, so
+// the thumb she recognises is the thumb she sees.
+async function floorRefs(body) {
+  const list = body.referenceVideoUrls || [];
+  if (!list.length) return { urls: list, notes: [] };
+  const notes = [];
+  const urls = [];
+  for (const u of list) {
+    const r = await ensureVideoFloor(u, (body.__names || {})[u]);
+    urls.push(r.url);
+    if (r.note) notes.push(r.note);
+  }
+  return { urls, notes };
+}
+
 // ─── Starting a job: the door, the fallback, the log ───────────────────
 // Answers { jobId, door, sent, fellBack } or throws with status/hint.
 async function startJob(b) {
@@ -503,14 +603,23 @@ async function startJob(b) {
   const hasVideo = refs.some((r) => r.kind === 'video');
   const d = doorFor({ model: m, door: b.door, hasVideo, resolution: res }, cfg());
   if (d.error) { const e = new Error(d.error); e.status = 400; throw e; }
+  // A reference under ByteDance's pixel floor is refused before anything
+  // draws, so swap in an upscaled copy BEFORE the door sees the body — and
+  // keep `refs` (the card) pointing at her originals.
+  body.__names = Object.fromEntries(refs.filter((r) => r.kind === 'video').map((r) => [r.url, r.name]));
+  const floored = await floorRefs(body);
+  delete body.__names;
+  body.referenceVideoUrls = floored.urls;
   const est = estimate({ model: m, resolution: res, ratio, seconds, hasVideo, door: d.door }, cfg());
   const extra = { door: d.door, refs, estimate: est.cents != null ? est.cents : null, footage: true, aspect: ratio };
+  if (floored.notes.length) extra.note = floored.notes.join(' ');
   const mods = getDoors();
   const send = async (door, note) => {
     const mod = mods[door];
     const req = { ...body, model: door === 'openrouter' ? m.or : door === 'atlascloud' ? m.atlas : m.af };
-    if (note) req.note = note;
-    const r = await mod.startVideo(req, { ...extra, door, ...(note ? { note } : {}) });
+    const say = [extra.note, note].filter(Boolean).join(' ');
+    if (say) req.note = say;
+    const r = await mod.startVideo(req, { ...extra, door, ...(say ? { note: say } : {}) });
     // the seed the door really used — hers, or the one it minted — so the card
     // this tap draws carries it without waiting for the first poll
     const seed = r.params && r.params.seed != null ? Number(r.params.seed) : null;
@@ -518,7 +627,7 @@ async function startJob(b) {
   };
   try {
     const r = await send(d.door);
-    return { ...r, fellBack: false, estimate: est.cents };
+    return { ...r, fellBack: false, estimate: est.cents, note: extra.note || '' };
   } catch (e) {
     if (e.refusal === 'content' && d.fallback === 'apiframe') {
       const est2 = estimate({ model: m, resolution: res, ratio, seconds, hasVideo, door: 'apiframe' }, cfg());
@@ -527,7 +636,7 @@ async function startJob(b) {
         ? 'Atlas Cloud refused a reference (a famous face) — sent through APIFRAME instead'
         : 'OpenRouter refused a reference (a person in it) — sent through APIFRAME instead';
       const r = await send('apiframe', note);
-      return { ...r, fellBack: true, estimate: est2.cents, note };
+      return { ...r, fellBack: true, estimate: est2.cents, note: [extra.note, note].filter(Boolean).join(' ') };
     }
     throw e;
   }

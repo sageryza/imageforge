@@ -655,7 +655,7 @@ $('go').addEventListener('click', function () {
       // the door answers with the seed it really used — hers, or the one it
       // minted — so the card carries it without waiting for the first poll
       seed: d.seed != null ? d.seed : null,
-      sentAt: new Date().toISOString(), note: d.fellBack ? d.note : '', video: '', poster: '', vote: '' });
+      sentAt: new Date().toISOString(), note: d.note || '', video: '', poster: '', vote: '' });
     toast('Drawing…');
     try { localStorage.removeItem('footage_draft'); } catch (e) {}
     schedulePoll(true);
