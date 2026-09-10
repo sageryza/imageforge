@@ -7629,8 +7629,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
     exact cut never clicks — and **the FILE is the truth about its own length**
     (a clip is 24·s + 1 frames), so the out-mark is CLAMPED to what ffprobe
     reads rather than refused against the ask.
-  - **EVERYTHING IS A TAP** (Cut Marks' rule): nothing drags, and the strip is
-    a READ-OUT rather than a second scrubber over the video's own. Playing
+  - **EVERYTHING IS A TAP** (Cut Marks' rule): nothing drags — the marks land
+    at the playhead, **TAPPING THE STRIP PUTS THE PLAYHEAD WHERE SHE TAPPED**
+    (2026-09-10, Sophie: "can you make it so I can tap where the play head
+    goes"), and the steppers walk it a tenth of a second at a time. **The
+    strip shipped as a READ-OUT and she overruled that the same morning** — the
+    reasoning was "the video's own scrubber already seeks, and a second
+    scrubber over it is one control saying two things", and it is HISTORY
+    rather than a rule now; don't turn it back. **The BAND is the target and
+    the BAR is the picture**: a 10px bar is far under any tap target, so the
+    button is 34px tall with the light mark drawn inside it (the `.mtick`
+    rule — buy the size without making the mark heavier), the fraction is
+    measured off the BAR's own rect so the band can grow without moving where
+    a tap lands, and it PAUSES like the steppers, because a tap on the strip
+    is her looking for a frame to mark. Playing
     plays the SPAN and loops it — that is how a trim is judged before it is
     committed — but **scrubbing is never yanked**. The button's meaning follows
     the marks: at the two ends of a trimmed clip it is **Undo the trim**,
