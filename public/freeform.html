@@ -158,7 +158,7 @@
 
 <div class="panel">
   <div class="lab">Prompt</div>
-  <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" aria-label="Bigger box" title="Bigger box"></button></div>
+  <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
   <div class="row" style="margin-top:9px">
     <select id="quality">
       <option value="low">low</option>
@@ -203,6 +203,7 @@
      the keyboard. The module wires itself to every text box and needs no call.
      Full reasoning in caretkeep.js. -->
 <script src="/caretkeep.js"></script>
+<script src="/stickybox.js"></script>
 <script src="/asset-lightbox.js"></script>
 <!-- the doors under the picture — the SHARED set (2026-09-01, Sophie: "as long as
      there's a prompt there should be a playground button"); the port script is
