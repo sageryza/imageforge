@@ -7556,6 +7556,40 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (the rule pure, then a REAL encode measured with ffprobe — a plan that reads
   perfect and a file still under the floor look identical to any source
   assertion).
+  **SHE CAN NOTE ON A CLIP, AND IT IS THE HOUSE THREAD — TWO DOORS, ONE
+  CONVERSATION (2026-09-10, Sophie: "can you make it possible to add notes on
+  clips that come out of the footage module?").** A speech mark on every
+  finished clip's card opens an empty box, and PLAYING one gives her
+  `/filmnote.js` — tap to pause, note the SECOND she stopped on — the ONE
+  implementation, the same one the Chats app's pinned film and compare.js's
+  video lightbox use. **Nothing new is stored and no route was written:** both
+  doors POST `/api/gallery/assets/note` and the card reads
+  `GET /api/gallery/assets/notes?chat=<the chat /status serves>`, so a note on
+  a clip rings the wake doorbell, lands in the ONE inbox every chat sweeps,
+  and is answered ON the note (`from:'chat'`) rather than in a reply she has
+  to hunt for. Six things not to undo:
+  - **THE CHAT IS SERVED, NEVER TYPED** — `/status` already answers the
+    module's own `chat` (`footage`), so the page and `footage.js` cannot
+    disagree about where a note lands.
+  - **THE THREAD IS PAINTED OUTSIDE THE CARD'S SIGNATURE**, with its own — the
+    wall's own rule one card in: a note landing must never rebuild the card
+    and re-decode its poster.
+  - **NOT ON THE DRAWING POLL.** `loadJobs` runs every few seconds while a
+    clip draws and the notes route is two Firestore queries. The notes are
+    read on load, on `visibilitychange`→visible (inside the app that is the
+    only moment a stale page is about to be read), and when the player closes.
+  - **HER WORDS ARE NEVER LOST TO A REFUSAL** — the box empties only once the
+    server has the note, and an over-length one comes back REFUSED with the
+    count (the asset-note route's own rule) with her text still in the box.
+  - **A CLIP WITH NO URL CARRIES NO MARK** — the Assets tab's silence rule; a
+    drawing or failed job has nothing to note ON.
+  - **ONLY THE BACKDROP CLOSES THE PLAYER NOW** (chats.html's rule). It used
+    to close on "anything that is not a VIDEO", which would eat every tap on
+    filmnote's own Note button and inside its sheet.
+  Test: `node scripts/test-footage.js` (the note section — every assertion a
+  MEASUREMENT or a reading of what the stub server really received, since a
+  box that opens and posts nothing, a note filed under the wrong chat and a
+  thread that never reaches the card are the same markup).
   Full note: *FOOTAGE* under the OpenRouter note in
   `docs/modules/audio-and-film.md`.
 - **Movies** (`movies.js`, `/api/movies`, iOS Movies tab — no web page) — story ->

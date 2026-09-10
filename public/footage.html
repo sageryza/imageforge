@@ -297,6 +297,36 @@
   .acts .nope.on{background:#3a3530;border-color:#3a3530;color:#fff}
   .acts a{font-size:12px;color:#6f675e;margin-left:auto}
   .again{padding:5px 10px;font-size:13px;white-space:nowrap}
+  /* HER NOTES ON A CLIP (2026-09-10, Sophie: "can you make it possible to add
+     notes on clips that come out of the footage module").
+     THE THREAD IS THE HOUSE ONE — `forge-asset-votes`, keyed chat+url, the
+     same machinery her picture notes and her film notes already use — so a
+     note left here is in the ONE inbox every chat sweeps
+     (`GET /api/gallery/assets/notes?chat=footage`) and a chat can answer ON
+     the note. Nothing new is stored and nothing on this page keeps a second
+     copy of a note.
+     TWO DOORS, ONE THREAD: the note button on a card (write without playing,
+     read every note back where the clip is) and `/filmnote.js` on the paused
+     player (tap to pause, note the SECOND she stopped on — the shared
+     implementation, never a copy of it). A note written either way shows in
+     the other.
+     The block lives OUTSIDE the card's signature, like the vote marks: a note
+     landing must not rebuild the card and re-decode its poster. */
+  .notes{margin-top:8px}
+  .notes:empty{margin-top:0}
+  .nrow{font-size:13px;line-height:1.45;margin-top:5px;overflow-wrap:anywhere;padding-top:5px;border-top:1px solid #efe9dd}
+  .nrow.me{font-style:italic;color:#4a443c}
+  .nrow.them{color:#6f675e}
+  .nrow .who{font-style:normal;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#9a8f7d;margin-right:6px}
+  .notebox{margin-top:8px}
+  .notebox textarea{min-height:62px}
+  .notebox .nfoot{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap}
+  .notebox .nfoot button{font-size:13px;padding:5px 10px}
+  .nerr{color:#a0402a;font-size:12px;overflow-wrap:anywhere}
+  /* the mark says a clip HAS notes — the thread under it is the count, so no
+     badge; a dark outline is enough and costs the row no width */
+  .acts .note.has{border-color:#2b2620;color:#2b2620}
+  .acts .note.on{background:#2b2620;border-color:#2b2620;color:#f6f2ea}
   .emptynote{color:#9a8f7d;font-size:13px;padding:6px 2px}
   /* The player: the clip over the page, tap out to close. Page locked and the
      scroll position restored on close (the lightbox contract). */
@@ -321,6 +351,7 @@
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
   <p><b>The seed</b> is on every finished clip, with a button that puts it back in the box. Leave the box blank and each clip gets a fresh one. A seed repeats the <i>opening</i> of a short clip and then drifts &mdash; it does not survive a changed prompt or a different size, and at 15 seconds it does close to nothing.</p>
+  <p><b>Notes.</b> The speech mark on a clip opens a note; playing one and tapping it pauses the film and notes the second you stopped on. Either way it lands in the one place chats read their notes, and a chat answers on the note itself.</p>
   <p>What is left is on the Atlas console &mdash; it has no balance to read from here.</p>
 </div>
 
@@ -372,6 +403,11 @@
 <div class="toast" id="toast"></div>
 
 <script src="/caretkeep.js"></script>
+<!-- TAP-TO-NOTE ON THE PLAYER — the ONE implementation, shared with the Chats
+     app's pinned film and compare.js's video lightbox. Loaded statically
+     rather than on demand (compare.js's lazy loader is for pages that mostly
+     have no film): every row on this page IS a film. -->
+<script src="/filmnote.js"></script>
 <script>
 (function () {
 var TOKEN = '__STUDIO_TOKEN__';
@@ -387,6 +423,7 @@ var ICONS = {
   audio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>',
   image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
   history: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>',
+  note: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
   chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
   maximize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
   minimize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
@@ -994,6 +1031,112 @@ function ago(iso) {
   var s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
   return s < 60 ? s + 's' : Math.floor(s / 60) + 'm ' + (s % 60) + 's';
 }
+// ── HER NOTES ON A CLIP (2026-09-10, her ask) ─────────────────────────────
+// THE THREAD IS THE HOUSE ONE and nothing here is a second copy of it: a note
+// is one message on `forge-asset-votes`, keyed chat+url, through
+// `POST /api/gallery/assets/note` — the same route her picture notes and her
+// film notes go through. So it rings the wake doorbell, it lands in the ONE
+// inbox every chat sweeps (`GET /api/gallery/assets/notes?chat=footage`), and
+// a chat answers ON the note rather than in a reply she has to hunt for.
+// Which chat it files under is SERVED, never typed: `/status` answers the
+// module's own `chat`, so the page and footage.js can never disagree about
+// where a note lands.
+function noteChat() { return (CFG && CFG.chat) || 'footage'; }
+var notesByUrl = {};                 // clip url → thread, read whole
+// NOT ON THE DRAWING POLL. `loadJobs` runs every few seconds while a clip is
+// drawing and the notes route is two Firestore queries; a note is something
+// she wrote, so it is re-read when she arrives, when she comes back to the
+// tool, and the moment one is written — never on a clock.
+function loadNotes() {
+  return fetch('/api/gallery/assets/notes?chat=' + encodeURIComponent(noteChat()), { headers: hdr() })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var next = {};
+      ((d && d.notes) || []).forEach(function (n) {
+        if (n && n.url && n.thread && n.thread.length) next[n.url] = n.thread;
+      });
+      notesByUrl = next;
+      repaintNotes();
+    }).catch(function () { /* the clips still play */ });
+}
+function threadFor(j) { return (j && j.video && notesByUrl[j.video]) || []; }
+// THE THREAD IS PAINTED OUTSIDE THE CARD'S SIGNATURE — its own box with its
+// own signature, so a note landing repaints the words and never rebuilds the
+// card (which would re-decode its poster, the wall's own rule one card in).
+function paintThread(el, j) {
+  var host = el.querySelector('[data-thread]');
+  if (!host) return;
+  var th = threadFor(j);
+  var sig = th.map(function (m) { return [m.from || '', m.at || '', m.text || ''].join(' '); }).join('|');
+  if (host.__sig !== sig) {
+    host.__sig = sig;
+    host.innerHTML = th.map(function (m) {
+      return '<div class="nrow ' + (m.from === 'chat' ? 'them' : 'me') + '">'
+        + '<span class="who">' + (m.from === 'chat' ? 'Claude' : 'You') + '</span>' + esc(m.text) + '</div>';
+    }).join('');
+  }
+  var b = el.querySelector('.acts .note');
+  if (b) b.classList.toggle('has', th.length > 0);
+}
+function repaintNotes() {
+  Array.prototype.forEach.call(document.querySelectorAll('#feed .job'), function (el) {
+    var j = jobsById[el.dataset.id];
+    if (j) paintThread(el, j);
+  });
+}
+// The box ships EMPTY and opens on her tap; tapping the mark again puts it
+// away. Cancel is the deliberate discard — closing the box is the only thing
+// that drops what she typed, and nothing else on the page removes it.
+function toggleNoteBox(el, j) {
+  var host = el.querySelector('[data-notes]');
+  var mark = el.querySelector('.acts .note');
+  var open = host.querySelector('.notebox');
+  if (open) { open.remove(); if (mark) mark.classList.remove('on'); return; }
+  var box = document.createElement('div');
+  box.className = 'notebox';
+  box.innerHTML = '<textarea placeholder="Note" aria-label="Note on this clip"></textarea>'
+    + '<div class="nfoot"><button type="button" class="nsend">Send</button>'
+    + '<button type="button" class="ncancel">Cancel</button><span class="nerr"></span></div>';
+  host.appendChild(box);
+  if (mark) mark.classList.add('on');
+  var ta = box.querySelector('textarea');
+  ta.focus();
+  box.querySelector('.ncancel').addEventListener('click', function () { box.remove(); if (mark) mark.classList.remove('on'); });
+  box.querySelector('.nsend').addEventListener('click', function () { sendNote(j, box); });
+}
+// HER WORDS ARE NEVER LOST TO A REFUSAL — the box is emptied only once the
+// server has the note, and an over-length note comes back REFUSED with the
+// count (the asset-note route's own rule) rather than silently cut.
+function sendNote(j, box) {
+  var ta = box.querySelector('textarea');
+  var t = String(ta.value || '').trim();
+  var err = box.querySelector('.nerr');
+  if (!t) { ta.focus(); return; }
+  var url = j.video;
+  if (!url) { err.textContent = 'That clip has nothing to note on yet.'; return; }
+  var btn = box.querySelector('.nsend');
+  btn.disabled = true; err.textContent = '';
+  fetch('/api/gallery/assets/note', { method: 'POST', headers: hdr({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ chat: noteChat(), url: url, text: t, from: 'sophie' }) })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      btn.disabled = false;
+      if (!d || !d.ok) { err.textContent = (d && d.error) || 'Could not save that note.'; return; }
+      // the server hands the whole thread back, so the card shows exactly what
+      // landed rather than a hopeful local copy
+      notesByUrl[url] = d.thread || (notesByUrl[url] || []).concat([{ from: 'sophie', text: t, at: new Date().toISOString() }]);
+      box.remove();
+      repaintNotes();
+      var m = document.querySelector('#job-' + CSS.escape(j.id) + ' .acts .note');
+      if (m) m.classList.remove('on');
+      toast('Note saved');
+    })
+    .catch(function () {
+      btn.disabled = false;
+      err.textContent = 'The server did not answer — your words are still here. Try again.';
+    });
+}
+
 function jobCard(j) {
   jobsById[j.id] = j;
   var feed = $('feed');
@@ -1030,9 +1173,16 @@ function jobCard(j) {
     '<button type="button" class="heart' + (j.vote === 'like' ? ' on' : '') + '" data-vote="like" aria-label="Heart this clip" title="Heart">' + ICONS.heart + '</button>' +
     '<button type="button" class="nope' + (j.vote === 'dislike' ? ' on' : '') + '" data-vote="dislike" aria-label="Cross this clip out" title="Cross out">' + ICONS.x + '</button>' +
     '<button type="button" class="copy" aria-label="Put this prompt and its references back" title="Put it back in the box">' + ICONS.copy + '</button>' +
+    // a clip with nothing to note ON gets no mark — the Assets tab's silence
+    // rule; a failed or drawing job has no url for a note to key off
+    (j.video ? '<button type="button" class="note" aria-label="Note on this clip" title="Note">' + ICONS.note + '</button>' : '') +
     (j.status === 'failed' && j.prompt ? '<button type="button" class="again">Try again</button>' : '') +
     (j.video ? '<a href="' + esc(j.video) + '" target="_blank" rel="noopener">save</a>' : '') +
-    '</div></div></div>';
+    '</div>' +
+    // OUTSIDE the signature below: the thread and her open box live here, so a
+    // note landing repaints words and never rebuilds the card
+    '<div class="notes" data-notes><div data-thread></div></div>' +
+    '</div></div>';
   var sig = html + '\u0000' + (j.prompt || '');
   if (el.__sig !== sig) {
     el.__sig = sig;
@@ -1048,9 +1198,12 @@ function jobCard(j) {
     // star is the one tap that spends, so nothing else may send.
     var again = el.querySelector('.again');
     if (again) again.addEventListener('click', function () { copyBack(j); });
+    var nb = el.querySelector('.acts .note');
+    if (nb) nb.addEventListener('click', function () { toggleNoteBox(el, jobsById[j.id] || j); });
   }
   var st = el.querySelector('[data-st]');
   if (j.status === 'drawing') st.textContent = 'drawing… ' + ago(j.sentAt);
+  paintThread(el, j);
   paintFeed();
 }
 // the opener is added only where the words are really cut (measured), on the
@@ -1221,10 +1374,16 @@ setInterval(function () {
     if (el) el.textContent = 'drawing… ' + ago(j.sentAt);
   });
 }, 1000);
-document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { loadJobs(); loadStatus(); } });
+document.addEventListener('visibilitychange', function () {
+  // coming back to the tool is the moment a stale page is about to be read —
+  // and inside the app that is the ONLY moment, since a wrapped page loads
+  // once per app process
+  if (document.visibilityState === 'visible') { loadJobs(); loadStatus(); loadNotes(); }
+});
 
 // ── The player (the lightbox contract: page frozen, position restored) ────
 var savedY = 0;
+var fnote = null;                    // the shared tap-to-note, alive with the player
 function openPlayer(url) {
   var pl = $('player');
   if (window.__scrollStop) window.__scrollStop();
@@ -1235,15 +1394,27 @@ function openPlayer(url) {
   pl.appendChild(v);
   pl.hidden = false;
   v.play().catch(function () {});
+  // TAP TO PAUSE, NOTE THE SECOND — `/filmnote.js`, the ONE implementation,
+  // the same one the Chats app's pinned film and compare.js's video lightbox
+  // use. It posts to the same asset-note route the card's box does, so a note
+  // written either way is one thread on one clip.
+  try { if (window.__filmNote) fnote = window.__filmNote({ wrap: pl, video: v, chat: noteChat(), url: url }); } catch (e) {}
 }
 function closePlayer() {
   var pl = $('player');
+  if (fnote) { try { fnote.destroy(); } catch (e) {} fnote = null; }
   pl.querySelectorAll('video').forEach(function (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (e) {} v.remove(); });
   pl.hidden = true;
   document.body.style.overflow = '';
   window.scrollTo(0, savedY);
+  loadNotes();                       // a note she left on the paused film shows on its card
 }
-$('player').addEventListener('click', function (e) { if (e.target.tagName !== 'VIDEO') closePlayer(); });
+// ONLY THE BACKDROP CLOSES (chats.html's own rule). It used to be "anything
+// that is not the VIDEO", which would close the player on filmnote's own Note
+// button and on every tap inside its sheet — the controls are not videos.
+$('player').addEventListener('click', function (e) {
+  if (e.target === $('player') || (e.target.closest && e.target.closest('.pclose'))) closePlayer();
+});
 window.__navBack = function () { if (!$('player').hidden) { closePlayer(); return true; } return false; };
 
 // ── The pill's corner (Freeform's measured reserve, verbatim in shape) ────
@@ -1308,7 +1479,9 @@ takeHandoff();          // moment 1 — AFTER loadCtl, so a hand-off beats the r
 paintFilt();
 applyCols();
 applyView();
-loadStatus().then(loadJobs);
+// the notes read waits for /status, which is what says which chat they file
+// under — and for the jobs, so there are cards for the threads to land on
+loadStatus().then(loadJobs).then(loadNotes);
 })();
 </script>
 </body>
