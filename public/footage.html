@@ -923,8 +923,15 @@ function recentItems() {
     .sort(function (a, b) { return String(b.sentAt).localeCompare(String(a.sentAt)); })
     .forEach(function (j) {
       // a clip she crossed out is not one to draw the next shot from, and a
-      // hidden one is off the wall — neither is offered
-      if (j.status === 'done' && j.video && !j.hidden && j.vote !== 'dislike') {
+      // hidden one is off the wall — neither is offered. NOR IS A TRIMMED ONE
+      // (2026-09-10, Sophie: "take out trimmed clips from recents"): it has
+      // been cut for the film, and what `video` then points at is only its
+      // FIRST part, so the tile would offer a piece of a shot rather than the
+      // shot. The same `bakedParts` the tile's scissors chip reads, so the
+      // mark on the wall and the absence from the box can never disagree —
+      // a part still baking has cut nothing yet and the clip is still offered.
+      // Only the clip goes: that job's own references are listed as before.
+      if (j.status === 'done' && j.video && !j.hidden && j.vote !== 'dislike' && !bakedParts(j).length) {
         add({ url: j.video, kind: 'video', poster: j.poster || '', name: j.title || String(j.prompt || '').slice(0, 60), mine: true });
       }
       (j.refs || []).forEach(function (r) { add({ url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' }); });
@@ -1067,7 +1074,7 @@ function applyFilt() {
     // A TRIMMED CLIP WEARS THE SCISSORS. Only a part that really BAKED counts
     // — one still baking has cut nothing yet, and the list's own row is where
     // "trimming…" is said.
-    var parts = jobParts(j).filter(function (t) { return t && t.status === 'ready' && t.url; });
+    var parts = bakedParts(j);
     el.classList.toggle('cut', parts.length > 0);
     var cm = el.querySelector('.tcut');
     if (cm) {
@@ -1306,6 +1313,13 @@ function sendNote(j, box) {
 function jobParts(j) {
   if (j && Array.isArray(j.trims)) return j.trims;
   return j && j.trim && j.trim.status ? [j.trim] : [];   // a page cached before parts
+}
+// THE PARTS THAT REALLY BAKED — one rule, read by the tile's scissors chip
+// and by the recent box, so "this clip is trimmed" means the same thing in
+// both places. A part still baking has cut nothing yet, and a failed one left
+// the clip whole.
+function bakedParts(j) {
+  return jobParts(j).filter(function (t) { return t && t.status === 'ready' && t.url; });
 }
 function trimLine(j) {
   var ps = jobParts(j);
