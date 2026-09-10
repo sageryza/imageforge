@@ -110,6 +110,13 @@ groups.push({ label: 'People with no still', items: [
 // drop anything whose url never resolved rather than posting an empty tile
 groups.forEach((g) => { g.items = g.items.filter((it) => it.img || it.video); });
 
+// --json is what the PHOTO harness reads, so the picture she is shown is built
+// from the same groups the post is
+if (process.argv.includes('--json')) {
+  console.log(JSON.stringify({ title: TITLE, chat: CHAT, groups }));
+  process.exit(0);
+}
+
 if (!process.argv.includes('--go')) {
   groups.forEach((g) => {
     console.log(`\n${g.label} (${g.items.length})`);
