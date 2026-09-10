@@ -29,6 +29,11 @@ Editor: https://imageforge-q125.onrender.com/filmeditor?c=pxan7kLF6I7iMWxlVb5C
   piece: the source cuts to him at 23.375s of `s9`, so "I know the feeling"
   (17.9–19.35) is followed by his "Exactly." (23.4–25.3) on that cut.
 
+- v3: the end card is gone — it ends on the real Francesca clip she drew and
+  hearted in /footage that evening (`atlascloud-video/1789069801714-u8i4sn.mp4`,
+  the 3:4 take; the 9:16 twin is the one she crossed out). In 3.4–10.05: a beat
+  of her at the glass, "New York," the pause, "such a beautiful city."
+
 - Substitutions, named: "Francesca kicked out of class" = Yolanda scolded in
   music class (s18 18.3–21.8; the seated woman is the Francesca description);
   "Michael: I know what you mean" = the hallway walk's "I know the feeling";
