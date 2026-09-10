@@ -10,6 +10,14 @@ her pretending to choke her (Thomas's wrists round her throat — short) ·
 kicked out of Powell's (short but shot). Montage: sleeping in the jeep,
 getting the books.
 
+**The film is about suicide to some extent (Sophie, 2026-09-10), so that
+thread stays whole:** the red dress in the store with the glasses · getting
+on the train · meeting the heroin addicts and sleeping with one of them ·
+the slap afterwards · the wheelchair. (With it, the scenes the thread runs
+through: "I've been thinking of ending things" at the meeting, the
+cleaning-closet flashback, Christmas morning, the bus dare, the curb she
+steps off and back onto.)
+
 The book has ~75 scenes (68 `* * *` breaks over 40,000 words). Every line
 below names the scene by the page's own words; the exact passage is in
 `ticky-tack.md` beside this file.
@@ -70,6 +78,20 @@ below names the scene by the page's own words; the exact passage is in
 17. The orange trail — the crossing guard, the crows going every way; she
     switches from black to orange; priuses, shorts, socks; the orange flags
     behind the caution tape. "I had won."
+17a. The red dress — Lana Del Rey in the bougie store, "nothin scares me
+    anymore", the pointy sunglasses in the too-tiny mirror; she plots it,
+    calm in the sun.
+17b. The train — the old above-ground train at dark, the tracks and the
+    telephone lines upside down; the three travellers and "the Black."
+17c. The Black — the park bathroom; the girl sobbing on the grass; his
+    clothes laid out as a bed; the needle, fourteen times; the curb she
+    steps off and back onto; the man who leaves her at the fan; the
+    pregnancy dawns.
+17d. The slap — begging for $40; the two boys at their door; the slap, the
+    other one's three dollars.
+17e. The wheelchair — the loose wheelchairs outside St. John's; she wheels
+    herself into the night; the little library, the gilded scrapbook,
+    "Sophie's book of mistakes"; the morning outside Planned Parenthood.
 
 ## Secondary — recommend keeping
 
@@ -97,15 +119,9 @@ below names the scene by the page's own words; the exact passage is in
     with the weed, she walks and doesn't wait; the scissors; the hoodlums
     under the awning; the lit-up alcove. (This is how Part III starts and
     can't be cut.)
-29. The Black — the three on the train, the girl sobbing, the bathroom, the
-    needle fourteen times; the curb she steps off and back onto; the man
-    who leaves her at the fan; the pregnancy dawns. (Heavy; the whole of
-    the red dress runs on it.)
 30. The two Toms — the peanut butter aisle without him; the sous-chef;
     Thomas materialises; "I'll see you tomorrow."
-31. The slap and the taxi — begging for $40, the boy hits her, the other
-    gives three dollars; the taxi that dumps her by the freeway; the
-    wheelchair; the gilded scrapbook, "Sophie's book of mistakes."
+31. The taxi — the ride she bargains through, dumped by the freeway.
 
 ## Montage / can go
 
@@ -125,5 +141,3 @@ below names the scene by the page's own words; the exact passage is in
 44. The golf bag; froot loops; beef jerky and the cat; "you two sure are
     lazy"; car colours on the curb; the festival; the fries pantomime; the
     sauerkraut fence; the crystal.
-45. Lana Del Rey in the store, the red dress; the sunglasses. (One shot,
-    but it names the dress — keep as an insert.)
