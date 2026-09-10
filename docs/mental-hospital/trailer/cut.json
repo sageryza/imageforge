@@ -229,30 +229,30 @@
   },
   {
    "key": "bedA",
-   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a09fcc852c696c4d3abb5747b49919b0.mp3",
-   "name": "eerie riser A \u2014 builds from the ghost to the mirror, stops before \"I don't know who I am\"",
-   "in": 4.5,
-   "out": 22,
-   "gain": -3,
-   "fadeIn": 1.5,
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/90e9e34ce854c29224f344e4a112f0fb.mp3",
+   "name": "eerie riser A \u2014 swells through the ghost and the mirror, stops before \"I don't know who I am\"",
+   "in": 0,
+   "out": 13.0,
+   "gain": -2,
+   "fadeIn": 1,
    "fadeOut": 0.15,
    "anchor": {
     "piece": "ghost",
-    "offset": 0
+    "offset": 4.5
    }
   },
   {
    "key": "bedB",
-   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a09fcc852c696c4d3abb5747b49919b0.mp3",
-   "name": "eerie riser B \u2014 builds from the purple pill to \"let's see\", stops before \"very good\"",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/90e9e34ce854c29224f344e4a112f0fb.mp3",
+   "name": "eerie riser B \u2014 swells from the bathroom to \"let's see\", stops before \"very good\"",
    "in": 0,
-   "out": 22,
-   "gain": -3,
-   "fadeIn": 2,
+   "out": 13.0,
+   "gain": -2,
+   "fadeIn": 1,
    "fadeOut": 0.15,
    "anchor": {
     "piece": "pill",
-    "offset": 0
+    "offset": 9.2
    }
   }
  ]

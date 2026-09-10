@@ -13,12 +13,15 @@ Editor: https://imageforge-q125.onrender.com/filmeditor?c=pxan7kLF6I7iMWxlVb5C
   Mary and Juanita, the scale) plus one new card for the end (Francesca at the
   window). Title cards (`trailer-card-t1..t4.png`, black, her words lowercase)
   and the end card are in the Dump under "Hospital night → trailer cards".
-- The eerie riser is ONE ElevenLabs sound-generation clip (22s,
-  `drops/_/a09fcc852c696c4d3abb5747b49919b0.mp3`, Dump "Hospital night →
-  trailer sound"), used twice: `bedA` anchored to the ghost piece and stopping
-  0.15s before "I don't know who I am anymore"; `bedB` anchored to the purple
-  pill and stopping before "Very good." Both at -3 dB (measured: -6 sat under
-  the dialogue).
+- The eerie riser is ONE ElevenLabs sound-generation clip (v2, 22s,
+  `drops/_/90e9e34ce854c29224f344e4a112f0fb.mp3`, Dump "Hospital night →
+  trailer sound"), used twice at -2 dB. MEASURED: a generated "riser" peaks
+  mid-way and fades (v1 peaked at 8s, v2 at 12s), so only its first 13s ride —
+  the build — anchored so it ENDS on the stop: `bedA` on the ghost piece +4.5s,
+  stopping 0.15s before "I don't know who I am anymore"; `bedB` on the purple
+  pill +9.2s, stopping before "Very good." Per-2s RMS of the render climbs
+  -32 → -21 dB into the first stop and -36 → -16 into the second. v1
+  (`a09fcc852c…mp3`) is in the same Dump bundle, unused.
 - Substitutions, named: "Francesca kicked out of class" = Yolanda scolded in
   music class (s18 18.3–21.8; the seated woman is the Francesca description);
   "Michael: I know what you mean" = the hallway walk's "I know the feeling";
