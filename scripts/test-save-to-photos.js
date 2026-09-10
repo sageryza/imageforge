@@ -55,6 +55,22 @@ ok('a failure carries Photos’ own words', /case \.failed\(let why\)/.test(brid
 ok('the toast text is JSON-encoded, not interpolated between quotes',
    /JSONSerialization\.data\(withJSONObject/.test(bridge) && !/__saveResult\(\\\(ok\), '/.test(bridge));
 
+console.log('\nA clip goes to VideoSaver, not to PhotoSaver');
+// 2026-09-10, Sophie on the Footage page's save link: "shud save directly to
+// my photos". Photos takes a video only as a FILE added as a `.video`
+// resource, so raw Data through PhotoSaver can never save one — the bridge
+// has to route it. WHICH it is is asked of the url and then of the server,
+// never of the page: the body stays a plain String, so an older page posting
+// an image url is unchanged.
+ok('the bridge routes a video through VideoSaver', /VideoSaver\.shared\.save\(from:/.test(bridge));
+ok('it decides by extension, then by the server\u2019s Content-Type',
+   /videoExts/.test(bridge) && /httpMethod = "HEAD"/.test(bridge) &&
+   /hasPrefix\("video\/"\)/.test(bridge));
+ok('a HEAD it cannot read answers "not a video" (the picture path reports Photos\u2019 own words)',
+   /else \{ return false \}/.test(bridge));
+ok('the video path reports its own outcome, denied and failed included',
+   /VideoSaver\.shared\.save\(from: url\)[\s\S]{0,600}case \.denied:[\s\S]{0,200}offerPhotosSettings/.test(bridge));
+
 console.log('\nEvery web tool with a Save icon uses it');
 // The two wrappers whose page draws a Save icon. Named, not sniffed: after the
 // fix neither file contains the string "forgeSave" at all, so a sweep keyed on
@@ -66,6 +82,18 @@ for (const f of ['PlaygroundView.swift', 'MetaAssetsView.swift']) {
      /var saveHandler: ForgeSaveHandler\?/.test(src) &&
      /coordinator\.saveHandler = ForgeSaveBridge\.install/.test(src));
 }
+// AND EVERY GATED WEB TOOL GETS IT FROM ONE PLACE (2026-09-10). Installing it
+// per tool is what left /footage — and every other page under this wrapper —
+// with nothing better than a download link.
+{
+  const src = read(path.join(IOS, 'GatedWebTool.swift'));
+  ok('GatedWebTool installs the shared bridge for every page it hosts',
+     /ForgeSaveBridge\.install\(into: config\)/.test(src));
+  ok('GatedWebTool retains the handler (addScriptMessageHandler does not)',
+     /var saveHandler: ForgeSaveHandler\?/.test(src) &&
+     /coordinator\.saveHandler = ForgeSaveBridge\.install/.test(src));
+}
+
 // And nobody may register the name by hand again — that is how the two copies
 // drifted apart in the first place.
 const handRolled = swiftFiles(IOS)
@@ -91,7 +119,22 @@ const offenders = [];
 ok('no UIImageWriteToSavedPhotosAlbum(_, nil, nil, nil)', offenders.length === 0, offenders.join(', '));
 
 console.log('\nThe page half');
-for (const name of ['promptlab.html', 'assets.html']) {
+// THE FOOTAGE PAGE saves a CLIP the same three ways (native bridge → the
+// share sheet with the bytes already in hand → a plain download).
+{
+  const src = read(path.join(ROOT, 'public', 'footage.html'));
+  ok('footage.html prefers the native bridge', /nativeSaver\(\)/.test(src) && /postMessage\(url\)/.test(src));
+  ok('footage.html says what happened on every path', /window\.__saveResult\s*=/.test(src));
+  ok('save is a button, never a bare link to the clip',
+     /class="save"/.test(src) && !/>save<\/a>/.test(src));
+  ok('the share sheet is only offered with the bytes already fetched',
+     /primeSave\(/.test(src) && /pointerdown/.test(src));
+}
+
+// assets.html's own copy moved into the SHARED /asset-actions.js (2026-08-31,
+// the one doors row) — this had been red on main ever since, which is the
+// "a test left behind by a move" shape. It follows the code.
+for (const name of ['promptlab.html', 'asset-actions.js']) {
   const src = read(path.join(ROOT, 'public', name));
   ok(name + ' prefers the native bridge', /nativeSaver\(\)/.test(src) && /postMessage\(url\)/.test(src));
   // A .webp name on png bytes is what the share sheet saves it as, and Photos

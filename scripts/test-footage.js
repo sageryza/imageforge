@@ -998,7 +998,7 @@ async function pillSweep(pg, where) {
   const marks = await page.evaluate(() => {
     const cards = [...document.querySelectorAll('#feed .job')];
     const has = (el) => !!el.querySelector('.acts .note');
-    const drawn = (el) => !!el.querySelector('.acts a[href*="clip"]');   // the save link only exists with a url
+    const drawn = (el) => !!el.querySelector('.acts .save');   // save only exists with a url
     return {
       withVideo: !!document.querySelector('#job-old1 .acts .note'),
       everyDrawn: cards.filter(drawn).every(has),
