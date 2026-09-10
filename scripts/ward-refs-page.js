@@ -23,7 +23,7 @@ const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const CHAT = 'pajama-assets';
 const SESSION = (process.env.CLAUDE_CODE_REMOTE_SESSION_ID || '').replace(/^cse_/, '')
   || '01Xz9f7vZGF8Nz4xsfThS2g8';
-const TITLE = 'The ward film — every reference (v4)';
+const TITLE = 'The ward film — every reference (v5)';
 
 const D = path.join(__dirname, '..', 'docs', 'mental-hospital');
 const cast = JSON.parse(fs.readFileSync(path.join(D, 'refs', 'cast.json'), 'utf8'));
@@ -58,6 +58,7 @@ groups.push({ label: 'People — from the footage', items: [
   { id: 'cast-white-coat', label: 'The white-coat nurse', img: P['the-white-coat-nurse'].current },
   { id: 'cast-mayra', label: 'Mayra', img: P.mayra.current },
   { id: 'cast-parents', label: 'The parents', img: P['the-parents'].current },
+  { id: 'cast-juanita', label: 'Juanita', img: P.juanita.current },
 ] });
 
 // ---- Sophie ----------------------------------------------------------------
@@ -86,6 +87,11 @@ groups.push({ label: 'Settings', items: [
 
 // ---- clips ------------------------------------------------------------------
 // The people who exist only as footage, and the two Juanita takes.
+// Juanita's own stills, cut out of the first take by the juanita-clips chat
+groups.push({ label: 'Juanita — her frames', items: Object.entries(P.juanita.also).map(([k, u]) => (
+  { id: 'jf-' + k.slice(0, 14).replace(/[^a-z0-9-]/g, ''), label: k.replace(/^juanita-/, '').replace(/-/g, ' ').replace(/^(\d+) (\d+)s/, '$1.$2s'), img: u }
+)) });
+
 groups.push({ label: 'Juanita', items: [
   { id: 'clip-juanita-cut',
     label: 'Juanita, her scenes only',
