@@ -1,14 +1,13 @@
 #!/usr/bin/env node
-/* FOOTAGE — THE RECENT BOX KEEPS VIDEOS, NOT JUST STILLS (2026-09-10, Sophie).
+/* FOOTAGE — THE RECENT BOX IS WHAT SHE UPLOADED (2026-09-10, Sophie:
+   "take out trimmed clips from recents" → "recents is recent UPLOADED" →
+   "uploaded videos").
 
-   The history drawer used to list the REFERENCES off earlier cards only, and
-   her references are mostly stills — so the one video this draft keeps
-   needing, the shot before, was never in the box, and the two video refs that
-   were in it drew their POSTER and read as stills.
-
-   So: a finished clip of hers is listed with its job, ahead of that job's own
-   references, and anything that is a video wears a small film mark over its
-   poster.
+   For a few hours that morning the drawer also listed a job's own finished
+   clip and its baked last frame, at her ask, and she took both back out the
+   same day. So the contract is: the REFERENCES she has attached — stills and
+   videos alike, newest job first, one tile per url — and nothing the door
+   drew. The outputs belong to the wall.
 
    Every assertion here is a MEASUREMENT of the rendered drawer or of what the
    send really POSTs: a tile that draws a poster and a tile that draws a poster
@@ -48,8 +47,8 @@ const F = require('../footage');
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
 const posted = [];
 
-// Newest first as the feed answers it. `mine` is the clip she made, `refs`
-// what rode with it — the drawer must interleave the two by job.
+// Newest first as the feed answers it. Every job carries a `video` (and some
+// a `lastFrame`) that must NEVER reach the drawer; `refs` is what does.
 let jobs = [
   { id: 'newest', prompt: 'the ward corridor', model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud',
     seconds: 4, resolution: '480p', ratio: '16:9', sound: true, status: 'done',
@@ -70,8 +69,8 @@ let jobs = [
   { id: 'drawing', prompt: 'still going', model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud',
     seconds: 4, resolution: '480p', ratio: '16:9', sound: true, status: 'drawing',
     refs: [], sentAt: '2026-09-10T06:30:00.000Z', vote: '' },
-  // TRIMMED — cut for the film, so the clip is out of the box (2026-09-10,
-  // Sophie: "take out trimmed clips from recents"). Its own reference stays.
+  // trimmed — its clip is out of the box like every other clip; its own
+  // reference stays
   { id: 'trimmed', prompt: 'the one she cut', model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud',
     seconds: 4, resolution: '480p', ratio: '16:9', sound: true, status: 'done',
     video: 'http://127.0.0.1:PORT/trim-part1.mp4', source: 'http://127.0.0.1:PORT/whole.mp4',
@@ -80,14 +79,15 @@ let jobs = [
     trims: [{ start: 0.5, end: 2.5, seconds: 2, key: 'k1', status: 'ready', url: 'http://127.0.0.1:PORT/trim-part1.mp4', poster: 'http://127.0.0.1:PORT/ref.png' }],
     refs: [{ url: 'http://127.0.0.1:PORT/trim-ref.png', kind: 'image' }],
     sentAt: '2026-09-10T06:45:00.000Z', vote: '', hidden: false },
-  // trimming, nothing baked yet — it has cut nothing, so the clip still rides
+  // trimming, nothing baked yet — its clip is out of the box too
   { id: 'baking', prompt: 'mid-trim', model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud',
     seconds: 4, resolution: '480p', ratio: '16:9', sound: true, status: 'done',
     video: 'http://127.0.0.1:PORT/baking.mp4', source: 'http://127.0.0.1:PORT/baking.mp4',
     poster: 'http://127.0.0.1:PORT/ref.png',
     trims: [{ start: 0, end: 2, seconds: 2, key: 'k2', status: 'baking', url: '', poster: '' }],
     refs: [], sentAt: '2026-09-10T06:40:00.000Z', vote: '', hidden: false },
-  // its clip was ALSO used as a reference later — one tile, never two
+  // its clip was ALSO used as a reference on the newest job — the REFERENCE
+  // is what the drawer lists, once
   { id: 'older', prompt: 'the socks', model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud',
     seconds: 4, resolution: '480p', ratio: '16:9', sound: true, status: 'done',
     video: 'http://127.0.0.1:PORT/shot-before.mp4', poster: 'http://127.0.0.1:PORT/ref.png',
@@ -149,87 +149,55 @@ const server = http.createServer((req, res) => {
     w: Math.round(e.getBoundingClientRect().width),
   })));
 
-  // HER OWN CLIP IS IN THE BOX, and it leads — the shot she just drew is what
-  // the next one is chained from.
-  ok('her own finished clip is offered', tiles.some((t) => t.title === 'Attach this clip'));
-  ok('the newest clip is the FIRST tile', tiles[0] && tiles[0].title === 'Attach this clip');
-  ok('the clip sits ahead of that job\'s own references',
-    tiles.findIndex((t) => t.title === 'Attach this clip') < tiles.findIndex((t) => t.title === 'Attach again'));
+  // NOTHING THE DOOR DREW IS IN THE BOX — measured off what the tiles really
+  // point at and what they are labelled, since a clip's poster and a still
+  // reference are the same markup to any source assertion.
+  const srcs = await page.$$eval('#recent .rc img', (els) => els.map((e) => e.src));
+  const labels = await page.$$eval('#recent .rc', (els) => els.map((e) => e.getAttribute('aria-label') || ''));
+  ok('the box is not empty', tiles.length > 0);
+  ok('no finished clip of hers is offered',
+    !srcs.some((u) => /mine-newest\.mp4|exed\.mp4|baking\.mp4|trim-part1\.mp4|whole\.mp4/.test(u))
+    && !labels.some((a) => /Attach this clip/.test(a)));
+  ok('no baked last frame is offered either',
+    !srcs.some((u) => /last-newest\.png|last-trimmed\.png/.test(u))
+    && !labels.some((a) => /Attach the last frame/.test(a)));
+  ok('every tile says the same thing — attach it again', tiles.every((t) => t.title === 'Attach again'));
+
+  // WHAT IS IN IT: her references, newest job first.
+  ok('an uploaded still is offered', srcs.some((u) => /still\.png/.test(u)));
+  ok('an uploaded video is offered', labels.some((a) => /the shot before/.test(a)));
+  ok('a reference off an older job is offered too', srcs.some((u) => /trim-ref\.png/.test(u)));
+  ok('exactly the four distinct references, and no more',
+    (await page.$$eval('#recent .rc', (els) => els.length)) === 4);
 
   // A VIDEO READS AS A VIDEO — measured, since a poster and a still are the
   // same picture to any markup assertion.
   const badged = tiles.filter((t) => t.badge);
-  ok('a video with a poster wears the film mark', badged.length >= 2 && badged.every((t) => t.pic));
+  ok('a video reference with a poster wears the film mark', badged.length === 1 && badged.every((t) => t.pic));
   ok('an image reference wears no mark', tiles.some((t) => t.pic && !t.badge && /still\.png/.test(t.src)));
   ok('a video with no poster draws the film glyph and needs no mark',
     tiles.some((t) => t.glyph && !t.badge));
   ok('every tile is the same 52px square', tiles.length > 0 && tiles.every((t) => t.w === 52));
 
-  // WHAT IS NOT OFFERED
-  const n = await page.$$eval('#recent .rc', (els) => els.length);
-  ok('a crossed-out clip is not offered', !(await page.$$eval('#recent .rc img', (els) => els.map((e) => e.src))).some((s) => /exed\.mp4/.test(s)) && n > 0);
-  ok('a clip still drawing is not offered — there is nothing to attach yet',
-    (await page.$$eval('#recent .rc', (els) => els.length)) === 7);
-  // A TRIMMED CLIP IS OUT — measured off what the tiles really point at, since
-  // a tile drawing the same poster as its reference is the same markup.
-  const srcs = await page.$$eval('#recent .rc img', (els) => els.map((e) => e.src));
-  ok('a trimmed clip is not offered', !srcs.some((s) => /trim-part1\.mp4|whole\.mp4/.test(s))
-    && !(await page.$$eval('#recent .rc', (els) => els.map((e) => e.getAttribute('aria-label') || ''))).some((a) => /the one she cut/.test(a)));
-  ok('but that job\'s own references still are', srcs.some((s) => /trim-ref\.png/.test(s)));
-  ok('a clip whose trim is still baking is offered — nothing is cut yet',
-    (await page.$$eval('#recent .rc', (els) => els.map((e) => e.getAttribute('aria-label') || ''))).some((a) => /mid-trim/.test(a)));
-  // THE LAST FRAME (2026-09-10, Sophie: "on") — the chaining still, right
-  // behind the clip it came off. Measured off the rendered tile, since a
-  // frame that is listed and a frame that is only on the card are the same
-  // markup to any source assertion.
-  ok('the clip\'s last frame is offered', tiles.some((t) => t.title === 'Attach the last frame'));
-  ok('and it sits directly behind its own clip',
-    tiles.findIndex((t) => t.title === 'Attach the last frame') === tiles.findIndex((t) => t.title === 'Attach this clip') + 1);
-  ok('it reads as a PICTURE — no film mark, since it is a still',
-    tiles.some((t) => t.title === 'Attach the last frame' && t.pic && !t.badge && /last-newest\.png/.test(t.src)));
-  // A TRIMMED CLIP'S FRAME IS WHERE THE SOURCE ENDS, NOT WHERE THE TRIM DOES
-  // — chaining from it would be one shot out of step.
-  ok('a trimmed clip\'s last frame is not offered either', !srcs.some((s2) => /last-trimmed\.png/.test(s2)));
-
-  // ONE TILE PER URL: `shot-before.mp4` is the older job's clip AND a
-  // reference on the newest one.
-  const labels = await page.$$eval('#recent .rc', (els) => els.map((e) => e.getAttribute('aria-label') || ''));
-  ok('a clip that was also used as a reference is listed once',
+  // ONE TILE PER URL: `shot-before.mp4` is a reference on the newest job AND
+  // the older job's own clip — the reference is what shows, once.
+  ok('a url used twice is listed once',
     labels.filter((a) => /the shot before/.test(a)).length === 1 && !labels.some((a) => /the socks/.test(a)));
 
   // THE TAP HAS TO REACH THE REQUEST — a lit thumb says nothing about what
   // left the phone.
-  await page.click('#recent .rc');
+  const vidIdx = labels.findIndex((a) => /the shot before/.test(a));
+  await page.$$eval('#recent .rc', (els, i) => els[i].click(), vidIdx);
   await page.waitForSelector('#refs .ref');
-  ok('attaching a clip names it as a VIDEO slot', (await page.$eval('#refs .slot', (e) => e.textContent)) === '[Video1]');
+  ok('attaching a video reference names it as a VIDEO slot', (await page.$eval('#refs .slot', (e) => e.textContent)) === '[Video1]');
   await page.fill('#prompt', 'the same room, one shot later');
   await page.click('#go');
   await page.waitForTimeout(300);
   const sent = posted[0] || {};
   const vids = (sent.refs || []).filter((r) => r.kind === 'video').map((r) => r.url);
-  ok('the clip really rides the job as a reference video', vids.some((v) => /mine-newest\.mp4/.test(v)));
+  ok('it really rides the job as a reference video', vids.some((v) => /shot-before\.mp4/.test(v)));
   ok('and it carries its poster, so the strip shows the frame she picked',
-    (sent.refs || []).some((r) => /mine-newest\.mp4/.test(r.url) && /ref\.png/.test(r.poster || '')));
-
-  // AND THE LAST FRAME RIDES AS AN IMAGE SLOT — a lit thumb says nothing
-  // about what left the phone, and the kind is what decides whether the door
-  // screens it as a person VIDEO.
-  await page.click('#rectog');
-  await page.waitForTimeout(150);
-  const tailIdx = await page.$$eval('#recent .rc', (els) => els.findIndex((e) => e.title === 'Attach the last frame'));
-  ok('the last frame is still in the box after a send', tailIdx >= 0);
-  if (tailIdx >= 0) {
-    await page.$$eval('#recent .rc', (els, i) => els[i].click(), tailIdx);
-    await page.waitForTimeout(150);
-    const slots = await page.$$eval('#refs .slot', (els) => els.map((e) => e.textContent));
-    ok('attaching the last frame names it as an IMAGE slot', slots.some((t) => /^\[Image\d+\]$/.test(t)));
-    await page.fill('#prompt', 'the same room, the next beat');
-    await page.click('#go');
-    await page.waitForTimeout(300);
-    const sent2 = posted[1] || {};
-    ok('the last frame really rides the job as a reference image',
-      (sent2.refs || []).some((r) => r.kind === 'image' && /last-newest\.png/.test(r.url)));
-  }
+    (sent.refs || []).some((r) => /shot-before\.mp4/.test(r.url) && /ref\.png/.test(r.poster || '')));
 
   await browser.close();
   server.close();
