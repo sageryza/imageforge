@@ -307,9 +307,24 @@ async function startVideo(b, extra) {
 
 // The poll, as a function: reads the prediction, mirrors the clip once on
 // completion, patches the log. Answers { id, status, video, tokens, raw, patch }.
+// Atlas answers a FAILED prediction with HTTP 400 — the same record any
+// other status comes back under 200 with, `data.status:'failed'` and the
+// error text — so a refused job used to READ as a transport error here:
+// `api()` threw, `pollOne` swallowed it, and the card said "drawing" forever
+// (measured 2026-09-10: four clips refused in under two seconds — "Total
+// duration of all reference videos must not exceed 15.2 seconds" — still
+// drawing on her page twenty minutes later). A body carrying a prediction
+// record IS the answer, whatever the status line says.
+function failedRecord(e) {
+  let j;
+  try { j = JSON.parse(String((e && e.body) || '')); } catch { return null; }
+  return j && j.data && j.data.status ? j : null;
+}
 async function pollVideo(id) {
   id = String(id);
-  const j = await api(`/model/prediction/${encodeURIComponent(id)}`);
+  let j;
+  try { j = await api(`/model/prediction/${encodeURIComponent(id)}`); }
+  catch (e) { j = failedRecord(e); if (!j) throw e; }
   const d = (j && j.data) || {};
   const status = apiframeStatus(d.status);
   const out = Array.isArray(d.outputs) ? d.outputs.filter(Boolean) : [];
@@ -371,6 +386,6 @@ module.exports = {
   router,
   configured: () => Boolean(KEY),
   buildRequest, modelIdOf, apiframeStatus, refusalKind, splitOutputs,
-  api, startVideo, pollVideo,
+  api, startVideo, pollVideo, failedRecord,
   MODELS, DEFAULT_MODEL, RESOLUTIONS, RATIOS, APIFRAME_ROUTE,
 };
