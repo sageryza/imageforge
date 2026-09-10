@@ -494,7 +494,7 @@
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
   <p><b>The seed</b> is on every finished clip, with a button that puts it back in the box. Leave the box blank and each clip gets a fresh one. A seed repeats the <i>opening</i> of a short clip and then drifts &mdash; it does not survive a changed prompt or a different size, and at 15 seconds it does close to nothing.</p>
-  <p><b>Tiles.</b> Each one carries two doors in the middle: <b>&#9654;</b> plays the clip, and the list mark beside it takes you to that clip&rsquo;s card &mdash; its words, its seed, its references and the button that puts them back. The first words of whatever was last said about a clip sit along the top of its tile.</p>
+  <p><b>Tiles.</b> Each one carries two doors in the middle: <b>&#9654;</b> plays the clip, and the list mark beside it takes you to that clip&rsquo;s card &mdash; its words, its seed, its references and the button that puts them back. The first words of your own newest note on a clip sit along the top of its tile.</p>
   <p><b>Notes.</b> The speech mark on a clip opens a note; playing one and tapping it pauses the film and notes the second you stopped on. Either way it lands in the one place chats read their notes, and a chat answers on the note itself.</p>
   <p>What is left is on the Atlas console &mdash; it has no balance to read from here.</p>
 </div>
@@ -1353,19 +1353,23 @@ function paintThread(el, j) {
   var b = el.querySelector('.acts .note');
   if (b) b.classList.toggle('has', th.length > 0);
 }
-// THE FIRST WORDS OF THE NOTE, ON TOP OF THE TILE (2026-09-10, Sophie: "i
+// THE FIRST WORDS OF HER NOTE, ON TOP OF THE TILE (2026-09-10, Sophie: "i
 // also wanted notes to show as the firs words that fit on just the top of the
-// tile"). The NEWEST message in the thread, whoever wrote it — that is where
-// the conversation on this clip stands, and it is what tells one poster from
-// the next when she is scanning for the one she said something about. "The
-// words that fit" is the browser's own answer (one line, ellipsis); a
-// character count would be guessing at a width that changes with the column
-// count. Painted here rather than in renderTiles so it stays OUT of the
-// wall's signature — a note landing must never re-decode a wall of posters.
+// tile" · "just my notes · not claude's"). HER newest message, never a chat's
+// answer: the strip is what tells one poster from the next when she is
+// scanning for the one SHE said something about, and a chat's reply is the
+// answer to a question she already knows she asked. The whole exchange is on
+// the card. "Hers" is anything not stamped `chat`, which is exactly how
+// `paintThread` draws the same thread one function up — one page, one meaning
+// of whose words those are, so a legacy note carrying no `from` reads as hers
+// in both places. "The words that fit" is the browser's own answer (one line,
+// ellipsis); a character count would be guessing at a width that changes with
+// the column count. Painted here rather than in renderTiles so it stays OUT of
+// the wall's signature — a note landing must never re-decode a wall of posters.
 function paintTileNote(el, j) {
   var host = el.querySelector('.tnote');
   if (!host) return;
-  var th = threadFor(j);
+  var th = threadFor(j).filter(function (m) { return m && m.from !== 'chat'; });
   var last = th.length ? th[th.length - 1] : null;
   var txt = last ? String(last.text || '').replace(/\s+/g, ' ').trim() : '';
   if (host.__txt !== txt) { host.__txt = txt; host.textContent = txt; }
