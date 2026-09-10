@@ -7434,8 +7434,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **One log**: both doors are called in process (`startVideo`/`pollVideo`,
   exported from `openrouter.js` and `apiframe.js`) and file the same
   `forge-video-jobs` doc, `chat:'footage'`, so the 1080p redo reads it like any
-  chat's. The server polls the unfinished jobs itself (12s throttle per job)
-  and bakes a poster, so the feed resumes from any phone. **The price is
+  chat's. The server asks the door about an unfinished job **on request, never
+  on a timer** — `pollOne` is called from `GET /jobs` and nowhere else — so
+  the feed resumes from any phone, and with NO page open nothing is polled at
+  all (the clip still finishes at the door; the server learns of it the next
+  time someone looks). The page asks every 4-7s while anything is drawing and
+  `POLL_EVERY_MS` (12s per job) caps how much of that reaches the door, so a
+  job's `doneAt` is when it was first NOTICED done — up to 12s late with the
+  page open, and arbitrarily late without it. **Read a draw time off `doneAt`
+  with that in mind** (measured 2026-09-10 over the 28 completed clips: a
+  median ~111s for 4s and ~160s for 15s, and one 12s clip reading 28 minutes
+  because nobody was looking). It bakes a poster on the same pass. **The price is
   SERVED** (`GET /estimate`, the model table on `GET /status`) — the page holds
   no cost figure at all, and a test pins that. Seconds and resolution open at
   the minimum on every load; the model and the shape are remembered. Nothing is
