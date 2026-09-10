@@ -353,7 +353,18 @@
   .trimbar{flex:none;width:100%;max-width:520px;display:flex;flex-direction:column;gap:8px;color:#f6f2ea;
            background:#141110;border-top:1px solid rgba(255,255,255,.13);
            padding:10px 14px calc(12px + env(safe-area-inset-bottom))}
-  .trimbar .strip{position:relative;height:10px;border-radius:6px;background:rgba(255,255,255,.17)}
+  /* THE STRIP IS A CONTROL — TAP IT TO PUT THE PLAYHEAD THERE (2026-09-10,
+     Sophie: "can you make it so I can tap where the play head goes"). It
+     shipped as a READ-OUT on the reasoning that the video's own scrubber
+     already seeks and a second scrubber over it is one control saying two
+     things; she overruled it the same morning, so that reasoning is HISTORY,
+     not a rule — do not turn it back into a read-out.
+     The BAND is the target and the BAR is the picture: a 10px bar is far under
+     any tap target, so the button is 34px tall with the bar drawn inside it —
+     the size is bought without making the mark heavier or moving a row. */
+  .trimbar .striphit{width:100%;height:34px;padding:0;border:none;background:none;
+                     display:flex;align-items:center;border-radius:6px}
+  .trimbar .strip{position:relative;width:100%;height:10px;border-radius:6px;background:rgba(255,255,255,.17)}
   .trimbar .keep{position:absolute;top:0;bottom:0;background:#c96a5e;border-radius:6px}
   .trimbar .head{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;border-radius:1px}
   .trimbar .tspan{font-size:12.5px;text-align:center;color:#e7dfd2;min-height:16px}
@@ -451,7 +462,7 @@
 <div id="player" hidden><button class="pclose" type="button" aria-label="Close"></button>
   <div class="pstage"></div>
   <div class="trimbar" id="trimbar" hidden>
-    <div class="strip"><span class="keep" id="tkeep"></span><span class="head" id="thead"></span></div>
+    <button type="button" class="striphit" id="tstrip" aria-label="Tap to put the playhead here"><span class="strip"><span class="keep" id="tkeep"></span><span class="head" id="thead"></span></span></button>
     <div class="tspan" id="tspan"></div>
     <div class="trow">
       <button type="button" class="tstep" id="tback" aria-label="Back a tenth of a second" title="Back 0.1s">&lsaquo;</button>
@@ -1480,11 +1491,12 @@ document.addEventListener('visibilitychange', function () {
 //     undone; opening the trimmed copy would make every later mark mean
 //     something different and lose a generation of quality per pass.
 //   · EVERYTHING IS A TAP — Cut Marks' rule, and hers. Nothing drags: the
-//     marks land at the playhead, and the two steppers walk the playhead a
-//     tenth of a second at a time so a mark can be placed exactly without a
-//     handle to catch. The STRIP is a read-out, not a control: the video's
-//     own scrubber already seeks, and a second scrubber over it is one
-//     control saying two things.
+//     marks land at the playhead, TAPPING THE STRIP puts the playhead where
+//     she tapped, and the two steppers walk it a tenth of a second at a time
+//     so a mark can be placed exactly without a handle to catch. (The strip
+//     shipped as a READ-OUT — "the video's own scrubber already seeks" — and
+//     she overruled that the same morning: "can you make it so I can tap
+//     where the play head goes". That reasoning is HISTORY, not a rule.)
 //   · PLAYING PLAYS THE SPAN, AND LOOPS IT — that is how she judges a trim
 //     before she commits it — but SCRUBBING IS NEVER YANKED, or finding the
 //     out-mark would be a fight with the loop.
@@ -1627,6 +1639,19 @@ function stepHead(by) {
   try { TR.v.currentTime = Math.min(Math.max((TR.v.currentTime || 0) + by, 0), TR.dur); } catch (e) {}
   paintHead();
 }
+// TAP THE STRIP AND THE PLAYHEAD GOES THERE (her ask). Measured off the BAR's
+// own rect, never the button's, so the band around it can grow without moving
+// where a tap lands. It PAUSES, like the steppers: a tap on the strip is her
+// looking for a frame to mark, not asking to watch from there.
+$('tstrip').addEventListener('click', function (e) {
+  if (!TR || !TR.dur) return;
+  var r = $('tstrip').querySelector('.strip').getBoundingClientRect();
+  if (!r.width) return;
+  var f = Math.min(Math.max((e.clientX - r.left) / r.width, 0), 1);
+  try { TR.v.pause(); } catch (err) {}
+  try { TR.v.currentTime = r3(f * TR.dur); } catch (err) {}
+  paintHead();
+});
 $('tin').addEventListener('click', function () { setMark('in'); });
 $('tout').addEventListener('click', function () { setMark('out'); });
 $('tback').addEventListener('click', function () { stepHead(-0.1); });

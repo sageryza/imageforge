@@ -584,10 +584,16 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         its own length**, not the seconds she asked the door for (a clip is
         24·s + 1 frames), so the out-mark is CLAMPED to what ffprobe reads
         rather than refused against the ask.
-      - **EVERYTHING IS A TAP** — Cut Marks' rule. Nothing drags; the strip is
-        a read-out, not a control, because the video's own scrubber already
-        seeks and a second scrubber over it is one control saying two things.
-        Playing plays the SPAN and loops it — that is how a trim is judged
+      - **EVERYTHING IS A TAP** — Cut Marks' rule. Nothing drags: the marks
+        land at the playhead, **tapping the strip puts the playhead where she
+        tapped** (2026-09-10, Sophie: "can you make it so I can tap where the
+        play head goes"), and the steppers walk it a tenth of a second at a
+        time. The strip shipped as a READ-OUT — "the video's own scrubber
+        already seeks" — and she overruled it the same morning, so that is
+        HISTORY, not a rule. The BAND is the target and the BAR is the
+        picture: 34px tall with the 10px mark drawn inside it, the fraction
+        measured off the BAR's own rect so the band can grow without moving
+        where a tap lands, and it pauses like the steppers. Playing plays the SPAN and loops it — that is how a trim is judged
         before it is committed — but **scrubbing is never yanked**, or finding
         the out-mark would be a fight with the loop. The button's meaning
         follows the marks: at the two ends of a trimmed clip it is **Undo the
