@@ -1,0 +1,515 @@
+{
+ "_note": "hub.py reads this — one Lucide icon name and one word per card key in jobs.json. Change a pair here, re-run hub.py; keys starting with _ are ignored. The words must all be different (hub.py fails the build on a duplicate).",
+ "e1-01": {
+  "icon": "bus",
+  "word": "bus"
+ },
+ "e1-02": {
+  "icon": "footprints",
+  "word": "sprint"
+ },
+ "e1-03": {
+  "icon": "heart-handshake",
+  "word": "hug"
+ },
+ "e1-04": {
+  "icon": "house",
+  "word": "doorstep"
+ },
+ "e1-05": {
+  "icon": "key-round",
+  "word": "keys"
+ },
+ "e1-06": {
+  "icon": "sofa",
+  "word": "couch"
+ },
+ "e1-07": {
+  "icon": "eye-off",
+  "word": "faking"
+ },
+ "e1-08": {
+  "icon": "utensils",
+  "word": "dinner"
+ },
+ "e1-09": {
+  "icon": "warehouse",
+  "word": "storage"
+ },
+ "e1-10": {
+  "icon": "sunrise",
+  "word": "waking"
+ },
+ "e1-11": {
+  "icon": "layers",
+  "word": "layers"
+ },
+ "e1-12": {
+  "icon": "mountain",
+  "word": "hill"
+ },
+ "e1-13": {
+  "icon": "headphones",
+  "word": "hipster"
+ },
+ "e1-14": {
+  "icon": "tornado",
+  "word": "shelter"
+ },
+ "e1-15": {
+  "icon": "users",
+  "word": "search"
+ },
+ "e1-16": {
+  "icon": "bell-ring",
+  "word": "knock"
+ },
+ "e1-17": {
+  "icon": "skull",
+  "word": "poison"
+ },
+ "e1-18": {
+  "icon": "search",
+  "word": "found"
+ },
+ "e1-19": {
+  "icon": "armchair",
+  "word": "armchair"
+ },
+ "e1-20": {
+  "icon": "siren",
+  "word": "police"
+ },
+ "e1-21": {
+  "icon": "flask-conical",
+  "word": "chemistry"
+ },
+ "e1-22": {
+  "icon": "car",
+  "word": "backseat"
+ },
+ "e1-23": {
+  "icon": "umbrella",
+  "word": "raincoat"
+ },
+ "e2-01": {
+  "icon": "triangle-alert",
+  "word": "alert"
+ },
+ "e2-02": {
+  "icon": "ambulance",
+  "word": "stretcher"
+ },
+ "e2-03": {
+  "icon": "clipboard-list",
+  "word": "clipboard"
+ },
+ "e2-04": {
+  "icon": "file-warning",
+  "word": "diagnosis"
+ },
+ "e2-05": {
+  "icon": "bed",
+  "word": "insomnia"
+ },
+ "e2-06": {
+  "icon": "shower-head",
+  "word": "shower"
+ },
+ "e2-07": {
+  "icon": "tv",
+  "word": "tv"
+ },
+ "e2-08": {
+  "icon": "message-circle",
+  "word": "nautchaug"
+ },
+ "e2-09": {
+  "icon": "syringe",
+  "word": "needle"
+ },
+ "c-01": {
+  "icon": "log-in",
+  "word": "intake"
+ },
+ "c-02": {
+  "icon": "notebook-pen",
+  "word": "diaries"
+ },
+ "c-03": {
+  "icon": "notepad-text",
+  "word": "therapist"
+ },
+ "c-04": {
+  "icon": "trees",
+  "word": "escape"
+ },
+ "c-05": {
+  "icon": "lock",
+  "word": "padded"
+ },
+ "c-06": {
+  "icon": "cup-soda",
+  "word": "juice"
+ },
+ "c-07": {
+  "icon": "anchor",
+  "word": "pirate"
+ },
+ "c-08": {
+  "icon": "boxes",
+  "word": "armload"
+ },
+ "c-09": {
+  "icon": "dices",
+  "word": "dice"
+ },
+ "c-10": {
+  "icon": "eye",
+  "word": "watched"
+ },
+ "c-11": {
+  "icon": "heart",
+  "word": "kiss"
+ },
+ "c-12": {
+  "icon": "stethoscope",
+  "word": "match"
+ },
+ "c-13": {
+  "icon": "gavel",
+  "word": "lawsuit"
+ },
+ "c-14": {
+  "icon": "users-round",
+  "word": "group"
+ },
+ "c-15": {
+  "icon": "hourglass",
+  "word": "boredom"
+ },
+ "c-16": {
+  "icon": "banana",
+  "word": "bananas"
+ },
+ "c-17": {
+  "icon": "lasso",
+  "word": "noose"
+ },
+ "c-18": {
+  "icon": "door-closed",
+  "word": "slam"
+ },
+ "c-19": {
+  "icon": "heart-crack",
+  "word": "jealousy"
+ },
+ "c-20": {
+  "icon": "door-open",
+  "word": "goodbye"
+ },
+ "c-21": {
+  "icon": "phone",
+  "word": "phone"
+ },
+ "c-22": {
+  "icon": "cat",
+  "word": "leopard"
+ },
+ "n-01": {
+  "icon": "citrus",
+  "word": "orange"
+ },
+ "n-02": {
+  "icon": "spade",
+  "word": "poker"
+ },
+ "n-03": {
+  "icon": "hand-fist",
+  "word": "punches"
+ },
+ "n-04": {
+  "icon": "club",
+  "word": "rummy"
+ },
+ "n-05": {
+  "icon": "battery-charging",
+  "word": "adhd"
+ },
+ "n-06": {
+  "icon": "cigarette",
+  "word": "joint"
+ },
+ "n-07": {
+  "icon": "tag",
+  "word": "mattress"
+ },
+ "n-08": {
+  "icon": "circle-dashed",
+  "word": "hole"
+ },
+ "n-09": {
+  "icon": "lightbulb",
+  "word": "plan"
+ },
+ "n-10": {
+  "icon": "car-front",
+  "word": "wife"
+ },
+ "n-11": {
+  "icon": "cigarette-off",
+  "word": "broken"
+ },
+ "n-12": {
+  "icon": "droplets",
+  "word": "steam"
+ },
+ "f-01": {
+  "icon": "bath",
+  "word": "bath"
+ },
+ "f-02": {
+  "icon": "glasses",
+  "word": "reprimand"
+ },
+ "f-03": {
+  "icon": "cross",
+  "word": "praying"
+ },
+ "f-04": {
+  "icon": "phone-call",
+  "word": "dialing"
+ },
+ "f-05": {
+  "icon": "laugh",
+  "word": "laughing"
+ },
+ "f-06": {
+  "icon": "palette",
+  "word": "coloring"
+ },
+ "f-07": {
+  "icon": "shield",
+  "word": "defending"
+ },
+ "f-08": {
+  "icon": "cctv",
+  "word": "camera"
+ },
+ "f-09": {
+  "icon": "user-x",
+  "word": "missing"
+ },
+ "f-10": {
+  "icon": "gift",
+  "word": "visit"
+ },
+ "j-01": {
+  "icon": "church",
+  "word": "religion"
+ },
+ "j-02": {
+  "icon": "atom",
+  "word": "alchemy"
+ },
+ "j-03": {
+  "icon": "book-open",
+  "word": "books"
+ },
+ "j-04": {
+  "icon": "pill",
+  "word": "meds"
+ },
+ "j-05": {
+  "icon": "cake",
+  "word": "sixty"
+ },
+ "j-06": {
+  "icon": "angry",
+  "word": "anger"
+ },
+ "j-07": {
+  "icon": "scan-eye",
+  "word": "neon"
+ },
+ "j-08": {
+  "icon": "trash-2",
+  "word": "tidying"
+ },
+ "j-09": {
+  "icon": "coffee",
+  "word": "tea"
+ },
+ "j-10": {
+  "icon": "mic-off",
+  "word": "unsaid"
+ },
+ "j-11": {
+  "icon": "moon",
+  "word": "asleep"
+ },
+ "j-12": {
+  "icon": "shirt",
+  "word": "flash"
+ },
+ "j-13": {
+  "icon": "lock-keyhole",
+  "word": "alone"
+ },
+ "a-01": {
+  "icon": "user-plus",
+  "word": "arrival"
+ },
+ "a-02": {
+  "icon": "arrow-left-right",
+  "word": "pacing"
+ },
+ "a-03": {
+  "icon": "pill-bottle",
+  "word": "mouth"
+ },
+ "a-04": {
+  "icon": "blinds",
+  "word": "curtain"
+ },
+ "s-01": {
+  "icon": "clover",
+  "word": "seamus"
+ },
+ "s-02": {
+  "icon": "repeat-2",
+  "word": "memorized"
+ },
+ "s-03": {
+  "icon": "tablets",
+  "word": "pills"
+ },
+ "s-04": {
+  "icon": "droplet",
+  "word": "spitting"
+ },
+ "s-05": {
+  "icon": "dumbbell",
+  "word": "army"
+ },
+ "sb-01": {
+  "icon": "bed-double",
+  "word": "roommate"
+ },
+ "sb-02": {
+  "icon": "presentation",
+  "word": "chalk"
+ },
+ "sb-03": {
+  "icon": "shopping-basket",
+  "word": "hoarding"
+ },
+ "sb-04": {
+  "icon": "phone-outgoing",
+  "word": "boyfriend"
+ },
+ "x-01": {
+  "icon": "repeat",
+  "word": "swap"
+ },
+ "x-02": {
+  "icon": "sandwich",
+  "word": "lunch"
+ },
+ "x-03": {
+  "icon": "heart-off",
+  "word": "confess"
+ },
+ "x-04": {
+  "icon": "volume-x",
+  "word": "silence"
+ },
+ "x-05": {
+  "icon": "ban",
+  "word": "risperdal"
+ },
+ "x-06": {
+  "icon": "printer",
+  "word": "paper"
+ },
+ "x-07": {
+  "icon": "cloud",
+  "word": "staring"
+ },
+ "x-08": {
+  "icon": "radio",
+  "word": "theories"
+ },
+ "x-09": {
+  "icon": "tent",
+  "word": "sleepover"
+ },
+ "x-10": {
+  "icon": "music",
+  "word": "headsets"
+ },
+ "x-11": {
+  "icon": "languages",
+  "word": "accent"
+ },
+ "x-12": {
+  "icon": "hotel",
+  "word": "airbnb"
+ },
+ "x-13": {
+  "icon": "thumbs-up",
+  "word": "pep"
+ },
+ "x-14": {
+  "icon": "smile",
+  "word": "smile"
+ },
+ "x-15": {
+  "icon": "phone-incoming",
+  "word": "brother"
+ },
+ "x-16": {
+  "icon": "snowflake",
+  "word": "snow"
+ },
+ "x-17": {
+  "icon": "phone-off",
+  "word": "sade"
+ },
+ "x-18": {
+  "icon": "folder-open",
+  "word": "folder"
+ },
+ "x-19": {
+  "icon": "party-popper",
+  "word": "pendleton"
+ },
+ "x-20": {
+  "icon": "watch",
+  "word": "watch"
+ },
+ "x-21": {
+  "icon": "shield-alert",
+  "word": "careful"
+ },
+ "x-22": {
+  "icon": "soup",
+  "word": "soup"
+ },
+ "x-23": {
+  "icon": "lamp",
+  "word": "sleepless"
+ },
+ "x-24": {
+  "icon": "sun",
+  "word": "outside"
+ },
+ "x-25": {
+  "icon": "gem",
+  "word": "ring"
+ },
+ "x-26": {
+  "icon": "megaphone",
+  "word": "cheer"
+ }
+}

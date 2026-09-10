@@ -112,3 +112,13 @@ if os.environ.get('BELT_DRY'): print('dry — belt.html written, nothing posted'
 d=post('page',{'chat':CHAT,'title':'%s v%d'%(TITLE,ver),'html':page}); print(d.get('id'),d.get('warnings'))
 for old in state.get('ids',[]): post('page/'+old+'/supersede',{'superseded':True})
 json.dump({'ver':ver,'ids':[d['id']]},open(STATE,'w'))
+# AND THE SCENE HUB IS RE-POSTED RIGHT AFTER (2026-09-10). Every button on
+# /hub points at a card on THIS belt by page id, so a new belt version would
+# leave 128 links on a superseded page. hub.py is re-run from this directory
+# and can never fail the belt: its trouble is printed and nothing else.
+try:
+    import subprocess,sys
+    subprocess.run([sys.executable,'hub.py'],cwd=os.path.dirname(os.path.abspath(__file__)) or '.',check=False)
+except Exception as e:
+    print('hub not re-posted:',e)
+
