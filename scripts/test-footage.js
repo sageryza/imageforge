@@ -997,15 +997,31 @@ async function pillSweep(pg, where) {
   // Every assertion is a MEASUREMENT: a tap that switches the view and never
   // moves the window, one that lands on some other card, and one that also
   // opens the trimmer are the same markup to any source assertion.
-  await page.waitForFunction(() => document.querySelectorAll('#tiles .cell .face').length > 0);
+  await page.waitForFunction(() => document.querySelectorAll('#tiles .cell .tdoor').length > 0);
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(120);
-  ok('a tile promises the card, not the player — no play triangle over a poster',
-    await page.evaluate(() => {
-      const f = document.querySelector('#tiles .cell[data-id="old1"] .face');
-      return !!f.querySelector('img') && !f.querySelector('svg') && /^Open/.test(f.getAttribute('aria-label'));
-    }));
-  await page.click('#tiles .cell[data-id="old1"] .face');
+  // BOTH DOORS ARE ON THE TILE (2026-09-10, Sophie: "can u have a play button,
+  // and a list view button on tiles · so both options are available"), and the
+  // POSTER itself is not a third, hidden one.
+  const doors = await page.evaluate(() => {
+    const c = document.querySelector('#tiles .cell[data-id="old1"]');
+    const d = [...c.querySelectorAll('.tdoor')];
+    const face = c.querySelector('.face');
+    return { n: d.length, kinds: d.map((b) => b.className.replace('tdoor ', '')),
+      glyphs: d.every((b) => !!b.querySelector('svg')),
+      faceIsButton: face.tagName === 'BUTTON' || !!face.onclick,
+      poster: !!face.querySelector('img') };
+  });
+  ok('a tile carries a play door and a card door, both drawn ' + JSON.stringify(doors.kinds),
+    doors.n === 2 && doors.kinds.join(',') === 'play,card' && doors.glyphs);
+  ok('and the poster under them is not a third, hidden door', doors.poster && !doors.faceIsButton);
+  const noPlay = await page.evaluate(() => {
+    const c = [...document.querySelectorAll('#tiles .cell')].find((x) => !x.querySelector('.tdoor.play'));
+    return c ? { id: c.dataset.id, card: !!c.querySelector('.tdoor.card') } : null;
+  });
+  ok('a clip with nothing to play yet carries only the door it can honour ' + JSON.stringify(noPlay),
+    !!noPlay && noPlay.card);
+  await page.click('#tiles .cell[data-id="old1"] .tdoor.card');
   await page.waitForFunction(() => !document.getElementById('feed').hidden);
   ok('tapping it opens the LIST, and never the player',
     !(await page.$eval('#feed', (e) => e.hidden)) && (await page.$eval('#tiles', (e) => e.hidden))
@@ -1037,6 +1053,16 @@ async function pillSweep(pg, where) {
     await page.evaluate(() => new Promise((res) => setTimeout(
       () => res(!document.getElementById('job-old1').classList.contains('found')), 2000))));
   await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForSelector('#job-old1');
+  // the OTHER door on the same tile still plays it
+  await page.click('#v-tiles');
+  await page.waitForFunction(() => document.querySelectorAll('#tiles .cell .tdoor.play').length > 0);
+  await page.click('#tiles .cell[data-id="old1"] .tdoor.play');
+  await page.waitForFunction(() => !document.getElementById('player').hidden, { timeout: 5000 });
+  ok('the play door on the same tile still opens the player', true);
+  await page.evaluate(() => window.__navBack());
+  await page.waitForFunction(() => document.getElementById('player').hidden);
+  await page.click('#v-list');
   await page.waitForSelector('#job-old1');
 
   // ── NOTHING A DOOR SAYS MAY WIDEN THE PAGE ──────────────────────────────
@@ -1176,6 +1202,53 @@ async function pillSweep(pg, where) {
   await page.click('#job-old1 .heart');                 // put her heart back
   await page.waitForTimeout(150);
   await page.click('#job-old1 .notebox .ncancel');
+
+  // ── THE NOTE'S FIRST WORDS, ON TOP OF THE TILE (2026-09-10, Sophie: "i also
+  // wanted notes to show as the firs words that fit on just the top of the
+  // tile") ────────────────────────────────────────────────────────────────
+  // MEASURED, not asserted: a strip that carries the right words below the
+  // fold of its own tile, one that wraps to three lines, and one that eats the
+  // taps under it are the same markup to any source assertion.
+  await page.click('#v-tiles');
+  await page.waitForFunction(() => document.querySelectorAll('#tiles .cell .tnote').length > 0);
+  await page.waitForFunction(() => /redrawn, mirrored/.test(
+    document.querySelector('#tiles .cell[data-id="old1"] .tnote').textContent));
+  const strip = await page.evaluate(() => {
+    const c = document.querySelector('#tiles .cell[data-id="old1"]');
+    const n = c.querySelector('.tnote'), cr = c.getBoundingClientRect(), nr = n.getBoundingClientRect();
+    const mid = document.elementFromPoint(Math.round(nr.left + nr.width / 2), Math.round(nr.top + nr.height / 2));
+    return { text: n.textContent, noted: c.classList.contains('noted'),
+      fromTop: Math.round(nr.top - cr.top), lines: Math.round(nr.height / parseFloat(getComputedStyle(n).lineHeight)),
+      insideTile: nr.right <= cr.right + 1 && nr.left >= cr.left - 1,
+      eatsTaps: !!(mid && mid.closest('.ttop')) };
+  });
+  ok('the newest thing said about the clip is on top of its tile ' + JSON.stringify(strip),
+    strip.text === 'redrawn, mirrored' && strip.noted && strip.fromTop <= 4
+    && strip.lines === 1 && strip.insideTile);
+  ok('and the strip is a message, never a control that eats the tap under it', !strip.eatsTaps);
+  // A LONG NOTE IS CUT BY THE BROWSER at whatever the column count leaves —
+  // "the first words that fit", asked of the layout rather than counted out
+  threads[Object.keys(threads)[0]].push({ from: 'sophie',
+    text: 'the light on her face goes flat halfway through and the room reads green after that', at: new Date().toISOString() });
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await page.waitForFunction(() => /the light on her face/.test(
+    document.querySelector('#tiles .cell[data-id="old1"] .tnote').textContent));
+  const longNote = await page.evaluate(() => {
+    const n = document.querySelector('#tiles .cell[data-id="old1"] .tnote');
+    return { cut: n.scrollWidth > n.clientWidth,
+      lines: Math.round(n.getBoundingClientRect().height / parseFloat(getComputedStyle(n).lineHeight)) };
+  });
+  ok('a long note is cut to the words that fit, on ONE line ' + JSON.stringify(longNote),
+    longNote.cut && longNote.lines === 1);
+  const quiet = await page.evaluate(() => {
+    const c = [...document.querySelectorAll('#tiles .cell')].find((x) => !x.querySelector('.tdoor.play'));
+    if (!c) return null;
+    return { noted: c.classList.contains('noted'), shown: getComputedStyle(c.querySelector('.ttop')).display !== 'none' };
+  });
+  ok('a clip nobody has said anything about carries no strip at all ' + JSON.stringify(quiet),
+    !!quiet && !quiet.noted && !quiet.shown);
+  await page.click('#v-list');
+  await page.waitForSelector('#job-old1');
 
   // THE PLAYER: the shared tap-to-note, and the tap-out that must not eat it
   await page.click('#job-old1 .thumb');

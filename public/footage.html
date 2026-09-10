@@ -252,12 +252,46 @@
   /* 16px tall is MEASURED, not picked: at four across a 16:9 tile is 49px
      high and the heart's 26px box starts 19px down, so anything taller sits
      on it — 15px at top:2 clears the heart's own top edge by a pixel. */
-  #tiles .tcut{position:absolute;top:2px;left:4px;display:none;align-items:center;gap:3px;
+  #tiles .tcut{flex:none;display:none;align-items:center;gap:3px;
         height:15px;padding:0 4px;border-radius:5px;font-size:10px;line-height:1;color:#fff;
         background:rgba(20,17,14,.55);border:1px solid rgba(255,255,255,.28)}
   #tiles .tcut svg{width:10px;height:10px;display:block}
   #tiles .tcut .n:empty{display:none}
   #tiles .cell.cut .tcut{display:inline-flex}
+  /* THE TOP OF A TILE IS THE NOTE ON IT (2026-09-10, Sophie: "i also wanted
+     notes to show as the firs words that fit on just the top of the tile").
+     ONE line, and "the words that fit" is the browser's own answer — a
+     character count guesses at a width that changes with the column count.
+     The scissors rides in the same row rather than under it, so the two can
+     never sit on each other; the row is drawn only when there is something in
+     it, so a wall of clips she has said nothing about is the wall she had. */
+  #tiles .ttop{position:absolute;top:0;left:0;right:0;display:none;align-items:center;gap:4px;
+        padding:2px 4px;pointer-events:none}
+  #tiles .cell.cut .ttop, #tiles .cell.noted .ttop{display:flex}
+  /* IT WEARS THE MARKS' OWN PLATE, flat — a bright frame under white text is
+     unreadable and a scrim behind it may not be a gradient (the house rule),
+     so it is the same translucent box the scissors and the two marks already
+     wear. Beside the scissors it reads as one more chip in that row. */
+  #tiles .tnote{min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+        height:15px;padding:0 4px;border-radius:5px;font-size:10px;line-height:13px;color:#fff;
+        background:rgba(20,17,14,.55);border:1px solid rgba(255,255,255,.28)}
+  #tiles .tnote:empty{display:none}
+  /* BOTH DOORS ARE ON THE TILE (2026-09-10, Sophie: "can u have a play button,
+     and a list view button on tiles · so both options are available"). The
+     poster itself is NOT a button: with two doors drawn on it, a third
+     meaning hidden under the picture is the thing that started this. They sit
+     in the MIDDLE — the corners are spoken for (the marks below, the note
+     above) and the middle is the one place a tap is never near another
+     control, at three across and at four. */
+  /* The ROW is a message, never a control — a transparent strip across the
+     middle of every tile would swallow whatever it happens to lie over (the
+     toast's own lesson, one page down). Only the two buttons take a tap. */
+  #tiles .tdoors{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);
+        display:flex;justify-content:center;gap:10px;pointer-events:none}
+  #tiles .tdoor{pointer-events:auto;width:28px;height:28px;padding:0;border-radius:6px;
+        display:inline-flex;align-items:center;justify-content:center;color:#fff;
+        background:rgba(20,17,14,.5);border:1px solid rgba(255,255,255,.28)}
+  #tiles .tdoor svg{width:15px;height:15px;display:block}
   .filttog{display:flex;flex:none;border:1px solid #d8cfc0;border-radius:6px;overflow:hidden;background:#fdfbf7}
   .likefilt{display:flex;align-items:center;justify-content:center;width:34px;height:32px;
             border:0;border-radius:0;background:none;color:#6f675e;padding:0}
@@ -460,7 +494,7 @@
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
   <p><b>The seed</b> is on every finished clip, with a button that puts it back in the box. Leave the box blank and each clip gets a fresh one. A seed repeats the <i>opening</i> of a short clip and then drifts &mdash; it does not survive a changed prompt or a different size, and at 15 seconds it does close to nothing.</p>
-  <p><b>Tiles.</b> Tapping one takes you to that clip&rsquo;s card in the list &mdash; its words, its seed, its references and the button that puts them back &mdash; and the picture on the card plays it.</p>
+  <p><b>Tiles.</b> Each one carries two doors in the middle: <b>&#9654;</b> plays the clip, and the list mark beside it takes you to that clip&rsquo;s card &mdash; its words, its seed, its references and the button that puts them back. The first words of whatever was last said about a clip sit along the top of its tile.</p>
   <p><b>Notes.</b> The speech mark on a clip opens a note; playing one and tapping it pauses the film and notes the second you stopped on. Either way it lands in the one place chats read their notes, and a chat answers on the note itself.</p>
   <p>What is left is on the Atlas console &mdash; it has no balance to read from here.</p>
 </div>
@@ -554,6 +588,8 @@ var ICONS = {
   film: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>',
   audio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>',
   image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
+  // Lucide `list` — the glyph for the LIST view the card lives in
+  list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/></svg>',
   history: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>',
   note: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
   chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
@@ -1087,6 +1123,7 @@ function applyFilt() {
     // "trimming…" is said.
     var parts = bakedParts(j);
     el.classList.toggle('cut', parts.length > 0);
+    paintTileNote(el, j);
     var cm = el.querySelector('.tcut');
     if (cm) {
       var lbl = parts.length > 1 ? parts.length + ' parts trimmed out of this clip' : 'Trimmed';
@@ -1173,22 +1210,45 @@ function renderTiles() {
     var c = document.createElement('div'); c.className = 'cell' + (j.status === 'drawing' ? ' drawing' : '');
     c.dataset.id = j.id;
     c.style.setProperty('--ar', arOf(j.ratio));
-    var face = document.createElement('button'); face.type = 'button'; face.className = 'face';
-    face.setAttribute('aria-label', j.prompt ? 'Open — ' + j.prompt.slice(0, 60) : 'Open this clip');
-    face.title = j.prompt || '';
-    // NO PLAY TRIANGLE OVER A POSTER ANY MORE — the tap goes to the CARD, and
-    // a play glyph on a button that no longer plays is the button lying. A
-    // clip with no poster still needs a face: the film mark for a finished
+    // THE POSTER IS NOT A BUTTON — both doors are drawn on it (below), and a
+    // third meaning hidden under the picture is the thing that started this.
+    // A clip with no poster still needs a face: the film mark for a finished
     // one, the ✕ for a failed one, the breathing box while it draws.
+    c.title = j.prompt || '';
+    var face = document.createElement('div'); face.className = 'face';
     face.innerHTML = j.poster ? '<img src="' + esc(j.poster) + '" alt="">'
       : (j.status === 'done' ? ICONS.film : (j.status === 'failed' ? ICONS.x : ''));
-    face.addEventListener('click', function () { goToCard(j.id); });
     c.appendChild(face);
-    // the trimmed mark — built here, LIT in applyFilt, so it stays out of the
-    // signature above and a part landing costs no poster a re-decode
+    // THE TOP ROW: the trimmed mark and the first words of the note on this
+    // clip. Both are built here and FILLED elsewhere — the scissors in
+    // applyFilt, the words in paintTileNote — so they stay out of the wall's
+    // signature and a note or a part landing costs no poster a re-decode.
+    var top = document.createElement('div'); top.className = 'ttop';
     var cut = document.createElement('span'); cut.className = 'tcut';
     cut.innerHTML = ICONS.scissors + '<span class="n"></span>';
-    c.appendChild(cut);
+    top.appendChild(cut);
+    var note = document.createElement('span'); note.className = 'tnote';
+    top.appendChild(note);
+    c.appendChild(top);
+    // BOTH DOORS, SIDE BY SIDE IN THE MIDDLE: play it, or go to its card. A
+    // clip with no url yet has nothing to play, so it carries the one door it
+    // can honour rather than a button that would do nothing.
+    var doors = document.createElement('div'); doors.className = 'tdoors';
+    if (j.video) {
+      var pb = document.createElement('button'); pb.type = 'button'; pb.className = 'tdoor play';
+      pb.setAttribute('aria-label', 'Play this clip'); pb.title = 'Play';
+      pb.innerHTML = ICONS.play;
+      // the SOURCE opens, so the trimmer's marks are always in the original's
+      // own seconds
+      pb.addEventListener('click', function () { var jj = jobsById[j.id]; if (jj && jj.video) openPlayer(jj.source || jj.video, jj); });
+      doors.appendChild(pb);
+    }
+    var lb = document.createElement('button'); lb.type = 'button'; lb.className = 'tdoor card';
+    lb.setAttribute('aria-label', 'Open its card in the list'); lb.title = 'Its card in the list';
+    lb.innerHTML = ICONS.list;
+    lb.addEventListener('click', function () { goToCard(j.id); });
+    doors.appendChild(lb);
+    c.appendChild(doors);
     // THE SAME TWO MARKS AS THE LIST CARD'S, through the same castVote — a
     // clip hearted on the wall is hearted in the list and on the server.
     // They are siblings of the face, so a mark's tap can never play the clip.
@@ -1292,10 +1352,33 @@ function paintThread(el, j) {
   var b = el.querySelector('.acts .note');
   if (b) b.classList.toggle('has', th.length > 0);
 }
+// THE FIRST WORDS OF THE NOTE, ON TOP OF THE TILE (2026-09-10, Sophie: "i
+// also wanted notes to show as the firs words that fit on just the top of the
+// tile"). The NEWEST message in the thread, whoever wrote it — that is where
+// the conversation on this clip stands, and it is what tells one poster from
+// the next when she is scanning for the one she said something about. "The
+// words that fit" is the browser's own answer (one line, ellipsis); a
+// character count would be guessing at a width that changes with the column
+// count. Painted here rather than in renderTiles so it stays OUT of the
+// wall's signature — a note landing must never re-decode a wall of posters.
+function paintTileNote(el, j) {
+  var host = el.querySelector('.tnote');
+  if (!host) return;
+  var th = threadFor(j);
+  var last = th.length ? th[th.length - 1] : null;
+  var txt = last ? String(last.text || '').replace(/\s+/g, ' ').trim() : '';
+  if (host.__txt !== txt) { host.__txt = txt; host.textContent = txt; }
+  el.classList.toggle('noted', !!txt);
+  host.title = txt;
+}
 function repaintNotes() {
   Array.prototype.forEach.call(document.querySelectorAll('#feed .job'), function (el) {
     var j = jobsById[el.dataset.id];
     if (j) paintThread(el, j);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#tiles .cell'), function (el) {
+    var j = jobsById[el.dataset.id];
+    if (j) paintTileNote(el, j);
   });
 }
 // The box ships EMPTY and opens on her tap; tapping the mark again puts it
