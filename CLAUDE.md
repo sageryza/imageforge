@@ -7496,6 +7496,32 @@ before working on that module. Nothing was deleted — the moved text is verbati
     look identical in the source; the `storage` moment is driven by a SECOND
     page in the same context, which is the only honest way to ask. Verified
     failing 20 pre-fix.)
+  **EVERY CLIP SAYS HOW LONG IT TOOK TO DRAW (2026-09-10, Sophie: "can you
+  make it say the number of seconds or minutes each clip took to draw on the
+  clip?").** A `drew in 2m 34s` tag at the end of the card's own line, from
+  `drewMs` on the log doc. **`doneAt` CANNOT ANSWER THAT AND NEVER COULD — it
+  is when the SERVER NOTICED, and the poll only runs when someone reads the
+  feed.** Measured on two of her real Atlas clips: both stamped done within
+  0.7s of each other because one `/jobs` read polled them together, one having
+  really finished 13s earlier and the other 3m37s earlier — close the app for
+  an hour and `doneAt` is an hour late. So the figure is read from the DOOR's
+  own record and the shapes live in ONE place, `video-log.js`'s `drewMsOf`
+  (Atlas's `latency_ms`, else a `created_at`→`completed_at` pair, else the
+  other doors' timestamp names); all three doors hand `finishPatch` their raw
+  record. Three things not to undo: **a door that does not say writes NOTHING
+  and the card draws no tag** (the Assets tab's silence rule — a number that is
+  really "how long until she next opened the page" is worse than none); a span
+  that is **backwards or over six hours is refused** rather than shown, since a
+  clock skew must leave the figure absent, not wrong; and the page has **one
+  `dur(ms)`** which `ago()` also reads, so the drawing line and the finished
+  tag can never format a span two ways. The clips already drawn were filled in
+  by `node scripts/footage-drew-backfill.js` (dry by default, free — a read per
+  job on the door, one field written; 33 of her 41 finished clips recovered,
+  8 whose door does not say left alone and counted). Tests:
+  `node scripts/test-video-log.js` (the rule pure) and the drew-time block of
+  `node scripts/test-footage.js` (MEASURED off the rendered tag — a card that
+  computes the span and never paints it, and one that paints sentAt→doneAt
+  instead, are the same markup to any source check; verified failing 2 pre-fix).
   **THE RECENT BOX KEEPS VIDEOS, NOT JUST STILLS (2026-09-10, Sophie).** The
   history drawer listed the REFERENCES off earlier cards only, and hers are
   mostly stills — measured on her live feed that day, **nine tiles, two of

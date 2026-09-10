@@ -286,7 +286,7 @@ async function pollVideo(id) {
   }
   let patch = null;
   try {
-    patch = videoLog.finishPatch({ status, error: j.error }, video);
+    patch = videoLog.finishPatch({ status, error: j.error }, video, j);
     if (patch) {
       if (j.usage && j.usage.cost != null) patch.cost = Number(j.usage.cost);
       await logDoc(id).set(patch, { merge: true });

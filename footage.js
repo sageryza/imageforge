@@ -463,6 +463,9 @@ function cardOf(id, d) {
     // exact and rounding it to a tenth throws that away (13.96¢, not 14¢)
     cost: d.cost != null ? Math.round(Number(d.cost) * 10000) / 100 : null, estimate: d.estimate != null ? Number(d.estimate) : null,
     sentAt: d.sentAt || '', doneAt: d.doneAt || '', error: d.error || '', note: d.note || '',
+    // HOW LONG THE DOOR TOOK — the door's own figure, never sentAt→doneAt
+    // (which is when the poll NOTICED). Absent when the door did not say.
+    drewMs: Number.isFinite(Number(d.drewMs)) && Number(d.drewMs) > 0 ? Math.round(Number(d.drewMs)) : null,
     vote: d.vote || '', hidden: Boolean(d.hidden), title: d.title || '',
   };
 }

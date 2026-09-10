@@ -274,7 +274,7 @@ async function pollVideo(id, save = true) {
   // permanent url (a ?save=0 poll leaves `video` for the saving poll).
   let patch = null;
   try {
-    patch = videoLog.finishPatch(j, save ? video : null);
+    patch = videoLog.finishPatch(j, save ? video : null, j);
     if (patch) await admin.firestore().collection(videoLog.COLL).doc(id).set(patch, { merge: true });
   } catch (e) { /* the poll answers either way */ }
   return { id, status: j.status, video, raw: j, patch };

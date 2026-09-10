@@ -407,6 +407,7 @@
   <p class="bal" id="discline" hidden></p>
   <p><b>Say what the clip is.</b> Add references &mdash; a picture, a clip, a sound &mdash; and name each one in the prompt by its slot: <b>[Image1]</b>, <b>[Video1]</b>, <b>[Audio1]</b>. Tap a slot name to drop it into the box. Never describe what a reference shows; the picture is the point.</p>
   <p><b>The star sends it.</b> One tap, and the line beside it says about what that tap costs. The real cost lands on the card when the clip finishes.</p>
+  <p><b>Every clip says how long it took.</b> <i>drew in 2m 34s</i> on the card is the door's own figure, not how long you were watching — close the app and it keeps drawing, and the time it reports is still the real one. A clip drawn before this says nothing rather than guessing.</p>
   <p><b>Through Atlas Cloud</b> &mdash; it takes a reference with a person in it, a real photo or a clip, and draws the likeness. A famous face is refused, free, before anything draws; a chat can try that one through APIFRAME.</p>
   <p><b>Two models.</b> <b>2.0 Mini</b> is the default and the cheap one. <b>2.0 Fast</b> is the option, and it is dearer &mdash; the line beside the star says what the tap costs either way. Fast is also the stricter of the two: a plain prompt with no reference at all has come back refused there with a copyright line (free, unbilled, measured 2026-09-09) where the same words drew on Mini.</p>
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
@@ -1132,10 +1133,13 @@ function renderTiles() {
 // charges now, so rounding it to a tenth would throw away the exactness it was
 // measured for. Trailing zeros are dropped: 13.96¢, 5.58¢, 52¢.
 function cents(c) { return c == null ? '' : (c >= 100 ? '$' + (c / 100).toFixed(2) : (Math.round(c * 100) / 100) + '¢'); }
-function ago(iso) {
-  var s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+// ONE way a span of time is written on this page — the drawing line and the
+// finished card's "drew in" tag read the same
+function dur(ms) {
+  var s = Math.max(0, Math.round(Number(ms) / 1000));
   return s < 60 ? s + 's' : Math.floor(s / 60) + 'm ' + (s % 60) + 's';
 }
+function ago(iso) { return dur(Date.now() - new Date(iso).getTime()); }
 // ── HER NOTES ON A CLIP (2026-09-10, her ask) ─────────────────────────────
 // THE THREAD IS THE HOUSE ONE and nothing here is a second copy of it: a note
 // is one message on `forge-asset-votes`, keyed chat+url, through
@@ -1263,7 +1267,12 @@ function jobCard(j) {
   el.classList.toggle('nay', j.vote === 'dislike');
   var tags = [j.modelLabel || j.model, j.seconds != null ? j.seconds + 's' : '', j.resolution, j.ratio, j.sound ? 'sound' : 'silent',
     j.door === 'openrouter' ? 'OpenRouter' : j.door === 'atlascloud' ? 'Atlas Cloud' : 'APIFRAME',
-    j.cost != null ? cents(j.cost) : (j.estimate != null ? 'about ' + cents(j.estimate) : '')].filter(Boolean).join(' · ');
+    j.cost != null ? cents(j.cost) : (j.estimate != null ? 'about ' + cents(j.estimate) : ''),
+    // HOW LONG IT TOOK TO DRAW (2026-09-10, her ask). The DOOR's own figure
+    // (footage.js `drewMs`), never sentAt→doneAt — doneAt is when the poll
+    // noticed, so a clip drawn while the app was closed would read hours.
+    // A clip whose door did not say carries no tag at all.
+    j.drewMs != null ? 'drew in ' + dur(j.drewMs) : ''].filter(Boolean).join(' · ');
   var thumbInner = j.poster ? '<img src="' + esc(j.poster) + '" alt="">' + ICONS.play : (j.status === 'done' ? ICONS.play : (j.status === 'failed' ? ICONS.x : ''));
   var html = '<div class="jobrow">' +
     '<button type="button" class="thumb' + (j.status === 'drawing' ? ' drawing' : '') + '" data-ar="' + esc(j.ratio || '') + '" aria-label="Play">' + thumbInner + '</button>' +

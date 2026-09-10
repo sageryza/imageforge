@@ -244,6 +244,9 @@ let jobs = [
     // the seed the door minted for it — every clip drawn since 2026-09-09
     // carries one, and the `f*` clips below carry none (drawn before that)
     seed: 4242,
+    // the DOOR's own draw time (Atlas's `latency_ms` for a real clip of hers);
+    // the f* clips below carry none, which must draw no tag at all
+    drewMs: 153626,
     cost: 5.6, estimate: 6, sentAt: '2026-09-09T08:00:00.000Z', vote: '', hidden: false },
 ].concat(Array.from({ length: 7 }, (_, i) => ({
   id: 'f' + i, prompt: 'the socks on the line ' + i, model: 'mini', modelLabel: '2.0 Mini', door: 'openrouter', seconds: 4, resolution: '480p', ratio: '3:4',
@@ -566,6 +569,15 @@ async function pillSweep(pg, where) {
 
   // ── the feed: a card, its references, and a repaint that changes nothing ─
   ok('the earlier clip is a card with its real cost', await page.$eval('#job-old1 .tags', (e) => /5\.6¢/.test(e.textContent) && /2\.0 Mini/.test(e.textContent)));
+  // HOW LONG IT TOOK TO DRAW (2026-09-10, her ask). MEASURED off the rendered
+  // tag: a card that computes the span and never paints it, and one that
+  // paints sentAt→doneAt instead, are the same markup to any source check.
+  ok('the card says how long the door took to draw it — 2m 34s',
+    await page.$eval('#job-old1 .tags', (e) => /drew in 2m 34s/.test(e.textContent)));
+  ok('a clip whose door did not say carries no tag at all',
+    await page.$eval('#job-f0 .tags', (e) => !/drew/.test(e.textContent)));
+  ok('the clip\'s own length is still there beside it, and they do not read as one',
+    await page.$eval('#job-old1 .tags', (e) => /\b4s\b/.test(e.textContent) && /2m 34s/.test(e.textContent)));
   ok('the card names its references by slot', await page.$eval('#job-old1 .usedrefs', (e) => /Image1/.test(e.textContent) && /Image4/.test(e.textContent)));
   const imgBefore = await page.evaluateHandle(() => document.querySelector('#job-old1 .thumb img'));
   await page.evaluate(() => fetch('/api/footage/jobs?limit=40').then((r) => r.json()));
