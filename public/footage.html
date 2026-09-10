@@ -21,8 +21,17 @@
             border-radius:6px;padding:14px;font-size:14px;line-height:1.5;box-shadow:0 8px 30px rgba(0,0,0,.12)}
   .helpcard p{margin:0 0 8px}
   .helpcard b{font-weight:600}
+  /* THE PILL'S COLUMN IS RESERVED ROW BY ROW, NEVER ON THE WHOLE PANEL
+     (2026-09-10, Sophie: "shud be one row - not a column for pill scroll").
+     `margin-right` on the PANEL took 64px off every row in it — including the
+     controls, which sit 300px BELOW the pill and never touch it — so the
+     shape chips and the stepper wrapped into a column for a collision that
+     was not happening. The panel keeps its full width and passes under the
+     rail like content on every other page here; only a row that really
+     overlaps the pill shortens, which is the tappable half. */
   .panel{background:#fff;border:1px solid #e0d8ca;border-radius:6px;padding:12px;margin-bottom:14px;
-         margin-right:var(--pillgap,0px);margin-top:var(--pilltop,0px)}
+         margin-top:var(--pilltop,0px)}
+  .panel > *{margin-right:var(--pillgap,0px)}
   /* NO SECTION LABELS (2026-09-09, Sophie: "no button word labels above (eg
      seconds)"). The controls stand on their own — a drop-down says what it is
      by what it holds, the stepper by its own number — and the words they cost
@@ -46,13 +55,36 @@
   .ib{width:34px;height:34px;padding:0;display:inline-flex;align-items:center;justify-content:center;
       background:#fdfbf7;color:#2b2620;flex:none}
   .ib svg{width:17px;height:17px;display:block}
-  #rectog{height:34px;padding:0 10px;font-size:14px;flex:none}
-  textarea{width:100%;min-height:96px;border:1px solid #d8cfc0;border-radius:6px;padding:9px;
+  /* RECENT IS AN ICON (2026-09-10, Sophie: "buttons take up too much room").
+     The word was 61px of a row that has ~291 to spend once the pill's column
+     is reserved — the difference between two lines and three. The name lives
+     on the aria-label and the title, so nothing is lost to a screen reader. */
+  #rectog{width:34px;height:34px;padding:0;flex:none;display:inline-flex;align-items:center;justify-content:center}
+  #rectog svg{width:17px;height:17px;display:block}
+  textarea{width:100%;min-height:135px;border:1px solid #d8cfc0;border-radius:6px;padding:9px;
            font:16px/1.4 -apple-system,Georgia,serif;background:#fdfbf7;color:#2b2620;resize:vertical}
   textarea:focus,input:focus{outline:none;border-color:#a89a80}
   .promptwrap{position:relative}
   .promptwrap textarea{display:block;padding-bottom:34px}
-  #prompt.big{min-height:24vh;max-height:52vh}
+  /* THE BIGGER BOX HAS NO CEILING — it fits the WORDS (2026-09-10, Sophie:
+     "text box doesn't extend enough"). It was capped at 52vh, so a belt
+     scene ran out of box and scrolled inside it with a half-line clipped at
+     the bottom edge — on the one surface she types a whole scene into. The
+     floor stays (expand has to mean room to write BEFORE the words are
+     there); `fitBig` sets the exact height and the page scrolls, which is
+     the belt card's own shape, and `caretkeep.js` is already linked here to
+     keep the caret off the keyboard in a tall box. */
+  /* THE BOX EXTENDS AS SHE WRITES, both ways round (2026-09-10, Sophie:
+     "text box doesn't extend enough"). It fits its own words at every
+     keystroke; SMALL it is clamped at 30vh so the controls stay on screen,
+     BIG it has no ceiling at all and the page scrolls — which is the belt
+     card's shape, and `caretkeep.js` is linked here to keep the caret off the
+     keyboard in a tall box. It used to be a flat 96px that never moved, of
+     which 34 are the corner the expand button reserves: 2.3 readable lines
+     ending in a clipped half-line, on the one surface she types a whole
+     scene into. */
+  #prompt{max-height:30vh}
+  #prompt.big{min-height:24vh;max-height:none}
   #bigprompt{position:absolute;right:56px;bottom:6px;width:26px;height:26px;display:flex;
              align-items:center;justify-content:center;padding:0;margin:0;border:1px solid #d8cfc0;
              border-radius:6px;background:#fdfbf7;color:#6f675e}
@@ -61,34 +93,41 @@
   button{border:1px solid #d8cfc0;border-radius:6px;background:#fff;color:#2b2620;
          font:15px -apple-system,Georgia,serif;padding:7px 11px}
   button[disabled]{opacity:.45}
-  /* Chips: one lit per row. A lit chip is filled INK, the picker's own family —
-     it and the star are the only two filled things on the panel, and the star
-     is the only one that spends. */
-  .chips{display:flex;gap:6px;flex-wrap:wrap}
-  /* 8px sides, not 10: MEASURED at 390pt with the pill's column reserved,
-     the six shapes are 267px of the 278 the panel has — one row rather than
-     five and a lonely 21:9 under them. */
-  .chips button{padding:6px 8px;font-size:14px;background:#fdfbf7}
-  .chips button.on{background:#2b2620;border-color:#2b2620;color:#f6f2ea}
-  .chips button.off{opacity:.35}
+  /* THE SHAPE IS A DROP-DOWN (2026-09-10, Sophie: "drop down for aspect
+     ratio" · "buttons take up too much room"). Six chips are a row of their
+     own at best and TWO rows once the pill's column is reserved — measured on
+     her own screen: 3:4 lit on one line and a lonely 21:9 under it. A
+     drop-down is one 76px box in the row the model and the size already sit
+     on, and it says what it is by what it holds. The `.chips` rules and
+     `chipRow` are gone with it — nothing else on this page used them. */
   .step{display:inline-flex;align-items:center;border:1px solid #d8cfc0;border-radius:6px;overflow:hidden;background:#fdfbf7}
-  .step button{border:0;border-radius:0;width:34px;height:34px;padding:0;font-size:18px;line-height:1;background:none}
+  .step button{border:0;border-radius:0;width:32px;height:34px;padding:0;font-size:18px;line-height:1;background:none}
   .step button+button{border-left:1px solid #d8cfc0}
   /* SHE CAN TYPE THE NUMBER (2026-09-09, her ask) — a real number field
      between the two steppers, clamped to the model's own range on the way
      out, never while she is still typing. The spinners come off: the − and +
      either side are the steppers. */
-  .step input{width:46px;text-align:center;font:15px -apple-system,Georgia,serif;color:#2b2620;
+  .step input{width:42px;text-align:center;font:15px -apple-system,Georgia,serif;color:#2b2620;
        background:none;border:0;border-left:1px solid #d8cfc0;border-right:1px solid #d8cfc0;
        border-radius:0;height:34px;padding:0;-moz-appearance:textfield;appearance:textfield}
   .step input::-webkit-outer-spin-button,.step input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
   /* THE SEED BOX — hers to type, blank means a fresh one for this clip. Same
      box as the drop-downs beside it (the row is one family), spinners off:
      it is a number she pastes back, not one she steps through. */
-  #seedbox{width:112px;height:34px;flex:none;border:1px solid #d8cfc0;border-radius:6px;
+  .seedwrap{position:relative;display:inline-flex;flex:none}
+  #seedbox{width:130px;height:34px;flex:none;border:1px solid #d8cfc0;border-radius:6px;
         background:#fdfbf7;color:#2b2620;font:15px -apple-system,Georgia,serif;padding:0 9px;margin:0;
         -moz-appearance:textfield;appearance:textfield}
   #seedbox::-webkit-outer-spin-button,#seedbox::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  /* A CLEAR, AND ONLY WHILE THERE IS SOMETHING TO WIPE (2026-09-10, Sophie:
+     "x for seed to clear") — the home search bar's rule: a control that would
+     do nothing is not drawn. Inside the field's right end, so it costs the row
+     no width; the box keeps its whole width for the placeholder while it is
+     empty (`.hasseed` is what pays for the button's column). */
+  .seedwrap.hasseed #seedbox{padding-right:28px}
+  #seedclear{position:absolute;right:5px;top:5px;width:24px;height:24px;padding:0;display:inline-flex;
+        align-items:center;justify-content:center;border:0;background:none;color:#9a8f7d}
+  #seedclear svg{width:13px;height:13px;display:block}
   .cost{color:#6f675e;font-size:13px}
   .bal{color:#9a8f7d;font-size:12px}
   /* THE STAR IS THE ONE THING THAT SPENDS — the house generate glyph in a
@@ -96,7 +135,18 @@
   .go{display:inline-flex;align-items:center;gap:8px;background:#2b2620;color:#f6f2ea;border-color:#2b2620;
       padding:9px 14px 9px 11px;font-size:16px}
   .go svg{width:20px;height:20px;display:block}
-  .err{color:#a0402a;font-size:13px;margin-top:8px}
+  /* NOTHING A DOOR SAYS MAY WIDEN THE PAGE (2026-09-10, Sophie: "bug where
+     screen sometimes zooms extra or gets v wide ?"). A refusal arrives as the
+     door's own words — Atlas hands back up to 600 characters of raw body, and
+     every door has a `gave no job id: ' + JSON.stringify(r)` branch, which is
+     an UNBROKEN 200-character token by construction. With no wrap rule that
+     is a ~4,000px line, so the document goes four screens wide — and the
+     viewport is pinned `user-scalable=no`, so she cannot pinch back out of
+     it: it stays wide until the page reloads. `.p` has carried
+     `overflow-wrap:anywhere` since it shipped; these three never did.
+     `.st` is the same thing one box in: `InputVideoSensitiveContentDetected.
+     PrivacyInformation` is 52 unbroken characters in a 238px box. */
+  .err{color:#a0402a;font-size:13px;margin-top:8px;overflow-wrap:anywhere}
   /* THE PLAN BEFORE THE GO IS HISTORY (2026-09-09, Sophie the next day: "no
      plan button"). It shipped the day before at her own ask ("plan before
      go") and she retired it within the day: the star sends on its tap and the
@@ -105,6 +155,7 @@
   /* The references she has attached — thumb, slot name, ✕. Tapping the slot
      name drops it into the prompt at the caret, so [Image1] is never typed. */
   .refs{display:flex;gap:8px;flex-wrap:wrap}
+  .refs:not(:empty){margin-top:10px}
   .ref{position:relative;width:72px}
   .ref .im{width:72px;height:72px;border:1px solid #e0d8ca;border-radius:6px;overflow:hidden;background:#2b2620;
            display:flex;align-items:center;justify-content:center;color:#f6f2ea}
@@ -141,13 +192,30 @@
      blows its column out and squeezes the rest (measured on the Playground's
      wall). `start` keeps a shorter cell its own height. */
   #tiles{display:grid;grid-template-columns:repeat(var(--cols,3),minmax(0,1fr));align-items:start;gap:5px}
-  #tiles .cell{position:relative;padding:0;border:1px solid #e0d8ca;border-radius:6px;overflow:hidden;
-        background:#2b2620;color:#f6f2ea;display:flex;align-items:center;justify-content:center;
-        aspect-ratio:var(--ar,3/4)}
+  /* A CELL IS A DIV WITH THE PLAY FACE INSIDE IT, never a <button> — the
+     heart and the ✕ are its SIBLINGS (2026-09-10, Sophie: "heart and x from
+     tile view"). A button nested in a button is invalid markup and the mark's
+     tap would bubble straight into playing the clip. */
+  #tiles .cell{position:relative;border:1px solid #e0d8ca;border-radius:6px;overflow:hidden;
+        background:#2b2620;color:#f6f2ea;aspect-ratio:var(--ar,3/4)}
+  #tiles .cell .face{position:absolute;inset:0;width:100%;height:100%;padding:0;margin:0;border:0;
+        border-radius:0;background:none;color:inherit;display:flex;align-items:center;justify-content:center}
   #tiles .cell img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-  #tiles .cell svg{width:22px;height:22px;position:relative;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
+  #tiles .cell .face svg{width:22px;height:22px;position:relative;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
   #tiles .cell.drawing{background:#e6dfd2;color:#9a8f7d;animation:br 1.6s ease-in-out infinite}
   #tiles .cell.nay{opacity:.45}
+  /* The two marks ride the poster's bottom corners — at four across a tile is
+     ~80px, so 26px each with 4px of air is the size that still fits. They are
+     the SAME two marks as the list card's, so a clip crossed out on the wall
+     is crossed out in the list. */
+  #tiles .tmark{position:absolute;bottom:4px;width:26px;height:26px;padding:0;border-radius:6px;
+        display:inline-flex;align-items:center;justify-content:center;color:#fff;
+        background:rgba(20,17,14,.5);border:1px solid rgba(255,255,255,.28)}
+  #tiles .tmark svg{width:13px;height:13px;display:block}
+  #tiles .tmark.heart{left:4px}
+  #tiles .tmark.nope{right:4px}
+  #tiles .tmark.heart.on{background:#c96a5e;border-color:#c96a5e}
+  #tiles .tmark.nope.on{background:#3a3530;border-color:#3a3530}
   .filttog{display:flex;flex:none;border:1px solid #d8cfc0;border-radius:6px;overflow:hidden;background:#fdfbf7}
   .likefilt{display:flex;align-items:center;justify-content:center;width:34px;height:32px;
             border:0;border-radius:0;background:none;color:#6f675e;padding:0}
@@ -175,15 +243,15 @@
   .pwrap{position:relative}
   .p.clamp{max-height:calc(1.45em * 4);overflow:hidden}
   .moretxt{position:absolute;right:0;bottom:0;border:0;background:#fff;padding:0 0 0 8px;margin:0;font:inherit;color:#6f675e;text-decoration:underline;line-height:1.45}
-  .tags{font-size:11px;color:#9a8f7d;margin-top:5px;line-height:1.5}
+  .tags{font-size:11px;color:#9a8f7d;margin-top:5px;line-height:1.5;overflow-wrap:anywhere}
   /* THE SEED THIS CLIP CARRIED, with the one button that puts it back in the
      box. Its own row rather than a fourth tag: it is the only thing on the
      card she can pick up and use again. */
-  .seedrow{display:flex;align-items:center;gap:6px;margin-top:5px;font-size:11px;color:#9a8f7d}
+  .seedrow{display:flex;align-items:center;gap:6px;margin-top:5px;font-size:11px;color:#9a8f7d;flex-wrap:wrap}
   .seedrow button{width:26px;height:26px;padding:0;flex:none;display:inline-flex;align-items:center;
         justify-content:center;background:#fdfbf7;color:#6f675e}
   .seedrow button svg{width:13px;height:13px;display:block}
-  .st{font-size:12px;color:#6f675e;margin-top:3px}
+  .st{font-size:12px;color:#6f675e;margin-top:3px;overflow-wrap:anywhere}
   .st.bad{color:#a0402a}
   /* A CARD'S OWN PICTURE ROW HONOURS `--cols` TOO — the Playground's rule:
      ONE number drives the tile wall and the row inside a card, so the two can
@@ -240,17 +308,17 @@
        two drop-downs are the model and the size, the stepper is the length. -->
   <div class="row" style="margin-top:8px">
     <button class="up ib" type="button" id="add" aria-label="Add a reference" title="Add a reference"><span id="addicon"></span><input type="file" accept="image/*,video/*,audio/*" multiple id="file"></button>
-    <button id="rectog" type="button" aria-expanded="false" hidden>Recent</button>
+    <button id="rectog" type="button" aria-expanded="false" aria-label="References you have used before" title="References you have used before" hidden></button>
     <span class="selwrap"><select id="model" aria-label="Model" title="Model"></select><span class="chev"></span></span>
     <span class="selwrap"><select id="res" aria-label="Resolution" title="Resolution"></select><span class="chev"></span></span>
+    <span class="selwrap"><select id="ratio" aria-label="Shape" title="Shape"></select><span class="chev"></span></span>
     <div class="step"><button type="button" id="secdn" aria-label="Fewer seconds">&minus;</button><input type="number" id="secs" inputmode="numeric" step="1" aria-label="Seconds" title="Seconds"><button type="button" id="secup" aria-label="More seconds">+</button></div>
-    <input type="text" id="seedbox" inputmode="numeric" autocomplete="off" placeholder="Seed" aria-label="Seed" title="Seed — leave it blank for a fresh one">
   </div>
   <div id="recent" hidden></div>
-  <div class="chips" id="ratios" style="margin-top:8px"></div>
   <!-- THE STAR IS THE ONE BUTTON AND IT SENDS ON ITS TAP (2026-09-09, Sophie:
        "no plan button"), with the price of that tap right beside it. -->
   <div class="row" style="margin-top:12px">
+    <span class="seedwrap" id="seedwrap"><input type="text" id="seedbox" inputmode="numeric" autocomplete="off" placeholder="Seed" aria-label="Seed" title="Seed — leave it blank for a fresh one"><button type="button" id="seedclear" aria-label="Clear the seed" title="Clear the seed" hidden></button></span>
     <button class="go" id="go" type="button"><span id="gostar"></span>Go</button>
     <span class="cost" id="cost"></span>
   </div>
@@ -288,6 +356,7 @@ var ICONS = {
   film: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>',
   audio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>',
   image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
+  history: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>',
   chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
   maximize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
   minimize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
@@ -299,6 +368,8 @@ $('gostar').innerHTML = ICONS.star;
 $('addicon').innerHTML = ICONS.image;
 document.querySelectorAll('.selwrap .chev').forEach(function (c) { c.innerHTML = ICONS.chev; });
 $('v-liked').innerHTML = ICONS.heart; $('v-hidex').innerHTML = ICONS.x;
+$('seedclear').innerHTML = ICONS.x;
+$('rectog').innerHTML = ICONS.history;
 document.querySelector('#player .pclose').innerHTML = ICONS.x;
 
 function hdr(extra) { var h = extra || {}; if (TOKEN) h['x-studio-token'] = TOKEN; return h; }
@@ -366,17 +437,6 @@ function models() { return (CFG && CFG.models ? CFG.models : []).filter(function
 function modelOf(id) { return models().filter(function (m) { return m.id === id; })[0]; }
 
 // ── The controls ──────────────────────────────────────────────────────────
-function chipRow(el, items, cur, key, onPick) {
-  el.innerHTML = '';
-  items.forEach(function (it) {
-    var b = document.createElement('button'); b.type = 'button';
-    b.textContent = it.label; b.dataset[key] = it.id;
-    if (it.id === cur) b.classList.add('on');
-    if (it.off) b.classList.add('off');
-    b.addEventListener('click', function () { onPick(it.id); });
-    el.appendChild(b);
-  });
-}
 // A SELECT IS FILLED ONLY WHEN ITS OPTIONS REALLY CHANGED — the house
 // repaint rule: rebuilding the list on every paint drops the open picker on
 // iOS and loses the value mid-tap.
@@ -396,7 +456,12 @@ function clampSec(v, m) {
   if (!Number.isFinite(n)) return m.secs[0];
   return Math.max(m.secs[0], Math.min(m.secs[1], n));
 }
-function paintControls() {
+// `force` is for a paint SHE asked for — putting a clip back, a belt hand-off.
+// The seconds box is otherwise left alone while it has the caret in it (a "1"
+// on its way to "12" must not become 4 under her), and on iOS that box can
+// still hold focus when she taps a card's copy button — which is exactly the
+// tap that has to win.
+function paintControls(force) {
   if (!CFG) return;
   var list = models(); if (!list.length) return;
   var m = modelOf(S.model) || list[0]; S.model = m.id;
@@ -407,13 +472,13 @@ function paintControls() {
   var box = $('secs');
   box.min = m.secs[0]; box.max = m.secs[1];
   // never overwrite the digits under her thumb — the clamp runs on the way out
-  if (document.activeElement !== box) box.value = S.seconds;
-  // A SHAPE THE SERVER DOES NOT CARRY LIGHTS NO CHIP, so it is dropped to the
-  // first one it does — otherwise a stale `footage_ctl` or a belt hand-off
-  // naming something odd leaves the row with nothing lit and the server
-  // silently clamping the job to 1:1.
+  if (force || document.activeElement !== box) box.value = S.seconds;
+  // A SHAPE THE SERVER DOES NOT CARRY IS DROPPED to the first one it does —
+  // otherwise a stale `footage_ctl` or a belt hand-off naming something odd
+  // leaves the box showing a shape the server silently clamps to 1:1.
   if (CFG.ratios.indexOf(S.ratio) < 0) { S.ratio = CFG.ratios[0]; saveCtl(); }
-  chipRow($('ratios'), CFG.ratios.map(function (r) { return { id: r, label: r }; }), S.ratio, 'ratio', function (id) { S.ratio = id; saveCtl(); paintControls(); });
+  fillSel($('ratio'), CFG.ratios.map(function (r) { return { id: r, label: r }; }), S.ratio);
+  paintSeedClear();
   paintRefs();
   updateCost();
 }
@@ -426,6 +491,8 @@ $('model').addEventListener('change', function () {
 // The resolution is NOT remembered — it opens at the model's minimum on every
 // load, like the seconds, because the size is the bill.
 $('res').addEventListener('change', function () { S.res = $('res').value; paintControls(); });
+// The shape IS remembered, exactly as it was while it was a row of chips.
+$('ratio').addEventListener('change', function () { S.ratio = $('ratio').value; saveCtl(); paintControls(); });
 $('secdn').addEventListener('click', function () { stepSec(-1); });
 $('secup').addEventListener('click', function () { stepSec(1); });
 function stepSec(dir) { S.seconds = clampSec(S.seconds + dir); paintControls(); }
@@ -455,9 +522,20 @@ function setSeed(v) {
   // carrying none CLEARS it, so putting an older clip back can never leave
   // another clip's seed sitting in the box unasked.
   $('seedbox').value = (v == null || v === '') ? '' : String(v).replace(/[^0-9]/g, '');
+  paintSeedClear();
 }
 // digits only on the way OUT, never while she is still typing
-$('seedbox').addEventListener('blur', function () { $('seedbox').value = seedVal(); });
+$('seedbox').addEventListener('blur', function () { $('seedbox').value = seedVal(); paintSeedClear(); });
+// THE CLEAR IS DRAWN ONLY WHILE THERE IS A SEED IN THE BOX (2026-09-10, her
+// ask) — a blank box already means a fresh seed, so an always-on ✕ would be a
+// control that does nothing on the state it is most often looking at.
+function paintSeedClear() {
+  var has = !!String($('seedbox').value || '').trim();
+  $('seedclear').hidden = !has;
+  $('seedwrap').classList.toggle('hasseed', has);
+}
+$('seedbox').addEventListener('input', paintSeedClear);
+$('seedclear').addEventListener('click', function () { $('seedbox').value = ''; paintSeedClear(); $('seedbox').focus(); });
 
 // The price is ASKED, never computed here — the server holds the one table.
 // ONE DOOR, so the line no longer names it (2026-09-09): "about 7.6¢".
@@ -605,12 +683,17 @@ function paintRecent() {
 // ── The bigger box (the Playground's corner toggle, in shape) ──────────────
 (function () {
   var box = $('prompt'), btn = $('bigprompt'), big = false;
+  // `height:auto` FIRST or the box can only ever grow — scrollHeight on a box
+  // already sized to its old height reports that height. The border is added
+  // back because the box is `border-box` and scrollHeight excludes it, so
+  // every fit would otherwise be two pixels short and scroll its own last
+  // line. Both bounds are CSS, so the browser clamps and no vh is re-derived
+  // here.
   function fitBig() {
-    if (!big) return;
     box.style.height = 'auto';
     box.style.height = (box.scrollHeight + (box.offsetHeight - box.clientHeight)) + 'px';
   }
-  function paint() { btn.innerHTML = big ? ICONS.minimize : ICONS.maximize; btn.title = btn.getAttribute('aria-label'); box.classList.toggle('big', big); if (!big) box.style.height = ''; fitBig(); }
+  function paint() { btn.innerHTML = big ? ICONS.minimize : ICONS.maximize; btn.title = btn.getAttribute('aria-label'); box.classList.toggle('big', big); fitBig(); }
   btn.addEventListener('click', function () { big = !big; btn.setAttribute('aria-label', big ? 'Smaller box' : 'Bigger box'); paint(); });
   box.addEventListener('input', function () { fitBig(); saveDraft(); });
   window.addEventListener('resize', fitBig);
@@ -682,9 +765,12 @@ function applyFilt() {
   document.querySelectorAll('#tiles .cell').forEach(function (el) {
     var j = jobsById[el.dataset.id] || {};
     var s = shown(j); el.hidden = !s;
-    // the ✕ mark rides as a CLASS, out of the wall's signature — a vote must
+    // the votes ride as CLASSES, out of the wall's signature — a mark must
     // not rebuild the whole wall and re-decode every poster
     el.classList.toggle('nay', j.vote === 'dislike');
+    var hb = el.querySelector('.tmark.heart'), nb = el.querySelector('.tmark.nope');
+    if (hb) { hb.classList.toggle('on', j.vote === 'like'); hb.setAttribute('aria-pressed', j.vote === 'like' ? 'true' : 'false'); }
+    if (nb) { nb.classList.toggle('on', j.vote === 'dislike'); nb.setAttribute('aria-pressed', j.vote === 'dislike' ? 'true' : 'false'); }
     if (s && tiles) any = true;
   });
   var n = Object.keys(jobsById).length;
@@ -760,15 +846,29 @@ function renderTiles() {
   el.__sig = sig;
   el.innerHTML = '';
   list.forEach(function (j) {
-    var b = document.createElement('button'); b.type = 'button'; b.className = 'cell' + (j.status === 'drawing' ? ' drawing' : '');
-    b.dataset.id = j.id;
-    b.style.setProperty('--ar', arOf(j.ratio));
-    b.setAttribute('aria-label', j.prompt ? 'Play — ' + j.prompt.slice(0, 60) : 'Play');
-    b.title = j.prompt || '';
-    b.innerHTML = j.poster ? '<img src="' + esc(j.poster) + '" alt="">' + ICONS.play
+    var c = document.createElement('div'); c.className = 'cell' + (j.status === 'drawing' ? ' drawing' : '');
+    c.dataset.id = j.id;
+    c.style.setProperty('--ar', arOf(j.ratio));
+    var face = document.createElement('button'); face.type = 'button'; face.className = 'face';
+    face.setAttribute('aria-label', j.prompt ? 'Play — ' + j.prompt.slice(0, 60) : 'Play');
+    face.title = j.prompt || '';
+    face.innerHTML = j.poster ? '<img src="' + esc(j.poster) + '" alt="">' + ICONS.play
       : (j.status === 'done' ? ICONS.play : (j.status === 'failed' ? ICONS.x : ''));
-    b.addEventListener('click', function () { var jj = jobsById[j.id]; if (jj && jj.video) openPlayer(jj.video); });
-    el.appendChild(b);
+    face.addEventListener('click', function () { var jj = jobsById[j.id]; if (jj && jj.video) openPlayer(jj.video); });
+    c.appendChild(face);
+    // THE SAME TWO MARKS AS THE LIST CARD'S, through the same castVote — a
+    // clip hearted on the wall is hearted in the list and on the server.
+    // They are siblings of the face, so a mark's tap can never play the clip.
+    [['heart', 'like', 'Heart this clip'], ['nope', 'dislike', 'Cross this clip out']].forEach(function (m) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'tmark ' + m[0];
+      b.dataset.vote = m[1];
+      b.setAttribute('aria-label', m[2]);
+      b.title = m[2];
+      b.innerHTML = m[1] === 'like' ? ICONS.heart : ICONS.x;
+      b.addEventListener('click', function (e) { e.stopPropagation(); castVote(j.id, m[1]); });
+      c.appendChild(b);
+    });
+    el.appendChild(c);
   });
 }
 
@@ -819,7 +919,7 @@ function jobCard(j) {
     (j.status === 'failed' && j.prompt ? '<button type="button" class="again">Try again</button>' : '') +
     (j.video ? '<a href="' + esc(j.video) + '" target="_blank" rel="noopener">save</a>' : '') +
     '</div></div></div>';
-  var sig = html + ' ' + (j.prompt || '');
+  var sig = html + '\u0000' + (j.prompt || '');
   if (el.__sig !== sig) {
     el.__sig = sig;
     el.innerHTML = html;
@@ -852,7 +952,7 @@ function clampMore(p) {
 function castVote(id, kind) {
   var j = jobsById[id]; if (!j) return;
   j.vote = j.vote === kind ? '' : kind;
-  jobCard(j);
+  jobCard(j);                       // ends in paintFeed → applyFilt, which paints the wall's marks
   api('/jobs/' + encodeURIComponent(id) + '/vote', { method: 'POST', body: JSON.stringify({ vote: j.vote }) }).catch(function () {});
 }
 // PUTTING A PROMPT BACK PUTS ITS REFERENCES AND ITS SETTINGS BACK — only
@@ -867,7 +967,7 @@ function copyBack(j) {
   // her ask: copying the words back brings the seed with them (and a clip with
   // no seed on file clears the box rather than leaving another clip's in it)
   setSeed(j.seed);
-  saveCtl(); saveDraft(); paintControls();
+  saveCtl(); saveDraft(); paintControls(true);
   if (window.__fitBigPrompt) window.__fitBigPrompt();
   window.scrollTo({ top: 0, behavior: 'smooth' });
   toast(refs.length ? 'Prompt and its references are back' : 'Prompt is back in the box');
@@ -949,7 +1049,7 @@ function takeHandoff() {
   if (h.res) S.res = String(h.res);
   if (h.ratio) S.ratio = String(h.ratio);
   if (h.seed != null) setSeed(h.seed);
-  saveCtl(); saveDraft(); paintControls(); paintRefs();
+  saveCtl(); saveDraft(); paintControls(true); paintRefs();
   if (window.__fitBigPrompt) window.__fitBigPrompt();
   toast(h.title ? 'From the belt: ' + h.title : 'From the belt');
 }
@@ -1017,21 +1117,42 @@ window.__navBack = function () { if (!$('player').hidden) { closePlayer(); retur
 
 // ── The pill's corner (Freeform's measured reserve, verbatim in shape) ────
 function setGap(el, name, v) { if (el.style.getPropertyValue(name) === v) return; el.style.setProperty(name, v); }
+// THE ROW THAT OVERLAPS THE PILL IS THE ROW THAT SHORTENS (2026-09-10,
+// Sophie: "shud be one row - not a column for pill scroll"). This used to
+// judge whole PANELS and put the reserve on the panel's own margin, so one
+// row grazing the pill's band cost 64px off every row in the panel — the
+// controls included, which sit hundreds of pixels below it. Each child of a
+// panel is judged on its own rect now; the panel keeps its full width and
+// passes under the rail like content on every other page here.
+// Judged as if at the top of the page (page coords against the fixed pill's
+// viewport rect, Freeform's own convention), so a row does not change width
+// as it scrolls past.
 function fitPillGap() {
   var panels = document.querySelectorAll('.panel');
+  var kids = document.querySelectorAll('.panel > *');
   var pill = document.querySelector('body > .float');
   var p = (pill && pill.getClientRects().length) ? pill.getBoundingClientRect() : null;
   var y = window.scrollY || 0, i;
-  for (i = 0; i < panels.length; i++) { setGap(panels[i], '--pillgap', '0px'); setGap(panels[i], '--pilltop', '0px'); }
-  if (!p) return;
-  var nat = [];
-  for (i = 0; i < panels.length; i++) nat.push(panels[i].getBoundingClientRect());
-  for (i = 0; i < panels.length; i++) {
-    var el = panels[i], r = nat[i], top = r.top + y, bot = r.bottom + y;
+  for (i = 0; i < panels.length; i++) setGap(panels[i], '--pilltop', '0px');
+  if (!p) { for (i = 0; i < kids.length; i++) setGap(kids[i], '--pillgap', '0px'); return; }
+  // IN DOCUMENT ORDER, EACH ROW ZEROED AND THEN MEASURED — so a row is judged
+  // where the rows ABOVE it have actually put it, and never on a position this
+  // function gave the row itself (which is the one shape that cannot come
+  // back). It walks forward and never revisits, so nothing can oscillate.
+  // The pass this replaced measured every row at once in the zero-reserve
+  // layout: with four references attached the strip fitted on one row there,
+  // which put the controls 4px inside the pill's bottom — so they reserved
+  // 49px, the reserve pushed the strip to two rows, and the controls ended up
+  // 100px BELOW the pill still paying for a collision the reserve had removed.
+  for (i = 0; i < kids.length; i++) {
+    var el = kids[i];
+    setGap(el, '--pillgap', '0px');
+    var r = el.getBoundingClientRect();
+    if (!r.width || !r.height) continue;            // a hidden row reserves nothing
+    var top = r.top + y, bot = r.bottom + y;
     if (bot <= p.top || top >= p.bottom) continue;
-    var clear = Math.ceil(p.bottom - top) + 8;
-    if (clear > 56) setGap(el, '--pillgap', Math.max(0, Math.ceil(r.right - p.left) + 8) + 'px');
-    else setGap(el, '--pilltop', (14 + clear) + 'px');
+    if (r.right <= p.left) continue;                // it ends before the column
+    setGap(el, '--pillgap', Math.max(0, Math.ceil(r.right - p.left) + 8) + 'px');
   }
 }
 window.__fitPillGap = fitPillGap;
@@ -1051,6 +1172,7 @@ window.__fitPillGap = fitPillGap;
 })();
 
 loadCtl();
+if (window.__fitBigPrompt) window.__fitBigPrompt();   // a restored draft fits its own box
 takeHandoff();          // moment 1 — AFTER loadCtl, so a hand-off beats the restored draft
 paintFilt();
 applyCols();
