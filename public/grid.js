@@ -90,6 +90,7 @@
     ' padding:6px 8px 0;overflow-wrap:anywhere;display:-webkit-box;' +
     ' -webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}' +
     '.gd-it img{width:100%;height:auto;border-radius:0;display:block;}' +
+    '.gd-vid{width:100%;height:auto;border-radius:0;display:block;background:#000;}' +
     // the card-face menu (square / portrait / landscape) — ratio set inline
     // per tile so one page can mix shapes; the class carries the rest
     '.gd-sq img{height:auto;object-fit:cover;}' +
@@ -346,7 +347,15 @@
           // an asset-backed picture opens the ASSETS lightbox (heart, note
           // thread, prompt — see openAsset below); only a plain picture keeps
           // compare.js's simple zoom
-          var media = it.img
+          // A CLIP PLAYS IN ITS TILE. Never a link and never the video
+          // lightbox: this page is a reference sheet, so a clip has to be
+          // watchable beside the stills it belongs with. `preload=metadata`
+          // so a page of clips costs a poster each, not a download each.
+          var media = it.video
+            ? '<video class="gd-vid" controls playsinline preload="metadata"'
+              + (it.poster ? ' poster="' + esc(it.poster) + '"' : '')
+              + ' src="' + esc(it.video) + '"></video>'
+            : it.img
             ? '<img class="' + (it.url ? '' : 'zoom') + '" '
               + (it.url ? 'data-lb="' + esc(it.id) + '" ' : '')
               + 'loading="lazy" decoding="async" '

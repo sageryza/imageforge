@@ -1,0 +1,104 @@
+{
+ "note": "ONE list of who and what the ward film points at. Built 2026-09-10 by unioning refs/stills.json and belt/refs.json. A prompt names a reference by its slot and says nothing about it. The ogHop block is the real photographic references; everything else is frames off generated clips.",
+ "people": {
+  "sophie": {
+   "current": null,
+   "note": "canonical face not picked yet \u2014 Sophie hearts one on the Compare page",
+   "candidates": {
+    "sophie-face-C": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/fe1416ac2bed79672468d5532aa747ca.png",
+    "sophie-face-D": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/9d8e857abcf6969f45539ebcd46314bf.png",
+    "sophie-face-A": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png",
+    "sophie-face-B": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a40594e3ae3e837ecd569b2549850205.png",
+    "sophie-jazz-A": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/bfce90db708632742f6183f3b8d8ce77.png",
+    "sophie-jazz-B": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/53d7eef594ff757f26027e5b8edf283c.png",
+    "sophie-jazz-C": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e0a3d5c8a24893877433083e2e4f9912.png"
+   }
+  },
+  "the-doctor": {
+   "current": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/86064af3393b1ea3c4b8b6861cf21971.png",
+   "also": {
+    "doctor-B": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c10792630f014457fc08d9713483b60d.png",
+    "still2-doctor-chair": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/de01cfce24b93207f44fb79cafae6880.png"
+   }
+  },
+  "the-assistant": {
+   "current": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/29b79fed3e5b81a9296535be1c13a775.png",
+   "note": "the still Sophie sent 2026-09-09; supersedes the barred intake frame",
+   "also": {
+    "assistant-A (barred intake frame)": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2eeb52f27625e039f68ae73252cd650c.png"
+   }
+  },
+  "the-music-teacher": {
+   "current": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/34b928828a45afae468eb264fe3fe29e.png",
+   "note": "the still Sophie sent 2026-09-10"
+  },
+  "the-white-coat-nurse": {
+   "current": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0bebd32cdd733225fecb2c4970f4ff72.png"
+  },
+  "mayra": {
+   "current": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8eab1f8fd9499e6940357110d55c32d1.png"
+  },
+  "the-parents": {
+   "current": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/61b685486a76cea75d8947fd8d3e7bcf.png"
+  },
+  "ms-ohara": {
+   "current": null,
+   "note": "NO still \u2014 she exists only inside the stretcher clip"
+  },
+  "yolanda": {
+   "current": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/aa3b74d4e2b2dbd590ca38051790d066.png",
+   "note": "OG character sheet from the hop album \u2014 supersedes \"no still on file\"",
+   "also": {
+    "talking with the nurse": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0d883a189b965ef8e0a41ad8c966026a.png",
+    "music class": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e68b5a575761431232b8b95b80aa78b2.png",
+    "dining room": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/6c39899052cc47d8f8159bfae816ff6b.png"
+   }
+  },
+  "mrs-norbert-art-teacher": {
+   "current": null,
+   "note": "NO still \u2014 only a video reference"
+  },
+  "michael": {
+   "current": null,
+   "note": "NO still \u2014 barred crops from the table clip only (michaelAud2)"
+  },
+  "the-rn": {
+   "current": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/bc375a01222171f4f6b810f1b05e8ff3.png",
+   "note": "OG, hop album. Possibly Nurse Mary \u2014 unconfirmed",
+   "also": {
+    "leaving in her coat": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1fc18be6120777a658c97835b4015100.png"
+   }
+  }
+ },
+ "settings": {
+  "the-office": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/7e4069ef6345be703f51b480f96edd90.png",
+  "her-room": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a26b474c31334b9e2b32d1d10b6ec5bc.png",
+  "the-dining-room": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1c9795c66026ee3374ab37bc6eb54b58.png"
+ },
+ "wardrobe": {
+  "note": "the wardrobe references \u2014 send these as the pajama slots on any ward clip",
+  "wholeOutfit": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/29b0531b15fa98895bd18fb9e16e90d3.png",
+  "pj-optA-solo": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0e7139dc94a4418015ae6a692370be87.png",
+  "pj-optC-solo": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e78b0b8ab03512e6fa28415b4ed422e7.png",
+  "still-pj-pocket": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png",
+  "headless": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d0470544456526eedcc911e5a03ff93b.png",
+  "still-socks": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/929514d99e35b79a0b2bd67972695d08.png",
+  "socksSource": "frame 1.0s of the socks b-roll f899742c87d62493f9bad9f60bc7a677.mp4 (cut.json s9broll); no face in it",
+  "still-socks-OG": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/6658c95fe5f66559c659f688e6371e7c.jpg",
+  "socksNote": "THE socks reference is the Medline product photo (OG, no people, 500x500) \u2014 filed in severance-chat-assets-scene. still-socks is a clip frame and is the fallback."
+ },
+ "ogHop": {
+  "note": "the OG references \u2014 real photographic stills Sophie dumped, NOT frames off Seedance clips. Dump album \"hop\", 2026-09-09. These beat any clip frame.",
+  "yolanda-sheet": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/aa3b74d4e2b2dbd590ca38051790d066.png",
+  "yolanda-nurse": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0d883a189b965ef8e0a41ad8c966026a.png",
+  "yolanda-music": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e68b5a575761431232b8b95b80aa78b2.png",
+  "yolanda-dining": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/6c39899052cc47d8f8159bfae816ff6b.png",
+  "rn-station": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/bc375a01222171f4f6b810f1b05e8ff3.png",
+  "rn-leaving": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1fc18be6120777a658c97835b4015100.png",
+  "unnamed-grey-sweater": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/89b893eec3d7d45c1f74297a8ba3afbc.png",
+  "unnamed-blonde-studio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3a2610e486f1d30de71562ce9c875d06.png",
+  "unnamed-blazer-portrait": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/f77cd57d13a68589fdabf42683535c92.png",
+  "unnamed-blazer-full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/cb8155bf8390fa93c89385897380bb8a.png",
+  "open": "four unnamed. The socks OG is NOT in this album \u2014 it is the Medline photo, see wardrobe."
+ }
+}
