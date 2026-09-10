@@ -7694,6 +7694,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
     SPAN THE WHOLE CLIP** (PHOTOgraphed): a bright band over the whole strip
     covers the dim bands of the parts she has already cut, and the whole clip
     is exactly the state the trimmer opens on now.
+  - **A TRIMMED CLIP SAYS SO ON THE WALL TOO (2026-09-10, Sophie: "can you
+    put a little icon on clips that have been trimmed even in the tile
+    view?").** A small scissors chip in the tile's TOP-LEFT corner — the two
+    marks own the bottom corners — carrying the NUMBER only when the clip
+    holds more than one part, the way the card's rows number themselves.
+    Three things not to undo: it counts only a part that really BAKED (one
+    still baking has cut nothing yet, and "trimming…" is said on the card's
+    own row); it rides as a CLASS toggled in `applyFilt`, out of the wall's
+    signature exactly like the ✕, so a trim landing can never rebuild the
+    wall and re-decode every poster; and its **15px at top:2 is MEASURED,
+    not picked** — at four across a 16:9 tile is 49px high and the heart's
+    26px box starts 19px down, so the first cut sat on it.
   - **A TOAST IS A MESSAGE, NEVER A CONTROL — `pointer-events:none`, and that
     was a LIVE BUG on this page, found by measurement.** Fading to opacity 0
     does not stop an element hit-testing, so the toast box sat invisible at the

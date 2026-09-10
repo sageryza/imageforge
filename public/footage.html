@@ -242,6 +242,22 @@
   #tiles .tmark.nope{right:4px}
   #tiles .tmark.heart.on{background:#c96a5e;border-color:#c96a5e}
   #tiles .tmark.nope.on{background:#3a3530;border-color:#3a3530}
+  /* A CLIP SHE HAS TRIMMED SAYS SO ON THE WALL TOO (2026-09-10, Sophie: "can
+     you put a little icon on clips that have been trimmed even in the tile
+     view?"). TOP-LEFT: the two marks own the bottom corners. It rides as a
+     CLASS, out of the wall's signature exactly like the ✕ — a trim landing
+     must never rebuild the wall and re-decode every poster. The number shows
+     only when there is more than one part, the way the card's rows number
+     themselves; `:empty` is what keeps the flex gap off a lone scissors. */
+  /* 16px tall is MEASURED, not picked: at four across a 16:9 tile is 49px
+     high and the heart's 26px box starts 19px down, so anything taller sits
+     on it — 15px at top:2 clears the heart's own top edge by a pixel. */
+  #tiles .tcut{position:absolute;top:2px;left:4px;display:none;align-items:center;gap:3px;
+        height:15px;padding:0 4px;border-radius:5px;font-size:10px;line-height:1;color:#fff;
+        background:rgba(20,17,14,.55);border:1px solid rgba(255,255,255,.28)}
+  #tiles .tcut svg{width:10px;height:10px;display:block}
+  #tiles .tcut .n:empty{display:none}
+  #tiles .cell.cut .tcut{display:inline-flex}
   .filttog{display:flex;flex:none;border:1px solid #d8cfc0;border-radius:6px;overflow:hidden;background:#fdfbf7}
   .likefilt{display:flex;align-items:center;justify-content:center;width:34px;height:32px;
             border:0;border-radius:0;background:none;color:#6f675e;padding:0}
@@ -1044,6 +1060,18 @@ function applyFilt() {
     var hb = el.querySelector('.tmark.heart'), nb = el.querySelector('.tmark.nope');
     if (hb) { hb.classList.toggle('on', j.vote === 'like'); hb.setAttribute('aria-pressed', j.vote === 'like' ? 'true' : 'false'); }
     if (nb) { nb.classList.toggle('on', j.vote === 'dislike'); nb.setAttribute('aria-pressed', j.vote === 'dislike' ? 'true' : 'false'); }
+    // A TRIMMED CLIP WEARS THE SCISSORS. Only a part that really BAKED counts
+    // — one still baking has cut nothing yet, and the list's own row is where
+    // "trimming…" is said.
+    var parts = jobParts(j).filter(function (t) { return t && t.status === 'ready' && t.url; });
+    el.classList.toggle('cut', parts.length > 0);
+    var cm = el.querySelector('.tcut');
+    if (cm) {
+      var lbl = parts.length > 1 ? parts.length + ' parts trimmed out of this clip' : 'Trimmed';
+      cm.title = lbl; cm.setAttribute('aria-label', lbl);
+      var num = cm.querySelector('.n');
+      if (num) num.textContent = parts.length > 1 ? String(parts.length) : '';
+    }
     if (s && tiles) any = true;
   });
   var n = Object.keys(jobsById).length;
@@ -1131,6 +1159,11 @@ function renderTiles() {
     // the SOURCE opens, so the marks are always in the original's own seconds
     face.addEventListener('click', function () { var jj = jobsById[j.id]; if (jj && jj.video) openPlayer(jj.source || jj.video, jj); });
     c.appendChild(face);
+    // the trimmed mark — built here, LIT in applyFilt, so it stays out of the
+    // signature above and a part landing costs no poster a re-decode
+    var cut = document.createElement('span'); cut.className = 'tcut';
+    cut.innerHTML = ICONS.scissors + '<span class="n"></span>';
+    c.appendChild(cut);
     // THE SAME TWO MARKS AS THE LIST CARD'S, through the same castVote — a
     // clip hearted on the wall is hearted in the list and on the server.
     // They are siblings of the face, so a mark's tap can never play the clip.

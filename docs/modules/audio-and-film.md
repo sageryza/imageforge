@@ -596,6 +596,21 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         — with the marks at the two ends, play already plays it all. **The
         label is short on purpose** (PHOTOgraphed beside "Whole clip", which
         resets the MARKS: two long labels there read as one thing said twice).
+      - **A TRIMMED CLIP SAYS SO ON THE WALL TOO (2026-09-10, Sophie: "can
+        you put a little icon on clips that have been trimmed even in the tile
+        view?").** A small scissors chip in the tile's TOP-LEFT corner — the
+        heart and the ✕ own the bottom corners — carrying the NUMBER only when
+        the clip holds more than one part, the way the card's rows number
+        themselves. Three things not to undo: it counts only a part that
+        really BAKED (one still baking has cut nothing yet, and "trimming…" is
+        said on the card's own row, where there is room for it); it rides as a
+        CLASS toggled in `applyFilt`, OUT of the wall's signature exactly like
+        the ✕, so a trim landing can never rebuild the wall and re-decode
+        every poster; and its **15px at top:2 is MEASURED** — at four across a
+        16:9 tile is 49px high and the heart's 26px box starts 19px down, so
+        the first cut sat on it (measured at three AND four across, both ways
+        round: the mark drawn, the mark off the heart, and every control still
+        taking its own tap).
       - **THE SPAN IS ALWAYS IN THE ORIGINAL'S OWN SECONDS,** so the player
         opens the SOURCE even on a clip that is already trimmed: a trim can be
         widened back out, re-cut or undone. Trimming a trim would make the

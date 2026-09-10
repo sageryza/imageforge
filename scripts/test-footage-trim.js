@@ -245,7 +245,11 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
   const server = http.createServer((req, res) => {
     if (servePublic(req, res)) return;
     const u = new URL(req.url, 'http://x');
-    const json = (o, code) => { res.writeHead(code || 200, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
+    // NO-STORE, exactly as footage.js answers — without it Chromium
+    // heuristic-caches the jobs read and a second loadJobs sees the same
+    // list, which makes a real repaint look like a page that never
+    // updated (it cost this test an hour).
+    const json = (o, code) => { res.writeHead(code || 200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(o)); };
     let body = '';
     req.on('data', (c) => { body += c; });
     req.on('end', () => {
@@ -484,7 +488,10 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
   // ── it lands ───────────────────────────────────────────────────────────
   jobs[0] = { ...jobs[0], video: '/trimmed.webm', poster: '/ref.png',
     trims: [{ key: 'k1.2-3.6', start: 1.2, end: 3.6, seconds: 2.4, status: 'ready', url: '/trimmed.webm', error: '' }] };
-  await page.evaluate(() => window.loadJobs && window.loadJobs());
+  // the page's OWN re-read — `loadJobs` is inside the page's IIFE, so
+  // `window.loadJobs` is undefined and calling it was a silent no-op that only
+  // passed because a baking part's poll happened to fire.
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await page.waitForFunction(() => /trimmed 1\.2–3\.6s/.test(document.getElementById('job-clip1').textContent), null, { timeout: 8000 });
   ok('the card says what is kept', /trimmed 1\.2–3\.6s · keeping 2\.4s/.test(await page.textContent('#job-clip1')));
   ok('save hands her the TRIMMED clip', /\/trimmed\.webm$/.test(await page.$eval('#job-clip1 .acts a', (a) => a.getAttribute('href'))));
@@ -572,6 +579,94 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
   await page.evaluate(() => document.querySelector('#player .pstage').click());
   await page.waitForTimeout(150);
   ok('a tap on the backdrop closes the player', await page.$eval('#player', (el) => el.hidden));
+
+  // ── AND THE WALL SAYS SO TOO (2026-09-10, Sophie: "can you put a little
+  // icon on clips that have been trimmed even in the tile view?") ────────
+  // MEASURED off the real cells: a class whose CSS never landed, a badge
+  // drawn on every tile, and one that never lights are the same markup.
+  {
+    jobs[0] = { ...jobs[0], trims: [{ key: 'k1.2-3.6', start: 1.2, end: 3.6, seconds: 2.4, status: 'ready', url: '/trimmed.webm', error: '' }] };
+    jobs.push({
+      id: 'clip2', prompt: 'the day room', model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud',
+      seconds: 4, resolution: '480p', ratio: '16:9', sound: true, status: 'done',
+      video: '/clip.webm', source: '/clip.webm', poster: '/ref.png', refs: [],
+      sentAt: '2026-09-10T07:00:00.000Z', cost: 4, estimate: 4, vote: '', hidden: false, trims: [],
+    });
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await page.waitForTimeout(300);
+    await page.click('#v-tiles');
+    await page.waitForSelector('#tiles .cell[data-id="clip2"]');
+    await page.waitForTimeout(200);
+    const marks = await page.evaluate(() => {
+      const read = (id) => {
+        const cell = document.querySelector('#tiles .cell[data-id="' + id + '"]');
+        const m = cell && cell.querySelector('.tcut');
+        const r = m ? m.getBoundingClientRect() : null;
+        const cr = cell ? cell.getBoundingClientRect() : null;
+        return {
+          drawn: !!(r && r.width > 0 && r.height > 0),
+          n: m ? m.querySelector('.n').textContent : '',
+          inside: !!(r && cr && r.top >= cr.top - 1 && r.left >= cr.left - 1 && r.bottom <= cr.bottom + 1),
+          overHeart: !!(r && (() => {
+            const h = cell.querySelector('.tmark.heart').getBoundingClientRect();
+            return !(r.right <= h.left || r.left >= h.right || r.bottom <= h.top || r.top >= h.bottom);
+          })()),
+        };
+      };
+      return { cut: read('clip1'), plain: read('clip2') };
+    });
+    ok('a trimmed clip wears the mark on the wall', marks.cut.drawn);
+    ok('and an untrimmed one does not', !marks.plain.drawn);
+    ok('one part shows no number', marks.cut.n === '');
+    ok('the mark sits inside its own tile', marks.cut.inside);
+    ok('and never on the heart', !marks.cut.overHeart);
+    // AND AT FOUR ACROSS, which is where it is tight: a 16:9 tile is 49px
+    // high there and the heart's box starts 19px down, so a badge picked by
+    // eye sits on it (measured: the first cut did).
+    await page.click('#v-cols');
+    await page.waitForTimeout(250);
+    const tight = await page.evaluate(() => {
+      const cell = document.querySelector('#tiles .cell[data-id="clip1"]');
+      const m = cell.querySelector('.tcut').getBoundingClientRect();
+      const h = cell.querySelector('.tmark.heart').getBoundingClientRect();
+      const hit = (el) => { const q = el.getBoundingClientRect();
+        const at = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2);
+        return at === el || el.contains(at); };
+      return { over: !(m.right <= h.left || m.left >= h.right || m.bottom <= h.top || m.top >= h.bottom),
+        drawn: m.width > 0 && m.height > 0, heart: hit(cell.querySelector('.tmark.heart')) };
+    });
+    ok('four across: the mark is still drawn', tight.drawn);
+    ok('four across: and still off the heart', !tight.over);
+    ok('four across: the heart still takes its own tap', tight.heart);
+    await page.click('#v-cols');
+    await page.waitForTimeout(200);
+    // the face still takes the tap — a badge over the play face would be a
+    // clip she cannot open from the wall
+    const facehit = await page.evaluate(() => {
+      const f = document.querySelector('#tiles .cell[data-id="clip1"] .face');
+      const r = f.getBoundingClientRect();
+      const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return at === f || f.contains(at);
+    });
+    ok('the play face still takes its own tap', facehit);
+    // TWO parts → the count, so a clip cut twice is not read as cut once
+    jobs[0] = { ...jobs[0], trims: jobs[0].trims.concat([{ key: 'k4-4.8', start: 4, end: 4.8, seconds: 0.8, status: 'ready', url: '/trimmed.webm', error: '' }]) };
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await page.waitForTimeout(400);
+    ok('two parts put the number on the mark',
+      (await page.$eval('#tiles .cell[data-id="clip1"] .tcut .n', (el) => el.textContent)) === '2');
+    // and it is off the wall's signature: a vote must not rebuild the posters
+    const same = await page.evaluate(async () => {
+      const img = document.querySelector('#tiles .cell[data-id="clip1"] img');
+      document.querySelector('#tiles .cell[data-id="clip1"] .tmark.heart').click();
+      await new Promise((r) => setTimeout(r, 250));
+      return img === document.querySelector('#tiles .cell[data-id="clip1"] img');
+    });
+    ok('a mark cast on the wall never rebuilds the poster', same);
+    ok('and the trimmed mark survives it',
+      await shown('#tiles .cell[data-id="clip1"] .tcut'));
+    await page.click('#v-list');
+  }
 
   ok('still no page errors', errors.length === 0);
 
