@@ -17,6 +17,13 @@
    "out": 8.5
   },
   {
+   "key": "socks",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/footage/trims/6b410c2dc9c99c572b81214fb15c11e6d64b362e.mp4",
+   "title": "the waiting room \u2014 jumping the chairs in the grippy socks (your own trim)",
+   "in": 0,
+   "out": 4.87
+  },
+  {
    "key": "spun",
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a59ab8130c2303616ed573c598bff00e.mp4",
    "title": "intake \u2014 \"the paramedics reported\u2026 spinning around in circles\"",
@@ -46,10 +53,10 @@
   },
   {
    "key": "judge",
-   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/openrouter-video/1788931090997-uovoxi.mp4",
-   "title": "the judge \u2014 the 720p redo: \"\u2026we'll be forced to get a judge to determine whether you're mentally stable enough\" over her face",
-   "in": 6.4,
-   "out": 13.45
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788906300124-gl2cf6.mp4",
+   "title": "the judge \u2014 the OTHER take (gl2cf6, the right doctor): \"tomorrow? the next day? the day after that?\" then the judge line over her face",
+   "in": 0,
+   "out": 8.04
   },
   {
    "key": "ghost",

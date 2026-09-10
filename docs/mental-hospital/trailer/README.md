@@ -55,6 +55,25 @@ Editor: https://imageforge-q125.onrender.com/filmeditor?c=pxan7kLF6I7iMWxlVb5C
   -68 → -56 → -47 → -39 → -33 → -28 → -22 → -18 dB, monotonic. In the render
   the music alone reads -36.5 dB at the pill and -24.6 just before the stop.
 
+- v6: the judge beat is `apiframe-video/1788906300124-gl2cf6.mp4` — the FIRST
+  climax-3 take from `climax-dissociation-accounts`, 8.04s, whole clip. It has
+  the right doctor, the three questions ("tomorrow? the next day? the day after
+  that?"), the whole judge sentence, and its own cut to her face at 6.0s. The
+  720p redo that was in v4/v5 drew a DIFFERENT PERSON. And the socks jump was
+  added after the ambulance: her own trim of the waiting-room clip
+  (`footage/trims/6b410c2dc9c99c572b81214fb15c11e6d64b362e.mp4`, 4.87s), where
+  she jumps the chairs in the grippy socks.
+
+- **THE `footage-scare-dissociation` BATCH IS MARKED FAILED — DO NOT USE IT
+  (2026-09-10, Sophie: "the judge u picked is a diff person · get rid of all
+  the footage from that chat so no one sees it · not deleted but marked
+  fail").** All 14 jobs on `forge-video-jobs` for that chat now carry
+  `status:'failed'`, `hidden:true`, a `why`, and `statusWas` holding the
+  original status, so the log and every surface reading it skip them and the
+  clips themselves are untouched in Storage. They are the Climax 3 redos, the
+  context-line pair, the seed tests and the 720p B takes. Reversing it is
+  writing `statusWas` back.
+
 - Substitutions, named: "Francesca kicked out of class" = Yolanda scolded in
   music class (s18 18.3–21.8; the seated woman is the Francesca description);
   "Michael: I know what you mean" = the hallway walk's "I know the feeling";
