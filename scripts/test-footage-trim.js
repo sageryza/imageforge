@@ -84,6 +84,43 @@ const done = { status: 'completed', video: 'https://s/clip.mp4' };
   ok('a FAILED trim leaves the clip exactly as it was', failed.video === raw.video && failed.trim.error === 'nope');
 }
 
+// ─── 1b. A LATE BAKE MUST NOT SPEAK FOR A TRIM SHE MOVED ON FROM ─────────
+// Trims queue, so a second tap can land while the first is still encoding.
+// The write that matters is the UNDO: without the guard a bake finishing
+// after `clear` puts the trim back on the doc by itself, with nothing on
+// screen saying why. Driven through the REAL bakeTrim with `admin` stubbed
+// and the object already existing (the baked-once path), so no ffmpeg and no
+// network are involved — only the decision.
+async function bakeAgainst(docTrim) {
+  const admin = require('firebase-admin');
+  // `apps`, `storage` and `firestore` are GETTER-ONLY on the firebase-admin
+  // namespace, so a plain `admin.storage = …` fails SILENTLY outside strict
+  // mode and the real one throws behind the stub's back — every write then
+  // vanishes into bakeTrim's own catch and the test passes vacuously. Define
+  // them, and put the originals back.
+  const was = {};
+  const stub = (name, value) => {
+    was[name] = Object.getOwnPropertyDescriptor(admin, name);
+    Object.defineProperty(admin, name, { value, configurable: true, writable: true });
+  };
+  const doc = { status: 'completed', video: 'https://s/clip.mp4', trim: docTrim };
+  const writes = [];
+  const fsNs = () => ({ collection: () => ({ doc: () => ({
+    get: async () => ({ exists: true, data: () => doc }),
+    set: async (patch) => { writes.push(patch); },
+  }) }) });
+  Object.keys(admin.firestore).forEach((k) => { fsNs[k] = admin.firestore[k]; });
+  stub('apps', [{}]);
+  stub('storage', () => ({ bucket: () => ({ name: 'b', file: () => ({ exists: async () => [true] }) }) }));
+  stub('firestore', fsNs);
+  try {
+    await F.bakeTrim('job1', F.trimPlan(doc, { start: 1, end: 3 }));
+  } finally {
+    Object.keys(was).forEach((k) => { if (was[k]) Object.defineProperty(admin, k, was[k]); });
+  }
+  return writes;
+}
+
 // ─── 2. A REAL CUT, MEASURED ─────────────────────────────────────────────
 let FF = null;
 try { FF = require('ffmpeg-static'); } catch (_) { /* none here */ }
@@ -113,6 +150,16 @@ function exe() {
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
 
 (async () => {
+  {
+    const mine = F.trimPlan({ status: 'completed', video: 'https://s/clip.mp4' }, { start: 1, end: 3 });
+    const w1 = await bakeAgainst({ key: mine.key, status: 'baking' });
+    ok('a bake writes while the doc still asks for its own span', w1.length === 1 && w1[0].trim && w1[0].trim.status === 'ready');
+    const w2 = await bakeAgainst(null);
+    ok('an UNDONE trim is never resurrected by a late bake', w2.length === 0);
+    const w3 = await bakeAgainst({ key: 'someothertrim', status: 'baking' });
+    ok('a RE-TRIM is not overwritten by the bake it replaced', w3.length === 0);
+  }
+
   if (FF) {
     const out = path.join(tmp, 'cut.mp4');
     const src = await F.probeMedia(mp4);

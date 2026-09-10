@@ -619,9 +619,24 @@ async function cutSpan(src, out, start, end, withAudio) {
 // must leave the original exactly as it was.
 async function bakeTrim(id, plan) {
   return gateTrim(async () => {
-    const write = (patch) => coll().doc(String(id)).set({
-      trim: { start: plan.start, end: plan.end, seconds: plan.span, key: plan.key, source: plan.source, at: new Date().toISOString(), url: '', poster: '', error: '', ...patch },
-    }, { merge: true }).catch(() => {});
+    // A LATE BAKE MUST NOT SPEAK FOR A TRIM SHE HAS MOVED ON FROM. Trims
+    // queue, so a second tap can land while the first is still encoding —
+    // and the write that matters is the UNDO: without this guard a bake
+    // finishing after `clear` would put the trim back on the doc by itself,
+    // with nothing on screen saying why. The doc's own `trim.key` is the
+    // authority; a bake whose key is no longer there stands down silently.
+    const write = async (patch) => {
+      try {
+        const ref = coll().doc(String(id));
+        const snap = await ref.get();
+        const cur = snap.exists ? snap.data().trim : null;
+        if (!cur || cur.key !== plan.key) return null;
+        await ref.set({
+          trim: { start: plan.start, end: plan.end, seconds: plan.span, key: plan.key, source: plan.source, at: new Date().toISOString(), url: '', poster: '', error: '', ...patch },
+        }, { merge: true });
+      } catch { /* the card keeps saying it is baking; the next tap re-plans */ }
+      return null;
+    };
     const bucket = bucketOrNull();
     const bin = ffmpegBin();
     if (!bucket || !bin) return write({ status: 'failed', error: 'ffmpeg or Storage is not configured here' });
