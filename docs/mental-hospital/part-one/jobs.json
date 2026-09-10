@@ -1,7 +1,27 @@
 [
  {
+  "key": "p1-00",
+  "title": "Wesleyan — under the bed in the storm",
+  "secs": 6,
+  "status": "her words, nothing sent",
+  "images": [
+   [
+    "Sophie — sophie-face-A",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ]
+  ],
+  "videos": [],
+  "mine": [
+   "sophie is the woman in image 1.",
+   "setting: a college dorm room at night, a storm outside the window.",
+   "sophie lies on the floor under her bed."
+  ],
+  "text": "her deciding to drop out of Wesleyan sleeping under her bed during a storm",
+  "note": "your sentence from today, verbatim — it is the only text there is for this one. write the scene in the box and it replaces it. my pick 6s: the storm, her under there, the decision landing."
+ },
+ {
   "key": "p1-01",
-  "title": "Into the city — after school",
+  "title": "Into the city — after dropping out",
   "secs": 4,
   "status": "her words, nothing sent",
   "images": [
@@ -16,7 +36,7 @@
    "setting: new york city, daytime, the street."
   ],
   "text": "her making her way into the city after dropping it to school",
-  "note": "read as: after dropping out of school. the city is New York (your ward scene 30 names it)."
+  "note": "read as: after dropping out of school. note the gloves story opens on almost the same move (card 15, \"strolled aimlessly into the city\") — one of the two may want cutting."
  },
  {
   "key": "p1-02",
@@ -39,46 +59,6 @@
  },
  {
   "key": "p1-03",
-  "title": "The gloves — the 99-cent store",
-  "secs": 4,
-  "status": "her words (The white gloves, beats 4–5), nothing sent",
-  "images": [
-   [
-    "Sophie — sophie-face-A",
-    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
-   ]
-  ],
-  "videos": [],
-  "mine": [
-   "sophie is the woman in image 1.",
-   "setting: the aisle of a 99-cent store.",
-   "magical realism: the white gloves on the rack glow faintly, as if lit from inside; a little voice whispers to her."
-  ],
-  "text": "But on the way, I stopped at a 99-cent store, my happy place, and bought, for some reason, unbeknownst to me, a pair of white gloves, not latex, but fabric.\n\nI had never endeavored to own a pair of gloves like this, but for some reason, they caught my eye, and I felt I needed them.",
-  "note": "the glow and the whisper are my lines (the magical-realism treatment you asked for) — cut them if the gloves scene should stay plain."
- },
- {
-  "key": "p1-04",
-  "title": "The gloves — the museum door",
-  "secs": 4,
-  "status": "her words (The white gloves, beats 6–7), nothing sent",
-  "images": [
-   [
-    "Sophie — sophie-face-A",
-    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
-   ]
-  ],
-  "videos": [],
-  "mine": [
-   "sophie is the woman in image 1.",
-   "setting: the entrance of an art museum at night, a posh event inside.",
-   "sophie wears the white fabric gloves."
-  ],
-  "text": "Once at the event, it became apparent that all the security guards were wearing a pair of these gloves.\n\nAnd I was let in after seeing that I too possessed them.",
-  "note": ""
- },
- {
-  "key": "p1-05",
   "title": "What to wear — the mirror",
   "secs": 10,
   "status": "her words, nothing sent",
@@ -91,16 +71,17 @@
   "videos": [],
   "mine": [
    "sophie is the woman in image 1.",
-   "setting: her bedroom, a full length mirror, clothes laid out — a striped shirt, green pants, black pants."
+   "setting: her bedroom, a full length mirror, clothes laid out — a striped shirt, green pants, black pants.",
+   "magical realism: the black pants glow, lit from inside, while the other clothes stay dull."
   ],
   "text": "there's a little voice whispering to her What to Wear and she looks at the different options like a striped shirt and green pants, etc. and the black pants are lit up like that's the thing to wear. She's looking in the full length mirror.",
-  "note": "my pick 10s — the whisper, the look across the options, the black lighting up. what the voice says is yours: the box is where the line goes."
+  "note": "my pick 10s — the whisper, the look across the options, the black lighting up. what the voice actually says is yours: put the line in the box."
  },
  {
-  "key": "p1-06",
-  "title": "All black — dressed",
+  "key": "p1-d0",
+  "title": "The dance — 1 of 9",
   "secs": 4,
-  "status": "her words (The dance I joined by accident, beat 0), nothing sent",
+  "status": "her words (The dance I joined by accident), nothing sent",
   "images": [
    [
     "Sophie — sophie-face-A",
@@ -113,6 +94,337 @@
    "setting: her bedroom, the full length mirror."
   ],
   "text": "On one such occasion, I chose to wear an entirely black outfit—I didn't know why—complete with black shoes, black pants, a black shirt, and my hair in a ponytail.",
-  "note": "the payoff of the mirror scene. the dance itself (the two dancers in black, her rolling in) is not on this belt — say if you want it."
+  "note": "the payoff of the mirror card before it."
+ },
+ {
+  "key": "p1-d1",
+  "title": "The dance — 2 of 9",
+  "secs": 4,
+  "status": "her words (The dance I joined by accident), nothing sent",
+  "images": [
+   [
+    "Sophie — sophie-face-A",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ]
+  ],
+  "videos": [],
+  "mine": [
+   "sophie is the woman in image 1.",
+   "setting: outside at night, her roommates walking her to a performance."
+  ],
+  "text": "My roommates led me to some event performance that I didn't know a thing about.",
+  "note": ""
+ },
+ {
+  "key": "p1-d2",
+  "title": "The dance — 3 of 9",
+  "secs": 4,
+  "status": "her words (The dance I joined by accident), nothing sent",
+  "images": [
+   [
+    "Sophie — sophie-face-A",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ]
+  ],
+  "videos": [],
+  "mine": [
+   "sophie is the woman in image 1.",
+   "setting: a small performance space, folding chairs, sophie sitting on the floor at the front."
+  ],
+  "text": "When we got there, I ended up sitting in the front row, which was actually just the floor, in front of a bunch of folding chairs.",
+  "note": ""
+ },
+ {
+  "key": "p1-d3",
+  "title": "The dance — 4 of 9",
+  "secs": 6,
+  "status": "her words (The dance I joined by accident), nothing sent",
+  "images": [
+   [
+    "Sophie — sophie-face-A",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ]
+  ],
+  "videos": [],
+  "mine": [
+   "sophie is the woman in image 1.",
+   "setting: the bare stage, two women in black dancing.",
+   "sophie is watching from the floor."
+  ],
+  "text": "When the performance started, it was just two women performing some modern dance, which was mainly just grappling with each other, sort of falling all over each other in rough, seemingly unchoreographed motions.",
+  "note": "my pick 6s — two dancers, a whole move. 4s is one lunge."
+ },
+ {
+  "key": "p1-d4",
+  "title": "The dance — 5 of 9",
+  "secs": 4,
+  "status": "her words (The dance I joined by accident), nothing sent",
+  "images": [
+   [
+    "Sophie — sophie-face-A",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ]
+  ],
+  "videos": [],
+  "mine": [
+   "sophie is the woman in image 1.",
+   "setting: the bare stage, two women in black dancing.",
+   "sophie is watching from the floor."
+  ],
+  "text": "I noted that they were wearing all black, and that I also was wearing all black.",
+  "note": ""
+ },
+ {
+  "key": "p1-d5",
+  "title": "The dance — 6 of 9",
+  "secs": 4,
+  "status": "her words (The dance I joined by accident), nothing sent",
+  "images": [
+   [
+    "Sophie — sophie-face-A",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ]
+  ],
+  "videos": [],
+  "mine": [
+   "sophie is the woman in image 1.",
+   "setting: the dark room, her roommates in the folding chairs behind her."
+  ],
+  "text": "The situation seemed to be a dare, which I eventually carried out without needing even to stand.",
+  "note": ""
+ },
+ {
+  "key": "p1-d6",
+  "title": "The dance — 7 of 9",
+  "secs": 6,
+  "status": "her words (The dance I joined by accident), nothing sent",
+  "images": [
+   [
+    "Sophie — sophie-face-A",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ]
+  ],
+  "videos": [],
+  "mine": [
+   "sophie is the woman in image 1.",
+   "setting: the bare stage, two women in black dancing.",
+   "sophie is on the floor at the front."
+  ],
+  "text": "I sort of rolled away from the audience and into the performance.",
+  "note": "my pick 6s — the roll out of the audience and into it."
+ },
+ {
+  "key": "p1-d7",
+  "title": "The dance — 8 of 9",
+  "secs": 8,
+  "status": "her words (The dance I joined by accident), nothing sent",
+  "images": [
+   [
+    "Sophie — sophie-face-A",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ]
+  ],
+  "videos": [],
+  "mine": [
+   "sophie is the woman in image 1.",
+   "setting: the bare stage, three women in black.",
+   "the two performers look exactly like sophie."
+  ],
+  "text": "I had braced myself for any outcome, but the performers, who looked exactly like me, embraced my appearance without a second thought, as though it had been planned, and soon I was grappling with them on stage, and two became three.",
+  "note": "my pick 8s — three of them grappling; the longest thing that happens in the story."
+ },
+ {
+  "key": "p1-d8",
+  "title": "The dance — 9 of 9",
+  "secs": 6,
+  "status": "her words (The dance I joined by accident), nothing sent",
+  "images": [
+   [
+    "Sophie — sophie-face-A",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ]
+  ],
+  "videos": [],
+  "mine": [
+   "sophie is the woman in image 1.",
+   "setting: the small performance space, the audience applauding, three women in black on the stage."
+  ],
+  "text": "And after it was over, everybody clapped, and no one except my roommates were the wiser.",
+  "note": "my pick 6s — the applause needs to land."
+ },
+ {
+  "key": "p1-g0",
+  "title": "The gloves — 1 of 9",
+  "secs": 4,
+  "status": "her words (The white gloves), nothing sent",
+  "images": [
+   [
+    "Sophie — sophie-face-A",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ]
+  ],
+  "videos": [],
+  "mine": [
+   "sophie is the woman in image 1.",
+   "setting: a city street, daytime, sophie walking with no direction."
+  ],
+  "text": "In another such incident, I strolled aimlessly into the city, feeling quite depressed.",
+  "note": ""
+ },
+ {
+  "key": "p1-g1",
+  "title": "The gloves — 2 of 9",
+  "secs": 4,
+  "status": "her words (The white gloves), nothing sent",
+  "images": [
+   [
+    "Sophie — sophie-face-A",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ]
+  ],
+  "videos": [],
+  "mine": [
+   "sophie is the woman in image 1.",
+   "setting: the sidewalk outside an art museum, a sign for a posh evening event."
+  ],
+  "text": "I happened upon a sign pointing to some posh event at an art museum, and was immediately sad I couldn't go.",
+  "note": ""
+ },
+ {
+  "key": "p1-g2",
+  "title": "The gloves — 3 of 9",
+  "secs": 4,
+  "status": "her words (The white gloves), nothing sent",
+  "images": [
+   [
+    "Sophie — sophie-face-A",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ]
+  ],
+  "videos": [],
+  "mine": [
+   "sophie is the woman in image 1.",
+   "setting: the sidewalk outside the museum.",
+   "magical realism: the parties she will never be invited to drift past her, out of reach."
+  ],
+  "text": "And lamented not just that, but all the events I would never get to go to.",
+  "note": ""
+ },
+ {
+  "key": "p1-g3",
+  "title": "The gloves — 4 of 9",
+  "secs": 4,
+  "status": "her words (The white gloves), nothing sent",
+  "images": [
+   [
+    "Sophie — sophie-face-A",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ]
+  ],
+  "videos": [],
+  "mine": [
+   "sophie is the woman in image 1.",
+   "setting: a city street, the museum ahead of her."
+  ],
+  "text": "I headed in that direction anyway.",
+  "note": ""
+ },
+ {
+  "key": "p1-g4",
+  "title": "The gloves — 5 of 9",
+  "secs": 6,
+  "status": "her words (The white gloves), nothing sent",
+  "images": [
+   [
+    "Sophie — sophie-face-A",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ]
+  ],
+  "videos": [],
+  "mine": [
+   "sophie is the woman in image 1.",
+   "setting: the aisle of a 99-cent store.",
+   "magical realism: the white fabric gloves on the rack glow faintly, lit from inside."
+  ],
+  "text": "But on the way, I stopped at a 99-cent store, my happy place, and bought, for some reason, unbeknownst to me, a pair of white gloves, not latex, but fabric.",
+  "note": "my pick 6s — she has to find them and buy them."
+ },
+ {
+  "key": "p1-g5",
+  "title": "The gloves — 6 of 9",
+  "secs": 4,
+  "status": "her words (The white gloves), nothing sent",
+  "images": [
+   [
+    "Sophie — sophie-face-A",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ]
+  ],
+  "videos": [],
+  "mine": [
+   "sophie is the woman in image 1.",
+   "setting: the aisle of a 99-cent store, the white gloves in her hands."
+  ],
+  "text": "I had never endeavored to own a pair of gloves like this, but for some reason, they caught my eye, and I felt I needed them.",
+  "note": ""
+ },
+ {
+  "key": "p1-g6",
+  "title": "The gloves — 7 of 9",
+  "secs": 4,
+  "status": "her words (The white gloves), nothing sent",
+  "images": [
+   [
+    "Sophie — sophie-face-A",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ]
+  ],
+  "videos": [],
+  "mine": [
+   "sophie is the woman in image 1.",
+   "setting: the museum entrance at night, a posh event inside, security guards at the door in white gloves."
+  ],
+  "text": "Once at the event, it became apparent that all the security guards were wearing a pair of these gloves.",
+  "note": ""
+ },
+ {
+  "key": "p1-g7",
+  "title": "The gloves — 8 of 9",
+  "secs": 6,
+  "status": "her words (The white gloves), nothing sent",
+  "images": [
+   [
+    "Sophie — sophie-face-A",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ]
+  ],
+  "videos": [],
+  "mine": [
+   "sophie is the woman in image 1.",
+   "setting: the museum entrance at night.",
+   "sophie wears the white fabric gloves."
+  ],
+  "text": "And I was let in after seeing that I too possessed them.",
+  "note": "my pick 6s — the guard looking, then waving her through."
+ },
+ {
+  "key": "p1-g8",
+  "title": "The gloves — 9 of 9",
+  "secs": 8,
+  "status": "her words (The white gloves), nothing sent",
+  "images": [
+   [
+    "Sophie — sophie-face-A",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ]
+  ],
+  "videos": [],
+  "mine": [
+   "sophie is the woman in image 1.",
+   "setting: a house party at night.",
+   "sophie wears the white fabric gloves."
+  ],
+  "text": "From there, I fell in with a group of people my own age who invited me to a party at their house, and I became quite undepressed by the end of the evening, all thanks to a pair of gloves that I had no idea why I was buying.",
+  "note": "my pick 8s — the party and the turn in her mood; the last shot of part one."
  }
 ]
