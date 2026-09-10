@@ -141,22 +141,10 @@
     (hook parser against a real JSONL, the server's contract, and `foldBody`
     lifted out of chats.html and run for real). Needs no playwright.
 
-- **THE ROSE WORKING TINT IS OFF — HER CALL, 2026-09-10 ("can you get rid of
-  the tint feature?"). `TINT=false` in `chats.html` is the whole switch.**
-  Nothing about the signal was wrong this time and no measurement retired it;
-  she does not want the rose wash on her list. `chatWorking` answers false, so
-  **all three faces of the feature go quiet together** — the rose tint on tiles
-  and rows, the "· N working" on the closed hidden bar, and the "Working right
-  now" section of the Status view. **Do not rip out the CSS or the renderers**:
-  `var TINT=true` turns every one of them back on, and only her word should.
-  `node scripts/test-chats-working-tint.js` pins the default OFF (step 0) and
-  still drives the machinery with the flag forced on, so the switch stays
-  honest either way. The v3 history below is why the feature exists and is kept
-  for the day she wants it back.
 - **THE ROSE WORKING TINT: v3 — HONEST SIGNALS ONLY, LIVING WITH PARKING
   INSIDE THE HIDDEN PILE (Aug 2026, Sophie: "it could still be tinted even if
   it's in the hidden area — I could look in the hidden area and see which
-  ones are working"). `TINT=true` at the time; OFF since 2026-09-10, above.** v1's report ("skill is tinted pink
+  ones are working"). `TINT=true` again.** v1's report ("skill is tinted pink
   and it's not working whereas Imprint is working and it wasn't tinted pink")
   had both halves true at once, and neither was fixable in `chats.html`:
   - **The miss.** The tint's only honest signal is `workingAt`, stamped by the
