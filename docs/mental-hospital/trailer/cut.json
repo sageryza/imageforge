@@ -3,9 +3,9 @@
   {
    "key": "spin",
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0bbd7e598ecc5737245fdd1f6a744b23.mp4",
-   "title": "the spinning (c4) \u2014 her VO \"the city gets very hot\"",
+   "title": "just the spinning (c4 0\u20134.7, the source cuts there) \u2014 her VO \"the city gets very hot\"",
    "in": 0,
-   "out": 9.8,
+   "out": 4.7,
    "mute": true,
    "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0bbd7e598ecc5737245fdd1f6a744b23-poster.jpg"
   },
@@ -46,10 +46,10 @@
   },
   {
    "key": "judge",
-   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/7bc0ac5dfc7d7963fb8ed6a700d546a1.mp4",
-   "title": "the doctor \u2014 \"forced to get a judge to determine\u2026\"",
-   "in": 9.8,
-   "out": 17.9
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/openrouter-video/1788931090997-uovoxi.mp4",
+   "title": "the judge \u2014 the 720p redo: \"\u2026we'll be forced to get a judge to determine whether you're mentally stable enough\" over her face",
+   "in": 6.4,
+   "out": 13.45
   },
   {
    "key": "ghost",
@@ -224,9 +224,9 @@
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/74718feefd645658e06cbe80fc823f0c.m4a",
    "name": "Sophie \u2014 VO \"the city gets very hot at night\u2026\"",
    "in": 0,
-   "out": 9.8,
+   "out": 3.5,
    "gain": 0,
-   "fadeOut": 0.3,
+   "fadeOut": 0.35,
    "anchor": {
     "piece": "spin",
     "offset": 0

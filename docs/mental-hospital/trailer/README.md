@@ -34,6 +34,18 @@ Editor: https://imageforge-q125.onrender.com/filmeditor?c=pxan7kLF6I7iMWxlVb5C
   the 3:4 take; the 9:16 twin is the one she crossed out). In 3.4–10.05: a beat
   of her at the glass, "New York," the pause, "such a beautiful city."
 
+- v4: the opening is JUST the spinning — c4 0–4.7, which is where the source
+  cuts to her lying on the manhole cover; the VO is trimmed to her one line
+  ("the city gets very hot at night in the summer", out 3.5). And the judge
+  beat is the REDO, not the 2.5 take: `openrouter-video/1788931090997-uovoxi.mp4`
+  ("B at 720p — real references", the `footage-scare-dissociation` batch),
+  6.4–13.45. It is 834x1112 — 720p at the same 3:4 — it carries the whole
+  sentence, and its own cut to her face lands at 9.2s, so "we'll be forced to
+  get a judge…" plays over her reaction instead of over the doctor. The other
+  redos on file: `ctxA`/`ctxB` (480p, same shape, complete line), `b720c`
+  (720p, cuts to her a second late), `c3A`/`c3B`/`c3C`. None of them carried a
+  ♥, so this pick is mine — say if you want one of the others.
+
 - Substitutions, named: "Francesca kicked out of class" = Yolanda scolded in
   music class (s18 18.3–21.8; the seated woman is the Francesca description);
   "Michael: I know what you mean" = the hallway walk's "I know the feeling";
