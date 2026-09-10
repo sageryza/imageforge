@@ -572,6 +572,11 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       - **ONE DECODE AT A TIME** (`gateTrim`). A video decode is the one thing
         that has actually killed this 512MB box (the panels-cut ledger in
         CLAUDE.md), and a trim is never urgent.
+      - **A LATE BAKE NEVER SPEAKS FOR A TRIM SHE HAS MOVED ON FROM** — the
+        doc's own `trim.key` is the authority. Trims queue, so a second tap
+        lands while the first is still encoding; the write that matters is the
+        UNDO, since without this a bake finishing after `clear` puts the trim
+        back on the doc by itself.
       - **THE CUT IS `clips.js`'s OWN** — `chunkGraph`, the recipe the Chunking
         library already shares with Cut Marks: trim + setpts with 12ms audio
         fades at each edge so an exact cut never clicks. A second copy of that

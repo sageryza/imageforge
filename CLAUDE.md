@@ -7618,6 +7618,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
     she has already cut is one HEAD and no encode) and **ONE DECODE AT A TIME**
     (`gateTrim` — a decode is the one thing that has actually killed this 512MB
     box, and a trim is never urgent).
+  - **A LATE BAKE NEVER SPEAKS FOR A TRIM SHE HAS MOVED ON FROM.** Trims
+    queue, so a second tap lands while the first is still encoding — and the
+    write that matters is the UNDO: without the guard a bake finishing after
+    `clear` puts the trim back on the doc by itself, with nothing on screen
+    saying why. The doc's own `trim.key` is the authority and a bake whose key
+    is no longer there stands down silently.
   - **THE CUT IS `clips.js`'s OWN `chunkGraph`** — the recipe the Chunking
     library already shares with Cut Marks, 12ms audio fades at each edge so an
     exact cut never clicks — and **the FILE is the truth about its own length**
