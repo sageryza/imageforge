@@ -991,7 +991,52 @@ async function pillSweep(pg, where) {
   ok('the two marks still clear each other at four across ' + JSON.stringify(marks4), marks4.gap > 6);
   await page.click('#v-cols');
   await page.click('#tiles .cell[data-id="f1"] .tmark.nope');   // put it back
-  await page.click('#v-list');
+
+  // ── A TILE GOES TO ITS CARD (2026-09-10, Sophie: "clicking on a tile in
+  // footage · scrolls to it in list view, or opens in a lightbox") ─────────
+  // Every assertion is a MEASUREMENT: a tap that switches the view and never
+  // moves the window, one that lands on some other card, and one that also
+  // opens the trimmer are the same markup to any source assertion.
+  await page.waitForFunction(() => document.querySelectorAll('#tiles .cell .face').length > 0);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(120);
+  ok('a tile promises the card, not the player — no play triangle over a poster',
+    await page.evaluate(() => {
+      const f = document.querySelector('#tiles .cell[data-id="old1"] .face');
+      return !!f.querySelector('img') && !f.querySelector('svg') && /^Open/.test(f.getAttribute('aria-label'));
+    }));
+  await page.click('#tiles .cell[data-id="old1"] .face');
+  await page.waitForFunction(() => !document.getElementById('feed').hidden);
+  ok('tapping it opens the LIST, and never the player',
+    !(await page.$eval('#feed', (e) => e.hidden)) && (await page.$eval('#tiles', (e) => e.hidden))
+    && (await page.$eval('#v-list', (b) => b.classList.contains('on')))
+    && (await page.$eval('#player', (e) => e.hidden)));
+  // the SMOOTH scroll is waited out by watching it settle — asking whether the
+  // card is on screen answers `true` before the scroll has even begun when it
+  // happens to be below the fold already
+  await page.evaluate(() => new Promise((res) => {
+    let last = -1, still = 0;
+    const tick = () => {
+      const y = Math.round(window.scrollY);
+      if (y === last) { if (++still > 8) return res(); } else { still = 0; last = y; }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }));
+  const landed = await page.evaluate(() => {
+    const r = document.getElementById('job-old1').getBoundingClientRect();
+    const doc = document.documentElement;
+    return { top: Math.round(r.top), view: window.innerHeight, y: Math.round(window.scrollY),
+      atEnd: Math.round(window.scrollY + window.innerHeight) >= doc.scrollHeight - 2,
+      found: document.getElementById('job-old1').classList.contains('found') };
+  });
+  ok('the window lands ON the card she tapped ' + JSON.stringify(landed),
+    landed.top >= -2 && landed.top < landed.view - 40 && (landed.top <= 40 || landed.atEnd));
+  ok('and it flashes so she can see which one it is', landed.found);
+  ok('the flash then leaves the card alone',
+    await page.evaluate(() => new Promise((res) => setTimeout(
+      () => res(!document.getElementById('job-old1').classList.contains('found')), 2000))));
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForSelector('#job-old1');
 
   // ── NOTHING A DOOR SAYS MAY WIDEN THE PAGE ──────────────────────────────
@@ -1112,6 +1157,24 @@ async function pillSweep(pg, where) {
   await page.waitForFunction(() => /too long/.test(document.querySelector('#job-old1 .nerr').textContent));
   ok('an over-length note is REFUSED with the reason and her words stay in the box',
     (await page.$eval('#job-old1 .notebox textarea', (t) => t.value)).length === 2100);
+  await page.click('#job-old1 .notebox .ncancel');
+
+  // A REBUILD MUST NOT TAKE THE BOX — OR HER WORDS — WITH IT. A note LANDING
+  // was already outside the signature, but anything the card PRINTS changing
+  // rewrites it whole, and a vote coming back is the ordinary one: she taps
+  // the heart while she is halfway through a note and the box goes with it.
+  // Driven through the real vote, which is the only honest way to ask.
+  await page.click('#job-old1 .acts .note');
+  await page.waitForSelector('#job-old1 .notebox textarea');
+  await page.fill('#job-old1 .notebox textarea', 'half a sentence she is still');
+  await page.click('#job-old1 .heart');
+  await page.waitForTimeout(150);
+  ok('a card rebuilt under her keeps the open box and every word in it',
+    (await page.$$('#job-old1 .notebox')).length === 1
+    && (await page.$eval('#job-old1 .notebox textarea', (t) => t.value)) === 'half a sentence she is still'
+    && (await page.$eval('#job-old1 .acts .note', (b) => b.classList.contains('on'))));
+  await page.click('#job-old1 .heart');                 // put her heart back
+  await page.waitForTimeout(150);
   await page.click('#job-old1 .notebox .ncancel');
 
   // THE PLAYER: the shared tap-to-note, and the tap-out that must not eat it
