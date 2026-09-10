@@ -12,16 +12,18 @@
  *     start it playing again."  A tap on the film TOGGLES pause/play and
  *     never opens the sheet.
  *   - "when i tap to get rid of the tinted pause screen, it also pauses the
- *     video" (2026-08-27). The hosts run the video with NATIVE controls, so
- *     iOS draws its own tinted overlay on any tap and fades it ~4s later
- *     while the film plays. A tap during that window is her putting the
- *     overlay AWAY, not asking to pause — but no API says whether iOS's
- *     overlay is on screen, so the toggle mirrors its clock: every tap on
- *     the film arms a window (SCRIM_MS), and a tap on a PLAYING film inside
- *     it only dismisses (and clears the window, exactly as iOS hides the
- *     overlay on that same tap — so the NEXT tap pauses). A paused film
- *     never treats a tap as dismissal: pausing keeps the overlay up, and a
- *     tap there has always meant play.
+ *     video" (2026-08-27) — SOLVED AT THE SOURCE 2026-09-10 and the whole
+ *     workaround is GONE. The hosts used to run the video with NATIVE
+ *     controls, so iOS drew its tinted overlay on every tap and faded it ~4s
+ *     later; no API says whether that overlay is on screen, so the toggle had
+ *     to MIRROR its clock (SCRIM_MS) and read a tap inside the window as
+ *     "put the overlay away" rather than "pause". She asked for the tint
+ *     itself to go ("the way a movie tints when it starts" → "go"), the hosts
+ *     dropped `controls` for /filmbar.js, and with no overlay there is no
+ *     ambiguity left to resolve: a tap on a playing film always pauses.
+ *     SCRIM_MS, `scrimAt` and the 64px scrub-bar exemption below were all
+ *     deleted with it — this is the record that they were a workaround for
+ *     something that no longer exists, not a rule to bring back.
  *   - The NOTE button shows while the film is PAUSED — pausing is one tap
  *     now, so the pause IS the moment the option presents itself. No fade
  *     timers, no touch-to-reveal.
@@ -98,7 +100,8 @@
        reworn in this player's ink: one word on the paused screen, and behind
        it the prompt COVERING the film, with the Style|Content pair riding
        inside the words rather than under a shut door. Bottom-LEFT, opposite
-       the Note button, both clear of the strip iOS draws its controls in. */
+       the Note button, both 64px up — the strip iOS used to draw its controls
+       in, and where /filmbar.js draws ours now. */
     + '.filmnote-host .pbtn{position:absolute; left:12px;'
     + ' bottom:calc(env(safe-area-inset-bottom,0px) + 64px); z-index:3;'
     + ' padding:9px 13px; border-radius:6px; border:1px solid #3a352c;'
@@ -290,11 +293,6 @@
   setInterval(flush, 45000);             // the fallback tick — no-ops on an empty queue
   setTimeout(flush, 1200);               // opening any page that loads this flushes stragglers
 
-  // How long iOS keeps its tinted controls overlay up on a playing film
-  // after a tap (~4s) — the dismiss-only window above. Overridable so the
-  // headless test can drive it without real seconds.
-  var SCRIM_DEFAULT = 3800;
-
   window.__filmNote = function (opts) {
     opts = opts || {};
     var w = opts.wrap, v = opts.video, chat = opts.chat, url = opts.url;
@@ -440,35 +438,27 @@
     // The pointerdown snapshot guards against a browser whose own controls
     // already flipped playback on this same tap (desktop Chrome toggles on a
     // body click; iOS does not) — no second flip.
-    // scrimAt is the native-overlay clock (the header's tinted-pause-screen
-    // rule): armed by every tap on the film, read only while it PLAYS.
-    var downPaused=null, scrimAt=0;
-    var scrimMs=function(){ var n=window.__filmNote&&window.__filmNote.SCRIM_MS; return typeof n==='number'?n:3800; };
+    //
+    // `e.target!==v` IS THE WHOLE OF THE TRANSPORT'S EXEMPTION NOW. The bar
+    // is /filmbar.js's own element, a SIBLING of the video, so a tap on the
+    // scrubber or on play is never a tap on the film and there is nothing to
+    // carve out — where the native bar was drawn INSIDE the video element and
+    // needed a 64px band the toggle had to stand down in (2026-08-27, "yes
+    // scrub bar exemption"). That band, and the overlay clock beside it, are
+    // deleted; see the header.
+    var downPaused=null;
     var onDown=function(e){ downPaused = (e.target===v) ? v.paused : null; };
     var onWrapTap=function(e){
       if(e.target!==v) return;
-      // THE BOTTOM BAND IS THE NATIVE CONTROLS' OWN (2026-08-27, her ask:
-      // "yes scrub bar exemption"): a tap down there is her aiming at the
-      // scrubber — while paused it used to start playback instead of
-      // seeking. The toggle never fires in the strip where iOS draws its
-      // bar; the tap shows/keeps the overlay, so the window arms.
-      var r=v.getBoundingClientRect();
-      if(r.height && e.clientY && r.bottom - e.clientY < 64){ downPaused=null; scrimAt=Date.now(); return; }
-      if(downPaused!==null && v.paused!==downPaused){ downPaused=null; scrimAt=Date.now(); syncBtn(); return; }
+      if(downPaused!==null && v.paused!==downPaused){ downPaused=null; syncBtn(); return; }
       downPaused=null;
       if(sheet){                          // tap = play = save and disappear
         if(finishFn) finishFn();
         v.play().catch(function(){});
-        scrimAt=Date.now();
         syncBtn(); return;
-      }
-      if(!v.paused && Date.now()-scrimAt < scrimMs()){
-        scrimAt=0;                        // iOS hid its overlay on this tap;
-        return;                           // the next tap pauses as always
       }
       if(v.paused) v.play().catch(function(){});
       else v.pause();
-      scrimAt=Date.now();
       syncBtn();
     };
     w.addEventListener('pointerdown', onDown);
@@ -603,5 +593,4 @@
       nb.remove();
     } };
   };
-  window.__filmNote.SCRIM_MS = SCRIM_DEFAULT;
 })();

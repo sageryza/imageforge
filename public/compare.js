@@ -193,7 +193,12 @@
     vlb.className = 'cmp-vlb';
     vlb.setAttribute('hidden', '');
     vlb.innerHTML = '<button class="cmp-vlb-x" aria-label="Close">✕</button>'
-      + '<video controls playsinline preload="metadata"></video>';
+      // NO `controls` (2026-09-10): iOS paints its native controls as a WASH
+      // over the whole picture, so the transport is ours — /filmbar.js, the
+      // same module chats.html's pinned player uses. `controls` goes back on
+      // only if that module cannot be fetched (openVideo), so a film is never
+      // left with no way to play it.
+      + '<video playsinline preload="metadata"></video>';
     vlb.addEventListener('click', function (e) {
       // the ✕ closes it (the video fills the overlay now, so the backdrop
       // branch is nearly unreachable — kept for a zero-size video edge case);
@@ -284,6 +289,23 @@
     (document.head || document.documentElement).appendChild(sc);
   }, true);
 
+  /* THE TRANSPORT — /filmbar.js, fetched the first time any film is opened.
+     Unlike the note module this one is wanted by EVERY film, notes or not: it
+     is what replaced the native controls. Every Compare page ever posted links
+     this file, so it reaches the pages already out there with nothing
+     re-posted; `ok=false` on the error path is what puts `controls` back. */
+  var fbar = null, filmbarTried = false, filmbarOK = true;
+  function loadFilmBar(cb) {
+    if (window.__filmBar) return cb(true);
+    if (filmbarTried) return cb(filmbarOK && !!window.__filmBar);
+    filmbarTried = true;
+    var id = 'filmbar-src', had = document.getElementById(id);
+    var sc = had || document.createElement('script');
+    sc.addEventListener('load', function () { cb(!!window.__filmBar); }, { once: true });
+    sc.addEventListener('error', function () { filmbarOK = false; cb(false); }, { once: true });
+    if (!had) { sc.id = id; sc.src = '/filmbar.js'; document.head.appendChild(sc); }
+  }
+
   var fnote = null;
   function loadFilmNote(cb) {
     if (window.__filmNote) return cb();
@@ -304,6 +326,11 @@
     document.body.style.overflow = 'hidden';
     var p = v.play();                       // inside the tap, so iOS allows it
     if (p && p.catch) p.catch(function () { /* she can press play herself */ });
+    loadFilmBar(function (ok) {
+      if (el.hasAttribute('hidden')) return;   // closed while the module fetched
+      if (ok) fbar = window.__filmBar({ wrap: el, video: v });
+      else v.controls = true;                  // no module, no film without controls
+    });
     if (note && note.chat) {
       loadFilmNote(function () {
         // she may already have closed it while the module was fetching
@@ -317,6 +344,7 @@
     var v = vlb.querySelector('video');
     try { v.pause(); } catch (_) { /* already gone */ }
     if (fnote) { fnote.destroy(); fnote = null; }   // stops a live mic too
+    if (fbar) { fbar.destroy(); fbar = null; }      // and its listeners, and its frame loop
     v.removeAttribute('src'); v.load();     // or it keeps playing behind the page
     vlb.setAttribute('hidden', '');
     document.body.style.overflow = '';
