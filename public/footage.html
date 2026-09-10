@@ -392,6 +392,11 @@ function paintControls() {
   box.min = m.secs[0]; box.max = m.secs[1];
   // never overwrite the digits under her thumb — the clamp runs on the way out
   if (document.activeElement !== box) box.value = S.seconds;
+  // A SHAPE THE SERVER DOES NOT CARRY LIGHTS NO CHIP, so it is dropped to the
+  // first one it does — otherwise a stale `footage_ctl` or a belt hand-off
+  // naming something odd leaves the row with nothing lit and the server
+  // silently clamping the job to 1:1.
+  if (CFG.ratios.indexOf(S.ratio) < 0) { S.ratio = CFG.ratios[0]; saveCtl(); }
   chipRow($('ratios'), CFG.ratios.map(function (r) { return { id: r, label: r }; }), S.ratio, 'ratio', function (id) { S.ratio = id; saveCtl(); paintControls(); });
   paintRefs();
   updateCost();
@@ -813,6 +818,90 @@ function copyBack(j) {
   toast(refs.length ? 'Prompt and its references are back' : 'Prompt is back in the box');
 }
 
+// ── THE BELT'S HAND-OFF DOOR ──────────────────────────────────────────────
+// A BUTTON ON A SCENE CARD PUTS THE WHOLE JOB IN THIS BOX (2026-09-10,
+// Sophie: "add a button to each scene that automatically puts all the right
+// references in the same text to footage so I can edit it or press go
+// myself"). Her belt pages are served from this same origin, so the hand-off
+// needs no route and no doc: the belt writes ONE localStorage key,
+// `footage_handoff`, and this page CONSUMES it — reads it, applies it, removes
+// it. Shape:
+//   { prompt, refs:[{url, kind:'image'|'video'|'audio', poster?, name?}],
+//     model?, seconds?, res?, ratio?, from?, title?, at: Date.now() }
+// NOTHING IS EVER SENT. The star is still her tap — the hand-off only fills
+// the box, which is the whole of what she asked for ("so I can edit it or
+// press go myself").
+//
+// IT IS READ AT FOUR MOMENTS, AND LOAD IS ONLY ONE OF THEM. The app keeps a
+// tool's web view alive for the whole app process (CLAUDE.md: "A WRAPPED PAGE
+// CAN BE DAYS STALE"), so this page usually loaded days ago and walking to it
+// from the belt fires no load at all:
+//   1. on LOAD, right after `loadCtl()` — the cold case, and the order is what
+//      makes the hand-off beat the restored draft;
+//   2. on `visibilitychange` → visible — coming back to the tool inside the
+//      app, which is the ordinary case and the one a load-only door misses;
+//   3. on `pageshow` — the back-forward cache hands a page over with neither a
+//      load nor a visibility change;
+//   4. on the `storage` event for that key — another same-origin DOCUMENT
+//      writing it while this one is on screen (a second tab, the belt in the
+//      page viewer's iframe). The only moment the page can act at once.
+// REMOVING THE KEY IS WHAT MAKES IT ONCE: it is deleted the instant it is
+// read, so none of the four can re-apply it and a hand-off can never come
+// back on a later load. A hand-off older than a day is dropped (she has moved
+// on), and a malformed value is dropped SILENTLY — a belt page with a bug must
+// not be able to throw a page error here.
+var HANDOFF_KEY = 'footage_handoff';
+var HANDOFF_MAX = 24 * 60 * 60 * 1000;
+var REF_KINDS = { image: 1, video: 1, audio: 1 };
+function readHandoff() {
+  var raw = null;
+  try { raw = localStorage.getItem(HANDOFF_KEY); } catch (e) { return null; }
+  if (!raw) return null;
+  // taken off the shelf whatever it turns out to say — a value this page
+  // cannot use must not sit there being re-read at every one of the four
+  try { localStorage.removeItem(HANDOFF_KEY); } catch (e) {}
+  var h = null;
+  try { h = JSON.parse(raw); } catch (e) { return null; }
+  if (!h || typeof h !== 'object' || typeof h.prompt !== 'string') return null;
+  if (h.at != null && !(Date.now() - Number(h.at) <= HANDOFF_MAX)) return null;
+  return h;
+}
+function takeHandoff() {
+  var h = readHandoff();
+  if (!h) return;
+  // A HAND-OFF REPLACES THE DRAFT, and that is deliberate: it is a button she
+  // pressed on a scene. The words that were in the box are not lost — every
+  // keystroke has been going into `footage_draft` all along.
+  $('prompt').value = h.prompt;
+  if (Array.isArray(h.refs)) {
+    var seen = {};
+    refs = [];
+    h.refs.forEach(function (r) {
+      if (!r || typeof r.url !== 'string' || !r.url || seen[r.url]) return;
+      seen[r.url] = 1;
+      // an unnamed or unknown kind is a picture: `slotsOf` counts per kind and
+      // would name a slot "[AudioNaN]" on anything else
+      refs.push({ url: r.url, kind: REF_KINDS[r.kind] ? r.kind : 'image', poster: r.poster || '', name: r.name || '' });
+    });
+  }
+  // The served model table may not have landed yet at moment 1, so the values
+  // are set LIVE on S and `paintControls` is what validates them against it —
+  // an unknown model falls to the first row, a resolution the model does not
+  // carry to its minimum, and the seconds through the same clamp her own
+  // typing goes through. Nothing here holds a copy of the table.
+  if (h.model) S.model = String(h.model);
+  if (h.seconds != null) S.seconds = clampSec(h.seconds);
+  if (h.res) S.res = String(h.res);
+  if (h.ratio) S.ratio = String(h.ratio);
+  saveCtl(); saveDraft(); paintControls(); paintRefs();
+  if (window.__fitBigPrompt) window.__fitBigPrompt();
+  toast(h.title ? 'From the belt: ' + h.title : 'From the belt');
+}
+document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') takeHandoff(); });
+window.addEventListener('pageshow', function () { takeHandoff(); });
+// e.key is null when a document called clear() — never a hand-off
+window.addEventListener('storage', function (e) { if (e && e.key === HANDOFF_KEY && e.newValue) takeHandoff(); });
+
 // ── Loading and polling ───────────────────────────────────────────────────
 function loadStatus() {
   return api('/status').then(function (d) {
@@ -906,6 +995,7 @@ window.__fitPillGap = fitPillGap;
 })();
 
 loadCtl();
+takeHandoff();          // moment 1 — AFTER loadCtl, so a hand-off beats the restored draft
 paintFilt();
 applyCols();
 applyView();
