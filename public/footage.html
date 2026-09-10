@@ -397,6 +397,7 @@
   <p><b>Say what the clip is.</b> Add references &mdash; a picture, a clip, a sound &mdash; and name each one in the prompt by its slot: <b>[Image1]</b>, <b>[Video1]</b>, <b>[Audio1]</b>. Tap a slot name to drop it into the box. Never describe what a reference shows; the picture is the point.</p>
   <p><b>The star sends it.</b> One tap, and the line beside it says about what that tap costs. The real cost lands on the card when the clip finishes.</p>
   <p><b>Through Atlas Cloud</b> &mdash; it takes a reference with a person in it, a real photo or a clip, and draws the likeness. A famous face is refused, free, before anything draws; a chat can try that one through APIFRAME.</p>
+  <p><b>Two models.</b> <b>2.0 Mini</b> is the default and the cheap one. <b>2.0 Fast</b> is the option, and it is dearer &mdash; the line beside the star says what the tap costs either way. Fast is also the stricter of the two: a plain prompt with no reference at all has come back refused there with a copyright line (free, unbilled, measured 2026-09-09) where the same words drew on Mini.</p>
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
   <p><b>The seed</b> is on every finished clip, with a button that puts it back in the box. Leave the box blank and each clip gets a fresh one. A seed repeats the <i>opening</i> of a short clip and then drifts &mdash; it does not survive a changed prompt or a different size, and at 15 seconds it does close to nothing.</p>
@@ -417,9 +418,13 @@
   <div class="row" id="controls">
     <button class="up ib" type="button" id="add" aria-label="Add a reference" title="Add a reference"><span id="addicon"></span><input type="file" accept="image/*,video/*,audio/*" multiple id="file"></button>
     <button id="rectog" type="button" aria-expanded="false" aria-label="Recent — clips you made and references you have used" title="Recent — clips you made and references you have used" hidden></button>
-    <!-- NO MODEL CHOICE — MINI ONLY (2026-09-10, Sophie: "get rid of the
-         model choice · just mini for now"). The page pins `mini`; the
-         served table still carries the rest for the day she asks. -->
+    <!-- TWO MODELS — 2.0 MINI AND 2.0 FAST (2026-09-10, Sophie: "add 2.0
+         fast back as an option"). The choice came off the page that morning
+         ("get rid of the model choice · just mini for now") and this puts
+         back exactly the row she asked for: Mini leads and is the default,
+         Fast is the option. 2.0 and 2.5 stay off it — they are on the
+         served table and were never asked for back. -->
+    <span class="selwrap"><select id="model" aria-label="Model" title="Model"></select><span class="chev"></span></span>
     <span class="selwrap"><select id="res" aria-label="Resolution" title="Resolution"></select><span class="chev"></span></span>
     <span class="selwrap"><select id="ratio" aria-label="Shape" title="Shape"></select><span class="chev"></span></span>
     <div class="step"><button type="button" id="secdn" aria-label="Fewer seconds">&minus;</button><input type="number" id="secs" inputmode="numeric" step="1" aria-label="Seconds" title="Seconds"><button type="button" id="secup" aria-label="More seconds">+</button></div>
@@ -546,12 +551,13 @@ var CFG = null;                      // GET /status
 // left to the model's own default.
 var DOOR = 'atlascloud';
 function doorNow() { return DOOR; }
-// MINI ONLY (2026-09-10, Sophie: "get rid of the model choice · just mini
-// for now"). The model is pinned here and nothing on the page can move it —
-// not a remembered control, not a card copied back, not a belt hand-off. The
-// served table still carries the other rows, so putting the choice back is
-// the one drop-down and this line.
-var PAGE_MODEL = 'mini';
+// MINI AND FAST (2026-09-10, Sophie: "add 2.0 fast back as an option"). This
+// line is the whole of which models the page offers — it was `'mini'` alone
+// for a morning ("get rid of the model choice · just mini for now") and the
+// drop-down is derived from it, so offering 2.0 or 2.5 again is this list.
+// FIRST IS THE DEFAULT and is what an unknown model falls back to.
+var PAGE_MODELS = ['mini', 'fast'];
+var PAGE_MODEL = PAGE_MODELS[0];
 var S = { model: PAGE_MODEL, seconds: 4, res: '480p', ratio: '3:4' };
 var refs = [];                       // [{url, kind, poster, name}]
 var jobsById = {};
@@ -559,9 +565,13 @@ var pollT = null;
 function loadCtl() {
   try {
     var c = JSON.parse(localStorage.getItem('footage_ctl') || '{}');
-    // the shape is remembered; seconds and resolution are NOT — the length
-    // and the size are the bill, and a remembered 15s at 720p arriving
-    // unasked is the Playground's quality rule again (the model is pinned)
+    // THE SHAPE IS REMEMBERED; THE MODEL, THE SECONDS AND THE RESOLUTION ARE
+    // NOT. The model was sticky before the Mini pin and is deliberately not
+    // sticky now it is back: Fast is ~8x Mini a second on Atlas (36¢ against
+    // 4.4¢ for a 4s 480p clip, measured 2026-09-09), so a Fast left over from
+    // last week silently drawing today's clip is exactly the hidden
+    // ingredient the seconds and the size are already kept unsticky for. It
+    // opens on Mini every load; Fast is her own tap. Sticky is hers to ask for.
     if (c.ratio) S.ratio = c.ratio;
     var d = JSON.parse(localStorage.getItem('footage_draft') || '{}');
     if (d.prompt) $('prompt').value = d.prompt;
@@ -570,10 +580,15 @@ function loadCtl() {
 }
 function saveCtl() { try { localStorage.setItem('footage_ctl', JSON.stringify({ ratio: S.ratio })); } catch (e) {} }
 function saveDraft() { try { localStorage.setItem('footage_draft', JSON.stringify({ prompt: $('prompt').value, refs: refs })); } catch (e) {} }
-// THE LIST IS DERIVED, NEVER TYPED: the models this page offers are the ones
-// Atlas Cloud carries, which is what takes 1.5 Pro off it — that one exists
-// only on APIFRAME, and this page has only the one door.
-function models() { return (CFG && CFG.models ? CFG.models : []).filter(function (m) { return m.atlascloud; }); }
+// THE LIST IS DERIVED, NEVER TYPED: a model this page offers is one Atlas
+// Cloud carries — which is what takes 1.5 Pro off it, since that one exists
+// only on APIFRAME and this page has the one door — AND one named in
+// `PAGE_MODELS`. So the drop-down can never offer a row the door cannot
+// send, and never a row she did not ask for.
+function models() {
+  return (CFG && CFG.models ? CFG.models : []).filter(function (m) { return m.atlascloud && PAGE_MODELS.indexOf(m.id) >= 0; })
+    .sort(function (a, b) { return PAGE_MODELS.indexOf(a.id) - PAGE_MODELS.indexOf(b.id); });
+}
 function modelOf(id) { return models().filter(function (m) { return m.id === id; })[0]; }
 
 // ── The controls ──────────────────────────────────────────────────────────
@@ -614,6 +629,7 @@ function paintControls(force) {
   if (!CFG) return;
   var list = models(); if (!list.length) return;
   var m = modelOf(S.model) || list[0]; S.model = m.id;
+  fillSel($('model'), list.map(function (x) { return { id: x.id, label: x.label }; }), S.model);
   if (m.res.indexOf(S.res) < 0) S.res = m.res[0];
   fillSel($('res'), m.res.map(function (r) { return { id: r, label: r }; }), S.res);
   S.seconds = clampSec(S.seconds, m);
@@ -629,6 +645,16 @@ function paintControls(force) {
   paintFolds();                                   // the label reads the size/shape/seconds it just settled
   updateCost();
 }
+// A MODEL SHE PICKS RE-VALIDATES THE SIZE AND THE LENGTH AGAINST IT, off the
+// served table — Mini and Fast happen to share 480p/720p and 4–15s today, so
+// nothing moves under her, and the day a row does not the box lands on that
+// model's own minimum rather than a size the server would silently clamp.
+$('model').addEventListener('change', function () {
+  S.model = $('model').value;
+  var mm = modelOf(S.model);
+  if (mm) { if (mm.res.indexOf(S.res) < 0) S.res = mm.res[0]; S.seconds = clampSec(S.seconds, mm); }
+  paintControls();
+});
 // The resolution is NOT remembered — it opens at the model's minimum on every
 // load, like the seconds, because the size is the bill.
 $('res').addEventListener('change', function () { S.res = $('res').value; paintControls(); });
@@ -701,8 +727,9 @@ function paintFolds() {
   if (cShut) recentOpen = false;                 // the drawer goes with its button
   $('ctlfold').classList.toggle('shut', cShut);
   $('ctlfold').setAttribute('aria-expanded', cShut ? 'false' : 'true');
+  var m = modelOf(S.model);
   $('ctlfoldlab').textContent = cShut
-    ? 'Buttons · ' + [S.res, S.ratio, S.seconds + 's'].join(' · ')
+    ? 'Buttons · ' + [m ? m.label : S.model, S.res, S.ratio, S.seconds + 's'].join(' · ')
     : 'Buttons';
 }
 $('reffold').addEventListener('click', function () { setFold('refs', !foldShut('refs')); });
@@ -1318,8 +1345,12 @@ function castVote(id, kind) {
 function copyBack(j) {
   $('prompt').value = j.prompt || '';
   refs = (j.refs || []).map(function (r) { return { url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' }; });
-  // the model is pinned (Mini only) — a card drawn on another model comes
-  // back as its words, its references and its settings, on Mini
+  // ONLY WHAT THE RECORD KNOWS, and only what this page can send: a card
+  // drawn on Mini or Fast comes back on it, and one drawn on a model the
+  // page does not offer (2.0, 2.5, an older APIFRAME job) comes back as its
+  // words, its references and its settings, on whichever model is showing —
+  // never silently switched to a row she cannot see in the box.
+  if (j.model && modelOf(j.model)) S.model = j.model;
   if (j.seconds) S.seconds = j.seconds;
   if (j.resolution) S.res = j.resolution;
   if (j.ratio) S.ratio = j.ratio;
@@ -1404,7 +1435,10 @@ function takeHandoff() {
   // an unknown model falls to the first row, a resolution the model does not
   // carry to its minimum, and the seconds through the same clamp her own
   // typing goes through. Nothing here holds a copy of the table.
-  // `h.model` is read and ignored — the page is Mini only
+  // the model is set live like the rest and validated by `paintControls` —
+  // one the page does not offer (2.0, 2.5, a typo) falls to the first row,
+  // which is Mini, so a belt page can never send a dearer model by naming one
+  if (h.model) S.model = String(h.model);
   if (h.seconds != null) S.seconds = clampSec(h.seconds);
   if (h.res) S.res = String(h.res);
   if (h.ratio) S.ratio = String(h.ratio);

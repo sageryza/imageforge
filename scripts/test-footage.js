@@ -151,11 +151,19 @@ function report() {
   ok('cardOf reads the model, the door, the status and the cost off the log doc',
     c.model === 'mini' && c.door === 'openrouter' && c.status === 'done' && c.cost === 5.4 && c.seconds === 4 && c.refs[0].slot === '[Image1]');
 
-  // the page's own model list is DERIVED — every model it can offer is one
-  // Atlas Cloud carries, and 1.5 Pro is the one that is not
+  // the page's own model list is DERIVED — a model it can offer is one Atlas
+  // Cloud carries AND one named in PAGE_MODELS; 1.5 Pro fails the first test
+  // and 2.0/2.5 the second, so neither can reach the drop-down
   const atModels = F.publicModels().filter((m) => m.atlascloud).map((m) => m.id);
-  ok('the Atlas table is what the page can offer, and 1.5 Pro is not in it',
+  ok('the Atlas table is what the page can draw from, and 1.5 Pro is not in it',
     atModels.length === 4 && atModels.indexOf('1.5') < 0 && atModels.indexOf('mini') === 0);
+  const pmSrc = fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8');
+  // a missing list is a NAMED failure, never a throw that takes the run with it
+  const pmRaw = (pmSrc.match(/var PAGE_MODELS = (\[[^\]]*\])/) || [])[1];
+  const pageModels = pmRaw ? JSON.parse(pmRaw.replace(/'/g, '"')) : null;
+  ok('the page names its own model list (PAGE_MODELS)', Array.isArray(pageModels) && pageModels.length > 0);
+  ok('every model the page offers is on the Atlas table (nothing it cannot send)',
+    Boolean(pageModels) && pageModels.every((id) => atModels.indexOf(id) >= 0));
 
   // source pins
   const sv = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8');
@@ -419,24 +427,48 @@ async function pillSweep(pg, where) {
   await page.click('body', { position: { x: 5, y: 820 } });
   ok('any tap closes it', await page.$eval('#helpcard', (e) => e.hidden));
 
-  // ── the model is PINNED to Mini and the resolution is a drop-down ─────────
-  // (2026-09-10, Sophie: "get rid of the model choice · just mini for now")
+  // ── the model is a drop-down of TWO — Mini and 2.0 Fast ──────────────────
+  // (2026-09-10, Sophie: "add 2.0 fast back as an option"; it had been pinned
+  // to Mini alone that morning). Every assertion here is a MEASUREMENT of the
+  // rendered control, because a select filled from the wrong list and one
+  // filled from the right one are the same markup.
   const sel = await page.evaluate(() => {
     const r = document.getElementById('res');
+    const m = document.getElementById('model');
     const cs = getComputedStyle(r);
-    return { hasModel: Boolean(document.getElementById('model')), rTag: r.tagName,
+    return { rTag: r.tagName, mTag: m && m.tagName,
+      models: m ? [...m.options].map((o) => o.value) : [],
+      labels: m ? [...m.options].map((o) => o.textContent) : [],
+      mvalue: m && m.value,
       reses: [...r.options].map((o) => o.value),
       appearance: cs.appearance || cs.webkitAppearance, radius: cs.borderRadius,
       chevs: document.querySelectorAll('.selwrap .chev svg').length,
       rvalue: r.value };
   });
-  ok('there is NO model control on the page — Mini is pinned', !sel.hasModel);
-  ok('the page pins the model in source (PAGE_MODEL = mini) and carries no id="model"',
-    /var PAGE_MODEL = 'mini'/.test(PAGE_SRC) && !/id="model"/.test(PAGE_SRC));
+  ok('the model is a <select> and it holds exactly Mini and 2.0 Fast — ' + sel.models.join(','),
+    sel.mTag === 'SELECT' && sel.models.join(',') === 'mini,fast' && sel.labels.join(',') === '2.0 Mini,2.0 Fast');
+  ok('Mini leads and is what the page opens on', sel.mvalue === 'mini');
+  ok('the list is the one line in source, and 2.0/2.5 are not on it',
+    /var PAGE_MODELS = \['mini', 'fast'\]/.test(PAGE_SRC));
   ok('the resolution is a <select>', sel.rTag === 'SELECT');
   ok('the native chrome is off and the box is the house 6px', sel.appearance === 'none' && sel.radius === '6px');
-  ok('the two drop-downs (size, shape) each draw our own inline chevron', sel.chevs === 2);
+  ok('the three drop-downs (model, size, shape) each draw our own inline chevron', sel.chevs === 3);
   ok('the resolution opens at Mini\'s minimum', sel.rvalue === '480p' && sel.reses.join(',') === '480p,720p');
+  // PICKING FAST REALLY REACHES THE PRICE AND THE JOB — a select whose change
+  // handler never fires looks identical to one that works
+  if (sel.mTag === 'SELECT') {
+    await page.selectOption('#model', 'fast');
+    await page.waitForTimeout(200);
+    const fastCost = await page.$eval('#cost', (e) => e.textContent);
+    ok('picking Fast re-asks the price and it is the dearer one — ' + fastCost, /36/.test(fastCost));
+    await page.selectOption('#model', 'mini');
+    await page.waitForTimeout(200);
+    ok('and back to Mini re-asks it again', /22\.4/.test(await page.$eval('#cost', (e) => e.textContent)));
+  } else { ok('picking Fast re-asks the price', false); ok('and back to Mini re-asks it again', false); }
+  // THE MODEL IS NOT STICKY: Fast is ~8x Mini a second, so it opens on Mini
+  // every load the way the seconds and the size do
+  ok('nothing writes the model into footage_ctl',
+    !(await page.evaluate(() => (localStorage.getItem('footage_ctl') || '').indexOf('model') >= 0)));
 
   // ── the seconds are typed, and clamped to the model\'s own range ─────────
   const secBox = await page.evaluate(() => {
@@ -459,8 +491,8 @@ async function pillSweep(pg, where) {
   await page.evaluate(() => document.getElementById('secs').blur());
   await page.waitForTimeout(120);
   ok('a number under the minimum clamps up (1 → 4)', (await page.$eval('#secs', (e) => e.value)) === '4');
-  // the range is Mini's own — 4 to 15 — read off the served table, and with
-  // no model control there is no way to reach another model's range
+  // the range is Mini's own — 4 to 15 — read off the served table, never a
+  // number typed into the page (Fast happens to share it)
   ok('the clamp is Mini\'s (4–15) off the served table, not a number in the page',
     (await page.$eval('#secs', (e) => e.min + '-' + e.max)) === '4-15' && !/max="15"|min="4"/.test(PAGE_SRC));
   await page.fill('#secs', '4');
@@ -772,8 +804,8 @@ async function pillSweep(pg, where) {
   }));
   ok('folding the buttons hides them and leaves the references and the star alone ' + JSON.stringify(ctlShut),
     !ctlShut.controls && ctlShut.refs && ctlShut.go);
-  ok('and the shut row says what they were set to: ' + ctlShut.lab,
-    !/Mini/i.test(ctlShut.lab) && /480p/i.test(ctlShut.lab) && /3:4/.test(ctlShut.lab) && /4s/i.test(ctlShut.lab));
+  ok('and the shut row says what they were set to, the model included: ' + ctlShut.lab,
+    /2\.0 Mini/.test(ctlShut.lab) && /480p/i.test(ctlShut.lab) && /3:4/.test(ctlShut.lab) && /4s/i.test(ctlShut.lab));
   ok('a folded row keeps its values — hidden, never emptied', ctlShut.secs === '4' && ctlShut.ratio === '3:4');
   await page.click('#reffold');
   await page.waitForTimeout(120);

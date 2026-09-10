@@ -7315,11 +7315,27 @@ before working on that module. Nothing was deleted — the moved text is verbati
   control set is one row). The Add word is a **picture icon** (Lucide `image`
   in a rounded square at the house 6px, never a circle). Resolution and shape
   are **drop-downs** with the platform's chrome off (`appearance:none`) and our
-  own inline chevron drawn in. **THE MODEL IS PINNED TO MINI — THERE IS NO
-  MODEL CONTROL (2026-09-10, Sophie: "get rid of the model choice · just mini
-  for now").** `PAGE_MODEL` in `footage.html` is the one line; a belt
-  hand-off's `model` is ignored, the seconds clamp to Mini's 4-15, and the
-  drop-down comes back when she says (the 720p 2.5 step, ~2026-09-16). **Same
+  own inline chevron drawn in. **THE MODEL IS A DROP-DOWN OF TWO — 2.0 MINI
+  AND 2.0 FAST (2026-09-10, Sophie: "add 2.0 fast back as an option").** It was
+  pinned to Mini alone that morning ("get rid of the model choice · just mini
+  for now") and this puts back exactly the row she named: **`PAGE_MODELS` in
+  `footage.html` is the one line**, Mini leads and is the default, and 2.0 and
+  2.5 stay off it — they are on the served table and were never asked back, so
+  offering them again is that array. The list is still DERIVED (a model must be
+  on Atlas AND in `PAGE_MODELS`, which is what keeps 1.5 Pro off), a belt
+  hand-off's `model` is honoured when the page offers it and falls to Mini when
+  it does not, and the seconds and the size re-validate against whichever model
+  is picked. **THE MODEL IS NOT STICKY, and that is a change from before the
+  pin:** Fast is ~8x Mini a second on Atlas (36¢ against 4.4¢ for a 4s 480p
+  clip), so a Fast left over from last week silently drawing today's clip is
+  the hidden ingredient the seconds and the resolution are already kept
+  unsticky for — the page opens on Mini every load and Fast is her own tap
+  (sticky is hers to ask for). **And Fast is the STRICTER of the two** — its
+  output gate has refused a plain reference-free prompt with the copyright line
+  (free, unbilled, measured 2026-09-09) where the same words drew on Mini — so
+  the "?" card says so. The controls row wraps to two lines at 390pt with the
+  model back on it, which is `flex-wrap` doing what her "same row unless it
+  bleeds over" asks. **Same
   day, bugs fixed on this page:** a slot tapped with the caret at the start of
   the box landed at the END (a null `selectionStart` check, not a 0 check);
   the references strip, the folds and the seed box were hidden until `/status`
