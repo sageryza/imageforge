@@ -40,10 +40,10 @@ for n,j in enumerate(jobs,1):
 <textarea class="p" data-key="%(k)s" spellcheck="false">%(p)s</textarea><div class="saved" id="sv-%(k)s"></div></details>
 <div class="attached">
 <div class="row"><label>seconds <input class="secs" data-key="%(k)s" value="%(s)s" inputmode="numeric"></label><span class="cost" data-key="%(k)s"></span></div>
-<p class="sendrow"><a class="tofoot" href="https://imageforge-q125.onrender.com/footage" target="_blank" rel="noopener" data-key="%(k)s" data-title="%(t)s">Send to Footage ›</a><script type="application/json" class="refjson" data-key="%(k)s">%(refjson)s</script></p>
 <p class="sends">%(sends)s</p>
 <div class="refs">%(stills)s</div>
 %(cast)s%(note)s
+<p class="sendrow"><a class="tofoot" href="https://imageforge-q125.onrender.com/footage" target="_blank" rel="noopener" data-key="%(k)s" data-title="%(t)s">Send to Footage ›</a><script type="application/json" class="refjson" data-key="%(k)s">%(refjson)s</script></p>
 </div></section>'''%dict(ephead=ephead,minebox=minebox,k=k,n=n,t=H.escape(j['title']),st=H.escape(j['status']),p=H.escape(p),s=H.escape(s),sends=sends,stills=stills,cast=cast,note=note,refjson=_j.dumps([{'url':im[1],'kind':'image','name':im[0]} for im in j['images']]).replace('</','<\\/')))
 TOC=' · '.join('<a href="#j-%s">%d %s</a>'%(j['key'],i+1,H.escape(j['title'])) for i,j in enumerate(jobs))
 LEFT=''.join('<li>%s</li>'%H.escape(x) for x in left)
