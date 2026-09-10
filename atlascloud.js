@@ -187,13 +187,46 @@ function refusalKind(text) {
 }
 
 // ─── Atlas Cloud calls ───────────────────────────────────────────────
+// A CALL THAT HANGS IS ANSWERED, NOT WAITED OUT (2026-09-10, Sophie: "my clip
+// isn't drawing :("). Atlas's job endpoints went dark that night — its
+// `GET /models` answered in 0.8s while `POST /model/generateVideo` gave
+// NOTHING for 120s and then its own gateway's 504, and the prediction poll
+// timed out too (measured from a container, with a body that could not make
+// a job). This call had no timeout, so her tap held the POST for two minutes
+// and the page said "Could not start" with nothing about why. A send now
+// waits SEND_MS (well past the seconds a real accept takes, well under the
+// 120s both Atlas's gateway and Render's edge cut at) and a poll POLL_MS,
+// and a call that times out or comes back as a gateway page (502/503/504)
+// throws `refusal:'down'` with a line she can read: nothing was sent, nothing
+// was charged, try again in a few minutes.
+const SEND_MS = 75000, POLL_MS = 30000;
+const DOWN_HINT = 'Atlas Cloud is not answering right now — nothing was sent or charged. Try again in a few minutes, or ask a chat to send this one through APIFRAME.';
+function downError(status, text) {
+  const e = new Error(`Atlas Cloud is not answering (${status})`);
+  e.status = 504; e.body = text || ''; e.refusal = 'down'; e.hint = DOWN_HINT;
+  return e;
+}
 async function api(path, { method = 'GET', body } = {}) {
-  const res = await fetch(BASE + path, { method, headers: headers(),
-    body: body ? JSON.stringify(body) : undefined, agent: proxyAgent || undefined });
-  const text = await res.text();
+  const ctl = new AbortController();
+  const ms = method === 'POST' ? SEND_MS : POLL_MS;
+  const timer = setTimeout(() => ctl.abort(), ms);
+  let res;
+  try {
+    res = await fetch(BASE + path, { method, headers: headers(),
+      body: body ? JSON.stringify(body) : undefined, agent: proxyAgent || undefined, signal: ctl.signal });
+  } catch (e) {
+    clearTimeout(timer);
+    if (e && (e.name === 'AbortError' || e.type === 'aborted')) throw downError(`no answer in ${Math.round(ms / 1000)}s`, '');
+    throw e;
+  }
+  let text;
+  try { text = await res.text(); } finally { clearTimeout(timer); }
   let json;
   try { json = JSON.parse(text); } catch { json = { _raw: text }; }
   if (!res.ok) {
+    // a gateway page (not JSON) on a 5xx is Atlas's front door with nothing
+    // behind it — the same "down" as a timeout, and it reads the same to her
+    if (res.status >= 502 && res.status <= 504 && json._raw !== undefined) throw downError(res.status, text);
     const e = new Error(`Atlas Cloud ${res.status}: ${text.slice(0, 600)}`);
     e.status = res.status; e.body = text;
     throw e;
@@ -252,6 +285,7 @@ async function startVideo(b, extra) {
   try {
     r = await api('/model/generateVideo', { method: 'POST', body: built.body });
   } catch (e) {
+    if (e.refusal === 'down') throw e;          // api() already said it, in her words
     const kind = refusalKind(e.body);
     e.refusal = kind;
     e.hint = kind === 'content' ? `Atlas Cloud refused a reference (a face or a person) — that job goes through ${APIFRAME_ROUTE}` : undefined;

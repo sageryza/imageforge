@@ -171,13 +171,31 @@
       .then(function(d){ return !!(d&&d.ok); })
       .catch(function(){ return false; });
   }
+  // A REFUSAL IS NOT A NETWORK FAILURE (2026-09-10, measured on her phone: 94
+  // `note-voice` 400s in eleven minutes, one every few seconds, from an entry
+  // the server will never take — an empty recording or bytes that are not
+  // audio). Retrying a 4xx forever is a stuck outbox that hammers the server
+  // and never tells her. A refused RECORDING is dropped and the entry goes on
+  // as words if it has any; a refused note with no words left is dropped
+  // whole ('drop'), and the console says so. A 5xx and a dropped connection
+  // still wait for the network, as before.
   function sendEntry(e){
     if(e.audio && !e.voice){
       return fetch('/api/gallery/assets/note-voice',{ method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ chat: e.chat, url: e.url, t: e.t, hold: true, audio: e.audio }) })
-        .then(function(r){ return r.json(); })
-        .then(function(d){
-          if(!d||!d.ok) return false;
+        .then(function(r){ return r.json().then(function(d){ return { st:r.status, d:d }; }); })
+        .then(function(x){
+          var d=x.d;
+          if(!d||!d.ok){
+            if(x.st>=400 && x.st<500){
+              try{ console.warn('[filmnote] recording refused, not retried:', d&&d.error); }catch(_){}
+              e.audio='';                // the server will never take these bytes
+              saveEntry(e);
+              if(!e.text) return 'drop'; // nothing left to file
+              return postText(e, noteLine(e.t, e.text, ''));
+            }
+            return false;
+          }
           e.voice=d.url; if(!e.text) e.text=d.transcript||'';
           e.audio='';                    // uploaded — stop carrying the bytes
           saveEntry(e);                  // progress persists: a retry starts here
@@ -201,6 +219,8 @@
     flushing=true;
     sendEntry(e).then(function(ok){
       flushing=false; delete myLocks[e.id];
+      // true = filed; 'drop' = refused for good with nothing left to file —
+      // either way the entry leaves the outbox and the next one goes
       if(ok){ outWrite(outRead().filter(function(x){ return x.id!==e.id; })); flush(); }
       else {
         e.lock=0; saveEntry(e);          // free it for the next try, wherever that runs
