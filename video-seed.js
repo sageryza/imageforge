@@ -38,13 +38,19 @@ function randomSeed() {
   return Math.floor(Math.random() * 2147483646) + 1;
 }
 
+// Is this a seed a job can actually carry? One rule, so a caller that wants to
+// DROP an unusable value (rather than have it replaced under it) asks the same
+// question `seedFor` asks.
+function okSeed(given) {
+  const n = Number(given);
+  return given != null && given !== '' && Number.isFinite(n) && Math.floor(n) === n && n >= 1 && n <= 2147483647;
+}
+
 // The seed a job should carry: the caller's if they gave a usable one, else a
 // fresh mint. A non-numeric or out-of-range value is replaced rather than
 // sent — an unusable seed on the wire is worse than a new one on the record.
 function seedFor(given) {
-  const n = Number(given);
-  if (given != null && Number.isFinite(n) && Math.floor(n) === n && n >= 1 && n <= 2147483647) return n;
-  return randomSeed();
+  return okSeed(given) ? Number(given) : randomSeed();
 }
 
 // Which models take a seed at all. The Seedance 2.x family declares
@@ -55,4 +61,4 @@ function takesSeed(model) {
   return /^(bytedance\/)?seedance-2/.test(String(model || '').trim().toLowerCase());
 }
 
-module.exports = { randomSeed, seedFor, takesSeed };
+module.exports = { randomSeed, okSeed, seedFor, takesSeed };
