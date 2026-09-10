@@ -330,7 +330,7 @@ async function pollVideo(id) {
     : null;
   let patch = null;
   try {
-    patch = videoLog.finishPatch({ status, error: d.error }, video);
+    patch = videoLog.finishPatch({ status, error: d.error }, video, d);
     if (patch) {
       if (tokens) patch.tokens = tokens;   // Atlas bills in tokens; no dollar figure is invented
       if (lastFrame) patch.lastFrame = lastFrame;
