@@ -7592,6 +7592,65 @@ before working on that module. Nothing was deleted — the moved text is verbati
   thread that never reaches the card are the same markup).
   Full note: *FOOTAGE* under the OpenRouter note in
   `docs/modules/audio-and-film.md`.
+  **SHE TRIMS A CLIP AS IT COMES OUT — THE PLAYER IS THE TRIMMER (2026-09-10,
+  Sophie: "how hard would it be to make it possible to trim clips right as they
+  come out of the footage module?").** A Mini clip is 4-15 seconds and the shot
+  inside it is usually shorter — the model holds a beat before the move starts
+  and drifts at the tail — and the only way to lose either end was the Film
+  Editor, a tool away, so a clip she liked went into the draft carrying its
+  dead air. Tapping a clip opens the lightbox it always did, with two marks
+  under the picture: **Start here** / **End here** land at the playhead, `‹ ›`
+  walk the playhead a tenth of a second so a mark can be placed exactly, the
+  strip shows what is kept against the whole clip, and **Trim** bakes it.
+  `POST /api/footage/jobs/:id/trim {start,end}`; `{clear:true}` undoes it.
+  **IT COSTS NOTHING** — ffmpeg on our own box, no model call, no door; what
+  she paid for is the clip, and trimming and undoing are both free.
+  - **HER CLIP IS NEVER TOUCHED.** The trim is a NEW object under
+    `footage/trims/` and `video` on the log doc — the clip the door drew — is
+    never written; `trim` is a field beside it, so the poll, the exact-prompt
+    log and the 1080p-redo list all go on seeing the original and the undo is
+    one field off the doc rather than a restore.
+  - **THE SPAN IS ALWAYS IN THE ORIGINAL'S OWN SECONDS**, so the player opens
+    the SOURCE even on a clip already trimmed — a trim can be widened back
+    out, re-cut or undone. Trimming a trim would move what the marks mean
+    every round and lose a generation of quality per pass.
+  - **BAKED ONCE** (content-addressed by the source url and the span, so a span
+    she has already cut is one HEAD and no encode) and **ONE DECODE AT A TIME**
+    (`gateTrim` — a decode is the one thing that has actually killed this 512MB
+    box, and a trim is never urgent).
+  - **THE CUT IS `clips.js`'s OWN `chunkGraph`** — the recipe the Chunking
+    library already shares with Cut Marks, 12ms audio fades at each edge so an
+    exact cut never clicks — and **the FILE is the truth about its own length**
+    (a clip is 24·s + 1 frames), so the out-mark is CLAMPED to what ffprobe
+    reads rather than refused against the ask.
+  - **EVERYTHING IS A TAP** (Cut Marks' rule): nothing drags, and the strip is
+    a READ-OUT rather than a second scrubber over the video's own. Playing
+    plays the SPAN and loops it — that is how a trim is judged before it is
+    committed — but **scrubbing is never yanked**. The button's meaning follows
+    the marks: at the two ends of a trimmed clip it is **Undo the trim**,
+    anywhere else **Trim** / **Re-trim**, and where it would do nothing it is
+    not drawn at all.
+  - **A TOAST IS A MESSAGE, NEVER A CONTROL — `pointer-events:none`, and that
+    was a LIVE BUG on this page, found by measurement.** Fading to opacity 0
+    does not stop an element hit-testing, so the toast box sat invisible at the
+    bottom-left for the life of the page and swallowed every tap that landed on
+    it — on the feed, the corner of a card. It also moves to the top while the
+    player is open: a refusal she cannot read over the two buttons it is
+    refusing is no refusal.
+  - **AND /filmnote.js IS HOSTED ON THE STAGE, NOT THE WHOLE PLAYER.** It
+    anchors everything it draws to its WRAP's bottom edge — the Note button,
+    the sheet, the prompt panel, the toast — so with `#player` as the wrap its
+    Note button landed ON the trim controls (PHOTOgraphed at 390x844, sitting
+    over the `›` stepper). `.pstage` is `position:relative` for it, and the
+    note UI now sits over the picture, where a note about the film belongs.
+    Pinned by a MEASUREMENT both ways round — no overlap, and every trim
+    control really takes its own tap.
+  - **PHOTOGRAPHED, and it changed the layout**: centred in its stage the
+    picture left ~270px of dead dimmed page between the clip and its own trim
+    bar, so the two read as unrelated things. The picture is bottom-aligned
+    now, its own scrubber directly above the marks.
+  Full note: *SHE TRIMS A CLIP AS IT COMES OUT* in
+  `docs/modules/audio-and-film.md`; test `node scripts/test-footage-trim.js`.
 - **Movies** (`movies.js`, `/api/movies`, iOS Movies tab — no web page) — story ->
   ~8-12 self-contained scenes -> gpt-image-2 panels -> Replicate image-to-video ->
   ffmpeg stitch, ~$1.35 for a 12-scene film.
