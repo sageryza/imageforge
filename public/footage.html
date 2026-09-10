@@ -923,14 +923,17 @@ $('file').addEventListener('change', function (e) {
     });
   }, Promise.resolve()).then(function () { if (n) toast(n === 1 ? 'Attached' : 'Attached ' + n); });
 });
-// Recent — HER OWN CLIPS AS WELL AS THE REFERENCES SHE HAS USED (2026-09-10,
-// Sophie: "make the recent box keep videos, not just stills"). It held the
-// references off earlier cards only, and those are mostly stills, so the one
-// video this draft keeps needing — the shot before, to carry a person and a
-// room into the next clip — was never in the box: she had to find it on the
-// wall, play it, and put its prompt back to get at it. A finished clip is
-// listed with its job, ahead of that job's own references, so the shot she
-// just drew is the first tile. Derived from the feed; nothing is stored.
+// Recent — WHAT SHE HAS UPLOADED, NEVER WHAT THE DOOR DREW (2026-09-10,
+// Sophie: "take out trimmed clips from recents" → "recents is recent
+// UPLOADED" → "uploaded videos"). For a few hours that morning the box also
+// listed a job's own finished clip and its baked last frame, at her ask
+// ("make the recent box keep videos, not just stills"), and she took both
+// back out the same day: THE BOX IS HER REFERENCES — the stills and the
+// videos she attached — so re-attaching one is a tap instead of a hunt
+// through Photos. The outputs belong to the WALL, and the way to chain from
+// a clip is to put its prompt back. That earlier reasoning is HISTORY, not a
+// rule; don't list a clip here again. Derived from the feed; nothing is
+// stored.
 var recentOpen = false;
 $('rectog').addEventListener('click', function () { recentOpen = !recentOpen; paintRecent(); });
 function recentItems() {
@@ -939,30 +942,8 @@ function recentItems() {
   Object.keys(jobsById).map(function (k) { return jobsById[k]; })
     .sort(function (a, b) { return String(b.sentAt).localeCompare(String(a.sentAt)); })
     .forEach(function (j) {
-      // a clip she crossed out is not one to draw the next shot from, and a
-      // hidden one is off the wall — neither is offered. NOR IS A TRIMMED ONE
-      // (2026-09-10, Sophie: "take out trimmed clips from recents"): it has
-      // been cut for the film, and what `video` then points at is only its
-      // FIRST part, so the tile would offer a piece of a shot rather than the
-      // shot. The same `bakedParts` the tile's scissors chip reads, so the
-      // mark on the wall and the absence from the box can never disagree —
-      // a part still baking has cut nothing yet and the clip is still offered.
-      // Only the clip goes: that job's own references are listed as before.
-      if (j.status === 'done' && j.video && !j.hidden && j.vote !== 'dislike' && !bakedParts(j).length) {
-        var nm = j.title || String(j.prompt || '').slice(0, 60);
-        add({ url: j.video, kind: 'video', poster: j.poster || '', name: nm, mine: true });
-        // AND ITS LAST FRAME RIGHT BEHIND IT (2026-09-10, Sophie: "on") — the
-        // chaining still this draft keeps needing: attach it to the next clip
-        // and the room and the person carry over. It is the door's own render
-        // rather than a decode of the mp4 (1.18x sharper, 118x the horizontal
-        // chroma detail — measured 2026-09-09), and it is free.
-        // It sits INSIDE the clip's own test on purpose, so the trim rule
-        // above covers it for nothing: the baked frame is where the SOURCE
-        // ends, and a trimmed clip ends somewhere else — a still one shot out
-        // of step is worse than no still. And it rides as a PICTURE, so a
-        // person in it is screened as a still and never as a person video.
-        if (j.lastFrame) add({ url: j.lastFrame, kind: 'image', name: 'Last frame — ' + nm, tail: true });
-      }
+      // newest job first, its references in the order they rode — and one
+      // tile per url, so a reference she used on five clips is one tile
       (j.refs || []).forEach(function (r) { add({ url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' }); });
     });
   return out.slice(0, 24);
@@ -982,7 +963,7 @@ function paintRecent() {
   el.innerHTML = '';
   list.forEach(function (r) {
     var b = document.createElement('button'); b.type = 'button'; b.className = 'rc';
-    b.title = r.tail ? 'Attach the last frame' : r.mine ? 'Attach this clip' : 'Attach again';
+    b.title = 'Attach again';
     b.setAttribute('aria-label', b.title + (r.name ? ' — ' + r.name : ''));
     var pic = r.kind === 'image' || Boolean(r.poster);
     b.innerHTML = thumbHtml(r) + (r.kind === 'video' && pic ? '<span class="bdg">' + ICONS.film + '</span>' : '');
@@ -1589,7 +1570,7 @@ function castVote(id, kind) {
   var j = jobsById[id]; if (!j) return;
   j.vote = j.vote === kind ? '' : kind;
   jobCard(j);                       // ends in paintFeed → applyFilt, which paints the wall's marks
-  paintRecent();                    // a clip she just crossed out stops being offered as a reference
+  paintRecent();                    // the drawer is drawn off the feed, so it repaints with it
   api('/jobs/' + encodeURIComponent(id) + '/vote', { method: 'POST', body: JSON.stringify({ vote: j.vote }) }).catch(function () {});
 }
 // PUTTING A PROMPT BACK PUTS ITS REFERENCES AND ITS SETTINGS BACK — only
