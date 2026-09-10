@@ -2309,6 +2309,40 @@ them off the reference sheet, not off the old filenames.
   - Tests: `node scripts/test-filmshots.js` (the map, the join and the
     detector's refusals — pure) and `node scripts/test-film-prompt.js` (the
     real page + the real filmnote.js, headless).
+- **THE FILM WEARS OUR OWN TRANSPORT — `/filmbar.js`, and that is what ended
+  the TINT (2026-09-10, Sophie: "the way a movie tints when it starts" · "how
+  hard would that be?" · "go").** The grey wash over a film the moment it
+  starts is **iOS's own controls overlay**, painted over any
+  `<video controls>` — nothing in this repo draws it, and there is no flag
+  that keeps the controls and loses the wash. So the film drops native
+  `controls` and `window.__filmBar({wrap, video})` draws the bar: play/pause,
+  the elapsed and total time, and a strip that seeks. Two players carry it —
+  the Chats app's PINNED FILM and compare.js's VIDEO LIGHTBOX.
+  - **WHAT IT COSTS, named:** AirPlay, picture-in-picture and the native
+    fullscreen button are gone with the overlay. **An AUDIO pin keeps native
+    controls** — there is no picture to tint.
+  - **THE SCRIM WORKAROUND IS DELETED, NOT DISABLED** — `SCRIM_MS`,
+    `scrimAt`, `scrimMs()` and the 64px "scrub bar exemption" band in
+    `filmnote.js` all existed ONLY to coexist with an overlay no API reports.
+    The exemption is now `e.target !== v`: the bar is a SIBLING of the video,
+    so a tap on it simply is not a tap on the film. Not a rule to bring back.
+  - **THE BAR IS ALWAYS ON SCREEN, deliberately.** A bar that fades
+    reintroduces the exact tap ambiguity the scrim code papered over — a tap
+    on a control that is not there yet.
+  - **THE TRANSPORT IS THE FOOTAGE TRIMMER'S, LIFTED** — a 34px band around a
+    6px bar (the `.mtick` rule: the band is the target, the bar is the
+    picture), the fraction measured off the BAR's own rect, `‹ ›`-free because
+    she is watching rather than marking. Unlike the trimmer a strip tap does
+    NOT pause: nothing here is being marked.
+  - **`destroy()` removes every listener** — compare.js reuses one
+    `.cmp-vlb` wrap across opens, so a leak there is a bar per film.
+  - **compare.js loads the module and only falls back to `controls` if the
+    fetch fails** — a Compare page's film with no chat gets no filmnote, so
+    the bar cannot ride on that load.
+  - Tests: the transport section of `node scripts/test-chats-film-note.js`
+    (the real page headless — the film asserted to carry NO `controls`, the
+    bar's play really toggling, and a strip tap MEASURED as `currentTime`
+    landing in the middle of the clip).
 - **A SECOND, UNRELATED PIN — the PUSHPIN keeps a CHAT at the top of her list
   (Aug 2026, Sophie: "an option to pin chat to the top so they always show
   first when they come out of hiding and they never disappeared to the bottom

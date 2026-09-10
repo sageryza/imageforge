@@ -2190,6 +2190,7 @@ body.newspick > .float{display:none !important;}
 <script src="/sheet-grid.js"></script>
 <script src="/asset-actions.js"></script>
 <script src="/asset-lightbox.js"></script>
+<script src="/filmbar.js"></script>
 <script src="/filmnote.js"></script>
 <!-- THE CARET STAYS WHERE SHE CAN SEE IT (2026-09-08) — every box in this
      page grows to the size of its words and never scrolls itself, so the
@@ -8494,11 +8495,19 @@ function openPinned(pin, chatName){
   // SCHOOL hit at 0.65s was in the file at eight times the voice and she
   // never heard it. Paused on its first frame; her tap (or the native play)
   // starts it, and filmnote.js keeps its buttons down until it has played.
-  v.src=pin.url; v.controls=true; v.preload='auto'; v.setAttribute('playsinline','');
+  // NO NATIVE CONTROLS ON A FILM (2026-09-10, Sophie: "the way a movie tints
+  // when it starts" → "go"). iOS paints its controls overlay as a WASH over
+  // the whole picture and offers no way to keep the controls without it, so
+  // the transport is ours: /filmbar.js, the ONE implementation, shared with
+  // compare.js's video lightbox. AUDIO keeps the native controls — an audio
+  // element has no picture to tint, and nothing here would improve it.
+  var isAudio = pin.kind==='audio';
+  v.src=pin.url; v.controls=isAudio; v.preload='auto'; v.setAttribute('playsinline','');
   var x=document.createElement('button'); x.className='x'; x.innerHTML='&times;';
   x.setAttribute('aria-label','Close');
   function close(){ try{ v.pause(); }catch(_){ }
     if(fnote) fnote.destroy();          // stops a live mic, drops the sheet
+    if(fbar) fbar.destroy();            // and its listeners, and its frame loop
     w.remove();
     document.body.style.overflow=''; window.scrollTo(0,y);
     document.removeEventListener('keydown',esckey); }
@@ -8518,7 +8527,17 @@ function openPinned(pin, chatName){
   // url thread via the asset-note machinery, so the pinning chat sweeps them
   // like image notes. Films only, and only when we know which chat the pin
   // belongs to.
-  var fnote = (pin.kind!=='audio' && chatName && window.__filmNote)
+  // OUR OWN TRANSPORT, in place of the tinted native one — play/pause, a
+  // scrubber, elapsed and total. It is drawn for every FILM, whether or not we
+  // know which chat to file a note into, because a film with no controls at
+  // all is not a player. If the module could not be fetched the video takes
+  // the native controls back rather than being left with none.
+  var fbar = null;
+  if(!isAudio){
+    if(window.__filmBar) fbar = window.__filmBar({ wrap:w, video:v });
+    else v.controls = true;
+  }
+  var fnote = (!isAudio && chatName && window.__filmNote)
     ? window.__filmNote({ wrap:w, video:v, chat:chatName, url:pin.url }) : null;
   document.body.appendChild(w); document.body.style.overflow='hidden';
 }
