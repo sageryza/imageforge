@@ -46,6 +46,15 @@ Editor: https://imageforge-q125.onrender.com/filmeditor?c=pxan7kLF6I7iMWxlVb5C
   (720p, cuts to her a second late), `c3A`/`c3B`/`c3C`. None of them carried a
   ♥, so this pick is mine — say if you want one of the others.
 
+- v5: the second build starts ON the purple pill and climbs the whole 22.2s to
+  "let's see". MEASURED, twice: an ElevenLabs "riser" always peaks mid-clip and
+  fades (v1 at 8s, v2 at 12s, v3 at 12s of 22), so no generated 22s clip climbs
+  the whole way. What does is v2's first 13s — the honest build — stretched to
+  22.13s with `atempo=0.588`, which keeps the pitch and slows the climb
+  (`drops/_/863ac978c041ae3e833a869468b5752b.mp3`). Its own shape, per 3s:
+  -68 → -56 → -47 → -39 → -33 → -28 → -22 → -18 dB, monotonic. In the render
+  the music alone reads -36.5 dB at the pill and -24.6 just before the stop.
+
 - Substitutions, named: "Francesca kicked out of class" = Yolanda scolded in
   music class (s18 18.3–21.8; the seated woman is the Francesca description);
   "Michael: I know what you mean" = the hallway walk's "I know the feeling";

@@ -248,16 +248,16 @@
   },
   {
    "key": "bedB",
-   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/90e9e34ce854c29224f344e4a112f0fb.mp3",
-   "name": "eerie riser B \u2014 swells from the bathroom to \"let's see\", stops before \"very good\"",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/863ac978c041ae3e833a869468b5752b.mp3",
+   "name": "eerie build \u2014 starts as she takes the purple pill, climbs the whole way, stops on \"let's see\"",
    "in": 0,
-   "out": 13.0,
+   "out": 22.2,
    "gain": -2,
-   "fadeIn": 1,
+   "fadeIn": 0.8,
    "fadeOut": 0.15,
    "anchor": {
     "piece": "pill",
-    "offset": 9.2
+    "offset": 0
    }
   }
  ]
