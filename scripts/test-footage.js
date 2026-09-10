@@ -237,6 +237,9 @@ let jobs = [
 ].concat(Array.from({ length: 7 }, (_, i) => ({
   id: 'f' + i, prompt: 'the socks on the line ' + i, model: 'mini', modelLabel: '2.0 Mini', door: 'openrouter', seconds: 4, resolution: '480p', ratio: '3:4',
   sound: true, refs: [], status: 'done', video: 'http://127.0.0.1:PORT/clip.mp4', poster: 'http://127.0.0.1:PORT/ref.png',
+  // f6 is the LONG one: the box opens at the model's minimum, so a clip that
+  // is 4 seconds proves nothing about the seconds coming back with the words
+  seconds: i === 6 ? 15 : 4, resolution: i === 6 ? '720p' : '480p', ratio: i === 6 ? '9:16' : '3:4',
   cost: 5.6, estimate: 6, sentAt: '2026-09-09T0' + i + ':00:00.000Z', vote: '', hidden: false,
 })));
 
@@ -307,7 +310,7 @@ const INSET = (n) => (function (px) {
 });
 
 // Anything a finger aims at, plus the boxes that draw a border under the pill.
-const SWEEP = 'button,select,input,textarea,a,.ref,.panel,.selwrap,.step,.chips';
+const SWEEP = 'button,select,input,textarea,a,.ref,.selwrap,.step,.seedwrap,.panel > *';
 async function pillSweep(pg, where) {
   const pill = await pg.evaluate(() => {
     const f = document.querySelector('body > .float');
@@ -364,7 +367,7 @@ async function pillSweep(pg, where) {
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.addInitScript(INSET(47), 47);
   await page.goto(`http://127.0.0.1:${port}/footage`);
-  await page.waitForSelector('#ratios button');
+  await page.waitForFunction(() => document.querySelectorAll('#ratio option').length > 0);
   await page.waitForFunction(() => /¢$/.test(document.getElementById('cost').textContent));
   await page.waitForSelector('#job-old1');
   await page.waitForTimeout(1800);                 // let the pill's settling passes run
@@ -412,7 +415,7 @@ async function pillSweep(pg, where) {
   ok('1.5 Pro is off the list — APIFRAME is not one of this page\'s doors — and the four 2.x rows are the list',
     sel.models.indexOf('1.5') < 0 && sel.models.join(',') === 'mini,fast,2.0,2.5');
   ok('the native chrome is off and the box is the house 6px', sel.appearance === 'none' && sel.radius === '6px');
-  ok('each drop-down draws our own inline chevron', sel.chevs === 2);
+  ok('every drop-down draws our own inline chevron', sel.chevs === 3);
   ok('the resolution opens at the model\'s minimum', sel.rvalue === '480p' && sel.reses.join(',') === '480p,720p');
 
   // ── the seconds are typed, and clamped to the model\'s own range ─────────
@@ -489,8 +492,32 @@ async function pillSweep(pg, where) {
       return { cls: el.className, lines, kids: kids.length };
     });
   });
-  ok('the six shapes are ONE row (measured, not assumed)', rows.some((r) => r.cls === 'chips' && r.kids === 6 && r.lines === 1));
-  ok('the star and its price share a line', rows.some((r) => r.kids === 2 && r.lines === 1));
+  // THE SHAPE IS A DROP-DOWN AND THE CONTROLS ARE ONE BLOCK (2026-09-10,
+  // Sophie: "buttons take up too much room" · "drop down for aspect ratio").
+  // Six chips were a row of their own and TWO rows once the pill's column was
+  // reserved; the box sits in the row the model and the size are already on.
+  ok('the shape is a drop-down in the SAME row as the model and the size — never a row of its own',
+    await page.evaluate(() => document.getElementById('ratio').closest('.row') === document.getElementById('model').closest('.row')));
+  const ctl = rows.filter((r) => r.kids > 2)[0];
+  ok('the controls are ' + (ctl && ctl.lines) + ' line(s), not the five-deep column the chips made', ctl && ctl.lines <= 2);
+  // THE SEED SITS WITH THE STAR — up to ten digits (video-seed.js mints
+  // 1..2147483647), so a box narrow enough to fit beside the sizes clipped its
+  // own number. It is an ingredient of THIS tap, not a size.
+  ok('the seed, the star and the price are one line',
+    await page.evaluate(() => {
+      const row = document.getElementById('go').closest('.row');
+      const mid = [...row.children].map((k) => { const b = k.getBoundingClientRect(); return b.top + b.height / 2; });
+      return document.getElementById('seedwrap').closest('.row') === row
+        && Math.max(...mid) - Math.min(...mid) < 8;
+    }));
+  ok('the seed box shows a whole ten-digit seed',
+    await page.evaluate(() => {
+      const b = document.getElementById('seedbox');
+      b.value = '2147483647'; b.dispatchEvent(new Event('input'));
+      const fits = b.scrollWidth <= b.clientWidth + 1;
+      b.value = ''; b.dispatchEvent(new Event('input'));
+      return fits;
+    }));
 
   // ── the feed: a card, its references, and a repaint that changes nothing ─
   ok('the earlier clip is a card with its real cost', await page.$eval('#job-old1 .tags', (e) => /5\.6¢/.test(e.textContent) && /2\.0 Mini/.test(e.textContent)));
@@ -537,8 +564,36 @@ async function pillSweep(pg, where) {
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(600);
   await pillSweep(page, 'inset 47');
-  const gap = await page.$eval('.panel', (p) => p.style.getPropertyValue('--pillgap') || p.style.getPropertyValue('--pilltop'));
-  ok('the top panel reserves the pill\'s corner (' + gap + ')', Boolean(gap) && gap !== '0px');
+  // THE ROW THAT OVERLAPS THE PILL IS THE ROW THAT SHORTENS (2026-09-10,
+  // Sophie: "shud be one row - not a column for pill scroll"). The panel used
+  // to carry the reserve on its own margin, so 64px came off every row in it —
+  // the controls included, which sit below the pill and never touch it.
+  const gaps = await page.evaluate(() => {
+    const p = document.querySelector('body > .float').getBoundingClientRect();
+    return [...document.querySelectorAll('.panel > *')].map((el) => {
+      const r = el.getBoundingClientRect();
+      return { el: el.id || el.className, gap: el.style.getPropertyValue('--pillgap'),
+        w: Math.round(r.width), kids: [...el.children].map((k) => k.id + ':' + Math.round(k.getBoundingClientRect().width)),
+        over: r.bottom > p.top && r.top < p.bottom && r.width > 0 && r.height > 0 };
+    });
+  });
+  ok('the panel itself reserves nothing — it keeps its width and passes under the rail',
+    !(await page.$eval('.panel', (p) => p.style.getPropertyValue('--pillgap'))));
+  ok('the row that overlaps the pill shortens (' + JSON.stringify(gaps.filter((g) => g.over)) + ')',
+    gaps.filter((g) => g.over).every((g) => g.gap && g.gap !== '0px'));
+  ok('a row BELOW the pill keeps the panel\'s whole width — no reserve it does not need ' + JSON.stringify(gaps),
+    gaps.filter((g) => !g.over).every((g) => !g.gap || g.gap === '0px'));
+  // The controls row DOES graze the pill's band at rest (an empty prompt box
+  // puts it high on the page), so it reserves the column — and with the shape
+  // in a drop-down and Recent as an icon it still fits on two lines inside
+  // what is left. That is the whole of the fix: the reserve is honest and the
+  // row is no longer a column.
+  ok('nothing in the controls row is left sitting under the pill',
+    await page.evaluate(() => {
+      const f = document.querySelector('body > .float').getBoundingClientRect();
+      return [...document.getElementById('model').closest('.row').children]
+        .every((k) => { const r = k.getBoundingClientRect(); return !r.width || r.right <= f.left + 1; });
+    }));
 
   // ── a reference through the Dump door, and its slot into the prompt ──────
   await page.setInputFiles('#file', { name: 'mayra.png', mimeType: 'image/png', buffer: PNG });
@@ -579,7 +634,7 @@ async function pillSweep(pg, where) {
     await page.$eval('#seedbox', (e) => e.tagName === 'INPUT' && !e.readOnly && !e.disabled));
 
   // ── the star: ONE tap, ONE job, and exactly what left the phone ──────────
-  await page.click('#ratios button[data-ratio="9:16"]');
+  await page.selectOption('#ratio', '9:16');
   await page.waitForFunction(() => /¢$/.test(document.getElementById('cost').textContent));
   const sentBefore = posted.filter((p) => p.prompt).length;
   slow = 400;                                  // hold the answer so a second tap has something to be swallowed by
@@ -619,6 +674,57 @@ async function pillSweep(pg, where) {
   await page.click('#job-f0 .copy');
   ok('copying a clip that has NO seed CLEARS the box — another clip\'s seed never rides along',
     (await page.$eval('#seedbox', (e) => e.value)) === '');
+
+  // ── THE SECONDS COME BACK WITH THE WORDS (2026-09-10, Sophie: "seconds copy
+  // w clip text") — with the size and the shape, since a clip is all four.
+  // The box opens at the model's minimum, so this is measured against a clip
+  // that is deliberately NOT four seconds.
+  await page.click('#job-f6 .copy');
+  const back = await page.evaluate(() => ({ secs: document.getElementById('secs').value,
+    res: document.getElementById('res').value, ratio: document.getElementById('ratio').value,
+    prompt: document.getElementById('prompt').value }));
+  ok('copying a 15-second clip brings its seconds, its size and its shape back with its words ' + JSON.stringify(back),
+    back.secs === '15' && back.res === '720p' && back.ratio === '9:16' && /socks on the line 6/.test(back.prompt));
+  // AND IT WINS EVEN WITH THE CARET STILL IN THE SECONDS BOX — on iOS that
+  // box can hold focus while she taps a card, and the guard that keeps a "1"
+  // on its way to "12" from becoming 4 under her used to swallow the copy.
+  // driven WITHOUT a real pointer on purpose: a playwright click blurs the
+  // box on its way in, which is the one thing an iPhone does not promise
+  await page.evaluate(() => { document.getElementById('secs').focus(); document.querySelector('#job-f6 .copy').click(); });
+  ok('a copy she asked for beats the caret sitting in the seconds box',
+    (await page.$eval('#secs', (e) => e.value)) === '15');
+  await page.click('#job-f0 .copy');            // back to 4s · 480p · 3:4 for what follows
+
+  // ── THE SEED'S ✕ (2026-09-10, Sophie: "x for seed to clear") ─────────────
+  ok('an empty box draws no clear — a control that would do nothing is not drawn',
+    await page.$eval('#seedclear', (e) => e.hidden));
+  await page.click('#job-old1 .seedcopy');
+  ok('a seed in the box brings the clear with it', !(await page.$eval('#seedclear', (e) => e.hidden)));
+  await page.click('#seedclear');
+  ok('the clear empties the box and takes itself off again',
+    (await page.$eval('#seedbox', (e) => e.value)) === '' && (await page.$eval('#seedclear', (e) => e.hidden)));
+
+  // ── A ROW ONLY PAYS FOR A COLLISION IT REALLY HAS ───────────────────────
+  // With four references attached the strip is two rows tall, which puts the
+  // controls a hundred pixels BELOW the pill — they must not still be paying
+  // 49px for it. (The old pass measured every row in the zero-reserve layout,
+  // where the strip fitted on one row and the controls grazed the pill by 4px.)
+  await page.click('#job-old1 .copy');
+  await page.waitForSelector('#refs .ref');
+  await page.evaluate(() => window.__fitPillGap());
+  await page.waitForTimeout(200);
+  const withRefs = await page.evaluate(() => {
+    const f = document.querySelector('body > .float').getBoundingClientRect();
+    const row = document.getElementById('model').closest('.row');
+    const r = row.getBoundingClientRect();
+    // page coords against the fixed pill's viewport rect — fitPillGap's own
+    // convention, so the answer does not depend on where she has scrolled to
+    return { top: Math.round(r.top + (window.scrollY || 0)), pillBottom: Math.round(f.bottom),
+      w: Math.round(r.width), gap: row.style.getPropertyValue('--pillgap') };
+  });
+  ok('with the references attached the controls sit below the pill and reserve nothing ' + JSON.stringify(withRefs),
+    withRefs.top >= withRefs.pillBottom && (!withRefs.gap || withRefs.gap === '0px') && withRefs.w > 330);
+  await page.click('#job-f0 .copy');
   const beforeBlank = posted.filter((p) => p.prompt).length;
   await page.click('#go');
   await page.waitForFunction((n) => true, beforeBlank);
@@ -631,6 +737,89 @@ async function pillSweep(pg, where) {
   const v = posted.find((p) => p.vote);
   ok('a heart POSTs like to the clip\'s own vote route', v && /old1\/vote$/.test(v.vote) && v.body.vote === 'like');
   ok('the heart lights', await page.$eval('#job-old1 .heart', (b) => b.classList.contains('on')));
+
+  // ── ♥ / ✕ FROM THE WALL (2026-09-10, Sophie: "heart and x from tile view")
+  // Every assertion is a MEASUREMENT of what the server received or of what
+  // renders: a mark that draws and posts nothing, and a mark whose tap also
+  // plays the clip, both look perfect in the source.
+  await page.click('#v-tiles');
+  await page.waitForFunction(() => document.querySelectorAll('#tiles .cell .tmark').length > 0);
+  ok('every cell carries the same two marks the card does',
+    await page.evaluate(() => [...document.querySelectorAll('#tiles .cell')]
+      .every((c) => c.querySelector('.tmark.heart') && c.querySelector('.tmark.nope'))));
+  ok('a mark is a SIBLING of the play face, never a button inside a button',
+    await page.evaluate(() => [...document.querySelectorAll('#tiles .tmark')].every((b) => !b.closest('button:not(.tmark)'))));
+  ok('the clip hearted in the list shows hearted on the wall',
+    await page.$eval('#tiles .cell[data-id="old1"] .tmark.heart', (b) => b.classList.contains('on')));
+  const beforeX = posted.filter((p) => p.vote).length;
+  const wallImg = await page.evaluateHandle(() => document.querySelector('#tiles .cell[data-id="f1"] img'));
+  await page.click('#tiles .cell[data-id="f1"] .tmark.nope');
+  await page.waitForTimeout(150);
+  const wx = posted.filter((p) => p.vote).pop();
+  ok('crossing one out on the wall POSTs dislike to THAT clip', posted.filter((p) => p.vote).length === beforeX + 1
+    && /f1\/vote$/.test(wx.vote) && wx.body.vote === 'dislike');
+  ok('the mark lights and the poster dims, without playing the clip',
+    (await page.$eval('#tiles .cell[data-id="f1"] .tmark.nope', (b) => b.classList.contains('on')))
+    && (await page.$eval('#tiles .cell[data-id="f1"]', (c) => c.classList.contains('nay')))
+    && (await page.$eval('#player', (e) => e.hidden)));
+  ok('a mark never rebuilds the wall — the posters are not re-decoded',
+    await page.evaluate((h) => h === document.querySelector('#tiles .cell[data-id="f1"] img'), wallImg));
+  ok('and the list card agrees with the wall',
+    await page.$eval('#job-f1 .nope', (b) => b.classList.contains('on')));
+  // AT FOUR ACROSS A TILE IS ~80px — the size that still fits two marks
+  await page.click('#v-cols');
+  await page.waitForTimeout(150);
+  const marks4 = await page.evaluate(() => {
+    const c = document.querySelector('#tiles .cell');
+    const h = c.querySelector('.tmark.heart').getBoundingClientRect();
+    const n = c.querySelector('.tmark.nope').getBoundingClientRect();
+    return { cell: Math.round(c.getBoundingClientRect().width), gap: Math.round(n.left - h.right) };
+  });
+  ok('the two marks still clear each other at four across ' + JSON.stringify(marks4), marks4.gap > 6);
+  await page.click('#v-cols');
+  await page.click('#tiles .cell[data-id="f1"] .tmark.nope');   // put it back
+  await page.click('#v-list');
+  await page.waitForSelector('#job-old1');
+
+  // ── NOTHING A DOOR SAYS MAY WIDEN THE PAGE ──────────────────────────────
+  // (2026-09-10, Sophie: "bug where screen sometimes zooms extra or gets v
+  // wide ?"). A refusal arrives as the door's own words, and every door has a
+  // `gave no job id: ' + JSON.stringify(r)` branch — an UNBROKEN 200-char
+  // token by construction, with Atlas handing back up to 600 characters of
+  // raw body. With no wrap rule that is a ~4,000px line, and the viewport is
+  // pinned `user-scalable=no`, so she cannot pinch back out of it.
+  const wide = await page.evaluate(() => {
+    const blob = 'x'.repeat(600);
+    const err = document.getElementById('err');
+    const was = err.textContent, hid = err.hidden;
+    err.textContent = 'Atlas Cloud 400: ' + blob; err.hidden = false;
+    const st = document.querySelector('#job-old1 [data-st]');
+    const stWas = st.textContent;
+    st.textContent = 'InputVideoSensitiveContentDetected.PrivacyInformation';
+    const w = { doc: document.documentElement.scrollWidth, view: document.documentElement.clientWidth };
+    err.textContent = was; err.hidden = hid; st.textContent = stWas;
+    return w;
+  });
+  ok('600 unbroken characters from a door do not widen the page (' + wide.doc + ' vs ' + wide.view + ')', wide.doc <= wide.view);
+
+  // ── THE BIGGER BOX HAS NO CEILING (2026-09-10, Sophie: "text box doesn't
+  // extend enough") — a belt scene ran out of box at 52vh and scrolled inside
+  // itself with a half-line clipped at the bottom edge.
+  const scene = ('the interview room at night, fluorescent tubes buzzing overhead. ').repeat(20);
+  const short0 = await page.$eval('#prompt', (t) => Math.round(t.getBoundingClientRect().height));
+  await page.fill('#prompt', scene);
+  await page.waitForTimeout(150);
+  const grown = await page.$eval('#prompt', (t) => Math.round(t.getBoundingClientRect().height));
+  ok('the box extends as she writes, clamped at 30vh so the controls stay on screen ('
+    + short0 + ' → ' + grown + ' of 844)', short0 <= 140 && grown > short0 && grown <= Math.round(844 * 0.3) + 2);
+  await page.click('#bigprompt');
+  await page.waitForTimeout(250);
+  const boxed = await page.$eval('#prompt', (t) => ({ h: Math.round(t.getBoundingClientRect().height),
+    scroll: t.scrollHeight, client: t.clientHeight, max: getComputedStyle(t).maxHeight }));
+  ok('the big box fits the whole scene rather than scrolling inside itself (' + JSON.stringify(boxed) + ')',
+    boxed.max === 'none' && boxed.scroll <= boxed.client + 2 && boxed.h > 500);
+  await page.click('#bigprompt');
+  await page.fill('#prompt', '');
 
   // ── the player: the lightbox contract ────────────────────────────────────
   await page.click('#job-old1 .thumb');
