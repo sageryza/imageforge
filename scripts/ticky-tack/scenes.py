@@ -145,6 +145,12 @@ def build():
         '<div class="grid">%s</div>\n'
         '</div>\n'
         '<script src="/compare.js"></script>\n'
+        # THE SCENES-INDEX KIT (2026-09-10) — the chapter fold, the chapter
+        # rail and the Send-to-Footage key on every tile, in one served file
+        # shared with the ward and Nautchaug scenes pages. A posted page is
+        # frozen, so keeping the behaviour OUT of this builder is what lets
+        # the next fix reach all three with nothing re-posted.
+        '<script src="/scene-index.js"></script>\n'
         '<script>\n(function(){\n'
         '  window.__compareHelp({html:%s});\n'
         '})();\n</script>\n'

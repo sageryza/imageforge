@@ -404,8 +404,13 @@ line is the PERSON, not the video:
   billed at the clip's own token price to the token — and against the decoded
   final frame it is 1.18x sharper with **118x the horizontal chroma detail**,
   i.e. rendered before the h264 encode rather than pulled out of it. That is
-  the shot-to-shot chaining tool this film keeps needing. Off by default;
-  mirrored to Storage and filed on the log as `lastFrame`. Full numbers:
+  the shot-to-shot chaining tool this film keeps needing. Mirrored to Storage
+  and filed on the log as `lastFrame`. **ON FOR EVERY FOOTAGE JOB SINCE
+  2026-09-10 (Sophie: "on")** — the page asks for it on the Atlas door alone
+  (OpenRouter's flag is a no-op and APIFRAME builds its own body), the card
+  carries it, and the RECENT drawer offers it as a picture right behind the
+  clip it came off, so chaining a shot is one tap. Off by default still for
+  any other caller: `returnLastFrame: true` is what asks. Full numbers:
   *`return_last_frame`* in `docs/modules/audio-and-film.md`; test
   `node scripts/test-atlas-lastframe.js`. **AND IT IS THE FOOTAGE
   PAGE'S ONLY DOOR AND `doorFor`'s AUTO DEFAULT SINCE THE SAME EVENING
@@ -3964,6 +3969,35 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   - **The features a patch cannot carry** (a box that is not in the markup —
     the redo-notes fold, the model's-pick seconds) stay for the owning chat's
     next build. Name them rather than half-porting them.
+  - **AND THE SCENES-INDEX PAGES ABOVE THE BELTS DRIFTED THE SAME WAY — THE
+    ANSWER IS A SERVED FILE, `public/scene-index.js` (2026-09-10, Sophie: "add
+    send to footage button · and chapter buttons etc · so light blue ward,
+    nautch and ticky tack all have all features").** A scenes index is the wall
+    of little 3-D keys — one key a scene, a tap opening that scene's card on
+    its belt page — and there are three (the ward film in light blue, the
+    Nautchaug Boyfriend's in beige, Ticky Tack in red). Measured on the live
+    html: the **Send-to-Footage key** was on the ward only, the **chapter rail**
+    and **folding a chapter away** on the nautch only, and Ticky Tack had
+    neither. So the three behaviours moved into ONE SERVED FILE and a page opts
+    in with one line after `/compare.js` —
+    `<script src="/scene-index.js"></script>` — which is what makes the NEXT fix
+    reach all three the day it deploys, with nothing re-posted. It reads the
+    markup all three already share (`.grid`, `.ep` headings, a tile whose href
+    is `/api/chatfeed/page/<belt>#j-<key>`) and **builds only the halves that
+    page does not already have**, so it can be added to a live page without
+    taking anything away. **The belt names itself** — every belt page carries
+    `var CHAT='…', SHEET='…'` — so the hand-off needs no map, and it is HER
+    EDIT that rides: the posted html holds the words as the chat wrote them and
+    the verdict sheet holds what she has typed since, which is what the key
+    reads. `scripts/level-scene-pages.js` added the line to the four live page
+    docs (the nautch page is posted into two chats) the same way
+    `fix-belt-truncation.js` does — the posted html, byte for byte, re-posted
+    and superseded, **never rebuilt**. Full matrix and the three measurements
+    behind it (the keys go on BEFORE the fold; a page with its own fold hides
+    the tile, so `.cell:has(> .b.hid)` follows it down; a 56px rail key holds
+    about one word, so a long phrase is boiled down to its longest word) are in
+    `docs/mental-hospital/belt/VERSIONS.md`. Test:
+    `node scripts/test-scene-index.js` (`--live` also checks the posted pages).
 - **Picking spans of a recording is `public/picker-shell.html` +
   `window.__cutPicker`** — required, not optional. Four chats hand-rolled their
   own in one week and each re-shipped the same bugs.
@@ -7612,6 +7646,19 @@ before working on that module. Nothing was deleted — the moved text is verbati
   still drawing; the dedupe is **by url across both kinds**, so a clip that
   was also used as a reference is one tile; and `castVote` repaints the drawer
   — a ✕ she just cast has to stop offering that clip.
+  **AND ITS LAST FRAME SITS RIGHT BEHIND IT (2026-09-10, Sophie: "on").**
+  Every Atlas job asks for `return_last_frame` now, so a finished clip carries
+  the frame it ends on and the drawer offers it as its own tile directly after
+  the clip — attach it to the next one and the room and the person carry over,
+  which is the whole of what a continuity pipeline is for. It is free, and it
+  is the door's own render rather than a decode of the mp4 (1.18x sharper,
+  118x the horizontal chroma detail — measured 2026-09-09). Three things not
+  to undo: it rides as a **PICTURE**, so a person in it is screened as a still
+  and never as a person video; it sits **INSIDE the clip's own test**, so the
+  trim rule below covers it for nothing — the baked frame is where the SOURCE
+  ends and a trimmed clip ends somewhere else, and a still one shot out of
+  step is worse than no still; and a clip drawn **before this** carries none,
+  honestly, rather than a frame decoded to fill the gap.
   **AND A TRIMMED CLIP IS OUT OF THE BOX (2026-09-10, Sophie: "take out
   trimmed clips from recents").** Once a clip has a baked part it has been cut
   for the film, and `video` then points at its FIRST part — so the tile was

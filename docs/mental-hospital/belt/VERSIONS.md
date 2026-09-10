@@ -65,3 +65,97 @@ its builder should read its own state, not this one.
 `node scripts/test-belt-save-guard.js` sweeps every page builder in the repo and
 fails on a save that cuts her words, or on a scene box with no read-back. That
 is the durable half: the next copy of the belt cannot lose the fix quietly.
+
+---
+
+# The SCENES-INDEX pages, level (2026-09-10)
+
+Sophie: *"add send to footage button · and chapter buttons etc · so light blue
+ward, nautch and ticky tack all have all features."*
+
+One level up from the belts, the same story: a scenes-index page is the wall of
+little 3-D keys — one key a scene, in shooting order, a tap opening that
+scene's card on its belt page — and there are three of them, each built by a
+chat copying its neighbour. Measured against the LIVE posted html that morning:
+
+| | ward (light blue) | nautch (beige) | ticky tack (red) |
+|---|---|---|---|
+| a Send-to-Footage key on every tile | ✓ | ✗ | ✗ |
+| the chapter rail down the right side | ✗ | ✓ | ✗ |
+| folding a chapter away | ✗ | ✓ | ✗ |
+
+Every feature on exactly one page. Two of the three builders live in another
+chat's container and are not in this repo at all, so a builder fix could not
+have reached them even if it existed.
+
+## What was done, and why it is not a fourth copy
+
+The three behaviours live in **`public/scene-index.js`**, one SERVED file, and
+a page opts in with one line after `/compare.js`:
+
+    <script src="/scene-index.js"></script>
+
+It reads the markup all three pages already share — `.grid`, `.ep` headings,
+`a.b[href="/api/chatfeed/page/<belt>#j-<key>"]` — and builds only the halves
+that page does not already have, so nothing is taken away: the nautch page
+keeps its own fold and rail, the ward page keeps its own footage keys. **The
+belt names itself** (`var CHAT='…', SHEET='…'` on every belt page), so the
+hand-off needs no map of pages to chats.
+
+`scripts/level-scene-pages.js` added that one line to the four live page docs
+(the Nautchaug page is posted into two chats) — the POSTED html, byte for byte,
+re-posted as the next version with the old superseded. **No page was rebuilt**:
+the belt repair above measured a rebuild losing 9 stills, a video and seven of
+her reference-line edits, and the same holds here.
+
+- The ward film — the scenes v4 · `ward-film-page-duplicate`
+- The Nautchaug Boyfriend's — the scenes v7 · `new-script-draft`
+- The Nautchaug Boyfriend's — the scenes v7 · `icon-styling-beige-3d`
+- Ticky Tack — the scenes v3 · `ticky-tack-film-page-dupe`
+
+**The next fix reaches all three the day it deploys, with nothing re-posted.**
+That is the half that stops this drifting a third time.
+
+## Three things measured rather than reasoned
+
+- **The keys go on BEFORE the fold.** A tile gains a `.cell` wrapper, and it is
+  the wrapper that is then the grid's child — a fold built first owns the
+  tiles and hides nothing (six keys still showing under a shut heading).
+- **A page with its OWN fold hides the tile, not the wrapper.** The nautch
+  fold runs before the kit and holds references to the bare `<a class="b">`,
+  so a folded chapter would be a row of empty grid cells;
+  `.grid > .cell:has(> .b.hid)` follows the tile down.
+- **A 56px rail key holds about one word.** The heading is cut at its dash
+  (or its comma or slash), and a phrase too long to render is boiled down to
+  its LONGEST word — "the two beginnings" → BEGINNINGS, "recommend keeping" →
+  RECOMMEND, "the sculptures" → SCULPTURES. Measured on her three pages that
+  is the difference between a rail of words and a rail of `TWO BEGI…` /
+  `RECOMM…` / `SCULPTU…`; no label is cut now. The full heading is on the
+  button's title and aria-label either way.
+
+Test: `node scripts/test-scene-index.js` (the kit on all three real shapes,
+every assertion a measurement; `--live` also checks the posted pages link it).
+
+## And the Ticky Tack review DECK, which is a different page again
+
+`Ticky Tack — the scenes (56)` in `tiki-tack-draft-commit` is a stock DECK of
+her scenes, not a scenes index — so the kit does not reach it, and its own
+builder (`scripts/ticky-tack-scene-deck.js`, in this repo) had gained
+`it.footage` per card AFTER v2 was posted. A posted page is frozen, so the
+button was in the builder and on none of the 56 cards. Re-posted as **v3**,
+which was free: measured before touching it, her verdict sheet held no mark
+and no note on that deck, only her place.
+
+## The heading has to say the same version the row does
+
+The title is on the page DOC and the `<h1>` is baked into the html, so
+re-posting as the next version left her opening "… v3" and reading "… v2".
+`level-scene-pages.js` rewrites the heading's version NUMBER in place —
+entities and all, which re-escaping the plain title would not do — and
+`--retitle` fixes a page already carrying the kit at the SAME title, so
+putting the two in step spends no version. The four live pages read:
+
+- The ward film — the scenes v4 · `oH4MXZkYswP8wEY1k6JT`
+- The Nautchaug Boyfriend's — the scenes v7 · `bJFVfv8wIi7xZw4jsIJ4` (new-script-draft)
+- The Nautchaug Boyfriend's — the scenes v7 · `yirPd55DCOYsNRoTh8b8` (icon-styling-beige-3d)
+- Ticky Tack — the scenes v3 · `KHEjLBXN4zJpsO0QUZ7K`
