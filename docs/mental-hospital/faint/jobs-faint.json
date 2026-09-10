@@ -1,0 +1,230 @@
+[
+ {
+  "key": "f1",
+  "title": "Pill → bathroom",
+  "secs": 15,
+  "target": "12–15 seconds",
+  "status": "waiting for your go",
+  "model": "mini",
+  "res": "480p",
+  "ratio": "16:9",
+  "audio": true,
+  "door": "atlascloud",
+  "videos": [],
+  "images": [
+   [
+    "Sophie — her face",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ],
+   [
+    "the blue hospital pajamas",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/29b0531b15fa98895bd18fb9e16e90d3.png"
+   ],
+   [
+    "the doctor",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/86064af3393b1ea3c4b8b6861cf21971.png"
+   ],
+   [
+    "the assistant",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/29b79fed3e5b81a9296535be1c13a775.png"
+   ],
+   [
+    "the office",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/7e4069ef6345be703f51b480f96edd90.png"
+   ],
+   [
+    "the bathroom",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/395c9e5f12f69d7968965b7ea7d32183.png"
+   ]
+  ],
+  "text": "CONTEXT:\nSophie is a patient in a psychiatric hospital. She is in a meeting with the doctor and the doctor’s assistant. The assistant is a businesslike woman who habitually carries a clipboard.\n\nSHOOT THIS:\nIt is a 5miligram pill. it is purple. she takes it from the cup, then puts it under her tongue.\n\nshe walks out of the doctor meeting\n\nin the bathroom, everything is getting hot, and it is very loud\n\n(shugachink) a high pitched screeching sound, then gone. she looks up, and a wave of black threatens to overwhelm her, like a seam, opening up in the sky.\n\nEND HERE:\nSophie is still conscious, sitting in the bathroom, but realizes something is seriously wrong.\n\nDO NOT SHOOT:\nDo not show her getting up, leaving the bathroom, seeing the assistant, or fainting.",
+  "mine": [
+   "sophie is the woman in [Image1].  she wears the blue hospital pajamas in [Image2].  the doctor is the man in the white coat in [Image3].  the assistant is the woman in [Image4].",
+   "setting: a psychiatric hospital.  the office is [Image5].  the bathroom is [Image6].",
+   "camera at eye level."
+  ],
+  "pre": "",
+  "note": "",
+  "redo": ""
+ },
+ {
+  "key": "f2",
+  "title": "Bathroom → faint",
+  "secs": 15,
+  "target": "12–15 seconds",
+  "status": "waiting for your go",
+  "model": "mini",
+  "res": "480p",
+  "ratio": "16:9",
+  "audio": true,
+  "door": "atlascloud",
+  "videos": [],
+  "images": [
+   [
+    "Sophie — her face",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ],
+   [
+    "the blue hospital pajamas",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/29b0531b15fa98895bd18fb9e16e90d3.png"
+   ],
+   [
+    "the bathroom",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/395c9e5f12f69d7968965b7ea7d32183.png"
+   ],
+   [
+    "the hallway",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/f416a40fcae61aa9f585e17133c5d83d.png"
+   ],
+   [
+    "the assistant",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/29b79fed3e5b81a9296535be1c13a775.png"
+   ]
+  ],
+  "text": "WHAT CAME BEFORE — DO NOT SHOOT:\nSophie was given a 5miligram purple pill during a meeting with her doctor and the doctor’s assistant. She put it under her tongue and left. In the bathroom, she suddenly became extremely hot. Everything sounded loud. She heard a high pitched screeching sound and a wave of black threatened to overwhelm her vision, like a seam opening up in the sky.\n\nSHOOT THIS:\nshe is shaky as she gets up from the toilet\n\nringing noise intensifies.\n\nshe gets up from the toilet, and starts to walk out of the bathroom, the light glaring down at her, things become blurry, and go back to normal a couple of times.\n\nshe makes it outside the bathroom, and puts her palm against the wall, gripping, to keep herself steady\n\nfrom about 20 feet away, the assistant is walking towards her, holding her clipboard as always, very business like.\n\nwhen she sees sophie there, she starts to walk a little faster, with only a touch of alarm\n\n“i think im about to faint,” says sophie, shrilly, her voice weak, but gathering momentum as she speaks\n\nthen she does faint, and her body slides down against the wall, there’s a hum that gathers into a crescendo, then everything is black\n\nEND HERE:\nComplete blackness.\n\nIMPORTANT:\nThe assistant does not panic or run. Her alarm is subtle. Sophie’s faint should happen naturally and suddenly, with her body sliding down the wall rather than dramatically throwing herself to the floor.",
+  "mine": [
+   "sophie is the woman in [Image1].  she wears the blue hospital pajamas in [Image2].  the assistant is the woman in [Image5].",
+   "setting: a psychiatric hospital.  the bathroom is [Image3].  the hallway is [Image4].",
+   "camera at eye level."
+  ],
+  "pre": "",
+  "note": "",
+  "redo": ""
+ },
+ {
+  "key": "f3",
+  "title": "Floor → office",
+  "secs": 10,
+  "target": "8–10 seconds",
+  "status": "waiting for your go",
+  "model": "mini",
+  "res": "480p",
+  "ratio": "16:9",
+  "audio": true,
+  "door": "atlascloud",
+  "videos": [],
+  "images": [
+   [
+    "Sophie — her face",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ],
+   [
+    "the blue hospital pajamas",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/29b0531b15fa98895bd18fb9e16e90d3.png"
+   ],
+   [
+    "the hallway",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/f416a40fcae61aa9f585e17133c5d83d.png"
+   ],
+   [
+    "the assistant",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/29b79fed3e5b81a9296535be1c13a775.png"
+   ],
+   [
+    "the doctor",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/86064af3393b1ea3c4b8b6861cf21971.png"
+   ],
+   [
+    "the office",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/7e4069ef6345be703f51b480f96edd90.png"
+   ]
+  ],
+  "text": "WHAT CAME BEFORE — DO NOT SHOOT:\nSophie staggered out of the bathroom, braced herself against the hallway wall and told the approaching assistant, “i think im about to faint.” She then fainted, sliding down the wall. Everything went black.\n\nSHOOT THIS:\nfrom the floor, eyes opening and closing, head still ringing slightly, things are a bit blurry, and the light feels hot from where she is\n\n“sophie!” says the assistant, slightly more alarmed now\n\nthey walk back to the office together, and sit across from the doctor again.\n\nEND HERE:\nSophie and the assistant are seated across from the same doctor from the earlier meeting.\n\nIMPORTANT:\nSophie has only just regained consciousness. Do not make her suddenly look completely normal during the walk back.",
+  "mine": [
+   "sophie is the woman in [Image1].  she wears the blue hospital pajamas in [Image2].  the assistant is the woman in [Image4].  the doctor is the man in the white coat in [Image5].",
+   "setting: a psychiatric hospital.  the hallway is [Image3].  the office is [Image6].",
+   "camera at eye level."
+  ],
+  "pre": "",
+  "note": "",
+  "redo": ""
+ },
+ {
+  "key": "f4",
+  "title": "“Were you straining?”",
+  "secs": 15,
+  "target": "12–15 seconds",
+  "status": "waiting for your go",
+  "model": "mini",
+  "res": "480p",
+  "ratio": "16:9",
+  "audio": true,
+  "door": "atlascloud",
+  "videos": [],
+  "images": [
+   [
+    "Sophie — her face",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ],
+   [
+    "the blue hospital pajamas",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/29b0531b15fa98895bd18fb9e16e90d3.png"
+   ],
+   [
+    "the office",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/7e4069ef6345be703f51b480f96edd90.png"
+   ],
+   [
+    "the doctor",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/86064af3393b1ea3c4b8b6861cf21971.png"
+   ],
+   [
+    "the assistant",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/29b79fed3e5b81a9296535be1c13a775.png"
+   ]
+  ],
+  "text": "WHAT CAME BEFORE — DO NOT SHOOT:\nSophie was given a purple pill, became suddenly hot and dizzy in the bathroom, fainted in the hallway, and regained consciousness on the floor. The assistant has now brought her back to the doctor’s office. Sophie and the assistant are sitting across from the doctor again.\n\nSHOOT THIS:\n“i was just sitting on the toilet, and then, i don’t know, i just all of a sudden felt like i was gonna faint!” she talks in a rush. “i’ve never fainted before but…”\n\nthe assistant interrupts her\n\n“were you straining?” asks the assistant, nodding, and wrinkling her nose, as if she is being understanding\n\nEND HERE:\nStay in the office immediately after the assistant asks the question.\n\nIMPORTANT:\nThe assistant genuinely thinks she is asking a reasonable medical question. She is not joking or deliberately humiliating Sophie. That sincerity is what makes the moment strange.",
+  "mine": [
+   "sophie is the woman in [Image1].  she wears the blue hospital pajamas in [Image2].  the doctor is the man in the white coat in [Image4].  the assistant is the woman in [Image5].",
+   "setting: a psychiatric hospital.  the office is [Image3].",
+   "camera at eye level."
+  ],
+  "pre": "",
+  "note": "",
+  "redo": ""
+ },
+ {
+  "key": "f5",
+  "title": "“No, i —”",
+  "secs": 6,
+  "target": "4–6 seconds",
+  "status": "waiting for your go",
+  "model": "mini",
+  "res": "480p",
+  "ratio": "16:9",
+  "audio": true,
+  "door": "atlascloud",
+  "videos": [],
+  "images": [
+   [
+    "Sophie — her face",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png"
+   ],
+   [
+    "the blue hospital pajamas",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/29b0531b15fa98895bd18fb9e16e90d3.png"
+   ],
+   [
+    "the office",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/7e4069ef6345be703f51b480f96edd90.png"
+   ],
+   [
+    "the doctor",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/86064af3393b1ea3c4b8b6861cf21971.png"
+   ],
+   [
+    "the assistant",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/29b79fed3e5b81a9296535be1c13a775.png"
+   ]
+  ],
+  "text": "WHAT CAME BEFORE — DO NOT SHOOT:\nAfter Sophie fainted, the assistant brought her back to the doctor’s office. Sophie tried to explain that she had suddenly felt like she was going to faint while sitting on the toilet. The assistant interrupted her and, with an understanding expression, asked, “were you straining?”\n\nSHOOT THIS:\n“no, i -” sophie stops talking. insane. she feels insane. she doesn’t know what to do. she looks from the assistant, to the doctor, and back again\n\nEND HERE:\nHold on Sophie.\n\nIMPORTANT:\nNo one says anything else. Sophie does not explain herself. The doctor and assistant do not react dramatically. The awkwardness comes from how ordinary they are behaving while Sophie feels completely bewildered.",
+  "mine": [
+   "sophie is the woman in [Image1].  she wears the blue hospital pajamas in [Image2].  the doctor is the man in the white coat in [Image4].  the assistant is the woman in [Image5].",
+   "setting: a psychiatric hospital.  the office is [Image3].",
+   "camera at eye level."
+  ],
+  "pre": "",
+  "note": "",
+  "redo": ""
+ }
+]
