@@ -506,9 +506,13 @@ async function bakePoster(id, videoUrl) {
 // Three rules, none of them optional:
 //   · HER ORIGINAL IS NEVER TOUCHED. The copy is a new object under
 //     footage/upscaled/; the Dump file is left exactly as it is.
-//   · IT IS BAKED ONCE. The object is content-addressed by the source url
-//     and the canvas, so a reference she re-uses on ten clips is encoded
-//     once and every later send is a HEAD.
+//   · IT IS BAKED ONCE, AND PROBED ONCE. The object is content-addressed by
+//     the source url and the canvas, so a reference she re-uses on ten clips
+//     is encoded once. The DECISION is banked too (`floorDecided`, in memory
+//     and as a sidecar beside the copy) — until 2026-09-10 the probe
+//     re-downloaded the whole reference on every send to learn a size it had
+//     already learned, on the 512MB box, before it even asked whether the
+//     copy existed. A later send is one small read, never the clip.
 //   · IT IS BEST-EFFORT AND NEVER BLOCKS A SEND. No ffmpeg, no bucket, a
 //     probe that will not read, an encode that fails — every one of them
 //     answers the ORIGINAL url, so the job goes as it would have gone
@@ -553,10 +557,36 @@ async function probeSize(file) {
   } catch { return null; }
 }
 const FLOOR_FETCH_MS = 20000;
+// The decision per source url — `{ plan: null }` (it clears the floor, send
+// hers) or `{ plan, url }` (the baked copy). In memory for this process and
+// as a sidecar object beside the copy, so a restart re-reads a few bytes
+// rather than the clip. A Storage object is immutable, so a decision written
+// once is right for as long as the source url is.
+const floorDecided = new Map();   // source url → { plan, url }
+function floorKeyOf(url) { return crypto.createHash('sha1').update(String(url)).digest('hex'); }
+async function readFloorSidecar(bucket, url) {
+  try {
+    const f = bucket.file(`footage/upscaled/${floorKeyOf(url)}.json`);
+    const [exists] = await f.exists();
+    if (!exists) return null;
+    const [buf] = await f.download();
+    const d = JSON.parse(buf.toString('utf8'));
+    return d && typeof d === 'object' && 'plan' in d ? d : null;
+  } catch { return null; }
+}
+async function writeFloorSidecar(bucket, url, decision) {
+  try {
+    await bucket.file(`footage/upscaled/${floorKeyOf(url)}.json`).save(JSON.stringify(decision), { metadata: { contentType: 'application/json' } });
+  } catch { /* best effort — the next send probes again */ }
+}
 async function ensureVideoFloor(url, name) {
   const bin = ffmpegBin();
   const bucket = bucketOrNull();
   if (!bin || !bucket || !/^https?:\/\//.test(String(url))) return { url, note: '' };
+  const said = (d) => (d && d.plan ? { url: d.url, note: videoFloor.upscaleNote(d.plan, name) } : { url, note: '' });
+  if (floorDecided.has(url)) return said(floorDecided.get(url));
+  const banked = await readFloorSidecar(bucket, url);
+  if (banked) { floorDecided.set(url, banked); return said(banked); }
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'floor-'));
   const src = path.join(dir, 'in');
   const out = path.join(dir, 'out.mp4');
@@ -571,21 +601,30 @@ async function ensureVideoFloor(url, name) {
     if (!r.ok) return { url, note: '' };
     fs.writeFileSync(src, await r.buffer());
     const size = await probeSize(src);
-    const plan = videoFloor.planUpscale(size && size.w, size && size.h);
-    if (!plan) return { url, note: '' };          // clears the floor — send hers
+    if (!size) return { url, note: '' };          // a probe that will not read decides nothing
+    const plan = videoFloor.planUpscale(size.w, size.h);
+    if (!plan) {                                  // clears the floor — send hers, and remember that
+      floorDecided.set(url, { plan: null });
+      writeFloorSidecar(bucket, url, { plan: null, w: size.w, h: size.h });
+      return { url, note: '' };
+    }
     const key = crypto.createHash('sha1').update(`${url}|${plan.w}x${plan.h}`).digest('hex');
     const objectPath = `footage/upscaled/${key}.mp4`;
     const f = bucket.file(objectPath);
     const done = `https://storage.googleapis.com/${bucket.name}/${objectPath}`;
     const [exists] = await f.exists();
-    if (exists) return { url: done, note: videoFloor.upscaleNote(plan, name) };
-    await runBin(bin, ['-y', '-i', src,
-      '-vf', `scale=${plan.w}:${plan.h}:flags=lanczos`,
-      '-c:v', 'libx264', '-crf', '18', '-preset', 'veryfast', '-pix_fmt', 'yuv420p',
-      '-c:a', 'copy', '-movflags', '+faststart', out]);
-    await f.save(fs.readFileSync(out), { metadata: { contentType: 'video/mp4' } });
-    await f.makePublic();
-    return { url: done, note: videoFloor.upscaleNote(plan, name) };
+    if (!exists) {
+      await runBin(bin, ['-y', '-i', src,
+        '-vf', `scale=${plan.w}:${plan.h}:flags=lanczos`,
+        '-c:v', 'libx264', '-crf', '18', '-preset', 'veryfast', '-pix_fmt', 'yuv420p',
+        '-c:a', 'copy', '-movflags', '+faststart', out]);
+      await f.save(fs.readFileSync(out), { metadata: { contentType: 'video/mp4' } });
+      await f.makePublic();
+    }
+    const decision = { plan, url: done, w: size.w, h: size.h };
+    floorDecided.set(url, decision);
+    writeFloorSidecar(bucket, url, decision);
+    return said(decision);
   } catch { return { url, note: '' }; } finally {
     try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* temp */ }
   }
@@ -747,5 +786,5 @@ module.exports = {
   MODELS, RATIOS, SIZES, CHAT, OR_FEE,
   modelOf, doorFor, estimate, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, secondsOk, framesOf,
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf,
-  startJob, bakePoster,
+  startJob, bakePoster, ensureVideoFloor, floorDecided,
 };

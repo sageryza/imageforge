@@ -112,7 +112,7 @@ const readState = () => ({
   refs: document.querySelectorAll('#refs .ref').length,
   slots: [...document.querySelectorAll('#refs .slot')].map((b) => b.textContent),
   thumbs: [...document.querySelectorAll('#refs .im img')].map((i) => i.naturalWidth),
-  model: document.getElementById('model').value,
+  model: (document.getElementById('model') || {}).value || 'mini',   // no control since 2026-09-10 — Mini is pinned
   secs: document.getElementById('secs').value,
   res: document.getElementById('res').value,
   ratio: (document.getElementById('ratio') || {}).value || '',
@@ -160,8 +160,8 @@ const readState = () => ({
     JSON.stringify(s1.slots) === '["[Image1]","[Image2]","[Video1]"]');
   ok('every thumb really decoded (the poster stands in for the video) — ' + JSON.stringify(s1.thumbs),
     s1.thumbs.length === 3 && s1.thumbs.every((w) => w > 0));
-  ok('the model is the hand-off\'s — ' + s1.model, s1.model === 'fast');
-  ok('the seconds are the hand-off\'s, through the model\'s own clamp — ' + s1.secs, s1.secs === '9');
+  ok('the hand-off\'s model is IGNORED — the page is Mini only (2026-09-10) — ' + s1.model, s1.model === 'mini');
+  ok('the seconds are the hand-off\'s, through Mini\'s own clamp — ' + s1.secs, s1.secs === '9');
   ok('the resolution is the hand-off\'s — ' + s1.res, s1.res === '720p');
   ok('the shape is the hand-off\'s and its chip is lit — ' + s1.ratio, s1.ratio === '16:9');
   ok('the key is GONE, so no later load can re-apply it', s1.key === null);
@@ -195,8 +195,8 @@ const readState = () => ({
   ok('a hand-off written by another same-origin document lands with no reload', landed);
   if (s2) {
     ok('and it brings its refs — ' + s2.refs, s2.refs === 3);
-    ok('and its model — ' + s2.model, s2.model === 'mini');
-    ok('and 99 seconds is CLAMPED to the model\'s max, never sent as typed — ' + s2.secs, s2.secs === '15');
+    ok('and the page is still Mini — ' + s2.model, s2.model === 'mini');
+    ok('and 99 seconds is CLAMPED to Mini\'s max, never sent as typed — ' + s2.secs, s2.secs === '15');
     ok('and its shape — ' + s2.ratio, s2.ratio === '3:4');
     ok('and the key is gone here too', s2.key === null);
     ok('and the toast names that scene — ' + JSON.stringify(s2.toast), /From the belt: Scene 12b/.test(s2.toast));

@@ -62,7 +62,7 @@
   #rectog{width:34px;height:34px;padding:0;flex:none;display:inline-flex;align-items:center;justify-content:center}
   #rectog svg{width:17px;height:17px;display:block}
   textarea{width:100%;min-height:135px;border:1px solid #d8cfc0;border-radius:6px;padding:9px;
-           font:16px/1.4 -apple-system,Georgia,serif;background:#fdfbf7;color:#2b2620;resize:vertical}
+           font:16px/1.4 -apple-system,Georgia,serif;background:#fdfbf7;color:#2b2620;resize:none}
   textarea:focus,input:focus{outline:none;border-color:#a89a80}
   .promptwrap{position:relative}
   .promptwrap textarea{display:block;padding-bottom:34px}
@@ -331,7 +331,9 @@
   <div class="row" id="controls">
     <button class="up ib" type="button" id="add" aria-label="Add a reference" title="Add a reference"><span id="addicon"></span><input type="file" accept="image/*,video/*,audio/*" multiple id="file"></button>
     <button id="rectog" type="button" aria-expanded="false" aria-label="References you have used before" title="References you have used before" hidden></button>
-    <span class="selwrap"><select id="model" aria-label="Model" title="Model"></select><span class="chev"></span></span>
+    <!-- NO MODEL CHOICE — MINI ONLY (2026-09-10, Sophie: "get rid of the
+         model choice · just mini for now"). The page pins `mini`; the
+         served table still carries the rest for the day she asks. -->
     <span class="selwrap"><select id="res" aria-label="Resolution" title="Resolution"></select><span class="chev"></span></span>
     <span class="selwrap"><select id="ratio" aria-label="Shape" title="Shape"></select><span class="chev"></span></span>
     <div class="step"><button type="button" id="secdn" aria-label="Fewer seconds">&minus;</button><input type="number" id="secs" inputmode="numeric" step="1" aria-label="Seconds" title="Seconds"><button type="button" id="secup" aria-label="More seconds">+</button></div>
@@ -435,23 +437,29 @@ var CFG = null;                      // GET /status
 // left to the model's own default.
 var DOOR = 'atlascloud';
 function doorNow() { return DOOR; }
-var S = { model: 'mini', seconds: 4, res: '480p', ratio: '3:4' };
+// MINI ONLY (2026-09-10, Sophie: "get rid of the model choice · just mini
+// for now"). The model is pinned here and nothing on the page can move it —
+// not a remembered control, not a card copied back, not a belt hand-off. The
+// served table still carries the other rows, so putting the choice back is
+// the one drop-down and this line.
+var PAGE_MODEL = 'mini';
+var S = { model: PAGE_MODEL, seconds: 4, res: '480p', ratio: '3:4' };
 var refs = [];                       // [{url, kind, poster, name}]
 var jobsById = {};
 var pollT = null;
 function loadCtl() {
   try {
     var c = JSON.parse(localStorage.getItem('footage_ctl') || '{}');
-    // model, shape, door and sound are remembered; seconds and resolution
-    // are NOT — the length and the size are the bill, and a remembered 15s
-    // at 720p arriving unasked is the Playground's quality rule again
-    if (c.model) S.model = c.model; if (c.ratio) S.ratio = c.ratio;
+    // the shape is remembered; seconds and resolution are NOT — the length
+    // and the size are the bill, and a remembered 15s at 720p arriving
+    // unasked is the Playground's quality rule again (the model is pinned)
+    if (c.ratio) S.ratio = c.ratio;
     var d = JSON.parse(localStorage.getItem('footage_draft') || '{}');
     if (d.prompt) $('prompt').value = d.prompt;
     if (Array.isArray(d.refs)) refs = d.refs;
   } catch (e) {}
 }
-function saveCtl() { try { localStorage.setItem('footage_ctl', JSON.stringify({ model: S.model, ratio: S.ratio })); } catch (e) {} }
+function saveCtl() { try { localStorage.setItem('footage_ctl', JSON.stringify({ ratio: S.ratio })); } catch (e) {} }
 function saveDraft() { try { localStorage.setItem('footage_draft', JSON.stringify({ prompt: $('prompt').value, refs: refs })); } catch (e) {} }
 // THE LIST IS DERIVED, NEVER TYPED: the models this page offers are the ones
 // Atlas Cloud carries, which is what takes 1.5 Pro off it — that one exists
@@ -485,10 +493,18 @@ function clampSec(v, m) {
 // still hold focus when she taps a card's copy button — which is exactly the
 // tap that has to win.
 function paintControls(force) {
+  // THE STRIP, THE FOLDS AND THE SEED ARE HERS AND PAINT FIRST — before the
+  // served table is asked for anything. They used to sit behind the `CFG`
+  // guard, so with /status slow or refused a restored draft's references
+  // were attached and INVISIBLE (the strip empty, the fold button hidden)
+  // and a Go would have sent them — the hidden ingredient this page's price
+  // line exists to prevent.
+  paintSeedClear();
+  paintRefs();
+  paintFolds();
   if (!CFG) return;
   var list = models(); if (!list.length) return;
   var m = modelOf(S.model) || list[0]; S.model = m.id;
-  fillSel($('model'), list.map(function (x) { return { id: x.id, label: x.label }; }), S.model);
   if (m.res.indexOf(S.res) < 0) S.res = m.res[0];
   fillSel($('res'), m.res.map(function (r) { return { id: r, label: r }; }), S.res);
   S.seconds = clampSec(S.seconds, m);
@@ -501,17 +517,9 @@ function paintControls(force) {
   // leaves the box showing a shape the server silently clamps to 1:1.
   if (CFG.ratios.indexOf(S.ratio) < 0) { S.ratio = CFG.ratios[0]; saveCtl(); }
   fillSel($('ratio'), CFG.ratios.map(function (r) { return { id: r, label: r }; }), S.ratio);
-  paintSeedClear();
-  paintRefs();
-  paintFolds();
+  paintFolds();                                   // the label reads the size/shape/seconds it just settled
   updateCost();
 }
-$('model').addEventListener('change', function () {
-  S.model = $('model').value;
-  var mm = modelOf(S.model);
-  if (mm) { if (mm.res.indexOf(S.res) < 0) S.res = mm.res[0]; S.seconds = clampSec(S.seconds, mm); }
-  saveCtl(); paintControls();
-});
 // The resolution is NOT remembered — it opens at the model's minimum on every
 // load, like the seconds, because the size is the bill.
 $('res').addEventListener('change', function () { S.res = $('res').value; paintControls(); });
@@ -584,9 +592,8 @@ function paintFolds() {
   if (cShut) recentOpen = false;                 // the drawer goes with its button
   $('ctlfold').classList.toggle('shut', cShut);
   $('ctlfold').setAttribute('aria-expanded', cShut ? 'false' : 'true');
-  var m = modelOf(S.model);
   $('ctlfoldlab').textContent = cShut
-    ? 'Buttons · ' + [m ? m.label : S.model, S.res, S.ratio, S.seconds + 's'].join(' · ')
+    ? 'Buttons · ' + [S.res, S.ratio, S.seconds + 's'].join(' · ')
     : 'Buttons';
 }
 $('reffold').addEventListener('click', function () { setFold('refs', !foldShut('refs')); });
@@ -667,7 +674,10 @@ function paintRefs() {
 }
 function insertAtCaret(text) {
   var box = $('prompt');
-  var s = box.selectionStart || box.value.length, e = box.selectionEnd || s;
+  // `||` read a caret at position 0 as "no caret" and dropped the slot at
+  // the END of the box — the one place she was not looking
+  var s = box.selectionStart != null ? box.selectionStart : box.value.length;
+  var e = box.selectionEnd != null ? box.selectionEnd : s;
   var before = box.value.slice(0, s), after = box.value.slice(e);
   var pad = before && !/\s$/.test(before) ? ' ' : '';
   box.value = before + pad + text + after;
@@ -808,7 +818,9 @@ $('go').addEventListener('click', function () {
       seed: d.seed != null ? d.seed : null,
       sentAt: new Date().toISOString(), note: d.note || '', video: '', poster: '', vote: '' });
     toast('Drawing…');
-    try { localStorage.removeItem('footage_draft'); } catch (e) {}
+    // her words STAY in the box after a send (a re-roll is one tap), and so
+    // does the draft — it used to be wiped here while the box still showed
+    // the words, so a reload right after a send opened on an empty box
     schedulePoll(true);
     loadStatus();
   }).catch(function () {
@@ -885,6 +897,7 @@ function applyView() {
   $('feed').hidden = tiles;
   $('tiles').hidden = !tiles;
   paintFeed();
+  if (!tiles) resyncClamps();
 }
 function setView(v) { try { localStorage.setItem('footage_view', v); } catch (e) {} applyView(); }
 $('v-list').addEventListener('click', function () { setView('list'); });
@@ -1017,12 +1030,25 @@ function jobCard(j) {
 }
 // the opener is added only where the words are really cut (measured), on the
 // last line, underlined — never a boxed button
+// A BOX WITH NO LAYOUT IS LEFT UNDECIDED (the Playground's own lesson): a
+// card drawn while the list was hidden behind the tile wall measures 0/0,
+// which reads as "nothing was cut" — so it is marked undecided and asked
+// again the moment the list is shown (`resyncClamps`, from applyView).
 function clampMore(p) {
+  requestAnimationFrame(function () { decideClamp(p); });
+}
+function decideClamp(p) {
+  if (!p.classList.contains('clamp') || p.parentNode.querySelector('.moretxt')) return;
+  if (!p.clientHeight) { p.dataset.undecided = '1'; return; }
+  delete p.dataset.undecided;
+  if (p.scrollHeight <= p.clientHeight + 2) return;
+  var b = document.createElement('button'); b.type = 'button'; b.className = 'moretxt'; b.textContent = '… more';
+  b.addEventListener('click', function () { p.classList.remove('clamp'); b.remove(); });
+  p.parentNode.insertBefore(b, p.nextSibling);
+}
+function resyncClamps() {
   requestAnimationFrame(function () {
-    if (p.scrollHeight <= p.clientHeight + 2) return;
-    var b = document.createElement('button'); b.type = 'button'; b.className = 'moretxt'; b.textContent = '… more';
-    b.addEventListener('click', function () { p.classList.remove('clamp'); b.remove(); });
-    p.parentNode.insertBefore(b, p.nextSibling);
+    document.querySelectorAll('#feed .p[data-undecided]').forEach(decideClamp);
   });
 }
 function castVote(id, kind) {
@@ -1036,7 +1062,8 @@ function castVote(id, kind) {
 function copyBack(j) {
   $('prompt').value = j.prompt || '';
   refs = (j.refs || []).map(function (r) { return { url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' }; });
-  if (j.model && modelOf(j.model)) S.model = j.model;
+  // the model is pinned (Mini only) — a card drawn on another model comes
+  // back as its words, its references and its settings, on Mini
   if (j.seconds) S.seconds = j.seconds;
   if (j.resolution) S.res = j.resolution;
   if (j.ratio) S.ratio = j.ratio;
@@ -1121,7 +1148,7 @@ function takeHandoff() {
   // an unknown model falls to the first row, a resolution the model does not
   // carry to its minimum, and the seconds through the same clamp her own
   // typing goes through. Nothing here holds a copy of the table.
-  if (h.model) S.model = String(h.model);
+  // `h.model` is read and ignored — the page is Mini only
   if (h.seconds != null) S.seconds = clampSec(h.seconds);
   if (h.res) S.res = String(h.res);
   if (h.ratio) S.ratio = String(h.ratio);

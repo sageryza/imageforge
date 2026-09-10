@@ -7313,9 +7313,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   390pt with the pill's 62px column reserved: the six shapes are 267px of the
   278 the panel has, so they are one row; with no pill on screen the whole
   control set is one row). The Add word is a **picture icon** (Lucide `image`
-  in a rounded square at the house 6px, never a circle). Model and resolution
+  in a rounded square at the house 6px, never a circle). Resolution and shape
   are **drop-downs** with the platform's chrome off (`appearance:none`) and our
-  own inline chevron drawn in. The **seconds are typed** into a real number
+  own inline chevron drawn in. **THE MODEL IS PINNED TO MINI — THERE IS NO
+  MODEL CONTROL (2026-09-10, Sophie: "get rid of the model choice · just mini
+  for now").** `PAGE_MODEL` in `footage.html` is the one line; a belt
+  hand-off's `model` is ignored, the seconds clamp to Mini's 4-15, and the
+  drop-down comes back when she says (the 720p 2.5 step, ~2026-09-16). **Same
+  day, bugs fixed on this page:** a slot tapped with the caret at the start of
+  the box landed at the END (a null `selectionStart` check, not a 0 check);
+  the references strip, the folds and the seed box were hidden until `/status`
+  answered; the draft was WIPED on send while the words stayed in the box (a
+  reload then lost them — the words stay, so the draft stays);
+  `resize:vertical` fought `fitBig`; and a card first drawn in TILES view
+  never got its "… more" (the Playground's own `resyncClamps` rule). Server
+  side, `ensureVideoFloor` PROBED and DOWNLOADED every reference video on
+  every send despite the "baked once" promise — the decision is banked now
+  (`floorDecided` in memory, a sidecar under `footage/upscaled/<sha1(url)>.json`
+  across restarts). The **seconds are typed** into a real number
   field, clamped to the model's own range on the way OUT — on change and on
   blur, never on every keystroke, or a "1" on its way to "12" becomes 4 under
   her. **Sound is always on**, sent explicitly rather than left to the model's
