@@ -227,12 +227,18 @@
     '.jg-mom figure{margin:0;}' +
     '.jg-mom figure img{width:100%;display:block;}' +
     '.jg-mom figure img.fill{height:100%;object-fit:cover;}' +
+    // A CLIP sits where a picture sits (2026-09-10). Black behind it, because
+    // a video paints nothing until its poster or first frame lands and the
+    // cream would flash through.
+    '.jg-mom figure .jg-vid{width:100%;display:block;background:#000;}' +
+    '.jg-mom figure .jg-vid.fill{height:100%;object-fit:cover;}' +
     // a picture with no card-face shape: the panel shrinks to it and the
     // height is capped, so the card stays one screen (Aug 2026 v3, when every
     // deck became hers). object-fit would letterbox inside a full-width box
     // and put cream margins inside her border — hugging avoids that entirely.
     '.jg-mom figure.hug{align-self:center;max-width:100%;}' +
     '.jg-mom figure.hug img{width:auto;height:auto;max-width:100%;max-height:56vh;}' +
+    '.jg-mom figure.hug .jg-vid{width:100%;height:auto;max-height:56vh;background:#000;}' +
     // THE CARD'S WAY OUT — an item's `link`, rendered as her rust text on a
     // white box like the others, and lifted above the browse zones (see
     // linkHtml). `align-self:center` keeps the hit area to the words: a
@@ -1572,7 +1578,7 @@
       // or words (Aug 2026 v3: "make the single image review surface the same
       // general template as the text one"). The older tests stand: a page that
       // asked for style:'moment', or a card carrying any of her parts.
-      if (herLook && (it.text || it.img || (it.cards && it.cards.length))) return true;
+      if (herLook && (it.text || it.img || it.video || (it.cards && it.cards.length))) return true;
       return !!(it.who || it.eyebrow || it.caption || (it.sections && it.sections.length)
         || (opts.style === 'moment' && it.text));
     }
@@ -1593,7 +1599,7 @@
     /** a card that is nothing but a picture — see the `.pic` rules */
     function isPicCard(it) {
       if (!it || !isMoment(it)) return false;
-      if (!(it.img || (it.cards && it.cards.length))) return false;
+      if (!(it.img || it.video || (it.cards && it.cards.length))) return false;
       return !(it.who || it.text || it.caption || (it.sections && it.sections.length));
     }
     function isLong(it) {
@@ -1602,7 +1608,7 @@
       (it.sections || []).forEach(function (s) {
         n += String(s.text || '').length + String(s.label || '').length;
       });
-      return n > (it.img ? 150 : 240);
+      return n > (it.img || it.video ? 150 : 240);
     }
     // `hoisted` — the name is being drawn in the page's top chrome instead
     // (a moment deck), so the stack starts at the first box
@@ -1668,6 +1674,17 @@
             + '">this one</button>')
             + '</figure>';
         }).join('') + '</div>';
+      }
+      // A CLIP PLAYS ON THE CARD (2026-09-10). It is NOT wrapped in the zoom
+      // handler — a tap on the controls must reach the controls, and the edge
+      // browse zones already sit under it.
+      if (it.video) {
+        out += '<figure class="' + (ar ? 'ar' : 'hug') + '"'
+          + (ar ? ' style="aspect-ratio:' + ar + '"' : '') + '>'
+          + '<video class="jg-vid' + (ar ? ' fill' : '') + '" controls playsinline'
+          + ' preload="metadata"'
+          + (it.poster ? ' poster="' + esc(it.poster) + '"' : '')
+          + ' src="' + esc(it.video) + '"></video></figure>';
       }
       if (it.img) {
         // no card-face shape asked for → the panel HUGS the picture and caps

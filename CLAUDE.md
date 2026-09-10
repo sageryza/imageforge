@@ -7433,7 +7433,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
   can edit it or press go myself").** Her belt pages are served from this same
   origin, so the hand-off needs no route and no doc: the belt writes
   `{ prompt, refs:[{url, kind:'image'|'video'|'audio', poster?, name?}],
-  model?, seconds?, res?, ratio?, from?, title?, at: Date.now() }` and the page
+  model?, seconds?, res?, ratio?, seed?, from?, title?, at: Date.now() }` and the page
   CONSUMES it — reads, applies, **removes the key** — which is what makes it
   land exactly once and never come back on a later load. It only fills the box:
   **nothing is sent, the star is still her tap**, which is the whole of what she
@@ -7465,6 +7465,32 @@ before working on that module. Nothing was deleted — the moved text is verbati
     look identical in the source; the `storage` moment is driven by a SECOND
     page in the same context, which is the only honest way to ask. Verified
     failing 20 pre-fix.)
+  **THE SEED IS ON THE CARD AND IN A BOX SHE CAN TYPE IN (2026-09-10, Sophie:
+  "put a seed box that exposes the seed after the clip is drawn and put a copy
+  button next to it so I can reuse the seed … make it into a text box so I can
+  change it if I want to").** Every clip has always CARRIED a seed —
+  `video-seed.js` mints one per job when the caller sends none — and it was
+  reachable only from the job log: `cardOf` dropped it and the page never sent
+  one. Now `#seedbox` sits at the end of the controls row (its own row when the
+  row wraps), every finished clip's card carries a `seed <n>` line with a copy
+  button, and the card's put-the-prompt-back button fills the box too.
+  - **BLANK MEANS A FRESH ONE, AND THAT IS WHY IT IS NOT STICKY** — nothing is
+    stored across loads and `copyBack` CLEARS the box for a clip that carries
+    no seed (an older clip, one drawn before the mint), the *only change what
+    the record knows* rule. A seed left in the box from last week silently
+    pinning tonight's clip is the Playground's hidden-ingredient failure.
+  - **AN UNUSABLE VALUE IS DROPPED, NOT SENT** — `videoSeed.okSeed` is the ONE
+    rule both sides ask, so the box and the door cannot disagree; `seedFor`
+    would replace a bad value at the door anyway and the card would then read
+    back a number she never typed. Digits are cleaned on BLUR, never while she
+    is still typing.
+  - **THE CARD'S SEED IS WHAT THE DOOR REALLY USED** — `startJob` reads it off
+    the door's own `params`, so the optimistic card carries it without waiting
+    for the first poll, and `cardOf` reads `params.seed` off the log. A clip
+    with none shows no seed row at all (the Assets tab's silence rule).
+  - Test: `node scripts/test-footage.js` (the seed section — the box ships
+    empty, nothing sticky, the card's line, the copy filling the box, what the
+    job REALLY receives, and copyBack filling then clearing).
   **A REFERENCE UNDER BYTEDANCE'S PIXEL FLOOR IS UPSCALED BEFORE IT IS SENT —
   AND THE CARD SAYS SO (2026-09-10, Sophie: "the first was just an iPhone ·
   why failed").** Her first video reference was refused at validation, free,

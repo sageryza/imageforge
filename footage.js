@@ -61,6 +61,7 @@ const admin = require('firebase-admin');
 const fetch = require('node-fetch');
 const crypto = require('crypto');
 const videoLog = require('./video-log');
+const videoSeed = require('./video-seed');
 const videoFloor = require('./video-floor');
 
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
@@ -366,7 +367,12 @@ function buildJob(b) {
     referenceAudioUrls: refs.filter((r) => r.kind === 'audio').map((r) => r.url),
     chat: CHAT, title: titleOf(prompt), session: b.session ? String(b.session).slice(0, 80) : undefined,
   };
-  if (b.seed != null && b.seed !== '') body.seed = Number(b.seed);
+  // HER OWN SEED, only when she typed one. A blank box sends nothing and the
+  // door MINTS one per clip (video-seed.js), which is what the card hands back
+  // — so the box being empty means "a fresh one", never "the last one again".
+  // An unusable value is DROPPED rather than sent: `seedFor` would replace it
+  // at the door anyway, and dropping it here keeps the read-back honest.
+  if (videoSeed.okSeed(b.seed)) body.seed = Number(b.seed);
   return { body, refs, m, res, ratio, seconds, audio };
 }
 function titleOf(prompt) {
@@ -419,6 +425,11 @@ function cardOf(id, d) {
     door: d.door || d.provider || (d.model && String(d.model).startsWith('bytedance/') ? 'openrouter' : 'apiframe'),
     seconds: p.duration != null ? Number(p.duration) : null, resolution: p.resolution || '', ratio: p.aspect_ratio || '',
     sound: p.generate_audio !== false,
+    // THE SEED THE CLIP REALLY CARRIED — hers if she typed one, else the one
+    // the door minted. Nothing ever hands a seed back from the provider
+    // (video-seed.js), so the log's own `params` is the only record there is;
+    // a clip drawn before the seed was minted at all has none, honestly.
+    seed: p.seed != null && Number.isFinite(Number(p.seed)) ? Number(p.seed) : null,
     refs: Array.isArray(d.refs) ? d.refs : slotsOf([
       ...((d.references && d.references.images) || []).map((url) => ({ url, kind: 'image' })),
       ...((d.references && d.references.videos) || []).map((url) => ({ url, kind: 'video' })),
@@ -609,7 +620,10 @@ async function startJob(b) {
     const say = [extra.note, note].filter(Boolean).join(' ');
     if (say) req.note = say;
     const r = await mod.startVideo(req, { ...extra, door, ...(say ? { note: say } : {}) });
-    return { jobId: r.jobId, door, sent: r.sent || req };
+    // the seed the door really used — hers, or the one it minted — so the card
+    // this tap draws carries it without waiting for the first poll
+    const seed = r.params && r.params.seed != null ? Number(r.params.seed) : null;
+    return { jobId: r.jobId, door, sent: r.sent || req, seed: Number.isFinite(seed) ? seed : null };
   };
   try {
     const r = await send(d.door);

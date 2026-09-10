@@ -93,7 +93,7 @@ function esc(s) {
 // blocks-s96 lesson). Prefer the storage filename; fall back to the label.
 function deriveId(item, taken, fallback) {
   let base = '';
-  const src = item.url || item.img || '';
+  const src = item.url || item.img || item.video || '';
   const m = /\/([^/?#]+?)(?:\.[a-z0-9]+)?(?:[?#]|$)/i.exec(src);
   if (m) base = m[1].toLowerCase().replace(/[^a-z0-9_-]+/g, '-').slice(0, 40);
   if (!base && item.label) base = STR(item.label, 40).toLowerCase().replace(/[^a-z0-9_-]+/g, '-');
@@ -122,11 +122,17 @@ function cleanItem(raw, taken, fallback) {
   const it = {};
   const img = STR(raw.img, 500);
   const text = STR(raw.text, 1500);
+  // A clip is a first-class item (2026-09-10, Sophie: "make the page take
+  // movies also"). It plays INLINE wherever a picture would sit — never a
+  // link, which on her phone is a download rather than a play.
+  const video = STR(raw.video, 500);
+  const poster = STR(raw.poster, 500);
   // an item is a picture, words, or the moment card's PARTS (a date card may
   // carry only an eyebrow and its sections — no single `text` at all)
   const parts = ['who', 'eyebrow', 'caption'].some((k) => STR(raw[k], 200))
     || (Array.isArray(raw.sections) && raw.sections.length);
-  if (!img && !text && !parts) return null;
+  if (!img && !text && !parts && !video) return null;
+  if (video) { it.video = video; if (poster) it.poster = poster; }
   if (img) it.img = img;
   if (text) it.text = text;   // a moment card may carry BOTH words and a picture
   const full = STR(raw.full, 500);

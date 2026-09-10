@@ -82,6 +82,13 @@
        background:none;border:0;border-left:1px solid #d8cfc0;border-right:1px solid #d8cfc0;
        border-radius:0;height:34px;padding:0;-moz-appearance:textfield;appearance:textfield}
   .step input::-webkit-outer-spin-button,.step input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  /* THE SEED BOX — hers to type, blank means a fresh one for this clip. Same
+     box as the drop-downs beside it (the row is one family), spinners off:
+     it is a number she pastes back, not one she steps through. */
+  #seedbox{width:112px;height:34px;flex:none;border:1px solid #d8cfc0;border-radius:6px;
+        background:#fdfbf7;color:#2b2620;font:15px -apple-system,Georgia,serif;padding:0 9px;margin:0;
+        -moz-appearance:textfield;appearance:textfield}
+  #seedbox::-webkit-outer-spin-button,#seedbox::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
   .cost{color:#6f675e;font-size:13px}
   .bal{color:#9a8f7d;font-size:12px}
   /* THE STAR IS THE ONE THING THAT SPENDS — the house generate glyph in a
@@ -169,6 +176,13 @@
   .p.clamp{max-height:calc(1.45em * 4);overflow:hidden}
   .moretxt{position:absolute;right:0;bottom:0;border:0;background:#fff;padding:0 0 0 8px;margin:0;font:inherit;color:#6f675e;text-decoration:underline;line-height:1.45}
   .tags{font-size:11px;color:#9a8f7d;margin-top:5px;line-height:1.5}
+  /* THE SEED THIS CLIP CARRIED, with the one button that puts it back in the
+     box. Its own row rather than a fourth tag: it is the only thing on the
+     card she can pick up and use again. */
+  .seedrow{display:flex;align-items:center;gap:6px;margin-top:5px;font-size:11px;color:#9a8f7d}
+  .seedrow button{width:26px;height:26px;padding:0;flex:none;display:inline-flex;align-items:center;
+        justify-content:center;background:#fdfbf7;color:#6f675e}
+  .seedrow button svg{width:13px;height:13px;display:block}
   .st{font-size:12px;color:#6f675e;margin-top:3px}
   .st.bad{color:#a0402a}
   /* A CARD'S OWN PICTURE ROW HONOURS `--cols` TOO — the Playground's rule:
@@ -212,6 +226,7 @@
   <p><b>Through Atlas Cloud</b> &mdash; it takes a reference with a person in it, a real photo or a clip, and draws the likeness. A famous face is refused, free, before anything draws; a chat can try that one through APIFRAME.</p>
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
+  <p><b>The seed</b> is on every finished clip, with a button that puts it back in the box. Leave the box blank and each clip gets a fresh one. A seed repeats the <i>opening</i> of a short clip and then drifts &mdash; it does not survive a changed prompt or a different size, and at 15 seconds it does close to nothing.</p>
   <p>What is left is on the Atlas console &mdash; it has no balance to read from here.</p>
 </div>
 
@@ -229,6 +244,7 @@
     <span class="selwrap"><select id="model" aria-label="Model" title="Model"></select><span class="chev"></span></span>
     <span class="selwrap"><select id="res" aria-label="Resolution" title="Resolution"></select><span class="chev"></span></span>
     <div class="step"><button type="button" id="secdn" aria-label="Fewer seconds">&minus;</button><input type="number" id="secs" inputmode="numeric" step="1" aria-label="Seconds" title="Seconds"><button type="button" id="secup" aria-label="More seconds">+</button></div>
+    <input type="text" id="seedbox" inputmode="numeric" autocomplete="off" placeholder="Seed" aria-label="Seed" title="Seed — leave it blank for a fresh one">
   </div>
   <div id="recent" hidden></div>
   <div class="chips" id="ratios" style="margin-top:8px"></div>
@@ -419,6 +435,30 @@ function stepSec(dir) { S.seconds = clampSec(S.seconds + dir); paintControls(); 
 $('secs').addEventListener('change', function () { S.seconds = clampSec($('secs').value); paintControls(); });
 $('secs').addEventListener('blur', function () { S.seconds = clampSec($('secs').value); $('secs').value = S.seconds; paintControls(); });
 
+// ── THE SEED (2026-09-10, Sophie: "put a seat box that exposes the seed after
+// the clip is drawn and put a copy button next to it so I can reuse the seed
+// … make it into a text box so I can change it") ─────────────────────────
+// EVERY CLIP ALREADY CARRIED ONE and nothing here ever read it back: the door
+// mints a seed per job when the caller gives none (video-seed.js) and files it
+// on the log, so the number existed and was unreachable. The box is both
+// halves of her ask — what this tap sends, and where a finished clip's own
+// seed lands when she taps the copy button on its card.
+//
+// A BLANK BOX MEANS A FRESH SEED, which is why it is NOT sticky: the seconds
+// and the resolution are not remembered because they are the bill, and a seed
+// is not the bill but it IS an ingredient — one left over from last week
+// silently pinning today's clip is the Playground's hidden-ingredient failure
+// exactly. It opens blank on every load; her own tap is what fills it.
+function seedVal() { return String($('seedbox').value || '').replace(/[^0-9]/g, ''); }
+function setSeed(v) {
+  // ONLY WHAT THE RECORD KNOWS — a clip carrying a seed fills the box and one
+  // carrying none CLEARS it, so putting an older clip back can never leave
+  // another clip's seed sitting in the box unasked.
+  $('seedbox').value = (v == null || v === '') ? '' : String(v).replace(/[^0-9]/g, '');
+}
+// digits only on the way OUT, never while she is still typing
+$('seedbox').addEventListener('blur', function () { $('seedbox').value = seedVal(); });
+
 // The price is ASKED, never computed here — the server holds the one table.
 // ONE DOOR, so the line no longer names it (2026-09-09): "about 7.6¢".
 var costSeq = 0;
@@ -593,6 +633,8 @@ $('go').addEventListener('click', function () {
   if (!prompt.trim()) return toast('Say what the clip is first');
   var body = { prompt: prompt, model: S.model, seconds: S.seconds, resolution: S.res, ratio: S.ratio,
     sound: true, door: doorNow(), refs: orderedRefs() };
+  // blank means nothing is sent, and the door mints one — never a remembered seed
+  if (seedVal()) body.seed = Number(seedVal());
   btn.disabled = true;
   api('/jobs', { method: 'POST', body: JSON.stringify(body) }).then(function (d) {
     btn.disabled = false;
@@ -610,6 +652,9 @@ $('go').addEventListener('click', function () {
     var m = modelOf(S.model);
     jobCard({ id: d.jobId, prompt: prompt, model: S.model, modelLabel: m ? m.label : S.model, door: d.door, seconds: S.seconds,
       resolution: S.res, ratio: S.ratio, sound: true, refs: body.refs, status: 'drawing', estimate: d.estimate,
+      // the door answers with the seed it really used — hers, or the one it
+      // minted — so the card carries it without waiting for the first poll
+      seed: d.seed != null ? d.seed : null,
       sentAt: new Date().toISOString(), note: d.note || '', video: '', poster: '', vote: '' });
     toast('Drawing…');
     try { localStorage.removeItem('footage_draft'); } catch (e) {}
@@ -755,6 +800,11 @@ function jobCard(j) {
     '<button type="button" class="thumb' + (j.status === 'drawing' ? ' drawing' : '') + '" data-ar="' + esc(j.ratio || '') + '" aria-label="Play">' + thumbInner + '</button>' +
     '<div class="jobmain"><div class="pwrap"><div class="p clamp"></div></div>' +
     '<div class="tags">' + esc(tags) + '</div>' +
+    // the seed and the one button that puts it back in the box. A clip drawn
+    // before the doors minted one has none, so the row is simply absent —
+    // never a dead control saying nothing.
+    (j.seed != null ? '<div class="seedrow"><span>seed ' + esc(j.seed) + '</span>' +
+      '<button type="button" class="seedcopy" aria-label="Put this seed in the box" title="Put this seed in the box">' + ICONS.copy + '</button></div>' : '') +
     (j.note ? '<div class="st">' + esc(j.note) + '</div>' : '') +
     '<div class="st' + (j.status === 'failed' ? ' bad' : '') + '" data-st>' + (j.status === 'failed' ? esc(j.error || 'failed') : '') + '</div>';
   if ((j.refs || []).length) {
@@ -778,6 +828,8 @@ function jobCard(j) {
     el.querySelector('.thumb').addEventListener('click', function () { if (j.video) openPlayer(j.video); });
     el.querySelectorAll('[data-vote]').forEach(function (b) { b.addEventListener('click', function () { castVote(j.id, b.dataset.vote); }); });
     el.querySelector('.copy').addEventListener('click', function () { copyBack(j); });
+    var sc = el.querySelector('.seedcopy');
+    if (sc) sc.addEventListener('click', function () { setSeed(j.seed); toast('Seed ' + j.seed + ' is in the box'); });
     // "Try again" puts the failed clip back in the box and stops there: the
     // star is the one tap that spends, so nothing else may send.
     var again = el.querySelector('.again');
@@ -812,6 +864,9 @@ function copyBack(j) {
   if (j.seconds) S.seconds = j.seconds;
   if (j.resolution) S.res = j.resolution;
   if (j.ratio) S.ratio = j.ratio;
+  // her ask: copying the words back brings the seed with them (and a clip with
+  // no seed on file clears the box rather than leaving another clip's in it)
+  setSeed(j.seed);
   saveCtl(); saveDraft(); paintControls();
   if (window.__fitBigPrompt) window.__fitBigPrompt();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -827,7 +882,7 @@ function copyBack(j) {
 // `footage_handoff`, and this page CONSUMES it — reads it, applies it, removes
 // it. Shape:
 //   { prompt, refs:[{url, kind:'image'|'video'|'audio', poster?, name?}],
-//     model?, seconds?, res?, ratio?, from?, title?, at: Date.now() }
+//     model?, seconds?, res?, ratio?, seed?, from?, title?, at: Date.now() }
 // NOTHING IS EVER SENT. The star is still her tap — the hand-off only fills
 // the box, which is the whole of what she asked for ("so I can edit it or
 // press go myself").
@@ -893,6 +948,7 @@ function takeHandoff() {
   if (h.seconds != null) S.seconds = clampSec(h.seconds);
   if (h.res) S.res = String(h.res);
   if (h.ratio) S.ratio = String(h.ratio);
+  if (h.seed != null) setSeed(h.seed);
   saveCtl(); saveDraft(); paintControls(); paintRefs();
   if (window.__fitBigPrompt) window.__fitBigPrompt();
   toast(h.title ? 'From the belt: ' + h.title : 'From the belt');

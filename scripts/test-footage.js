@@ -173,7 +173,16 @@ function report() {
   const page = fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8');
   ok('the page holds no price figure of its own (it asks /estimate)', !/\d+\.\d+e-6|afCents\s*:\s*\{/.test(page) && /\/estimate/.test(page));
   ok('the page wears the house star on GO, the one button that spends', /id="go"[^>]*><span id="gostar">/.test(page) && /M 55\.8 31\.9/.test(page));
-  ok('text boxes ship empty — no placeholder anywhere', !/placeholder=/.test(page) && /<textarea id="prompt"><\/textarea>/.test(page));
+  // TEXT BOXES SHIP EMPTY, and a placeholder may NAME a field but never fill
+  // it or instruct (the house rule). Her words go in the prompt box, which
+  // carries nothing at all; the seed box sits on a row with no word labels on
+  // it, so its one-word name is the only thing saying what it is.
+  ok('the prompt box ships empty, with no placeholder of its own', /<textarea id="prompt"><\/textarea>/.test(page));
+  ok('every placeholder is a NAME — one or two words, no example and no instruction',
+    (page.match(/placeholder="([^"]*)"/g) || []).every((m) => {
+      const v = m.slice(13, -1);
+      return v.split(/\s+/).filter(Boolean).length <= 2 && !/[.…:?]/.test(v);
+    }));
   ok('the page script is one IIFE (the injected pill\'s globals are safe)', /<script>\n\(function \(\) \{/.test(page));
   ok('[hidden] still beats an author display rule', /\[hidden\]\{display:none !important\}/.test(page));
   // THE PLAN STEP IS GONE, and so is every door and sound control
@@ -221,6 +230,9 @@ const REFS4 = [1, 2, 3, 4].map((n) => ({ url: 'http://127.0.0.1:PORT/ref.png', k
 let jobs = [
   { id: 'old1', prompt: 'a dog on a beach, camera at eye level', model: 'mini', modelLabel: '2.0 Mini', door: 'openrouter', seconds: 4, resolution: '480p', ratio: '3:4',
     sound: true, refs: REFS4, status: 'done', video: 'http://127.0.0.1:PORT/clip.mp4', poster: 'http://127.0.0.1:PORT/ref.png',
+    // the seed the door minted for it — every clip drawn since 2026-09-09
+    // carries one, and the `f*` clips below carry none (drawn before that)
+    seed: 4242,
     cost: 5.6, estimate: 6, sentAt: '2026-09-09T08:00:00.000Z', vote: '', hidden: false },
 ].concat(Array.from({ length: 7 }, (_, i) => ({
   id: 'f' + i, prompt: 'the socks on the line ' + i, model: 'mini', modelLabel: '2.0 Mini', door: 'openrouter', seconds: 4, resolution: '480p', ratio: '3:4',
@@ -264,9 +276,12 @@ const server = http.createServer((req, res) => {
       posted.push(b);
       const answer = () => {
         if (refuse) { refuse = false; return json({ error: 'ByteDance refused a reference', refusal: 'content', hint: 'that job goes through /api/apiframe/video' }, 400); }
+        // the door answers with the seed it really used — hers when she typed
+        // one, else the one it minted (video-seed.js)
+        const seed = b.seed != null ? Number(b.seed) : 999111;
         jobs.unshift({ id: 'new1', prompt: b.prompt, model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', seconds: b.seconds, resolution: b.resolution, ratio: b.ratio,
-          sound: true, refs: [], status: 'drawing', sentAt: new Date().toISOString(), estimate: 7, vote: '' });
-        json({ ok: true, jobId: 'new1', door: 'atlascloud', fellBack: false, estimate: 7 }, 202);
+          sound: true, refs: [], status: 'drawing', seed, sentAt: new Date().toISOString(), estimate: 7, vote: '' });
+        json({ ok: true, jobId: 'new1', door: 'atlascloud', fellBack: false, estimate: 7, seed }, 202);
       };
       if (slow) { const ms = slow; slow = 0; return setTimeout(answer, ms); }
       return answer();
@@ -545,6 +560,24 @@ async function pillSweep(pg, where) {
   ok('it is a rounded SQUARE at the house 6px, the height of its neighbours',
     addBox.w === addBox.h && addBox.h === addBox.nh && addBox.radius === '6px');
 
+  // ── THE SEED: her box, the clip's own number, the copy that reuses it ────
+  // Every assertion here is a MEASUREMENT of what renders or of what the
+  // server really received: a seed row that never drew, a copy button that
+  // sets nothing, and a box whose value never reaches the request all look
+  // identical in the source.
+  ok('the box ships EMPTY — blank means a fresh seed, never a remembered one',
+    (await page.$eval('#seedbox', (e) => e.value)) === '');
+  ok('the seed box is not sticky and stores nothing of its own',
+    await page.evaluate(() => Object.keys(localStorage).every((k) => !/seed/i.test(k))));
+  ok('the card exposes the seed the clip really carried',
+    await page.$eval('#job-old1 .seedrow', (e) => /seed 4242/.test(e.textContent)));
+  ok('a clip with no seed on file shows no seed row at all — never a dead control',
+    (await page.$('#job-f0 .seedrow')) === null);
+  await page.click('#job-old1 .seedcopy');
+  ok('the copy button puts THAT seed in the box', (await page.$eval('#seedbox', (e) => e.value)) === '4242');
+  ok('the seed box is a real text box she can change',
+    await page.$eval('#seedbox', (e) => e.tagName === 'INPUT' && !e.readOnly && !e.disabled));
+
   // ── the star: ONE tap, ONE job, and exactly what left the phone ──────────
   await page.click('#ratios button[data-ratio="9:16"]');
   await page.waitForFunction(() => /¢$/.test(document.getElementById('cost').textContent));
@@ -559,6 +592,9 @@ async function pillSweep(pg, where) {
     sent && sent.prompt === 'her mother is the woman in [Image1]' && sent.refs.length === 1 && sent.refs[0].kind === 'image' && /ref\.png$/.test(sent.refs[0].url)
     && sent.model === 'mini' && sent.seconds === 4 && sent.resolution === '480p' && sent.ratio === '9:16');
   ok('sound is always on and always sent, never left to the model\'s default', sent.sound === true);
+  ok('the seed in the box is the seed the job is sent with', sent.seed === 4242);
+  ok('and the new card carries it back straight away, without waiting for a poll',
+    await page.$eval('#job-new1 .seedrow', (e) => /seed 4242/.test(e.textContent)));
   ok('the door is always atlascloud — this page offers no other', sent.door === 'atlascloud');
   // ONE DOOR, MEASURED — every price this page ever quoted was quoted for the
   // door it actually sends through. A page that priced APIFRAME and sent
@@ -575,6 +611,20 @@ async function pillSweep(pg, where) {
   const err = await page.$eval('#err', (e) => e.textContent);
   ok('an Atlas refusal shows on the page with the page\'s own hint (a famous face; a chat can try APIFRAME): ' + err,
     /refused/.test(err) && /famous face/.test(err) && /APIFRAME/.test(err) && /chat/.test(err));
+
+  // ── putting a prompt back brings its seed, and clearing means clearing ───
+  await page.click('#job-old1 .copy');
+  ok('copying a clip back puts its seed in the box with its words',
+    (await page.$eval('#seedbox', (e) => e.value)) === '4242');
+  await page.click('#job-f0 .copy');
+  ok('copying a clip that has NO seed CLEARS the box — another clip\'s seed never rides along',
+    (await page.$eval('#seedbox', (e) => e.value)) === '');
+  const beforeBlank = posted.filter((p) => p.prompt).length;
+  await page.click('#go');
+  await page.waitForFunction((n) => true, beforeBlank);
+  await page.waitForTimeout(300);
+  const blank = posted.filter((p) => p.prompt).pop();
+  ok('a blank box sends NO seed at all — the door mints one instead', blank && blank.seed === undefined);
 
   // ── ♥ / ✕ — what the server really received ──────────────────────────────
   await page.click('#job-old1 .heart');

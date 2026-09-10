@@ -710,7 +710,10 @@
   "still2-doctor-chair": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/de01cfce24b93207f44fb79cafae6880.png",
   "still-pj-pocket": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png",
   "still-room3": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a26b474c31334b9e2b32d1d10b6ec5bc.png",
-  "still-dining": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1c9795c66026ee3374ab37bc6eb54b58.png"
+  "still-dining": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1c9795c66026ee3374ab37bc6eb54b58.png",
+  "music-teacher-A": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/34b928828a45afae468eb264fe3fe29e.png",
+  "still-socks": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/929514d99e35b79a0b2bd67972695d08.png",
+  "still-socks-OG": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/6658c95fe5f66559c659f688e6371e7c.jpg"
  },
  "round3": {
   "M1-room": "ACCEPTED \u2014 5 stills, no video: her face, her pajamas, her room, all correct",
@@ -812,5 +815,26 @@
    "big blur 354x75 (26550px)": 0.7594
   }
  },
- "determinism": "CORRECTED 2026-09-09 (Angelo): a REFUSAL repeats reliably (same image 4/4 refused, twice over) but an ACCEPT near the threshold does not (Michael dots r=5 passed 1 of 4). The 'non-monotonic ladder' reading dissolved with the repeats. Never commit a mask to a batch on one pass; send it four times."
+ "determinism": "CORRECTED 2026-09-09 (Angelo): a REFUSAL repeats reliably (same image 4/4 refused, twice over) but an ACCEPT near the threshold does not (Michael dots r=5 passed 1 of 4). The 'non-monotonic ladder' reading dissolved with the repeats. Never commit a mask to a batch on one pass; send it four times.",
+ "musicTeacher": {
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/34b928828a45afae468eb264fe3fe29e.png",
+  "dropId": "EKf7zDtDVtP965G06ety",
+  "w": 1024,
+  "h": 1536,
+  "source": "Sophie, 2026-09-10: \"This is the music teacher\"",
+  "note": "full length, head-on, plain wall \u2014 beige cardigan, cream pussy-bow blouse, brown tweed pencil skirt, brown heeled loafers. Unbarred: APIFRAME and Atlas both take a real person reference untouched.",
+  "supersedes": "the 2026-09-07 note in hospital-night-notes.md (\"very short hair, not the frail blonde\") \u2014 this picture is the reference now"
+ },
+ "pajamaSet": {
+  "note": "the wardrobe references \u2014 send these as the pajama slots on any ward clip",
+  "wholeOutfit": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/29b0531b15fa98895bd18fb9e16e90d3.png",
+  "pj-optA-solo": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0e7139dc94a4418015ae6a692370be87.png",
+  "pj-optC-solo": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e78b0b8ab03512e6fa28415b4ed422e7.png",
+  "still-pj-pocket": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png",
+  "headless": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d0470544456526eedcc911e5a03ff93b.png",
+  "still-socks": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/929514d99e35b79a0b2bd67972695d08.png",
+  "socksSource": "frame 1.0s of the socks b-roll f899742c87d62493f9bad9f60bc7a677.mp4 (cut.json s9broll); no face in it",
+  "still-socks-OG": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/6658c95fe5f66559c659f688e6371e7c.jpg",
+  "socksNote": "the Medline product photo is the OG and beats the clip frame"
+ }
 }
