@@ -792,6 +792,10 @@ $('go').addEventListener('click', function () {
       // can try that job instead. On Atlas the refusal is a FAMOUS face (a
       // real photo of anyone else passes).
       if (d && d.refusal === 'content') msg += ' — a famous face in a reference. A chat can try this one through APIFRAME.';
+      // THE DOOR ITSELF IS DOWN (2026-09-10): Atlas's job endpoint gave
+      // nothing for two minutes. The server says so in her words (`hint`);
+      // her words and references stay in the box for the next tap.
+      else if (d && d.refusal === 'down') msg = d.hint || msg;
       else if (d && d.hint) msg += ' — ' + d.hint;
       $('err').textContent = msg; $('err').hidden = false;
       return;
@@ -807,7 +811,15 @@ $('go').addEventListener('click', function () {
     try { localStorage.removeItem('footage_draft'); } catch (e) {}
     schedulePoll(true);
     loadStatus();
-  }).catch(function () { btn.disabled = false; toast('Could not start'); });
+  }).catch(function () {
+    // a non-JSON answer — a gateway page, a dropped connection — is the
+    // server not answering, and a toast that vanishes in three seconds is
+    // not a place to read that. It goes on the error line, and her words
+    // stay in the box.
+    btn.disabled = false;
+    $('err').textContent = 'The server did not answer — nothing was sent or charged. Try again in a minute.';
+    $('err').hidden = false;
+  });
 });
 
 // ── The feed ──────────────────────────────────────────────────────────────

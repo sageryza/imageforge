@@ -530,21 +530,29 @@ function runBin(bin, args) {
 // the way the model will see it — a portrait recording is stored landscape
 // with a matrix on the track, and reading the coded size alone would call a
 // tall clip wide.
+// THE SECTION NAME IS THE 4.0 SPELLING (2026-09-10, measured): ffprobe-static
+// ships ffprobe 4.0.2, which has no `stream_side_data` section — asking for
+// one exits 1 ("No match for section"), the probe answered null, and the
+// floor never fired on any clip. `side_data_list` is a stream field there
+// (the rotation matrix), and `stream_tags=rotate` is the older tag a phone
+// clip carries; both are read.
 async function probeSize(file) {
   const bin = ffprobeBin();
   if (!bin) return null;
   try {
     const out = await runBin(bin, ['-v', 'error', '-select_streams', 'v:0',
-      '-show_entries', 'stream=width,height:stream_side_data=rotation',
+      '-show_entries', 'stream=width,height,side_data_list:stream_tags=rotate',
       '-of', 'json', file]);
     const j = JSON.parse(out);
     const st = (j.streams || [])[0];
     if (!st || !st.width || !st.height) return null;
-    const sd = (st.side_data_list || [])[0] || {};
-    const rot = Math.abs(Number(sd.rotation) || 0) % 180;
+    const sd = (st.side_data_list || []).find((x) => x && x.rotation != null) || {};
+    const tag = st.tags && st.tags.rotate;
+    const rot = Math.abs(Number(sd.rotation != null ? sd.rotation : tag) || 0) % 180;
     return rot === 90 ? { w: st.height, h: st.width } : { w: st.width, h: st.height };
   } catch { return null; }
 }
+const FLOOR_FETCH_MS = 20000;
 async function ensureVideoFloor(url, name) {
   const bin = ffmpegBin();
   const bucket = bucketOrNull();
@@ -553,7 +561,13 @@ async function ensureVideoFloor(url, name) {
   const src = path.join(dir, 'in');
   const out = path.join(dir, 'out.mp4');
   try {
-    const r = await fetch(url, { agent: proxyAgent || undefined });
+    // best-effort means BOUNDED too: a reference that will not download in
+    // FLOOR_FETCH_MS goes as her original, and the send is not held for it
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), FLOOR_FETCH_MS);
+    let r;
+    try { r = await fetch(url, { agent: proxyAgent || undefined, signal: ctl.signal }); }
+    finally { clearTimeout(timer); }
     if (!r.ok) return { url, note: '' };
     fs.writeFileSync(src, await r.buffer());
     const size = await probeSize(src);
