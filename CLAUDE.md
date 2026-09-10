@@ -7696,6 +7696,38 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (the rule pure, then a REAL encode measured with ffprobe — a plan that reads
   perfect and a file still under the floor look identical to any source
   assertion).
+  **A TILE GOES TO ITS CARD, NOT TO THE TRIMMER (2026-09-10, Sophie: "clicking
+  on a tile in footage · scrolls to it in list view, or opens in a lightbox").**
+  The wall is for FINDING a clip; the CARD is where the clip lives — its words,
+  its tags and price, its seed and the button that puts it back, its
+  references, save, the note thread — and none of that was reachable from the
+  wall at all, because the tile's face went straight to the player. So a tap
+  switches to LIST, scrolls the window to that clip's card and flashes it, and
+  the card's own picture is what plays it. The list is the detail view this
+  page already has: one of them, never a second copy behind a second overlay.
+  Four things not to undo: **the play triangle came OFF a poster tile** — the
+  tap no longer plays, and a play glyph on a button that does not play is the
+  button lying (a clip with no poster still needs a face: the film mark when it
+  is finished, the ✕ when it failed); **the WINDOW is scrolled, never
+  `scrollIntoView`**, which walks every scrollable ancestor (the caret keeper's
+  and `__pagePlace`'s own rule); the measurement is **TWO frames out**, because
+  `#feed` was `hidden` a moment ago (every card reads y=0 in that frame) and
+  `resyncClamps` adds its "… more" openers in the first, which moves every card
+  under them; and **the flash is what says WHICH card** — a scroll that ends
+  silently on a page of near-identical boxes leaves her hunting the clip she
+  just tapped. **AND A CARD REBUILT UNDER HER KEEPS HER OPEN NOTE BOX AND THE
+  WORDS IN IT** — found by this test landing in the window where it happens.
+  The thread was already painted outside the card's signature so a note LANDING
+  never rebuilds the card, but anything the card PRINTS changing rewrites it
+  whole, and a vote coming back from the server is the ordinary one: she taps
+  the heart halfway through a note and the box went with it. The node is lifted
+  out and put back rather than re-made, so its own Send and Cancel keep working.
+  Test: the tile-to-card and rebuild blocks of `node scripts/test-footage.js`
+  (every assertion a MEASUREMENT — a tap that switches the view and never moves
+  the window, one that lands on some other card, and one that also opens the
+  trimmer are the same markup to any source assertion; the smooth scroll is
+  waited out by watching it SETTLE, since asking whether the card is on screen
+  answers true before the scroll has begun. Verified failing both ways pre-fix).
   **SHE CAN NOTE ON A CLIP, AND IT IS THE HOUSE THREAD — TWO DOORS, ONE
   CONVERSATION (2026-09-10, Sophie: "can you make it possible to add notes on
   clips that come out of the footage module?").** A speech mark on every

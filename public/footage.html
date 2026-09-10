@@ -218,10 +218,10 @@
      blows its column out and squeezes the rest (measured on the Playground's
      wall). `start` keeps a shorter cell its own height. */
   #tiles{display:grid;grid-template-columns:repeat(var(--cols,3),minmax(0,1fr));align-items:start;gap:5px}
-  /* A CELL IS A DIV WITH THE PLAY FACE INSIDE IT, never a <button> — the
-     heart and the ✕ are its SIBLINGS (2026-09-10, Sophie: "heart and x from
-     tile view"). A button nested in a button is invalid markup and the mark's
-     tap would bubble straight into playing the clip. */
+  /* A CELL IS A DIV WITH THE FACE INSIDE IT, never a <button> — the heart
+     and the ✕ are its SIBLINGS (2026-09-10, Sophie: "heart and x from tile
+     view"). A button nested in a button is invalid markup and the mark's tap
+     would bubble straight into the face's own. */
   #tiles .cell{position:relative;border:1px solid #e0d8ca;border-radius:6px;overflow:hidden;
         background:#2b2620;color:#f6f2ea;aspect-ratio:var(--ar,3/4)}
   #tiles .cell .face{position:absolute;inset:0;width:100%;height:100%;padding:0;margin:0;border:0;
@@ -267,6 +267,14 @@
   .xfilt.on{background:#9a938a;color:#fff}
   .job{background:#fff;border:1px solid #e0d8ca;border-radius:6px;padding:10px;margin-bottom:11px}
   .job.nay{opacity:.45}
+  /* WHICH CARD SHE LANDED ON (2026-09-10, Sophie: "clicking on a tile in
+     footage · scrolls to it in list view"). A scroll that ends silently on a
+     page of near-identical boxes leaves her hunting the clip she just
+     tapped, so the card she arrived at says so for a moment and then stops.
+     It is the marks' own rose, on the border — never a fill, which would
+     re-colour the one card she is trying to read. */
+  .job.found{border-color:#c96a5e;box-shadow:0 0 0 2px rgba(201,106,94,.24)}
+  .job{transition:box-shadow .28s ease,border-color .28s ease}
   .jobrow{display:flex;gap:10px;align-items:flex-start}
   .thumb{flex:none;width:96px;aspect-ratio:3/4;border-radius:6px;overflow:hidden;background:#2b2620;padding:0;border:0;
          display:flex;align-items:center;justify-content:center;color:#f6f2ea;position:relative}
@@ -452,6 +460,7 @@
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
   <p><b>The seed</b> is on every finished clip, with a button that puts it back in the box. Leave the box blank and each clip gets a fresh one. A seed repeats the <i>opening</i> of a short clip and then drifts &mdash; it does not survive a changed prompt or a different size, and at 15 seconds it does close to nothing.</p>
+  <p><b>Tiles.</b> Tapping one takes you to that clip&rsquo;s card in the list &mdash; its words, its seed, its references and the button that puts them back &mdash; and the picture on the card plays it.</p>
   <p><b>Notes.</b> The speech mark on a clip opens a note; playing one and tapping it pauses the film and notes the second you stopped on. Either way it lands in the one place chats read their notes, and a chat answers on the note itself.</p>
   <p>What is left is on the Atlas console &mdash; it has no balance to read from here.</p>
 </div>
@@ -1184,12 +1193,15 @@ function renderTiles() {
     c.dataset.id = j.id;
     c.style.setProperty('--ar', arOf(j.ratio));
     var face = document.createElement('button'); face.type = 'button'; face.className = 'face';
-    face.setAttribute('aria-label', j.prompt ? 'Play — ' + j.prompt.slice(0, 60) : 'Play');
+    face.setAttribute('aria-label', j.prompt ? 'Open — ' + j.prompt.slice(0, 60) : 'Open this clip');
     face.title = j.prompt || '';
-    face.innerHTML = j.poster ? '<img src="' + esc(j.poster) + '" alt="">' + ICONS.play
-      : (j.status === 'done' ? ICONS.play : (j.status === 'failed' ? ICONS.x : ''));
-    // the SOURCE opens, so the marks are always in the original's own seconds
-    face.addEventListener('click', function () { var jj = jobsById[j.id]; if (jj && jj.video) openPlayer(jj.source || jj.video, jj); });
+    // NO PLAY TRIANGLE OVER A POSTER ANY MORE — the tap goes to the CARD, and
+    // a play glyph on a button that no longer plays is the button lying. A
+    // clip with no poster still needs a face: the film mark for a finished
+    // one, the ✕ for a failed one, the breathing box while it draws.
+    face.innerHTML = j.poster ? '<img src="' + esc(j.poster) + '" alt="">'
+      : (j.status === 'done' ? ICONS.film : (j.status === 'failed' ? ICONS.x : ''));
+    face.addEventListener('click', function () { goToCard(j.id); });
     c.appendChild(face);
     // the trimmed mark — built here, LIT in applyFilt, so it stays out of the
     // signature above and a part landing costs no poster a re-decode
@@ -1209,6 +1221,35 @@ function renderTiles() {
       c.appendChild(b);
     });
     el.appendChild(c);
+  });
+}
+
+// ── A TILE GOES TO ITS CARD (2026-09-10, Sophie: "clicking on a tile in
+// footage · scrolls to it in list view, or opens in a lightbox") ───────────
+// The wall is for FINDING a clip; the CARD is where the clip lives — its
+// words, its tags and price, its seed and the button that puts it back, its
+// references, save, the note thread — and the card's own picture is what
+// plays it. So a tile hands her the card rather than the trimmer, and the
+// list is the detail view this page already has: one of them, not a second
+// copy of it behind a second overlay.
+function goToCard(id) {
+  setView('list');                       // unhides #feed and re-decides the clamps
+  var el = document.getElementById('job-' + id);
+  if (!el) return;
+  // THE WINDOW, NEVER `scrollIntoView` — that walks every scrollable
+  // ancestor (the house rule the caret keeper and __pagePlace both follow).
+  // TWO frames, not one: #feed was `hidden` a moment ago, so a card measured
+  // in this one reads y=0 for every clip on the page — and `resyncClamps`
+  // adds its "… more" openers in the first frame, which moves every card
+  // under them. Measuring after both is what lands on the right one.
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () {
+      var top = el.getBoundingClientRect().top + (window.scrollY || 0) - 12;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      el.classList.add('found');
+      clearTimeout(el.__found);
+      el.__found = setTimeout(function () { el.classList.remove('found'); }, 1800);
+    });
   });
 }
 
@@ -1473,8 +1514,20 @@ function jobCard(j) {
     '</div></div>';
   var sig = html + '\u0000' + (j.prompt || '');
   if (el.__sig !== sig) {
+    // HER OPEN NOTE BOX SURVIVES A REBUILD, AND SO DO THE WORDS IN IT. The
+    // thread is painted outside the signature so a note LANDING never rebuilds
+    // the card — but a poll that changes anything the card prints (a vote
+    // coming back from the server is the ordinary one) rewrites it whole, and
+    // the box goes with it mid-sentence. The node is lifted out and put back,
+    // so its own Send and Cancel keep working: nothing is re-wired.
+    var keepBox = el.querySelector('.notebox');
+    if (keepBox) keepBox.remove();
     el.__sig = sig;
     el.innerHTML = html;
+    if (keepBox) {
+      var back = el.querySelector('[data-notes]');
+      if (back) { back.appendChild(keepBox); var km = el.querySelector('.acts .note'); if (km) km.classList.add('on'); }
+    }
     var p = el.querySelector('.p'); p.textContent = j.prompt || '';
     clampMore(p);
     el.querySelector('.thumb').addEventListener('click', function () { var jj = jobsById[j.id] || j; if (jj.video) openPlayer(jj.source || jj.video, jj); });
