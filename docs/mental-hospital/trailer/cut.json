@@ -168,9 +168,16 @@
   {
    "key": "michael",
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/55544f47ab3f2f654e3bc32961408db4.mp4",
-   "title": "Michael \u2014 \"I know the feeling\"",
-   "in": 17.6,
-   "out": 19.4
+   "title": "Sophie \u2014 \"I know the feeling\"",
+   "in": 17.9,
+   "out": 19.35
+  },
+  {
+   "key": "michael2",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/55544f47ab3f2f654e3bc32961408db4.mp4",
+   "title": "Michael answers \u2014 \"Exactly.\" (the source's own cut to him)",
+   "in": 23.4,
+   "out": 25.3
   },
   {
    "key": "c17",
@@ -182,11 +189,10 @@
   },
   {
    "key": "basura",
-   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/81e1d6a54c005ddf09cc0e2e41286277.mp4",
-   "title": "\"where did all my sculptures go? esta es basura. they're not trash\"",
-   "in": 5.3,
-   "out": 10.3,
-   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/81e1d6a54c005ddf09cc0e2e41286277-poster.jpg"
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788850139906-b0hjl2.mp4",
+   "title": "the OTHER Juanita take \u2014 the sculptures in her cart: \"where did all my sculptures go? / esta es basura / they're not trash. they're art.\"",
+   "in": 7.25,
+   "out": 11.75
   },
   {
    "key": "c23d",

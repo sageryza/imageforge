@@ -22,6 +22,13 @@ Editor: https://imageforge-q125.onrender.com/filmeditor?c=pxan7kLF6I7iMWxlVb5C
   pill +9.2s, stopping before "Very good." Per-2s RMS of the render climbs
   -32 → -21 dB into the first stop and -36 → -16 into the second. v1
   (`a09fcc852c…mp3`) is in the same Dump bundle, unused.
+- v2 (2026-09-10, her notes): the sculptures beat is the OTHER Juanita take
+  (`apiframe-video/1788850139906-b0hjl2.mp4`, the 06:37 job — the cleaning lady
+  in the white collar with the sculptures visible in her cart; the 07:19 redo
+  that was in v1 has her mopping in pajamas). And Michael's answer is its own
+  piece: the source cuts to him at 23.375s of `s9`, so "I know the feeling"
+  (17.9–19.35) is followed by his "Exactly." (23.4–25.3) on that cut.
+
 - Substitutions, named: "Francesca kicked out of class" = Yolanda scolded in
   music class (s18 18.3–21.8; the seated woman is the Francesca description);
   "Michael: I know what you mean" = the hallway walk's "I know the feeling";
