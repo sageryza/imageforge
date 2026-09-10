@@ -712,7 +712,8 @@
   "still-room3": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a26b474c31334b9e2b32d1d10b6ec5bc.png",
   "still-dining": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1c9795c66026ee3374ab37bc6eb54b58.png",
   "music-teacher-A": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/34b928828a45afae468eb264fe3fe29e.png",
-  "still-socks": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/929514d99e35b79a0b2bd67972695d08.png"
+  "still-socks": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/929514d99e35b79a0b2bd67972695d08.png",
+  "still-socks-OG": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/6658c95fe5f66559c659f688e6371e7c.jpg"
  },
  "round3": {
   "M1-room": "ACCEPTED \u2014 5 stills, no video: her face, her pajamas, her room, all correct",
@@ -832,6 +833,8 @@
   "still-pj-pocket": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png",
   "headless": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d0470544456526eedcc911e5a03ff93b.png",
   "still-socks": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/929514d99e35b79a0b2bd67972695d08.png",
-  "socksSource": "frame 1.0s of the socks b-roll f899742c87d62493f9bad9f60bc7a677.mp4 (cut.json s9broll); no face in it"
+  "socksSource": "frame 1.0s of the socks b-roll f899742c87d62493f9bad9f60bc7a677.mp4 (cut.json s9broll); no face in it",
+  "still-socks-OG": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/6658c95fe5f66559c659f688e6371e7c.jpg",
+  "socksNote": "the Medline product photo is the OG and beats the clip frame"
  }
 }

@@ -83,7 +83,9 @@
   "still-pj-pocket": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png",
   "headless": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d0470544456526eedcc911e5a03ff93b.png",
   "still-socks": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/929514d99e35b79a0b2bd67972695d08.png",
-  "socksSource": "frame 1.0s of the socks b-roll f899742c87d62493f9bad9f60bc7a677.mp4 (cut.json s9broll); no face in it"
+  "socksSource": "frame 1.0s of the socks b-roll f899742c87d62493f9bad9f60bc7a677.mp4 (cut.json s9broll); no face in it",
+  "still-socks-OG": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/6658c95fe5f66559c659f688e6371e7c.jpg",
+  "socksNote": "THE socks reference is the Medline product photo (OG, no people, 500x500) \u2014 filed in severance-chat-assets-scene. still-socks is a clip frame and is the fallback."
  },
  "ogHop": {
   "note": "the OG references \u2014 real photographic stills Sophie dumped, NOT frames off Seedance clips. Dump album \"hop\", 2026-09-09. These beat any clip frame.",
@@ -97,6 +99,6 @@
   "unnamed-blonde-studio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3a2610e486f1d30de71562ce9c875d06.png",
   "unnamed-blazer-portrait": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/f77cd57d13a68589fdabf42683535c92.png",
   "unnamed-blazer-full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/cb8155bf8390fa93c89385897380bb8a.png",
-  "open": "four of these are unnamed \u2014 Sophie to say who they are. No socks OG in this album."
+  "open": "four unnamed. The socks OG is NOT in this album \u2014 it is the Medline photo, see wardrobe."
  }
 }
