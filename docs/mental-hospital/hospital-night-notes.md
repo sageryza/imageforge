@@ -29,6 +29,26 @@ New footage — for later, not to run:
 ## Cast decisions
 - **The doctor is the one in intake A** (2026-09-07, Sophie: "that's the doctor so any other clips w him"). Reference for every later doctor clip: the intake A clip (its first 15s, `ward-intake-A-ref15.mp4` in the Dump, so it fits the 30s reference cap beside v6).
 - **The assistant changes clothes** so she doesn't match the patients: a skirt and a purple sweater, hair up (her words). Not mid-scene: intake B keeps her in the blue scrubs of intake A; the skirt and sweater start with her next scene (the assistant at the doorway).
+- **The assistant is ROBIN or AUDREY — the name is not settled (2026-09-09, Sophie: "her name is Robin or Audrey").** Both are hers; nothing picks
+  one. Until she says, she is **the assistant** in every prompt and every key —
+  a name written into a prompt or a ref key now is one that has to be unpicked
+  from every clip on file if she lands on the other.
+- **AND THERE IS A REFERENCE PICTURE OF HER NOW — `assistant-ref` (2026-09-09,
+  Sophie: "merge this as the new assistant reference").** The still she sent:
+  hair up, the purple sweater, the black skirt, black tights, black boots,
+  clipboard held against her chest, the ward hall behind her. It is the wardrobe
+  the note above describes, so it is the reference for **every assistant clip
+  from the doorway scene on** — the picture settles her, not a sentence.
+  - `docs/mental-hospital/belt/refs.json` → `assistant-ref`; the picture is
+    committed beside these notes at `refs/assistant-ref.png`.
+  - **The skirt is PLAIN BLACK, and one prompt on file says "plaid"** —
+    `belt/jobs.json`'s office job ("she wears the exact purple sweater and plaid
+    skirt in [Image1]"). Sending that beside this reference is words arguing
+    with the picture. Fix it by CUTTING the clause, not by rewording it: a
+    reference is named by its slot and nothing more (`the woman with the
+    clipboard in [Image1]`) — the house never-describe-a-reference rule.
+  - It is a PHOTOREAL face, so it rides **Atlas or APIFRAME** and is refused by
+    OpenRouter/ByteDance. Nothing has been sent with it; the "go" rule stands.
 
 ## Notes on the ward clips (2026-09-07, for later — new footage, not to run)
 - The table: Anastasia is supposed to be a beautiful blond ballerina — she came out with the braid but not as pictured. Michael is "LITERALLY perfect", the reference for him from here.
