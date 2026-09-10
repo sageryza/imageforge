@@ -56,6 +56,7 @@ const express = require('express');
 const fetch = require('node-fetch');
 const admin = require('firebase-admin');
 const videoLog = require('./video-log');
+const videoRefusals = require('./video-refusals');
 const videoSeed = require('./video-seed');
 
 const KEY = process.env.ATLASCLOUD_API_KEY || '';
@@ -179,9 +180,14 @@ function apiframeStatus(st) {
 
 // ByteDance's content refusal (Atlas forwards to the same model service, so
 // the same codes are expected) vs a shape error, off the error text.
-function refusalKind(text) {
+// EVERY reason on file — and the line she reads for each — is ONE table,
+// `video-refusals.js`, shared by the doors and the footage card; this asks
+// it first ('content' | 'output' | 'shape' | 'down') and keeps the old
+// shape regex as the floor for a wording the table has not met.
+function refusalKind(text, code) {
   const t = String(text || '');
-  if (/SensitiveContent|real person|PrivacyInformation|copyright/i.test(t)) return 'content';
+  const k = videoRefusals.kindOf(t, code);
+  if (k !== 'other') return k;
   if (/invalid|validation|must be|required|schema/i.test(t)) return 'shape';
   return 'other';
 }
@@ -349,7 +355,9 @@ async function pollVideo(id) {
     if (patch) {
       if (tokens) patch.tokens = tokens;   // Atlas bills in tokens; no dollar figure is invented
       if (lastFrame) patch.lastFrame = lastFrame;
-      if (status === 'FAILED' && refusalKind(d.error) === 'content') patch.refusal = 'content';
+      // the kind rides the log (content | output | shape) so a reader can
+      // tell an input gate from an output gate without re-parsing the text
+      if (status === 'FAILED') { const k = refusalKind(d.error, d.error_code); if (k !== 'other') patch.refusal = k; }
       await logDoc(id).set(patch, { merge: true });
     }
   } catch { /* the poll answers either way */ }

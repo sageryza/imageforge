@@ -70,6 +70,7 @@ const crypto = require('crypto');
 const videoLog = require('./video-log');
 const videoSeed = require('./video-seed');
 const videoFloor = require('./video-floor');
+const videoRefusals = require('./video-refusals');
 
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 const CHAT = 'footage';
@@ -480,6 +481,11 @@ function trimCard(t) {
 }
 
 // The card the page draws, off the log doc.
+function whyOf(d) {
+  if (!d || String(d.status || '').toLowerCase() !== 'failed' || !d.error) return '';
+  const e = videoRefusals.explain(d.error, d.errorCode);
+  return e && e.line ? e.line : '';
+}
 function cardOf(id, d) {
   const m = MODELS.find((x) => x.or === d.model || x.af === d.model || x.atlas === d.model) || null;
   const p = d.params || {};
@@ -514,6 +520,11 @@ function cardOf(id, d) {
     // exact and rounding it to a tenth throws that away (13.96¢, not 14¢)
     cost: d.cost != null ? Math.round(Number(d.cost) * 10000) / 100 : null, estimate: d.estimate != null ? Number(d.estimate) : null,
     sentAt: d.sentAt || '', doneAt: d.doneAt || '', error: d.error || '', note: d.note || '',
+    // WHY IT FAILED, IN HER WORDS — derived on every read from the door's
+    // own text (`video-refusals.js`), never stored, so a reworded line
+    // reaches every card already on file. Empty for a reason the table has
+    // not met: the raw text stands alone and the table gets a row.
+    why: whyOf(d),
     // HOW LONG THE DOOR TOOK — the door's own figure, never sentAt→doneAt
     // (which is when the poll NOTICED). Absent when the door did not say.
     drewMs: Number.isFinite(Number(d.drewMs)) && Number(d.drewMs) > 0 ? Math.round(Number(d.drewMs)) : null,
@@ -813,7 +824,7 @@ async function probeSize(file) {
   if (!bin) return null;
   try {
     const out = await runBin(bin, ['-v', 'error', '-select_streams', 'v:0',
-      '-show_entries', 'stream=width,height,side_data_list:stream_tags=rotate',
+      '-show_entries', 'stream=width,height,side_data_list:stream_tags=rotate:format=duration',
       '-of', 'json', file]);
     const j = JSON.parse(out);
     const st = (j.streams || [])[0];
@@ -821,7 +832,12 @@ async function probeSize(file) {
     const sd = (st.side_data_list || []).find((x) => x && x.rotation != null) || {};
     const tag = st.tags && st.tags.rotate;
     const rot = Math.abs(Number(sd.rotation != null ? sd.rotation : tag) || 0) % 180;
-    return rot === 90 ? { w: st.height, h: st.width } : { w: st.width, h: st.height };
+    // the length rides along (the same probe, one more field) for the
+    // reference-video total Atlas caps — see refVideoTotal
+    const seconds = Number(j.format && j.format.duration);
+    const dim = rot === 90 ? { w: st.height, h: st.width } : { w: st.width, h: st.height };
+    if (Number.isFinite(seconds) && seconds > 0) dim.seconds = seconds;
+    return dim;
   } catch { return null; }
 }
 const FLOOR_FETCH_MS = 20000;
@@ -851,7 +867,7 @@ async function ensureVideoFloor(url, name) {
   const bin = ffmpegBin();
   const bucket = bucketOrNull();
   if (!bin || !bucket || !/^https?:\/\//.test(String(url))) return { url, note: '' };
-  const said = (d) => (d && d.plan ? { url: d.url, note: videoFloor.upscaleNote(d.plan, name) } : { url, note: '' });
+  const said = (d) => (d && d.plan ? { url: d.url, note: videoFloor.upscaleNote(d.plan, name), seconds: d.seconds } : { url, note: '', seconds: d && d.seconds });
   if (floorDecided.has(url)) return said(floorDecided.get(url));
   const banked = await readFloorSidecar(bucket, url);
   if (banked) { floorDecided.set(url, banked); return said(banked); }
@@ -872,9 +888,9 @@ async function ensureVideoFloor(url, name) {
     if (!size) return { url, note: '' };          // a probe that will not read decides nothing
     const plan = videoFloor.planUpscale(size.w, size.h);
     if (!plan) {                                  // clears the floor — send hers, and remember that
-      floorDecided.set(url, { plan: null });
-      writeFloorSidecar(bucket, url, { plan: null, w: size.w, h: size.h });
-      return { url, note: '' };
+      floorDecided.set(url, { plan: null, seconds: size.seconds });
+      writeFloorSidecar(bucket, url, { plan: null, w: size.w, h: size.h, seconds: size.seconds });
+      return { url, note: '', seconds: size.seconds };
     }
     const key = crypto.createHash('sha1').update(`${url}|${plan.w}x${plan.h}`).digest('hex');
     const objectPath = `footage/upscaled/${key}.mp4`;
@@ -889,7 +905,7 @@ async function ensureVideoFloor(url, name) {
       await f.save(fs.readFileSync(out), { metadata: { contentType: 'video/mp4' } });
       await f.makePublic();
     }
-    const decision = { plan, url: done, w: size.w, h: size.h };
+    const decision = { plan, url: done, w: size.w, h: size.h, seconds: size.seconds };
     floorDecided.set(url, decision);
     writeFloorSidecar(bucket, url, decision);
     return said(decision);
@@ -905,12 +921,33 @@ async function floorRefs(body) {
   if (!list.length) return { urls: list, notes: [] };
   const notes = [];
   const urls = [];
+  const seconds = [];
   for (const u of list) {
     const r = await ensureVideoFloor(u, (body.__names || {})[u]);
     urls.push(r.url);
     if (r.note) notes.push(r.note);
+    seconds.push(Number.isFinite(Number(r.seconds)) ? Number(r.seconds) : null);
   }
-  return { urls, notes };
+  return { urls, notes, seconds };
+}
+
+// THE REFERENCE VIDEOS' TOTAL IS CHECKED BEFORE THE TAP LEAVES (2026-09-10,
+// Sophie's four clips: two 12-15s references on each, Atlas refused all four
+// in under two seconds — "Total duration of all reference videos must not
+// exceed 15.2 seconds" — and the page showed them drawing for twenty
+// minutes). The lengths come off the floor probe's sidecar, so a reference
+// already probed costs nothing here. Pure: answers the line to refuse with,
+// or '' — and ONLY when every length is known and the sum is over, because
+// a length nothing measured is not evidence (a sidecar banked before this
+// carries none; the next new reference does). Atlas only: the cap is
+// measured there and unmeasured on the other doors.
+function refVideoTotalRefusal(seconds, door) {
+  if (door !== 'atlascloud') return '';
+  const known = (seconds || []).filter((x) => Number.isFinite(x));
+  if (!known.length || known.length !== (seconds || []).length) return '';
+  const total = known.reduce((a, b) => a + b, 0);
+  if (total <= videoRefusals.REF_VIDEO_TOTAL_MAX) return '';
+  return `Your reference videos add up to ${total.toFixed(1)} seconds — Atlas takes ${videoRefusals.REF_VIDEO_TOTAL_MAX} at most for one job. Use one video, or trim them so together they are under it.`;
 }
 
 // ─── Starting a job: the door, the fallback, the log ───────────────────
@@ -931,6 +968,8 @@ async function startJob(b) {
   const floored = await floorRefs(body);
   delete body.__names;
   body.referenceVideoUrls = floored.urls;
+  const over = refVideoTotalRefusal(floored.seconds, d.door);
+  if (over) { const e = new Error(over); e.status = 400; e.refusal = 'shape'; e.why = over; throw e; }
   const est = estimate({ model: m, resolution: res, ratio, seconds, hasVideo, door: d.door }, cfg());
   const extra = { door: d.door, refs, estimate: est.cents != null ? est.cents : null, footage: true, aspect: ratio };
   if (floored.notes.length) extra.note = floored.notes.join(' ');
@@ -1009,7 +1048,10 @@ router.post('/jobs', async (req, res) => {
     balCache.at = 0;
     res.status(202).json({ ok: true, ...r });
   } catch (e) {
-    res.status(e.status || 500).json({ error: e.message, refusal: e.refusal, hint: e.hint });
+    // `why` is the table's line for the door's text — the card's own field,
+    // so a refusal on the POST reads the same as one that lands on the poll
+    const ex = e.why ? null : videoRefusals.explain(e.body || e.message, e.errorCode);
+    res.status(e.status || 500).json({ error: e.message, refusal: e.refusal, hint: e.hint, why: e.why || (ex && ex.line) || undefined });
   }
 });
 
@@ -1106,6 +1148,6 @@ module.exports = {
   MODELS, RATIOS, SIZES, CHAT, OR_FEE,
   modelOf, doorFor, estimate, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, resFactor, secondsOk, framesOf,
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf,
-  startJob, bakePoster, ensureVideoFloor, floorDecided,
+  startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf,
   statusOf, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
 };

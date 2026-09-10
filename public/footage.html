@@ -295,6 +295,7 @@
   .seedrow button svg{width:13px;height:13px;display:block}
   .st{font-size:12px;color:#6f675e;margin-top:3px;overflow-wrap:anywhere}
   .st.bad{color:#a0402a}
+  .st.raw{font-size:11px;opacity:.75}
   /* A CARD'S OWN PICTURE ROW HONOURS `--cols` TOO — the Playground's rule:
      ONE number drives the tile wall and the row inside a card, so the two can
      never disagree about what "3 to a row" means and the number segment is
@@ -315,7 +316,9 @@
      nothing on screen moved when it stopped being an <a>. */
   .acts .save{width:auto;height:auto;padding:0;border:0;background:none;font-size:12px;
               color:#6f675e;margin-left:auto;text-decoration:underline;text-underline-offset:2px}
-  .again{padding:5px 10px;font-size:13px;white-space:nowrap}
+  /* a word in the row of squares: the box hugs it (PHOTO'd 2026-09-10 —
+     `.acts button{width:32px}` won and the word ran out of the box) */
+  .acts button.again{width:auto;padding:0 10px;font-size:13px;white-space:nowrap}
   /* HER NOTES ON A CLIP (2026-09-10, Sophie: "can you make it possible to add
      notes on clips that come out of the footage module").
      THE THREAD IS THE HOUSE ONE — `forge-asset-votes`, keyed chat+url, the
@@ -1018,7 +1021,8 @@ $('go').addEventListener('click', function () {
       // this page has only the one door — so it says, in her own terms, who
       // can try that job instead. On Atlas the refusal is a FAMOUS face (a
       // real photo of anyone else passes).
-      if (d && d.refusal === 'content') msg += ' — a famous face in a reference. A chat can try this one through APIFRAME.';
+      if (d && d.why) msg = d.why + (d.error && d.error !== d.why ? ' (' + d.error + ')' : '');
+      else if (d && d.refusal === 'content') msg += ' — a famous face in a reference. A chat can try this one through APIFRAME.';
       // THE DOOR ITSELF IS DOWN (2026-09-10): Atlas's job endpoint gave
       // nothing for two minutes. The server says so in her words (`hint`);
       // her words and references stay in the box for the next tap.
@@ -1427,7 +1431,12 @@ function jobCard(j) {
     // be a clip she cannot tell from the one the door drew
     trimLine(j) +
     (j.note ? '<div class="st">' + esc(j.note) + '</div>' : '') +
-    '<div class="st' + (j.status === 'failed' ? ' bad' : '') + '" data-st>' + (j.status === 'failed' ? esc(j.error || 'failed') : '') + '</div>';
+    // WHY IT FAILED, IN HER WORDS, THEN THE DOOR'S OWN TEXT UNDER IT (2026-09-10,
+    // Sophie: "make sure they're documented and called out"). `why` is the
+    // server's line off the one refusal table; a reason the table has not met
+    // has no `why` and the raw text takes the red line alone.
+    '<div class="st' + (j.status === 'failed' ? ' bad' : '') + '" data-st>' + (j.status === 'failed' ? esc(j.why || j.error || 'failed') : '') + '</div>' +
+    (j.status === 'failed' && j.why && j.error ? '<div class="st raw">' + esc(j.error) + '</div>' : '');
   if ((j.refs || []).length) {
     html += '<div class="usedrefs">';
     slotsOf(j.refs).forEach(function (slot, i) { var r = j.refs[i]; html += '<div class="ur"><div>' + thumbHtml(r) + '</div>' + esc(slot.replace(/[\[\]]/g, '')) + '</div>'; });

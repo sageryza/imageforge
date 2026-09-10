@@ -7685,6 +7685,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   thread that never reaches the card are the same markup).
   Full note: *FOOTAGE* under the OpenRouter note in
   `docs/modules/audio-and-film.md`.
+  **EVERY REFUSAL IS ONE TABLE AND THE CARD SAYS WHY (2026-09-10, Sophie:
+  "check for other refusal reasons, make sure they're documented and called
+  out").** `video-refusals.js` matches every reason the three doors have ever
+  sent (measured over all 238 jobs on the log) and answers a kind — `shape`
+  (the request: reference videos over 15.2s together, the pixel floor, 4-15
+  seconds, a lone reference video read as an extension, a picture outside
+  2:5-5:2) · `content` (an input gate — a person or a famous face, the one
+  kind a door falls back on) · `output` (drawn, then blocked: video
+  copyright 1012004, video sensitive content 1012006, AUDIO copyright
+  1012009 — unbilled, probabilistic, re-send) · `down` — and a line in her
+  words, which the footage card paints in red over the door's own text and a
+  refused tap answers as `why`. **The 15.2s reference-video total is checked
+  before the tap leaves** (Atlas only, from the floor probe's banked lengths).
+  **AND A REFUSED ATLAS JOB COMES BACK UNDER HTTP 400** with the record in
+  the body — read as the answer since #2283; before that a refused clip said
+  "drawing" forever. A reason the table has not met paints the raw text
+  alone: add a row. Full list: *EVERY REFUSAL A DOOR HAS SENT* in
+  `docs/modules/audio-and-film.md`; test `node scripts/test-video-refusals.js`.
   **SAVE GOES TO PHOTOS, NOT TO A DOWNLOAD (2026-09-10, Sophie, on the card's
   save link: "shud save directly to my photos").** It was an `<a>` at the
   clip's own url — in the app that opens a player she then has to long-press
