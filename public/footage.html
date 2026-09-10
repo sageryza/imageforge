@@ -500,7 +500,7 @@
 </div>
 
 <div class="panel">
-  <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" aria-label="Bigger box" title="Bigger box"></button></div>
+  <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
 
   <button type="button" class="fold" id="reffold" aria-expanded="true" aria-controls="refs" hidden><span class="chev"></span><span id="reffoldlab">References</span></button>
   <div class="refs" id="refs"></div>
@@ -569,6 +569,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="/caretkeep.js"></script>
+<script src="/stickybox.js"></script>
 <!-- TAP-TO-NOTE ON THE PLAYER — the ONE implementation, shared with the Chats
      app's pinned film and compare.js's video lightbox. Loaded statically
      rather than on demand (compare.js's lazy loader is for pages that mostly

@@ -12,6 +12,11 @@
      the keyboard. The module wires itself to every text box and needs no call.
      Full reasoning in caretkeep.js. -->
 <script src="/caretkeep.js"></script>
+<!-- THE WAY OUT OF A BIG BOX STAYS ON SCREEN (2026-09-10) — the corner
+     toggle lives at the box's bottom, so a box fitted to a long caption
+     puts it below the card. Marked buttons pin themselves to the bottom of
+     what she can see. Full reasoning in stickybox.js. -->
+<script src="/stickybox.js"></script>
 <script src="/tritoggle.js"></script>
 <!-- THE HOUSE SEARCH, linked and never copied (/feedkit.js): the grammar the
      Chats app and the Playground speak, plus the two helpers every live box
@@ -1283,7 +1288,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
     </div>
     <div id="capview">
       <div id="captext"></div>
-      <div class="bigwrap" id="pnotewrap" hidden><textarea id="pnote" rows="3"></textarea><button type="button" class="bigbtn" id="pnotebig" aria-label="Bigger box"></button></div>
+      <div class="bigwrap" id="pnotewrap" hidden><textarea id="pnote" rows="3"></textarea><button type="button" class="bigbtn" data-stickybox id="pnotebig" aria-label="Bigger box"></button></div>
       <button id="capedit" aria-label="Edit the caption"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button>
     </div>
   </div>
@@ -1292,7 +1297,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
     <div id="drawbox" hidden>
       <div id="promview">
         <div id="promtext"></div>
-        <div class="bigwrap" id="dpromptwrap" hidden><textarea id="dprompt" rows="3" placeholder="what to draw"></textarea><button type="button" class="bigbtn" id="dpromptbig" aria-label="Bigger box"></button></div>
+        <div class="bigwrap" id="dpromptwrap" hidden><textarea id="dprompt" rows="3" placeholder="what to draw"></textarea><button type="button" class="bigbtn" data-stickybox id="dpromptbig" aria-label="Bigger box"></button></div>
         <button id="promedit" aria-label="Edit the drawing prompt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button>
       </div>
       <div id="promhint" hidden>empty — this beat draws from its caption</div>

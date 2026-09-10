@@ -4680,6 +4680,56 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     out. Test: `node scripts/test-caret-keep.js` (the real belt shape headless
     — the caret measured against a stubbed keyboard, the deck proved not to
     have moved, and a caret already in view proved to move nothing).
+- **THE WAY OUT OF A BIG BOX STAYS ON SCREEN — `/stickybox.js`, ONE FILE,
+  EVERY PAGE (2026-09-10, Sophie: "can we get a floating or sticky/pinned
+  contract button for text boxes esp in footage so i can close with out having
+  to scroll all the way down").** The corner toggle that opens a box is the
+  same one that closes it and it lives in the box's BOTTOM-RIGHT corner — so
+  the taller the box, the further the way out is from where she is standing.
+  On `/footage`, where the big box has no ceiling at all (2026-09-10, "text
+  box doesn't extend enough"), a 70-line scene put the contract button
+  **1,649px down an 844px screen — measured on the real page** — so closing it
+  meant scrolling the whole scene first. A marked button pins itself to the
+  bottom of what she can actually see; the page's own toggle is untouched, so
+  the same tap still means expand or contract.
+  - **IT ONLY EVER CORRECTS.** While the button's own corner is on screen it
+    is not touched at all, so a short box behaves exactly as it did — and it
+    lets go the moment the corner is reachable again, and again once she has
+    scrolled PAST the box, since a control floating over a page whose box is
+    nowhere near it is worse than one she has to scroll to.
+  - **THE VISIBLE BAND IS caretkeep's**, when caretkeep is on the page — one
+    definition of what the keyboard is covering rather than two, and it
+    carries the blind-keyboard guess for the web views that never report
+    `visualViewport`. Without it: visualViewport, else the window.
+  - **IT STAYS INSIDE ITS OWN REGION.** A box inside a sheet or any other
+    scroller pins to the bottom of THAT box, never to the bottom of the
+    screen, so a Story Room caption's button can never float below the card it
+    belongs to.
+  - **AND WHERE `position:fixed` WOULD NOT MEAN THE VIEWPORT IT DOES
+    NOTHING** — an ancestor carrying a transform, a filter or `will-change`
+    makes itself the containing block for a fixed child, so the arithmetic
+    would put the button somewhere arbitrary. Bailing leaves the page exactly
+    as it is today, which is the safe direction.
+  - **IT KEEPS THE BUTTON'S OWN COLUMN** (footage's 56px in from the box's
+    right edge, the injected pill's reservation) rather than hugging the box's
+    corner: nothing jumps sideways as it pins, and a pinned button can never
+    land in the pill's rail on a short viewport.
+  - **CLOSING FROM A PINNED BUTTON BRINGS THE BOX BACK WITH HER** — she is
+    standing at the bottom of a box whose top is a screen above, and shrinking
+    it would otherwise leave her looking at whatever was underneath. The
+    WINDOW only, never `scrollIntoView` (the caret keeper's own rule), and
+    only when the page itself is what scrolls.
+  - **Where it is:** footage, the Playground, Freeform, Voice Studio and the
+    Story Room's caption and drawing-prompt boxes. A new box adds
+    `<script src="/stickybox.js"></script>` and `data-stickybox` on its
+    toggle — picked up present and future, so a button built in script needs
+    only the attribute.
+  - Test: `node scripts/test-sticky-box.js` (the real footage page headless —
+    every assertion a MEASUREMENT, since a marked button that never pins, one
+    pinned somewhere she cannot tap, and one that shrinks the box and leaves
+    her staring at the page below all look identical in the source; the tap is
+    asked with `elementFromPoint`. Verified failing 5 pre-fix, the button
+    1,649px down the page).
 - **TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD, NEVER A BUTTON (Aug 2026,
   Sophie: "the ... button for longer than two line prompt is huge … truncated
   text shud always just be a ...with a line under it that links to open

@@ -9,6 +9,7 @@
      the keyboard. The module wires itself to every text box and needs no call.
      Full reasoning in caretkeep.js. -->
 <script src="/caretkeep.js"></script>
+<script src="/stickybox.js"></script>
 <script src="/tritoggle.js"></script>
 <!-- The feed's own shared pieces — the search grammar, liveInput/enterSubmits,
      the keyed reconcile, the derived display copy and the toast. ONE copy,
@@ -1004,7 +1005,7 @@
   </div>
   <div id="beattag"></div>
   <div id="promptpanel"></div>
-  <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" aria-label="Bigger box" title="Bigger box"></button></div>
+  <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
   <div id="panelrow" hidden><button type="button" id="panelfold" aria-expanded="true" aria-controls="panelgrid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg><span id="panelfoldlab">Panels</span></button><button type="button" id="panelclear" hidden>Clear</button></div>
   <div id="panelgrid" hidden></div>
   <div class="controls">
