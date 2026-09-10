@@ -135,3 +135,13 @@ That is the half that stops this drifting a third time.
 
 Test: `node scripts/test-scene-index.js` (the kit on all three real shapes,
 every assertion a measurement; `--live` also checks the posted pages link it).
+
+## And the Ticky Tack review DECK, which is a different page again
+
+`Ticky Tack — the scenes (56)` in `tiki-tack-draft-commit` is a stock DECK of
+her scenes, not a scenes index — so the kit does not reach it, and its own
+builder (`scripts/ticky-tack-scene-deck.js`, in this repo) had gained
+`it.footage` per card AFTER v2 was posted. A posted page is frozen, so the
+button was in the builder and on none of the 56 cards. Re-posted as **v3**,
+which was free: measured before touching it, her verdict sheet held no mark
+and no note on that deck, only her place.

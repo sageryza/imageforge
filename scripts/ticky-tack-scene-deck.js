@@ -29,8 +29,9 @@
 
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const CHAT = 'tiki-tack-draft-commit';   // the chat the scenes came from
-const TITLE = 'Ticky Tack — the scenes v2 (56)';
-const SUPERSEDES = 'w5o16p9vFiFU4dOP0Avh';   // v1
+const TITLE = 'Ticky Tack — the scenes v3 (56)';
+const SUPERSEDES = '4m7pBOJYkJjcou1UwmSy';   // v2 — posted before the cards
+                                             // carried a Footage hand-off
 
 const S = {
   climax: 'Shoot first — the climax',
