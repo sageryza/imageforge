@@ -23,7 +23,7 @@ const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const CHAT = 'pajama-assets';
 const SESSION = (process.env.CLAUDE_CODE_REMOTE_SESSION_ID || '').replace(/^cse_/, '')
   || '01Xz9f7vZGF8Nz4xsfThS2g8';
-const TITLE = 'The ward film — every reference (v5)';
+const TITLE = 'The ward film — every reference (v6)';
 
 const D = path.join(__dirname, '..', 'docs', 'mental-hospital');
 const cast = JSON.parse(fs.readFileSync(path.join(D, 'refs', 'cast.json'), 'utf8'));
@@ -97,12 +97,6 @@ groups.push({ label: 'Juanita', items: [
     label: 'Juanita, her scenes only',
     video: 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d23ef7ce8c73ec2169dd37b2ccc8a385.mp4',
     poster: 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d23ef7ce8c73ec2169dd37b2ccc8a385-poster.jpg' },
-  { id: 'clip-juanita-take1',
-    label: 'Esta es basura — the first take',
-    video: 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788850139906-b0hjl2.mp4' },
-  { id: 'clip-juanita-redo',
-    label: 'Esta es basura — the redo',
-    video: 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788852282218-kjg7h1.mp4' },
 ] });
 
 groups.push({ label: 'People with no still', items: [

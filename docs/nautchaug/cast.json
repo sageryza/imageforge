@@ -16,32 +16,119 @@
     "the-dining-room": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1c9795c66026ee3374ab37bc6eb54b58.png"
   },
   "people": {
-    "sophie": { "scenes": 124, "current": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e0a3d5c8a24893877433083e2e4f9912.png", "note": "the jazz clip, in the dress — [Image1] on every card of the belt" },
-    "nicolas": { "scenes": 15, "current": null },
-    "andrew": { "scenes": 10, "current": null },
-    "michael": { "scenes": 10, "current": null, "note": "the ward film has a 4s reference CLIP of Michael (michaelAud2) — same character, unconfirmed" },
-    "jake": { "scenes": 10, "current": null },
-    "charlie": { "scenes": 9, "current": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/be61aee6c365b91199c0767ca0aefef1.png", "note": "Sophie sent this 2026-09-10" },
-    "brenda": { "scenes": 5, "current": null },
-    "adam": { "scenes": 4, "current": null },
-    "sabrina": { "scenes": 4, "current": null },
-    "dr-sugarman": { "scenes": 3, "current": null },
-    "karen": { "scenes": 3, "current": null },
-    "brenda-the-ot": { "scenes": 3, "current": null, "note": "a different Brenda" },
-    "patrick": { "scenes": 2, "current": null },
-    "tracy": { "scenes": 2, "current": null },
-    "andreas": { "scenes": 1, "current": null },
-    "ro-sam": { "scenes": 1, "current": null },
-    "chelsea": { "scenes": 1, "current": null },
-    "alicia": { "scenes": 1, "current": null },
-    "shannon": { "scenes": 1, "current": null },
-    "sandy": { "scenes": 1, "current": null },
-    "todd": { "scenes": 1, "current": null },
-    "seamus": { "scenes": 1, "current": null },
-    "debra": { "scenes": 1, "current": null }
+    "sophie": {
+      "scenes": 124,
+      "current": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e0a3d5c8a24893877433083e2e4f9912.png",
+      "note": "the jazz clip, in the dress — [Image1] on every card of the belt"
+    },
+    "nicolas": {
+      "scenes": 15,
+      "current": null
+    },
+    "andrew": {
+      "scenes": 10,
+      "current": null
+    },
+    "michael": {
+      "scenes": 10,
+      "current": null,
+      "note": "the ward film has a 4s reference CLIP of Michael (michaelAud2) — same character, unconfirmed"
+    },
+    "jake": {
+      "scenes": 10,
+      "current": null
+    },
+    "charlie": {
+      "scenes": 9,
+      "current": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/82d5e8fc78b2d2e4114c9edf5401a811.png",
+      "also": {
+        "charlie-parka (NOT current)": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/be61aee6c365b91199c0767ca0aefef1.png"
+      },
+      "note": "current = the still Sophie sent 2026-09-10 (second one). The parka still she sent earlier is kept as a backup and is NOT the current reference."
+    },
+    "brenda": {
+      "scenes": 5,
+      "current": null
+    },
+    "adam": {
+      "scenes": 4,
+      "current": null
+    },
+    "sabrina": {
+      "scenes": 4,
+      "current": null
+    },
+    "dr-sugarman": {
+      "scenes": 3,
+      "current": null
+    },
+    "karen": {
+      "scenes": 3,
+      "current": null
+    },
+    "brenda-the-ot": {
+      "scenes": 3,
+      "current": null,
+      "note": "a different Brenda"
+    },
+    "patrick": {
+      "scenes": 2,
+      "current": null
+    },
+    "tracy": {
+      "scenes": 2,
+      "current": null
+    },
+    "andreas": {
+      "scenes": 1,
+      "current": null
+    },
+    "ro-sam": {
+      "scenes": 1,
+      "current": null
+    },
+    "chelsea": {
+      "scenes": 1,
+      "current": null
+    },
+    "alicia": {
+      "scenes": 1,
+      "current": null
+    },
+    "shannon": {
+      "scenes": 1,
+      "current": null
+    },
+    "sandy": {
+      "scenes": 1,
+      "current": null
+    },
+    "todd": {
+      "scenes": 1,
+      "current": null
+    },
+    "seamus": {
+      "scenes": 1,
+      "current": null
+    },
+    "debra": {
+      "scenes": 1,
+      "current": null
+    }
   },
   "unnamed": {
     "note": "everyone the script names by description rather than by name. They are drawn from her words on their first clip and carried forward from that clip, so none of them needs a still.",
-    "recurring": ["staff", "patients", "the criminal", "the nurse", "the doctor", "the group", "the man", "the policemen", "the man with the bandaid", "the assistant"]
+    "recurring": [
+      "staff",
+      "patients",
+      "the criminal",
+      "the nurse",
+      "the doctor",
+      "the group",
+      "the man",
+      "the policemen",
+      "the man with the bandaid",
+      "the assistant"
+    ]
   }
 }

@@ -23,7 +23,7 @@ const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const CHAT = 'pajama-assets';
 const SESSION = (process.env.CLAUDE_CODE_REMOTE_SESSION_ID || '').replace(/^cse_/, '')
   || '01Xz9f7vZGF8Nz4xsfThS2g8';
-const TITLE = "The Nautchaug Boyfriend's — the cast (v1)";
+const TITLE = "The Nautchaug Boyfriend's — the cast (v2)";
 
 const cast = JSON.parse(fs.readFileSync(
   path.join(__dirname, '..', 'docs', 'nautchaug', 'cast.json'), 'utf8'));
@@ -46,6 +46,13 @@ groups.push({ label: 'Cast', items: have.map(([k, v]) => (
 )).concat([
   { id: 'cast-sophie-face', label: 'Sophie, her face', img: S['sophie-face-A'] },
 ]) });
+
+// ---- older stills kept as backups, NOT the reference to draw from -----------
+const backups = [];
+Object.entries(P).forEach(([k, v]) => Object.entries(v.also || {}).forEach(([n, u]) => {
+  backups.push({ id: 'old-' + k, label: nameOf(k) + ' — not current', img: u, _n: n });
+}));
+if (backups.length) groups.push({ label: 'Not current', items: backups });
 
 // ---- the ward film's references, which this script uses too -----------------
 groups.push({ label: 'Wardrobe and rooms', items: [
