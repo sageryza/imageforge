@@ -69,6 +69,22 @@ let jobs = [
   { id: 'drawing', prompt: 'still going', model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud',
     seconds: 4, resolution: '480p', ratio: '16:9', sound: true, status: 'drawing',
     refs: [], sentAt: '2026-09-10T06:30:00.000Z', vote: '' },
+  // TRIMMED — cut for the film, so the clip is out of the box (2026-09-10,
+  // Sophie: "take out trimmed clips from recents"). Its own reference stays.
+  { id: 'trimmed', prompt: 'the one she cut', model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud',
+    seconds: 4, resolution: '480p', ratio: '16:9', sound: true, status: 'done',
+    video: 'http://127.0.0.1:PORT/trim-part1.mp4', source: 'http://127.0.0.1:PORT/whole.mp4',
+    poster: 'http://127.0.0.1:PORT/ref.png',
+    trims: [{ start: 0.5, end: 2.5, seconds: 2, key: 'k1', status: 'ready', url: 'http://127.0.0.1:PORT/trim-part1.mp4', poster: 'http://127.0.0.1:PORT/ref.png' }],
+    refs: [{ url: 'http://127.0.0.1:PORT/trim-ref.png', kind: 'image' }],
+    sentAt: '2026-09-10T06:45:00.000Z', vote: '', hidden: false },
+  // trimming, nothing baked yet — it has cut nothing, so the clip still rides
+  { id: 'baking', prompt: 'mid-trim', model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud',
+    seconds: 4, resolution: '480p', ratio: '16:9', sound: true, status: 'done',
+    video: 'http://127.0.0.1:PORT/baking.mp4', source: 'http://127.0.0.1:PORT/baking.mp4',
+    poster: 'http://127.0.0.1:PORT/ref.png',
+    trims: [{ start: 0, end: 2, seconds: 2, key: 'k2', status: 'baking', url: '', poster: '' }],
+    refs: [], sentAt: '2026-09-10T06:40:00.000Z', vote: '', hidden: false },
   // its clip was ALSO used as a reference later — one tile, never two
   { id: 'older', prompt: 'the socks', model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud',
     seconds: 4, resolution: '480p', ratio: '16:9', sound: true, status: 'done',
@@ -87,7 +103,7 @@ const server = http.createServer((req, res) => {
       const html = fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8').replace('__STUDIO_TOKEN__', '');
       res.writeHead(200, { 'content-type': 'text/html' }); return res.end(html);
     }
-    if (u.pathname === '/ref.png' || u.pathname === '/still.png') { res.writeHead(200, { 'content-type': 'image/png' }); return res.end(PNG); }
+    if (u.pathname.endsWith('.png')) { res.writeHead(200, { 'content-type': 'image/png' }); return res.end(PNG); }
     if (u.pathname.endsWith('.mp4')) { res.writeHead(200, { 'content-type': 'video/mp4' }); return res.end(''); }
     if (u.pathname === '/api/footage/status') {
       return json({ ok: true, doors: { atlascloud: true }, balances: { atlascloud: { configured: true } },
@@ -151,11 +167,20 @@ const server = http.createServer((req, res) => {
   const n = await page.$$eval('#recent .rc', (els) => els.length);
   ok('a crossed-out clip is not offered', !(await page.$$eval('#recent .rc img', (els) => els.map((e) => e.src))).some((s) => /exed\.mp4/.test(s)) && n > 0);
   ok('a clip still drawing is not offered — there is nothing to attach yet',
-    (await page.$$eval('#recent .rc', (els) => els.length)) === 4);
+    (await page.$$eval('#recent .rc', (els) => els.length)) === 6);
+  // A TRIMMED CLIP IS OUT — measured off what the tiles really point at, since
+  // a tile drawing the same poster as its reference is the same markup.
+  const srcs = await page.$$eval('#recent .rc img', (els) => els.map((e) => e.src));
+  ok('a trimmed clip is not offered', !srcs.some((s) => /trim-part1\.mp4|whole\.mp4/.test(s))
+    && !(await page.$$eval('#recent .rc', (els) => els.map((e) => e.getAttribute('aria-label') || ''))).some((a) => /the one she cut/.test(a)));
+  ok('but that job\'s own references still are', srcs.some((s) => /trim-ref\.png/.test(s)));
+  ok('a clip whose trim is still baking is offered — nothing is cut yet',
+    (await page.$$eval('#recent .rc', (els) => els.map((e) => e.getAttribute('aria-label') || ''))).some((a) => /mid-trim/.test(a)));
   // ONE TILE PER URL: `shot-before.mp4` is the older job's clip AND a
   // reference on the newest one.
+  const labels = await page.$$eval('#recent .rc', (els) => els.map((e) => e.getAttribute('aria-label') || ''));
   ok('a clip that was also used as a reference is listed once',
-    (await page.$$eval('#recent .rc', (els) => els.filter((e) => e.title === 'Attach this clip').length)) === 1);
+    labels.filter((a) => /the shot before/.test(a)).length === 1 && !labels.some((a) => /the socks/.test(a)));
 
   // THE TAP HAS TO REACH THE REQUEST — a lit thumb says nothing about what
   // left the phone.

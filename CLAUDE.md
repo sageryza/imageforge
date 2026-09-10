@@ -7550,7 +7550,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
   out or hid is not offered** (it is not one to chain from) and neither is one
   still drawing; the dedupe is **by url across both kinds**, so a clip that
   was also used as a reference is one tile; and `castVote` repaints the drawer
-  — a ✕ she just cast has to stop offering that clip. Test:
+  — a ✕ she just cast has to stop offering that clip.
+  **AND A TRIMMED CLIP IS OUT OF THE BOX (2026-09-10, Sophie: "take out
+  trimmed clips from recents").** Once a clip has a baked part it has been cut
+  for the film, and `video` then points at its FIRST part — so the tile was
+  offering a piece of a shot rather than the shot. Three things not to undo:
+  it is the **same `bakedParts(j)` the tile's scissors chip reads**, so the
+  mark on the wall and the absence from the box can never disagree about what
+  "trimmed" means; a part still **baking has cut nothing yet**, so that clip is
+  still offered (and a failed trim left the clip whole); and **only the CLIP
+  goes** — that job's own references are still listed, since a reference she
+  used once is still a reference. Test:
   `node scripts/test-footage-recent.js` (every assertion a MEASUREMENT of the
   rendered drawer or of what the send really POSTs — a poster and a still are
   the same markup, and a lit thumb says nothing about what left the phone;
