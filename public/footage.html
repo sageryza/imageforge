@@ -406,7 +406,7 @@
   <p class="bal" id="balline" hidden></p>
   <p class="bal" id="discline" hidden></p>
   <p><b>Say what the clip is.</b> Add references &mdash; a picture, a clip, a sound &mdash; and name each one in the prompt by its slot: <b>[Image1]</b>, <b>[Video1]</b>, <b>[Audio1]</b>. Tap a slot name to drop it into the box. Never describe what a reference shows; the picture is the point.</p>
-  <p><b>The star sends it.</b> One tap, and the line beside it says about what that tap costs. The real cost lands on the card when the clip finishes.</p>
+  <p><b>The star sends it.</b> One tap, and the line beside it says what that tap costs. With a reference video that figure is the closest the door will say up front; the real charge lands on the card when the clip finishes.</p>
   <p><b>Every clip says how long it took.</b> <i>drew in 2m 34s</i> on the card is the door's own figure, not how long you were watching — close the app and it keeps drawing, and the time it reports is still the real one. A clip drawn before this says nothing rather than guessing.</p>
   <p><b>Through Atlas Cloud</b> &mdash; it takes a reference with a person in it, a real photo or a clip, and draws the likeness. A famous face is refused, free, before anything draws; a chat can try that one through APIFRAME.</p>
   <p><b>Two models.</b> <b>2.0 Mini</b> is the default and the cheap one. <b>2.0 Fast</b> is the option, and it is dearer &mdash; the line beside the star says what the tap costs either way. Fast is also the stricter of the two: a plain prompt with no reference at all has come back refused there with a copyright line (free, unbilled, measured 2026-09-09) where the same words drew on Mini.</p>
@@ -757,10 +757,13 @@ function updateCost() {
   api('/estimate' + q).then(function (d) {
     if (seq !== costSeq) return;
     if (!d || d.error) { $('cost').textContent = (d && d.error) || ''; $('cost').dataset.cents = ''; return; }
-    // "about" ONLY where the server says the number is not pinned — Atlas
-    // bills per second, so the live rate is exact; a reference video and the
-    // list-rate fallback are the shapes that are not.
-    $('cost').textContent = (d.about ? 'about ' : '') + cents(d.cents);
+    // THE NUMBER ALONE (2026-09-10, Sophie: "just see the price not
+    // 'about'"). The word fired on every job carrying a reference VIDEO — her
+    // ordinary shape, since a person or a shot-to-shot chain rides one — so
+    // it was on screen nearly all the time and said the same thing every
+    // time. The flag is still stored on the element for anything that needs
+    // to know the figure is not pinned; it is simply not read aloud.
+    $('cost').textContent = cents(d.cents);
     $('cost').dataset.cents = d.cents;
     $('cost').dataset.about = d.about ? '1' : '';
   }).catch(function () {});
@@ -1265,9 +1268,16 @@ function jobCard(j) {
     feed.insertBefore(el, before);
   }
   el.classList.toggle('nay', j.vote === 'dislike');
-  var tags = [j.modelLabel || j.model, j.seconds != null ? j.seconds + 's' : '', j.resolution, j.ratio, j.sound ? 'sound' : 'silent',
+  // SOUND IS NOT A TAG (2026-09-10, Sophie: "get rid of sound since they all
+  // have sound"). The page sends `sound: true` on every job, so the word was
+  // on every card and told her nothing. `silent` is KEPT for a clip that
+  // genuinely has none — it never renders for a clip drawn here, and a silent
+  // one saying nothing about it would be the card lying.
+  var tags = [j.modelLabel || j.model, j.seconds != null ? j.seconds + 's' : '', j.resolution, j.ratio, j.sound ? '' : 'silent',
     j.door === 'openrouter' ? 'OpenRouter' : j.door === 'atlascloud' ? 'Atlas Cloud' : 'APIFRAME',
-    j.cost != null ? cents(j.cost) : (j.estimate != null ? 'about ' + cents(j.estimate) : ''),
+    // the number alone, her rule above — while it draws that is the estimate,
+    // and the real charge replaces it when the clip lands
+    j.cost != null ? cents(j.cost) : (j.estimate != null ? cents(j.estimate) : ''),
     // HOW LONG IT TOOK TO DRAW (2026-09-10, her ask). The DOOR's own figure
     // (footage.js `drewMs`), never sentAt→doneAt — doneAt is when the poll
     // noticed, so a clip drawn while the app was closed would read hours.

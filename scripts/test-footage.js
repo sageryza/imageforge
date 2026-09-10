@@ -502,12 +502,16 @@ async function pillSweep(pg, where) {
   await page.evaluate(() => document.getElementById('secs').blur());
   await page.waitForFunction(() => document.getElementById('secs').value === '4');
 
-  // ── one door, so the price line no longer names one; and it says "about"
-  //    ONLY where the number is not pinned ──────────────────────────────────
+  // ── one door, so the price line no longer names one; and since 2026-09-10
+  //    it is the NUMBER ALONE — her ask, "just see the price not 'about'".
+  //    The word fired on every job carrying a reference video, which is her
+  //    ordinary shape, so it was on screen nearly always and said the same
+  //    thing every time. Whether the figure is pinned is still KNOWN (the
+  //    element's own dataset), it is simply not read aloud. ────────────────
   await page.waitForFunction(() => /¢$/.test(document.getElementById('cost').textContent));
   const cost0 = await page.$eval('#cost', (e) => e.textContent);
   ok('the price line is a price and nothing about a door: ' + cost0, /^\d+(\.\d{1,2})?¢$/.test(cost0));
-  ok('a pinned price does not hedge — no "about" on a job with no reference video (Atlas bills per second)', !/about/.test(cost0));
+  ok('a pinned price does not hedge', !/about/.test(cost0));
   const beside = await page.evaluate(() => {
     const g = document.getElementById('go').getBoundingClientRect(), c = document.getElementById('cost').getBoundingClientRect();
     return { sameRow: Math.abs((g.top + g.height / 2) - (c.top + c.height / 2)) < 14, gap: Math.round(c.left - g.right) };
@@ -515,18 +519,22 @@ async function pillSweep(pg, where) {
   ok('the price sits right beside the star (gap ' + beside.gap + 'px)', beside.sameRow && beside.gap >= 0 && beside.gap < 30);
   await page.click('#secup');
   await page.waitForFunction((c) => document.getElementById('cost').textContent !== c, cost0);
-  ok('one more second is a higher price', parseFloat((await page.$eval('#cost', (e) => e.textContent)).replace('about ', '')) > parseFloat(cost0.replace('about ', '')));
+  ok('one more second is a higher price', parseFloat(await page.$eval('#cost', (e) => e.textContent)) > parseFloat(cost0));
   await page.click('#secdn');
   await page.waitForFunction((c) => document.getElementById('cost').textContent === c, cost0);
-  // A REFERENCE VIDEO IS THE ONE SHAPE STILL UNMEASURED, so the line hedges
-  // for it and only for it.
+  // A REFERENCE VIDEO IS THE ONE SHAPE STILL UNMEASURED. The line no longer
+  // says so, but the page must still KNOW — a figure that is not pinned
+  // silently becoming indistinguishable from one that is would be the page
+  // forgetting, rather than her choosing not to be told.
   await page.setInputFiles('#file', { name: 'sock.mp4', mimeType: 'video/mp4', buffer: Buffer.from('x') });
   await page.waitForSelector('#refs .ref');
-  await page.waitForFunction(() => /^about /.test(document.getElementById('cost').textContent));
-  ok('a reference VIDEO makes the price say "about"', /^about \d+(\.\d{1,2})?¢$/.test(await page.$eval('#cost', (e) => e.textContent)));
+  await page.waitForFunction(() => document.getElementById('cost').dataset.about === '1');
+  const withVid = await page.$eval('#cost', (e) => e.textContent);
+  ok('a reference VIDEO still says the price and NOT the word: ' + withVid, /^\d+(\.\d{1,2})?¢$/.test(withVid));
+  ok('and the page still knows the figure is not pinned', await page.$eval('#cost', (e) => e.dataset.about === '1'));
   await page.click('#refs .x');
   await page.waitForFunction((c) => document.getElementById('cost').textContent === c, cost0);
-  ok('taking it off makes the price exact again', !/about/.test(await page.$eval('#cost', (e) => e.textContent)));
+  ok('taking it off pins it again', await page.$eval('#cost', (e) => e.dataset.about !== '1'));
 
   // ── the controls sit on as few rows as they fit on ───────────────────────
   const rows = await page.evaluate(() => {
@@ -569,6 +577,17 @@ async function pillSweep(pg, where) {
 
   // ── the feed: a card, its references, and a repaint that changes nothing ─
   ok('the earlier clip is a card with its real cost', await page.$eval('#job-old1 .tags', (e) => /5\.6¢/.test(e.textContent) && /2\.0 Mini/.test(e.textContent)));
+  // SOUND IS NOT A TAG AND THE PRICE DOES NOT HEDGE (2026-09-10, Sophie:
+  // "get rid of sound since they all have sound" · "just see the price not
+  // 'about'"). MEASURED off the rendered line — the page sends sound:true on
+  // every job, so a `sound` still in the array reads as a perfectly ordinary
+  // card to any source check.
+  ok('the card does not say "sound" — every clip has it',
+    await page.$eval('#job-old1 .tags', (e) => !/\bsound\b/.test(e.textContent)));
+  ok('and a silent clip would still say so',
+    /j\.sound \? '' : 'silent'/.test(PAGE_SRC));
+  ok('the card\'s price is the number alone',
+    await page.$eval('#job-old1 .tags', (e) => !/about/.test(e.textContent) && /5\.6¢/.test(e.textContent)));
   // HOW LONG IT TOOK TO DRAW (2026-09-10, her ask). MEASURED off the rendered
   // tag: a card that computes the span and never paints it, and one that
   // paints sentAt→doneAt instead, are the same markup to any source check.

@@ -7366,8 +7366,16 @@ before working on that module. Nothing was deleted — the moved text is verbati
   and says "2.0 Mini is 80% off right now" while there is a sale, and a
   content refusal — a FAMOUS face, free, on the POST — shows with its own
   line (*a famous face in a reference; a chat can try this one through
-  APIFRAME*). The price beside the star is EXACT with no reference video
-  (Atlas bills per second) and "about" with one. **OpenRouter and APIFRAME
+  APIFRAME*). **The price beside the star is THE NUMBER ALONE since
+  2026-09-10 (Sophie: "just see the price not 'about'")** — it hedged with
+  "about" wherever the figure was not pinned, which is every job carrying a
+  reference VIDEO, i.e. her ordinary shape (a person, a shot-to-shot chain),
+  so the word was on screen nearly always and said the same thing every time.
+  Whether the figure is pinned is still KNOWN and still stored on the element
+  (`#cost` `dataset.about`, pinned by a test) — it is simply not read aloud,
+  so anything that needs to know still can. The estimate itself is unchanged:
+  exact with no reference video (Atlas bills per second), the closest the door
+  will say up front with one. **OpenRouter and APIFRAME
   are still doors and `footage.js` keeps them** — a chat pins either by hand,
   and the module's own AUTO is Atlas first with APIFRAME behind it for a
   refused face (re-sent with a note saying so on the card), OpenRouter for a
@@ -7496,6 +7504,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
     look identical in the source; the `storage` moment is driven by a SECOND
     page in the same context, which is the only honest way to ask. Verified
     failing 20 pre-fix.)
+  **THE CARD'S LINE CARRIES NO `sound` TAG (2026-09-10, Sophie: "get rid of
+  sound since they all have sound").** The page sends `sound: true` on every
+  job, so the word was on every card and told her nothing. **`silent` is KEPT**
+  for a clip that genuinely has none — it can never render for a clip drawn
+  here, and a silent one saying nothing about it would be the card lying. The
+  card's price dropped its "about" in the same breath, for the reason above.
   **EVERY CLIP SAYS HOW LONG IT TOOK TO DRAW (2026-09-10, Sophie: "can you
   make it say the number of seconds or minutes each clip took to draw on the
   clip?").** A `drew in 2m 34s` tag at the end of the card's own line, from
