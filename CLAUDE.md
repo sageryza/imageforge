@@ -3935,6 +3935,35 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   - **The features a patch cannot carry** (a box that is not in the markup —
     the redo-notes fold, the model's-pick seconds) stay for the owning chat's
     next build. Name them rather than half-porting them.
+  - **AND THE SCENES-INDEX PAGES ABOVE THE BELTS DRIFTED THE SAME WAY — THE
+    ANSWER IS A SERVED FILE, `public/scene-index.js` (2026-09-10, Sophie: "add
+    send to footage button · and chapter buttons etc · so light blue ward,
+    nautch and ticky tack all have all features").** A scenes index is the wall
+    of little 3-D keys — one key a scene, a tap opening that scene's card on
+    its belt page — and there are three (the ward film in light blue, the
+    Nautchaug Boyfriend's in beige, Ticky Tack in red). Measured on the live
+    html: the **Send-to-Footage key** was on the ward only, the **chapter rail**
+    and **folding a chapter away** on the nautch only, and Ticky Tack had
+    neither. So the three behaviours moved into ONE SERVED FILE and a page opts
+    in with one line after `/compare.js` —
+    `<script src="/scene-index.js"></script>` — which is what makes the NEXT fix
+    reach all three the day it deploys, with nothing re-posted. It reads the
+    markup all three already share (`.grid`, `.ep` headings, a tile whose href
+    is `/api/chatfeed/page/<belt>#j-<key>`) and **builds only the halves that
+    page does not already have**, so it can be added to a live page without
+    taking anything away. **The belt names itself** — every belt page carries
+    `var CHAT='…', SHEET='…'` — so the hand-off needs no map, and it is HER
+    EDIT that rides: the posted html holds the words as the chat wrote them and
+    the verdict sheet holds what she has typed since, which is what the key
+    reads. `scripts/level-scene-pages.js` added the line to the four live page
+    docs (the nautch page is posted into two chats) the same way
+    `fix-belt-truncation.js` does — the posted html, byte for byte, re-posted
+    and superseded, **never rebuilt**. Full matrix and the three measurements
+    behind it (the keys go on BEFORE the fold; a page with its own fold hides
+    the tile, so `.cell:has(> .b.hid)` follows it down; a 56px rail key holds
+    about one word, so a long phrase is boiled down to its longest word) are in
+    `docs/mental-hospital/belt/VERSIONS.md`. Test:
+    `node scripts/test-scene-index.js` (`--live` also checks the posted pages).
 - **Picking spans of a recording is `public/picker-shell.html` +
   `window.__cutPicker`** — required, not optional. Four chats hand-rolled their
   own in one week and each re-shipped the same bugs.
