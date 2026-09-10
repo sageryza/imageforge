@@ -220,6 +220,8 @@ let atlasPays = 100;     // the percent of list Atlas charges today — 100 is n
 // cents per second on Atlas for a model, off its list rate × what it charges today
 const ATLAS_LIST = { mini: 5.6, fast: 9, '2.0': 11.2, '2.5': 16.7 };
 const atlasRate = (id) => (ATLAS_LIST[id] || 0) * atlasPays / 100;
+const threads = {};      // clip url → the note thread the server holds
+const noteReads = [];    // which chat each /notes read asked for
 let refuse = false;      // the next POST comes back as a ByteDance content refusal
 let slow = 0;            // ms the next POST is held, so the one-tap guard is measurable
 
@@ -291,6 +293,21 @@ const server = http.createServer((req, res) => {
       return answer();
     }
     if (/^\/api\/footage\/jobs\/[^/]+\/vote$/.test(u.pathname)) { posted.push({ vote: u.pathname, body: JSON.parse(body) }); return json({ ok: true }); }
+    // the HOUSE note thread, stubbed exactly as server.js answers it: the
+    // whole thread comes back on a write, and the read is the one inbox
+    // (`waiting:'chat'` on the ones nobody has answered)
+    if (u.pathname === '/api/gallery/assets/notes') {
+      noteReads.push(u.searchParams.get('chat'));
+      return json({ ok: true, chat: u.searchParams.get('chat'),
+        notes: Object.keys(threads).map((url) => ({ url, thread: threads[url], waiting: 'chat' })) });
+    }
+    if (u.pathname === '/api/gallery/assets/note') {
+      const b = JSON.parse(body);
+      if (String(b.text || '').length > 2000) return json({ ok: false, error: 'that note is 40 characters too long' }, 400);
+      posted.push({ note: b });
+      threads[b.url] = (threads[b.url] || []).concat([{ from: b.from || 'sophie', text: b.text, at: new Date().toISOString() }]);
+      return json({ ok: true, thread: threads[b.url], waiting: 'chat' });
+    }
     if (u.pathname === '/api/drop/upload-file') {
       posted.push({ upload: Object.fromEntries(u.searchParams), ct: req.headers['content-type'], bytes: body.length });
       return json({ ok: true, item: { id: 'd1', url: 'http://127.0.0.1:' + server.address().port + '/ref.png', posterUrl: null, media: 'image' } });
@@ -905,6 +922,88 @@ async function pillSweep(pg, where) {
   await page.waitForFunction(() => /¢$/.test(document.getElementById('cost').textContent));
   ok('and the price under the star drops with it', parseFloat(await page.$eval('#cost', (e) => e.textContent)) < parseFloat(cost0));
   await page.click('body', { position: { x: 5, y: 820 } });
+
+  // ── HER NOTES ON A CLIP (2026-09-10, her ask) ───────────────────────────
+  // Every assertion here is a MEASUREMENT or a reading of what the server
+  // really received: a box that opens and posts nothing, a note that lands on
+  // the wrong chat, and a thread that never reaches the card all look
+  // identical in the source.
+  ok('the notes were read on load, under the chat /status served',
+    noteReads.length > 0 && noteReads.every((c) => c === 'footage'));
+  const noteBefore = noteReads.length;
+  // a clip with no url has nothing to note ON — the Assets tab's silence rule
+  const marks = await page.evaluate(() => {
+    const cards = [...document.querySelectorAll('#feed .job')];
+    const has = (el) => !!el.querySelector('.acts .note');
+    const drawn = (el) => !!el.querySelector('.acts a[href*="clip"]');   // the save link only exists with a url
+    return {
+      withVideo: !!document.querySelector('#job-old1 .acts .note'),
+      everyDrawn: cards.filter(drawn).every(has),
+      noneUndrawn: cards.filter((el) => !drawn(el)).every((el) => !has(el)),
+      undrawn: cards.filter((el) => !drawn(el)).length,
+    };
+  });
+  ok('every finished clip carries a note mark', marks.withVideo && marks.everyDrawn);
+  ok('and a clip with no url yet carries none — nothing to note ON (' + marks.undrawn + ' such cards)', marks.noneUndrawn);
+  // the box ships EMPTY (the house rule) and nothing was posted by opening it
+  const postsBefore = posted.length;
+  await page.click('#job-old1 .acts .note');
+  await page.waitForSelector('#job-old1 .notebox textarea');
+  ok('the box ships empty', (await page.$eval('#job-old1 .notebox textarea', (t) => t.value)) === ''
+    && (await page.$eval('#job-old1 .notebox textarea', (t) => t.placeholder)) === 'Note');
+  ok('opening it posts nothing', posted.length === postsBefore);
+  // tapping the mark again puts it away and STILL writes nothing
+  await page.click('#job-old1 .acts .note');
+  ok('tapping the mark again closes it', (await page.$$('#job-old1 .notebox')).length === 0 && posted.length === postsBefore);
+  // the round trip: what the server really received, and the thread on screen
+  await page.click('#job-old1 .acts .note');
+  await page.fill('#job-old1 .notebox textarea', 'the dog is on the wrong side');
+  await page.click('#job-old1 .notebox .nsend');
+  await page.waitForFunction(() => document.querySelectorAll('#job-old1 [data-thread] .nrow').length > 0);
+  const gotNote = posted.filter((p) => p.note).pop();
+  ok('the note reached the HOUSE route with the served chat, the clip url and from:sophie — ' + JSON.stringify(gotNote && gotNote.note),
+    !!gotNote && gotNote.note.chat === 'footage' && /clip\.mp4$/.test(gotNote.note.url)
+    && gotNote.note.from === 'sophie' && gotNote.note.text === 'the dog is on the wrong side');
+  ok('her words are on the card, from the thread the server handed back',
+    /the dog is on the wrong side/.test(await page.$eval('#job-old1 [data-thread]', (e) => e.textContent)));
+  ok('the box closed on success and the mark says the clip has notes',
+    (await page.$$('#job-old1 .notebox')).length === 0
+    && (await page.$eval('#job-old1 .acts .note', (b) => b.classList.contains('has'))));
+  ok('the note read was NOT re-run by writing one — the server\'s own answer is what painted it',
+    noteReads.length === noteBefore);
+  // a chat's answer reads back on the same clip
+  threads[Object.keys(threads)[0]].push({ from: 'chat', text: 'redrawn, mirrored', at: new Date().toISOString() });
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await page.waitForFunction(() => /redrawn, mirrored/.test(document.querySelector('#job-old1 [data-thread]').textContent));
+  ok('coming back to the tool re-reads the notes, and a chat\'s answer reads back under hers', true);
+  // HER WORDS ARE NEVER LOST TO A REFUSAL
+  await page.click('#job-old1 .acts .note');
+  await page.fill('#job-old1 .notebox textarea', 'x'.repeat(2100));
+  await page.click('#job-old1 .notebox .nsend');
+  await page.waitForFunction(() => /too long/.test(document.querySelector('#job-old1 .nerr').textContent));
+  ok('an over-length note is REFUSED with the reason and her words stay in the box',
+    (await page.$eval('#job-old1 .notebox textarea', (t) => t.value)).length === 2100);
+  await page.click('#job-old1 .notebox .ncancel');
+
+  // THE PLAYER: the shared tap-to-note, and the tap-out that must not eat it
+  await page.click('#job-old1 .thumb');
+  await page.waitForFunction(() => !document.getElementById('player').hidden);
+  await page.waitForTimeout(400);
+  const inPlayer = await page.evaluate(() => ({
+    note: !!document.querySelector('#player .notebtn'),
+    close: !!document.querySelector('#player .pclose'),
+  }));
+  ok('the shared /filmnote.js note button is on the player', inPlayer.note);
+  if (inPlayer.note) {
+    await page.click('#player .notebtn');
+    await page.waitForTimeout(300);
+    ok('tapping its own button does NOT close the player (the old rule closed on anything that was not a VIDEO)',
+      !(await page.$eval('#player', (e) => e.hidden)));
+  }
+  await page.click('#player', { position: { x: 6, y: 500 } });
+  await page.waitForFunction(() => document.getElementById('player').hidden);
+  ok('a tap on the backdrop still closes it', true);
+  ok('and the close button closes it', inPlayer.close);
 
   // ── A BATCH OF CARDS PAINTS THE WALL ONCE ───────────────────────────────
   // `loadJobs` hands every clip to jobCard in turn and the wall's signature

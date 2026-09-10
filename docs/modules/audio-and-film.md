@@ -612,6 +612,26 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       else answers exact. APIFRAME is per second with its own rate when a
       video rides (2.5 at 480p: 15¢/s with, 13 without). Full numbers and
       dates: *THE PRICE IS EXACT* in CLAUDE.md's Footage bullet.
+    - **NOTES ON A CLIP — THE HOUSE THREAD, TWO DOORS (2026-09-10, Sophie:
+      "can you make it possible to add notes on clips that come out of the
+      footage module?").** A speech mark on every finished clip's card opens
+      an empty box; playing a clip gives her `/filmnote.js` — tap to pause,
+      note the second she stopped on — the ONE implementation, the same one
+      the Chats app's pinned film and compare.js's video lightbox use.
+      **No new route and nothing new stored:** both doors POST
+      `/api/gallery/assets/note` (`chat` = whatever `/status` serves, i.e.
+      `footage`) and the card reads `GET /api/gallery/assets/notes?chat=`,
+      so a note rings the wake doorbell, lands in the one inbox every chat
+      sweeps, and is answered ON the note (`from:'chat'`) — which reads back
+      under hers on the card. The thread is painted OUTSIDE the card's
+      signature (a note landing must not rebuild the card and re-decode its
+      poster), the notes are read on load / on `visibilitychange`→visible /
+      when the player closes and never on the drawing poll, an over-length
+      note is refused with her words still in the box, and a clip with no url
+      yet carries no mark. **The player's tap-out is the backdrop only** now
+      (chats.html's rule) — the old "anything that is not a VIDEO" would have
+      closed the player on filmnote's own button and sheet. Full rules and
+      the six things not to undo: the Footage bullet in CLAUDE.md.
   **THE COLLECTION PAGE UNDER-LISTS — PROBE THE MODEL NAMES (same day,
   Sophie: "why did u skip 2.5 etc").** Replicate's image-to-video collection
   page showed six Seedance models; `GET /v1/models/bytedance/<name>`
