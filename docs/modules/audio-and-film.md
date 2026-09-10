@@ -541,6 +541,64 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       read live when the card opens (Atlas has no balance to read); and the Playground's **List / Tiles /
       3-4** switch on the feed, one `--cols` driving the tile wall and a
       card's own reference row. Full rules: the *Footage* bullet in CLAUDE.md.
+    - **SHE TRIMS A CLIP AS IT COMES OUT (2026-09-10, Sophie: "how hard
+      would it be to make it possible to trim clips right as they come out of
+      the footage module?").** A Mini clip is 4-15 seconds and the shot inside
+      it is usually shorter — the model holds a beat before the move starts
+      and drifts at the tail — and until this the only way to lose either end
+      was the Film Editor, a tool away, so a clip she liked went into the
+      draft carrying its dead air. Tapping a clip opens the lightbox it always
+      did, now with two marks under the picture: **Start here** / **End here**
+      land at the playhead, `‹ ›` walk the playhead a tenth of a second so a
+      mark can be placed exactly, the strip shows what is kept against the
+      whole clip, and **Trim** bakes it. `POST /api/footage/jobs/:id/trim
+      { start, end }`; `{ clear: true }` undoes it.
+      **IT COSTS NOTHING** — ffmpeg on our own box, no model call, no door;
+      what she paid for is the clip, and trimming and undoing are both free.
+      Six rules, none of them optional:
+      - **HER CLIP IS NEVER TOUCHED.** The trim is a NEW object under
+        `footage/trims/` and `video` on the log doc — the clip the door drew —
+        is never written. `trim` is a field beside it, so the poll, the
+        exact-prompt log and the 1080p-redo reading list all go on seeing the
+        original, and the undo is one field off the doc rather than a restore.
+      - **THE SPAN IS ALWAYS IN THE ORIGINAL'S OWN SECONDS,** so the player
+        opens the SOURCE even on a clip that is already trimmed: a trim can be
+        widened back out, re-cut or undone. Trimming a trim would make the
+        marks mean something different every round and lose a generation of
+        quality per pass.
+      - **IT IS BAKED ONCE** — content-addressed by the source url and the
+        span, so re-cutting a span she has already cut is one HEAD and no
+        encode, and an undo followed by the same trim is free.
+      - **ONE DECODE AT A TIME** (`gateTrim`). A video decode is the one thing
+        that has actually killed this 512MB box (the panels-cut ledger in
+        CLAUDE.md), and a trim is never urgent.
+      - **THE CUT IS `clips.js`'s OWN** — `chunkGraph`, the recipe the Chunking
+        library already shares with Cut Marks: trim + setpts with 12ms audio
+        fades at each edge so an exact cut never clicks. A second copy of that
+        would be a second set of edges to debug. **The FILE is the truth about
+        its own length**, not the seconds she asked the door for (a clip is
+        24·s + 1 frames), so the out-mark is CLAMPED to what ffprobe reads
+        rather than refused against the ask.
+      - **EVERYTHING IS A TAP** — Cut Marks' rule. Nothing drags; the strip is
+        a read-out, not a control, because the video's own scrubber already
+        seeks and a second scrubber over it is one control saying two things.
+        Playing plays the SPAN and loops it — that is how a trim is judged
+        before it is committed — but **scrubbing is never yanked**, or finding
+        the out-mark would be a fight with the loop. The button's meaning
+        follows the marks: at the two ends of a trimmed clip it is **Undo the
+        trim**, anywhere else **Trim** / **Re-trim**, and where it would do
+        nothing it is not drawn at all.
+      **NOT IN PLAY, but worth knowing before it is:** Atlas's
+      `return_last_frame` bakes the clip's LAST FRAME as a chaining still, and
+      a trimmed tail would leave it pointing at a frame the clip no longer ends
+      on. This page never asks for one, so nothing here carries a stale one — a
+      page that starts asking has to re-pull it from the trim.
+      Test: `node scripts/test-footage-trim.js` (the rules pure, then a REAL
+      encode measured with ffprobe — a recipe that reads perfectly and a file
+      that is the wrong length look identical to any source assertion — then
+      the real page headless with a seekable VP8 fixture, every assertion a
+      measurement of the rendered strip, the loop's own `currentTime`, or what
+      the server really received).
     - **THE PRICE IS EXACT (2026-09-09, measured off 113 OpenRouter jobs, 44
       APIFRAME jobs and ffprobe on the clips).** `tokens = w × h × (24·s + 1)
       / 1024`, × the SKU, × `(1 − the live discount)` — Mini renders on the

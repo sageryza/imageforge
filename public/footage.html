@@ -299,15 +299,57 @@
   .again{padding:5px 10px;font-size:13px;white-space:nowrap}
   .emptynote{color:#9a8f7d;font-size:13px;padding:6px 2px}
   /* The player: the clip over the page, tap out to close. Page locked and the
-     scroll position restored on close (the lightbox contract). */
-  #player{position:fixed;inset:0;background:rgba(20,17,14,.94);z-index:80;display:flex;align-items:center;justify-content:center}
-  #player video{max-width:100%;max-height:100%;display:block;background:#000}
+     scroll position restored on close (the lightbox contract).
+     AND IT IS THE TRIMMER (2026-09-10) — a COLUMN, so the marks sit UNDER the
+     picture and never over it. The stage yields (flex:1, min-height:0) and the
+     bar keeps its height, so a tall clip shrinks rather than pushing the
+     controls off the bottom of the screen. */
+  #player{position:fixed;inset:0;background:rgba(20,17,14,.94);z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  /* THE PICTURE SITS ON THE MARKS (measured 2026-09-10, PHOTOgraphed at
+     390x844): centred in the stage it left ~270px of dead dimmed page between
+     the clip and its own trim bar, so the two read as unrelated things and the
+     feed showed through between them. Bottom-aligned, the video's own scrubber
+     lands directly above the marks and the slack goes to the top, where only
+     the close button lives. */
+  #player .pstage{flex:1;min-height:0;width:100%;display:flex;align-items:flex-end;justify-content:center}
+  #player .pstage video{max-width:100%;max-height:100%;display:block;background:#000}
+  .trimbar{flex:none;width:100%;max-width:520px;display:flex;flex-direction:column;gap:8px;color:#f6f2ea;
+           background:#141110;border-top:1px solid rgba(255,255,255,.13);
+           padding:10px 14px calc(12px + env(safe-area-inset-bottom))}
+  .trimbar .strip{position:relative;height:10px;border-radius:6px;background:rgba(255,255,255,.17)}
+  .trimbar .keep{position:absolute;top:0;bottom:0;background:#c96a5e;border-radius:6px}
+  .trimbar .head{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;border-radius:1px}
+  .trimbar .tspan{font-size:12.5px;text-align:center;color:#e7dfd2;min-height:16px}
+  .trimbar .trow{display:flex;gap:6px;align-items:center;justify-content:center}
+  .trimbar .trow2{display:flex;gap:6px;align-items:center;min-height:34px}
+  .trimbar button{border-radius:6px;border:1px solid rgba(255,255,255,.32);background:rgba(255,255,255,.1);
+                  color:#f6f2ea;font-size:13px;padding:0 12px;height:34px;font-family:inherit;line-height:1}
+  .trimbar .tstep{width:34px;padding:0;font-size:17px}
+  .trimbar .tgo{margin-left:auto;background:#c96a5e;border-color:#c96a5e}
+  .trimbar .tgo.undo{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.32)}
+  .trimbar button[disabled]{opacity:.45}
+  .trimbar .treset{background:none;border:none;padding:0 2px;text-decoration:underline;height:auto}
+  /* the card's own line: what is kept, and while it bakes, that it is baking */
+  .trimtag{display:flex;align-items:center;gap:5px;font-size:12px;color:#8a7f70;margin-top:3px}
+  .trimtag svg{width:13px;height:13px;flex:none}
   #player .pclose{position:absolute;top:14px;left:14px;width:34px;height:34px;padding:0;border-radius:6px;
                   background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#fff}
   #player .pclose svg{width:16px;height:16px}
+  /* A TOAST IS A MESSAGE, NEVER A CONTROL — `pointer-events:none` (measured
+     2026-09-10, while the trimmer's own test could not reach a button under
+     it). Fading to opacity 0 does NOT stop an element hit-testing, so without
+     this the box sits invisible at the bottom-left for the life of the page
+     and swallows every tap that lands on it — on the feed that is the corner
+     of a card. */
   .toast{position:fixed;left:12px;bottom:12px;background:#2b2620;color:#f6f2ea;font-size:13px;
-         border-radius:6px;padding:7px 11px;opacity:0;transition:opacity .25s;z-index:90;max-width:80%}
+         border-radius:6px;padding:7px 11px;opacity:0;transition:opacity .25s;z-index:90;max-width:80%;
+         pointer-events:none}
   .toast.show{opacity:1}
+  /* and while the player is open it moves out of the trim bar's way, to the
+     top, beside the close button — a refusal she cannot read over the two
+     buttons it is refusing is no refusal */
+  #player:not([hidden]) ~ .toast{bottom:auto;left:56px;right:12px;max-width:none;
+         top:calc(14px + env(safe-area-inset-top))}
 </style>
 </head>
 <body>
@@ -368,7 +410,23 @@
 <div id="tiles" hidden></div>
 <div class="emptynote" id="feedempty" hidden>Nothing made here yet.</div>
 
-<div id="player" hidden><button class="pclose" type="button" aria-label="Close"></button></div>
+<div id="player" hidden><button class="pclose" type="button" aria-label="Close"></button>
+  <div class="pstage"></div>
+  <div class="trimbar" id="trimbar" hidden>
+    <div class="strip"><span class="keep" id="tkeep"></span><span class="head" id="thead"></span></div>
+    <div class="tspan" id="tspan"></div>
+    <div class="trow">
+      <button type="button" class="tstep" id="tback" aria-label="Back a tenth of a second" title="Back 0.1s">&lsaquo;</button>
+      <button type="button" id="tin">Start here</button>
+      <button type="button" id="tout">End here</button>
+      <button type="button" class="tstep" id="tfwd" aria-label="On a tenth of a second" title="On 0.1s">&rsaquo;</button>
+    </div>
+    <div class="trow2">
+      <button type="button" class="treset" id="treset">Whole clip</button>
+      <button type="button" class="tgo" id="tgo">Trim</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script src="/caretkeep.js"></script>
@@ -390,6 +448,7 @@ var ICONS = {
   chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
   maximize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
   minimize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
+  scissors: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>',
   // THE ONE GENERATE GLYPH — the hand-fitted star every spend button wears.
   star: '<svg viewBox="0 0 100 100" fill="currentColor" stroke="none" aria-hidden="true"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg>',
 };
@@ -968,7 +1027,8 @@ function renderTiles() {
     face.title = j.prompt || '';
     face.innerHTML = j.poster ? '<img src="' + esc(j.poster) + '" alt="">' + ICONS.play
       : (j.status === 'done' ? ICONS.play : (j.status === 'failed' ? ICONS.x : ''));
-    face.addEventListener('click', function () { var jj = jobsById[j.id]; if (jj && jj.video) openPlayer(jj.video); });
+    // the SOURCE opens, so the marks are always in the original's own seconds
+    face.addEventListener('click', function () { var jj = jobsById[j.id]; if (jj && jj.video) openPlayer(jj.source || jj.video, jj); });
     c.appendChild(face);
     // THE SAME TWO MARKS AS THE LIST CARD'S, through the same castVote — a
     // clip hearted on the wall is hearted in the list and on the server.
@@ -993,6 +1053,13 @@ function cents(c) { return c == null ? '' : (c >= 100 ? '$' + (c / 100).toFixed(
 function ago(iso) {
   var s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
   return s < 60 ? s + 's' : Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+}
+function trimLine(j) {
+  var t = j.trim;
+  if (!t || !t.status) return '';
+  if (t.status === 'baking') return '<div class="trimtag">' + ICONS.scissors + '<span>trimming to ' + esc(fsec(t.start)) + '–' + esc(fsec(t.end)) + 's…</span></div>';
+  if (t.status === 'failed') return '<div class="st bad">that trim did not bake' + (t.error ? ' — ' + esc(t.error) : '') + '</div>';
+  return '<div class="trimtag">' + ICONS.scissors + '<span>trimmed ' + esc(fsec(t.start)) + '–' + esc(fsec(t.end)) + 's · keeping ' + esc(fsec(t.seconds)) + 's</span></div>';
 }
 function jobCard(j) {
   jobsById[j.id] = j;
@@ -1019,6 +1086,9 @@ function jobCard(j) {
     // never a dead control saying nothing.
     (j.seed != null ? '<div class="seedrow"><span>seed ' + esc(j.seed) + '</span>' +
       '<button type="button" class="seedcopy" aria-label="Put this seed in the box" title="Put this seed in the box">' + ICONS.copy + '</button></div>' : '') +
+    // WHAT IS KEPT, ON THE CARD — a trimmed clip that said so nowhere would
+    // be a clip she cannot tell from the one the door drew
+    trimLine(j) +
     (j.note ? '<div class="st">' + esc(j.note) + '</div>' : '') +
     '<div class="st' + (j.status === 'failed' ? ' bad' : '') + '" data-st>' + (j.status === 'failed' ? esc(j.error || 'failed') : '') + '</div>';
   if ((j.refs || []).length) {
@@ -1039,7 +1109,7 @@ function jobCard(j) {
     el.innerHTML = html;
     var p = el.querySelector('.p'); p.textContent = j.prompt || '';
     clampMore(p);
-    el.querySelector('.thumb').addEventListener('click', function () { if (j.video) openPlayer(j.video); });
+    el.querySelector('.thumb').addEventListener('click', function () { var jj = jobsById[j.id] || j; if (jj.video) openPlayer(jj.source || jj.video, jj); });
     el.querySelectorAll('[data-vote]').forEach(function (b) { b.addEventListener('click', function () { castVote(j.id, b.dataset.vote); }); });
     el.querySelector('.copy').addEventListener('click', function () { copyBack(j); });
     var sc = el.querySelector('.seedcopy');
@@ -1207,7 +1277,15 @@ function loadJobs() {
     schedulePoll(false);
   }).catch(function () {});
 }
-function anyDrawing() { return Object.keys(jobsById).some(function (k) { return jobsById[k].status === 'drawing'; }); }
+// A BAKING TRIM KEEPS THE POLL ALIVE TOO — without this the card sits on
+// "trimming…" until she leaves the page and comes back, and a trim that
+// landed in four seconds reads as one that never landed.
+function anyDrawing() {
+  return Object.keys(jobsById).some(function (k) {
+    var j = jobsById[k];
+    return j.status === 'drawing' || (j.trim && j.trim.status === 'baking');
+  });
+}
 function schedulePoll(soon) {
   clearTimeout(pollT);
   if (!anyDrawing()) return;
@@ -1223,28 +1301,177 @@ setInterval(function () {
 }, 1000);
 document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { loadJobs(); loadStatus(); } });
 
-// ── The player (the lightbox contract: page frozen, position restored) ────
+// ── The player IS the trimmer ─────────────────────────────────────────────
+// (2026-09-10, Sophie: "how hard would it be to make it possible to trim clips
+// right as they come out of the footage module?")
+//
+// A Mini clip is 4-15 seconds and the shot inside it is usually shorter — the
+// model holds a beat before the move starts and drifts at the tail. So the
+// lightbox that already plays the clip carries two marks and a Trim.
+//
+// FOUR THINGS NOT TO UNDO:
+//   · IT PLAYS THE SOURCE, NEVER THE TRIM. The marks are always in the
+//     ORIGINAL's own seconds, so a trim can be widened back out, re-cut or
+//     undone; opening the trimmed copy would make every later mark mean
+//     something different and lose a generation of quality per pass.
+//   · EVERYTHING IS A TAP — Cut Marks' rule, and hers. Nothing drags: the
+//     marks land at the playhead, and the two steppers walk the playhead a
+//     tenth of a second at a time so a mark can be placed exactly without a
+//     handle to catch. The STRIP is a read-out, not a control: the video's
+//     own scrubber already seeks, and a second scrubber over it is one
+//     control saying two things.
+//   · PLAYING PLAYS THE SPAN, AND LOOPS IT — that is how she judges a trim
+//     before she commits it — but SCRUBBING IS NEVER YANKED, or finding the
+//     out-mark would be a fight with the loop.
+//   · THE BUTTON'S MEANING FOLLOWS THE MARKS. Marks at the two ends of a
+//     trimmed clip means Undo; anywhere else means Trim. A control that would
+//     do nothing is hidden rather than shown dead.
 var savedY = 0;
-function openPlayer(url) {
+var TR = null;           // { j, v, dur, in, out, had } while the trimmer is armed
+var TRIM_MIN = 0.3;      // the server's own floor (footage.js TRIM_MIN_SECONDS)
+var TRIM_EPS = 0.03;     // "at the end" — a frame at 24fps is 0.042s
+
+function fsec(x) { return String(Math.round(Number(x) * 100) / 100); }
+function r3(x) { return Math.round(Number(x) * 1000) / 1000; }
+
+function openPlayer(url, j) {
   var pl = $('player');
   if (window.__scrollStop) window.__scrollStop();
   savedY = window.scrollY || 0;
   document.body.style.overflow = 'hidden';
   var v = document.createElement('video');
   v.src = url; v.controls = true; v.playsInline = true; v.autoplay = true; v.setAttribute('playsinline', '');
-  pl.appendChild(v);
+  pl.querySelector('.pstage').appendChild(v);
   pl.hidden = false;
+  armTrim(j || null, v);
   v.play().catch(function () {});
 }
 function closePlayer() {
   var pl = $('player');
   pl.querySelectorAll('video').forEach(function (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (e) {} v.remove(); });
   pl.hidden = true;
+  TR = null;
+  $('trimbar').hidden = true;
   document.body.style.overflow = '';
   window.scrollTo(0, savedY);
 }
-$('player').addEventListener('click', function (e) { if (e.target.tagName !== 'VIDEO') closePlayer(); });
+// only the backdrop closes — a tap on a trim control must not take the whole
+// player with it (the tap it was aimed at is the one she meant)
+$('player').addEventListener('click', function (e) { if (e.target === this || e.target.classList.contains('pstage')) closePlayer(); });
+document.querySelector('#player .pclose').addEventListener('click', closePlayer);
 window.__navBack = function () { if (!$('player').hidden) { closePlayer(); return true; } return false; };
+
+function armTrim(j, v) {
+  $('trimbar').hidden = !j;
+  TR = null;
+  if (!j) return;
+  // a trim still baking, or one that failed, is not a mark to open on
+  var t = j.trim && j.trim.status === 'ready' ? j.trim : null;
+  TR = { j: j, v: v, dur: 0, in: t ? Number(t.start) || 0 : 0, out: t ? Number(t.end) || 0 : 0, had: Boolean(t) };
+  function settle() {
+    var d = Number(v.duration);
+    if (!isFinite(d) || d <= 0) return;
+    TR.dur = r3(d);
+    // an out-mark from a trim baked against the real file can sit a frame
+    // past what this element reports — clamp rather than refuse
+    if (!TR.out || TR.out > TR.dur) TR.out = TR.dur;
+    if (TR.in >= TR.out - TRIM_MIN) { TR.in = 0; TR.out = TR.dur; }
+    paintTrim();
+  }
+  v.addEventListener('loadedmetadata', settle);
+  v.addEventListener('durationchange', settle);
+  v.addEventListener('timeupdate', trimTick);
+  v.addEventListener('ended', function () {
+    if (!TR || !TR.dur || TR.in <= TRIM_EPS) return;
+    try { v.currentTime = TR.in; v.play().catch(function () {}); } catch (e) {}
+  });
+  // play from the mark when the playhead is outside the span — she taps play
+  // to judge the trim, not to watch what she is cutting
+  v.addEventListener('play', function () {
+    if (!TR || !TR.dur) return;
+    var t2 = v.currentTime;
+    if (t2 < TR.in - 0.05 || t2 >= TR.out - TRIM_EPS) { try { v.currentTime = TR.in; } catch (e) {} }
+  });
+  settle();
+  paintTrim();
+}
+function trimTick() {
+  if (!TR || !TR.dur) return;
+  var v = TR.v;
+  // the loop, and ONLY while it is really playing — a seek is her finger
+  if (!v.paused && !v.seeking && TR.out < TR.dur - TRIM_EPS && v.currentTime >= TR.out - 0.02) {
+    try { v.currentTime = TR.in; } catch (e) {}
+  }
+  paintHead();
+}
+function paintHead() {
+  if (!TR || !TR.dur) return;
+  var t = Math.min(Math.max(TR.v.currentTime || 0, 0), TR.dur);
+  $('thead').style.left = ((t / TR.dur) * 100) + '%';
+}
+function trimWhole() { return !TR || !TR.dur || (TR.in <= TRIM_EPS && TR.out >= TR.dur - TRIM_EPS); }
+function paintTrim() {
+  if (!TR) return;
+  var d = TR.dur, whole = trimWhole();
+  var a = d ? (TR.in / d) * 100 : 0, b = d ? (TR.out / d) * 100 : 100;
+  $('tkeep').style.left = a + '%';
+  $('tkeep').style.width = Math.max(0, b - a) + '%';
+  $('tspan').textContent = !d ? ''
+    : whole ? 'the whole clip · ' + fsec(d) + 's'
+      : fsec(TR.in) + 's – ' + fsec(TR.out) + 's · keeping ' + fsec(TR.out - TR.in) + 's';
+  $('treset').hidden = whole;
+  var go = $('tgo');
+  // nothing to do → no button at all, rather than a dead one
+  go.hidden = whole && !TR.had;
+  go.disabled = false;
+  go.classList.toggle('undo', whole);
+  go.textContent = whole ? 'Undo the trim' : (TR.had ? 'Re-trim' : 'Trim');
+  paintHead();
+}
+function setMark(which) {
+  if (!TR || !TR.dur) return;
+  var t = r3(Math.min(Math.max(TR.v.currentTime || 0, 0), TR.dur));
+  if (which === 'in') {
+    if (t > TR.out - TRIM_MIN) return toast('That is too close to the end mark');
+    TR.in = t;
+  } else {
+    if (t < TR.in + TRIM_MIN) return toast('That is too close to the start mark');
+    TR.out = t;
+  }
+  paintTrim();
+}
+function stepHead(by) {
+  if (!TR || !TR.dur) return;
+  try { TR.v.pause(); } catch (e) {}
+  try { TR.v.currentTime = Math.min(Math.max((TR.v.currentTime || 0) + by, 0), TR.dur); } catch (e) {}
+  paintHead();
+}
+$('tin').addEventListener('click', function () { setMark('in'); });
+$('tout').addEventListener('click', function () { setMark('out'); });
+$('tback').addEventListener('click', function () { stepHead(-0.1); });
+$('tfwd').addEventListener('click', function () { stepHead(0.1); });
+$('treset').addEventListener('click', function () { if (!TR || !TR.dur) return; TR.in = 0; TR.out = TR.dur; paintTrim(); });
+$('tgo').addEventListener('click', doTrim);
+
+// The one write. Undoing is the same door with `clear` — the original was
+// never written over, so nothing has to be restored. Free either way; the
+// bake runs behind the answer and the card polls it in.
+function doTrim() {
+  if (!TR || !TR.dur) return;
+  var j = TR.j, whole = trimWhole(), go = $('tgo');
+  var body = whole ? { clear: true } : { start: r3(TR.in), end: r3(TR.out) };
+  go.disabled = true;
+  api('/jobs/' + encodeURIComponent(j.id) + '/trim', { method: 'POST', body: JSON.stringify(body) }).then(function (d) {
+    if (!d || d.error) { go.disabled = false; return toast((d && d.error) || 'That trim was refused'); }
+    if (d.job) { jobCard(d.job); paintRecent(); }
+    closePlayer();
+    toast(whole ? 'Trim undone — the whole clip is back' : 'Trimming… it lands on the card in a moment');
+    schedulePoll(true);
+  }).catch(function () {
+    go.disabled = false;
+    toast('The server did not answer — the clip is untouched');
+  });
+}
 
 // ── The pill's corner (Freeform's measured reserve, verbatim in shape) ────
 function setGap(el, name, v) { if (el.style.getPropertyValue(name) === v) return; el.style.setProperty(name, v); }

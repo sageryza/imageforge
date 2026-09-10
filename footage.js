@@ -50,7 +50,9 @@
 //   GET  /jobs?limit=        her clips, newest first; polls the unfinished ones
 //   POST /jobs/:id/vote      { vote: 'like'|'dislike'|'' }
 //   POST /jobs/:id/hide      { hidden: true|false }
-// Test: node scripts/test-footage.js
+//   POST /jobs/:id/trim      { start, end } | { clear: true } — keep a span
+//                            of a finished clip, or undo it. Free.
+// Test: node scripts/test-footage.js · node scripts/test-footage-trim.js
 
 const express = require('express');
 const fs = require('fs');
@@ -415,11 +417,25 @@ function db() { return admin.firestore(); }
 function coll() { return db().collection(videoLog.COLL); }
 function bucketOrNull() { try { return admin.apps.length ? admin.storage().bucket() : null; } catch { return null; } }
 
+// ONE reader of a doc's status — cardOf draws by it and trimPlan refuses by
+// it, and two copies of that expression would let the card call a clip
+// finished while the trim route called it unfinished.
+function statusOf(d) {
+  const st = String((d && d.status) || 'sent').toLowerCase();
+  if (st === 'completed') return 'done';
+  if (st === 'failed' || st === 'cancelled' || st === 'expired') return 'failed';
+  return 'drawing';
+}
+
 // The card the page draws, off the log doc.
 function cardOf(id, d) {
   const m = MODELS.find((x) => x.or === d.model || x.af === d.model || x.atlas === d.model) || null;
   const p = d.params || {};
-  const st = String(d.status || 'sent').toLowerCase();
+  // THE TRIM RIDES BESIDE THE CLIP, NEVER OVER IT: `video` is what she
+  // plays, saves and hands on (the trimmed copy once it is baked), `source`
+  // is always the clip the door drew, and `trim` is what the card says.
+  const tr = d.trim && typeof d.trim === 'object' ? d.trim : null;
+  const trimmed = Boolean(tr && tr.status === 'ready' && tr.url);
   return {
     id, prompt: d.prompt || '', model: m ? m.id : (d.model || ''), modelLabel: m ? m.label : (d.model || ''),
     door: d.door || d.provider || (d.model && String(d.model).startsWith('bytedance/') ? 'openrouter' : 'apiframe'),
@@ -435,8 +451,14 @@ function cardOf(id, d) {
       ...((d.references && d.references.videos) || []).map((url) => ({ url, kind: 'video' })),
       ...((d.references && d.references.audio) || []).map((url) => ({ url, kind: 'audio' })),
     ]),
-    status: st === 'completed' ? 'done' : (st === 'failed' || st === 'cancelled' || st === 'expired') ? 'failed' : 'drawing',
-    video: d.video || '', poster: d.poster || '',
+    status: statusOf(d),
+    video: (trimmed ? tr.url : d.video) || '', source: d.video || '',
+    poster: (trimmed && tr.poster ? tr.poster : d.poster) || '',
+    trim: tr ? {
+      start: Number(tr.start) || 0, end: Number(tr.end) || 0,
+      seconds: Number(tr.seconds) || Math.round(((Number(tr.end) || 0) - (Number(tr.start) || 0)) * 1000) / 1000,
+      status: String(tr.status || ''), url: tr.url || '', error: tr.error || '',
+    } : null,
     // to the HUNDREDTH of a cent, like the estimate — the real charge is
     // exact and rounding it to a tenth throws that away (13.96¢, not 14¢)
     cost: d.cost != null ? Math.round(Number(d.cost) * 10000) / 100 : null, estimate: d.estimate != null ? Number(d.estimate) : null,
@@ -494,6 +516,175 @@ async function bakePoster(id, videoUrl) {
   }
 }
 
+// ─── TRIMMING A FINISHED CLIP ──────────────────────────────────────────
+// (2026-09-10, Sophie: "how hard would it be to make it possible to trim
+// clips right as they come out of the footage module?")
+//
+// A Mini clip is 4-15 seconds and the shot inside it is usually shorter: the
+// model holds a beat before the move starts and drifts at the tail. Until
+// this the only way to lose either end was the Film Editor, a tool away, so
+// a clip she liked went into the draft carrying its dead air.
+//
+// FIVE RULES, none of them optional:
+//   · HER CLIP IS NEVER TOUCHED. The trim is a NEW object under
+//     footage/trims/ and `video` on the log doc — the clip the door drew —
+//     is never written. `trim` is a field beside it, so the poll, the
+//     exact-prompt log and the 1080p-redo reading list all go on seeing the
+//     original, and the trim can be undone with one tap.
+//   · THE SPAN IS ALWAYS IN THE ORIGINAL'S OWN SECONDS. A trim is re-cut
+//     from the source every time, never from the last trim, so she can widen
+//     one back out; trimming a trim would make the marks mean something
+//     different every round and lose a frame of quality per pass.
+//   · IT IS BAKED ONCE. The object is content-addressed by the source url and
+//     the span, so re-cutting a span she has already cut is one HEAD and no
+//     encode — an undo followed by the same trim is free.
+//   · ONE AT A TIME. A video decode is the one thing that has actually killed
+//     this 512MB box (the panels-cut ledger in CLAUDE.md), and a trim is
+//     never urgent, so they queue rather than stack.
+//   · IT COSTS NOTHING — ffmpeg on our own box, no model call, no door. What
+//     she paid for is the clip; the trim is free and so is undoing it.
+//
+// THE CUT IS clips.js's OWN — `chunkGraph`, the recipe the Chunking library
+// already shares with Cut Marks: trim + setpts, with 12ms audio fades at each
+// edge so an exact cut never clicks. A second copy of that would be a second
+// set of edges to debug.
+//
+// NOT IN PLAY, but worth knowing before it is: Atlas's `return_last_frame`
+// bakes the clip's LAST FRAME as a chaining still, and a trimmed tail would
+// leave it pointing at a frame the clip no longer ends on. This page never
+// asks for one (`returnLastFrame` is not sent), so nothing here carries a
+// stale one — a page that starts asking has to re-pull it from the trim.
+const TRIM_FOLDER = 'footage/trims';
+const TRIM_MIN_SECONDS = 0.3;      // shorter than this is a tap, not a shot
+const TRIM_MAX_SECONDS = 600;
+const TRIM_FETCH_MS = 60000;
+const TRIM_RUN_MS = 240000;
+
+// The span to cut, or the reason it cannot be cut — PURE, so every rule is
+// testable with no Firestore, no bucket and no ffmpeg.
+function trimPlan(d, body) {
+  const source = String((d && d.video) || '');
+  if (statusOf(d) !== 'done' || !/^https?:\/\//.test(source)) {
+    return { error: 'a clip is trimmed once it has drawn' };
+  }
+  const start = Math.round(Number(body && body.start) * 1000) / 1000;
+  const end = Math.round(Number(body && body.end) * 1000) / 1000;
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return { error: 'a trim needs a start and an end, in seconds' };
+  if (start < 0) return { error: 'a trim starts at 0 or later' };
+  if (end <= start) return { error: 'the end comes after the start' };
+  const span = Math.round((end - start) * 1000) / 1000;
+  if (span < TRIM_MIN_SECONDS) return { error: `${span}s is shorter than the ${TRIM_MIN_SECONDS}s floor` };
+  if (span > TRIM_MAX_SECONDS) return { error: 'that span is longer than any clip this page makes' };
+  const key = crypto.createHash('sha1').update(`${source}|${start}|${end}`).digest('hex');
+  return { source, start, end, span, key, path: `${TRIM_FOLDER}/${key}.mp4`, posterPath: `${TRIM_FOLDER}/${key}.jpg` };
+}
+
+// ONE DECODE AT A TIME, whoever asks. The queue is what makes peak memory
+// independent of how many clips she trims in a row.
+let trimQueue = Promise.resolve();
+function gateTrim(fn) {
+  const next = trimQueue.then(fn, fn);
+  trimQueue = next.catch(() => {});
+  return next;
+}
+
+// What the FILE says about itself — how long it really is and whether it
+// carries sound. The ask is not the answer: a clip is 24·s + 1 frames, so a
+// 4s ask really runs 4.04s, and an out-mark she dragged to the end has to
+// clamp to the file rather than fail against the ask.
+async function probeMedia(file) {
+  const out = await runBin(ffprobeBin(), ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type', '-of', 'json', file], 60000);
+  const info = JSON.parse(out || '{}');
+  return {
+    total: parseFloat((info.format || {}).duration || '0') || 0,
+    withAudio: (info.streams || []).some((x) => x.codec_type === 'audio'),
+  };
+}
+
+// ONE span out of one file, on disk. Kept apart from the Firestore/Storage
+// bookkeeping around it so the CUT can be measured with a real file and
+// ffprobe (`node scripts/test-footage-trim.js`) rather than reasoned about.
+async function cutSpan(src, out, start, end, withAudio) {
+  const bin = ffmpegBin();
+  const graph = require('./clips').chunkGraph(start, end, withAudio);
+  const args = ['-y', '-i', src, '-filter_complex', graph, '-map', '[v]'];
+  if (withAudio) args.push('-map', '[a]', '-c:a', 'aac', '-b:a', '160k');
+  args.push('-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out);
+  await runBin(bin, args, TRIM_RUN_MS);
+  return out;
+}
+
+// Fire-and-forget on the clip's own doc: baking → ready, or baking → failed
+// with the reason the card shows. NEVER throws — a trim that cannot be baked
+// must leave the original exactly as it was.
+async function bakeTrim(id, plan) {
+  return gateTrim(async () => {
+    const write = (patch) => coll().doc(String(id)).set({
+      trim: { start: plan.start, end: plan.end, seconds: plan.span, key: plan.key, source: plan.source, at: new Date().toISOString(), url: '', poster: '', error: '', ...patch },
+    }, { merge: true }).catch(() => {});
+    const bucket = bucketOrNull();
+    const bin = ffmpegBin();
+    if (!bucket || !bin) return write({ status: 'failed', error: 'ffmpeg or Storage is not configured here' });
+    const pub = (p) => `https://storage.googleapis.com/${bucket.name}/${p}`;
+    try {
+      // baked once: a span she has already cut is a HEAD and no encode
+      const f = bucket.file(plan.path);
+      const [exists] = await f.exists();
+      if (exists) {
+        const [pExists] = await bucket.file(plan.posterPath).exists().catch(() => [false]);
+        return write({ status: 'ready', url: pub(plan.path), poster: pExists ? pub(plan.posterPath) : '' });
+      }
+    } catch { /* fall through and bake */ }
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'trim-'));
+    const src = path.join(dir, 'src.mp4');
+    const out = path.join(dir, 'trim.mp4');
+    const jpg = path.join(dir, 'poster.jpg');
+    try {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), TRIM_FETCH_MS);
+      let r;
+      try { r = await fetch(plan.source, { agent: proxyAgent || undefined, signal: ctl.signal }); }
+      finally { clearTimeout(timer); }
+      if (!r || !r.ok) return write({ status: 'failed', error: 'the clip could not be read back' });
+      fs.writeFileSync(src, await r.buffer());
+
+      // THE FILE IS THE TRUTH ABOUT ITS OWN LENGTH, not the seconds she
+      // asked the door for: a clip is 24·s + 1 frames, so the real total
+      // runs a frame past the ask. The end is CLAMPED rather than refused —
+      // an out-mark she dragged to the very end must not fail the bake.
+      const { total, withAudio } = await probeMedia(src);
+      const end = total ? Math.min(plan.end, Math.round(total * 1000) / 1000) : plan.end;
+      if (total && plan.start >= total) return write({ status: 'failed', error: `the clip is ${total.toFixed(1)}s — the trim starts after it ends` });
+      if (Math.round((end - plan.start) * 1000) / 1000 < TRIM_MIN_SECONDS) {
+        return write({ status: 'failed', error: `the clip is ${total.toFixed(1)}s — that leaves nothing to keep` });
+      }
+
+      await cutSpan(src, out, plan.start, end, withAudio);
+
+      const vf = bucket.file(plan.path);
+      await vf.save(fs.readFileSync(out), { metadata: { contentType: 'video/mp4' } });
+      await vf.makePublic();
+
+      // the trim's own first frame — cut out of the file we already have on
+      // disk, so it costs no second download
+      let poster = '';
+      try {
+        await runBin(bin, ['-y', '-ss', '0.05', '-i', out, '-frames:v', '1', '-vf', 'scale=480:-2', '-q:v', '4', jpg], 60000);
+        const pf = bucket.file(plan.posterPath);
+        await pf.save(fs.readFileSync(jpg), { metadata: { contentType: 'image/jpeg' } });
+        await pf.makePublic();
+        poster = pub(plan.posterPath);
+      } catch { /* a trim with no poster still plays */ }
+
+      return write({ status: 'ready', url: pub(plan.path), poster, seconds: Math.round((end - plan.start) * 1000) / 1000, end });
+    } catch (e) {
+      return write({ status: 'failed', error: String((e && e.message) || e).slice(0, 200) });
+    } finally {
+      try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* temp */ }
+    }
+  });
+}
+
 // ─── A reference too small to send: bake an upscaled COPY ──────────────
 // Her first /footage job with a video reference was refused before anything
 // drew — 400 PixelCountTooSmall — because iOS had shrunk an iPhone clip to
@@ -521,13 +712,18 @@ async function bakePoster(id, videoUrl) {
 function ffprobeBin() {
   try { return require('ffprobe-static').path; } catch { return null; }
 }
-function runBin(bin, args) {
+// `ms` is optional and only ever a CEILING: a hung ffmpeg holds the trim
+// queue forever without one, and the queue is what keeps this box alive.
+function runBin(bin, args, ms) {
   return new Promise((resolve, reject) => {
+    if (!bin) { reject(new Error('binary unavailable')); return; }
     let out = '';
     const p = spawn(bin, args, { stdio: ['ignore', 'pipe', 'ignore'] });
+    const timer = ms ? setTimeout(() => { try { p.kill('SIGKILL'); } catch { /* gone */ } }, ms) : null;
+    const done = (fn, v) => { if (timer) clearTimeout(timer); fn(v); };
     p.stdout.on('data', (d) => { out += d.toString(); });
-    p.on('error', reject);
-    p.on('close', (code) => (code === 0 ? resolve(out) : reject(new Error('exit ' + code))));
+    p.on('error', (e) => done(reject, e));
+    p.on('close', (code) => (code === 0 ? done(resolve, out) : done(reject, new Error('exit ' + code))));
   });
 }
 // The DISPLAY dimensions, so a phone clip carrying a rotation is measured
@@ -781,10 +977,37 @@ router.post('/jobs/:id/hide', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// POST /jobs/:id/trim { start, end } — keep this span of the clip; the bake
+// runs behind the answer and the card polls it in. { clear: true } undoes it,
+// which is one field off the doc: the original was never written, so nothing
+// has to be restored. Free either way.
+router.post('/jobs/:id/trim', async (req, res) => {
+  try {
+    const id = String(req.params.id);
+    const snap = await coll().doc(id).get();
+    if (!snap.exists) return res.status(404).json({ error: 'no such clip' });
+    const d = snap.data();
+    const body = req.body || {};
+    if (body.clear) {
+      await coll().doc(id).set({ trim: admin.firestore.FieldValue.delete() }, { merge: true });
+      const { trim, ...rest } = d;
+      return res.json({ ok: true, cleared: true, job: cardOf(id, rest) });
+    }
+    const plan = trimPlan(d, body);
+    if (plan.error) return res.status(400).json({ error: plan.error });
+    const trim = { start: plan.start, end: plan.end, seconds: plan.span, key: plan.key,
+      source: plan.source, at: new Date().toISOString(), status: 'baking', url: '', poster: '', error: '' };
+    await coll().doc(id).set({ trim }, { merge: true });
+    bakeTrim(id, plan).catch(() => {});
+    res.status(202).json({ ok: true, job: cardOf(id, { ...d, trim }) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = {
   router, init,
   MODELS, RATIOS, SIZES, CHAT, OR_FEE,
   modelOf, doorFor, estimate, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, secondsOk, framesOf,
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf,
   startJob, bakePoster, ensureVideoFloor, floorDecided,
+  statusOf, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_FOLDER,
 };
