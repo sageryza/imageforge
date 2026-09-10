@@ -1,0 +1,47 @@
+{
+  "note": "THE NAUTCHAUG BOYFRIEND'S — who is in it, and which of them has a reference. The cast is derived from the 'in the shot:' line on every card of the draft belt (128 scenes, chat new-script-draft, page OGASgaHgTXeGLld1fBb4); the counts are how many scenes each is in. A reference here is a picture a clip can be drawn FROM — named by its slot in a prompt and never described.",
+  "script": {
+    "title": "The Nautchaug Boyfriend's",
+    "spelling": "Nautchaug — as it is spelt in the script (Sophie, 2026-09-10)",
+    "belt": "https://imageforge-q125.onrender.com/chats?chat=new-script-draft",
+    "scenes": 128
+  },
+  "shared": {
+    "note": "the script reuses the ward film's references — the same Sophie, the same wardrobe, the same rooms. Full index: docs/mental-hospital/refs/cast.json.",
+    "sophie-jazz-C": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e0a3d5c8a24893877433083e2e4f9912.png",
+    "sophie-face-A": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/40c4297c5ad31247083c19fee84d8275.png",
+    "pj-optA-solo": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0e7139dc94a4418015ae6a692370be87.png",
+    "pj-optC-solo": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e78b0b8ab03512e6fa28415b4ed422e7.png",
+    "her-room": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a26b474c31334b9e2b32d1d10b6ec5bc.png",
+    "the-dining-room": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1c9795c66026ee3374ab37bc6eb54b58.png"
+  },
+  "people": {
+    "sophie": { "scenes": 124, "current": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e0a3d5c8a24893877433083e2e4f9912.png", "note": "the jazz clip, in the dress — [Image1] on every card of the belt" },
+    "nicolas": { "scenes": 15, "current": null },
+    "andrew": { "scenes": 10, "current": null },
+    "michael": { "scenes": 10, "current": null, "note": "the ward film has a 4s reference CLIP of Michael (michaelAud2) — same character, unconfirmed" },
+    "jake": { "scenes": 10, "current": null },
+    "charlie": { "scenes": 9, "current": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/be61aee6c365b91199c0767ca0aefef1.png", "note": "Sophie sent this 2026-09-10" },
+    "brenda": { "scenes": 5, "current": null },
+    "adam": { "scenes": 4, "current": null },
+    "sabrina": { "scenes": 4, "current": null },
+    "dr-sugarman": { "scenes": 3, "current": null },
+    "karen": { "scenes": 3, "current": null },
+    "brenda-the-ot": { "scenes": 3, "current": null, "note": "a different Brenda" },
+    "patrick": { "scenes": 2, "current": null },
+    "tracy": { "scenes": 2, "current": null },
+    "andreas": { "scenes": 1, "current": null },
+    "ro-sam": { "scenes": 1, "current": null },
+    "chelsea": { "scenes": 1, "current": null },
+    "alicia": { "scenes": 1, "current": null },
+    "shannon": { "scenes": 1, "current": null },
+    "sandy": { "scenes": 1, "current": null },
+    "todd": { "scenes": 1, "current": null },
+    "seamus": { "scenes": 1, "current": null },
+    "debra": { "scenes": 1, "current": null }
+  },
+  "unnamed": {
+    "note": "everyone the script names by description rather than by name. They are drawn from her words on their first clip and carried forward from that clip, so none of them needs a still.",
+    "recurring": ["staff", "patients", "the criminal", "the nurse", "the doctor", "the group", "the man", "the policemen", "the man with the bandaid", "the assistant"]
+  }
+}
