@@ -1,5 +1,5 @@
 {
- "note": "ONE list of who and what the ward film points at. Built 2026-09-10 by unioning refs/stills.json and belt/refs.json. A prompt names a reference by its slot and says nothing about it.",
+ "note": "ONE list of who and what the ward film points at. Built 2026-09-10 by unioning refs/stills.json and belt/refs.json. A prompt names a reference by its slot and says nothing about it. The ogHop block is the real photographic references; everything else is frames off generated clips.",
  "people": {
   "sophie": {
    "current": null,
@@ -46,8 +46,13 @@
    "note": "NO still \u2014 she exists only inside the stretcher clip"
   },
   "yolanda": {
-   "current": null,
-   "note": "NO still \u2014 her audition is still waiting on Sophie\u2019s words"
+   "current": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/aa3b74d4e2b2dbd590ca38051790d066.png",
+   "note": "OG character sheet from the hop album \u2014 supersedes \"no still on file\"",
+   "also": {
+    "talking with the nurse": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0d883a189b965ef8e0a41ad8c966026a.png",
+    "music class": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e68b5a575761431232b8b95b80aa78b2.png",
+    "dining room": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/6c39899052cc47d8f8159bfae816ff6b.png"
+   }
   },
   "mrs-norbert-art-teacher": {
    "current": null,
@@ -56,6 +61,13 @@
   "michael": {
    "current": null,
    "note": "NO still \u2014 barred crops from the table clip only (michaelAud2)"
+  },
+  "the-rn": {
+   "current": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/bc375a01222171f4f6b810f1b05e8ff3.png",
+   "note": "OG, hop album. Possibly Nurse Mary \u2014 unconfirmed",
+   "also": {
+    "leaving in her coat": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1fc18be6120777a658c97835b4015100.png"
+   }
   }
  },
  "settings": {
@@ -72,5 +84,19 @@
   "headless": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d0470544456526eedcc911e5a03ff93b.png",
   "still-socks": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/929514d99e35b79a0b2bd67972695d08.png",
   "socksSource": "frame 1.0s of the socks b-roll f899742c87d62493f9bad9f60bc7a677.mp4 (cut.json s9broll); no face in it"
+ },
+ "ogHop": {
+  "note": "the OG references \u2014 real photographic stills Sophie dumped, NOT frames off Seedance clips. Dump album \"hop\", 2026-09-09. These beat any clip frame.",
+  "yolanda-sheet": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/aa3b74d4e2b2dbd590ca38051790d066.png",
+  "yolanda-nurse": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0d883a189b965ef8e0a41ad8c966026a.png",
+  "yolanda-music": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e68b5a575761431232b8b95b80aa78b2.png",
+  "yolanda-dining": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/6c39899052cc47d8f8159bfae816ff6b.png",
+  "rn-station": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/bc375a01222171f4f6b810f1b05e8ff3.png",
+  "rn-leaving": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1fc18be6120777a658c97835b4015100.png",
+  "unnamed-grey-sweater": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/89b893eec3d7d45c1f74297a8ba3afbc.png",
+  "unnamed-blonde-studio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3a2610e486f1d30de71562ce9c875d06.png",
+  "unnamed-blazer-portrait": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/f77cd57d13a68589fdabf42683535c92.png",
+  "unnamed-blazer-full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/cb8155bf8390fa93c89385897380bb8a.png",
+  "open": "four of these are unnamed \u2014 Sophie to say who they are. No socks OG in this album."
  }
 }
