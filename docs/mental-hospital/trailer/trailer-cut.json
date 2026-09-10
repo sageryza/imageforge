@@ -1,0 +1,349 @@
+{
+ "clips": [
+  {
+   "key": "t01",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4",
+   "title": "the street \u2014 \"the city gets very hot at night\"",
+   "seconds": 15.104,
+   "in": 0,
+   "out": 4.2,
+   "mute": true
+  },
+  {
+   "key": "t02",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4",
+   "title": "the street \u2014 \"walking around in circles\"",
+   "seconds": 15.104,
+   "in": 6.9,
+   "out": 11.6,
+   "mute": true
+  },
+  {
+   "key": "t03",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0bbd7e598ecc5737245fdd1f6a744b23.mp4",
+   "title": "the spinning \u2014 \"you know that game\"",
+   "seconds": 23.07,
+   "in": 1.0,
+   "out": 5.2,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0bbd7e598ecc5737245fdd1f6a744b23-poster.jpg",
+   "mute": true
+  },
+  {
+   "key": "t04",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0bbd7e598ecc5737245fdd1f6a744b23.mp4",
+   "title": "lying on the manhole \u2014 \"I liked how it felt\"",
+   "seconds": 23.07,
+   "in": 13.5,
+   "out": 19.5,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0bbd7e598ecc5737245fdd1f6a744b23-poster.jpg",
+   "mute": true
+  },
+  {
+   "key": "t05",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/fe455b89abf0f219f3f341ed093b2c1b.mp4",
+   "title": "the woman \u2014 \"a girl. she just fell. I saw her fall.\"",
+   "seconds": 15.042,
+   "in": 4.8,
+   "out": 7.9
+  },
+  {
+   "key": "t07",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e7b1b2cf6a94e6e8e2d9718b0aaefacd.mp4",
+   "title": "the doctor \u2014 \"trouble sitting still\"",
+   "seconds": 15.042,
+   "in": 2.5,
+   "out": 6.7
+  },
+  {
+   "key": "t08",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/060d46557753725caba29f2399a07673.mp4",
+   "title": "the tranquilizer \u2014 \"I don't have trouble sleeping!\"",
+   "seconds": 15.042,
+   "in": 11.6,
+   "out": 15.04
+  },
+  {
+   "key": "t09",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8b3d8ae5ae4e7870752fc5f616081084.mp4",
+   "title": "the black",
+   "seconds": 15.042,
+   "in": 7.0,
+   "out": 8.0
+  },
+  {
+   "key": "t10",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e430d88f60649f5f08c171600337f9dd.mp4",
+   "title": "waking up \u2014 \"three days\" \u00b7 \"this is a mental hospital\"",
+   "seconds": 15.042,
+   "in": 9.3,
+   "out": 15.04,
+   "mute": true
+  },
+  {
+   "key": "t11",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0486bbb4b8d57fd7bfe0ab616167b3c1.mp4",
+   "title": "the dining room \u2014 \"I'm Sophie.\" \"Anastasia.\" \"Michael.\"",
+   "seconds": 30.042,
+   "in": 20.6,
+   "out": 23.2
+  },
+  {
+   "key": "t12",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/860c4b880c3fd591f8dacc6cbfea6394.mp4",
+   "title": "Annie \u2014 \"the rascal is talking to us\"",
+   "seconds": 10.042,
+   "in": 3.2,
+   "out": 8.4
+  },
+  {
+   "key": "t14",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/dfdfa2a1c16f9a34b05622dd8c6119fa.mp4",
+   "title": "the metaphor machine \u2014 \"you put the metaphor into one end\"",
+   "seconds": 30.042,
+   "in": 19.6,
+   "out": 23.9
+  },
+  {
+   "key": "t15",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/81e1d6a54c005ddf09cc0e2e41286277.mp4",
+   "title": "the sculptures \u2014 \"they're not trash, they're art!\"",
+   "seconds": 15.07,
+   "in": 4.9,
+   "out": 10.9,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/81e1d6a54c005ddf09cc0e2e41286277-poster.jpg"
+  },
+  {
+   "key": "t16",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2cf3ba15623df19cfc1201d03ce8f702.mp4",
+   "title": "the office \u2014 \"cut my hand off?\"",
+   "seconds": 20.064,
+   "in": 6.3,
+   "out": 9.3
+  },
+  {
+   "key": "t17",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2cf3ba15623df19cfc1201d03ce8f702.mp4",
+   "title": "the doctor \u2014 \"is cutting your hand off something you've thought about?\"",
+   "seconds": 20.064,
+   "in": 13.5,
+   "out": 17.7
+  },
+  {
+   "key": "t18",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/962709d92d6afd741f16020f526eaf32.mp4",
+   "title": "\"when can I leave?\"",
+   "seconds": 30.08,
+   "in": 20.5,
+   "out": 22.7
+  },
+  {
+   "key": "t19",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/7bc0ac5dfc7d7963fb8ed6a700d546a1.mp4",
+   "title": "\"tomorrow?\"",
+   "seconds": 20.04,
+   "in": 0.0,
+   "out": 1.0,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/7bc0ac5dfc7d7963fb8ed6a700d546a1-poster.jpg"
+  },
+  {
+   "key": "t20",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/7bc0ac5dfc7d7963fb8ed6a700d546a1.mp4",
+   "title": "\"the next day?\"",
+   "seconds": 20.04,
+   "in": 4.2,
+   "out": 6.2,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/7bc0ac5dfc7d7963fb8ed6a700d546a1-poster.jpg"
+  },
+  {
+   "key": "t21",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/7bc0ac5dfc7d7963fb8ed6a700d546a1.mp4",
+   "title": "\"the day after that?\"",
+   "seconds": 20.04,
+   "in": 7.8,
+   "out": 9.3,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/7bc0ac5dfc7d7963fb8ed6a700d546a1-poster.jpg"
+  },
+  {
+   "key": "t22",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/7bc0ac5dfc7d7963fb8ed6a700d546a1.mp4",
+   "title": "\"a little longer than that, I'm afraid\"",
+   "seconds": 20.04,
+   "in": 9.3,
+   "out": 12.1,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/7bc0ac5dfc7d7963fb8ed6a700d546a1-poster.jpg"
+  },
+  {
+   "key": "t23",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/41fb381532b578441349cfd1f7fdb599.mp4",
+   "title": "Ms. O'Hara \u2014 \"all these ghosts, always trying to get me\"",
+   "seconds": 56.88,
+   "in": 29.3,
+   "out": 34.3,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/41fb381532b578441349cfd1f7fdb599-poster.jpg"
+  },
+  {
+   "key": "t24",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/41fb381532b578441349cfd1f7fdb599.mp4",
+   "title": "\"Sophie, be a good girl and go back to your room\"",
+   "seconds": 56.88,
+   "in": 47.6,
+   "out": 51.1,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/41fb381532b578441349cfd1f7fdb599-poster.jpg"
+  },
+  {
+   "key": "t25",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1bd83e9447d37465d3cacf4873e2c30d.mp4",
+   "title": "\"your parents are here\" \u2014 the hug",
+   "seconds": 10.042,
+   "in": 0.3,
+   "out": 4.8
+  },
+  {
+   "key": "t26",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/fa36a5c3fb9c6d019e959849ea347ddf.mp4",
+   "title": "\"you can go now\"",
+   "seconds": 15.07,
+   "in": 10.9,
+   "out": 15.07,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/fa36a5c3fb9c6d019e959849ea347ddf-poster.jpg"
+  }
+ ],
+ "sounds": [
+  {
+   "key": "vo_hot",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/74718feefd645658e06cbe80fc823f0c.m4a",
+   "name": "Sophie \u2014 \"the city gets very hot at night in the summer\"",
+   "in": 0,
+   "out": 3.4,
+   "gain": 0,
+   "fadeIn": 0,
+   "fadeOut": 0,
+   "anchor": {
+    "piece": "t01",
+    "offset": 0.3
+   }
+  },
+  {
+   "key": "vo_circles",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/74718feefd645658e06cbe80fc823f0c.m4a",
+   "name": "Sophie \u2014 \"I was walking around in circles, trying to get my mind right\"",
+   "in": 5.0,
+   "out": 9.6,
+   "gain": 0,
+   "fadeIn": 0,
+   "fadeOut": 0,
+   "anchor": {
+    "piece": "t02",
+    "offset": 0.1
+   }
+  },
+  {
+   "key": "vo_game",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8606e4b82ba19cf41498e965eee95b58.m4a",
+   "name": "Sophie \u2014 \"you know that game you play\u2026\"",
+   "in": 0,
+   "out": 3.96,
+   "gain": 0,
+   "fadeIn": 0,
+   "fadeOut": 0,
+   "anchor": {
+    "piece": "t03",
+    "offset": 0.2
+   }
+  },
+  {
+   "key": "vo_laying",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/80e9019ab89fd7480f81a98ede3d5039.m4a",
+   "name": "Sophie \u2014 \"I liked how it felt, laying there, not moving\u2026\"",
+   "in": 4.9,
+   "out": 10.655,
+   "gain": 0,
+   "fadeIn": 0,
+   "fadeOut": 0,
+   "anchor": {
+    "piece": "t04",
+    "offset": 0.3
+   }
+  },
+  {
+   "key": "jazz_open",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/439758f894bb676f99f0de84dc934a44.m4a",
+   "name": "jazz \u2014 the opening, out under the woman",
+   "in": 0,
+   "out": 17.5,
+   "gain": -10,
+   "fadeIn": 0,
+   "fadeOut": 3.5,
+   "anchor": {
+    "piece": "t01",
+    "offset": 0
+   }
+  },
+  {
+   "key": "wake_a",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/5d6943d01008e0aea5095416522d83c3.m4a",
+   "name": "waking \u2014 \"they said you'd been out for three days\"",
+   "in": 9.3,
+   "out": 11.3,
+   "gain": 0,
+   "fadeIn": 0,
+   "fadeOut": 0,
+   "anchor": {
+    "piece": "t10",
+    "offset": 0.0
+   }
+  },
+  {
+   "key": "wake_b",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/58a9a90e2be4ad110cc5ee1aa5a88d88.m4a",
+   "name": "waking \u2014 \"do you know where you are? this is a mental hospital\"",
+   "in": 0,
+   "out": 3.15,
+   "gain": 0,
+   "fadeIn": 0,
+   "fadeOut": 0,
+   "anchor": {
+    "piece": "t10",
+    "offset": 2.1
+   }
+  },
+  {
+   "key": "jazz_close",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/439758f894bb676f99f0de84dc934a44.m4a",
+   "name": "jazz \u2014 under the parents and the last line",
+   "in": 3.0,
+   "out": 13.2,
+   "gain": -13,
+   "fadeIn": 1.0,
+   "fadeOut": 2.5,
+   "anchor": {
+    "piece": "t25",
+    "offset": 0
+   }
+  }
+ ]
+}

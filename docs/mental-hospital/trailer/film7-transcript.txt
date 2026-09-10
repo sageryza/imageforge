@@ -1,0 +1,189 @@
+    3.8-   7.1 The city gets very hot at night in the summer.
+    9.2-  13.5 I was walking around in circles, trying to get my mind right.
+   15.1-  15.8 What did it matter?
+   17.2-  18.1 Which way I went?
+   19.1-  22.7 You know that game you play where you spin around in circles until you get dizzy?
+   30.8-  31.8 It was warm.
+   31.9-  32.7 The night didn't matter.
+   33.4-  35.3 I liked how it felt, pressing into my skin.
+   36.1-  41.4 I liked how it felt, laying there, not moving, not trying to decide which path to take next.
+   51.2-  52.1 A girl.
+   52.4-  53.0 She just fell.
+   53.1-  53.8 I saw her fall.
+   53.9-  54.9 I think she's had a seizure.
+   55.0-  56.3 I lifted myself up a little.
+   56.5-  57.1 No, I'm fine.
+   57.6-  58.1 Oh, wait.
+   58.2-  58.7 No, wait.
+   58.7-  59.5 I lowered my head.
+   59.7-  60.3 I'm not fine.
+   60.5-  61.7 Let them come.
+   70.4-  70.9 No.
+   85.6-  86.1 Spincher.
+   88.9-  91.0 Ah, I see you're having trouble sitting still.
+   91.5-  92.7 Dr. Pookin can help you with that.
+   92.9-  94.8 Why don't you go into this room right here?
+   99.5- 101.9 No, you have to stay in that room.
+  104.7- 106.2 Lay down on the bed.
+  109.0- 109.9 I won't leave.
+  113.1- 114.5 This will just keep you asleep.
+  114.6- 116.0 But I don't have trouble sleeping!
+  132.4- 132.8 No.
+  132.8- 133.2 Oh, good.
+  133.2- 133.8 You're awake.
+  135.9- 137.6 They said you'd been out for three days.
+  138.5- 139.7 Do you know where you are?
+  140.3- 141.4 This is a mental hospital.
+  142.5- 145.7 The paramedics reported that they found you lying in the middle of the street
+  145.7- 149.9 and that you'd been spinning around in circles and were lost and confused.
+  150.6- 151.9 Oh, yeah, I was.
+  152.6- 155.5 You know the game where you spin until you get tired
+  155.5- 158.4 and then all of a sudden you feel like falling down and then you just do?
+  165.5- 167.4 And what drugs had you taken that day?
+  170.7- 170.7 None.
+  176.7- 179.0 Had you taken mushrooms that day?
+  181.6- 182.1 No.
+  185.7- 188.7 Like I said, I hadn't taken any drugs.
+  190.3- 192.7 She certainly seems like the happy-go-lotty type.
+  195.9- 197.5 She seems very lucid.
+  198.3- 199.9 But then again, you can never tell.
+  200.2- 200.5 Oh.
+  212.0- 212.7 Hey, guys.
+  214.5- 215.5 How do you like this place?
+  216.4- 217.1 Not very much.
+  217.7- 218.6 You're new here, aren't you?
+  219.0- 220.7 Yeah, they gave me something that really knocked me out.
+  220.7- 222.2 I guess they thought I had a sleeping problem.
+  222.3- 224.1 That happened to me when I got here, too.
+  224.5- 226.2 Ugh, that horrible stuff they give you.
+  226.5- 227.2 I'm Sophie.
+  227.7- 228.0 Anastasia.
+  228.4- 228.7 Michael.
+  229.2- 230.7 Did the doctor tell you how long you're going to be in here?
+  231.1- 231.5 No.
+  231.9- 232.6 But I like it here.
+  232.6- 234.3 I'm not sure why everyone wants to leave so quickly.
+  235.4- 237.5 This is the only way to get exercise around here.
+  237.6- 239.3 You know, to stay in shape.
+  240.1- 240.8 How'd you end up in here?
+  242.7- 245.1 A few years ago, I started going on these long walks.
+  245.7- 248.6 I'd get up and just walk and walk and walk for miles and miles.
+  249.5- 252.2 Otherwise, I would start to get, you know, sad.
+  253.6- 254.5 I know the feeling.
+  255.3- 258.6 Sometimes when things get weird, all you can do is walk and try not to think too much.
+  259.8- 260.2 Exactly.
+  270.7- 271.1 Hi.
+  272.0- 272.6 I'm Sophie.
+  273.3- 274.6 Look, Jake Gilliberg.
+  274.9- 276.3 The rascal is talking to us.
+  276.6- 278.1 We must get away from her!
+  282.6- 285.9 Jake will make her leave with his mighty biceps, won't you, Jake?
+  286.4- 287.3 I'm asleep.
+  288.2- 289.7 Jake and Annie get out of the car.
+  290.3- 294.3 Jake tells her that she is much uglier than Annie and that she must get out of Annie's room this instant.
+  294.3- 296.2 Thank you, Jake, says Annie.
+  296.7- 298.9 That's much better now that she's gone.
+  305.2- 306.3 Settle down, ladies.
+  306.6- 307.5 What's going on in here?
+  307.6- 309.5 It's quiet time and the lights are supposed to be out.
+  309.5- 314.2 She keeps turning the lights back on when I turn them off and she won't stop reciting a sitcom about her and Jake Gillingham.
+  314.3- 315.4 It's quiet time, Annie.
+  315.6- 316.6 Please try to get in bed.
+  317.0- 318.6 And Sophie, try to mind your own business.
+  320.7- 322.6 Time for your morning meds.
+  322.8- 323.4 Open your mouth.
+  324.5- 325.2 Good.
+  325.3- 327.3 Now drink some water.
+  329.0- 330.4 Very well done.
+  330.9- 332.3 Now tilt your head back.
+  332.6- 332.8 Good, good.
+  332.8- 333.6 Is it all swallowed?
+  334.1- 334.6 Let's see.
+  335.5- 336.3 Good girl.
+  348.3- 349.5 Can I have those?
+  350.3- 352.9 I'm happy to cut anything that needs cutting for you.
+  354.3- 356.8 Can you tell who's here?
+  371.0- 373.8 Good girl.
+  390.1- 391.5 Yuanda, dit ne on songing.
+  392.0- 393.3 Like others, ian, play in your instrument.
+  394.5- 396.8 Duncan, like daddy, ian, play instrument terse, ifuelay.
+  420.1- 420.5 Oh!
+  421.2- 422.4 What is this mess?
+  422.7- 424.3 And she's taken tape from the art room.
+  424.6- 425.5 Where did you get this tape?
+  425.6- 427.3 It was in my dex drawer when I got here.
+  428.3- 430.2 These tape is not for patients to have in their bedrooms.
+  430.6- 431.6 It is the night, Sophie.
+  431.9- 433.2 Everyone is sleeping except for you.
+  433.6- 434.7 Please, go back to your bed.
+  435.2- 436.4 Can I at least have my thing back?
+  436.9- 438.2 It's called a metaphor machine.
+  438.3- 440.9 You put the metaphor into one end and the story comes out the other end.
+  440.9- 442.6 It turns real things into imaginary things.
+  442.7- 443.0 No!
+  443.3- 445.3 We will show it to the doctor for observation.
+  445.4- 446.5 It is very strange.
+  450.5- 450.8 Sophie!
+  453.8- 455.1 I was just sitting on the toilet.
+  455.4- 457.4 And then, I don't know, I just all of a sudden felt like I was going to faint.
+  457.4- 458.5 I've never fainted before, but...
+  458.5- 459.0 Were you straining?
+  494.4- 496.1 Where did all my sculptures go?
+  497.4- 497.9 This is trash.
+  497.9- 499.1 They're not trash!
+  499.2- 499.8 They're art!
+  500.2- 502.7 And you're a horrible person for throwing them away without telling me.
+  507.7- 509.6 Can I borrow those for a second?
+  511.9- 512.9 I suppose.
+  518.0- 520.6 I heard some interesting news from the art teacher.
+  521.9- 525.4 She says you took a pair of scissors to your room during art class today.
+  525.6- 526.7 Do you remember doing that, Sophie?
+  527.4- 530.6 Yes, but I only did it because I needed some scissors to cut these pants.
+  531.1- 534.1 Yes, well, it's against the rules to take scissors to your room in here.
+  534.1- 534.7 Did you know that?
+  535.6- 537.9 Yes, but no, but I wasn't sure.
+  538.4- 541.4 Because the teacher said I could use them, but I wasn't finished with my project,
+  541.5- 543.3 so I took them back to my room so I could finish.
+  545.8- 547.8 And I gave them back as soon as she asked for them.
+  548.2- 550.5 But you knew you weren't supposed to take them out of the class.
+  551.2- 552.0 I wasn't sure.
+  552.8- 554.7 But anyway, I didn't do anything with them.
+  555.0- 556.9 What did you think I would do with them? Cut my hand off?
+  557.1- 559.0 I know how to use scissors. I'm not an idiot.
+  562.2- 565.2 Is cutting your hand off something you've thought about doing, Sophie?
+  570.1- 570.5 No.
+  572.6- 574.4 Let's just have our meeting then, shall we?
+  575.4- 577.3 What's it about today? Do you have more pills for me to take?
+  578.7- 580.4 Just the same ones you haven't been taking.
+  582.3- 584.5 No, today's meeting will be about something a bit different,
+  585.0- 587.6 but we'll have to wait for my assistant in order to discuss it.
+  589.4- 590.4 When can I leave?
+  595.3- 596.0 Sorry, I'm late.
+  598.7- 599.1 Tomorrow?
+  603.0- 603.9 The next day?
+  606.6- 607.7 The day after that?
+  608.0- 609.9 You're going to be here a little longer than that, I'm afraid.
+  610.5- 612.3 And if you aren't able to follow the treatment procedure,
+  612.5- 615.8 we'll be forced to get a judge to determine whether you're mentally stable enough to be making your own decisions.
+  618.3- 620.1 And judging by your performance in class today,
+  620.2- 622.9 I'm fairly certain I know what that decision's going to be.
+  629.9- 632.9 You can go now.
+  648.6- 650.8 I don't mind the treatment so much.
+  651.7- 653.6 I just don't like what it does to my memory.
+  654.6- 656.1 To help your mind, Mrs. O'Hara.
+  656.7- 659.4 To help you stop having those visions.
+  661.4- 662.3 Oh, yes.
+  663.3- 665.8 The world is a very dismal place, isn't it?
+  667.4- 671.9 There are all these ghosts, and they're always trying to get me!
+  671.9- 673.5 Shh, Mrs. O'Hara.
+  674.1- 676.9 After your treatment, you'll feel much better.
+  677.7- 679.4 Are you ready to be wheeled, Mrs. O'Hara?
+  685.6- 687.9 Sophie, be a good girl and go back to your room.
+  688.2- 690.1 There's no use being in other people's business.
+  696.2- 699.1 Sophie, your parents are here to see you.
+  701.8- 702.3 Sophie!
+  712.2- 713.2 You're lucky.
+  713.9- 716.0 Dr. Granson has only given you one pill.
+  716.7- 719.4 Some of the other patients take a whole cup full.
+  726.8- 728.2 Here.
+  728.2- 729.2 Very good.
