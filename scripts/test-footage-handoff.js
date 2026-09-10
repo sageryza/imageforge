@@ -115,7 +115,7 @@ const readState = () => ({
   model: document.getElementById('model').value,
   secs: document.getElementById('secs').value,
   res: document.getElementById('res').value,
-  ratio: (document.querySelector('#ratios button.on') || {}).textContent || '',
+  ratio: (document.getElementById('ratio') || {}).value || '',
   key: localStorage.getItem('footage_handoff'),
   draft: localStorage.getItem('footage_draft'),
   toast: (document.getElementById('toast').classList.contains('show') ? document.getElementById('toast').textContent : ''),
@@ -141,7 +141,7 @@ const readState = () => ({
     if (pre) await page.evaluate(pre);
     if (h !== null) await page.evaluate(arm(h));
     await page.goto(base + '/footage');
-    await page.waitForSelector('#ratios button');
+    await page.waitForFunction(() => document.querySelectorAll('#ratio option').length > 0);
     await page.waitForFunction(() => /¢$/.test(document.getElementById('cost').textContent));
     await page.waitForTimeout(500);
     return { ctx, page };
@@ -173,7 +173,7 @@ const readState = () => ({
   // and it really does not come back on the next load
   await one.page.waitForTimeout(3000);              // let the toast time itself out
   await one.page.reload();
-  await one.page.waitForSelector('#ratios button');
+  await one.page.waitForFunction(() => document.querySelectorAll('#ratio option').length > 0);
   await one.page.waitForTimeout(600);
   const s1b = await one.page.evaluate(readState);
   ok('a reload keeps the words (from the draft) and raises NO second toast — ' + JSON.stringify(s1b.toast),
@@ -230,7 +230,7 @@ const readState = () => ({
   await six.page.goto(base + '/belt');
   await six.page.evaluate(arm(handoff(port, { title: 'Scene 40', prompt: 'the sun room, camera at eye level' })));
   await six.page.goBack();
-  await six.page.waitForSelector('#ratios button');
+  await six.page.waitForFunction(() => document.querySelectorAll('#ratio option').length > 0);
   let back = false;
   try { await six.page.waitForFunction(() => /the sun room/.test(document.getElementById('prompt').value), null, { timeout: 6000 }); back = true; } catch (_) {}
   const s6 = await six.page.evaluate(readState);
