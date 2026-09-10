@@ -40,6 +40,18 @@ SHOT = {'j-13', 'j-md-23a1', 'j-md-23a2', 'j-md-23b',
         'j-ohara-aud', 'j-36a1', 'j-36aA', 'j-36aA2', 'j-36b', 'j-37',
         'j-43a'}
 
+# Which chat and which verdict SHEET each belt page saves her edits on — read off
+# each page's own `CHAT = …, SHEET = …` line (2026-09-10). The Send-to-Footage
+# button reads the sheet so her latest words ride, not the baked ones.
+SHEETS = {
+  P1:   ('part-one-city-powers',         'part-one'),
+  PILL: ('pull-scenes-risperdal',        'belt-pills'),
+  SOAP: ('soap-pill-scene',              'belt-soap'),
+  MD:   ('hospital-night-film',          'belt-md'),
+  BODY: ('video-editing-continuity',     'belt-body'),
+  OH:   ('hospital-severance-rough-cut', 'belt-48'),
+}
+
 # (section, [(page, anchor, word, icon, full title)])
 SCENES = [
  ('Part one — the city', [
@@ -106,6 +118,10 @@ HELP = ("<p><b>Every scene of the ward film that has to be shot, in film order.<
         "page that holds it — your words, the references, the seconds, and Send. "
         "Nothing here sends anything. <b>The deeper blue is a scene already shot</b> — a "
         "finished clip is on the log for that card; the pale ones are still to send.</p>"
+        "<p><b>The little clapperboard on each key</b> opens the Footage tool with that scene "
+        "already in the box — the reference lines and your words as they stand on the belt "
+        "page right now, every reference in its slot, Mini · the card's seconds · 480p · "
+        "landscape. Nothing is sent until you press the star there.</p>"
         "<p>The ward film's scenes are spread over seven belt pages in seven chats, so the "
         "buttons land in different places; where two pages held the same scene, the newest "
         "one won.</p>")
@@ -130,10 +146,14 @@ def build():
             lab = '%d · %s' % (n, title)
             if anchor in SHOT:
                 lab += ' — shot'
+            key = anchor[2:]  # the card's data-key: j-md-33 → md-33
             tiles.append(
-                '<a class="b%s" href="/api/chatfeed/page/%s#%s" aria-label="%s" title="%s">%s<span>%s</span></a>'
-                % (' shot' if anchor in SHOT else '', page, anchor, esc(lab), esc(lab), svg(icon), esc(word)))
-    return n, HEAD + '\n'.join(tiles) + TAIL % json.dumps(HELP)
+                '<div class="cell"><a class="b%s" href="/api/chatfeed/page/%s#%s" aria-label="%s" title="%s">%s<span>%s</span></a>'
+                '<a class="ff" href="%s/footage" target="_blank" rel="noopener" data-page="%s" data-key="%s" data-title="%s" '
+                'aria-label="Send to Footage — %s" title="Send to Footage">%s</a></div>'
+                % (' shot' if anchor in SHOT else '', page, anchor, esc(lab), esc(lab), svg(icon), esc(word),
+                   BASE, page, esc(key), esc(title), esc(title), svg('clapperboard')))
+    return n, HEAD + '\n'.join(tiles) + TAIL % (json.dumps(HELP), json.dumps({k: {'chat': c, 'sheet': sh} for k, (c, sh) in SHEETS.items()}))
 
 
 HEAD = """<meta charset="utf-8">
@@ -161,6 +181,21 @@ HEAD = """<meta charset="utf-8">
 .b:active{transform:translateY(3px);box-shadow:0 0 0 var(--edge),0 0 0 1.5px var(--tileink)}
 .b svg{width:20px;height:20px;width:36cqw;height:36cqw;display:block;color:var(--tileink)}
 .b span{font:700 8px/1 -apple-system,'Helvetica Neue',sans-serif;font-size:15cqw;letter-spacing:.02em;text-transform:uppercase;white-space:nowrap;color:var(--tileink)}
+/* SEND TO FOOTAGE (2026-09-10, Sophie: "a button that sends it w refs to
+   footage"). A small key in the tile's own top-right corner — its OWN tap
+   target (a 30px hit area behind an 18px mark, never overflowing the tile, so
+   the neighbour's key is never under it), and a real link to the Footage tool:
+   on her phone the app opens the tool. Before it goes it writes the hand-off
+   the Footage page reads (localStorage `footage_handoff`, same origin) — the
+   card's reference lines + her words, every reference by its slot, Mini · the
+   card's seconds · 480p · 16:9. Nothing is sent by this tap; the star is hers. */
+.cell{position:relative}
+.cell .b{width:100%;box-sizing:border-box;padding-top:9px}
+.ff{position:absolute;top:2px;right:2px;width:16px;height:16px;display:flex;align-items:center;justify-content:center;
+    background:#fff;border:1.5px solid var(--tileink);border-radius:4px;color:var(--tileink);text-decoration:none;-webkit-tap-highlight-color:transparent}
+.ff::before{content:"";position:absolute;top:-6px;right:-6px;bottom:-6px;left:-6px}
+.ff svg{width:10px;height:10px;display:block}
+.ff.busy{opacity:.45}
 .ep{grid-column:1/-1;font:700 10px/1.2 -apple-system,'Helvetica Neue',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);margin:14px 0 0}
 .ep:first-child{margin-top:2px}
 </style>
@@ -168,11 +203,47 @@ HEAD = """<meta charset="utf-8">
 <h1>__TITLE__</h1>
 <div class="grid">"""
 
-TAIL = """</div>
+TAIL = r"""</div>
 </div>
 <script src="/compare.js"></script>
 <script>
-(function(){ window.__compareHelp({html: %s}); })();
+(function(){
+window.__compareHelp({html: %s});
+// SEND TO FOOTAGE. The scene's words and references live on its BELT PAGE, not
+// here, so a tap reads that page (same origin — the posted html, cached once)
+// and the verdict sheet it saves her edits on, assembles the hand-off exactly
+// the way the belt's own button does, writes it, and lets the link go.
+var SHEETS=%s, pages={}, sheets={};
+function getPage(id){ return pages[id] || (pages[id]=fetch('/api/chatfeed/page/'+id).then(function(r){return r.text();}).then(function(t){ return new DOMParser().parseFromString(t,'text/html'); })); }
+function getSheet(id){ var s=SHEETS[id]; if(!s) return Promise.resolve({}); return sheets[id] || (sheets[id]=fetch('/api/chatfeed/verdict?chat='+encodeURIComponent(s.chat)+'&sheet='+encodeURIComponent(s.sheet)).then(function(r){return r.json();}).then(function(d){ return (d&&d.texts)||{}; }).catch(function(){ return {}; })); }
+function kindOf(u){ return /\.(mp4|mov|webm|m4v)(\?|$)/i.test(u)?'video':/\.(mp3|m4a|wav|aac|ogg)(\?|$)/i.test(u)?'audio':'image'; }
+function slotNo(t){ var m=/(?:video|image|audio)\s*(\d+)/i.exec(t||''); return m?parseInt(m[1]):999; }
+function build(doc,texts,key){
+  var card=doc.querySelector('.card[data-key="'+key+'"]'); if(!card) throw new Error('no card');
+  function field(f){ var k=f?key+'.'+f:key; if(typeof texts[k]==='string') return texts[k]; var ta=card.querySelector('.p[data-key="'+key+'"]'+(f?'[data-field="'+f+'"]':':not([data-field])')); return ta?ta.value:''; }
+  var parts=[field('cont'),field('mine'),field('')].map(function(x){return (x||'').trim();}).filter(Boolean);
+  var secs=parseInt(typeof texts[key+'.s']==='string'?texts[key+'.s']:((card.querySelector('.secs[data-key="'+key+'"]')||{}).value||''));
+  var vids=[],imgs=[];
+  card.querySelectorAll('.vid a[href]').forEach(function(a){ var t=a.parentNode.textContent||''; vids.push({n:slotNo(t),url:a.getAttribute('href'),kind:kindOf(a.getAttribute('href')),name:(a.textContent||'').trim()}); });
+  card.querySelectorAll('.refs figure').forEach(function(f){ var im=f.querySelector('img'), c=f.querySelector('figcaption'); if(!im) return; var t=(c&&c.textContent)||''; imgs.push({n:slotNo(t),url:im.getAttribute('src'),kind:'image',name:t.replace(/^\s*image\s*\d+\s*[—-]\s*/i,'').trim()}); });
+  vids.sort(function(a,b){return a.n-b.n;}); imgs.sort(function(a,b){return a.n-b.n;});
+  var refs=vids.concat(imgs).map(function(r){ return {url:r.url,kind:r.kind,name:r.name}; });
+  return {prompt:parts.join('\n\n'),refs:refs,model:'mini',seconds:secs||undefined,res:'480p',ratio:'16:9'};
+}
+var ready={};
+document.querySelectorAll('.ff').forEach(function(a){
+  var id=a.getAttribute('data-page'), key=a.getAttribute('data-key');
+  function assemble(){ return Promise.all([getPage(id),getSheet(id)]).then(function(r){ var h=build(r[0],r[1],key); h.from='ward-film-page-duplicate'; h.title=a.getAttribute('data-title'); h.at=Date.now(); return h; }); }
+  // Warm the belt page under the thumb so the tap itself is one write.
+  a.addEventListener('pointerdown',function(){ getPage(id); getSheet(id); },{passive:true});
+  a.addEventListener('click',function(ev){
+    if(ready[id+'/'+key]){ var h=ready[id+'/'+key]; h.at=Date.now(); try{ localStorage.setItem('footage_handoff',JSON.stringify(h)); }catch(e){} return; }
+    ev.preventDefault(); a.classList.add('busy');
+    assemble().then(function(h){ ready[id+'/'+key]=h; try{ localStorage.setItem('footage_handoff',JSON.stringify(h)); }catch(e){} a.classList.remove('busy'); var w=window.open(a.href,'_blank'); if(!w) location.href=a.href; })
+      .catch(function(){ a.classList.remove('busy'); alert('Could not read that scene off its belt page — open the card instead.'); });
+  });
+});
+})();
 </script>
 """
 
