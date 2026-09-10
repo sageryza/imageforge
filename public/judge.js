@@ -243,11 +243,15 @@
     // white box like the others, and lifted above the browse zones (see
     // linkHtml). `align-self:center` keeps the hit area to the words: a
     // full-width anchor inside the card would swallow the taps that page it.
-    '.jg-momlink{position:relative;z-index:3;display:flex;justify-content:center;}' +
-    '.jg-momlink a{display:inline-block;background:#FFFDF8;border:1px solid #E7DECF;' +
+    '.jg-momlink{position:relative;z-index:3;display:flex;justify-content:center;' +
+    ' gap:8px;flex-wrap:wrap;}' +
+    // the FOOTAGE button is the link's twin, not a second look — one rule for
+    // both, so a card carrying each shows two of the same kind of door
+    '.jg-momlink a,.jg-momlink button{display:inline-block;background:#FFFDF8;' +
+    ' border:1px solid #E7DECF;' +
     ' border-radius:6px;padding:9px 14px;text-decoration:none;color:#C25E4C;' +
     ' font:700 11px/1.2 -apple-system,sans-serif;letter-spacing:.12em;' +
-    ' text-transform:uppercase;}' +
+    ' text-transform:uppercase;cursor:pointer;}' +
     // A SPREAD ON ONE CARD: the pictures share the width so they are compared
     // rather than scrolled between, each under its own name. They shrink as a
     // spread grows — two get half each, three a third — which is the whole
@@ -1714,11 +1718,23 @@
     // spread does: the zones are 26%-wide strips at z-index 2 and a centred
     // link lands between them, but its ENDS reach into them, so a thumb
     // slightly off centre would page the deck instead of opening the link.
+    // …and beside it, THE FOOTAGE DOOR (2026-09-10, her ask on the scene
+    // deck). It fills the Footage page's box with this card's words and its
+    // references and takes her there — it SENDS NOTHING; the star on that
+    // page is still her tap. See footageGo below for the hand-off itself.
     function linkHtml(it) {
-      if (!it || !it.link || !it.link.url) return '';
-      return '<div class="jg-momlink"><a href="' + esc(it.link.url) + '"'
-        + ' target="_blank" rel="noopener">' + esc(it.link.label || 'Open')
-        + ' ›</a></div>';
+      if (!it) return '';
+      var inner = '';
+      if (it.link && it.link.url) {
+        inner += '<a href="' + esc(it.link.url) + '"'
+          + ' target="_blank" rel="noopener">' + esc(it.link.label || 'Open')
+          + ' ›</a>';
+      }
+      if (it.footage && it.footage.prompt) {
+        inner += '<button type="button" data-footage="' + esc(it.id) + '">'
+          + 'Footage ›</button>';
+      }
+      return inner ? '<div class="jg-momlink">' + inner + '</div>' : '';
     }
     function mediaHtml(it, hoisted) {
       return mediaBody(it, hoisted) + linkHtml(it);
@@ -2168,7 +2184,8 @@
           + (browse ? '<button class="jg-navzone prev" data-act="prev" aria-label="Back"></button>'
             + '<button class="jg-navzone next" data-act="next" aria-label="Forward"></button>' : '')
           + '<div class="jg-card' + (momUI ? ' momcard' : '')
-          + (momUI && it.link && it.link.url ? ' linkroom' : '') + ctl
+          + (momUI && ((it.link && it.link.url) || (it.footage && it.footage.prompt))
+            ? ' linkroom' : '') + ctl
           + (flash ? ' jg-flash' : '') + '">'
           + mediaHtml(it, momUI)
           // a date card carries no label line, no corner note and no mic —
@@ -2374,7 +2391,41 @@
       document.body.appendChild(h);
     }
 
+    // ── THE FOOTAGE HAND-OFF (2026-09-10). A Compare page is same-origin
+    // with /footage, so the whole hand-off is one localStorage key: we write
+    // it, the Footage page reads it, APPLIES it and REMOVES it (its own rule,
+    // which is what makes it land exactly once). Nothing is sent from here.
+    //
+    // The walk must reach the TOP window: inside the app this deck runs in an
+    // iframe of chats.html, so `location.href` here would load the Footage
+    // page INSIDE the page viewer. Same-origin, so `window.top` is readable —
+    // and a cross-origin host (which nothing here is) falls back to our own.
+    function footageGo(it) {
+      var f = it && it.footage;
+      if (!f || !f.prompt) return;
+      var hand = { prompt: f.prompt, refs: f.refs || [], at: Date.now() };
+      ['title', 'from', 'model', 'seconds', 'res', 'ratio', 'seed'].forEach(function (k) {
+        if (f[k] !== undefined && f[k] !== '') hand[k] = f[k];
+      });
+      try { localStorage.setItem('footage_handoff', JSON.stringify(hand)); }
+      catch (err) { /* a private window: the walk is still better than nothing */ }
+      var w = window;
+      try { if (window.top && window.top.location.origin === location.origin) w = window.top; }
+      catch (err) { w = window; }
+      w.location.href = '/footage';
+    }
+
     mount.addEventListener('click', function (e) {
+      var fg = e.target && e.target.closest ? e.target.closest('[data-footage]') : null;
+      if (fg) {
+        var fid = fg.getAttribute('data-footage'), fit = null;
+        items.forEach(function (x) {
+          if (x.id === fid) fit = x;
+          (x.cards || []).forEach(function (c) { if (c.id === fid) fit = c; });
+        });
+        if (fit) footageGo(fit);
+        return;
+      }
       // the picture: hers to open, not compare.js's (see `views` above)
       var z = e.target && e.target.closest ? e.target.closest('[data-zoom]') : null;
       if (z && views) {

@@ -117,6 +117,49 @@ function cleanLink(raw) {
   return { url, label: STR(bare ? '' : raw.label, 60) || 'Open' };
 }
 
+// THE FOOTAGE HAND-OFF (2026-09-10, Sophie, on the Ticky Tack scene deck:
+// "can u add a 'footage' button that sends those words to footage module").
+// A Compare page runs same-origin, so the hand-off needs no route: the button
+// writes `footage_handoff` in localStorage and walks the TOP window to
+// /footage, which CONSUMES the key on arrival (its own four moments). This is
+// the SAME contract the belt pages write — see *A BELT SCENE HANDS ITS WHOLE
+// JOB TO THIS PAGE* in CLAUDE.md — so the shape is copied, never invented.
+//
+// It only ever FILLS THE BOX. Nothing is sent, the star is still her tap, and
+// the item carries no door of its own — which is why this is safe to put on
+// every card where `applyArchive` had to be one declared action per page.
+const FOOTAGE_REF_KINDS = new Set(['image', 'video', 'audio']);
+function cleanFootage(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const prompt = STR(raw.prompt, 4000);
+  if (!prompt) return null;                     // no words, no hand-off
+  const out = { prompt };
+  const title = STR(raw.title, 200); if (title) out.title = title;
+  const from = STR(raw.from, 200); if (from) out.from = from;
+  const model = STR(raw.model, 60); if (model) out.model = model;
+  const res = STR(raw.res, 20); if (res) out.res = res;
+  const ratio = STR(raw.ratio, 20); if (ratio) out.ratio = ratio;
+  const seed = STR(raw.seed, 24); if (seed) out.seed = seed;
+  const secs = Number(raw.seconds);
+  if (Number.isFinite(secs) && secs > 0) out.seconds = Math.round(secs);
+  if (Array.isArray(raw.refs)) {
+    const refs = [];
+    for (const r of raw.refs.slice(0, 12)) {
+      const url = STR(r && (typeof r === 'string' ? r : r.url), 500);
+      if (!LINK_URL.test(url)) continue;        // http(s) only, like cleanLink
+      const ref = { url };
+      const kind = STR(r && r.kind, 12).toLowerCase();
+      ref.kind = FOOTAGE_REF_KINDS.has(kind) ? kind : 'image';
+      const poster = STR(r && r.poster, 500);
+      if (LINK_URL.test(poster)) ref.poster = poster;
+      const name = STR(r && r.name, 120); if (name) ref.name = name;
+      refs.push(ref);
+    }
+    if (refs.length) out.refs = refs;
+  }
+  return out;
+}
+
 function cleanItem(raw, taken, fallback) {
   if (!raw || typeof raw !== 'object') return null;
   const it = {};
@@ -205,6 +248,10 @@ function cleanItem(raw, taken, fallback) {
   // a template page needs a non-http link, so the narrow rule is the safe one.
   const link = cleanLink(raw.link);
   if (link) it.link = link;
+  // …and the card's way OUT INTO THE FOOTAGE PAGE, same reasoning: the words
+  // are a field and the renderer decides what the button is (cleanFootage).
+  const footage = cleanFootage(raw.footage);
+  if (footage) it.footage = footage;
   // WHICH CHAT THIS CARD IS ABOUT (Aug 2026) — set only on a page that also
   // declares `applyArchive`, where her verdict on the card archives the chat
   // itself. See applyArchive in validateTemplate below for why this is a slug
