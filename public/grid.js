@@ -268,6 +268,35 @@
 
     function openAsset(it) { views.open(it); }
 
+    // ── THE FOOTAGE DOOR (2026-09-10, Sophie: "add a 'footage' button that
+    // sends those words to footage module"). The same button the swipe view
+    // draws (judge.js), so the two views of one page agree: a Compare page is
+    // same-origin with /footage, so the hand-off is ONE localStorage key —
+    // written here, read + applied + REMOVED there. Nothing is sent; the star
+    // on that page is still her tap.
+    function footageBtn(it) {
+      if (!it || !it.footage || !it.footage.prompt) return '';
+      return '<button type="button" class="gd-prompt" data-footage="'
+        + esc(it.id) + '">FOOTAGE</button>';
+    }
+    // The walk must reach the TOP window: inside the app this page runs in an
+    // iframe of chats.html, so our own `location` would load /footage inside
+    // the page viewer.
+    function footageGo(it) {
+      var f = it && it.footage;
+      if (!f || !f.prompt) return;
+      var hand = { prompt: f.prompt, refs: f.refs || [], at: Date.now() };
+      ['title', 'from', 'model', 'seconds', 'res', 'ratio', 'seed'].forEach(function (k) {
+        if (f[k] !== undefined && f[k] !== '') hand[k] = f[k];
+      });
+      try { localStorage.setItem('footage_handoff', JSON.stringify(hand)); }
+      catch (err) { /* a private window: the walk still beats nothing */ }
+      var w = window;
+      try { if (window.top && window.top.location.origin === location.origin) w = window.top; }
+      catch (err) { w = window; }
+      w.location.href = '/footage';
+    }
+
     function actsHtml(it) {
       var h = '';
       if (states) {
@@ -278,6 +307,7 @@
         if (it.promptContent || it.promptStyle) {
           h += '<button type="button" class="gd-prompt" data-prompt="' + esc(it.id) + '">PROMPT</button>';
         }
+        h += footageBtn(it);
         return h;
       }
       // ✕ · PROMPT · ♥ — the prompt button in the MIDDLE (Sophie, Aug 2026),
@@ -289,6 +319,7 @@
       }
       h += '<button type="button" class="gd-vote yes" data-v="true" data-id="' + esc(it.id)
         + '" aria-label="Love">' + I.heart + '</button>';
+      h += footageBtn(it);
       return h;
     }
 
@@ -490,8 +521,11 @@
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hidePrompt(); });
 
     mount.addEventListener('click', function (e) {
-      var b = e.target && e.target.closest ? e.target.closest('[data-v],[data-prompt],[data-lb]') : null;
+      var b = e.target && e.target.closest
+        ? e.target.closest('[data-v],[data-prompt],[data-lb],[data-footage]') : null;
       if (!b) return;
+      var fid = b.getAttribute('data-footage');
+      if (fid) { var fit = byId[fid]; if (fit) footageGo(fit); return; }
       var lid = b.getAttribute('data-lb');
       if (lid) { var lit = byId[lid]; if (lit) openAsset(lit); return; }
       var pid = b.getAttribute('data-prompt');

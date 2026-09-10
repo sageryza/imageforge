@@ -29,7 +29,8 @@
 
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const CHAT = 'tiki-tack-draft-commit';   // the chat the scenes came from
-const TITLE = 'Ticky Tack — the scenes v1 (56)';
+const TITLE = 'Ticky Tack — the scenes v2 (56)';
+const SUPERSEDES = 'w5o16p9vFiFU4dOP0Avh';   // v1
 
 const S = {
   climax: 'Shoot first — the climax',
@@ -402,6 +403,19 @@ const items = [
   },
 ];
 
+// EVERY CARD CARRIES A FOOTAGE HAND-OFF (2026-09-10, Sophie: "can u add a
+// 'footage' button that sends those words to footage module"). The scene's
+// own words become the prompt on /footage, with the scene name as the title.
+//
+// Deliberately NO model, seconds, resolution or shape: /footage remembers the
+// model and the shape she last used and opens seconds and resolution at the
+// MINIMUM, and a hand-off that names them would silently override her own
+// settings. Nothing is sent either way — the button fills the box and the
+// star is still her tap.
+for (const it of items) {
+  it.footage = { prompt: it.text, title: it.who, from: 'Ticky Tack' };
+}
+
 const data = {
   items,
   voice: true,
@@ -436,6 +450,13 @@ async function main() {
   console.log('posted:', j.id || j);
   if (j.warnings && j.warnings.length) console.log('WARNINGS:', j.warnings);
   console.log(`page: ${BASE}/api/chatfeed/page/${j.id}`);
+  if (SUPERSEDES) {
+    const sr = await fetch(`${BASE}/api/chatfeed/page/${SUPERSEDES}/supersede`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ superseded: true }),
+    });
+    console.log('superseded', SUPERSEDES, sr.status);
+  }
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
