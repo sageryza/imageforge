@@ -7480,6 +7480,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
     look identical in the source; the `storage` moment is driven by a SECOND
     page in the same context, which is the only honest way to ask. Verified
     failing 20 pre-fix.)
+  **THE RECENT BOX KEEPS VIDEOS, NOT JUST STILLS (2026-09-10, Sophie).** The
+  history drawer listed the REFERENCES off earlier cards only, and hers are
+  mostly stills — measured on her live feed that day, **nine tiles, two of
+  them videos, and both drew their POSTER**, so the box read as nine stills
+  and the one thing this draft keeps needing (the shot before, to carry a
+  person and a room into the next clip) was reachable only by finding the
+  clip on the wall and putting its prompt back. Now `recentItems()` lists a
+  job's own FINISHED CLIP ahead of that job's references, newest job first,
+  so the shot she just drew is the first tile; a video with a poster wears a
+  small film mark in its corner (a video with none already draws the film
+  glyph, so it needs no mark). Three things not to undo: a clip she **crossed
+  out or hid is not offered** (it is not one to chain from) and neither is one
+  still drawing; the dedupe is **by url across both kinds**, so a clip that
+  was also used as a reference is one tile; and `castVote` repaints the drawer
+  — a ✕ she just cast has to stop offering that clip. Test:
+  `node scripts/test-footage-recent.js` (every assertion a MEASUREMENT of the
+  rendered drawer or of what the send really POSTs — a poster and a still are
+  the same markup, and a lit thumb says nothing about what left the phone;
+  verified failing 8 pre-fix).
   **THE SEED IS ON THE CARD AND IN A BOX SHE CAN TYPE IN (2026-09-10, Sophie:
   "put a seed box that exposes the seed after the clip is drawn and put a copy
   button next to it so I can reuse the seed … make it into a text box so I can

@@ -187,10 +187,16 @@
   .up{position:relative;overflow:hidden}
   .up input{position:absolute;inset:0;opacity:0;font-size:0}
   #recent{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
-  #recent .rc{width:52px;height:52px;border:1px solid #e0d8ca;border-radius:6px;overflow:hidden;padding:0;background:#2b2620;color:#f6f2ea;
+  #recent .rc{position:relative;width:52px;height:52px;border:1px solid #e0d8ca;border-radius:6px;overflow:hidden;padding:0;background:#2b2620;color:#f6f2ea;
               display:flex;align-items:center;justify-content:center}
   #recent .rc img{width:100%;height:100%;object-fit:cover;display:block}
   #recent .rc svg{width:20px;height:20px}
+  /* A VIDEO WEARS A FILM MARK OVER ITS POSTER — a clip's poster IS a still,
+     so without it a video tile and a picture tile are the same tile. Only
+     over a picture: a video with no poster already draws the film glyph. */
+  #recent .rc .bdg{position:absolute;right:2px;bottom:2px;width:15px;height:15px;border-radius:4px;background:rgba(43,38,32,.85);
+                   display:flex;align-items:center;justify-content:center;pointer-events:none}
+  #recent .rc .bdg svg{width:11px;height:11px}
   #rectog.on{border-color:#2b2620}
   /* Feed */
   .feedbar{display:flex;align-items:center;gap:8px;margin:0 0 10px;flex-wrap:wrap}
@@ -330,7 +336,7 @@
   <button type="button" class="fold" id="ctlfold" aria-expanded="true" aria-controls="controls"><span class="chev"></span><span id="ctlfoldlab">Buttons</span></button>
   <div class="row" id="controls">
     <button class="up ib" type="button" id="add" aria-label="Add a reference" title="Add a reference"><span id="addicon"></span><input type="file" accept="image/*,video/*,audio/*" multiple id="file"></button>
-    <button id="rectog" type="button" aria-expanded="false" aria-label="References you have used before" title="References you have used before" hidden></button>
+    <button id="rectog" type="button" aria-expanded="false" aria-label="Recent — clips you made and references you have used" title="Recent — clips you made and references you have used" hidden></button>
     <!-- NO MODEL CHOICE — MINI ONLY (2026-09-10, Sophie: "get rid of the
          model choice · just mini for now"). The page pins `mini`; the
          served table still carries the rest for the day she asks. -->
@@ -720,31 +726,50 @@ $('file').addEventListener('change', function (e) {
     });
   }, Promise.resolve()).then(function () { if (n) toast(n === 1 ? 'Attached' : 'Attached ' + n); });
 });
-// Recently used — the references on earlier cards, newest first, one tap to
-// attach again. Derived from the feed; nothing is stored for it.
+// Recent — HER OWN CLIPS AS WELL AS THE REFERENCES SHE HAS USED (2026-09-10,
+// Sophie: "make the recent box keep videos, not just stills"). It held the
+// references off earlier cards only, and those are mostly stills, so the one
+// video this draft keeps needing — the shot before, to carry a person and a
+// room into the next clip — was never in the box: she had to find it on the
+// wall, play it, and put its prompt back to get at it. A finished clip is
+// listed with its job, ahead of that job's own references, so the shot she
+// just drew is the first tile. Derived from the feed; nothing is stored.
 var recentOpen = false;
 $('rectog').addEventListener('click', function () { recentOpen = !recentOpen; paintRecent(); });
-function recentRefs() {
+function recentItems() {
   var seen = {}, out = [];
+  var add = function (it) { if (it.url && !seen[it.url]) { seen[it.url] = 1; out.push(it); } };
   Object.keys(jobsById).map(function (k) { return jobsById[k]; })
     .sort(function (a, b) { return String(b.sentAt).localeCompare(String(a.sentAt)); })
-    .forEach(function (j) { (j.refs || []).forEach(function (r) { if (r.url && !seen[r.url]) { seen[r.url] = 1; out.push(r); } }); });
+    .forEach(function (j) {
+      // a clip she crossed out is not one to draw the next shot from, and a
+      // hidden one is off the wall — neither is offered
+      if (j.status === 'done' && j.video && !j.hidden && j.vote !== 'dislike') {
+        add({ url: j.video, kind: 'video', poster: j.poster || '', name: j.title || String(j.prompt || '').slice(0, 60), mine: true });
+      }
+      (j.refs || []).forEach(function (r) { add({ url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' }); });
+    });
   return out.slice(0, 24);
 }
 function paintRecent() {
-  var list = recentRefs();
+  var list = recentItems();
   $('rectog').hidden = !list.length;
   $('rectog').classList.toggle('on', recentOpen);
   $('rectog').setAttribute('aria-expanded', recentOpen ? 'true' : 'false');
   var el = $('recent');
   el.hidden = !(recentOpen && list.length);
-  var sig = list.map(function (r) { return r.url; }).join('|');
+  // the poster is baked behind a finished clip, so it rides the signature —
+  // otherwise the tile keeps the film glyph it first drew with
+  var sig = list.map(function (r) { return r.url + '\u0000' + (r.poster || ''); }).join('|');
   if (el.__sig === sig) return;
   el.__sig = sig;
   el.innerHTML = '';
   list.forEach(function (r) {
-    var b = document.createElement('button'); b.type = 'button'; b.className = 'rc'; b.title = 'Attach again';
-    b.innerHTML = thumbHtml(r);
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'rc';
+    b.title = r.mine ? 'Attach this clip' : 'Attach again';
+    b.setAttribute('aria-label', b.title + (r.name ? ' — ' + r.name : ''));
+    var pic = r.kind === 'image' || Boolean(r.poster);
+    b.innerHTML = thumbHtml(r) + (r.kind === 'video' && pic ? '<span class="bdg">' + ICONS.film + '</span>' : '');
     b.addEventListener('click', function () {
       if (!refs.some(function (x) { return x.url === r.url; })) refs.push({ url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' });
       openFold('refs');
@@ -1055,6 +1080,7 @@ function castVote(id, kind) {
   var j = jobsById[id]; if (!j) return;
   j.vote = j.vote === kind ? '' : kind;
   jobCard(j);                       // ends in paintFeed → applyFilt, which paints the wall's marks
+  paintRecent();                    // a clip she just crossed out stops being offered as a reference
   api('/jobs/' + encodeURIComponent(id) + '/vote', { method: 'POST', body: JSON.stringify({ vote: j.vote }) }).catch(function () {});
 }
 // PUTTING A PROMPT BACK PUTS ITS REFERENCES AND ITS SETTINGS BACK — only
