@@ -574,13 +574,21 @@ async function pillSweep(pg, where) {
       const r = el.getBoundingClientRect();
       return { el: el.id || el.className, gap: el.style.getPropertyValue('--pillgap'),
         w: Math.round(r.width), kids: [...el.children].map((k) => k.id + ':' + Math.round(k.getBoundingClientRect().width)),
+        // a row that ENDS before the column needs no reserve — the two fold
+        // rows are fit-content headings and never reach it
+        reaches: r.right > p.left,
         over: r.bottom > p.top && r.top < p.bottom && r.width > 0 && r.height > 0 };
     });
   });
   ok('the panel itself reserves nothing — it keeps its width and passes under the rail',
     !(await page.$eval('.panel', (p) => p.style.getPropertyValue('--pillgap'))));
-  ok('the row that overlaps the pill shortens (' + JSON.stringify(gaps.filter((g) => g.over)) + ')',
-    gaps.filter((g) => g.over).every((g) => g.gap && g.gap !== '0px'));
+  // The invariant, measured after the reserves have settled: no row of the
+  // panel reaches into the pill's column, and the reserve is what put them
+  // there (at least one row is really carrying one).
+  ok('no row that overlaps the pill reaches into its column (' + JSON.stringify(gaps.filter((g) => g.over)) + ')',
+    gaps.filter((g) => g.over).every((g) => !g.reaches));
+  ok('and the reserve is what did it — a row that overlaps carries one',
+    gaps.some((g) => g.over && g.gap && g.gap !== '0px'));
   ok('a row BELOW the pill keeps the panel\'s whole width — no reserve it does not need ' + JSON.stringify(gaps),
     gaps.filter((g) => !g.over).every((g) => !g.gap || g.gap === '0px'));
   // The controls row DOES graze the pill's band at rest (an empty prompt box
@@ -724,6 +732,64 @@ async function pillSweep(pg, where) {
   });
   ok('with the references attached the controls sit below the pill and reserve nothing ' + JSON.stringify(withRefs),
     withRefs.top >= withRefs.pillBottom && (!withRefs.gap || withRefs.gap === '0px') && withRefs.w > 330);
+
+  // ── TWO FOLDS, SEPARATELY (2026-09-10, Sophie: "make references, ABD
+  // buttons collapsible separately") ─────────────────────────────────────
+  // Every assertion is a MEASUREMENT: a fold that renders and hides nothing,
+  // one that loses the values it hides, and one that forgets across a reload
+  // all look identical in the source.
+  const shown = (sel) => page.evaluate((q) => {
+    const e = document.querySelector(q); const r = e.getBoundingClientRect();
+    return !!(r.width && r.height);
+  }, sel);
+  ok('both open until she says otherwise', (await shown('#refs')) && (await shown('#controls')));
+  await page.click('#ctlfold');
+  await page.waitForTimeout(120);
+  const ctlShut = await page.evaluate(() => ({
+    controls: (() => { const r = document.getElementById('controls').getBoundingClientRect(); return !!(r.width && r.height); })(),
+    lab: document.getElementById('ctlfoldlab').textContent,
+    refs: (() => { const r = document.getElementById('refs').getBoundingClientRect(); return !!(r.width && r.height); })(),
+    go: (() => { const r = document.getElementById('go').getBoundingClientRect(); return !!(r.width && r.height); })(),
+    secs: document.getElementById('secs').value, ratio: document.getElementById('ratio').value,
+  }));
+  ok('folding the buttons hides them and leaves the references and the star alone ' + JSON.stringify(ctlShut),
+    !ctlShut.controls && ctlShut.refs && ctlShut.go);
+  ok('and the shut row says what they were set to: ' + ctlShut.lab,
+    /2\.0 Mini/i.test(ctlShut.lab) && /480p/i.test(ctlShut.lab) && /3:4/.test(ctlShut.lab) && /4s/i.test(ctlShut.lab));
+  ok('a folded row keeps its values — hidden, never emptied', ctlShut.secs === '4' && ctlShut.ratio === '3:4');
+  await page.click('#reffold');
+  await page.waitForTimeout(120);
+  const bothShut = await page.evaluate(() => ({ refs: (() => { const r = document.getElementById('refs').getBoundingClientRect(); return !!(r.width && r.height); })(),
+    lab: document.getElementById('reffoldlab').textContent, n: document.querySelectorAll('#refs .ref').length }));
+  ok('the references fold separately, and the shut row counts them: ' + bothShut.lab,
+    !bothShut.refs && bothShut.n === 4 && /References · 4/.test(bothShut.lab));
+  await page.reload();
+  await page.waitForFunction(() => document.querySelectorAll('#ratio option').length > 0);
+  await page.waitForTimeout(500);
+  ok('a fold is remembered across a reload — folding once has to stick',
+    !(await shown('#controls')) && !(await shown('#refs')));
+  // PUTTING A CLIP BACK IS "these are what you are about to send" — it opens
+  // both, because a value she cannot see is the hidden ingredient the price
+  // line beside the star exists to prevent.
+  await page.click('#job-old1 .copy');
+  await page.waitForTimeout(200);
+  ok('putting a clip back opens both again', (await shown('#refs')) && (await shown('#controls')));
+  // taking each one off re-renders the strip, so the buttons are re-asked for
+  // THE ✕ WORKS AFTER A COPY-BACK — it used to remove by identity, and the
+  // strip's signature is the urls, so putting back a clip whose references
+  // are the same urls left the buttons on screen closed over objects that
+  // were no longer in the list: the ✕ did nothing at all.
+  for (let g = 0; g < 8 && (await page.$$eval('#refs .ref', (n) => n.length)); g += 1) {
+    await page.evaluate(() => document.querySelector('#refs .x').click());
+    await page.waitForTimeout(80);
+  }
+  await page.waitForTimeout(150);
+  const noRefs = await page.evaluate(() => ({ hidden: document.getElementById('reffold').hidden,
+    disp: getComputedStyle(document.getElementById('reffold')).display,
+    left: document.querySelectorAll('#refs .ref').length,
+    refsH: Math.round(document.getElementById('refs').getBoundingClientRect().height) }));
+  ok('with nothing attached the references fold is not drawn at all — never a dead control ' + JSON.stringify(noRefs),
+    noRefs.hidden && noRefs.disp === 'none' && noRefs.left === 0);
   await page.click('#job-f0 .copy');
   const beforeBlank = posted.filter((p) => p.prompt).length;
   await page.click('#go');

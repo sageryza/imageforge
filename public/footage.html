@@ -154,8 +154,28 @@
      tap rather than behind an extra one. Don't build the card back. */
   /* The references she has attached — thumb, slot name, ✕. Tapping the slot
      name drops it into the prompt at the caret, so [Image1] is never typed. */
+  /* TWO FOLDS, SEPARATELY (2026-09-10, Sophie: "make references, ABD buttons
+     collapsible separately"). The references strip is four thumbs and their
+     slot names — a third of the panel — and the controls are two more rows
+     under it, so with a scene in the box the star was off the bottom of the
+     screen. Each puts itself away on its own: she sets the size once and folds
+     it, and the references she is not looking at stop taking the room.
+     The Playground's `#panelfold` paint, verbatim in shape: a 10.5px caps row
+     with a chevron that turns, no box and no plate. What it hides is
+     DISPLAY-hidden and stays in the DOM, so a fold can never lose a value —
+     `paintControls` still writes the boxes, a folded Go still sends what they
+     say, and `fitPillGap` sees a zero rect and reserves nothing for it.
+     Shut, the row says what the hidden thing says: how many references, and
+     what the buttons are set to. Open it does not — they are right there
+     (the archive summary's don't-say-it-twice rule). */
+  /* the margin shorthand would beat `.panel > *`'s reserve (same specificity,
+     later rule), so the row carries the pill's column itself */
+  .fold{display:flex;align-items:center;gap:6px;border:0;background:none;margin:10px var(--pillgap,0px) 6px 0;
+        padding:2px 0;font-family:inherit;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+        color:#9a8f7d;text-align:left;-webkit-tap-highlight-color:transparent}
+  .fold svg{width:13px;height:13px;flex:none;transition:transform .15s ease}
+  .fold.shut svg{transform:rotate(-90deg)}
   .refs{display:flex;gap:8px;flex-wrap:wrap}
-  .refs:not(:empty){margin-top:10px}
   .ref{position:relative;width:72px}
   .ref .im{width:72px;height:72px;border:1px solid #e0d8ca;border-radius:6px;overflow:hidden;background:#2b2620;
            display:flex;align-items:center;justify-content:center;color:#f6f2ea}
@@ -301,12 +321,14 @@
 <div class="panel">
   <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" aria-label="Bigger box" title="Bigger box"></button></div>
 
+  <button type="button" class="fold" id="reffold" aria-expanded="true" aria-controls="refs" hidden><span class="chev"></span><span id="reffoldlab">References</span></button>
   <div class="refs" id="refs"></div>
   <!-- ONE ROW OF CONTROLS, WRAPPING ONLY WHERE IT MUST (2026-09-09, Sophie:
        "no button word labels above (eg seconds)" · "consolidate buttons. same
        row unless it bleeds over"). The picture icon attaches a reference, the
        two drop-downs are the model and the size, the stepper is the length. -->
-  <div class="row" style="margin-top:8px">
+  <button type="button" class="fold" id="ctlfold" aria-expanded="true" aria-controls="controls"><span class="chev"></span><span id="ctlfoldlab">Buttons</span></button>
+  <div class="row" id="controls">
     <button class="up ib" type="button" id="add" aria-label="Add a reference" title="Add a reference"><span id="addicon"></span><input type="file" accept="image/*,video/*,audio/*" multiple id="file"></button>
     <button id="rectog" type="button" aria-expanded="false" aria-label="References you have used before" title="References you have used before" hidden></button>
     <span class="selwrap"><select id="model" aria-label="Model" title="Model"></select><span class="chev"></span></span>
@@ -370,6 +392,7 @@ document.querySelectorAll('.selwrap .chev').forEach(function (c) { c.innerHTML =
 $('v-liked').innerHTML = ICONS.heart; $('v-hidex').innerHTML = ICONS.x;
 $('seedclear').innerHTML = ICONS.x;
 $('rectog').innerHTML = ICONS.history;
+document.querySelectorAll('.fold .chev').forEach(function (c) { c.innerHTML = ICONS.chev; });
 document.querySelector('#player .pclose').innerHTML = ICONS.x;
 
 function hdr(extra) { var h = extra || {}; if (TOKEN) h['x-studio-token'] = TOKEN; return h; }
@@ -480,6 +503,7 @@ function paintControls(force) {
   fillSel($('ratio'), CFG.ratios.map(function (r) { return { id: r, label: r }; }), S.ratio);
   paintSeedClear();
   paintRefs();
+  paintFolds();
   updateCost();
 }
 $('model').addEventListener('change', function () {
@@ -536,6 +560,37 @@ function paintSeedClear() {
 }
 $('seedbox').addEventListener('input', paintSeedClear);
 $('seedclear').addEventListener('click', function () { $('seedbox').value = ''; paintSeedClear(); $('seedbox').focus(); });
+
+// ── THE TWO FOLDS ────────────────────────────────────────────────────────
+// Remembered, and OPEN until she says otherwise: shut is a state she has to
+// have chosen, and this is a page she comes back to all day, so folding once
+// has to stick. Anything that means "these are what you are about to send" —
+// putting a clip back, a belt hand-off, a reference landing — OPENS the one it
+// changed, because a value she cannot see is the hidden ingredient the price
+// line beside the star exists to prevent.
+var FOLDS = { refs: 'footage_fold_refs', ctl: 'footage_fold_ctl' };
+function foldShut(k) { try { return localStorage.getItem(FOLDS[k]) === '1'; } catch (e) { return false; } }
+function setFold(k, shut) { try { localStorage.setItem(FOLDS[k], shut ? '1' : '0'); } catch (e) {} paintFolds(); }
+function openFold(k) { if (foldShut(k)) setFold(k, false); }
+function paintFolds() {
+  var rShut = foldShut('refs'), cShut = foldShut('ctl');
+  // never a dead control: with nothing attached there is nothing to fold
+  $('reffold').hidden = !refs.length;
+  $('refs').style.display = (rShut && refs.length) ? 'none' : '';
+  $('reffold').classList.toggle('shut', rShut);
+  $('reffold').setAttribute('aria-expanded', rShut ? 'false' : 'true');
+  $('reffoldlab').textContent = rShut ? 'References · ' + refs.length : 'References';
+  $('controls').style.display = cShut ? 'none' : '';
+  if (cShut) recentOpen = false;                 // the drawer goes with its button
+  $('ctlfold').classList.toggle('shut', cShut);
+  $('ctlfold').setAttribute('aria-expanded', cShut ? 'false' : 'true');
+  var m = modelOf(S.model);
+  $('ctlfoldlab').textContent = cShut
+    ? 'Buttons · ' + [m ? m.label : S.model, S.res, S.ratio, S.seconds + 's'].join(' · ')
+    : 'Buttons';
+}
+$('reffold').addEventListener('click', function () { setFold('refs', !foldShut('refs')); });
+$('ctlfold').addEventListener('click', function () { setFold('ctl', !foldShut('ctl')); });
 
 // The price is ASKED, never computed here — the server holds the one table.
 // ONE DOOR, so the line no longer names it (2026-09-09): "about 7.6¢".
@@ -599,7 +654,14 @@ function paintRefs() {
       '<button type="button" class="slot" title="Put this name in the prompt">' + esc(slots[i]) + '</button>' +
       '<button type="button" class="x" aria-label="Take this reference off">✕</button>';
     d.querySelector('.slot').addEventListener('click', function () { insertAtCaret(slots[i]); });
-    d.querySelector('.x').addEventListener('click', function () { refs = refs.filter(function (x) { return x !== r; }); saveDraft(); paintControls(); });
+    // BY POSITION, NEVER BY IDENTITY. The strip's signature is the urls, so
+    // putting a clip back whose references are the SAME urls is a no-op paint
+    // — and `copyBack` maps them into NEW objects, so the buttons still on
+    // screen close over objects that are no longer in `refs` and an identity
+    // filter removes nothing: the ✕ did nothing at all after a copy-back.
+    // `paintRefs` sets `refs` to exactly the list it renders, so the index a
+    // row was drawn at is the slot it occupies.
+    d.querySelector('.x').addEventListener('click', function () { refs = refs.filter(function (x, k) { return k !== i; }); saveDraft(); paintControls(); });
     el.appendChild(d);
   });
 }
@@ -642,6 +704,7 @@ $('file').addEventListener('change', function (e) {
           if (!it || !it.url) { toast('Could not upload ' + (f.name || 'that')); return; }
           if (!refs.some(function (r) { return r.url === it.url; })) refs.push({ url: it.url, kind: kindOfFile(f), poster: it.posterUrl || '', name: f.name || '' });
           n++;
+          openFold('refs');
           saveDraft(); paintControls();
         }).catch(function () { toast('Could not upload ' + (f.name || 'that')); });
     });
@@ -674,6 +737,7 @@ function paintRecent() {
     b.innerHTML = thumbHtml(r);
     b.addEventListener('click', function () {
       if (!refs.some(function (x) { return x.url === r.url; })) refs.push({ url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' });
+      openFold('refs');
       saveDraft(); paintControls(); toast('Attached');
     });
     el.appendChild(b);
@@ -967,6 +1031,7 @@ function copyBack(j) {
   // her ask: copying the words back brings the seed with them (and a clip with
   // no seed on file clears the box rather than leaving another clip's in it)
   setSeed(j.seed);
+  openFold('refs'); openFold('ctl');
   saveCtl(); saveDraft(); paintControls(true);
   if (window.__fitBigPrompt) window.__fitBigPrompt();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1049,6 +1114,7 @@ function takeHandoff() {
   if (h.res) S.res = String(h.res);
   if (h.ratio) S.ratio = String(h.ratio);
   if (h.seed != null) setSeed(h.seed);
+  openFold('refs'); openFold('ctl');
   saveCtl(); saveDraft(); paintControls(true); paintRefs();
   if (window.__fitBigPrompt) window.__fitBigPrompt();
   toast(h.title ? 'From the belt: ' + h.title : 'From the belt');
