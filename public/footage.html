@@ -610,7 +610,7 @@ $('go').addEventListener('click', function () {
     var m = modelOf(S.model);
     jobCard({ id: d.jobId, prompt: prompt, model: S.model, modelLabel: m ? m.label : S.model, door: d.door, seconds: S.seconds,
       resolution: S.res, ratio: S.ratio, sound: true, refs: body.refs, status: 'drawing', estimate: d.estimate,
-      sentAt: new Date().toISOString(), note: d.fellBack ? d.note : '', video: '', poster: '', vote: '' });
+      sentAt: new Date().toISOString(), note: d.note || '', video: '', poster: '', vote: '' });
     toast('Drawing…');
     try { localStorage.removeItem('footage_draft'); } catch (e) {}
     schedulePoll(true);
