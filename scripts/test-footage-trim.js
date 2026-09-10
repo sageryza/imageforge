@@ -349,7 +349,7 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
   ok('and its Note button sits on NOTHING in the trim bar', overlaps.none || overlaps.hit.length === 0);
   const reachable = await page.evaluate(() => {
     const out = [];
-    ['tback', 'tin', 'tout', 'tfwd', 'treset', 'tgo'].forEach((id) => {
+    ['tstrip', 'tback', 'tin', 'tout', 'tfwd', 'treset', 'tgo'].forEach((id) => {
       const el = document.getElementById(id);
       if (!el || el.hidden) return;
       const r = el.getBoundingClientRect();
@@ -370,6 +370,37 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
   await page.click('#tfwd');
   await page.waitForTimeout(150);
   ok('and forward again', near(await page.$eval('#player .pstage video', (v) => v.currentTime), before, 0.05));
+
+  // ── TAP THE STRIP AND THE PLAYHEAD GOES THERE (2026-09-10, her ask) ────
+  // A POSITION, never the element: playwright aims at an element's centre, so
+  // clicking `#tstrip` would land at 50% and a strip that ignored the x
+  // entirely would pass. And the BAND is measured against the BAR — the target
+  // has to be bigger than the 10px mark without the mark getting heavier.
+  {
+    const box = await page.evaluate(() => {
+      const b = document.getElementById('tstrip').getBoundingClientRect();
+      const r = document.querySelector('.trimbar .strip').getBoundingClientRect();
+      return { band: b.height, bar: r.height, left: r.left, width: r.width, top: r.top + r.height / 2 };
+    });
+    ok('the tap band is a real target', box.band >= 30);
+    ok('and the bar itself is still the light 10px mark', near(box.bar, 10, 1.5));
+
+    await page.evaluate(() => { const v = document.querySelector('#player .pstage video'); return v.play().catch(() => {}); });
+    await page.waitForTimeout(200);
+    await page.mouse.click(box.left + box.width * 0.6, box.top);
+    await page.waitForTimeout(250);
+    const at = await page.$eval('#player .pstage video', (v) => ({ t: v.currentTime, paused: v.paused }));
+    ok('a tap at 60% of the strip puts the playhead at 60% of the clip', near(at.t, 5 * 0.6, 0.25));
+    ok('and it pauses, so she can mark the frame she found', at.paused === true);
+    ok('a tap on the strip does not close the player', !(await page.$eval('#player', (el) => el.hidden)));
+
+    // the other end, so a strip that always answers the same place fails
+    await page.mouse.click(box.left + box.width * 0.15, box.top);
+    await page.waitForTimeout(250);
+    ok('and a tap near the start lands near the start',
+      near(await page.$eval('#player .pstage video', (v) => v.currentTime), 5 * 0.15, 0.25));
+    ok('the marks are untouched by a tap on the strip', /^1\.2s – 3\.6s/.test((await page.textContent('#tspan')).trim()));
+  }
 
   // ── the loop: playing plays the SPAN ───────────────────────────────────
   const walk = await page.evaluate(async () => {
