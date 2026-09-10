@@ -494,7 +494,17 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await page.waitForFunction(() => /trimmed 1\.2–3\.6s/.test(document.getElementById('job-clip1').textContent), null, { timeout: 8000 });
   ok('the card says what is kept', /trimmed 1\.2–3\.6s · keeping 2\.4s/.test(await page.textContent('#job-clip1')));
-  ok('save hands her the TRIMMED clip', /\/trimmed\.webm$/.test(await page.$eval('#job-clip1 .acts a', (a) => a.getAttribute('href'))));
+  // SAVE IS A BUTTON NOW (2026-09-10, "shud save directly to my photos"), so
+  // the honest question is what it really hands over — the url the native
+  // bridge receives, never an href the page no longer draws.
+  await page.evaluate(() => {
+    window.__saved = [];
+    window.webkit = { messageHandlers: { forgeSave: { postMessage: (u) => window.__saved.push(u) } } };
+  });
+  // dispatched, not clicked: the trimmer is OPEN over the feed at this point
+  await page.evaluate(() => document.querySelector('#job-clip1 .acts .save').click());
+  ok('save hands her the TRIMMED clip',
+    /\/trimmed\.webm$/.test((await page.evaluate(() => window.__saved))[0] || ''));
   // the OPEN trimmer is this clip too — a part that finishes baking while she
   // is standing in it must stop saying "trimming…" there as well as on the card
   ok('and the row in the open trimmer stops saying it is baking',

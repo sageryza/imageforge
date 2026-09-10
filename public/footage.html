@@ -311,7 +311,10 @@
   .acts button svg{width:15px;height:15px}
   .acts .heart.on{background:#c96a5e;border-color:#c96a5e;color:#fff}
   .acts .nope.on{background:#3a3530;border-color:#3a3530;color:#fff}
-  .acts a{font-size:12px;color:#6f675e;margin-left:auto}
+  /* SAVE IS A WORD, NOT A BOX — the same paint the download link wore, so
+     nothing on screen moved when it stopped being an <a>. */
+  .acts .save{width:auto;height:auto;padding:0;border:0;background:none;font-size:12px;
+              color:#6f675e;margin-left:auto;text-decoration:underline;text-underline-offset:2px}
   .again{padding:5px 10px;font-size:13px;white-space:nowrap}
   /* HER NOTES ON A CLIP (2026-09-10, Sophie: "can you make it possible to add
      notes on clips that come out of the footage module").
@@ -1321,6 +1324,51 @@ function jobParts(j) {
 function bakedParts(j) {
   return jobParts(j).filter(function (t) { return t && t.status === 'ready' && t.url; });
 }
+// ── SAVE TO PHOTOS ────────────────────────────────────────────────────────
+// 2026-09-10, Sophie: "shud save directly to my photos". The card's save was
+// an <a> at the clip's own url: in the app that opens a player she has to
+// long-press out of, and the sandbox's own download is no use to her either.
+// Three paths, the Playground's own ladder with a clip in place of a picture:
+//   1. In the app, the native `forgeSave` bridge writes it to the library —
+//      ForgeSaveBridge sniffs the container and hands a video to VideoSaver.
+//   2. In Safari, the share sheet ("Save Video"), which needs the bytes
+//      ALREADY fetched, hence primeSave on the pointerdown before the tap.
+//   3. A plain download for a desktop browser.
+// An old build of the app has no video half yet: it will report Photos'
+// refusal in its own words rather than saying nothing, which is the honest
+// failure — never a lie about having saved.
+var saveBlob = null;   // one slot: a clip is megabytes, and only the newest tap matters
+function nativeSaver() { try { return window.webkit.messageHandlers.forgeSave; } catch (e) { return null; } }
+window.__saveResult = function (ok, msg) { toast(msg || (ok ? 'Saved to Photos' : 'Couldn\u2019t save that')); };
+function primeSave(url) {
+  if (nativeSaver()) return;                       // the app downloads it itself
+  if (saveBlob && saveBlob.url === url) return;    // already in hand
+  saveBlob = null;
+  fetch(url).then(function (r) { return r.blob(); })
+    .then(function (b) { saveBlob = { url: url, blob: b }; })
+    .catch(function () {});
+}
+function saveName(url) {
+  var n = String(url).split('?')[0].split('/').pop() || '';
+  return /\.\w{2,4}$/.test(n) ? n : 'clip.mp4';
+}
+function saveVideo(url) {
+  var native = nativeSaver();
+  if (native) { native.postMessage(url); toast('Saving\u2026'); return; }
+  if (!(saveBlob && saveBlob.url === url)) {
+    primeSave(url); toast('Getting the clip \u2014 tap save again in a moment'); return;
+  }
+  var blob = saveBlob.blob, name = saveName(url), file = null;
+  try { file = new File([blob], name, { type: blob.type || 'video/mp4' }); } catch (e) {}
+  if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({ files: [file] })
+      .catch(function (err) { if (err && err.name !== 'AbortError') toast('Couldn\u2019t open the share sheet'); });
+    return;
+  }
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+}
 function trimLine(j) {
   var ps = jobParts(j);
   if (!ps.length) return '';
@@ -1386,7 +1434,10 @@ function jobCard(j) {
     // rule; a failed or drawing job has no url for a note to key off
     (j.video ? '<button type="button" class="note" aria-label="Note on this clip" title="Note">' + ICONS.note + '</button>' : '') +
     (j.status === 'failed' && j.prompt ? '<button type="button" class="again">Try again</button>' : '') +
-    (j.video ? '<a href="' + esc(j.video) + '" target="_blank" rel="noopener">save</a>' : '') +
+    // SAVE GOES TO PHOTOS (2026-09-10, Sophie: "shud save directly to my
+    // photos") — it was a link to the clip's own url, which on her phone
+    // opens a player she then has to long-press out of. Now `saveVideo`.
+    (j.video ? '<button type="button" class="save">save</button>' : '') +
     '</div>' +
     // OUTSIDE the signature below: the thread and her open box live here, so a
     // note landing repaints words and never rebuilds the card
@@ -1409,6 +1460,16 @@ function jobCard(j) {
     if (again) again.addEventListener('click', function () { copyBack(j); });
     var nb = el.querySelector('.acts .note');
     if (nb) nb.addEventListener('click', function () { toggleNoteBox(el, jobsById[j.id] || j); });
+    // PRIME ON POINTERDOWN, SAVE ON THE CLICK. Outside the app the share
+    // sheet needs the bytes ALREADY in hand — a fetch inside the tap handler
+    // spends the transient activation and navigator.share rejects silently
+    // (asset-actions.js's own lesson). Her finger going down is the head
+    // start; in the app nothing is fetched here at all.
+    var sv = el.querySelector('.acts .save');
+    if (sv) {
+      sv.addEventListener('pointerdown', function () { var jj = jobsById[j.id] || j; if (jj.video) primeSave(jj.video); });
+      sv.addEventListener('click', function () { var jj = jobsById[j.id] || j; if (jj.video) saveVideo(jj.video); });
+    }
   }
   var st = el.querySelector('[data-st]');
   if (j.status === 'drawing') st.textContent = 'drawing… ' + ago(j.sentAt);

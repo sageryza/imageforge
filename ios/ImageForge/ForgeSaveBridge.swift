@@ -70,9 +70,40 @@ enum ForgeSaveBridge {
     }
 }
 
-/// Answers `forgeSave.postMessage(<image url>)`: download the picture, put it
-/// in the photo library, and tell the page what actually happened.
+/// Answers `forgeSave.postMessage(<url>)`: download it, put it in the photo
+/// library, and tell the page what actually happened.
+///
+/// A CLIP IS SAVED TOO, NOT ONLY A PICTURE (2026-09-10, Sophie, on the Footage
+/// page’s save link: "shud save directly to my photos"). Photos takes a video
+/// only as a FILE added as a `.video` resource — decoded frames and raw `Data`
+/// are both refused — so a clip goes to `VideoSaver`, which already does
+/// exactly that for the native Movies tab, and a picture goes on through
+/// `PhotoSaver` byte for byte as before.
+///
+/// WHICH IT IS, is asked of the url and then of the server, never of the page:
+/// the doors hand back their own urls (a Storage object ending `.mp4`, an Atlas
+/// clip with no extension at all), and a page that had to declare the kind
+/// would be one more thing every future save button could get wrong. The body
+/// stays a plain String, so an older page posting an image url is unchanged.
 final class ForgeSaveHandler: NSObject, WKScriptMessageHandler {
+    /// Containers Photos will take as a video, by their own file extension.
+    private static let videoExts: Set<String> = ["mp4", "mov", "m4v", "webm", "qt"]
+
+    /// Is this a clip? The extension when the url has one, else the server’s
+    /// own Content-Type. A HEAD that fails answers "not a video", which is the
+    /// safe direction: the picture path reports Photos’ refusal in its own
+    /// words, where the video path on a picture would fail in ffmpeg-speak.
+    private static func isVideo(_ url: URL) async -> Bool {
+        if videoExts.contains(url.pathExtension.lowercased()) { return true }
+        var head = URLRequest(url: url)
+        head.httpMethod = "HEAD"
+        guard let (_, response) = try? await URLSession.shared.data(for: head),
+              let mime = (response as? HTTPURLResponse)?
+                  .value(forHTTPHeaderField: "Content-Type")?.lowercased()
+        else { return false }
+        return mime.hasPrefix("video/")
+    }
+
     func userContentController(_ controller: WKUserContentController,
                                didReceive message: WKScriptMessage) {
         guard message.name == ForgeSaveBridge.name,
@@ -80,6 +111,22 @@ final class ForgeSaveHandler: NSObject, WKScriptMessageHandler {
               let url = URL(string: raw) else { return }
         let web = message.webView
         Task {
+            if await Self.isVideo(url) {
+                // VideoSaver streams it to a temp FILE and moves that into the
+                // library — a clip is megabytes and must never be held in memory.
+                VideoSaver.shared.save(from: url) { outcome in
+                    switch outcome {
+                    case .saved:
+                        Task { await Self.reply(web, true, "Saved to Photos") }
+                    case .denied:
+                        Task { await Self.reply(web, false, "Photos access is off") }
+                        ForgeSaveBridge.offerPhotosSettings()
+                    case .failed(let why):
+                        Task { await Self.reply(web, false, "Couldn’t save — \(why)") }
+                    }
+                }
+                return
+            }
             guard let (data, _) = try? await URLSession.shared.data(from: url), !data.isEmpty else {
                 await Self.reply(web, false, "Couldn’t download that image")
                 return

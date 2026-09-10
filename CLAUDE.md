@@ -7658,6 +7658,39 @@ before working on that module. Nothing was deleted — the moved text is verbati
   thread that never reaches the card are the same markup).
   Full note: *FOOTAGE* under the OpenRouter note in
   `docs/modules/audio-and-film.md`.
+  **SAVE GOES TO PHOTOS, NOT TO A DOWNLOAD (2026-09-10, Sophie, on the card's
+  save link: "shud save directly to my photos").** It was an `<a>` at the
+  clip's own url — in the app that opens a player she then has to long-press
+  out of. It is a button now, and `saveVideo` is the Playground's own ladder
+  with a clip in place of a picture: the native `forgeSave` bridge in the app,
+  the share sheet ("Save Video") in Safari, a plain download on a desk.
+  - **THE BRIDGE ROUTES A VIDEO TO `VideoSaver`** (`ForgeSaveBridge.swift`) —
+    Photos takes a clip only as a FILE added as a `.video` resource, so the
+    raw `Data` `PhotoSaver` handles can never save one. **WHICH it is is asked
+    of the url and then of the server** (the extension, else a HEAD's
+    `Content-Type`), never of the page: the doors hand back their own urls (a
+    Storage object ending `.mp4`, an Atlas clip with no extension), and the
+    body stays a plain String so an older page posting an image url is
+    unchanged. A HEAD it cannot read answers "not a video" — the safe
+    direction, since the picture path reports Photos' own words.
+  - **AND `GatedWebTool` INSTALLS THE BRIDGE FOR EVERY PAGE IT HOSTS.** It had
+    been installed per tool (the Playground and Meta Assets), so any page
+    under that wrapper could offer nothing better than a download —
+    remembering to add it is exactly the kind of thing that gets missed, the
+    way `?embed=1` was. **The Swift half ships with a TestFlight build**; until
+    she installs one the page falls through to the share sheet, and an older
+    build reports Photos' refusal in its own words rather than saying nothing.
+  - **THE SHARE SHEET NEEDS THE BYTES ALREADY IN HAND**, so `primeSave` starts
+    the fetch on the button's `pointerdown` — a fetch inside the tap handler
+    spends the transient activation and `navigator.share` rejects silently
+    (asset-actions.js's own lesson). Not ready at the tap → "Getting the clip —
+    tap save again in a moment", never a silent nothing.
+  - **THE BUTTON IS A WORD, NOT A BOX** — the same paint the link wore
+    (underlined, hard right), so nothing on screen moved. PHOTOgraphed.
+  - Tests: `node scripts/test-save-to-photos.js` (the bridge's video route and
+    the wrapper's install, pure) and the save block of
+    `node scripts/test-footage-trim.js` (what the bridge REALLY receives on a
+    trimmed clip — an href assertion cannot follow a button).
   **SHE TRIMS A CLIP AS IT COMES OUT — THE PLAYER IS THE TRIMMER (2026-09-10,
   Sophie: "how hard would it be to make it possible to trim clips right as they
   come out of the footage module?").** A Mini clip is 4-15 seconds and the shot
