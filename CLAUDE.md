@@ -7366,16 +7366,43 @@ before working on that module. Nothing was deleted — the moved text is verbati
   and says "2.0 Mini is 80% off right now" while there is a sale, and a
   content refusal — a FAMOUS face, free, on the POST — shows with its own
   line (*a famous face in a reference; a chat can try this one through
-  APIFRAME*). **The price beside the star is THE NUMBER ALONE since
-  2026-09-10 (Sophie: "just see the price not 'about'")** — it hedged with
-  "about" wherever the figure was not pinned, which is every job carrying a
-  reference VIDEO, i.e. her ordinary shape (a person, a shot-to-shot chain),
-  so the word was on screen nearly always and said the same thing every time.
-  Whether the figure is pinned is still KNOWN and still stored on the element
-  (`#cost` `dataset.about`, pinned by a test) — it is simply not read aloud,
-  so anything that needs to know still can. The estimate itself is unchanged:
-  exact with no reference video (Atlas bills per second), the closest the door
-  will say up front with one. **OpenRouter and APIFRAME
+  APIFRAME*). **720p IS THE PIXEL RATIO DEARER THAN 480p, AND THE PAGE QUOTED
+  THEM THE SAME UNTIL 2026-09-10 (Sophie: "check 720p prices in footage").**
+  Atlas's `GET /models` publishes ONE flat `base_price` per model, so the
+  Atlas branch priced purely per second, ignored the resolution it was handed
+  and marked it `exact` — measured wrong three ways: Atlas's own model readme
+  says "final billing follows the active model pricing configuration for the
+  selected **resolution**, duration, account, and environment"; the one 720p
+  job on file (12s Mini 3:4, one reference video) spent **435,628 tokens
+  against 197,811** for the identical 480p job, i.e. **2.20x**; and APIFRAME,
+  which does publish per resolution, prices its own 720p at the pixel ratio on
+  every row (Mini 4→9¢/s, Fast 7→16, 2.0 8→18, 2.5 13→29). So Atlas's rate is
+  read as a **480p rate** and scaled by the canvas (`resFactor`, per SHAPE —
+  16:9 is 854×480 → 1280×720 = 2.2482x, 3:4 is 560×752 → 834×1112 = 2.2021x,
+  which is what the token count is made of). What that moves, at Atlas's live
+  sale: a 4s Mini 720p clip 4.4¢ → **~9.7¢**, and **2.5 at 720p ~$1.21 for 4s
+  / ~$4.52 for 15s** against 53.6¢ / $2.01 before — so for step 2 of the plan
+  **APIFRAME is slightly CHEAPER than Atlas at 720p on 2.5** ($1.16 / $4.35),
+  because the 80%-off sale is Mini's and 2.5 only gets 20% off there.
+  **AND NOTHING ON ATLAS IS PINNED — the price wears a "~", at BOTH
+  resolutions (2026-09-10, Sophie: "add ~ to both").** Atlas has no billing
+  API (her console is the only read) and no Atlas charge has ever been read
+  against an estimate, so every Atlas figure answers `about`. The tilde is the
+  compact form of the WORD she cut the day before ("just see the price not
+  'about'" — it fired on nearly every job and spent a line saying the same
+  thing every time); one character costs nothing and still says the number is
+  not a promise. **ONE RULE ABOUT THE PRICE ON THIS PAGE: a real charge is a
+  number, an estimate wears a `~`** — so the card marks one too (falling back
+  to `estimate` because the door reported no `cost` IS the unpinned case, and
+  it is the standing case on Atlas), or the send line and the card under it
+  would print two different things for the same clip. `#cost`
+  `dataset.about` still carries the flag, pinned by a test. **What would
+  settle the factor is one console read**: the 12s 720p Mini clip of
+  2026-09-10 was quoted 13.2¢ and should read ~29¢ beside the 480p ones.
+  **NOT BUILT and hers to ask for: Atlas's SR tiers** — `720p-SR` /
+  `1080p-SR` / `1440p-SR` generate one rung down and upscale with FlashVSR,
+  which its own docs call a lower-cost HD option; the page offers native
+  480p/720p only, and 1080p is not native on Mini at all. **OpenRouter and APIFRAME
   are still doors and `footage.js` keeps them** — a chat pins either by hand,
   and the module's own AUTO is Atlas first with APIFRAME behind it for a
   refused face (re-sent with a note saying so on the card), OpenRouter for a
