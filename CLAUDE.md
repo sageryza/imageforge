@@ -7696,6 +7696,31 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (the rule pure, then a REAL encode measured with ffprobe — a plan that reads
   perfect and a file still under the floor look identical to any source
   assertion).
+  **A TILE CARRIES BOTH DOORS, AND THE NOTE ON IT ALONG THE TOP (2026-09-10,
+  Sophie: "can u have a play button, and a list view button on tiles · so both
+  options are available" · "i also wanted notes to show as the firs words that
+  fit on just the top of the tile").** Two chips in the MIDDLE of every tile —
+  **▶** plays it, the list mark opens its card — and **the poster itself is not
+  a button**: with two doors drawn on it, a third meaning hidden under the
+  picture is the thing that started this thread. The middle is the one place a
+  tap is never near another control at three across OR at four (the corners are
+  spoken for: the marks below, the note above), and the row they sit in is
+  `pointer-events:none` — a transparent strip across every tile would swallow
+  whatever it lies over (the toast's own lesson, one page down). A clip with no
+  url yet carries the CARD door alone rather than a play button that would do
+  nothing. Along the top: the **NEWEST message in that clip's thread**, whoever
+  wrote it — where the conversation on it stands, and what tells one poster
+  from the next when she is scanning for the one she said something about.
+  Four things not to undo: **"the words that fit" is the BROWSER's answer**
+  (one line, `text-overflow:ellipsis`) — a character count guesses at a width
+  that changes with the column count; **it wears the marks' own flat plate**,
+  because white text on a bright frame is unreadable and a scrim behind it may
+  not be a gradient (the house rule); **the scissors rides in the same row**
+  rather than under it, so the trim mark and the words can never sit on each
+  other; and it is painted in `paintTileNote`, **outside the wall's
+  signature** like the marks and the cut chip, so a note landing never
+  re-decodes a wall of posters. A clip nobody has said anything about draws no
+  strip at all — the Assets tab's silence rule.
   **A TILE GOES TO ITS CARD, NOT TO THE TRIMMER (2026-09-10, Sophie: "clicking
   on a tile in footage · scrolls to it in list view, or opens in a lightbox").**
   The wall is for FINDING a clip; the CARD is where the clip lives — its words,
@@ -7706,9 +7731,10 @@ before working on that module. Nothing was deleted — the moved text is verbati
   the card's own picture is what plays it. The list is the detail view this
   page already has: one of them, never a second copy behind a second overlay.
   Four things not to undo: **the play triangle came OFF a poster tile** — the
-  tap no longer plays, and a play glyph on a button that does not play is the
-  button lying (a clip with no poster still needs a face: the film mark when it
-  is finished, the ✕ when it failed); **the WINDOW is scrolled, never
+  poster stopped being a button at all, and a play glyph on a picture that does
+  nothing is the tile lying (a clip with no poster still needs a face: the film
+  mark when it is finished, the ✕ when it failed). Play came back the same day
+  as its own chip, above; **the WINDOW is scrolled, never
   `scrollIntoView`**, which walks every scrollable ancestor (the caret keeper's
   and `__pagePlace`'s own rule); the measurement is **TWO frames out**, because
   `#feed` was `hidden` a moment ago (every card reads y=0 in that frame) and
