@@ -27,13 +27,13 @@ DINING= ('the dining room — ceiling and wall, no people', 'https://storage.goo
 def card(key, title, ep, lines, cast, phase, setting=None, note=None, secs=4):
     text = T(*lines) if isinstance(lines, tuple) else '\n\n'.join(T(*l) if isinstance(l, tuple) else T(l) for l in lines)
     images = [SOPHIE_DRESS if phase == 'dress' else SOPHIE_FACE]
-    mine = ['sophie is the woman in image 1.']
+    mine = ['sophie is the woman in [Image1].']
     if phase == 'pj':
-        images += [PJ_A, PJ_C]; mine[0] += ' she wears the blue hospital pajamas in image 2 and image 3.'
+        images += [PJ_A, PJ_C]; mine[0] += ' she wears the blue hospital pajamas in [Image2] and [Image3].'
     if setting == 'room':
-        images.append(ROOM); mine.append('setting: her room at the hospital, in image %d.' % len(images))
+        images.append(ROOM); mine.append('setting: her room at the hospital, in [Image%d].' % len(images))
     elif setting == 'dining':
-        images.append(DINING); mine.append('setting: the dining room at the hospital, in image %d.' % len(images))
+        images.append(DINING); mine.append('setting: the dining room at the hospital, in [Image%d].' % len(images))
     elif setting:
         mine.append('setting: %s.' % setting)
     return dict(key=key, title=title, ep=ep, secs=secs, status='waiting for go', text=text, mine=mine,

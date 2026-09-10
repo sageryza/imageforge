@@ -22,6 +22,7 @@ state=json.load(open(STATE)) if os.path.exists(STATE) else {}
 ver=state.get('ver',0)+1
 tx=json.load(urllib.request.urlopen(B+'/api/chatfeed/verdict?chat=%s&sheet=%s'%(CHAT,SHEET))).get('texts',{})
 secs=[]; lastep=None
+import json as _j
 for n,j in enumerate(jobs,1):
     k=j['key']
     s=tx.get(k+'.s') or str(j['secs']); p=tx.get(k+'.p') or j['text']
@@ -39,10 +40,11 @@ for n,j in enumerate(jobs,1):
 <textarea class="p" data-key="%(k)s" spellcheck="false">%(p)s</textarea><div class="saved" id="sv-%(k)s"></div></details>
 <div class="attached">
 <div class="row"><label>seconds <input class="secs" data-key="%(k)s" value="%(s)s" inputmode="numeric"></label><span class="cost" data-key="%(k)s"></span></div>
+<p class="sendrow"><a class="tofoot" href="https://imageforge-q125.onrender.com/footage" target="_blank" rel="noopener" data-key="%(k)s" data-title="%(t)s">Send to Footage ›</a><script type="application/json" class="refjson" data-key="%(k)s">%(refjson)s</script></p>
 <p class="sends">%(sends)s</p>
 <div class="refs">%(stills)s</div>
 %(cast)s%(note)s
-</div></section>'''%dict(ephead=ephead,minebox=minebox,k=k,n=n,t=H.escape(j['title']),st=H.escape(j['status']),p=H.escape(p),s=H.escape(s),sends=sends,stills=stills,cast=cast,note=note))
+</div></section>'''%dict(ephead=ephead,minebox=minebox,k=k,n=n,t=H.escape(j['title']),st=H.escape(j['status']),p=H.escape(p),s=H.escape(s),sends=sends,stills=stills,cast=cast,note=note,refjson=_j.dumps([{'url':im[1],'kind':'image','name':im[0]} for im in j['images']]).replace('</','<\\/')))
 TOC=' · '.join('<a href="#j-%s">%d %s</a>'%(j['key'],i+1,H.escape(j['title'])) for i,j in enumerate(jobs))
 LEFT=''.join('<li>%s</li>'%H.escape(x) for x in left)
 page='''<meta charset="utf-8"><link rel="stylesheet" href="/compare.css"><script src="/compare.js"></script>
@@ -57,6 +59,7 @@ textarea.p{width:100%;box-sizing:border-box;font-family:inherit;font-size:16px;l
 .attached{margin-top:14px;padding-top:10px;border-top:1px solid #e3dccd}
 .row{display:flex;align-items:center;gap:12px;font-size:13px;margin:0 0 8px} .row input{width:56px;font-family:inherit;font-size:16px;padding:4px 6px;border:1px solid #cfc6b6;border-radius:6px;background:#fff} .cost{color:#6b6257}
 .ep{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#8a8176;margin:0 0 4px}
+.sendrow{margin:0 0 10px} .tofoot{display:inline-block;font:inherit;font-size:13px;padding:7px 12px;border:1px solid #2b2622;border-radius:6px;color:#2b2622;background:#fff;text-decoration:none}
 .sends{font-size:12px;color:#6b6257;line-height:1.5;margin:0 0 8px}
 .pend{font-size:12px;color:#b5473c;margin:4px 0} .vid{font-size:12px;margin:4px 0} .vid a{color:inherit}
 .refs{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px;margin:8px 0 12px} .refs figure{margin:0;position:relative} .refs img{width:100%;display:block;border-radius:0} .refs figcaption{position:static;display:block;font-size:10px;line-height:1.3;color:#6b6257;margin-top:3px;background:none;padding:0}
@@ -84,6 +87,12 @@ document.querySelectorAll('.p[data-key]').forEach(function(ta){ var k=ta.getAttr
   window.addEventListener('pagehide',function(){ if(!timer) return; clearTimeout(timer); timer=null; try{ navigator.sendBeacon('/api/chatfeed/verdict', new Blob([JSON.stringify({chat:CHAT,sheet:SHEET,item:k+'.'+f,text:ta.value.slice(0,LIMIT)})],{type:'application/json'})); }catch(e){} });
   window.addEventListener('pagehide',function(){ if(!timer) return; clearTimeout(timer); timer=null; try{ navigator.sendBeacon('/api/chatfeed/verdict', new Blob([JSON.stringify({chat:CHAT,sheet:SHEET,item:k+'.'+f,text:ta.value.slice(0,LIMIT)})],{type:'application/json'})); }catch(e){} });
 });
+// SEND TO FOOTAGE (2026-09-10, Sophie: "add a button to each scene that automatically puts all the right references in the same text to footage so I can edit it or press go myself"). The button is a real link to the Footage tool — on her phone the app opens the tool, in a browser it is a tab — and before it goes it writes the hand-off the Footage page reads on its next open (localStorage `footage_handoff`, same origin): my header lines + her words as the prompt, the card's stills as the references, Mini · her seconds · 480p · 16:9. Nothing is sent by this tap; the star on the Footage page is still hers.
+document.querySelectorAll('.tofoot').forEach(function(a){ a.addEventListener('click',function(){ var k=a.getAttribute('data-key'); try{
+  var mine=(document.querySelector('.p[data-key="'+k+'"][data-field="mine"]')||{}).value||''; var words=(document.querySelector('.p[data-key="'+k+'"]:not([data-field])')||{}).value||'';
+  var refs=JSON.parse(document.querySelector('.refjson[data-key="'+k+'"]').textContent||'[]'); var s=parseInt(document.querySelector('.secs[data-key="'+k+'"]').value)||4;
+  localStorage.setItem('footage_handoff',JSON.stringify({prompt:(mine.trim()?mine.trim()+'\\n\\n':'')+words,refs:refs,model:'mini',seconds:s,res:'480p',ratio:'16:9',from:CHAT,title:a.getAttribute('data-title'),at:Date.now()}));
+ }catch(e){} }); });
 document.querySelectorAll('.secs').forEach(function(inp){ var k=inp.getAttribute('data-key'); cost(k); inp.addEventListener('input',function(){ cost(k); post({chat:CHAT,sheet:SHEET,item:k+'.s',text:inp.value}); }); });
 var deck=document.getElementById('deck'), cards=[].slice.call(deck.children), pos=document.getElementById('pos');
 function at(){ return Math.round(deck.scrollLeft/deck.clientWidth); }
