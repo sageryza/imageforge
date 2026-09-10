@@ -341,7 +341,14 @@
      feed showed through between them. Bottom-aligned, the video's own scrubber
      lands directly above the marks and the slack goes to the top, where only
      the close button lives. */
-  #player .pstage{flex:1;min-height:0;width:100%;display:flex;align-items:flex-end;justify-content:center}
+  /* AND THE STAGE IS FILMNOTE'S HOST, so `position:relative` is load-bearing:
+     everything /filmnote.js draws is absolute against its wrap and anchored to
+     that wrap's BOTTOM (its Note button, its sheet, its prompt panel, its
+     toast). With `#player` as the wrap the Note button landed ON the trim
+     controls — PHOTOgraphed at 390x844, sitting over the `›` stepper. Hosted
+     on the stage it sits over the picture, where a note about the film
+     belongs, and the marks stay clear. */
+  #player .pstage{position:relative;flex:1;min-height:0;width:100%;display:flex;align-items:flex-end;justify-content:center}
   #player .pstage video{max-width:100%;max-height:100%;display:block;background:#000}
   .trimbar{flex:none;width:100%;max-width:520px;display:flex;flex-direction:column;gap:8px;color:#f6f2ea;
            background:#141110;border-top:1px solid rgba(255,255,255,.13);
@@ -1508,7 +1515,9 @@ function openPlayer(url, j) {
   // the same one the Chats app's pinned film and compare.js's video lightbox
   // use. It posts to the same asset-note route the card's box does, so a note
   // written either way is one thread on one clip.
-  try { if (window.__filmNote) fnote = window.__filmNote({ wrap: pl, video: v, chat: noteChat(), url: url }); } catch (e) {}
+  // the STAGE is the host, not the whole player — see the `.pstage` note in
+  // the stylesheet: filmnote anchors its controls to its wrap's bottom edge
+  try { if (window.__filmNote) fnote = window.__filmNote({ wrap: pl.querySelector('.pstage'), video: v, chat: noteChat(), url: url }); } catch (e) {}
 }
 function closePlayer() {
   var pl = $('player');

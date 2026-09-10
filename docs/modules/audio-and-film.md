@@ -588,6 +588,13 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         follows the marks: at the two ends of a trimmed clip it is **Undo the
         trim**, anywhere else **Trim** / **Re-trim**, and where it would do
         nothing it is not drawn at all.
+      - **/filmnote.js IS HOSTED ON THE STAGE, NOT THE WHOLE PLAYER.** It
+        anchors everything it draws to its wrap's BOTTOM edge, so with
+        `#player` as the wrap its Note button landed ON the trim controls
+        (PHOTOgraphed, over the `›` stepper). `.pstage` carries
+        `position:relative` for it and the note UI sits over the picture,
+        where a note about the film belongs — pinned by a measurement both
+        ways round.
       **NOT IN PLAY, but worth knowing before it is:** Atlas's
       `return_last_frame` bakes the clip's LAST FRAME as a chaining still, and
       a trimmed tail would leave it pointing at a frame the clip no longer ends

@@ -7637,6 +7637,14 @@ before working on that module. Nothing was deleted — the moved text is verbati
     it — on the feed, the corner of a card. It also moves to the top while the
     player is open: a refusal she cannot read over the two buttons it is
     refusing is no refusal.
+  - **AND /filmnote.js IS HOSTED ON THE STAGE, NOT THE WHOLE PLAYER.** It
+    anchors everything it draws to its WRAP's bottom edge — the Note button,
+    the sheet, the prompt panel, the toast — so with `#player` as the wrap its
+    Note button landed ON the trim controls (PHOTOgraphed at 390x844, sitting
+    over the `›` stepper). `.pstage` is `position:relative` for it, and the
+    note UI now sits over the picture, where a note about the film belongs.
+    Pinned by a MEASUREMENT both ways round — no overlap, and every trim
+    control really takes its own tap.
   - **PHOTOGRAPHED, and it changed the layout**: centred in its stage the
     picture left ~270px of dead dimmed page between the clip and its own trim
     bar, so the two read as unrelated things. The picture is bottom-aligned

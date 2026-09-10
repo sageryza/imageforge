@@ -278,6 +278,41 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
     ok('both edges of the keep bar are where the marks are', near(k.a, 1.2 / 5, 0.03) && near(k.b, 3.6 / 5, 0.03));
   }
 
+  // ── filmnote and the trim bar share this screen ────────────────────────
+  // /filmnote.js (the paused-film note, PR #2272) anchors everything it draws
+  // to its WRAP's bottom edge, so hosted on `#player` its Note button landed
+  // ON the trim controls — PHOTOgraphed, sitting over the `›` stepper. It is
+  // hosted on `.pstage` instead. MEASURED, both ways round: no overlap, and
+  // every control really takes its own tap (a button that is merely "visible"
+  // under another one passes every width assertion ever written about it).
+  const overlaps = await page.evaluate(() => {
+    const n = document.querySelector('#player .notebtn');
+    if (!n) return { none: true };
+    const a = n.getBoundingClientRect();
+    const hit = [];
+    document.querySelectorAll('.trimbar button, .trimbar .strip').forEach((el) => {
+      const b = el.getBoundingClientRect();
+      if (!(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom)) {
+        hit.push(el.id || el.className);
+      }
+    });
+    return { hit, hosted: !!document.querySelector('#player .pstage.filmnote-host') };
+  });
+  ok('filmnote is hosted on the stage, not the whole player', overlaps.none || overlaps.hosted);
+  ok('and its Note button sits on NOTHING in the trim bar', overlaps.none || overlaps.hit.length === 0);
+  const reachable = await page.evaluate(() => {
+    const out = [];
+    ['tback', 'tin', 'tout', 'tfwd', 'treset', 'tgo'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el || el.hidden) return;
+      const r = el.getBoundingClientRect();
+      const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      out.push([id, at === el || el.contains(at)]);
+    });
+    return out;
+  });
+  ok('every trim control takes its own tap', reachable.length >= 5 && reachable.every(([, hitIt]) => hitIt));
+
   // the steppers walk the playhead a tenth at a time, so a mark can be placed
   // exactly with no handle to catch
   const before = await page.$eval('#player .pstage video', (v) => v.currentTime);
