@@ -6878,7 +6878,17 @@ var LIVE_STALE=3*60*60*1000;
 // (workingAt) and on a live draft (working:true — also only sent by current
 // hooks), never on "her message is newest". A chat with an old hook parks
 // and just doesn't glow, which is silence, not a lie.
-var TINT=true;
+//   • OFF AGAIN 2026-09-10, at her ask ("can you get rid of the tint
+//     feature?"). Nothing about the signal was wrong this time and no
+//     measurement retired it — she just doesn't want the rose wash on her
+//     list, so this is HER call and not a finding. The flag is the whole
+//     switch: `chatWorking` answers false, so the rose tint on tiles and
+//     rows, the "· N working" on the hidden bar, and the "Working right
+//     now" section of the Status view all go quiet together — they are one
+//     feature wearing three faces. `var TINT=true` turns every one of them
+//     back on, so don't rip the CSS or the renderers out; her word moves
+//     this, not a cleanup.
+var TINT=false;
 // The PRIMARY signal is the registry's turn-start mark (`workingAt`, stamped
 // by the hook's UserPromptSubmit ping the moment she messages a session,
 // cleared by the reply's own registry write). The message-shaped signals are
