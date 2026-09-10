@@ -34,6 +34,9 @@ const PUB = path.join(ROOT, 'public');
 const PAGE_SRC = fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8');
 const fails = []; let pass = 0;
 const ok = (what, cond) => { if (cond) pass += 1; else fails.push(what); };
+// A price on this page may wear a leading "~" where the figure is not pinned,
+// so a bare parseFloat reads NaN — read the number through this.
+const priceNum = (t) => parseFloat(String(t).replace(/^~/, ''));
 function report() {
   if (fails.length) { console.log('FOOTAGE — ' + pass + ' passed, ' + fails.length + ' FAILED'); fails.forEach((f) => console.log('  ✗ ' + f)); process.exit(1); }
   console.log('FOOTAGE — ' + pass + ' passed');
@@ -279,11 +282,11 @@ const server = http.createServer((req, res) => {
       const q = Object.fromEntries(u.searchParams);
       estQ.push(q);
       // the Atlas door is priced by the stub the way footage.js prices it —
-      // the live per-second rate (the sale applied) × seconds, exact with no
-      // reference video
+      // the live per-second rate (the sale applied) is a 480p rate, scaled by
+      // the canvas, and NOTHING on Atlas is pinned
       if (q.door === 'atlascloud') {
-        const c = Math.round(atlasRate(q.model) * Number(q.seconds) * 100) / 100;
-        return json({ ok: true, cents: c, door: 'atlascloud', ...(q.video === '1' ? { about: true } : { exact: true }) });
+        const c = Math.round(atlasRate(q.model) * Number(q.seconds) * F.resFactor(F.modelOf(q.model), q.res, q.ratio) * 100) / 100;
+        return json({ ok: true, cents: c, door: 'atlascloud', about: true });
       }
       return json({ ok: true, ...F.estimate({ model: q.model, resolution: q.res, ratio: q.ratio, seconds: q.seconds, hasVideo: q.video === '1', door: q.door, discount }, { openrouter: true, apiframe: true }) });
     }
@@ -376,9 +379,35 @@ async function pillSweep(pg, where) {
     F.init({ atlascloud: { configured: () => true, api: async (p) => (p === '/models' ? { data: [{ model: 'bytedance/seedance-2.0-mini/reference-to-video', price: { discount: '20', actual: { base_price: '0.011' }, origin: { base_price: '0.056' } } }] } : null) } });
     await F.atlasPrices();
     const atLive = F.estimate({ model: 'mini', resolution: '480p', ratio: '16:9', seconds: 4, door: 'auto' }, three);
-    ok('with the live read the Atlas price is the SALE rate per second (1.1¢/s × 4s), EXACT — Atlas bills per second', atLive.door === 'atlascloud' && atLive.exact === true && atLive.cents === 4.4);
+    ok('with the live read the Atlas price is the SALE rate per second (1.1¢/s × 4s)', atLive.door === 'atlascloud' && atLive.cents === 4.4);
+    // NOTHING ON ATLAS IS PINNED (2026-09-10, Sophie: "add ~ to both"). It
+    // publishes no billing API — her console is the only read — and no Atlas
+    // charge has ever been read against an estimate, at either resolution.
+    ok('and it is "about", never exact — no Atlas charge has been read', atLive.about === true && !atLive.exact);
     const atVid = F.estimate({ model: 'mini', resolution: '480p', ratio: '16:9', seconds: 4, hasVideo: true, door: 'auto' }, three);
-    ok('a reference video is still "about" on Atlas (one job measured ~19% more)', atVid.door === 'atlascloud' && atVid.about === true && atVid.cents === 4.4);
+    ok('a reference video is the same rate and also "about" (one job measured ~19% more)', atVid.door === 'atlascloud' && atVid.about === true && atVid.cents === 4.4);
+    // 720p IS THE PIXEL RATIO DEARER, PER SHAPE — Atlas bills by resolution
+    // (its own model readme) while publishing one flat rate, so the rate is
+    // read as a 480p rate and scaled by the canvas. 16:9 on the 2.5 table is
+    // 854×480 → 1280×720 = 2.2482×; 3:4 is 560×752 → 834×1112 = 2.2021×.
+    // Proven to the token on the log: the one 720p job (12s Mini 3:4, one
+    // reference video) spent 435,628 tokens against 197,811 for the same job
+    // at 480p, i.e. 2.202× — the 3:4 factor exactly.
+    const at720 = F.estimate({ model: 'mini', resolution: '720p', ratio: '16:9', seconds: 4, door: 'auto' }, three);
+    ok('720p 16:9 is 2.2482× the 480p price, not the same price — ' + at720.cents + '¢', at720.cents === Math.round(4.4 * (1280 * 720) / (854 * 480) * 100) / 100);
+    const at720p34 = F.estimate({ model: 'mini', resolution: '720p', ratio: '3:4', seconds: 4, door: 'auto' }, three);
+    ok('and 3:4 is its OWN factor, 2.2021× — the shape is what the tokens are made of', at720p34.cents !== at720.cents
+      && at720p34.cents === Math.round(4.4 * (834 * 1112) / (560 * 752) * 100) / 100);
+    ok('720p is "about" too', at720.about === true && !at720.exact);
+    ok('resFactor is 1 at 480p, so a 480p price is untouched by the scaling', F.resFactor(F.modelOf('mini'), '480p', '16:9') === 1);
+    // The factor lands on APIFRAME's own published 720p:480p ratios, which is
+    // the corroboration that Atlas bills the same way: Mini 4→9¢/s, Fast
+    // 7→16, 2.0 8→18, 2.5 13→29 are all the pixel ratio.
+    ok('the factor matches APIFRAME\'s own published 720p:480p ratio to within 5%', ['mini', 'fast', '2.0', '2.5'].every((id) => {
+      const m = F.modelOf(id);
+      const af = m.afCents['720p'] / m.afCents['480p'];
+      return Math.abs(F.resFactor(m, '720p', '16:9') / af - 1) < 0.05;
+    }));
     ok('publicModels carries the live per-second rate for the "?" card', F.publicModels().some((m) => m.id === 'mini' && m.atlasPerSec === 0.011 && m.atlasPays === 20));
     ok('a row Atlas did not price keeps its list fallback', F.estimate({ model: 'fast', resolution: '480p', ratio: '16:9', seconds: 4, door: 'auto' }, three).about === true);
   }
@@ -502,16 +531,18 @@ async function pillSweep(pg, where) {
   await page.evaluate(() => document.getElementById('secs').blur());
   await page.waitForFunction(() => document.getElementById('secs').value === '4');
 
-  // ── one door, so the price line no longer names one; and since 2026-09-10
-  //    it is the NUMBER ALONE — her ask, "just see the price not 'about'".
-  //    The word fired on every job carrying a reference video, which is her
-  //    ordinary shape, so it was on screen nearly always and said the same
-  //    thing every time. Whether the figure is pinned is still KNOWN (the
-  //    element's own dataset), it is simply not read aloud. ────────────────
+  // ── one door, so the price line no longer names one; and the hedge is one
+  //    CHARACTER — "~" where the figure is not pinned (2026-09-10, Sophie:
+  //    "add ~ to both"). The WORD "about" was cut the day before for firing
+  //    on nearly every job and spending a line to say the same thing every
+  //    time; a tilde costs nothing and still says the number is not a
+  //    promise. On Atlas — the page's one door — nothing is pinned at either
+  //    resolution, so it is there whether or not a reference video rides.
+  //    `#cost` still carries the flag for anything that needs to know. ─────
   await page.waitForFunction(() => /¢$/.test(document.getElementById('cost').textContent));
   const cost0 = await page.$eval('#cost', (e) => e.textContent);
-  ok('the price line is a price and nothing about a door: ' + cost0, /^\d+(\.\d{1,2})?¢$/.test(cost0));
-  ok('a pinned price does not hedge', !/about/.test(cost0));
+  ok('the price line is a price and nothing about a door: ' + cost0, /^~?\d+(\.\d{1,2})?¢$/.test(cost0));
+  ok('the hedge is a "~" and never the word', !/about/i.test(cost0));
   const beside = await page.evaluate(() => {
     const g = document.getElementById('go').getBoundingClientRect(), c = document.getElementById('cost').getBoundingClientRect();
     return { sameRow: Math.abs((g.top + g.height / 2) - (c.top + c.height / 2)) < 14, gap: Math.round(c.left - g.right) };
@@ -519,22 +550,22 @@ async function pillSweep(pg, where) {
   ok('the price sits right beside the star (gap ' + beside.gap + 'px)', beside.sameRow && beside.gap >= 0 && beside.gap < 30);
   await page.click('#secup');
   await page.waitForFunction((c) => document.getElementById('cost').textContent !== c, cost0);
-  ok('one more second is a higher price', parseFloat(await page.$eval('#cost', (e) => e.textContent)) > parseFloat(cost0));
+  ok('one more second is a higher price', priceNum(await page.$eval('#cost', (e) => e.textContent)) > priceNum(cost0));
   await page.click('#secdn');
   await page.waitForFunction((c) => document.getElementById('cost').textContent === c, cost0);
-  // A REFERENCE VIDEO IS THE ONE SHAPE STILL UNMEASURED. The line no longer
-  // says so, but the page must still KNOW — a figure that is not pinned
-  // silently becoming indistinguishable from one that is would be the page
-  // forgetting, rather than her choosing not to be told.
+  // THE PRICE WEARS ITS "~" AND NEVER THE WORD, with a reference video and
+  // without one — on Atlas neither is pinned, so taking the video off must
+  // NOT quietly promote the figure to a promise.
+  ok('the resting price already wears the ~ (Atlas is not pinned): ' + cost0, cost0.startsWith('~'));
+  ok('and the page knows it', await page.$eval('#cost', (e) => e.dataset.about === '1'));
   await page.setInputFiles('#file', { name: 'sock.mp4', mimeType: 'video/mp4', buffer: Buffer.from('x') });
   await page.waitForSelector('#refs .ref');
   await page.waitForFunction(() => document.getElementById('cost').dataset.about === '1');
   const withVid = await page.$eval('#cost', (e) => e.textContent);
-  ok('a reference VIDEO still says the price and NOT the word: ' + withVid, /^\d+(\.\d{1,2})?¢$/.test(withVid));
-  ok('and the page still knows the figure is not pinned', await page.$eval('#cost', (e) => e.dataset.about === '1'));
+  ok('a reference VIDEO says the price with a ~ and NOT the word: ' + withVid, /^~\d+(\.\d{1,2})?¢$/.test(withVid) && !/about/i.test(withVid));
   await page.click('#refs .x');
   await page.waitForFunction((c) => document.getElementById('cost').textContent === c, cost0);
-  ok('taking it off pins it again', await page.$eval('#cost', (e) => e.dataset.about !== '1'));
+  ok('taking it off does not pin it — nothing on Atlas is', await page.$eval('#cost', (e) => e.dataset.about === '1'));
 
   // ── the controls sit on as few rows as they fit on ───────────────────────
   const rows = await page.evaluate(() => {
@@ -983,7 +1014,7 @@ async function pillSweep(pg, where) {
   ok('opening the card picks the sale up live: ' + (await page.$eval('#discline', (e) => e.textContent)),
     /2\.0 Mini is 80% off right now/.test(await page.$eval('#discline', (e) => e.textContent)));
   await page.waitForFunction(() => /¢$/.test(document.getElementById('cost').textContent));
-  ok('and the price under the star drops with it', parseFloat(await page.$eval('#cost', (e) => e.textContent)) < parseFloat(cost0));
+  ok('and the price under the star drops with it', priceNum(await page.$eval('#cost', (e) => e.textContent)) < priceNum(cost0));
   await page.click('body', { position: { x: 5, y: 820 } });
 
   // ── HER NOTES ON A CLIP (2026-09-10, her ask) ───────────────────────────

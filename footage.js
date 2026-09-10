@@ -37,10 +37,15 @@
 // ByteDance's sale factor, in LIST credit dollars (the ~5% top-up fee is paid
 // when credit is bought, not per job, so it is not in the shown price).
 // APIFRAME is per second by resolution, with its own rate when a reference
-// video rides. Both halves are MEASURED off real charges — see the model
-// table's own note, which carries the job counts and the dates. An estimate
-// answers `exact:true` where it is pinned and `about:true` where it is not,
-// and the page prints "about" only for the second. The REAL cost lands on the
+// video rides. ATLAS is per second too, but publishes ONE flat rate and hides
+// the resolution dimension its own docs describe — so its rate is read as a
+// 480p rate and scaled by the canvas (`resFactor`). Those two halves are
+// MEASURED off real charges — see the model table's own note, which carries
+// the job counts and the dates; NOTHING on Atlas is, so every Atlas figure
+// answers `about`. An estimate answers `exact:true` where it is pinned and
+// `about:true` where it is not, and the page prefixes "~" to the second
+// (2026-09-10, Sophie: "add ~ to both" — the compact form of the word she
+// cut the day before). The REAL cost lands on the
 // card when the job finishes (OpenRouter reports it; APIFRAME does not, so an
 // APIFRAME card keeps the estimate, marked as one).
 //
@@ -122,7 +127,10 @@ const MODELS = [
   // FALLBACK — the live price comes off that same `GET /models`
   // (`price.actual.base_price`, the sale already applied; `atlasPrices()`
   // below), so the 80%-off Mini sale is read, never written down, exactly as
-  // OpenRouter's discount is. It shipped for one afternoon as its own
+  // OpenRouter's discount is. BOTH ARE 480p RATES: Atlas publishes one flat
+  // figure per model while billing by resolution (see `estimate`), so the
+  // rate is scaled by the canvas rather than looked up per rung — which is
+  // why `atlasCents` carries the same number on 480p and 720p. It shipped for one afternoon as its own
   // "2.0 Mini · Atlas" row beside the OpenRouter one; her ask the same
   // evening folded the door into the rows. MEASURED (2026-09-09): a PERSON
   // video and a real untouched photo both pass and draw; only a famous face
@@ -252,6 +260,18 @@ function canvasOf(m, res, ratio) {
   const byRes = fam[res] || fam['480p'];
   return byRes[ratio] || byRes['1:1'];
 }
+// How much dearer a resolution is than 480p ON THIS SHAPE — the pixel ratio
+// of the two canvases, which IS the token ratio (tokens = w*h*(24s+1)/1024,
+// proven to the token against the log). Used to scale Atlas's flat
+// per-second rate, which is a 480p rate. 1:1 at 480p vs 720p on the 2.5
+// table is 640x640 -> 960x960 = 2.25x; 16:9 is 854x480 -> 1280x720 = 2.248x.
+function resFactor(m, res, ratio) {
+  const r = RATIOS.includes(ratio) ? ratio : '1:1';
+  const [w, h] = canvasOf(m, res, r);
+  const [w0, h0] = canvasOf(m, '480p', r);
+  const base = w0 * h0;
+  return base > 0 ? (w * h) / base : 1;
+}
 
 // Which door a job goes through. Answers { door, fallback } — `fallback` is
 // the door tried second when the first refuses for content. Or { error }.
@@ -316,12 +336,25 @@ function estimate({ model, resolution, ratio, seconds, hasVideo, door, discount 
     return { cents: Math.round(usd * 10000) / 100, door: 'openrouter', ...(hasVideo ? { about: true } : { exact: true }) };
   }
   if (d.door === 'atlascloud') {
-    // Atlas bills per second: its live rate (the sale applied) is EXACT for
-    // a job with no reference video; the list-rate fallback (the read
-    // failed) and a job carrying a reference video (unpinned there, as on
-    // OpenRouter) answer "about".
-    const live = Boolean(atlasCache.val[m.id] && Number.isFinite(atlasCache.val[m.id].perSec));
-    return { cents: Math.round(atlasPerSecOf(m, res) * 100 * s * 100) / 100, door: 'atlascloud', ...(live && !hasVideo ? { exact: true } : { about: true }) };
+    // Atlas's per-second rate is a 480p rate, and RESOLUTION IS A BILLING
+    // DIMENSION IT DOES NOT EXPOSE (2026-09-10). Its `GET /models` publishes
+    // ONE flat `base_price` per model, which is why this branch used to
+    // quote 720p at the 480p price, marked exact — measured wrong three
+    // ways: Atlas's own model readme says "final billing follows the active
+    // model pricing configuration for the selected RESOLUTION, duration,
+    // account, and environment"; the one 720p job on file (12s Mini 3:4, one
+    // reference video) spent 435,628 tokens against 197,811 for the
+    // identical 480p job, i.e. 2.20x; and APIFRAME, which DOES publish per
+    // resolution, prices its own 720p at the pixel ratio on every row (Mini
+    // 4 -> 9c/s, Fast 7 -> 16, 2.0 8 -> 18, 2.5 13 -> 29).
+    // So the rate is scaled by the canvas (`resFactor`), per shape, because
+    // that is what the token count is made of.
+    // AND NOTHING HERE IS PINNED — not 480p either (2026-09-10, Sophie: "add
+    // ~ to both"). Atlas has no billing API; her console is the only read,
+    // and no Atlas charge has ever been read against an estimate. Every
+    // Atlas figure answers `about` until one is.
+    const cents = atlasPerSecOf(m, res) * 100 * s * resFactor(m, res, ratio);
+    return { cents: Math.round(cents * 100) / 100, door: 'atlascloud', about: true };
   }
   const per = (hasVideo && m.afVid && m.afVid[res] != null) ? m.afVid[res] : m.afCents[res];
   const measured = (m.afExact || []).indexOf(res + (hasVideo ? '+video' : '')) >= 0;
@@ -1071,7 +1104,7 @@ router.post('/jobs/:id/trim', async (req, res) => {
 module.exports = {
   router, init,
   MODELS, RATIOS, SIZES, CHAT, OR_FEE,
-  modelOf, doorFor, estimate, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, secondsOk, framesOf,
+  modelOf, doorFor, estimate, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, resFactor, secondsOk, framesOf,
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf,
   startJob, bakePoster, ensureVideoFloor, floorDecided,
   statusOf, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,

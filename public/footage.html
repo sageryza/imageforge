@@ -795,13 +795,15 @@ function updateCost() {
   api('/estimate' + q).then(function (d) {
     if (seq !== costSeq) return;
     if (!d || d.error) { $('cost').textContent = (d && d.error) || ''; $('cost').dataset.cents = ''; return; }
-    // THE NUMBER ALONE (2026-09-10, Sophie: "just see the price not
-    // 'about'"). The word fired on every job carrying a reference VIDEO — her
-    // ordinary shape, since a person or a shot-to-shot chain rides one — so
-    // it was on screen nearly all the time and said the same thing every
-    // time. The flag is still stored on the element for anything that needs
-    // to know the figure is not pinned; it is simply not read aloud.
-    $('cost').textContent = cents(d.cents);
+    // A "~" WHERE THE FIGURE IS NOT PINNED (2026-09-10, Sophie: "add ~ to
+    // both" — both resolutions on Atlas, which is every job through the
+    // page's one door until a real Atlas charge is read against an
+    // estimate). It is the compact form of the WORD she cut the day before
+    // ("just see the price not 'about'"): that hedge fired on nearly every
+    // job and spent a line saying the same thing every time, where one
+    // character costs nothing and still says the number is not a promise.
+    // The flag stays on the element for anything that needs to know.
+    $('cost').textContent = (d.about ? '~' : '') + cents(d.cents);
     $('cost').dataset.cents = d.cents;
     $('cost').dataset.about = d.about ? '1' : '';
   }).catch(function () {});
@@ -1398,9 +1400,14 @@ function jobCard(j) {
   // one saying nothing about it would be the card lying.
   var tags = [j.modelLabel || j.model, j.seconds != null ? j.seconds + 's' : '', j.resolution, j.ratio, j.sound ? '' : 'silent',
     j.door === 'openrouter' ? 'OpenRouter' : j.door === 'atlascloud' ? 'Atlas Cloud' : 'APIFRAME',
-    // the number alone, her rule above — while it draws that is the estimate,
-    // and the real charge replaces it when the clip lands
-    j.cost != null ? cents(j.cost) : (j.estimate != null ? cents(j.estimate) : ''),
+    // ONE RULE ABOUT THE PRICE ON THIS PAGE: a real charge is a number, an
+    // ESTIMATE wears a "~" (2026-09-10, her "add ~ to both"). The card needs
+    // no flag to know which — falling back to `estimate` because the door
+    // reported no `cost` IS the unpinned case, and it is the standing case
+    // on Atlas, which reports no dollar figure at all. Without this the send
+    // line and the card under it would print two different things for the
+    // same clip.
+    j.cost != null ? cents(j.cost) : (j.estimate != null ? '~' + cents(j.estimate) : ''),
     // HOW LONG IT TOOK TO DRAW (2026-09-10, her ask). The DOOR's own figure
     // (footage.js `drewMs`), never sentAt→doneAt — doneAt is when the poll
     // noticed, so a clip drawn while the app was closed would read hours.
