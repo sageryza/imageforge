@@ -404,8 +404,13 @@ line is the PERSON, not the video:
   billed at the clip's own token price to the token — and against the decoded
   final frame it is 1.18x sharper with **118x the horizontal chroma detail**,
   i.e. rendered before the h264 encode rather than pulled out of it. That is
-  the shot-to-shot chaining tool this film keeps needing. Off by default;
-  mirrored to Storage and filed on the log as `lastFrame`. Full numbers:
+  the shot-to-shot chaining tool this film keeps needing. Mirrored to Storage
+  and filed on the log as `lastFrame`. **ON FOR EVERY FOOTAGE JOB SINCE
+  2026-09-10 (Sophie: "on")** — the page asks for it on the Atlas door alone
+  (OpenRouter's flag is a no-op and APIFRAME builds its own body), the card
+  carries it, and the RECENT drawer offers it as a picture right behind the
+  clip it came off, so chaining a shot is one tap. Off by default still for
+  any other caller: `returnLastFrame: true` is what asks. Full numbers:
   *`return_last_frame`* in `docs/modules/audio-and-film.md`; test
   `node scripts/test-atlas-lastframe.js`. **AND IT IS THE FOOTAGE
   PAGE'S ONLY DOOR AND `doorFor`'s AUTO DEFAULT SINCE THE SAME EVENING
@@ -7578,6 +7583,19 @@ before working on that module. Nothing was deleted — the moved text is verbati
   still drawing; the dedupe is **by url across both kinds**, so a clip that
   was also used as a reference is one tile; and `castVote` repaints the drawer
   — a ✕ she just cast has to stop offering that clip.
+  **AND ITS LAST FRAME SITS RIGHT BEHIND IT (2026-09-10, Sophie: "on").**
+  Every Atlas job asks for `return_last_frame` now, so a finished clip carries
+  the frame it ends on and the drawer offers it as its own tile directly after
+  the clip — attach it to the next one and the room and the person carry over,
+  which is the whole of what a continuity pipeline is for. It is free, and it
+  is the door's own render rather than a decode of the mp4 (1.18x sharper,
+  118x the horizontal chroma detail — measured 2026-09-09). Three things not
+  to undo: it rides as a **PICTURE**, so a person in it is screened as a still
+  and never as a person video; it sits **INSIDE the clip's own test**, so the
+  trim rule below covers it for nothing — the baked frame is where the SOURCE
+  ends and a trimmed clip ends somewhere else, and a still one shot out of
+  step is worse than no still; and a clip drawn **before this** carries none,
+  honestly, rather than a frame decoded to fill the gap.
   **AND A TRIMMED CLIP IS OUT OF THE BOX (2026-09-10, Sophie: "take out
   trimmed clips from recents").** Once a clip has a baked part it has been cut
   for the film, and `video` then points at its FIRST part — so the tile was

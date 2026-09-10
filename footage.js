@@ -528,6 +528,12 @@ function cardOf(id, d) {
     // HOW LONG THE DOOR TOOK — the door's own figure, never sentAt→doneAt
     // (which is when the poll NOTICED). Absent when the door did not say.
     drewMs: Number.isFinite(Number(d.drewMs)) && Number(d.drewMs) > 0 ? Math.round(Number(d.drewMs)) : null,
+    // THE CLIP'S OWN LAST FRAME, rendered before the h264 encode rather than
+    // decoded out of it (1.18x sharper, 118x the horizontal chroma detail —
+    // measured 2026-09-09). It is a fact about the SOURCE clip, so it is
+    // answered whatever the trims say; whether it is safe to CHAIN from is
+    // the page's call, since a trimmed tail no longer ends on this frame.
+    lastFrame: d.lastFrame || '',
     vote: d.vote || '', hidden: Boolean(d.hidden), title: d.title || '',
   };
 }
@@ -614,11 +620,14 @@ async function bakePoster(id, videoUrl) {
 // edge so an exact cut never clicks. A second copy of that would be a second
 // set of edges to debug.
 //
-// NOT IN PLAY, but worth knowing before it is: Atlas's `return_last_frame`
-// bakes the clip's LAST FRAME as a chaining still, and a trimmed tail would
-// leave it pointing at a frame the clip no longer ends on. This page never
-// asks for one (`returnLastFrame` is not sent), so nothing here carries a
-// stale one — a page that starts asking has to re-pull it from the trim.
+// AND THE LAST FRAME IS IN PLAY SINCE 2026-09-10: every Atlas job asks for
+// one, so a finished clip carries `lastFrame` — the frame it really ends on.
+// A TRIM MOVES THAT END. The baked frame belongs to the SOURCE clip, so the
+// card answers it whatever the trims say (it is a fact about the source) and
+// the RECENT drawer stops offering it the moment a trim is ready: chaining
+// from a frame the clip she is handing on no longer ends on is the one wrong
+// answer here. Re-pulling the frame from the trim is the fix if she ever
+// wants both; nothing does it yet.
 const TRIM_FOLDER = 'footage/trims';
 const TRIM_MIN_SECONDS = 0.3;      // shorter than this is a tap, not a shot
 const TRIM_MAX_SECONDS = 600;
@@ -976,7 +985,16 @@ async function startJob(b) {
   const mods = getDoors();
   const send = async (door, note) => {
     const mod = mods[door];
-    const req = { ...body, model: door === 'openrouter' ? m.or : door === 'atlascloud' ? m.atlas : m.af };
+    // THE LAST FRAME RIDES ALONG ON ATLAS, AND ONLY THERE (2026-09-10,
+    // Sophie: "on"). It is FREE — measured 2026-09-09, billed to the token
+    // against the video-only formula — and it is the chaining still this
+    // draft keeps needing: the room and the person carried from one clip
+    // into the next. Asked for on the ATLAS door alone because it is the
+    // only one that answers with a frame: OpenRouter accepts the flag and
+    // hands back one output (a measured no-op) and APIFRAME builds its own
+    // body, so sending it there would be a key nothing reads.
+    const req = { ...body, model: door === 'openrouter' ? m.or : door === 'atlascloud' ? m.atlas : m.af,
+      ...(door === 'atlascloud' ? { returnLastFrame: true } : {}) };
     const say = [extra.note, note].filter(Boolean).join(' ');
     if (say) req.note = say;
     const r = await mod.startVideo(req, { ...extra, door, ...(say ? { note: say } : {}) });
