@@ -660,11 +660,15 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         `position:relative` for it and the note UI sits over the picture,
         where a note about the film belongs — pinned by a measurement both
         ways round.
-      **NOT IN PLAY, but worth knowing before it is:** Atlas's
-      `return_last_frame` bakes the clip's LAST FRAME as a chaining still, and
-      a trimmed tail would leave it pointing at a frame the clip no longer ends
-      on. This page never asks for one, so nothing here carries a stale one — a
-      page that starts asking has to re-pull it from the trim.
+      **AND THE LAST FRAME IS IN PLAY SINCE 2026-09-10 (Sophie: "on").**
+      Every Atlas job asks for `return_last_frame`, so a finished clip carries
+      the frame it really ends on — the door's own render rather than a decode
+      of the mp4, and free. A TRIM MOVES THAT END: the baked frame belongs to
+      the SOURCE clip, so the card answers it whatever the trims say (it is a
+      fact about the source) and the RECENT drawer stops offering it the moment
+      a part is baked — which it already did for the clip itself, so the rule
+      cost nothing. Re-pulling the frame from the trim is the fix if she ever
+      wants both; nothing does it yet.
       Test: `node scripts/test-footage-trim.js` (the rules pure, then a REAL
       encode measured with ffprobe — a recipe that reads perfectly and a file
       that is the wrong length look identical to any source assertion — then

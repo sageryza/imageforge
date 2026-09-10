@@ -940,7 +940,19 @@ function recentItems() {
       // a part still baking has cut nothing yet and the clip is still offered.
       // Only the clip goes: that job's own references are listed as before.
       if (j.status === 'done' && j.video && !j.hidden && j.vote !== 'dislike' && !bakedParts(j).length) {
-        add({ url: j.video, kind: 'video', poster: j.poster || '', name: j.title || String(j.prompt || '').slice(0, 60), mine: true });
+        var nm = j.title || String(j.prompt || '').slice(0, 60);
+        add({ url: j.video, kind: 'video', poster: j.poster || '', name: nm, mine: true });
+        // AND ITS LAST FRAME RIGHT BEHIND IT (2026-09-10, Sophie: "on") — the
+        // chaining still this draft keeps needing: attach it to the next clip
+        // and the room and the person carry over. It is the door's own render
+        // rather than a decode of the mp4 (1.18x sharper, 118x the horizontal
+        // chroma detail — measured 2026-09-09), and it is free.
+        // It sits INSIDE the clip's own test on purpose, so the trim rule
+        // above covers it for nothing: the baked frame is where the SOURCE
+        // ends, and a trimmed clip ends somewhere else — a still one shot out
+        // of step is worse than no still. And it rides as a PICTURE, so a
+        // person in it is screened as a still and never as a person video.
+        if (j.lastFrame) add({ url: j.lastFrame, kind: 'image', name: 'Last frame — ' + nm, tail: true });
       }
       (j.refs || []).forEach(function (r) { add({ url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' }); });
     });
@@ -961,7 +973,7 @@ function paintRecent() {
   el.innerHTML = '';
   list.forEach(function (r) {
     var b = document.createElement('button'); b.type = 'button'; b.className = 'rc';
-    b.title = r.mine ? 'Attach this clip' : 'Attach again';
+    b.title = r.tail ? 'Attach the last frame' : r.mine ? 'Attach this clip' : 'Attach again';
     b.setAttribute('aria-label', b.title + (r.name ? ' — ' + r.name : ''));
     var pic = r.kind === 'image' || Boolean(r.poster);
     b.innerHTML = thumbHtml(r) + (r.kind === 'video' && pic ? '<span class="bdg">' + ICONS.film + '</span>' : '');
