@@ -7597,48 +7597,34 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `node scripts/test-footage.js` (MEASURED off the rendered tag — a card that
   computes the span and never paints it, and one that paints sentAt→doneAt
   instead, are the same markup to any source check; verified failing 2 pre-fix).
-  **THE RECENT BOX KEEPS VIDEOS, NOT JUST STILLS (2026-09-10, Sophie).** The
-  history drawer listed the REFERENCES off earlier cards only, and hers are
-  mostly stills — measured on her live feed that day, **nine tiles, two of
-  them videos, and both drew their POSTER**, so the box read as nine stills
-  and the one thing this draft keeps needing (the shot before, to carry a
-  person and a room into the next clip) was reachable only by finding the
-  clip on the wall and putting its prompt back. Now `recentItems()` lists a
-  job's own FINISHED CLIP ahead of that job's references, newest job first,
-  so the shot she just drew is the first tile; a video with a poster wears a
-  small film mark in its corner (a video with none already draws the film
-  glyph, so it needs no mark). Three things not to undo: a clip she **crossed
-  out or hid is not offered** (it is not one to chain from) and neither is one
-  still drawing; the dedupe is **by url across both kinds**, so a clip that
-  was also used as a reference is one tile; and `castVote` repaints the drawer
-  — a ✕ she just cast has to stop offering that clip.
-  **AND ITS LAST FRAME SITS RIGHT BEHIND IT (2026-09-10, Sophie: "on").**
-  Every Atlas job asks for `return_last_frame` now, so a finished clip carries
-  the frame it ends on and the drawer offers it as its own tile directly after
-  the clip — attach it to the next one and the room and the person carry over,
-  which is the whole of what a continuity pipeline is for. It is free, and it
-  is the door's own render rather than a decode of the mp4 (1.18x sharper,
-  118x the horizontal chroma detail — measured 2026-09-09). Three things not
-  to undo: it rides as a **PICTURE**, so a person in it is screened as a still
-  and never as a person video; it sits **INSIDE the clip's own test**, so the
-  trim rule below covers it for nothing — the baked frame is where the SOURCE
-  ends and a trimmed clip ends somewhere else, and a still one shot out of
-  step is worse than no still; and a clip drawn **before this** carries none,
-  honestly, rather than a frame decoded to fill the gap.
-  **AND A TRIMMED CLIP IS OUT OF THE BOX (2026-09-10, Sophie: "take out
-  trimmed clips from recents").** Once a clip has a baked part it has been cut
-  for the film, and `video` then points at its FIRST part — so the tile was
-  offering a piece of a shot rather than the shot. Three things not to undo:
-  it is the **same `bakedParts(j)` the tile's scissors chip reads**, so the
-  mark on the wall and the absence from the box can never disagree about what
-  "trimmed" means; a part still **baking has cut nothing yet**, so that clip is
-  still offered (and a failed trim left the clip whole); and **only the CLIP
-  goes** — that job's own references are still listed, since a reference she
-  used once is still a reference. Test:
-  `node scripts/test-footage-recent.js` (every assertion a MEASUREMENT of the
-  rendered drawer or of what the send really POSTs — a poster and a still are
-  the same markup, and a lit thumb says nothing about what left the phone;
-  verified failing 8 pre-fix).
+  **THE RECENT BOX IS WHAT SHE UPLOADED — NOTHING THE DOOR DREW (2026-09-10,
+  Sophie: "take out trimmed clips from recents" → "recents is recent
+  UPLOADED" → "uploaded videos").** The drawer lists the REFERENCES off
+  earlier cards — her stills and her uploaded videos alike, newest job first,
+  one tile per url — so re-attaching one is a tap instead of a hunt through
+  Photos. Three things not to undo: the dedupe is **by url across both
+  kinds** (a clip that was also a reference is one tile, and it is listed as
+  the REFERENCE); a video with a poster wears a small film mark in its corner
+  (one with none already draws the film glyph, so it needs no mark); and the
+  drawer is DERIVED from the feed, so it repaints with it and nothing is
+  stored.
+  **THE CLIPS AND THEIR LAST FRAMES ARE HISTORY, NOT A RULE — DON'T PUT THEM
+  BACK.** For a few hours that morning the box also listed a job's own
+  FINISHED CLIP ahead of its references, at her ask ("make the recent box
+  keep videos, not just stills" — her references really are mostly stills, and
+  the shot before is what this draft keeps needing), and then that clip's
+  baked LAST FRAME right behind it ("on"). She retired both the same day, in
+  three messages: first the trimmed ones ("take out trimmed clips from
+  recents" — a trimmed clip's `video` points at its FIRST part, so the tile
+  offered a piece of a shot rather than the shot), then the whole idea. **The
+  outputs belong to the WALL**; a clip is chained from by putting its prompt
+  back, and its last frame from its own card. `return_last_frame` is still
+  asked for on every Atlas job and `lastFrame` is still on the log — only the
+  drawer stopped listing it. Test: `node scripts/test-footage-recent.js`
+  (every assertion a MEASUREMENT of the rendered drawer or of what the send
+  really POSTs — a clip's poster and a still reference are the same markup,
+  and a lit thumb says nothing about what left the phone; verified failing 5
+  against the page that listed them).
   **THE SEED IS ON THE CARD AND IN A BOX SHE CAN TYPE IN (2026-09-10, Sophie:
   "put a seed box that exposes the seed after the clip is drawn and put a copy
   button next to it so I can reuse the seed … make it into a text box so I can
