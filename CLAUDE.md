@@ -7427,6 +7427,44 @@ before working on that module. Nothing was deleted — the moved text is verbati
   deleted — ♥/✕ marks, `hidden` is the verb. **A chat's clips do NOT go here**
   — this is her feed, the Playground's rule; a chat's clips are tagged with the
   chat's own slug. Test: `node scripts/test-footage.js`.
+  **A BELT SCENE HANDS ITS WHOLE JOB TO THIS PAGE — ONE localStorage KEY,
+  `footage_handoff` (2026-09-10, Sophie: "add a button to each scene that
+  automatically puts all the right references in the same text to footage so I
+  can edit it or press go myself").** Her belt pages are served from this same
+  origin, so the hand-off needs no route and no doc: the belt writes
+  `{ prompt, refs:[{url, kind:'image'|'video'|'audio', poster?, name?}],
+  model?, seconds?, res?, ratio?, from?, title?, at: Date.now() }` and the page
+  CONSUMES it — reads, applies, **removes the key** — which is what makes it
+  land exactly once and never come back on a later load. It only fills the box:
+  **nothing is sent, the star is still her tap**, which is the whole of what she
+  asked for.
+  - **IT IS READ AT FOUR MOMENTS, AND LOAD IS ONLY ONE OF THEM**, because the
+    app keeps a tool's web view alive for the whole app process (*A WRAPPED PAGE
+    CAN BE DAYS STALE*) and walking to this page from the belt fires no load at
+    all: on **load** right after `loadCtl()` (the order is what makes the
+    hand-off beat the restored draft), on **`visibilitychange`→visible**
+    (coming back to the tool inside the app — the ordinary case), on
+    **`pageshow`** (the back-forward cache hands the page over with neither),
+    and on the **`storage` event** for that key (another same-origin DOCUMENT
+    writing it while this one is on screen — the only moment the page can act
+    immediately).
+  - **A hand-off REPLACES the draft** (it is a button she pressed; her words
+    were going into `footage_draft` all along), refs are deduped by url and an
+    unknown `kind` rides as a picture (`slotsOf` counts per kind and would
+    otherwise name a slot `[AudioNaN]`), and the model/res/ratio/seconds are
+    set live on `S` so **`paintControls` is what validates them** against the
+    served table — an unknown model falls to the first row, 99 seconds clamps
+    to the model's max. Nothing here holds a copy of that table.
+  - **Older than a day is dropped** (she has moved on) and **a malformed value
+    is dropped silently** — a belt page with a bug must not throw a page error
+    here. Either way the key is taken off the shelf rather than re-read at
+    every one of the four moments.
+  - Test: `node scripts/test-footage-handoff.js` (the real page headless, every
+    assertion a MEASUREMENT — a hand-off that parses and never reaches the box,
+    one that leaves the key behind, and one whose seconds skip the clamp all
+    look identical in the source; the `storage` moment is driven by a SECOND
+    page in the same context, which is the only honest way to ask. Verified
+    failing 20 pre-fix.)
   Full note: *FOOTAGE* under the OpenRouter note in
   `docs/modules/audio-and-film.md`.
 - **Movies** (`movies.js`, `/api/movies`, iOS Movies tab — no web page) — story ->
