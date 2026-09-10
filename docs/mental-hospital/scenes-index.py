@@ -31,6 +31,15 @@ MD   = 'KMGpzR0LNsbk1nVobmEl'  # Her scenes — the belt v10        · hospital-
 BODY = 'co8OW3LLEQjeKPKQ1oOK'  # The beautiful body — the belt v1 · video-editing-continuity
 OH   = 'wgrby6PbhSJLyPxmNv6s'  # Two scenes — shock, the door v19 · hospital-severance-rough-cut
 
+# SHOT = a finished clip exists for that card (read off GET /api/apiframe/video-log
+# on 2026-09-10, plus j-13, which the belt marks shot from before the log existed).
+# The tile wears the deeper blue. Pickups of a scene (the soap pk* clips) do not
+# make its neighbours shot; only the card's own scene counts.
+SHOT = {'j-13', 'j-md-23a1', 'j-md-23a2', 'j-md-23b',
+        'j-md-31a', 'j-md-31b', 'j-md-32b',
+        'j-ohara-aud', 'j-36a1', 'j-36aA', 'j-36aA2', 'j-36b', 'j-37',
+        'j-43a'}
+
 # (section, [(page, anchor, word, icon, full title)])
 SCENES = [
  ('Part one — the city', [
@@ -95,7 +104,8 @@ SCENES = [
 HELP = ("<p><b>Every scene of the ward film that has to be shot, in film order.</b> "
         "One button a scene: its own word, and a tap opens that scene's card on the belt "
         "page that holds it — your words, the references, the seconds, and Send. "
-        "Nothing here sends anything.</p>"
+        "Nothing here sends anything. <b>The deeper blue is a scene already shot</b> — a "
+        "finished clip is on the log for that card; the pale ones are still to send.</p>"
         "<p>The ward film's scenes are spread over seven belt pages in seven chats, so the "
         "buttons land in different places; where two pages held the same scene, the newest "
         "one won.</p>")
@@ -118,9 +128,11 @@ def build():
         for page, anchor, word, icon, title in rows:
             n += 1
             lab = '%d · %s' % (n, title)
+            if anchor in SHOT:
+                lab += ' — shot'
             tiles.append(
-                '<a class="b" href="/api/chatfeed/page/%s#%s" aria-label="%s" title="%s">%s<span>%s</span></a>'
-                % (page, anchor, esc(lab), esc(lab), svg(icon), esc(word)))
+                '<a class="b%s" href="/api/chatfeed/page/%s#%s" aria-label="%s" title="%s">%s<span>%s</span></a>'
+                % (' shot' if anchor in SHOT else '', page, anchor, esc(lab), esc(lab), svg(icon), esc(word)))
     return n, HEAD + '\n'.join(tiles) + TAIL % json.dumps(HELP)
 
 
@@ -131,7 +143,7 @@ HEAD = """<meta charset="utf-8">
 /* LIGHT BLUE, her ask 2026-09-10 — the same key as the Nautchaug scenes page,
    in blue instead of beige. The ink outline and the ink word stay near-black:
    at 55px a blue-on-blue label is the first thing that stops reading. */
-:root{--cols:5;--tile:#cfe3f2;--edge:#98bcd8;--tileink:#12212b}
+:root{--cols:5;--tile:#cfe3f2;--edge:#98bcd8;--tileink:#12212b;--shot:#7fb3dc;--shotedge:#4f86b4}
 /* THE GRID ENDS BEFORE THE PILL'S COLUMN. The injected autoscroll pill is
    position:fixed in the top-right (x~326-374, y 14-197 at 390pt), so every row
    passes under it on the way up — and every cell here is a tappable control,
@@ -143,6 +155,9 @@ HEAD = """<meta charset="utf-8">
 /* PRESSED = the tile drops onto its own shadow. No gradient anywhere: the 3-D
    is one flat darker blue wall under a flat face, outlined with the same
    near-black as the tile, so it reads as a physical key at 55px. */
+/* SHOT = a clip exists for that card: the deeper blue, same ink, same key. */
+.b.shot{background:var(--shot);box-shadow:0 3px 0 var(--shotedge),0 3px 0 1.5px var(--tileink)}
+.b.shot:active{box-shadow:0 0 0 var(--shotedge),0 0 0 1.5px var(--tileink)}
 .b:active{transform:translateY(3px);box-shadow:0 0 0 var(--edge),0 0 0 1.5px var(--tileink)}
 .b svg{width:20px;height:20px;width:36cqw;height:36cqw;display:block;color:var(--tileink)}
 .b span{font:700 8px/1 -apple-system,'Helvetica Neue',sans-serif;font-size:15cqw;letter-spacing:.02em;text-transform:uppercase;white-space:nowrap;color:var(--tileink)}
