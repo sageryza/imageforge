@@ -31,6 +31,7 @@ const servePublic = require('./lib/public-asset');
 
 const ROOT = path.join(__dirname, '..');
 const PUB = path.join(ROOT, 'public');
+const PAGE_SRC = fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8');
 const fails = []; let pass = 0;
 const ok = (what, cond) => { if (cond) pass += 1; else fails.push(what); };
 function report() {
@@ -401,22 +402,24 @@ async function pillSweep(pg, where) {
   await page.click('body', { position: { x: 5, y: 820 } });
   ok('any tap closes it', await page.$eval('#helpcard', (e) => e.hidden));
 
-  // ── model and resolution are drop-downs, 1.5 Pro is off the page ─────────
+  // ── the model is PINNED to Mini and the resolution is a drop-down ─────────
+  // (2026-09-10, Sophie: "get rid of the model choice · just mini for now")
   const sel = await page.evaluate(() => {
-    const m = document.getElementById('model'), r = document.getElementById('res');
-    const cs = getComputedStyle(m);
-    return { mTag: m.tagName, rTag: r.tagName,
-      models: [...m.options].map((o) => o.value), reses: [...r.options].map((o) => o.value),
+    const r = document.getElementById('res');
+    const cs = getComputedStyle(r);
+    return { hasModel: Boolean(document.getElementById('model')), rTag: r.tagName,
+      reses: [...r.options].map((o) => o.value),
       appearance: cs.appearance || cs.webkitAppearance, radius: cs.borderRadius,
       chevs: document.querySelectorAll('.selwrap .chev svg').length,
-      value: m.value, rvalue: r.value };
+      rvalue: r.value };
   });
-  ok('the model is a <select> and the resolution is a <select>', sel.mTag === 'SELECT' && sel.rTag === 'SELECT');
-  ok('1.5 Pro is off the list — APIFRAME is not one of this page\'s doors — and the four 2.x rows are the list',
-    sel.models.indexOf('1.5') < 0 && sel.models.join(',') === 'mini,fast,2.0,2.5');
+  ok('there is NO model control on the page — Mini is pinned', !sel.hasModel);
+  ok('the page pins the model in source (PAGE_MODEL = mini) and carries no id="model"',
+    /var PAGE_MODEL = 'mini'/.test(PAGE_SRC) && !/id="model"/.test(PAGE_SRC));
+  ok('the resolution is a <select>', sel.rTag === 'SELECT');
   ok('the native chrome is off and the box is the house 6px', sel.appearance === 'none' && sel.radius === '6px');
-  ok('every drop-down draws our own inline chevron', sel.chevs === 3);
-  ok('the resolution opens at the model\'s minimum', sel.rvalue === '480p' && sel.reses.join(',') === '480p,720p');
+  ok('the two drop-downs (size, shape) each draw our own inline chevron', sel.chevs === 2);
+  ok('the resolution opens at Mini\'s minimum', sel.rvalue === '480p' && sel.reses.join(',') === '480p,720p');
 
   // ── the seconds are typed, and clamped to the model\'s own range ─────────
   const secBox = await page.evaluate(() => {
@@ -439,17 +442,10 @@ async function pillSweep(pg, where) {
   await page.evaluate(() => document.getElementById('secs').blur());
   await page.waitForTimeout(120);
   ok('a number under the minimum clamps up (1 → 4)', (await page.$eval('#secs', (e) => e.value)) === '4');
-  await page.selectOption('#model', '2.5');
-  await page.waitForTimeout(150);
-  ok('switching the model brings its own range with it (2.5 runs to 30)',
-    (await page.$eval('#secs', (e) => e.max)) === '30');
-  await page.fill('#secs', '20');
-  await page.evaluate(() => document.getElementById('secs').blur());
-  await page.waitForTimeout(120);
-  ok('20 stands on 2.5', (await page.$eval('#secs', (e) => e.value)) === '20');
-  await page.selectOption('#model', 'mini');
-  await page.waitForTimeout(200);
-  ok('going back to a shorter model re-clamps what she typed (20 → 15)', (await page.$eval('#secs', (e) => e.value)) === '15');
+  // the range is Mini's own — 4 to 15 — read off the served table, and with
+  // no model control there is no way to reach another model's range
+  ok('the clamp is Mini\'s (4–15) off the served table, not a number in the page',
+    (await page.$eval('#secs', (e) => e.min + '-' + e.max)) === '4-15' && !/max="15"|min="4"/.test(PAGE_SRC));
   await page.fill('#secs', '4');
   await page.evaluate(() => document.getElementById('secs').blur());
   await page.waitForFunction(() => document.getElementById('secs').value === '4');
@@ -495,9 +491,9 @@ async function pillSweep(pg, where) {
   // THE SHAPE IS A DROP-DOWN AND THE CONTROLS ARE ONE BLOCK (2026-09-10,
   // Sophie: "buttons take up too much room" · "drop down for aspect ratio").
   // Six chips were a row of their own and TWO rows once the pill's column was
-  // reserved; the box sits in the row the model and the size are already on.
-  ok('the shape is a drop-down in the SAME row as the model and the size — never a row of its own',
-    await page.evaluate(() => document.getElementById('ratio').closest('.row') === document.getElementById('model').closest('.row')));
+  // reserved; the box sits in the row the size is already on.
+  ok('the shape is a drop-down in the SAME row as the size — never a row of its own',
+    await page.evaluate(() => document.getElementById('ratio').closest('.row') === document.getElementById('res').closest('.row')));
   const ctl = rows.filter((r) => r.kids > 2)[0];
   ok('the controls are ' + (ctl && ctl.lines) + ' line(s), not the five-deep column the chips made', ctl && ctl.lines <= 2);
   // THE SEED SITS WITH THE STAR — up to ten digits (video-seed.js mints
@@ -599,7 +595,7 @@ async function pillSweep(pg, where) {
   ok('nothing in the controls row is left sitting under the pill',
     await page.evaluate(() => {
       const f = document.querySelector('body > .float').getBoundingClientRect();
-      return [...document.getElementById('model').closest('.row').children]
+      return [...document.getElementById('res').closest('.row').children]
         .every((k) => { const r = k.getBoundingClientRect(); return !r.width || r.right <= f.left + 1; });
     }));
 
@@ -665,7 +661,12 @@ async function pillSweep(pg, where) {
   ok('every estimate this page asked for was Atlas\'s (' + estQ.length + ' asked)',
     estQ.length > 0 && estQ.every((q) => q.door === 'atlascloud'));
   ok('the new card is on top, drawing', await page.$eval('#feed', (f) => f.firstElementChild.id === 'job-new1' && /drawing/.test(f.firstElementChild.textContent)));
-  ok('the draft is cleared once sent', await page.evaluate(() => localStorage.getItem('footage_draft') == null));
+  // 2026-09-10: the words STAY in the box after a send (she re-rolls the
+  // same clip with one change), so the draft is kept beside them — a send
+  // that wiped the draft while the box still showed the words lost them on
+  // the next load.
+  ok('the words stay in the box after a send, and the draft stays with them',
+    await page.evaluate(() => document.getElementById('prompt').value.length > 0 && localStorage.getItem('footage_draft') != null));
 
   // ── a content refusal is free, and the page says who can send it ─────────
   refuse = true;
@@ -723,7 +724,7 @@ async function pillSweep(pg, where) {
   await page.waitForTimeout(200);
   const withRefs = await page.evaluate(() => {
     const f = document.querySelector('body > .float').getBoundingClientRect();
-    const row = document.getElementById('model').closest('.row');
+    const row = document.getElementById('res').closest('.row');
     const r = row.getBoundingClientRect();
     // page coords against the fixed pill's viewport rect — fitPillGap's own
     // convention, so the answer does not depend on where she has scrolled to
@@ -755,7 +756,7 @@ async function pillSweep(pg, where) {
   ok('folding the buttons hides them and leaves the references and the star alone ' + JSON.stringify(ctlShut),
     !ctlShut.controls && ctlShut.refs && ctlShut.go);
   ok('and the shut row says what they were set to: ' + ctlShut.lab,
-    /2\.0 Mini/i.test(ctlShut.lab) && /480p/i.test(ctlShut.lab) && /3:4/.test(ctlShut.lab) && /4s/i.test(ctlShut.lab));
+    !/Mini/i.test(ctlShut.lab) && /480p/i.test(ctlShut.lab) && /3:4/.test(ctlShut.lab) && /4s/i.test(ctlShut.lab));
   ok('a folded row keeps its values — hidden, never emptied', ctlShut.secs === '4' && ctlShut.ratio === '3:4');
   await page.click('#reffold');
   await page.waitForTimeout(120);
