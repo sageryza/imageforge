@@ -70,18 +70,43 @@ const done = { status: 'completed', video: 'https://s/clip.mp4' };
   ok('a FAILED clip is not trimmed', /once it has drawn/.test(F.trimPlan({ status: 'failed', video: '' }, { start: 0, end: 2 }).error || ''));
   ok('a clip with no file is not trimmed', /once it has drawn/.test(F.trimPlan({ status: 'completed', video: '' }, { start: 0, end: 2 }).error || ''));
 
-  // the card: the trim rides BESIDE the clip, never over it
+  // the card: the parts ride BESIDE the clip, never over it
   const raw = { status: 'completed', video: 'https://s/clip.mp4', poster: 'https://s/p.jpg', params: { duration: 4 } };
   const plain = F.cardOf('a', raw);
   ok('with no trim the card is what it always was', plain.video === raw.video && plain.source === raw.video && plain.trim === null);
-  const baking = F.cardOf('a', { ...raw, trim: { status: 'baking', start: 1, end: 3, seconds: 2 } });
+  ok('and it carries an empty parts list, never undefined', Array.isArray(plain.trims) && plain.trims.length === 0);
+  const baking = F.cardOf('a', { ...raw, trim: { key: 'k1', status: 'baking', start: 1, end: 3, seconds: 2 } });
   ok('a BAKING trim still plays the original', baking.video === raw.video && baking.trim.status === 'baking');
-  const ready = F.cardOf('a', { ...raw, trim: { status: 'ready', url: 'https://s/t.mp4', poster: 'https://s/t.jpg', start: 1, end: 3, seconds: 2 } });
+  const ready = F.cardOf('a', { ...raw, trim: { key: 'k1', status: 'ready', url: 'https://s/t.mp4', poster: 'https://s/t.jpg', start: 1, end: 3, seconds: 2 } });
   ok('a READY trim is what she plays and saves', ready.video === 'https://s/t.mp4');
   ok('and the ORIGINAL is still on the card', ready.source === raw.video);
   ok('the trim brings its own poster', ready.poster === 'https://s/t.jpg');
-  const failed = F.cardOf('a', { ...raw, trim: { status: 'failed', error: 'nope', start: 1, end: 3 } });
+  const failed = F.cardOf('a', { ...raw, trim: { key: 'k1', status: 'failed', error: 'nope', start: 1, end: 3 } });
   ok('a FAILED trim leaves the clip exactly as it was', failed.video === raw.video && failed.trim.error === 'nope');
+
+  // ── SEVERAL PARTS OUT OF ONE CLIP ──────────────────────────────────────
+  // The singular `trim` is the one-part record this shipped with; it reads as
+  // a list of one, so nothing already on file needs migrating — and a doc
+  // carrying `trims` ignores it, so the two spellings can never disagree.
+  ok('the legacy single trim reads as a list of one',
+    F.trimsOf({ trim: { key: 'k1', status: 'ready' } }).length === 1);
+  ok('a doc carrying parts IGNORES the legacy field',
+    F.trimsOf({ trims: [{ key: 'a' }, { key: 'b' }], trim: { key: 'old' } }).map((t) => t.key).join() === 'a,b');
+  ok('a part with no key is not a part — nothing could ever match it',
+    F.trimsOf({ trims: [{ key: 'a' }, { status: 'ready' }, null] }).length === 1);
+  const two = F.cardOf('a', { ...raw, trims: [
+    { key: 'p1', status: 'ready', url: 'https://s/1.mp4', poster: 'https://s/1.jpg', start: 0.5, end: 2, seconds: 1.5 },
+    { key: 'p2', status: 'baking', start: 3, end: 3.9, seconds: 0.9 },
+  ] });
+  ok('every part reaches the card, in the order she cut them', two.trims.map((t) => t.key).join() === 'p1,p2');
+  ok('the FIRST baked part is what she plays and saves', two.video === 'https://s/1.mp4' && two.poster === 'https://s/1.jpg');
+  ok('and the clip the door drew is still the source', two.source === raw.video);
+  ok('an older cached page still reads one trim off the first part', two.trim.key === 'p1');
+  const laterReady = F.cardOf('a', { ...raw, trims: [
+    { key: 'p1', status: 'baking', start: 0.5, end: 2, seconds: 1.5 },
+    { key: 'p2', status: 'ready', url: 'https://s/2.mp4', start: 3, end: 3.9, seconds: 0.9 },
+  ] });
+  ok('while the first part bakes, a part that IS baked is what plays', laterReady.video === 'https://s/2.mp4');
 }
 
 // ─── 1b. A LATE BAKE MUST NOT SPEAK FOR A TRIM SHE MOVED ON FROM ─────────
@@ -103,7 +128,7 @@ async function bakeAgainst(docTrim) {
     was[name] = Object.getOwnPropertyDescriptor(admin, name);
     Object.defineProperty(admin, name, { value, configurable: true, writable: true });
   };
-  const doc = { status: 'completed', video: 'https://s/clip.mp4', trim: docTrim };
+  const doc = { status: 'completed', video: 'https://s/clip.mp4', trims: docTrim ? [].concat(docTrim) : [] };
   const writes = [];
   const fsNs = () => ({ collection: () => ({ doc: () => ({
     get: async () => ({ exists: true, data: () => doc }),
@@ -153,11 +178,20 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
   {
     const mine = F.trimPlan({ status: 'completed', video: 'https://s/clip.mp4' }, { start: 1, end: 3 });
     const w1 = await bakeAgainst({ key: mine.key, status: 'baking' });
-    ok('a bake writes while the doc still asks for its own span', w1.length === 1 && w1[0].trim && w1[0].trim.status === 'ready');
+    ok('a bake writes while the doc still asks for its own span',
+      w1.length === 1 && Array.isArray(w1[0].trims) && w1[0].trims[0].status === 'ready');
     const w2 = await bakeAgainst(null);
-    ok('an UNDONE trim is never resurrected by a late bake', w2.length === 0);
+    ok('a REMOVED part is never resurrected by a late bake', w2.length === 0);
     const w3 = await bakeAgainst({ key: 'someothertrim', status: 'baking' });
-    ok('a RE-TRIM is not overwritten by the bake it replaced', w3.length === 0);
+    ok('a part she replaced is not overwritten by the bake it replaced', w3.length === 0);
+    // A LATE BAKE PATCHES ITS OWN ENTRY — a part she cut while this one was
+    // encoding must survive the write, which is the whole reason the guard
+    // re-reads the list rather than writing back the one it planned.
+    const w4 = await bakeAgainst([{ key: 'cutwhileiwasbaking', status: 'baking', start: 4, end: 5 }, { key: mine.key, status: 'baking' }]);
+    ok('and a part cut WHILE it baked is still there afterwards',
+      w4.length === 1 && w4[0].trims.length === 2 && w4[0].trims[0].key === 'cutwhileiwasbaking' && w4[0].trims[1].status === 'ready');
+    ok('the legacy single field is dropped the moment parts are written',
+      w1[0].trim && typeof w1[0].trim === 'object');
   }
 
   if (FF) {
@@ -191,7 +225,7 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
     id: 'clip1', prompt: 'the ward corridor', model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud',
     seconds: 4, resolution: '480p', ratio: '16:9', sound: true, status: 'done',
     video: '/clip.webm', source: '/clip.webm', poster: '/ref.png', refs: [],
-    sentAt: '2026-09-10T08:00:00.000Z', cost: 4, estimate: 4, vote: '', hidden: false, trim: null,
+    sentAt: '2026-09-10T08:00:00.000Z', cost: 4, estimate: 4, vote: '', hidden: false, trims: [],
   }];
   let jobReads = 0;
 
@@ -230,10 +264,16 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
       if (/^\/api\/footage\/jobs\/[^/]+\/trim$/.test(u.pathname)) {
         const b = JSON.parse(body || '{}');
         got.push(b);
+        const parts = (jobs[0].trims || []).slice();
         if (b.clear) {
-          jobs[0] = { ...jobs[0], trim: null, video: '/clip.webm', poster: '/ref.png' };
+          jobs[0] = { ...jobs[0], trims: [], video: '/clip.webm', poster: '/ref.png' };
+        } else if (b.remove) {
+          const next = parts.filter((t) => t.key !== b.remove);
+          jobs[0] = { ...jobs[0], trims: next, video: next.length ? jobs[0].video : '/clip.webm' };
         } else {
-          jobs[0] = { ...jobs[0], trim: { start: b.start, end: b.end, seconds: Math.round((b.end - b.start) * 1000) / 1000, status: 'baking', url: '', error: '' } };
+          const part = { key: 'k' + b.start + '-' + b.end, start: b.start, end: b.end,
+            seconds: Math.round((b.end - b.start) * 1000) / 1000, status: 'baking', url: '', error: '' };
+          jobs[0] = { ...jobs[0], trims: b.replace ? parts.map((t) => (t.key === b.replace ? part : t)) : parts.concat([part]) };
         }
         return json({ ok: true, job: jobs[0] }, 202);
       }
@@ -290,10 +330,11 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
   ok('it opens on the whole clip', /the whole clip/.test(await page.textContent('#tspan')));
   ok('nothing to do → NO Trim button', !(await shown('#tgo')));
   ok('and nothing to reset either', !(await shown('#treset')));
-  {
-    const k = await keepBox();
-    ok('the keep bar is the whole strip', near(k.a, 0, 0.02) && near(k.b, 1, 0.02));
-  }
+  // WITH THE MARKS ON THE WHOLE CLIP THE KEEP BAR IS NOT DRAWN — a bright
+  // band over the whole strip would cover the dim bands of the parts she has
+  // already cut, and the whole clip is the state the trimmer opens on.
+  ok('with nothing marked the keep bar is not drawn at all',
+    (await page.$eval('#tkeep', (el) => getComputedStyle(el).display)) === 'none');
 
   // ── setting the marks ──────────────────────────────────────────────────
   await seek(1.2);
@@ -424,49 +465,110 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
   await page.waitForTimeout(400);
   ok('ONE trim was sent', got.length === 1);
   ok('and it carries exactly the marks she set', got[0] && near(got[0].start, 1.2, 0.02) && near(got[0].end, 3.6, 0.02));
-  ok('the player closes on a trim', await page.$eval('#player', (el) => el.hidden));
+  // THE PLAYER STAYS OPEN (2026-09-10, her second ask: "re-cut the same whole
+  // clip after I've cut it to also get a second part") — closing on every cut
+  // would mean finding the clip and re-opening it between every part.
+  ok('the player STAYS OPEN, ready for the next part', !(await page.$eval('#player', (el) => el.hidden)));
+  ok('and the marks go back to the whole clip', /the whole clip/.test(await page.textContent('#tspan')));
+  ok('the part she just cut has a row of its own',
+    (await page.$$eval('.trimbar .tpart', (n) => n.length)) === 1);
+  ok('which says what it is baking', /1\.2–3\.6s/.test(await page.textContent('.trimbar .tpart')) && /trimming/.test(await page.textContent('.trimbar .tpart')));
+  ok('and there is nothing to play past, so no whole-clip button', !(await shown('#tall')));
   ok('the card says it is trimming', /trimming to 1\.2–3\.6s/.test(await page.textContent('#job-clip1')));
 
   // the poll has to keep running or the card sits on "trimming…" forever
   const reads = jobReads;
   await page.waitForTimeout(5000);
-  ok('a baking trim keeps the poll alive', jobReads > reads);
+  ok('a baking part keeps the poll alive', jobReads > reads);
 
   // ── it lands ───────────────────────────────────────────────────────────
   jobs[0] = { ...jobs[0], video: '/trimmed.webm', poster: '/ref.png',
-    trim: { start: 1.2, end: 3.6, seconds: 2.4, status: 'ready', url: '/trimmed.webm', error: '' } };
+    trims: [{ key: 'k1.2-3.6', start: 1.2, end: 3.6, seconds: 2.4, status: 'ready', url: '/trimmed.webm', error: '' }] };
   await page.evaluate(() => window.loadJobs && window.loadJobs());
   await page.waitForFunction(() => /trimmed 1\.2–3\.6s/.test(document.getElementById('job-clip1').textContent), null, { timeout: 8000 });
   ok('the card says what is kept', /trimmed 1\.2–3\.6s · keeping 2\.4s/.test(await page.textContent('#job-clip1')));
   ok('save hands her the TRIMMED clip', /\/trimmed\.webm$/.test(await page.$eval('#job-clip1 .acts a', (a) => a.getAttribute('href'))));
+  // the OPEN trimmer is this clip too — a part that finishes baking while she
+  // is standing in it must stop saying "trimming…" there as well as on the card
+  ok('and the row in the open trimmer stops saying it is baking',
+    !/trimming/.test(await page.textContent('.trimbar .tpart')));
 
-  // ── re-opening: the marks come back, and the button knows it ───────────
-  await page.click('#job-clip1 .thumb');
-  await page.waitForSelector('#player .pstage video');
-  await page.waitForFunction(() => {
-    const v = document.querySelector('#player .pstage video');
-    return v && isFinite(v.duration) && v.duration > 0;
-  }, null, { timeout: 8000 });
-  await page.waitForTimeout(250);
-  ok('a trimmed clip still opens its ORIGINAL',
-    /\/clip\.webm$/.test(await page.$eval('#player .pstage video', (v) => v.currentSrc)));
-  ok('with her marks already on it', /^1\.2s – 3\.6s/.test((await page.textContent('#tspan')).trim()));
-  ok('and the button says Re-trim', (await page.textContent('#tgo')).trim() === 'Re-trim');
+  // ── A SECOND PART OUT OF THE SAME CLIP ─────────────────────────────────
+  await seek(0.5);
+  await page.click('#tin');
+  await seek(1.2);
+  await page.click('#tout');
+  await page.waitForTimeout(150);
+  ok('the button knows there is already a part', (await page.textContent('#tgo')).trim() === 'Add part');
+  ok('and the whole-clip button appears once the span is narrower', await shown('#tall'));
 
-  await page.click('#treset');
-  await page.waitForTimeout(120);
-  ok('back to the whole clip', /the whole clip/.test(await page.textContent('#tspan')));
-  ok('and the button becomes the undo', (await page.textContent('#tgo')).trim() === 'Undo the trim');
+  // ── PLAY THE WHOLE CLIP (2026-09-10, her first ask) ────────────────────
+  // The MEASUREMENT is that the playhead really runs PAST the out mark — a
+  // button that plays and still loops at 1.2s looks identical in the source.
+  {
+    await page.click('#tall');
+    ok('and it says she is watching it all', /Back to the part/.test(await page.textContent('#tall')));
+    const seen = await page.evaluate(async () => {
+      const v = document.querySelector('#player .pstage video');
+      const out = []; const t0 = Date.now();
+      while (Date.now() - t0 < 2400) { out.push(v.currentTime); await new Promise((r) => setTimeout(r, 60)); }
+      return out;
+    });
+    ok('a whole-clip run starts at the beginning', seen.length > 5 && seen[0] < 0.6);
+    ok('and it runs PAST the out mark instead of looping', seen.some((t) => t > 1.6));
+    await page.click('#tall');
+    await page.waitForTimeout(300);
+    ok('tapping again goes back to the part',
+      near(await page.$eval('#player .pstage video', (v) => v.currentTime), 0.5, 0.45));
+    ok('and the marks were never touched by any of it', /^0\.5s – 1\.2s/.test((await page.textContent('#tspan')).trim()));
+  }
+
   await page.click('#tgo');
   await page.waitForTimeout(400);
-  ok('undoing sends clear, and no span', got.length === 2 && got[1].clear === true && got[1].start == null);
-  await page.waitForFunction(() => !/trimmed 1\.2/.test(document.getElementById('job-clip1').textContent), null, { timeout: 8000 }).catch(() => {});
-  ok('and the card stops saying it is trimmed', !/trimmed 1\.2–3\.6s/.test(await page.textContent('#job-clip1')));
+  ok('the second part is SENT, not a replacement', got.length === 2 && !got[1].replace && near(got[1].start, 0.5, 0.02));
+  ok('and the clip now carries two parts', (await page.$$eval('.trimbar .tpart', (n) => n.length)) === 2);
+  ok('each one numbered, in the order she cut them',
+    /part 1 · 1\.2–3\.6s/.test(await page.textContent('.trimbar .tparts')) && /part 2 · 0\.5–1\.2s/.test(await page.textContent('.trimbar .tparts')));
+  ok('the strip shows a dim band for each of them',
+    (await page.$$eval('.trimbar .bands .part', (n) => n.length)) === 2);
+  {
+    // the bands are WHERE the parts are, measured off the real boxes
+    const b = await page.evaluate(() => {
+      const s2 = document.querySelector('.trimbar .strip').getBoundingClientRect();
+      return Array.prototype.map.call(document.querySelectorAll('.trimbar .bands .part'), (el) => {
+        const r = el.getBoundingClientRect();
+        return [(r.left - s2.left) / s2.width, (r.right - s2.left) / s2.width];
+      });
+    });
+    ok('and each band really sits over its own span',
+      near(b[0][0], 1.2 / 5, 0.03) && near(b[0][1], 3.6 / 5, 0.03) && near(b[1][0], 0.5 / 5, 0.03) && near(b[1][1], 1.2 / 5, 0.03));
+  }
+  ok('the card lists both', /part 1 · trimmed 1\.2–3\.6s/.test(await page.textContent('#job-clip1')) && /part 2 · trimming to 0\.5–1\.2s/.test(await page.textContent('#job-clip1')));
+
+  // ── a part's own row puts its marks back, and REPLACES it in place ─────
+  await page.click('.trimbar .tpart:first-child .tpspan');
+  await page.waitForTimeout(150);
+  ok('tapping a part puts its own marks back', /^1\.2s – 3\.6s/.test((await page.textContent('#tspan')).trim()));
+  ok('and the button says it will replace that part', (await page.textContent('#tgo')).trim() === 'Replace');
+  await seek(1.5);
+  await page.click('#tin');
+  await page.waitForTimeout(120);
+  await page.click('#tgo');
+  await page.waitForTimeout(400);
+  ok('a replace names the part it is replacing', got.length === 3 && got[2].replace === 'k1.2-3.6' && near(got[2].start, 1.5, 0.02));
+  ok('and it keeps its PLACE in the order rather than jumping to the end',
+    (await page.$$eval('.trimbar .tpart', (n) => n.length)) === 2 && /part 1 · 1\.5–3\.6s/.test(await page.textContent('.trimbar .tparts')));
+
+  // ── the ✕ on a row is the undo, and it can only mean that part ─────────
+  await page.click('.trimbar .tpart:last-child .tpx');
+  await page.waitForTimeout(400);
+  ok('a ✕ takes off exactly the part it sits on', got.length === 4 && got[3].remove === 'k0.5-1.2');
+  ok('and the one she kept is still there', (await page.$$eval('.trimbar .tpart', (n) => n.length)) === 1);
+  ok('with no number on it any more, because there is only one',
+    !/part 1/.test(await page.textContent('.trimbar .tparts')));
 
   // ── the backdrop still closes ──────────────────────────────────────────
-  await page.click('#job-clip1 .thumb');
-  await page.waitForSelector('#player .pstage video');
-  await page.waitForTimeout(250);
+  // (the player has been open through every part of this — that IS the point)
   await page.evaluate(() => document.querySelector('#player .pstage').click());
   await page.waitForTimeout(150);
   ok('a tap on the backdrop closes the player', await page.$eval('#player', (el) => el.hidden));

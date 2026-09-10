@@ -7621,11 +7621,38 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `POST /api/footage/jobs/:id/trim {start,end}`; `{clear:true}` undoes it.
   **IT COSTS NOTHING** — ffmpeg on our own box, no model call, no door; what
   she paid for is the clip, and trimming and undoing are both free.
-  - **HER CLIP IS NEVER TOUCHED.** The trim is a NEW object under
+  - **HER CLIP IS NEVER TOUCHED.** A part is a NEW object under
     `footage/trims/` and `video` on the log doc — the clip the door drew — is
-    never written; `trim` is a field beside it, so the poll, the exact-prompt
-    log and the 1080p-redo list all go on seeing the original and the undo is
-    one field off the doc rather than a restore.
+    never written; `trims` is a list beside it, so the poll, the exact-prompt
+    log and the 1080p-redo list all go on seeing the original and taking a
+    part off is one entry off that list rather than a restore.
+  - **ONE CLIP HOLDS SEVERAL PARTS (2026-09-10, Sophie: "Can you also make it
+    possible to re-cut the same whole clip after I've cut it to also get a
+    second part").** `trims` is the shape; the singular `trim` this shipped
+    with is READ as a list of one, so nothing already on file needed
+    migrating, and `cardOf` still answers `trim` as the first part for a page
+    cached from before. `POST /jobs/:id/trim` is the one door: `{start,end}`
+    adds a part, `{start,end,replace:<key>}` swaps one span for another IN ITS
+    OWN PLACE in the order, `{remove:<key>}` takes one off, `{clear:true}`
+    takes them all off. The MARKS always open on the WHOLE clip — what she has
+    cut is the dim bands on the strip and a row each under it, so the next tap
+    is marking a different bit; a row's span puts its own marks back (the next
+    cut replaces that part) and its ✕ is the undo, the only one that can mean
+    the right part when there are several. **The player STAYS OPEN on a cut** —
+    she is taking a second part out of the same clip, and closing every time
+    would mean finding the clip and re-opening it between every one. `video`
+    (what save and a note key off) is the FIRST baked part; the bake guard
+    PATCHES ITS OWN ENTRY rather than writing back the list it planned, so a
+    part she cut while one was encoding is never dropped.
+  - **AND SHE CAN PLAY THE WHOLE CLIP TO CHECK THE CUT (2026-09-10, her first
+    ask that morning: "can you make it possible to play the whole clip to make
+    sure I cut the right part?").** *Play it all* is ONE PASS past the out
+    mark, never a mode: it ends when the clip does, and any mark she moves
+    ends it too; tapping it again goes back to the part and plays that. It is
+    drawn only while the span is narrower than the clip — with the marks at
+    the two ends, play already plays it all. **The label is short on purpose**
+    (PHOTOgraphed beside "Whole clip", which resets the MARKS: two long labels
+    there read as one thing said twice).
   - **THE SPAN IS ALWAYS IN THE ORIGINAL'S OWN SECONDS**, so the player opens
     the SOURCE even on a clip already trimmed — a trim can be widened back
     out, re-cut or undone. Trimming a trim would move what the marks mean
@@ -7661,9 +7688,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
     is her looking for a frame to mark. Playing
     plays the SPAN and loops it — that is how a trim is judged before it is
     committed — but **scrubbing is never yanked**. The button's meaning follows
-    the marks: at the two ends of a trimmed clip it is **Undo the trim**,
-    anywhere else **Trim** / **Re-trim**, and where it would do nothing it is
-    not drawn at all.
+    the marks: **Trim** with nothing cut yet, **Add part** once something is,
+    **Replace** while a part's row is picked, and where it would do nothing it
+    is not drawn at all. **AND THE KEEP BAR IS NOT DRAWN AT ALL WHEN THE MARKS
+    SPAN THE WHOLE CLIP** (PHOTOgraphed): a bright band over the whole strip
+    covers the dim bands of the parts she has already cut, and the whole clip
+    is exactly the state the trimmer opens on now.
   - **A TOAST IS A MESSAGE, NEVER A CONTROL — `pointer-events:none`, and that
     was a LIVE BUG on this page, found by measurement.** Fading to opacity 0
     does not stop an element hit-testing, so the toast box sat invisible at the
