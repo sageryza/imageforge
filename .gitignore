@@ -58,3 +58,7 @@ docs/storybooks/
 docs/mental-hospital/soap/*.mp4
 docs/mental-hospital/soap/run-af-*.log
 docs/mental-hospital/soap/af-*-final.json
+
+# YuNet weights — scripts/ward-pullstills.py fetches these on demand and skips
+# a copy already on disk, so this is a runtime cache, not a source file.
+scripts/models/
