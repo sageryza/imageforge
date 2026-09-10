@@ -135,3 +135,27 @@ That is the half that stops this drifting a third time.
 
 Test: `node scripts/test-scene-index.js` (the kit on all three real shapes,
 every assertion a measurement; `--live` also checks the posted pages link it).
+
+## And the Ticky Tack review DECK, which is a different page again
+
+`Ticky Tack — the scenes (56)` in `tiki-tack-draft-commit` is a stock DECK of
+her scenes, not a scenes index — so the kit does not reach it, and its own
+builder (`scripts/ticky-tack-scene-deck.js`, in this repo) had gained
+`it.footage` per card AFTER v2 was posted. A posted page is frozen, so the
+button was in the builder and on none of the 56 cards. Re-posted as **v3**,
+which was free: measured before touching it, her verdict sheet held no mark
+and no note on that deck, only her place.
+
+## The heading has to say the same version the row does
+
+The title is on the page DOC and the `<h1>` is baked into the html, so
+re-posting as the next version left her opening "… v3" and reading "… v2".
+`level-scene-pages.js` rewrites the heading's version NUMBER in place —
+entities and all, which re-escaping the plain title would not do — and
+`--retitle` fixes a page already carrying the kit at the SAME title, so
+putting the two in step spends no version. The four live pages read:
+
+- The ward film — the scenes v4 · `oH4MXZkYswP8wEY1k6JT`
+- The Nautchaug Boyfriend's — the scenes v7 · `bJFVfv8wIi7xZw4jsIJ4` (new-script-draft)
+- The Nautchaug Boyfriend's — the scenes v7 · `yirPd55DCOYsNRoTh8b8` (icon-styling-beige-3d)
+- Ticky Tack — the scenes v3 · `KHEjLBXN4zJpsO0QUZ7K`
