@@ -14,6 +14,14 @@ chat needs. Her rules first — they are all hers, all in force.
   line in her text is HER continuity line for the model — send it as written.
 - **Every clip with Sophie carries the jazz as Video1** (`refs.json` → `jazz150`,
   15.1s; url ends `1788736757836-f3j8qh.mp4`). Triple flag. No exceptions.
+  **`jazz150` had been pointing at the 2m36s jazz AUDIO in `refs.json` since
+  before 2026-09-10** — every doc said video, the key said `.m4a`, and only
+  `belt/jobs.json` hardcoding the mp4 kept it from showing. Fixed; the music is
+  `jazz-track` now. **`jazz4s` is the same clip cut to the 4s where her face is
+  closest** (the last 4.00s, 11.04s to the end) — measured over all 361 frames
+  with YuNet, mean face 210px against 170px for the best continuous medium
+  shot, and 2.1s of it is the 367px close-up. Use it where 30s of reference
+  budget is tight; `jazz150` stays the canonical origin.
 - **30s of reference footage per clip, max.** A character rides with their
   FIRST-appearance clip (its origin). A 4s reference clip cut off an origin is
   a *reference clip*, not an audition. Her verdict 2026-09-08: "4s auditions

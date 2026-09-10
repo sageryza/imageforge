@@ -96,8 +96,8 @@
   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/404215846ffe69a95a8d748bf0264e2b.mp4"
  },
  "jazz150": {
-  "id": "4kiqdEwTepN9d3eFDSQ5",
-  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/197dd706b86c83923320fb166f769983.m4a"
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4",
+  "note": "the 15.1s origin clip — every Sophie card's Video1. WAS pointing at the 2m36s jazz AUDIO (now jazz-track); fixed 2026-09-10."
  },
  "mayra-card": {
   "id": "I3qjo4jh84uD4iDJcwoW",
@@ -334,5 +334,15 @@
  "assistant-ref": {
   "id": "XtfhXdPbI6mmAjT23gLU",
   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/29b79fed3e5b81a9296535be1c13a775.png"
+ },
+ "jazz4s": {
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/ward-refs/jazz-best4s-1789011108116.mp4",
+  "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/ward-refs/jazz-best4s-poster-1789011281037.jpg",
+  "note": "the last 4.00s of jazz150 (11.04s to the end) — the measured best 4s: mean face 210px against 170px for the best continuous medium shot, and 2.1s of it is the 367px close-up."
+ },
+ "jazz-track": {
+  "id": "4kiqdEwTepN9d3eFDSQ5",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/197dd706b86c83923320fb166f769983.m4a",
+  "note": "the jazz MUSIC, 2m36s, audio only. Was sitting under jazz150 by mistake."
  }
 }

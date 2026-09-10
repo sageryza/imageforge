@@ -15,6 +15,15 @@
  *
  * A CLIP PLAYS ON THE PAGE (same message: "make the page take movies also") —
  * the stock grid template takes `video` on an item since 2026-09-10.
+ *
+ * THIS SCRIPT DRIFTS BEHIND THE LIVE PAGE — READ THE LIVE ONE BEFORE --go
+ * (2026-09-10). v5 and v6 were posted by another chat and carry things this
+ * file has never had (the "Juanita — her frames" group, `cast-juanita`, the
+ * Juanita clip group trimmed to one). A posted page is FROZEN and a builder is
+ * COPIED, so running --go from here would silently drop that chat's work — the
+ * house *REPAIR THE LIVE PAGE, DON'T REBUILD IT* rule. v7 was made by pulling
+ * `chat-pages/<id>.json` out of Storage, appending one item and re-posting; do
+ * that, or reconcile this file against the live data first.
  */
 const fs = require('fs');
 const path = require('path');
@@ -23,7 +32,7 @@ const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const CHAT = 'pajama-assets';
 const SESSION = (process.env.CLAUDE_CODE_REMOTE_SESSION_ID || '').replace(/^cse_/, '')
   || '01Xz9f7vZGF8Nz4xsfThS2g8';
-const TITLE = 'The ward film — every reference (v4)';
+const TITLE = 'The ward film — every reference (v7)';
 
 const D = path.join(__dirname, '..', 'docs', 'mental-hospital');
 const cast = JSON.parse(fs.readFileSync(path.join(D, 'refs', 'cast.json'), 'utf8'));
@@ -61,9 +70,14 @@ groups.push({ label: 'People — from the footage', items: [
 ] });
 
 // ---- Sophie ----------------------------------------------------------------
+// The stills, then her origin clip cut to the 4s where her face is closest —
+// measured over all 361 frames with YuNet: the last 4.00s beats every other 4s
+// window (mean face 210px against 170px for the best continuous medium shot).
 groups.push({ label: 'Sophie', items: Object.entries(P.sophie.candidates).map(([k, u]) => (
   { id: 'sophie-' + k.replace(/^sophie-/, ''), label: k.replace(/^sophie-/, '').replace(/-/g, ' '), img: u }
-)) });
+)).concat([
+  { id: 'sophie-jazz-4s', label: 'The jazz, the last 4s', video: clip('jazz4s'), poster: (refs.jazz4s || {}).poster },
+]) });
 
 // ---- wardrobe --------------------------------------------------------------
 const W = cast.wardrobe;
