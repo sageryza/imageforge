@@ -10,8 +10,9 @@ film but make the buttons red"). Same 3-D key: a flat face over one flat
 darker wall, outlined, no gradient anywhere — only the palette moved.
 
 One button a scene, in her own shooting order off `docs/ticky-tack/shot-list.md`.
-A tap opens that scene's own line; there is no draft belt for Ticky Tack yet, so
-the tiles have nothing to jump to and say what they are instead.
+A tap opens that scene's card on the draft belt (`belt.py`), the way the Nautchaug
+scenes page opens onto its own — so the two pages are one thing: the index and the
+cards it indexes.
 
     python3 scripts/ticky-tack/scenes.py            # write the html, don't post
     python3 scripts/ticky-tack/scenes.py --post     # post it into the chat
@@ -23,7 +24,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ICONS = json.load(open(os.path.join(HERE, 'icons.json')))
 BASE = 'https://imageforge-q125.onrender.com'
 CHAT = 'ticky-tack-film-page-dupe'
-TITLE = "Ticky Tack — the scenes v1"
+TITLE = "Ticky Tack — the scenes v2"
+# The draft belt this page opens onto — a tap lands on that scene's card.
+BELT = "MuKbzI8nmZVVbFdBnVxB"
 
 # (section, [(number, word, icon, the scene in her own shot-list words)])
 SCENES = [
@@ -103,46 +106,36 @@ CSS = """
    so the whole grid stops 64px short rather than only its first row. */
 .grid{display:grid;grid-template-columns:repeat(var(--cols),1fr);gap:11px 6px;margin-right:64px}
 .b{container-type:inline-size;aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-   background:var(--red);border:1.5px solid var(--tileink);border-radius:8px;color:var(--tiletext);padding:2px;-webkit-tap-highlight-color:transparent;
-   font:inherit;cursor:pointer;
+   background:var(--red);border:1.5px solid var(--tileink);border-radius:8px;color:var(--tiletext);text-decoration:none;padding:2px;-webkit-tap-highlight-color:transparent;
    box-shadow:0 3px 0 var(--edge),0 3px 0 1.5px var(--tileink)}
 /* PRESSED = the tile drops onto its own shadow. No gradient anywhere. */
 .b:active{transform:translateY(3px);box-shadow:0 0 0 var(--edge),0 0 0 1.5px var(--tileink)}
-.b.on{background:#a5261d;box-shadow:0 0 0 var(--edge),0 0 0 1.5px var(--tileink);transform:translateY(3px)}
 .b svg{width:20px;height:20px;width:36cqw;height:36cqw;display:block;color:var(--tiletext)}
 .b span{font:700 8px/1 -apple-system,'Helvetica Neue',sans-serif;font-size:15cqw;letter-spacing:.02em;text-transform:uppercase;white-space:nowrap;color:var(--tiletext)}
 .ep{grid-column:1/-1;font:700 10px/1.2 -apple-system,'Helvetica Neue',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);margin:14px 0 0}
 .ep:first-child{margin-top:2px}
-/* The scene's own words, under the grid — there is no draft belt to jump to. */
-#say{margin:16px 64px 0 0;padding:12px 14px;border:1px solid var(--line);border-radius:6px;background:var(--card,#fff)}
-#say[hidden]{display:none!important}
-#say b{display:block;font:700 10px/1.2 -apple-system,'Helvetica Neue',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);margin-bottom:6px}
-#say p{margin:0;font:400 15px/1.45 Newsreader,Georgia,serif;color:var(--ink)}
 """
 
 HELP = ("<p><b>Every scene that has to be shot, in the order you said to shoot "
         "them.</b> One button a scene: its own word, and a tap opens that "
-        "scene's line underneath. Nothing here sends anything.</p>"
-        "<p>There is no draft belt for Ticky Tack yet, so the buttons have "
-        "nothing to jump to — when there is one they point at it instead.</p>"
+        "scene's card on the draft belt — the passage it comes out of, your box "
+        "for the shot, the seconds, and Send to Footage. Nothing here sends "
+        "anything.</p>"
         "<p>Five to a row; the number is <code>--cols</code>.</p>")
 
 
 def build():
     e = html.escape
     rows = []
-    said = {}
     for section, items in SCENES:
         rows.append('<p class="ep">%s</p>' % e(section))
         for num, word, icon, text in items:
-            key = 's%s' % num
-            said[key] = [num, text]
             lab = '%s · %s' % (num, text.split(' — ')[0].split(';')[0])
             rows.append(
-                '<button class="b" type="button" data-s="%s" aria-label="%s" title="%s">'
+                '<a class="b" href="/api/chatfeed/page/%s#j-tt-%s" aria-label="%s" title="%s">'
                 '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
                 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">%s</svg>'
-                '<span>%s</span></button>' % (key, e(lab), e(lab), ICONS[icon], e(word)))
+                '<span>%s</span></a>' % (BELT, e(num), e(lab), e(lab), ICONS[icon], e(word)))
     return (
         '<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
@@ -150,30 +143,12 @@ def build():
         '<style>%s</style>\n'
         '<div class="wrap">\n<h1>%s</h1>\n'
         '<div class="grid">%s</div>\n'
-        '<div id="say" hidden><b></b><p></p></div>\n'
         '</div>\n'
         '<script src="/compare.js"></script>\n'
         '<script>\n(function(){\n'
         '  window.__compareHelp({html:%s});\n'
-        '  var SAY=%s;\n'
-        '  var box=document.getElementById("say"), hd=box.querySelector("b"), p=box.querySelector("p"), cur=null;\n'
-        '  document.querySelectorAll(".b").forEach(function(b){\n'
-        '    b.onclick=function(){\n'
-        '      var k=b.getAttribute("data-s");\n'
-        '      // Tapping the lit one puts it away — the house rule for a mark.\n'
-        '      if(cur===b){ cur.classList.remove("on"); cur=null; box.hidden=true; return; }\n'
-        '      if(cur) cur.classList.remove("on");\n'
-        '      cur=b; b.classList.add("on");\n'
-        '      hd.textContent=SAY[k][0]+" \\u00b7 "+b.querySelector("span").textContent;\n'
-        '      p.textContent=SAY[k][1]; box.hidden=false;\n'
-        '      // Bring the words into view when they are off screen — the WINDOW\n'
-        '      // only, never scrollIntoView, which walks every scrollable ancestor.\n'
-        '      var r=box.getBoundingClientRect();\n'
-        '      if(r.bottom>innerHeight||r.top<0) scrollTo({top:scrollY+r.top-innerHeight*0.42,behavior:"smooth"});\n'
-        '    };\n'
-        '  });\n'
         '})();\n</script>\n'
-    ) % (CSS, e(TITLE), '\n'.join(rows), json.dumps(HELP), json.dumps(said))
+    ) % (CSS, e(TITLE), '\n'.join(rows), json.dumps(HELP))
 
 
 def post(body, supersede=None):
