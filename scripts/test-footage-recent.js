@@ -54,6 +54,7 @@ let jobs = [
   { id: 'newest', prompt: 'the ward corridor', model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud',
     seconds: 4, resolution: '480p', ratio: '16:9', sound: true, status: 'done',
     video: 'http://127.0.0.1:PORT/mine-newest.mp4', poster: 'http://127.0.0.1:PORT/ref.png',
+    lastFrame: 'http://127.0.0.1:PORT/last-newest.png',
     refs: [
       { url: 'http://127.0.0.1:PORT/still.png', kind: 'image' },
       { url: 'http://127.0.0.1:PORT/shot-before.mp4', kind: 'video', poster: 'http://127.0.0.1:PORT/ref.png', name: 'the shot before' },
@@ -75,6 +76,7 @@ let jobs = [
     seconds: 4, resolution: '480p', ratio: '16:9', sound: true, status: 'done',
     video: 'http://127.0.0.1:PORT/trim-part1.mp4', source: 'http://127.0.0.1:PORT/whole.mp4',
     poster: 'http://127.0.0.1:PORT/ref.png',
+    lastFrame: 'http://127.0.0.1:PORT/last-trimmed.png',
     trims: [{ start: 0.5, end: 2.5, seconds: 2, key: 'k1', status: 'ready', url: 'http://127.0.0.1:PORT/trim-part1.mp4', poster: 'http://127.0.0.1:PORT/ref.png' }],
     refs: [{ url: 'http://127.0.0.1:PORT/trim-ref.png', kind: 'image' }],
     sentAt: '2026-09-10T06:45:00.000Z', vote: '', hidden: false },
@@ -167,7 +169,7 @@ const server = http.createServer((req, res) => {
   const n = await page.$$eval('#recent .rc', (els) => els.length);
   ok('a crossed-out clip is not offered', !(await page.$$eval('#recent .rc img', (els) => els.map((e) => e.src))).some((s) => /exed\.mp4/.test(s)) && n > 0);
   ok('a clip still drawing is not offered — there is nothing to attach yet',
-    (await page.$$eval('#recent .rc', (els) => els.length)) === 6);
+    (await page.$$eval('#recent .rc', (els) => els.length)) === 7);
   // A TRIMMED CLIP IS OUT — measured off what the tiles really point at, since
   // a tile drawing the same poster as its reference is the same markup.
   const srcs = await page.$$eval('#recent .rc img', (els) => els.map((e) => e.src));
@@ -176,6 +178,19 @@ const server = http.createServer((req, res) => {
   ok('but that job\'s own references still are', srcs.some((s) => /trim-ref\.png/.test(s)));
   ok('a clip whose trim is still baking is offered — nothing is cut yet',
     (await page.$$eval('#recent .rc', (els) => els.map((e) => e.getAttribute('aria-label') || ''))).some((a) => /mid-trim/.test(a)));
+  // THE LAST FRAME (2026-09-10, Sophie: "on") — the chaining still, right
+  // behind the clip it came off. Measured off the rendered tile, since a
+  // frame that is listed and a frame that is only on the card are the same
+  // markup to any source assertion.
+  ok('the clip\'s last frame is offered', tiles.some((t) => t.title === 'Attach the last frame'));
+  ok('and it sits directly behind its own clip',
+    tiles.findIndex((t) => t.title === 'Attach the last frame') === tiles.findIndex((t) => t.title === 'Attach this clip') + 1);
+  ok('it reads as a PICTURE — no film mark, since it is a still',
+    tiles.some((t) => t.title === 'Attach the last frame' && t.pic && !t.badge && /last-newest\.png/.test(t.src)));
+  // A TRIMMED CLIP'S FRAME IS WHERE THE SOURCE ENDS, NOT WHERE THE TRIM DOES
+  // — chaining from it would be one shot out of step.
+  ok('a trimmed clip\'s last frame is not offered either', !srcs.some((s2) => /last-trimmed\.png/.test(s2)));
+
   // ONE TILE PER URL: `shot-before.mp4` is the older job's clip AND a
   // reference on the newest one.
   const labels = await page.$$eval('#recent .rc', (els) => els.map((e) => e.getAttribute('aria-label') || ''));
@@ -195,6 +210,26 @@ const server = http.createServer((req, res) => {
   ok('the clip really rides the job as a reference video', vids.some((v) => /mine-newest\.mp4/.test(v)));
   ok('and it carries its poster, so the strip shows the frame she picked',
     (sent.refs || []).some((r) => /mine-newest\.mp4/.test(r.url) && /ref\.png/.test(r.poster || '')));
+
+  // AND THE LAST FRAME RIDES AS AN IMAGE SLOT — a lit thumb says nothing
+  // about what left the phone, and the kind is what decides whether the door
+  // screens it as a person VIDEO.
+  await page.click('#rectog');
+  await page.waitForTimeout(150);
+  const tailIdx = await page.$$eval('#recent .rc', (els) => els.findIndex((e) => e.title === 'Attach the last frame'));
+  ok('the last frame is still in the box after a send', tailIdx >= 0);
+  if (tailIdx >= 0) {
+    await page.$$eval('#recent .rc', (els, i) => els[i].click(), tailIdx);
+    await page.waitForTimeout(150);
+    const slots = await page.$$eval('#refs .slot', (els) => els.map((e) => e.textContent));
+    ok('attaching the last frame names it as an IMAGE slot', slots.some((t) => /^\[Image\d+\]$/.test(t)));
+    await page.fill('#prompt', 'the same room, the next beat');
+    await page.click('#go');
+    await page.waitForTimeout(300);
+    const sent2 = posted[1] || {};
+    ok('the last frame really rides the job as a reference image',
+      (sent2.refs || []).some((r) => r.kind === 'image' && /last-newest\.png/.test(r.url)));
+  }
 
   await browser.close();
   server.close();

@@ -373,6 +373,41 @@ async function pillSweep(pg, where) {
 
 (async () => {
   {
+    // THE LAST FRAME IS ASKED FOR ON ATLAS, AND ONLY THERE (2026-09-10,
+    // Sophie: "on"). It is free and it is the chaining still — but it has to
+    // reach the DOOR to exist, and a flag that is set on the page and dropped
+    // in the send is invisible from every card. So this reads what the door
+    // was really handed. It is Atlas-only on purpose: OpenRouter accepts the
+    // flag and answers one output (a measured no-op) and APIFRAME builds its
+    // own body, so sending it there is a key nothing reads.
+    const F = require('../footage');
+    const seen = [];
+    // the stub carries Atlas's own model list too — startJob reads the live
+    // price on its way past, and a door with no `api` would poison the price
+    // cache the block below measures
+    const ATLAS_MODELS = { data: [{ model: 'bytedance/seedance-2.0-mini/reference-to-video', price: { discount: '20', actual: { base_price: '0.011' }, origin: { base_price: '0.056' } } }] };
+    const door = (name) => ({
+      configured: () => true,
+      api: async (path2) => (path2 === '/models' ? ATLAS_MODELS : null),
+      startVideo: async (req) => { seen.push({ name, req }); return { jobId: name + '-1', sent: req, params: { seed: 7 } }; },
+      pollVideo: async () => null,
+    });
+    F.init({ atlascloud: door('atlas'), apiframe: door('apiframe'), openrouter: door('openrouter') });
+    await F.startJob({ prompt: 'the ward corridor', model: 'mini', seconds: 4, resolution: '480p', ratio: '16:9', door: 'atlascloud' });
+    ok('an Atlas job asks for the last frame', seen.length === 1 && seen[0].name === 'atlas' && seen[0].req.returnLastFrame === true);
+    await F.startJob({ prompt: 'the ward corridor', model: 'mini', seconds: 4, resolution: '480p', ratio: '16:9', door: 'apiframe' });
+    ok('an APIFRAME job does not — it answers no frame', seen.length === 2 && seen[1].name === 'apiframe' && !('returnLastFrame' in seen[1].req));
+    await F.startJob({ prompt: 'the ward corridor', model: 'mini', seconds: 4, resolution: '1080p', door: 'openrouter' });
+    ok('nor does an OpenRouter one — the flag is a measured no-op there',
+      seen.length === 3 && seen[2].name === 'openrouter' && !('returnLastFrame' in seen[2].req));
+    // and the card answers the baked frame, so the page can offer it
+    ok('the card carries the clip\'s own last frame',
+      F.cardOf('j1', { model: 'bytedance/seedance-2.0-mini', params: {}, video: 'v.mp4', lastFrame: 'f.png' }).lastFrame === 'f.png');
+    ok('and a clip drawn before this carries none, honestly',
+      F.cardOf('j2', { model: 'bytedance/seedance-2.0-mini', params: {}, video: 'v.mp4' }).lastFrame === '');
+    F.init({ atlascloud: require('../atlascloud'), apiframe: require('../apiframe'), openrouter: require('../openrouter') });
+  }
+  {
     // Atlas's price, read live off its own model list (a stub door here)
     const F = require('../footage');
     const three = { openrouter: true, apiframe: true, atlascloud: true };
