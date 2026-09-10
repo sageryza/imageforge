@@ -38,7 +38,9 @@ ok('no model → Mini', a.modelIdOf(undefined) === a.DEFAULT_MODEL);
 ok('statuses map onto the log\'s vocabulary', a.apiframeStatus('processing') === 'PROCESSING' && a.apiframeStatus('completed') === 'COMPLETED' && a.apiframeStatus('succeeded') === 'COMPLETED' && a.apiframeStatus('failed') === 'FAILED' && a.apiframeStatus('timeout') === 'FAILED');
 ok('ByteDance\'s content refusal is told apart from a shape error',
   a.refusalKind('InputImageSensitiveContentDetected.PrivacyInformation') === 'content'
-  && a.refusalKind('the output video may be related to copyright restrictions') === 'content'
+  && a.refusalKind('the output video may be related to copyright restrictions') === 'output'
+  && a.refusalKind('Total duration of all reference videos must not exceed 15.2 seconds.') === 'shape'
+  && a.refusalKind('x', 1012006) === 'output'
   && a.refusalKind('reference_images: invalid url') === 'shape' && a.refusalKind('boom') === 'other');
 
 const src = fs.readFileSync(__dirname + '/../atlascloud.js', 'utf8');

@@ -718,6 +718,63 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
   only until that changes; `wan-2.7-i2v` is the proven 3s image route. Probed and
   absent: 2.5-fast, 2.5-lite, 2.5-pro, 2.0-lite, 2.0-pro, 1.5-lite. A
   catalogue page is a hint; the model endpoint is the measurement.
+- **EVERY REFUSAL A DOOR HAS SENT, IN ONE TABLE, CALLED OUT ON THE CARD
+  (`video-refusals.js`, 2026-09-10, Sophie: "check for other refusal
+  reasons, make sure they're documented and called out").** Measured that
+  day over all 238 jobs on the log (48 Atlas · 45 APIFRAME · 145 OpenRouter)
+  plus a read of every Atlas prediction record. The three doors forward to
+  the same ByteDance model service, so the SAME refusals arrive through each,
+  worded a little differently; the table matches the text (and Atlas's
+  `error_code`) and answers a KIND and a LINE in her words. The footage card
+  paints the line in red with the door's own text under it (`why` on the
+  card, derived on every read, never stored), a refused tap answers `why` on
+  the POST, and `atlascloud.js`'s `refusalKind` reads the table first. A
+  reason the table has not met paints the raw text alone — add a row.
+  - **`shape` — the request. Free, at validation; another door changes
+    nothing.**
+    - **Reference videos over 15.2s together** (Atlas 1013030, ×4 on
+      2026-09-10 — two 12-15s clips on one job). **Checked BEFORE the tap
+      leaves now**: the floor probe's sidecar banks each reference's length
+      (`seconds`), `refVideoTotalRefusal` sums them and refuses on Atlas with
+      the total, only when every length is known (a sidecar banked before
+      this carries none — the next new reference does). Unmeasured on the
+      other doors, so they are not checked.
+    - **A reference video under ByteDance's pixel floor** (`PixelCountTooSmall`
+      — upscaled by itself now, *A REFERENCE UNDER BYTEDANCE'S PIXEL FLOOR*
+      above).
+    - **Seconds outside 4-15** (`Duration must be between`).
+    - **One reference video and no picture reads as a VIDEO EXTENSION** and
+      `ratio` is refused (APIFRAME ×2).
+    - **A reference picture outside 2:5-5:2** (`expected the aspect ratio to
+      be between 0.40 and 2.50`, APIFRAME ×1).
+  - **`content` — an INPUT gate, before anything draws. Free. The one kind a
+    door falls back on** (Atlas → APIFRAME for a famous face; OpenRouter →
+    APIFRAME for a person): `InputVideoSensitiveContentDetected` /
+    `InputImageSensitiveContentDetected.PrivacyInformation` / "may contain
+    real person" (OpenRouter and APIFRAME, on a video and on a picture), and
+    Atlas's famous-face refusal on the POST (Radcliffe, 2026-09-09).
+  - **`output` — DRAWN, THEN BLOCKED. Unbilled everywhere measured
+    (`price:"0"`, no `generation_id`) but it cost the wait, and it is
+    PROBABILISTIC — the same words drew on the next try more than once.**
+    - **1012004 output video copyright** — Atlas ×2 (both on 2.0 Fast, a
+      plain reference-free dialogue prompt; Mini drew the same words),
+      APIFRAME ×2, OpenRouter ×1 (the Radcliffe bar).
+    - **1012006 output video sensitive content** — Atlas ×1 (2026-09-10,
+      a 15s Mini with no reference). NEW that day; nothing here had seen it.
+    - **1012009 output AUDIO copyright** — the clip drew but its sound was
+      blocked (a song, a known voice): Atlas ×1, APIFRAME ×2 ("output audio
+      may be related to copyright"). NEW on Atlas that day. Say in the prompt
+      what the sound should be, or send again.
+  - **`down` — the door did not answer** (APIFRAME "Polling timed out after
+    1200s" ×1; Atlas's gateway 2026-09-10). Nothing sent or charged.
+  - **AND A REFUSED ATLAS PREDICTION COMES BACK UNDER HTTP 400** — the same
+    record a running one comes back under 200 with, `data.status:'failed'`
+    and the text. `pollVideo` reads it out of the error body (`failedRecord`);
+    before #2283 it threw, `pollOne` swallowed it, and a refused clip said
+    "drawing" on her page forever (the four 15.2s refusals sat 20 minutes).
+    Test: `node scripts/test-atlascloud-failed-poll.js`.
+  Tests: `node scripts/test-video-refusals.js` (every text on the log, the
+  kinds, the card's `why`, the pre-send total).
 - **A model's INPUT KEYS ride its `shape`, never its tier name** — `wan22`
   (`image`/`last_image`, counts frames), `wan27` (`first_frame`/`last_frame`,
   counts seconds), `kling` (`start_image`/`end_image`, fixed 5s). One builder,
