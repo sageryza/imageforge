@@ -28,7 +28,8 @@
  *   node scripts/level-scene-pages.js --go       # posts
  *   node scripts/level-scene-pages.js --chat <slug> [--go]
  *   node scripts/level-scene-pages.js --out /tmp/pages   # the patched html, unposted
- *   node scripts/level-scene-pages.js --file scripts/ticky-tack/scenes.html
+ *   node scripts/level-scene-pages.js --retitle [--go]   # heading vs row only
+ *   node scripts/level-scene-pages.js --file scripts/ticky-tack/scenes.html --title '… v3'
  *
  * It refuses a page that is not a scenes index, one that already links the
  * file, and one whose scripts would not parse after the edit.
@@ -48,6 +49,7 @@ const arg = (n) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : nu
 const only = arg('--chat');
 const OUT = arg('--out');
 const FILE = arg('--file');
+const RETITLE = args.includes('--retitle');
 
 const TAG = '<script src="/scene-index.js"></script>';
 const AFTER = '<script src="/compare.js"></script>';
@@ -61,12 +63,25 @@ function isSceneIndex(html) {
     && /<a class="b"[^>]*href="\/api\/chatfeed\/page\/[A-Za-z0-9_-]+#j-/.test(html);
 }
 
-function patch(html) {
+// THE HEADING HAS TO SAY THE SAME VERSION THE ROW DOES. The title is on the
+// page DOC and the <h1> is baked into the html, so re-posting as the next
+// version leaves her opening "… v3" and reading "… v2". Only the NUMBER is
+// rewritten, in place — the heading's own entities (`Boyfriend&#x27;s`) are
+// left exactly as they are, which re-escaping the plain title would not do.
+function syncH1(html, title) {
+  const want = /\bv(\d+)/.exec(title);
+  if (!want) return html;
+  return html.replace(/(<h1[^>]*>)([\s\S]*?)(<\/h1>)/, (m, a, inner, b) => (
+    /\bv\d+/.test(inner) ? a + inner.replace(/\bv\d+/, 'v' + want[1]) + b : m
+  ));
+}
+
+function patch(html, title) {
   if (html.includes('/scene-index.js')) throw new Error('already links the kit');
   if (!isSceneIndex(html)) throw new Error('not a scenes index');
   const hits = html.split(AFTER).length - 1;
   if (hits !== 1) throw new Error('compare.js is linked ' + hits + ' times, expected once');
-  const out = html.replace(AFTER, AFTER + '\n' + TAG);
+  const out = syncH1(html.replace(AFTER, AFTER + '\n' + TAG), title);
   // it has to parse, or the page loses its help card and its own wiring
   (out.match(/<script>([\s\S]*?)<\/script>/g) || []).forEach((b, i) => {
     const js = b.replace(/^<script>/, '').replace(/<\/script>$/, '');
@@ -97,7 +112,7 @@ const bump = (title) => (/\bv(\d+)(\s*\(.*\))?\s*$/.test(title)
 
 if (FILE) {
   const fs = require('fs');
-  const html = patch(fs.readFileSync(FILE, 'utf8'));
+  const html = patch(fs.readFileSync(FILE, 'utf8'), arg('--title') || '');
   if (GO) fs.writeFileSync(FILE, html);
   console.log((GO ? 'PATCHED  ' : 'WOULD PATCH  ') + FILE);
   return;
@@ -112,11 +127,20 @@ if (FILE) {
       if (p.superseded) continue;
       const html = await getText('/api/chatfeed/page/' + p.id);
       if (!isSceneIndex(html)) continue;
-      let out;
-      try { out = patch(html); } catch (e) { console.log('SKIP     ' + chat + ' · ' + p.title + ' — ' + e.message); skipped += 1; continue; }
-      const title = bump(p.title);
+      let out, title;
+      // --retitle: a page already carrying the kit whose HEADING disagrees with
+      // its row. Same title, so no version is spent putting the two in step.
+      if (RETITLE) {
+        if (!html.includes('/scene-index.js')) { skipped += 1; continue; }
+        title = p.title;
+        out = syncH1(html, title);
+        if (out === html) { skipped += 1; continue; }
+      } else {
+        title = bump(p.title);
+        try { out = patch(html, title); } catch (e) { console.log('SKIP     ' + chat + ' · ' + p.title + ' — ' + e.message); skipped += 1; continue; }
+      }
       console.log((GO ? 'LEVELS   ' : 'WOULD    ') + chat + ' · ' + p.title + ' → ' + title
-        + '\n           gains: ' + missing(html));
+        + '\n           gains: ' + (RETITLE ? 'a heading that agrees with its row' : missing(html)));
       done += 1;
       if (OUT) {
         const f = require('path').join(OUT, p.id + '.html');
