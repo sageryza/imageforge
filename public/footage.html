@@ -2427,11 +2427,37 @@ function setGap(el, name, v) { if (el.style.getPropertyValue(name) === v) return
 // Judged as if at the top of the page (page coords against the fixed pill's
 // viewport rect, Freeform's own convention), so a row does not change width
 // as it scrolls past.
+// THE RESERVE DOES NOT FOLLOW THE PILL'S COMING AND GOING (2026-09-11, Sophie:
+// "issue w footage textbox. switches back and forth between narrow (viewport -
+// scroll pill), and full width. whyyy"). The pill is CONDITIONAL — its own
+// sync hides it whenever the page is under one screen tall — and this used to
+// reserve nothing while it was hidden, so the prompt box's width tracked the
+// page's HEIGHT: a short feed, the caret keeper borrowing room under the
+// keyboard and giving it back, the keyboard itself, a draft growing past the
+// fold — each one flipped the box 49px (MEASURED: 340 → 291 → 340) and
+// re-wrapped the line she was typing, which is also how her caret ended up
+// under the keyboard after caretkeep had put it above. So the column is
+// measured where the pill WOULD sit — shown for one synchronous measurement,
+// invisible, put back before anything paints — and a row in that band keeps
+// its width whether the pill is drawn this second or not. Still the pill's
+// REAL rect (its top rides the safe-area inset), never a hardcoded band; a
+// page served with no pill at all still reserves nothing.
+function pillRect() {
+  var pill = document.querySelector('body > .float');
+  if (!pill) return null;
+  if (pill.getClientRects().length) return pill.getBoundingClientRect();
+  var d = pill.style.display, v = pill.style.visibility, r = null;
+  try {
+    pill.style.visibility = 'hidden'; pill.style.display = '';
+    if (pill.getClientRects().length) r = pill.getBoundingClientRect();
+  } catch (_) {}
+  pill.style.display = d; pill.style.visibility = v;
+  return r;
+}
 function fitPillGap() {
   var panels = document.querySelectorAll('.panel');
   var kids = document.querySelectorAll('.panel > *');
-  var pill = document.querySelector('body > .float');
-  var p = (pill && pill.getClientRects().length) ? pill.getBoundingClientRect() : null;
+  var p = pillRect();
   var y = window.scrollY || 0, i;
   for (i = 0; i < panels.length; i++) setGap(panels[i], '--pilltop', '0px');
   if (!p) { for (i = 0; i < kids.length; i++) setGap(kids[i], '--pillgap', '0px'); return; }
