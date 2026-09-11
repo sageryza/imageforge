@@ -282,7 +282,13 @@ if (require.main === module) (async () => {
     // still is never probed (its `out` IS its hold). `poster` on a clip is
     // passed through as cleanPiece keeps it — a Dump item's `posterUrl`
     // goes in cut.json as `poster` and lands on her timeline tile.
-    if (Array.isArray(cut.clips)) body.clips = await fillSeconds(M.cleanPieces(cut.clips), M.cleanPiece);
+    // PROBE BEFORE CLEANING, or the promise one line up is a lie: `cleanPieces`
+    // drops any piece whose `out - in` is under MIN_PIECE, and a piece whose
+    // length is not known yet HAS no `out` — so cleaning first threw away every
+    // piece fillSeconds existed to measure, and `set` answered "saved · 0
+    // pieces" on a cut written exactly the way this file documents
+    // (2026-09-11, found writing the Sean & Jonathan cut).
+    if (Array.isArray(cut.clips)) body.clips = M.cleanPieces(await fillSeconds(cut.clips, M.cleanPiece));
     if (Array.isArray(cut.sounds)) body.sounds = await fillSeconds(M.cleanSounds(cut.sounds), M.cleanSound);
     let { status, json } = await call(`/${id}/pieces`, { method: 'POST', body });
     if (status === 409) {
