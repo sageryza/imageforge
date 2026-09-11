@@ -51,6 +51,20 @@
   .selwrap .chev{position:absolute;right:8px;top:0;height:34px;display:flex;align-items:center;
         pointer-events:none;color:#6f675e}
   .selwrap .chev svg{width:13px;height:13px;display:block}
+  /* THE PROJECT PICKER IS A FOLDER ICON (2026-09-11, Sophie: "make the drop
+     down a folder icon · the name of the current folder replaces footage in
+     the header"). Still a real <select> — the native picker is the right
+     control on her phone — drawn as a 34px rounded square with the folder
+     glyph over it and its own text hidden; the header carries the name. Lit
+     (ink) while a project is picked, so a narrowed feed is never silent. The
+     list itself keeps its ink: `option` does not inherit a transparent color
+     on the desktop list. */
+  .iconsel select{width:34px;padding:0;color:transparent;text-shadow:none}
+  .iconsel select option{color:#2b2620}
+  .iconsel .ico{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:#2b2620}
+  .iconsel .ico svg{width:18px;height:18px;display:block}
+  .iconsel.on select{background:#2b2620;border-color:#2b2620}
+  .iconsel.on .ico{color:#f6f2ea}
   /* An icon button is a rounded SQUARE at the house 6px, never a circle. */
   .ib{width:34px;height:34px;padding:0;display:inline-flex;align-items:center;justify-content:center;
       background:#fdfbf7;color:#2b2620;flex:none}
@@ -733,7 +747,7 @@
 </style>
 </head>
 <body>
-<header class="app-header"><h1>Footage</h1><button id="help" type="button" aria-label="How this works" title="How this works">?</button></header>
+<header class="app-header"><h1 id="title">Footage</h1><button id="help" type="button" aria-label="How this works" title="How this works">?</button></header>
 <div class="helpcard" id="helpcard" hidden>
   <p class="bal" id="balline" hidden></p>
   <p class="bal" id="discline" hidden></p>
@@ -748,7 +762,7 @@
   <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. Every block has the same two buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing.</p>
   <p><b>The seed</b> is on every finished clip, with a button that puts it back in the box. Leave the box blank and each clip gets a fresh one. A seed repeats the <i>opening</i> of a short clip and then drifts &mdash; it does not survive a changed prompt or a different size, and at 15 seconds it does close to nothing.</p>
   <p><b>Tiles.</b> Each one carries two doors in the middle: <b>&#9654;</b> plays the clip, and the list mark beside it takes you to that clip&rsquo;s card &mdash; its words, its seed, its references and the button that puts them back. The first words of your own newest note on a clip sit along the top of its tile.</p>
-  <p><b>Projects.</b> The first drop-down on the buttons row is the project &mdash; the same folders the character library keeps. Pick one and the clips, the Recent drawer and the characters narrow to it, and every clip you send is filed under it; <b>All projects</b> shows everything, with each clip saying which it belongs to. A scene sent from a belt page switches to its own project by itself. Your words and the references already attached stay put when you switch &mdash; only what is offered narrows.</p>
+  <p><b>Projects and folders.</b> The folder icon on the buttons row opens the projects &mdash; the same folders the character library keeps &mdash; and under each one its sub-folders (the witch commercials, say). Pick one and the header takes its name, the clips, the Recent drawer and the characters narrow to it, and every clip you send is filed there; <b>All</b> shows everything, with each clip saying where it belongs. <b>New project&hellip;</b> and, inside a project, <b>New folder&hellip;</b> make one; a folder is only the clips filed in it, so an emptied one goes away on its own. A scene sent from a belt page switches to its own project by itself. Every card has the same drop-down to move a clip &mdash; moving it to another project takes it out of its folder. Your words and the references already attached stay put when you switch &mdash; only what is offered narrows.</p>
   <p><b>Characters.</b> The people icon opens this film&rsquo;s library. Tap a character &mdash; or one of their outfits &mdash; and their references go into the strip while the line that names them by slot goes to the top of the box. The line under each one is exactly what it will add, worked out against what you already have attached, so a second character gets <b>[Video2]</b> rather than the slot the library was written against. Each film is its own shelf. Taking a reference off takes its slot name out of the box and renumbers the rest, so a name never points at the wrong picture. Only the names change &mdash; the words around them are yours.</p>
   <p><b>Notes.</b> The speech mark on a clip opens a note; playing one and tapping it pauses the film and notes the second you stopped on. Either way it lands in the one place chats read their notes, and a chat answers on the note itself.</p>
   <p>What is left on Atlas is on its own console &mdash; it has no balance to read from here.</p>
@@ -782,7 +796,7 @@
        picker is never a trap on an empty project. -->
   <div class="foldrow">
     <button type="button" class="fold" id="ctlfold" aria-expanded="true" aria-controls="controls"><span class="chev"></span><span id="ctlfoldlab">Buttons</span></button>
-    <span class="selwrap"><select id="project" aria-label="Project" title="Project"></select><span class="chev"></span></span>
+    <span class="selwrap iconsel" id="projwrap"><select id="project" aria-label="Project and folder" title="Project and folder"></select><span class="ico"></span></span>
   </div>
   <div class="row" id="controls">
     <button class="up ib" type="button" id="add" aria-label="Add a reference" title="Add a reference"><span id="addicon"></span><input type="file" accept="image/*,video/*,audio/*" multiple id="file"></button>
@@ -895,6 +909,8 @@ var ICONS = {
   // Lucide `users` — the library of who is in this film
   users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
   chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
+  // Lucide `folder` — the project picker's face
+  folder: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>',
   maximize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
   minimize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
   // divide here (Lucide separator-horizontal) and join (Lucide fold-vertical)
@@ -912,6 +928,7 @@ var $ = function (id) { return document.getElementById(id); };
 $('gostar').innerHTML = ICONS.star;
 $('addicon').innerHTML = ICONS.image;
 document.querySelectorAll('.selwrap .chev').forEach(function (c) { c.innerHTML = ICONS.chev; });
+document.querySelectorAll('.iconsel .ico').forEach(function (c) { c.innerHTML = ICONS.folder; });
 $('v-liked').innerHTML = ICONS.heart; $('v-hidex').innerHTML = ICONS.x;
 $('seedclear').innerHTML = ICONS.x;
 $('rectog').innerHTML = ICONS.history;
@@ -975,7 +992,7 @@ function doorWord(d) { return d === 'openrouter' ? 'OpenRouter' : d === 'atlascl
 // because the draft is on Mini and the dear rows are her own tap.
 var PAGE_MODELS = ['mini', 'fast', '2.0', '2.5'];
 var PAGE_MODEL = PAGE_MODELS[0];
-var S = { model: PAGE_MODEL, seconds: 4, res: '480p', ratio: '3:4', project: '' };
+var S = { model: PAGE_MODEL, seconds: 4, res: '480p', ratio: '3:4', project: '', folder: '' };
 var refs = [];                       // [{url, kind, poster, name}]
 // ── THE TWO KEYFRAMES (2026-09-11) ───────────────────────────────────────
 // The frame the clip STARTS on, and optionally the one it ENDS on — each one
@@ -1043,17 +1060,41 @@ function repaintCards() {
 // The picker is filled only when its rows really changed (the house repaint
 // rule — see fillSel). A remembered project the shelf no longer lists is
 // still offered as a row, so a clip filed under it is never unreachable.
+// ONE LIST, PROJECTS WITH THEIR FOLDERS UNDER THEM (2026-09-11, Sophie: "make
+// the drop down a folder icon · the name of the current folder replaces
+// footage in the header"). The select is drawn as a folder icon and says
+// nothing itself (a select is as wide as its longest row, and the icon costs
+// the row 34px whatever the names are); the HEADER carries where she is —
+// "Footage" on All, the project's name, or "project › folder". A row's value
+// is `project` or `project/folder`; "New project…" is always offered and
+// "New folder…" only inside a project.
+function viewRows(cur, noneLabel) {
+  var rows = [{ id: '', label: noneLabel }];
+  var films = FILMS.slice();
+  var curP = String(cur || '').split('/')[0], curF = String(cur || '').split('/')[1] || '';
+  if (curP && !films.some(function (f) { return f.slug === curP; })) films.push({ slug: curP, name: curP });
+  films.forEach(function (f) {
+    rows.push({ id: f.slug, label: f.name || f.slug });
+    var fl = foldersIn(f.slug).slice();
+    if (curF && curP === f.slug && fl.indexOf(curF) < 0) fl.push(curF);
+    fl.forEach(function (x) { rows.push({ id: f.slug + '/' + x, label: '\u2003\u203a ' + x }); });
+  });
+  return rows;
+}
+function viewValue() { return S.project ? (S.folder ? S.project + '/' + S.folder : S.project) : ''; }
 function paintProject() {
   var el = $('project');
-  // "All" and "New…", not "All projects" and "New project…": a select is as
-  // wide as its longest row, and the long words cost the controls a third
-  // line at 390pt (MEASURED: 127px against 96, the stepper pushed to a row
-  // of its own). The title says Project; the help card says the rest.
-  var rows = [{ id: '', label: 'All' }].concat(FILMS.map(function (f) { return { id: f.slug, label: f.name || f.slug }; }));
-  if (S.project && !FILMS.some(function (f) { return f.slug === S.project; })) rows.push({ id: S.project, label: S.project });
-  rows.push({ id: NEW_PROJECT, label: 'New\u2026' });
-  fillSel(el, rows, S.project);
+  var rows = viewRows(viewValue(), 'All');
+  rows.push({ id: NEW_PROJECT, label: 'New project\u2026' });
+  if (S.project) rows.push({ id: NEW_FOLDER, label: 'New folder\u2026' });
+  fillSel(el, rows, viewValue());
+  $('projwrap').classList.toggle('on', !!S.project);
+  // the header says where she is
+  var t = $('title');
+  var name = S.project ? projectName(S.project) + (S.folder ? ' \u203a ' + S.folder : '') : 'Footage';
+  if (t.textContent !== name) t.textContent = name;
 }
+function paintFolder() { paintProject(); }
 // SWITCHING EMPTIES THE FEED AND RE-ASKS — a card of another project must not
 // sit there until the next poll happens to notice. Her words, her attached
 // references and the draft are untouched (case 4 of the plan): only what is
@@ -1063,12 +1104,59 @@ function setProject(p, opts) {
   p = String(p || '');
   if (p === S.project && !opts.force) return;
   S.project = p; projectSave(p);
+  // a folder belongs to the project she is leaving
+  S.folder = String(opts.folder || ''); folderSave(S.folder);
   jobsById = {}; olderAt = null; feedMore = false;
   $('feed').innerHTML = ''; $('tiles').innerHTML = '';
   castFilm = p; castFilmSave(p); castEnt = ''; CAST = null;
-  paintProject(); paintControls(); paintCast(); paintRecent();
+  paintProject(); paintFolder(); paintControls(); paintCast(); paintRecent();
   if (castOpen) loadCast();
   loadJobs();
+}
+// ── THE SUB-FOLDER (2026-09-11, Sophie: "can we do sub folders ex the witch
+// commercials") ─────────────────────────────────────────────────────────
+// A shelf INSIDE a project, one more field on the clip (`folder`). The
+// folders a project has are DERIVED — `FOLDERS` is what every /jobs read
+// answers off the whole log, never a list kept anywhere — so a folder is
+// exactly the clips filed in it and an emptied one stops being offered. The
+// picker shows only inside a project; '' is the whole project. Remembered as
+// `footage_folder` beside the project. Only the feed narrows: the cast is
+// the project's, the Dump album is the project's.
+var FOLDERS = {};                    // {project: [folder slugs]} off /jobs
+var NEW_FOLDER = '__newfolder';
+function folderSaved() { try { return localStorage.getItem('footage_folder') || ''; } catch (e) { return ''; } }
+function folderSave(f) { try { localStorage.setItem('footage_folder', f || ''); } catch (e) {} }
+function folderSlug(name) { return String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40); }
+function foldersIn(project) { return project && FOLDERS[project] ? FOLDERS[project] : []; }
+// the folders landed with a feed read — the picker's rows and every card's
+// move drop-down read them, so both repaint when they really changed
+function takeFolders(d) {
+  if (!d || !d.folders || typeof d.folders !== 'object') return;
+  var was = JSON.stringify(FOLDERS), now = JSON.stringify(d.folders);
+  if (was === now) return;
+  FOLDERS = d.folders;
+  paintFolder();
+  repaintCards();
+}
+function setFolder(f, opts) {
+  opts = opts || {};
+  f = String(f || '');
+  if (f === S.folder && !opts.force) return;
+  S.folder = f; folderSave(f);
+  jobsById = {}; olderAt = null; feedMore = false;
+  $('feed').innerHTML = ''; $('tiles').innerHTML = '';
+  paintFolder(); paintRecent();
+  loadJobs();
+}
+// A NEW FOLDER IS A NAME AND NOTHING ELSE — it exists the moment a clip lands
+// in it, so until then the picker simply offers the name she typed.
+function newFolder() {
+  var name = window.prompt('Name the folder');
+  if (name == null) { paintFolder(); return; }
+  var slug = folderSlug(name);
+  if (!slug) { paintFolder(); return; }
+  setFolder(slug, { force: true });
+  toast('Folder: ' + slug);
 }
 // A NEW PROJECT IS A NEW FILM ON THE CAST SHELF — one name, free, and the
 // character sheet grows the folder the same moment. The box ships empty.
@@ -1090,8 +1178,11 @@ function newProject() {
 }
 $('project').addEventListener('change', function () {
   var v = $('project').value;
-  if (v === NEW_PROJECT) { $('project').value = S.project; newProject(); return; }
-  setProject(v);
+  if (v === NEW_PROJECT) { $('project').value = viewValue(); newProject(); return; }
+  if (v === NEW_FOLDER) { $('project').value = viewValue(); newFolder(); return; }
+  var p = v.split('/')[0], f = v.split('/')[1] || '';
+  if (p !== S.project) setProject(p, { folder: f });
+  else setFolder(f);
 });
 var jobsById = {};
 // the feed's walk back past its first page — see loadOlder
@@ -2007,7 +2098,7 @@ $('go').addEventListener('click', function () {
   $('err').hidden = true;
   if (!prompt.trim()) return toast('Say what the clip is first');
   var body = { prompt: prompt, model: S.model, seconds: S.seconds, resolution: S.res, ratio: S.ratio,
-    sound: true, door: doorNow(), refs: orderedRefs(), project: S.project };
+    sound: true, door: doorNow(), refs: orderedRefs(), project: S.project, folder: S.project ? S.folder : '' };
   // THE TWO KEYFRAMES RIDE AS URLS — the server marks the matching reference
   // with its `role`, leaves it out of the reference lists and maps it onto
   // whatever the door calls it (`image` on Atlas, `frame_images` on
@@ -2047,7 +2138,7 @@ $('go').addEventListener('click', function () {
       status: 'drawing', estimate: d.estimate,
       // the door answers with the seed it really used — hers, or the one it
       // minted — so the card carries it without waiting for the first poll
-      seed: d.seed != null ? d.seed : null, project: S.project,
+      seed: d.seed != null ? d.seed : null, project: S.project, folder: S.project ? S.folder : '',
       sentAt: new Date().toISOString(), note: d.note || '', video: '', poster: '', vote: '' });
     toast(blocks().length > 1 ? 'Drawing block ' + (blocks().indexOf(box.closest('.promptwrap')) + 1) + '…' : 'Drawing…');
     // her words STAY in the box after a send (a re-roll is one tap), and so
@@ -2077,7 +2168,8 @@ function paintFilt() {
 // list can never disagree about what a filter means.
 function shown(j) {
   return !j.hidden && !(likedOnly() && j.vote !== 'like') && !(hideX() && j.vote === 'dislike')
-    && !(S.project && (j.project || '') !== S.project);
+    && !(S.project && (j.project || '') !== S.project)
+    && !(S.project && S.folder && (j.folder || '') !== S.folder);
 }
 function applyFilt() {
   var tiles = curView() === 'tiles', any = false;
@@ -2506,6 +2598,8 @@ function jobCard(j) {
   // genuinely has none — it never renders for a clip drawn here, and a silent
   // one saying nothing about it would be the card lying.
   var tags = [!S.project && j.project ? projectName(j.project) : '',
+    // and its sub-folder, until the view is that folder
+    j.project && j.folder && j.folder !== S.folder ? j.folder : '',
     // A CHAT'S CLIP SAYS WHICH CHAT (2026-09-11) — the feed holds every
     // chat's clips now, and one with nothing saying so reads as hers
     j.chat && j.chat !== noteChat() ? 'from ' + j.chat : '',
@@ -2591,7 +2685,10 @@ function jobCard(j) {
     // wrong by a chat — is one tap from the right shelf. The rows come from
     // FILMS, so the select's html changes when the names land and the card
     // rebuilds with them (the signature rule).
-    '<span class="selwrap projsel"><select aria-label="Move to a project" title="Move to a project">' + projOptions(j.project) + '</select><span class="chev">' + ICONS.chev + '</span></span>' +
+    // ONE LIST since the folders landed the same day: every project with its
+    // folders under it, "No project" first, "New folder…" last for a clip
+    // already in a project — the picker's own rows (viewRows).
+    '<span class="selwrap projsel"><select aria-label="Move to a project or folder" title="Move to a project or folder">' + projOptions(j) + '</select><span class="chev">' + ICONS.chev + '</span></span>' +
     '</div>' +
     // OUTSIDE the signature below: the thread and her open box live here, so a
     // note landing repaints words and never rebuilds the card
@@ -2621,7 +2718,7 @@ function jobCard(j) {
     el.querySelector('.cmpb').addEventListener('click', function () { compareTap(j.id); });
     var sc = el.querySelector('.seedcopy');
     if (sc) sc.addEventListener('click', function () { setSeed(j.seed); toast('Seed ' + j.seed + ' is in the box'); });
-    el.querySelector('.projsel select').addEventListener('change', function (ev) { moveProject(j.id, ev.target.value); });
+    el.querySelector('.projsel select').addEventListener('change', function (ev) { moveTo(j.id, ev.target.value); });
     // "Try again" puts the failed clip back in the box and stops there: the
     // star is the one tap that spends, so nothing else may send.
     var again = el.querySelector('.again');
@@ -2706,25 +2803,42 @@ function castVote(id, kind) {
 // THE ROWS OF A CARD'S MOVE DROP-DOWN — the picker's own films, the clip's
 // project selected; a project the shelf no longer lists is still a row so
 // the select can show what the clip really carries.
-function projOptions(cur) {
-  var rows = [{ id: '', label: 'No project' }].concat(FILMS.map(function (f) { return { id: f.slug, label: f.name || f.slug }; }));
-  if (cur && !FILMS.some(function (f) { return f.slug === cur; })) rows.push({ id: cur, label: cur });
-  return rows.map(function (r) { return '<option value="' + esc(r.id) + '"' + (r.id === (cur || '') ? ' selected' : '') + '>' + esc(r.label) + '</option>'; }).join('');
+function clipView(j) { return j.project ? (j.folder ? j.project + '/' + j.folder : j.project) : ''; }
+function projOptions(j) {
+  var cur = clipView(j);
+  var rows = viewRows(cur, 'No project');
+  if (j.project) rows.push({ id: NEW_FOLDER, label: 'New folder…' });
+  return rows.map(function (r) { return '<option value="' + esc(r.id) + '"' + (r.id === cur ? ' selected' : '') + '>' + esc(r.label) + '</option>'; }).join('');
 }
-// MOVE A CLIP TO ANOTHER PROJECT. Optimistic: the card rebuilds with the new
-// project and, inside a project view, leaves it — the toast says where it
-// went, so a card vanishing under her thumb is a card she just sent
-// somewhere. One field on the doc; nothing else moves.
-function moveProject(id, project) {
+// MOVE A CLIP TO ANOTHER PROJECT OR FOLDER. Optimistic: the card rebuilds
+// with the new place and, inside a view it no longer belongs to, leaves it —
+// the toast says where it went, so a card vanishing under her thumb is a
+// card she just sent somewhere. Two fields on the doc; nothing else moves. A
+// move to another project drops the folder (it belonged to the project the
+// clip left); a folder the page has never seen joins FOLDERS at once so the
+// picker and every other card offer it.
+function moveTo(id, value) {
   var j = jobsById[id]; if (!j) return;
-  project = String(project || '');
-  if (project === (j.project || '')) return;
-  j.project = project;
-  jobCard(j);
+  var project, folder;
+  if (value === NEW_FOLDER) {
+    if (!j.project) { jobCard(j); return; }
+    var name = window.prompt('Name the folder');
+    folder = name == null ? '' : folderSlug(name);
+    if (!folder) { jobCard(j); return; }
+    project = j.project;
+  } else {
+    project = String(value || '').split('/')[0];
+    folder = project ? (String(value || '').split('/')[1] || '') : '';
+  }
+  if (project === (j.project || '') && folder === (j.folder || '')) { jobCard(j); return; }
+  j.project = project; j.folder = folder;
+  if (folder && foldersIn(project).indexOf(folder) < 0) { FOLDERS[project] = foldersIn(project).concat([folder]).sort(); paintProject(); repaintCards(); }
+  else jobCard(j);
   paintRecent();
-  toast(project ? 'Moved to ' + projectName(project) : 'Taken off its project');
-  api('/jobs/' + encodeURIComponent(id) + '/project', { method: 'POST', body: JSON.stringify({ project: project }) }).catch(function () {});
+  toast(project ? 'Moved to ' + projectName(project) + (folder ? ' › ' + folder : '') : 'Taken off its project');
+  api('/jobs/' + encodeURIComponent(id) + '/project', { method: 'POST', body: JSON.stringify({ project: project, folder: folder }) }).catch(function () {});
 }
+function moveProject(id, project) { moveTo(id, project); }
 // PUTTING A PROMPT BACK PUTS ITS REFERENCES AND ITS SETTINGS BACK — only
 // what the record knows: a card with no references clears the strip.
 function copyBack(j) {
@@ -2864,14 +2978,15 @@ function handoffProject(h) {
     if (!CFG) { handoffFrom = String(h.from); return; }
     p = (CFG.handoffProjects || {})[h.from] || '';
   }
-  if (p) adoptProject(p, h.projectName);
+  if (p) adoptProject(p, h.projectName, h.folder);
 }
-function adoptProject(p, name) {
+function adoptProject(p, name, folder) {
   if (!FILMS.some(function (f) { return f.slug === p; })) {
     FILMS.push({ slug: p, name: name || p });
     castApi('/films', { method: 'POST', body: JSON.stringify({ slug: p, name: name || p }) }).catch(function () {});
   }
-  setProject(p);
+  // a belt may name a sub-folder too; a project switch alone leaves the folder at All
+  setProject(p, { force: true, folder: folderSlug(folder) });
 }
 document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') takeHandoff(); });
 window.addEventListener('pageshow', function () { takeHandoff(); });
@@ -2890,11 +3005,13 @@ function loadStatus() {
 // the project rides every feed read — and the answer is checked against the
 // project the page is on NOW, so a switch mid-flight cannot land the old
 // project's cards on the new one's screen
-function projQ() { return S.project ? '&project=' + encodeURIComponent(S.project) : ''; }
+function projQ() { return (S.project ? '&project=' + encodeURIComponent(S.project) : '') + (S.project && S.folder ? '&folder=' + encodeURIComponent(S.folder) : ''); }
+function viewKey() { return S.project + '/' + (S.project ? S.folder : ''); }
 function loadJobs() {
-  var asked = S.project;
+  var asked = viewKey();
   return api('/jobs?limit=40' + projQ()).then(function (d) {
-    if (asked !== S.project) return;
+    if (asked !== viewKey()) return;
+    takeFolders(d);
     var jobs = (d && d.jobs) || [];
     batching = true;
     try { jobs.slice().reverse().forEach(jobCard); } finally { batching = false; }
@@ -2933,9 +3050,10 @@ function loadOlder() {
   var at = oldestSentAt();
   if (!at) return Promise.resolve();
   loadingOlder = true; paintOlder();
-  var asked = S.project;
+  var asked = viewKey();
   return api('/jobs?limit=40&before=' + encodeURIComponent(at) + projQ()).then(function (d) {
-    if (asked !== S.project) return;
+    if (asked !== viewKey()) return;
+    takeFolders(d);
     var jobs = (d && d.jobs) || [];
     olderAt = at;
     feedMore = !!(d && d.more);
@@ -3599,7 +3717,8 @@ window.__fitPillGap = fitPillGap;
 
 loadCtl();
 S.project = projectSaved(); castFilm = S.project;   // the ONE memory of which project she is on
-paintProject();
+S.folder = S.project ? folderSaved() : '';
+paintProject(); paintFolder();
 loadFilms();
 if (window.__fitBigPrompt) window.__fitBigPrompt();   // a restored draft fits its own box
 takeHandoff();          // moment 1 — AFTER loadCtl, so a hand-off beats the restored draft

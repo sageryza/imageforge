@@ -40,7 +40,7 @@ function sentRecord({ jobId, prompt, model, params, tag }) {
     status: 'sent',
     sentAt: new Date().toISOString(),
   };
-  for (const k of ['chat', 'scene', 'title', 'session', 'note', 'project']) {
+  for (const k of ['chat', 'scene', 'title', 'session', 'note', 'project', 'folder']) {
     if (t[k] != null && String(t[k]).trim()) doc[k] = String(t[k]).slice(0, 300);
   }
   return doc;

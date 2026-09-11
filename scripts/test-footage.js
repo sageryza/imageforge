@@ -181,9 +181,16 @@ function report() {
   ok('the project rides the body as the cast\'s own slug shape', F.buildJob({ prompt: 'x', project: 'The Ward!' }).body.project === 'the-ward');
   ok('no project sends no field at all (what an older page sends)', !('project' in F.buildJob({ prompt: 'x' }).body) && !('project' in F.buildJob({ prompt: 'x', project: '' }).body));
   ok('cardOf reads the project back, blank for a clip drawn before projects', F.cardOf('x', { prompt: 'p', project: 'ward', params: {} }).project === 'ward' && F.cardOf('x', { prompt: 'p', params: {} }).project === '');
+  // THE SUB-FOLDER (2026-09-11, Sophie: "can we do sub folders ex the witch
+  // commercials") — one more field, only ever inside a project
+  ok('the folder rides the body in the slug shape, and never without a project', F.buildJob({ prompt: 'x', project: 'witch', folder: 'The Commercials' }).body.folder === 'the-commercials' && !('folder' in F.buildJob({ prompt: 'x', folder: 'commercials' }).body));
+  ok('cardOf reads the folder back, and a folder with no project reads as none', F.cardOf('x', { prompt: 'p', project: 'witch', folder: 'commercials', params: {} }).folder === 'commercials' && F.cardOf('x', { prompt: 'p', folder: 'commercials', params: {} }).folder === '');
+  ok('foldersOf derives every project\'s folders off the log, sorted, skipping the folder-less', JSON.stringify(F.foldersOf([{ d: { project: 'witch', folder: 'commercials' } }, { d: { project: 'witch', folder: 'b-roll' } }, { d: { project: 'witch' } }, { d: { folder: 'x' } }, { d: { project: 'ward', folder: 'socks' } }])) === '{"witch":["b-roll","commercials"],"ward":["socks"]}');
+  ok('the log record keeps the folder too', require('../video-log').sentRecord({ jobId: 'j', prompt: 'p', model: 'm', params: {}, tag: { chat: 'footage', project: 'witch', folder: 'commercials' } }).folder === 'commercials');
+  ok('all three doors put the folder on the log tag', ['openrouter.js', 'atlascloud.js', 'apiframe.js'].every((f) => /project: b\.project, folder: b\.folder \}/.test(fs.readFileSync(path.join(ROOT, f), 'utf8'))));
   ok('every ward belt chat maps to the ward, Ticky Tack to its own', ['soap-pill-scene', 'hospital-severance-rough-cut', 'hospital-night-film', 'climax-dissociation-accounts', 'severance-api-multiple-frames'].every((c) => F.HANDOFF_PROJECTS[c] === 'ward') && F.HANDOFF_PROJECTS['ticky-tack-film-page-dupe'] === 'ticky-tack');
   ok('the log record keeps the project a door is handed', require('../video-log').sentRecord({ jobId: 'j', prompt: 'p', model: 'm', params: {}, tag: { chat: 'footage', project: 'ward' } }).project === 'ward');
-  ok('all three doors put the project on the log tag', ['openrouter.js', 'atlascloud.js', 'apiframe.js'].every((f) => /note: b\.note, project: b\.project \}/.test(fs.readFileSync(path.join(ROOT, f), 'utf8'))));
+  ok('all three doors put the project on the log tag', ['openrouter.js', 'atlascloud.js', 'apiframe.js'].every((f) => /note: b\.note, project: b\.project, folder: b\.folder \}/.test(fs.readFileSync(path.join(ROOT, f), 'utf8'))));
   ok('the feed route filters by project and the move route exists', /projectSlug\(req\.query\.project\)/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')) && /router\.post\('\/jobs\/:id\/project'/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
   // EVERY CHAT'S CLIPS RIDE THE FEED (2026-09-11, her "if so, good"): the
   // route reads the whole log, never `where('chat', '==', CHAT)`, and the
@@ -318,6 +325,8 @@ let jobs = [
   cost: 8.8, estimate: 8.8, sentAt: '2026-09-09T07:30:00.000Z', vote: '', hidden: false,
 }]).concat(Array.from({ length: 7 }, (_, i) => ({
   project: i < 3 ? 'ward' : '',
+  // THE SUB-FOLDER (2026-09-11): f0 alone sits in the ward's `socks` folder
+  folder: i === 0 ? 'socks' : '',
   id: 'f' + i, prompt: 'the socks on the line ' + i, model: 'mini', modelLabel: '2.0 Mini', door: 'openrouter', seconds: 4, resolution: '480p', ratio: '3:4',
   sound: true, refs: [], status: 'done', video: 'http://127.0.0.1:PORT/clip.mp4', poster: 'http://127.0.0.1:PORT/ref.png',
   // f6 is the LONG one: the box opens at the model's minimum, so a clip that
@@ -415,11 +424,16 @@ const server = http.createServer((req, res) => {
       // the real route filters by project over the WHOLE collection before
       // the page is cut; no `project` is every clip
       const proj = u.searchParams.get('project') || '';
-      projReads.push(proj);
-      const mine = proj ? jobs.filter((j) => (j.project || '') === proj) : jobs;
-      if (!before) return json({ ok: true, jobs: mine, more: older.length > 0 });
+      const fold = proj ? (u.searchParams.get('folder') || '') : '';
+      projReads.push(proj + (fold ? '/' + fold : ''));
+      const mine = jobs.filter((j) => (!proj || (j.project || '') === proj) && (!fold || (j.folder || '') === fold));
+      // every project's folders, derived off the whole pool — the real route's
+      // `foldersOf`, so a move shows up on the next read
+      const folders = {};
+      jobs.forEach((j) => { if (j.project && j.folder) { (folders[j.project] = folders[j.project] || []); if (!folders[j.project].includes(j.folder)) folders[j.project].push(j.folder); } });
+      if (!before) return json({ ok: true, jobs: mine, more: older.length > 0, folders });
       const under = older.filter((j) => j.sentAt < before).sort((a, b) => b.sentAt.localeCompare(a.sentAt));
-      return json({ ok: true, jobs: under.slice(0, 2), more: under.length > 2 });
+      return json({ ok: true, jobs: under.slice(0, 2), more: under.length > 2, folders });
     }
     if (u.pathname === '/api/footage/jobs' && req.method === 'POST') {
       const b = JSON.parse(body);
@@ -439,9 +453,9 @@ const server = http.createServer((req, res) => {
     if (/^\/api\/footage\/jobs\/[^/]+\/vote$/.test(u.pathname)) { posted.push({ vote: u.pathname, body: JSON.parse(body) }); return json({ ok: true }); }
     if (/^\/api\/footage\/jobs\/[^/]+\/project$/.test(u.pathname)) {
       const id = u.pathname.split('/')[4], b = JSON.parse(body);
-      projMoves.push({ id, project: b.project });
-      const jj = jobs.find((x) => x.id === id); if (jj) jj.project = b.project || '';
-      return json({ ok: true, project: b.project || '' });
+      projMoves.push({ id, project: b.project, folder: b.folder });
+      const jj = jobs.find((x) => x.id === id); if (jj) { jj.project = b.project || ''; jj.folder = b.project ? (b.folder || '') : ''; }
+      return json({ ok: true, project: b.project || '', folder: b.folder || '' });
     }
     // the HOUSE note thread, stubbed exactly as server.js answers it: the
     // whole thread comes back on a write, and the read is the one inbox
@@ -672,7 +686,7 @@ async function pillSweep(pg, where) {
     const p3 = F.pageJobs(all, { limit: 3, before: p2.docs[2].d.sentAt });
     ok('the last page is short and says so', p3.docs.map((x) => x.id).join() === 'j0' && p3.more === false);
     ok('no cursor and a big limit is everything, and more is false', F.pageJobs(all, { limit: 40 }).more === false && F.pageJobs(all, { limit: 40 }).docs.length === 7);
-    ok('the route answers `more` beside the jobs', /jobs: docs\.map\(\(x\) => cardOf\(x\.id, x\.d\)\), more \}/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
+    ok('the route answers `more` beside the jobs', /jobs: docs\.map\(\(x\) => cardOf\(x\.id, x\.d\)\), more, folders \}/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
   }
 
   // ── the page rules ──────────────────────────────────────────────────────
@@ -735,7 +749,8 @@ async function pillSweep(pg, where) {
     /var PAGE_MODELS = \['mini', 'fast', '2\.0', '2\.5'\]/.test(PAGE_SRC));
   ok('the resolution is a <select>', sel.rTag === 'SELECT');
   ok('the native chrome is off and the box is the house 6px', sel.appearance === 'none' && sel.radius === '6px');
-  ok('the four drop-downs (project, model, size, shape) each draw our own inline chevron', sel.chevs === 4);
+  // the project picker is a folder ICON since the folders landed (2026-09-11) and draws no chevron
+  ok('the three text drop-downs (model, size, shape) each draw our own inline chevron', sel.chevs === 3);
   ok('the resolution opens at Mini\'s minimum', sel.rvalue === '480p' && sel.reses.join(',') === '480p,720p');
   // PICKING FAST REALLY REACHES THE PRICE AND THE JOB — a select whose change
   // handler never fires looks identical to one that works
@@ -1964,7 +1979,7 @@ async function pillSweep(pg, where) {
     wardTag: /The ward/.test(document.querySelector('#job-old1 .tags').textContent),
     noneTag: /The ward/.test(document.querySelector('#job-f4 .tags').textContent),
   }));
-  ok('the picker opens on All with the cast\'s films and a New row — ' + pick0.rows.join(' '), pick0.val === '' && pick0.rows[0] === '=All' && pick0.rows[1] === 'ward=The ward' && pick0.rows[pick0.rows.length - 1] === '__new=New…');
+  ok('the picker opens on All with the cast\'s films and a New row — ' + pick0.rows.join(' '), pick0.val === '' && pick0.rows[0] === '=All' && pick0.rows[1] === 'ward=The ward' && pick0.rows[pick0.rows.length - 1] === '__new=New project…');
   ok('on All every clip shows and a ward clip SAYS so on its card, a project-less one does not', pick0.cards === new Set(jobs.map((j) => j.id)).size && pick0.wardTag && !pick0.noneTag);
   ok('the feed read under All asked for no project', projReads.length > 0 && projReads.every((p) => p === ''));
   // pick the ward
@@ -2059,6 +2074,61 @@ async function pillSweep(pg, where) {
     ok('inside a project, taking a clip off it POSTs \'\' and the card leaves the view — ' + gone.toast, projMoves.length === 2 && projMoves[1].id === 'f4' && projMoves[1].project === '' && gone.n === 6 && /Taken off/.test(gone.toast));
     await pgP.selectOption('#project', '');
     await pgP.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 10);
+  }
+  // ── THE SUB-FOLDER (2026-09-11, Sophie: "can we do sub folders ex the
+  // witch commercials" · "make the drop down a folder icon · the name of the
+  // current folder replaces footage in the header"). ONE picker drawn as a
+  // folder icon, its rows the projects with their folders under them, the
+  // header carrying where she is; a folder view holds only its clips; the
+  // card's one drop-down moves a clip anywhere; a move to another project
+  // drops the folder. Every assertion a measurement or a reading of what the
+  // stub really received.
+  {
+    const all = await pgP.evaluate(() => {
+      const w = document.getElementById('projwrap'), r = w.getBoundingClientRect(), s = document.getElementById('project');
+      const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      return { on: w.classList.contains('on'), title: document.getElementById('title').textContent, w: Math.round(r.width), h: Math.round(r.height),
+        icon: !!w.querySelector('.ico svg'), textHidden: getComputedStyle(s).color === 'rgba(0, 0, 0, 0)', tappable: !!(hit && hit.closest('#projwrap')),
+        rows: Array.from(s.options).map((o) => o.value + '=' + o.textContent), f0: document.querySelector('#job-f0 .tags').textContent,
+        f0rows: Array.from(document.querySelector('#job-f0 .projsel select').options).map((o) => o.value), f0val: document.querySelector('#job-f0 .projsel select').value, f4rows: Array.from(document.querySelector('#job-f4 .projsel select').options).map((o) => o.value) };
+    });
+    ok('the picker is a 34px folder icon with its own text hidden, unlit on All, and takes its tap — ' + all.w + 'x' + all.h, all.w === 34 && all.h === 34 && all.icon && all.textHidden && !all.on && all.tappable);
+    ok('the header says Footage on All', all.title === 'Footage');
+    ok('its rows are the projects with their folders under them, New project… last and no New folder… on All — ' + all.rows.join(' '), all.rows.indexOf('ward/socks= › socks') === all.rows.indexOf('ward=The ward') + 1 && all.rows[all.rows.length - 1] === '__new=New project…' && !all.rows.some((r) => r.startsWith('__newfolder')));
+    ok('f0\'s card says its folder, its drop-down lists the folder rows with its own lit, and a project-less card offers no New folder… — ' + all.f0, /socks/.test(all.f0) && all.f0rows.includes('ward/socks') && all.f0rows.includes('__newfolder') && all.f0val === 'ward/socks' && !all.f4rows.includes('__newfolder'));
+    await pgP.selectOption('#project', 'ward');
+    await pgP.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 6);
+    const inWard = await pgP.evaluate(() => ({ on: document.getElementById('projwrap').classList.contains('on'), title: document.getElementById('title').textContent, last: document.getElementById('project').options[document.getElementById('project').options.length - 1].value, f1val: document.querySelector('#job-f1 .projsel select').value }));
+    ok('inside the ward the icon is lit, the header says The ward, and New folder… is the last row', inWard.on && inWard.title === 'The ward' && inWard.last === '__newfolder' && inWard.f1val === 'ward');
+    await pgP.selectOption('#project', 'ward/socks');
+    await pgP.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 1);
+    const inFold = await pgP.evaluate(() => ({ ids: Array.from(document.querySelectorAll('#feed .job:not([hidden])')).map((e) => e.dataset.id).join(','), tag: document.querySelector('#job-f0 .tags').textContent, saved: localStorage.getItem('footage_folder'), title: document.getElementById('title').textContent, val: document.getElementById('project').value }));
+    ok('the socks folder holds f0 alone, asked of the server as ward/socks, the header says The ward › socks, and the card stops repeating the folder', inFold.ids === 'f0' && projReads[projReads.length - 1] === 'ward/socks' && !/socks/.test(inFold.tag) && inFold.saved === 'socks' && inFold.title === 'The ward › socks' && inFold.val === 'ward/socks');
+    await pgP.selectOption('#project', 'ward');
+    await pgP.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 6);
+    // move f1 INTO socks off its card
+    const nMoves = projMoves.length;
+    await pgP.selectOption('#job-f1 .projsel select', 'ward/socks');
+    await pgP.waitForFunction(() => /socks/.test(document.querySelector('#job-f1 .tags').textContent));
+    const mvF = await pgP.evaluate(() => ({ toast: document.querySelector('#toast').textContent, val: document.querySelector('#job-f1 .projsel select').value }));
+    ok('moving f1 into socks POSTs project+folder and the card says so — ' + mvF.toast, projMoves.length === nMoves + 1 && projMoves[nMoves].id === 'f1' && projMoves[nMoves].project === 'ward' && projMoves[nMoves].folder === 'socks' && mvF.val === 'ward/socks' && /The ward › socks/.test(mvF.toast));
+    // a NEW folder typed on a card joins the picker at once
+    pgP.once('dialog', (dl) => dl.accept('B Roll'));
+    await pgP.selectOption('#job-f2 .projsel select', '__newfolder');
+    await pgP.waitForFunction(() => Array.from(document.querySelectorAll('#project option')).some((o) => o.value === 'ward/b-roll'));
+    const nf = await pgP.evaluate(() => ({ f2: document.querySelector('#job-f2 .projsel select').value, f0rows: Array.from(document.querySelector('#job-f0 .projsel select').options).map((o) => o.value) }));
+    ok('a folder named on a card is slugged, POSTed, and offered by the picker and every other card', projMoves[projMoves.length - 1].id === 'f2' && projMoves[projMoves.length - 1].folder === 'b-roll' && nf.f2 === 'ward/b-roll' && nf.f0rows.includes('ward/b-roll'));
+    // moving f1 to another project takes it out of its folder
+    await pgP.selectOption('#job-f1 .projsel select', '');
+    await pgP.waitForFunction(() => document.getElementById('job-f1').hidden);
+    ok('moving a clip off its project sends folder \'\' with it', projMoves[projMoves.length - 1].id === 'f1' && projMoves[projMoves.length - 1].project === '' && projMoves[projMoves.length - 1].folder === '');
+    await pgP.selectOption('#project', '');
+    await pgP.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 10);
+    const back = await pgP.evaluate(() => ({ on: document.getElementById('projwrap').classList.contains('on'), title: document.getElementById('title').textContent }));
+    ok('back on All the icon goes dark and the header says Footage again', !back.on && back.title === 'Footage');
+    // put the pool back the way the later blocks expect it
+    await pgP.selectOption('#job-f1 .projsel select', 'ward');
+    await pgP.waitForFunction(() => /The ward/.test(document.querySelector('#job-f1 .tags').textContent));
   }
   // A HAND-OFF SWITCHES THE PROJECT — written by a second page on the same
   // origin, the way a belt writes it; the map is on /status
