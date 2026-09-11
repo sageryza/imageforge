@@ -8522,7 +8522,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
   only related files in the tiles list view area" · "good plan … go ahead for
   now").** The cast library's FILMS are the projects — one vocabulary, never a
   second list — and `project` is ONE field on the job doc read everywhere: the
-  picker (a drop-down at the right end of the **Buttons** fold row, remembered
+  picker (one drop-down leading the **Buttons** row, remembered
   as `footage_project`, replacing the sheet's own `footage_castfilm`), the feed
   (`GET /jobs?project=`, filtered server-side over the whole collection before
   the page is cut, and `shown()` on the page for a card a poll lands), the
@@ -8538,12 +8538,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
   it, else its `from` chat is mapped through `HANDOFF_PROJECTS` in footage.js
   (served on `/status`; every ward belt → `ward`, Ticky Tack → `ticky-tack`),
   and a project the shelf lacks becomes a film on it (`POST /api/cast/films`).
-  **THE PICKER IS ON THE FOLD ROW, NOT THE CONTROLS ROW, and that is
-  measured**: at 390pt with the pill's column reserved the eight controls come
-  to 641px against the 574 two lines hold, in any order — a third line, the
-  "buttons take up too much room" that row was cut down from. Its rows say
-  "All" and "New…" for the same reason (a select is as wide as its longest
-  row). **EVERY CHAT'S CLIPS RIDE THE FEED SINCE THE SAME EVENING (Sophie: "most
+  **THE PICKER IS IN THE BUTTONS ROW, LEADING IT (2026-09-11, Sophie: "folder
+  in buttons not next to").** It shipped for an hour on the FOLD row beside
+  the word "Buttons", on a pre-build estimate that the controls row could not
+  hold it without a third line; measured on the real page at 390pt after the
+  move, the row is **still the two lines it already was** — the folder,
+  the picture, the recents, the characters, the model and the size on the
+  first, the shape and the stepper on the second — so that estimate was
+  wrong and the fold row is history, not a rule — including the PANEL's own
+  fold row, which it rode for an hour that night on the reasoning that a shut
+  panel should still carry the one control that narrows the feed. Its rows say
+  "All" and "New…" rather than anything longer because a select is as wide as
+  its longest row. **FOLDING THE BUTTONS, OR THE WHOLE PANEL, TAKES THE PICKER
+  WITH THEM — that cost is paid, not worked around**, and what makes it safe
+  is the HEADER: it names the project she is filtering by, so a shut panel is
+  never a filter she cannot see.
+
+  **EVERY CHAT'S CLIPS RIDE THE FEED SINCE THE SAME EVENING (Sophie: "most
   of them made in chat. Are you adding them to footage? If so, good")** — the
   read was `chat == footage`, the page's own 174, and ~200 clips the chats had
   drawn for the same films were reachable from nowhere she looks; `/jobs`
