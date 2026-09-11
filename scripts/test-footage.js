@@ -1200,6 +1200,61 @@ async function pillSweep(pg, where) {
   await page.waitForTimeout(500);
   ok('a fold is remembered across a reload — folding once has to stick',
     !(await shown('#controls')) && !(await shown('#refs')));
+
+  // ── THE SEED AND THE TWO DRAWERS GO WITH THE BUTTONS (2026-09-11, Sophie:
+  // "make the seed text box also disappear when it collapse buttons" · "the
+  // recent references button it stays open, even if I close the collapsible
+  // folder"). MEASURED, because a seed box still on screen, a drawer still
+  // painted with no control left to close it, and a label that never names a
+  // set seed all look identical in the source.
+  await page.click('#ctlfold');                     // open them again
+  await page.waitForTimeout(120);
+  await page.evaluate(() => {
+    const b = document.getElementById('seedbox');
+    b.value = '777'; b.dispatchEvent(new Event('input', { bubbles: true }));
+    document.getElementById('rectog').click();      // the Recent drawer
+    document.getElementById('casttog').click();     // and the character sheet
+  });
+  await page.waitForTimeout(150);
+  const opened = await page.evaluate(() => ({
+    seed: (() => { const r = document.getElementById('seedwrap').getBoundingClientRect(); return !!(r.width && r.height); })(),
+    rec: (() => { const r = document.getElementById('recent').getBoundingClientRect(); return !!(r.width && r.height); })(),
+    cast: (() => { const r = document.getElementById('cast').getBoundingClientRect(); return !!(r.width && r.height); })(),
+  }));
+  ok('with the buttons open the seed box and both drawers are on screen ' + JSON.stringify(opened),
+    opened.seed && opened.rec && opened.cast);
+  await page.click('#ctlfold');
+  await page.waitForTimeout(150);
+  const withSeed = await page.evaluate(() => ({
+    seed: (() => { const r = document.getElementById('seedwrap').getBoundingClientRect(); return !!(r.width && r.height); })(),
+    rec: (() => { const r = document.getElementById('recent').getBoundingClientRect(); return !!(r.width && r.height); })(),
+    cast: (() => { const r = document.getElementById('cast').getBoundingClientRect(); return !!(r.width && r.height); })(),
+    go: (() => { const r = document.getElementById('go').getBoundingClientRect(); return !!(r.width && r.height); })(),
+    lab: document.getElementById('ctlfoldlab').textContent,
+    val: document.getElementById('seedbox').value,
+    // the row ellipsizes to give way to the picker, so the seed has to be
+    // inside the part that is actually ON SCREEN — measured, not asserted
+    // against the text, which carries the whole label either way
+    seedShown: (() => {
+      const l = document.getElementById('ctlfoldlab');
+      const i = l.textContent.indexOf('seed ');
+      if (i < 0) return false;
+      const t = l.firstChild, rg = document.createRange();
+      rg.setStart(t, i); rg.setEnd(t, i + 8);
+      const r = rg.getBoundingClientRect(), lr = l.getBoundingClientRect();
+      return r.right <= lr.right + 0.5;
+    })(),
+  }));
+  ok('folding the buttons takes the seed box and both drawers with them, and leaves the star ' + JSON.stringify(withSeed),
+    !withSeed.seed && !withSeed.rec && !withSeed.cast && withSeed.go);
+  ok('a hidden seed is NEVER emptied — a folded Go still sends it', withSeed.val === '777');
+  ok('and the shut row NAMES a seed she set, where it can be READ: ' + withSeed.lab,
+    /seed 777/.test(withSeed.lab) && withSeed.seedShown);
+  await page.evaluate(() => {
+    const b = document.getElementById('seedbox');
+    b.value = ''; b.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+
   // PUTTING A CLIP BACK IS "these are what you are about to send" — it opens
   // both, because a value she cannot see is the hidden ingredient the price
   // line beside the star exists to prevent.
