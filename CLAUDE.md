@@ -8228,6 +8228,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
     picture left ~270px of dead dimmed page between the clip and its own trim
     bar, so the two read as unrelated things. The picture is bottom-aligned
     now, its own scrubber directly above the marks.
+  - **THE WAY OUT IS ITS OWN ROW ABOVE THE PICTURE (2026-09-11, Sophie: "all
+    the stuff at the bottom in trim view, esp after a trim is added, makes it
+    impossible to close the player").** The ✕ shipped absolute in the top-left
+    corner, in the slack a bottom-aligned stage leaves — which a PORTRAIT clip
+    does not leave: MEASURED at 390x700 with a 3:4 clip, the video painted OVER
+    the button (later in the DOM, both positioned), `elementFromPoint` at its
+    centre answered VIDEO, and 0% of the screen was bare backdrop (6.9% with
+    parts listed) — no way out but the app's chevron, while
+    `test-footage.js`'s presence check on `.pclose` passed. `.ptop` is a
+    `flex:none` row the stage yields to, so the ✕ is on screen whatever the
+    clip's shape and clear of the video's own top-left controls; the row's
+    dead space closes too. **A control is TAPPED in a test, never merely
+    found** — with a positional `mouse.click`, since playwright's element
+    click refuses a covered target with a timeout, a crash rather than a
+    finding. Pinned by the portrait block of `test-footage-trim.js` (verified
+    failing 5 pre-fix).
   Full note: *SHE TRIMS A CLIP AS IT COMES OUT* in
   `docs/modules/audio-and-film.md`; test `node scripts/test-footage-trim.js`.
   **THE CHARACTER LIBRARY — ONE TAP PUTS A PERSON AND HER LINE IN THE PROMPT
