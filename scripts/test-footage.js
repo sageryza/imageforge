@@ -886,12 +886,16 @@ async function pillSweep(pg, where) {
   // THE SEED SITS WITH THE STAR — up to ten digits (video-seed.js mints
   // 1..2147483647), so a box narrow enough to fit beside the sizes clipped its
   // own number. It is an ingredient of THIS tap, not a size.
+  // THE THREE IT NAMES, not every child of the row: `clear`/`undo` share this
+  // row and WRAP under the price at 390pt by design (MEASURED — the three
+  // below leave 24px and a word is 25; her rule is "same row unless it bleeds
+  // over"). They are measured on their own in test-footage-clear.js.
   ok('the seed, the star and the price are one line',
     await page.evaluate(() => {
       const row = document.getElementById('go').closest('.row');
-      const mid = [...row.children].map((k) => { const b = k.getBoundingClientRect(); return b.top + b.height / 2; });
-      return document.getElementById('seedwrap').closest('.row') === row
-        && Math.max(...mid) - Math.min(...mid) < 8;
+      const three = ['seedwrap', 'go', 'cost'].map((id) => document.getElementById(id));
+      const mid = three.map((k) => { const b = k.getBoundingClientRect(); return b.top + b.height / 2; });
+      return three.every((k) => k.closest('.row') === row) && Math.max(...mid) - Math.min(...mid) < 8;
     }));
   ok('the seed box shows a whole ten-digit seed',
     await page.evaluate(() => {
