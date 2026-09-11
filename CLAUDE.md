@@ -53,6 +53,15 @@ half").** Three steps, in order:
    "in a week" and "a week and a half" counted from 2026-09-09 and are
    approximate — her word moves them, not the calendar.
 Hers to move; replace this paragraph when she does.
+**"A program you feed the script and it makes the movie" EXISTS — about a
+dozen of them, most running Seedance underneath — and what each does with a
+REAL face and what the belt would cost through it is measured in
+`docs/mental-hospital/script-to-movie-2026-09-11.md` (Sophie, 2026-09-11:
+"must exist … research"). Read it before proposing a platform; the short
+answer is that they are a UI over our engine, refuse or approximate a
+private person, and cost 6–200x the Mini door. Sora 2 is shut down
+(API off 2026-09-24). Wan 3.0 takes a script FILE + 20 references in one
+30s pass at 5¢/s with no face rule in its docs — unmeasured on our cast.**
 
 **Every FIVE turns, not every turn (2026-09-07, Sophie: "change the rule to
 every 5 turns")** — the hook's reminder fires on every fifth prompt of a

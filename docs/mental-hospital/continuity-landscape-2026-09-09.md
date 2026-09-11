@@ -28,8 +28,11 @@ verified.
 person references stop being refused — was reported by the research pass but
 **NOT found on renoise.ai's own pages when fetched directly** (the face-swap
 guide only says "your own, or someone else's with their permission; no public
-figures"). Treat it as unverified until someone signs up and looks. If real,
-it is a compliant version of the eyes-blur trick.
+figures"). **Found 2026-09-11 on renoise.ai/features/seedance-2** ("clear it
+through FacePass first; the cleared face then works as a reference"; no public
+figures or minors) — so it is real on their own page; whether it works is
+still unmeasured. It is a compliant version of the eyes-blur trick. The whole
+script→movie field, re-read two days later: `script-to-movie-2026-09-11.md`.
 
 Not what she means: the ReNoise inversion paper (image-only, open weights,
 cannot touch a closed model), and noise-warping continuity techniques
@@ -110,7 +113,9 @@ exact-prompt log to re-send at 1080p.
   craft, identity drift a known failure). Kling 3.0 Elements binds recurring
   characters, 2-6 shots per call. Veo 3.1 "ingredients" + first/last frame,
   rated the strongest reference follower. Sora 2 storyboard holds three shots
-  but bans uploaded face images since ~Feb 2026 (self-recorded Cameos only).
+  but bans uploaded face images since ~Feb 2026 (self-recorded Cameos only)
+  — **and Sora 2 is discontinued: app off 2026-04-26, API off 2026-09-24
+  (found 2026-09-11).**
   Open: Wan 2.6 R2V (identity from a 2-30s clip), LTX-2.5 IC-LoRA characters.
 - **Products:** LTX Studio (script→storyboard→shots), Higgsfield (a 22-minute
   film cut solo in a week), invideo Agent One, node canvases (Weavy, Flora).
