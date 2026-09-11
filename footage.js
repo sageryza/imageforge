@@ -418,8 +418,21 @@ function priceOn(m, door, { res: resIn, ratio, seconds, hasVideo, discount }) {
     // that is what the token count is made of.
     // AND NOTHING HERE IS PINNED — not 480p either (2026-09-10, Sophie: "add
     // ~ to both"). Atlas has no billing API; her console is the only read,
-    // and no Atlas charge has ever been read against an estimate. Every
-    // Atlas figure answers `about` until one is.
+    // so every Atlas figure answers `about`. HER WORD STANDS AND THE `~` DOES
+    // NOT COME OFF — but the estimate has now been READ AGAINST REAL CHARGES
+    // (2026-09-11, she exported her Atlas cost history: 117 charges over 40
+    // hours, joined to `forge-video-jobs` by time, 106 of them paid). It
+    // lands within a few percent on every shape with enough jobs to trust:
+    // Mini 12s 480p 3:4 real/estimated 1.008 (n=7), Mini 15s 480p 16:9 1.025
+    // (n=12), Fast 15s 480p 3:4 0.992 (n=6), 2.5 at 15s and 30s 1.02 each.
+    // THE PIXEL SCALING IS THE HALF WORTH PINNING IN PROSE: Mini 3:4 billed
+    // 1.11c/s at 480p and 2.44c/s at 720p (8s and 12s clips agreeing), a
+    // factor of 2.198 against a canvas ratio of 927,408/421,120 = 2.202 — so
+    // `resFactor` is right to 0.2% and the 2026-09-10 reasoning above was
+    // correct. A REFUSAL IS FREE, confirmed again: 10 of the 117 rows are
+    // $0.00. The few shapes that read 1.4-2.3x are single jobs whose charge
+    // could not be matched to the right job — Atlas stamps no job id on a
+    // charge, so a burst inside one minute cannot be joined exactly.
     if (!m.atlasCents || m.atlasCents[res] == null) return { error: 'Atlas Cloud does not price that' };
     const cents = atlasPerSecOf(m, res) * 100 * s * resFactor(m, res, ratio);
     return { cents: Math.round(cents * 100) / 100, door: 'atlascloud', about: true };

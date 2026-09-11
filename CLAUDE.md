@@ -7690,8 +7690,27 @@ before working on that module. Nothing was deleted — the moved text is verbati
   because the 80%-off sale is Mini's and 2.5 only gets 20% off there.
   **AND NOTHING ON ATLAS IS PINNED — the price wears a "~", at BOTH
   resolutions (2026-09-10, Sophie: "add ~ to both").** Atlas has no billing
-  API (her console is the only read) and no Atlas charge has ever been read
-  against an estimate, so every Atlas figure answers `about`. The tilde is the
+  API (her console is the only read), so every Atlas figure answers `about`.
+  **HER "~" STAYS, BUT THE ESTIMATE HAS NOW BEEN READ AGAINST REAL CHARGES
+  AND IT IS RIGHT (2026-09-11, she exported her Atlas cost history).** 117
+  charges over 40 hours, joined to `forge-video-jobs` by time, 106 of them
+  paid: the page's number lands within a few percent on every shape with
+  enough jobs to trust — Mini 12s 480p 3:4 real/estimated **1.008** (n=7),
+  Mini 15s 480p 16:9 **1.025** (n=12), Fast 15s 480p 3:4 **0.992** (n=6),
+  2.5 at 15s and at 30s **1.02** each. **And the pixel scaling is confirmed
+  to 0.2%**: Mini 3:4 billed 1.11¢/s at 480p and 2.44¢/s at 720p (an 8s and
+  a 12s clip agreeing), a factor of 2.198 against `resFactor`'s 2.2022 — so
+  the 2026-09-10 reasoning that resolution is a billing dimension Atlas does
+  not publish was correct. **A refusal is free, confirmed again:** 10 of the
+  117 rows are $0.00. The shapes that read 1.4-2.3x are all single jobs whose
+  charge could not be matched to the right job — **Atlas stamps no job id on
+  a charge**, so a burst inside one minute cannot be joined exactly, which is
+  also why this can never be pinned to `exact` from the console alone.
+  **WHAT THE 40 HOURS ACTUALLY COST: $24.75** — Mini 99 jobs $14.07, 2.5
+  **3 jobs $6.17** (two drawn clips, a quarter of the bill), Fast 14 jobs
+  $3.92, Wan 3.0 one job 60¢. **The bill is SECONDS, not the model**: 15s is
+  Mini's max and **69 of the 99 Mini jobs are at it — $10.85, 77% of the
+  Mini spend and 44% of everything** — 16.6¢ a clip against 4.5¢ at 4s. The tilde is the
   compact form of the WORD she cut the day before ("just see the price not
   'about'" — it fired on nearly every job and spent a line saying the same
   thing every time); one character costs nothing and still says the number is
