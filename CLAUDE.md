@@ -8023,6 +8023,53 @@ before working on that module. Nothing was deleted — the moved text is verbati
   at `/clip-diff.js`) is the one rule the panel and the test drive. Full
   note: *WHAT CHANGED — THE COMPARE PANEL* in
   `docs/modules/audio-and-film.md`; test `node scripts/test-clip-diff.js`.
+  **CLEAR, AND THE UNDO BESIDE IT (2026-09-11, Sophie: "add a clear button to
+  footage · with an undo · make a draft save automatically").** Two underlined
+  words at the end of the star's row — the house inline opener's paint, never a
+  boxed button — each drawn only while it means something. **Clear wipes the
+  JOB**: every block, the references, the two keyframe marks and the seed. It
+  leaves the SETTINGS alone — the model, the size, the shape, the seconds and
+  the project are hers and sticky, and a clear that reset them would be the
+  shape rule running backwards once a day. Five things not to undo:
+  - **IT ASKS NOTHING.** She asked for an undo INSTEAD of a confirm, and that
+    is the cheaper direction: a confirm costs a tap on every clear, an undo
+    costs one only on the clears she regrets. The Playground's panel Clear asks
+    over unseen work; this one never does, because nothing here is lost.
+  - **THE CLEARED JOB IS SAVED AUTOMATICALLY — the third line of her ask.** Her
+    words and her references have gone into `footage_draft` on every keystroke
+    since the blocks landed; what was missing is the one moment that
+    deliberately EMPTIES that draft. The cleared job is banked in its own key
+    (`footage_cleared`), so the undo survives a reload, an app restart and a
+    deploy rather than living for the life of one page — which matters here,
+    because the app keeps this web view alive for the whole app process.
+  - **UNDO IS A SWAP, so it can never lose anything**: the banked job comes
+    back and whatever was on screen takes its place in the bank. Tap it again
+    and you are where you started. The one asymmetry is deliberate — swapping
+    back an EMPTY job drops the bank rather than leaving an `undo` on screen
+    that would restore nothing.
+  - **THE SEED RIDES THE BANK, the one exception to "the seed is never sticky
+    across loads".** That rule is about a value that rides a job with nothing on
+    screen saying so; here the tap IS the saying, and the number lands back in
+    its own visible box. An ordinary reload still opens with the seed box empty.
+  - **A BELT HAND-OFF BANKS THE JOB IT REPLACES.** `takeHandoff` overwrites the
+    draft in the same breath it replaces the box, so a belt scene arriving on
+    top of a scene she was writing was the one silent loss left on this page —
+    and the comment there claimed the opposite. The undo is exactly the
+    mechanism for it.
+  **THE ROW WRAPS AT 390pt AND THAT IS HER OWN RULE** ("same row unless it
+  bleeds over"): MEASURED with the Buttons fold OPEN, the seed (130) + the star
+  (75) + the price (95) plus two 8px gaps leave 24px of a 340px row and a word
+  is 25, so a drawn word lands hard right on the line under the price — 40px →
+  69px. **Shut, the seed folds away with the buttons and both words sit on the
+  star's own line** (measured after #2326: go 25-100, cost 108-203, clear
+  302-327, undo 339-365, all level). With neither word drawn the GROUP is
+  hidden outright, so an empty page is byte-for-byte the row it always was. `paintWipe` is called from `saveDraft`, which is the ONE signal
+  every path that changes the job already sends. Test:
+  `node scripts/test-footage-clear.js` (the real page headless — every
+  assertion a MEASUREMENT or a reading of what really landed in storage, since
+  a clear that empties the box and leaves the references attached, a bank that
+  never reached localStorage, and a word drawn where the pill covers it all
+  look identical in the source; verified failing pre-fix).
   **THE SEED IS ON THE CARD AND IN A BOX SHE CAN TYPE IN (2026-09-10, Sophie:
   "put a seed box that exposes the seed after the clip is drawn and put a copy
   button next to it so I can reuse the seed … make it into a text box so I can
