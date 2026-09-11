@@ -7670,37 +7670,34 @@ before working on that module. Nothing was deleted — the moved text is verbati
   2.0 and 2.5. So the page sends `door:'auto'` and `doorFor` ranks the doors by
   what THIS tap costs — the shape, the resolution, the seconds and a reference
   video all move the answer, so nothing is written down.
-  - **A CONTENT REFUSAL ON OPENROUTER OR ATLAS IS FREE AND COMES BACK ON THE
-    POST, BEFORE ANYTHING DRAWS** — which is what makes trying the cheapest
-    door first cost a round trip and never money. `chain` is EVERY other
-    door, none skipped: the doors whose refusal is free on the POST first,
-    each group cheapest first (`DOOR_REFUSAL_FREE`). **THE MORNING'S RULE
-    SKIPPED A DOOR AND IT COST HER THE CLIP (2026-09-11, the witchcraft-kit
-    scene on 2.5, Sophie: "run this in ur container and then fix the
-    error").** The chain "only ever got looser" (`DOOR_LOOSENESS`: OpenRouter
-    refuses any person, Atlas a famous face, APIFRAME "takes everything"), and
-    on 2.5 the price order is OpenRouter · APIFRAME · Atlas — so APIFRAME was
-    pushed onto the chain first and Atlas dropped for being "less loose" than
-    it. Then **APIFRAME ACCEPTED the job and refused the real face TEN
-    SECONDS LATER, ON THE POLL** (`the input image 'content[1]' may contain
-    real person`, twice, 20 minutes apart), where nothing was listening — and
-    the same three pictures had drawn on Atlas twice that hour on Mini.
-    Re-sent from a container through Atlas on 2.5, same seed: **it drew,
-    3m32s, job `0eab8ac88bf740cbae9793c184b192b8`**. So the looseness table
-    is a PREFERENCE, per model and probabilistic, never a reason to leave a
-    door untried; APIFRAME's refusal lands on the poll and whether it bills
-    is UNMEASURED (its failed 2.5 jobs have shown a `creditCost`), which is
-    why the free-refusal doors go first. **AND A REFUSAL THAT LANDS ON THE
-    POLL WALKS ON** — `walk` rides on the log doc (the page's request, the
-    doors tried, the doors left) and `pollOne` → `walkPlan`/`walkOn` sends
-    the job again through the next door, once, same seed; the refused card
-    says "sent again through Atlas Cloud (the newer card)" and carries
-    `resentAs`, the new card's note names who refused. An output gate, a
-    pinned door (no walk on the doc) and a walk with nothing left are left as
-    the poll found them. The card's red line names the OTHER doors now — it
-    used to tell her to send an APIFRAME job "through Atlas or APIFRAME".
-    Tests: the walk blocks of `node scripts/test-footage.js` and
-    `node scripts/test-video-refusals.js`.
+  - **A REFUSED JOB FAILS. IT IS NEVER SENT THROUGH ANOTHER DOOR, AND NEVER
+    DRAWN WITHOUT ITS REFERENCES (2026-09-11 evening, Sophie, looking at three
+    APIFRAME clips: "i think these r being sent without references" · "if a
+    job refuses references it should just fail … never sent without
+    references ever ever ever" · "when I send a job through a chat, it just
+    says that it was refused if the references didn't go through — why can't
+    the same thing happen through footage?").** Footage does what a chat does
+    now: auto picks the cheapest door, ONE send, and a content refusal is the
+    card's answer ("refused, nothing drawn or charged"); which door to try
+    next is hers. **The WALK that shipped that morning is history** — a
+    chain of every other door on the POST, and `walk`/`walkPlan`/`walkOn`
+    re-sending on the poll. It put all six of the day's APIFRAME jobs there,
+    and **on 2.0 APIFRAME does not refuse a real face — it SILENTLY DROPS
+    EVERY REFERENCE, draws a stranger, reports COMPLETED with our urls echoed
+    on its own record, and bills (~32¢ each).** Measured on all three 2.0
+    jobs: with an AI-drawn face and a dress as references (18:13) it honoured
+    both; with her real jazz VIDEO among them (06:43) it drew a blonde
+    stranger; with her real PHOTO among them (21:14) it drew a stranger and a
+    box matching neither box picture, while Atlas Fast drew the identical
+    three references exactly. On 2.5 the same check refuses on the poll
+    instead. There is nothing on an APIFRAME job to catch — so a chat pinning
+    APIFRAME with a real person in a reference on 2.0 gets a clip that looks
+    done and is not; Atlas is the door for a person. **And the first two
+    readings of this were wrong the same way:** the page log, the server's
+    own params and APIFRAME's job record all said the references were sent,
+    and they were — a record of what was POSTED says nothing about what the
+    model was given. **Compare the clip to the reference before saying a
+    reference rode.** Tests: the refusal blocks of `node scripts/test-footage.js`.
   - **A PINNED DOOR NEVER FALLS BACK** — a refusal on a door a chat named is a
     measurement, not a reason to spend elsewhere. Only `auto` ranks and walks.
   - **THE PRICE LINE NAMES THE DOOR AGAIN.** It came off 2026-09-09 only

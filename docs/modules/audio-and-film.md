@@ -562,16 +562,18 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       remaining doors with the ones whose refusal is free on the POST first
       (`DOOR_REFUSAL_FREE`: OpenRouter, Atlas), each group cheapest first;
       APIFRAME's refusal lands on the poll and whether it bills is
-      unmeasured. **A refusal on the poll walks on**: `walk {req, tried,
-      left}` rides the log doc from `startJob`, `pollOne` asks `walkPlan`
-      (pure — content kind, doors left, not already re-sent) and `walkOn`
-      sends the same request again through `startJob({avoid, after})`, same
-      seed, once per refusal (an in-process set plus a fresh read of
-      `resentAs`); the refused doc gets `resentAs`/`walkDone` and a note, the
-      new doc's note names who refused. `doorFor` takes `avoid`; with every
-      door refused it answers "every door has refused it". The card's `why`
-      line is door-aware (`explain(text, code, door)`) so it never names the
-      door it is on.
+      unmeasured. **THE WALK IS HISTORY (2026-09-11 evening, Sophie: "if a job refuses
+      references it should just fail"):** `chain` is always empty, `walk`
+      never rides the log doc, `walkPlan`/`walkOn` are gone, and `startJob`
+      makes ONE send — a refusal throws with `refusal`/`door` on it and
+      `pollOne` returns a poll-time refusal as the failure it is. Why: the
+      walk put every APIFRAME job of the day there, and on 2.0 APIFRAME
+      silently drops every reference when one holds a real person, draws a
+      stranger, reports COMPLETED and bills — measured on all three of the
+      day's 2.0 jobs against the identical references drawn exactly on Atlas.
+      The card's `why` line is door-aware (`explain(text, code, door)`) and
+      says "refused, nothing drawn or charged"; it no longer sends her to
+      APIFRAME.
     - **A FAILED ATLAS PRICE READ KEEPS THE LAST GOOD PRICES.** It used to
       fall back to the table's LIST rate, which was only a high number on
       screen while Atlas was the one door and is now a DOOR CHANGE — every
