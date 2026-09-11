@@ -743,6 +743,10 @@ function cardOf(id, d) {
     // WHICH PROJECT — the cast library's film slug; '' for a clip drawn
     // before projects existed or sent under "All"
     project: projectSlug(d.project),
+    // WHICH CHAT SENT IT — `footage` for this page's own; the card names any
+    // other, since a chat's clip in her feed with nothing saying so reads as
+    // one she drew and forgot
+    chat: String(d.chat || ''),
   };
 }
 
@@ -1303,7 +1307,16 @@ function pageJobs(all, { limit, before } = {}) {
 
 router.get('/jobs', async (req, res) => {
   try {
-    const snap = await coll().where('chat', '==', CHAT).get();
+    // EVERY CLIP ON THE LOG, WHICHEVER CHAT DREW IT (2026-09-11, Sophie, on
+    // hearing the chat-made ward clips were not in this feed: "are you
+    // adding them to footage? if so, good"). The feed was `chat == footage`
+    // — the page's own clips only, the Playground's "a chat's clips do NOT
+    // go here" rule — and it left ~200 clips the chats had drawn for the
+    // same films reachable from nowhere she looks. A project is a project
+    // whoever sent the clip, so the read is the whole collection and the
+    // card says which chat it came from (`from <chat>`) when it was not this
+    // page. ~370 docs of ~1KB — one read, the same shape as before.
+    const snap = await coll().get();
     // ONE PROJECT AT A TIME when the page asks for one. Filtered here, over
     // the whole collection the read already holds, BEFORE the page is cut —
     // filtering a truncated page client-side is the Assets tab's own lesson.
@@ -1334,10 +1347,9 @@ router.post('/jobs/:id/vote', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 // POST /jobs/:id/project { project } — MOVE a clip to a project, or off one
-// with ''. One field, nothing else on the doc moves. The backfill and a chat
-// use it; whether the card grows a control for it is hers to ask for
-// (2026-09-11: "we'll have to work out if I want to manually move something
-// into a different project after the fact").
+// with ''. One field, nothing else on the doc moves. The card's own project
+// drop-down calls it (2026-09-11, Sophie: "can you also add the move project
+// UI"), and so do the backfill's `--map` and a chat.
 router.post('/jobs/:id/project', async (req, res) => {
   try {
     const project = projectSlug(req.body && req.body.project);
