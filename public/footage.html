@@ -241,8 +241,39 @@
      picker rather than wrapping under it */
   .foldrow{display:flex;align-items:center;gap:8px;margin:10px var(--pillgap,0px) 6px 0}
   .foldrow .fold{flex:1;min-width:0;margin:0}
-  .foldrow .fold #ctlfoldlab{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .foldrow .fold > span:last-child{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  /* HER OWN WORDS ARE NOT SET IN CAPS. The fold rows are a 10.5px caps line
+     with .12em tracking, which is right for a label — Prompt, Buttons,
+     References — and wrong for a sentence she wrote: measured at 390pt it
+     fits about four of her words before the ellipsis, and reads shouted.
+     So the label keeps the caps and the scene beside it is plain. */
+  .fold .lw{text-transform:none;letter-spacing:0;font-size:11.5px;flex:1;min-width:0;
+            overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .fold .lw:empty{display:none}
+  .fold .lw + *, .fold > span:first-of-type{flex:none;white-space:nowrap}
   .fold.shut svg{transform:rotate(-90deg)}
+  /* THE WHOLE PROMPT AREA FOLDS, AND THAT IS THE ONE BUTTON TO THE GALLERY
+     (2026-09-11, Sophie: "make the whole prompt area collapse or one button to
+     get to the gallery at bottom"). With a scene in the box the panel is most
+     of the screen — the blocks, the strip, the two rows of controls, the star —
+     so the clips she came to look at start below the fold and the two folds
+     already here only ever took a third of it each. Shut, the panel IS one
+     row: the feed rises to just under the header, which is the same tap as a
+     button that jumps to it and leaves her looking at the top of the gallery
+     rather than parachuting her into the middle of it.
+     It is CSS over the panel rather than a list of rows in script, because a
+     BLOCK is a direct child of the panel and blocks are made and joined as she
+     types — a JS sweep would have to be re-run by everything that touches one.
+     Nothing is removed: what it hides is DISPLAY-hidden and stays in the DOM,
+     so a folded Go still sends the words, the size and the seed the boxes
+     hold, and `fitPillGap` sees a zero rect and reserves nothing for it.
+     THE PROJECT PICKER STAYS ON THE ROW, which is why it moved up here: it
+     narrows the FEED as well as the clip, so it is the one control she still
+     wants while the panel is away — folding it would be a filter she cannot
+     see from the screen it is filtering. */
+  .panel.shut > *{display:none}
+  .panel.shut > .panelrow{display:flex}
+  .panel.shut{padding-bottom:6px}
   /* THE COLUMN GAP IS 16, NOT 8, SINCE THE KEYFRAME MARK LANDED — MEASURED.
      The ✕ hangs 6px off a cell's RIGHT corner and the flag hangs 6px off the
      next cell's LEFT, so at an 8px gap the two overlap by 4px and the flag
@@ -804,6 +835,7 @@
   <p><b>Whichever door is cheapest</b> &mdash; the line beside the star names it. Right now that is <b>Atlas Cloud</b> for Mini and Fast and <b>OpenRouter</b> for 2.0 and 2.5, but nothing here is written down: the three doors are priced for the exact clip you have set up and the cheapest one gets it. If that door refuses a reference &mdash; free, before anything draws &mdash; the job stops there and the card says why; it is never sent through another door on its own, and never drawn without its references. OpenRouter refuses any person in a reference, Atlas Cloud takes a person and refuses only a famous face.</p>
   <p><b>Four models.</b> <b>2.0 Mini</b> is the default and much the cheapest. <b>2.0 Fast</b>, <b>2.0</b> and <b>2.5</b> climb from there &mdash; the line beside the star says what the tap costs before you make it. Two things worth knowing: <b>Fast is the strict one</b> (a plain prompt with no reference at all has come back refused there with a copyright line, free and unbilled, where the same words drew on Mini), and <b>2.0 is the only one that does 1080p</b>.</p>
   <p><b>The last frame of a clip</b> &mdash; the small picture under its references, for chaining one shot into the next. Tap it to see it big and save it. It rides on Atlas Cloud only, so a clip that went out through another door has none and shows no picture.</p>
+  <p><b>The whole prompt area folds.</b> Tap <b>Prompt</b> at the top of the panel and the box, the references, the buttons and the star go away together &mdash; the clips come up to just under the header, which is the quickest way down to them. Shut, the row says the first words of what is in the box, and the project stays on it so you can still narrow what you are looking at. Nothing is lost: everything is still set the way you left it, and anything that puts words or a reference back opens it again.</p>
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
   <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. Every block has the same two buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing.</p>
@@ -816,7 +848,21 @@
   <p>What is left on Atlas is on its own console &mdash; it has no balance to read from here.</p>
 </div>
 
-<div class="panel">
+<div class="panel" id="panel">
+  <!-- THE WHOLE PANEL FOLDS FROM THIS ROW (2026-09-11, Sophie: "make the whole
+       prompt area collapse or one button to get to the gallery at bottom").
+       It is the FIRST child of the panel and the one child the shut panel
+       still draws, so the control that put the panel away is where she left
+       it. The project picker rides here rather than on the Buttons row: it
+       narrows the feed too, so it is the one control worth keeping while the
+       panel is gone. Shut, the row says what is in the box — the first words
+       of the block she is in, and how many blocks there are — because a fold
+       that hid a scene under the bare word "Prompt" would be a draft she has
+       to open the panel to identify. -->
+  <div class="foldrow panelrow">
+    <button type="button" class="fold" id="panelfold" aria-expanded="true" aria-controls="panel"><span class="chev"></span><span id="panelfoldlab">Prompt</span><span id="panelfoldwords" class="lw"></span></button>
+    <span class="selwrap iconsel" id="projwrap"><select id="project" aria-label="Project and folder" title="Project and folder"></select><span class="ico"></span></span>
+  </div>
   <!-- ONE BLOCK IS ONE CLIP (2026-09-11). Divide here cuts the block at the
        cursor into two; the second half becomes a block of its own right under
        this one, with a join mark in the gap. The star sends the block she is
@@ -835,17 +881,15 @@
        references offered to me and only related files in the tiles list view
        area"). The cast library's films ARE the list; picking one narrows the
        feed, the Recent drawer and the character sheet to it and stamps it on
-       every clip sent. "All" is a real stop. IT SITS ON THE FOLD ROW, at the
-       right end of the slack "Buttons" already leaves, because the controls
-       row cannot hold it: MEASURED at 390pt with the pill's column reserved,
+       every clip sent. "All" is a real stop. IT SITS ON A FOLD ROW, never on
+       the controls row: MEASURED at 390pt with the pill's column reserved,
        the eight controls come to 641px against the 574 two lines hold, in
        any order — a third line, which is the "buttons take up too much room"
-       this row was cut down from. The fold row is never hidden, so the
-       picker is never a trap on an empty project. -->
-  <div class="foldrow">
-    <button type="button" class="fold" id="ctlfold" aria-expanded="true" aria-controls="controls"><span class="chev"></span><span id="ctlfoldlab">Buttons</span></button>
-    <span class="selwrap iconsel" id="projwrap"><select id="project" aria-label="Project and folder" title="Project and folder"></select><span class="ico"></span></span>
-  </div>
+       that row was cut down from. It rides the PANEL's row since 2026-09-11,
+       because that row is the one thing a shut panel still draws and the
+       picker narrows the feed as well as the clip. A fold row is never
+       hidden, so the picker is never a trap on an empty project. -->
+  <button type="button" class="fold" id="ctlfold" aria-expanded="true" aria-controls="controls"><span class="chev"></span><span id="ctlfoldlab">Buttons</span></button>
   <div class="row" id="controls">
     <button class="up ib" type="button" id="add" aria-label="Add a reference" title="Add a reference"><span id="addicon"></span><input type="file" accept="image/*,video/*,audio/*" multiple id="file"></button>
     <button id="rectog" type="button" aria-expanded="false" aria-label="Recent — clips you made and references you have used" title="Recent — clips you made and references you have used" hidden></button>
@@ -1572,12 +1616,38 @@ $('seedclear').addEventListener('click', function () { $('seedbox').value = ''; 
 // putting a clip back, a belt hand-off, a reference landing — OPENS the one it
 // changed, because a value she cannot see is the hidden ingredient the price
 // line beside the star exists to prevent.
-var FOLDS = { refs: 'footage_fold_refs', ctl: 'footage_fold_ctl' };
+var FOLDS = { panel: 'footage_fold_panel', refs: 'footage_fold_refs', ctl: 'footage_fold_ctl' };
 function foldShut(k) { try { return localStorage.getItem(FOLDS[k]) === '1'; } catch (e) { return false; } }
 function setFold(k, shut) { try { localStorage.setItem(FOLDS[k], shut ? '1' : '0'); } catch (e) {} paintFolds(); }
 function openFold(k) { if (foldShut(k)) setFold(k, false); }
+// SHUT, THE ROW SAYS WHAT IS IN THE BOX — the first words of the block she is
+// in, and how many blocks there are. A column of panels all reading "Prompt"
+// would be a draft she has to open the panel to identify, and this is the one
+// fold that hides a scene rather than a setting. Nothing else goes on it: the
+// row ellipsizes to give way to the project picker, so anything appended after
+// the words cannot be read at all — and a reference landing OPENS the panel
+// anyway, so nothing can ride hidden.
+function panelLab() {
+  var ws = blocks(), box = activeBox();
+  var txt = String((box && box.value) || '').replace(/\s+/g, ' ').trim();
+  var lab = 'Prompt';
+  if (ws.length > 1) lab += ' \u00b7 ' + ws.length + ' blocks';
+  return { lab: lab, words: txt ? '\u00b7 ' + txt : '' };
+}
 function paintFolds() {
-  var rShut = foldShut('refs'), cShut = foldShut('ctl');
+  var rShut = foldShut('refs'), cShut = foldShut('ctl'), pShut = foldShut('panel');
+  // THE WHOLE PANEL, AND ITS ROW IS THE ONE THING LEFT ON SCREEN. One class,
+  // never a list of rows: a BLOCK is a direct child of the panel and blocks
+  // come and go as she divides and joins, so a JS sweep would have to be
+  // re-run by everything that touches one. Everything under it is
+  // DISPLAY-hidden and stays in the DOM — a folded Go still sends the words,
+  // the size and the seed the boxes hold.
+  panelEl().classList.toggle('shut', pShut);
+  $('panelfold').classList.toggle('shut', pShut);
+  $('panelfold').setAttribute('aria-expanded', pShut ? 'false' : 'true');
+  var pl = pShut ? panelLab() : { lab: 'Prompt', words: '' };
+  $('panelfoldlab').textContent = pl.lab;
+  $('panelfoldwords').textContent = pl.words;
   // never a dead control: with nothing attached there is nothing to fold
   $('reffold').hidden = !refs.length;
   $('refs').style.display = (rShut && refs.length) ? 'none' : '';
@@ -1609,6 +1679,15 @@ function paintFolds() {
   if (seedVal()) bits.unshift('seed ' + seedVal());
   $('ctlfoldlab').textContent = cShut ? 'Buttons · ' + bits.join(' · ') : 'Buttons';
 }
+// Opening it re-fits every block: a box measured while it was display-hidden
+// reports no scrollHeight, so without this a panel reopened after a reload
+// comes back one line tall. The pill's column is re-measured for the same
+// reason — the rows that were hidden had no rect to judge.
+$('panelfold').addEventListener('click', function () {
+  var shut = !foldShut('panel');
+  setFold('panel', shut);
+  if (!shut) { fitAll(); if (window.__fitPillGap) window.__fitPillGap(); }
+});
 $('reffold').addEventListener('click', function () { setFold('refs', !foldShut('refs')); });
 $('ctlfold').addEventListener('click', function () { setFold('ctl', !foldShut('ctl')); });
 
@@ -1898,7 +1977,7 @@ $('file').addEventListener('change', function (e) {
           if (!it || !it.url) { toast('Could not upload ' + (f.name || 'that')); return; }
           if (!refs.some(function (r) { return r.url === it.url; })) refs.push({ url: it.url, kind: kindOfFile(f), poster: it.posterUrl || '', name: f.name || '' });
           n++;
-          openFold('refs');
+          openFold('panel'); openFold('refs');
           saveDraft(); paintControls();
         }).catch(function () { toast('Could not upload ' + (f.name || 'that')); });
     });
@@ -1950,7 +2029,7 @@ function paintRecent() {
     b.innerHTML = thumbHtml(r) + (r.kind === 'video' && pic ? '<span class="bdg">' + ICONS.film + '</span>' : '');
     b.addEventListener('click', function () {
       if (!refs.some(function (x) { return x.url === r.url; })) refs.push({ url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' });
-      openFold('refs');
+      openFold('panel'); openFold('refs');
       saveDraft(); paintControls(); toast('Attached');
     });
     el.appendChild(b);
@@ -2012,7 +2091,7 @@ function castApply(ent, look) {
   var before = box.value;
   box.value = CL.withLine(before, p.line);
   if (window.__fitBigPrompt) window.__fitBigPrompt();
-  if (p.added) openFold('refs');
+  if (p.added) { openFold('panel'); openFold('refs'); }
   saveDraft(); paintControls();
   // EVERY OTHER LOOK ON SCREEN IS NOW STALE — the previews are resolved
   // against the strip, so the slot a look would land on moved the instant
@@ -3184,7 +3263,7 @@ function copyBack(j) {
   // her ask: copying the words back brings the seed with them (and a clip with
   // no seed on file clears the box rather than leaving another clip's in it)
   setSeed(j.seed);
-  openFold('refs'); openFold('ctl');
+  openFold('panel'); openFold('refs'); openFold('ctl');
   saveCtl(); saveDraft(); paintControls(true);
   if (window.__fitBigPrompt) window.__fitBigPrompt();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -3289,7 +3368,7 @@ function takeHandoff() {
   if (typeof h.firstFrame === 'string' && inStrip[h.firstFrame]) firstUrl = h.firstFrame;
   if (typeof h.lastFrame === 'string' && inStrip[h.lastFrame] && h.lastFrame !== firstUrl) lastUrl = h.lastFrame;
   if (h.seed != null) setSeed(h.seed);
-  openFold('refs'); openFold('ctl');
+  openFold('panel'); openFold('refs'); openFold('ctl');
   saveCtl(); saveDraft(); paintControls(true); paintRefs();
   if (window.__fitBigPrompt) window.__fitBigPrompt();
   toast(h.title ? 'From the belt: ' + h.title : 'From the belt');
@@ -3507,7 +3586,7 @@ function useShot(asFirst) {
   if (asFirst) { firstUrl = url; if (lastUrl === url) lastUrl = ''; }
   else if (roleOfUrl(url)) { if (firstUrl === url) firstUrl = ''; if (lastUrl === url) lastUrl = ''; }
   reslotBlocks(was, slotRefs());
-  openFold('refs');
+  openFold('panel'); openFold('refs');
   saveDraft(); paintControls(true);
   closePlayer();
   window.scrollTo({ top: 0, behavior: 'smooth' });

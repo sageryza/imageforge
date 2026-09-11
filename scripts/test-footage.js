@@ -2132,14 +2132,17 @@ async function pillSweep(pg, where) {
   ok('and only the ward\'s five clips are on screen — ' + pick1.ids, pick1.ids === 'c1,f0,f1,f2,old1');
   ok('inside a project the card does not repeat its name', !pick1.wardTag);
   ok('the pick is remembered', pick1.saved === 'ward');
-  // the picker sits on the fold row, on one line with it, clear of the pill
+  // the picker sits on the PANEL's fold row (2026-09-11 — it moved up there
+  // with the whole-panel fold, because that row is the one thing a shut panel
+  // still draws and the picker narrows the feed as well as the clip), on one
+  // line with it, clear of the pill
   const seat = await pgP.evaluate(() => {
-    const p = document.getElementById('project'), f = document.getElementById('ctlfold');
+    const p = document.getElementById('project'), f = document.getElementById('panelfold');
     const pr = p.getBoundingClientRect(), fr = f.getBoundingClientRect(), pill = document.querySelector('body > .float').getBoundingClientRect();
     const hit = document.elementFromPoint(pr.x + pr.width / 2, pr.y + pr.height / 2);
     return { sameRow: p.closest('.foldrow') === f.closest('.foldrow'), level: Math.abs((pr.y + pr.height / 2) - (fr.y + fr.height / 2)) < 4, clear: pr.right <= pill.left, tappable: !!(hit && hit.closest('#project')), val: p.value };
   });
-  ok('the picker sits on the Buttons fold row, level with it, clear of the pill and tappable — ' + JSON.stringify(seat), seat.sameRow && seat.level && seat.clear && seat.tappable && seat.val === 'ward');
+  ok('the picker sits on the panel fold row, level with it, clear of the pill and tappable — ' + JSON.stringify(seat), seat.sameRow && seat.level && seat.clear && seat.tappable && seat.val === 'ward');
   // the tiles narrow too
   await pgP.click('#v-tiles');
   await pgP.waitForTimeout(300);
