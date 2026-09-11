@@ -69,6 +69,9 @@
 //   GET  /status              config health, never key values
 //   POST /video               start a Seedance (or Wan 3.0) job
 //   GET  /video-job/:id       poll; mirrors the clip on completion
+//
+// A FIRST FRAME IS A DIFFERENT MODEL ID HERE (2026-09-11) — see the
+// `imageToVideoOf` note below the model constants.
 
 const express = require('express');
 const fetch = require('node-fetch');
@@ -84,6 +87,17 @@ const BASE = process.env.ATLASCLOUD_BASE || 'https://api.atlascloud.ai/api/v1';
 // Seedance id on this door is unmeasured (see the header).
 const DEFAULT_MODEL = 'bytedance/seedance-2.0-mini/reference-to-video';
 const MODELS = [DEFAULT_MODEL];
+// A FIRST FRAME IS A DIFFERENT MODEL ID ON THIS DOOR (2026-09-11, off Atlas's
+// own model list). `…/reference-to-video` takes no first frame at all; its
+// sibling `…/image-to-video` takes `image` (the first frame, REQUIRED) and an
+// optional `last_image` — and takes NO `reference_images` / `reference_videos`
+// / `reference_audios`. Same price per second either way, so nothing about
+// the estimate moves. So a first frame here means SWAPPING the id, and a job
+// carrying both a first frame and references is REFUSED rather than sent with
+// one half silently dropped.
+const REF_TO_VIDEO = /\/reference-to-video$/;
+function imageToVideoOf(model) { return String(model || '').replace(REF_TO_VIDEO, '/image-to-video'); }
+function isImageToVideo(model) { return /\/image-to-video$/.test(String(model || '')); }
 const RESOLUTIONS = ['480p', '720p', '720p-SR', '1080p-SR', '1440p-SR'];
 const RATIOS = ['16:9', '4:3', '1:1', '3:4', '9:16', '21:9', 'adaptive'];
 const APIFRAME_ROUTE = 'POST /api/apiframe/video';
@@ -197,16 +211,58 @@ function secondsRange(model) {
   return /seedance-2\.5/.test(String(model || '')) ? [4, 30] : [4, 15];
 }
 
+// THE TWO KEYFRAMES, read off the route's body the same way every door reads
+// them (`firstFrameUrl` / `lastFrameUrl`). Answers { first, last } or
+// { error }; a url that is not a public https one is refused rather than
+// sent, since the door would refuse it a round trip later.
+function framesOf(b) {
+  const one = (v, what) => {
+    if (v == null || v === '') return '';
+    const s = String(v);
+    if (!/^https?:\/\//.test(s)) return { error: `${what} must be a public https url` };
+    return s;
+  };
+  const first = one(b.firstFrameUrl, 'firstFrameUrl');
+  if (first && first.error) return first;
+  const last = one(b.lastFrameUrl, 'lastFrameUrl');
+  if (last && last.error) return last;
+  return { first: first || '', last: last || '' };
+}
+
 function buildRequest(b) {
   b = b || {};
   const prompt = String(b.prompt == null ? '' : b.prompt);
   if (!prompt.trim()) return { error: 'prompt is required' };
-  const model = modelIdOf(b.model);
+  let model = modelIdOf(b.model);
   if (!model) return { error: `unknown model "${b.model}" — Mini is the one id on file; pass a full bytedance/seedance-…/reference-to-video id for anything else, or wan-3.0` };
-  if (isWan(model)) return buildWanRequest(b, prompt, model);
+  const kf = framesOf(b);
+  if (kf.error) return kf;
+  // WAN 3.0's image-to-video sibling is UNMEASURED on this door — its schema
+  // here is the reference-to-video one — so a keyframe on Wan is refused
+  // rather than sent under a key nothing has read back.
+  if (isWan(model)) {
+    if (kf.first || kf.last) return { error: 'Wan 3.0 on this door takes references, not a first or last frame — send it as a reference image, or use Seedance' };
+    return buildWanRequest(b, prompt, model);
+  }
   const imgs = (Array.isArray(b.referenceImageUrls) ? b.referenceImageUrls : []).map(String).filter(Boolean);
   const vids = (Array.isArray(b.referenceVideoUrls) ? b.referenceVideoUrls : []).map(String).filter(Boolean);
   const auds = (Array.isArray(b.referenceAudioUrls) ? b.referenceAudioUrls : []).map(String).filter(Boolean);
+  // A KEYFRAME SWAPS THE MODEL ID AND REFUSES REFERENCES BESIDE IT. Atlas's
+  // `…/image-to-video` has no reference lists in its schema at all, so a job
+  // carrying both would draw from the first frame alone and the references
+  // she attached would be gone with nothing on screen saying so — the silent
+  // drop this refusal exists to prevent.
+  if (kf.first || kf.last) {
+    if (imgs.length || vids.length || auds.length) {
+      return { error: 'Atlas Cloud takes a first frame OR references, never both on one job — take the references off, or send it through APIFRAME, which wires a first frame beside them' };
+    }
+    // `image` is REQUIRED on image-to-video, so a last frame with nothing to
+    // start from has nowhere to go here. Said plainly rather than guessed at.
+    if (!kf.first) return { error: 'Atlas Cloud needs a FIRST frame to take a last one — mark the frame the clip starts on' };
+    model = imageToVideoOf(model);
+  } else if (isImageToVideo(model)) {
+    return { error: 'that model id is image-to-video — it needs a firstFrameUrl' };
+  }
   if (imgs.length > MAX_IMAGES) return { error: `at most ${MAX_IMAGES} reference images` };
   if (vids.length > MAX_VIDEOS) return { error: `at most ${MAX_VIDEOS} reference videos` };
   if (auds.length > MAX_AUDIOS) return { error: `at most ${MAX_AUDIOS} reference audios` };
@@ -233,6 +289,13 @@ function buildRequest(b) {
   if (imgs.length) params.reference_image_urls = imgs;
   if (vids.length) params.reference_video_urls = vids;
   if (auds.length) params.reference_audio_urls = auds;
+  // THE LOG KEEPS ONE VOCABULARY — `start_image` / `end_image` are APIFRAME's
+  // names for the two keyframes, and `video-log.js` reads exactly those off
+  // `params` into `references.startImage` / `endImage`. So a frame sent
+  // through this door is on the 1080p-redo reading list under the same name
+  // it has on every other door, whatever Atlas calls it on the wire.
+  if (kf.first) params.start_image = kf.first;
+  if (kf.last) params.end_image = kf.last;
   // RETURN_LAST_FRAME WORKS ON THIS DOOR AND IS FREE — measured 2026-09-09
   // (see the header). Off by default so no existing caller's answer changes;
   // `returnLastFrame: true` asks for it.
@@ -242,6 +305,10 @@ function buildRequest(b) {
     return_last_frame: params.return_last_frame };
   if (params.duration != null) body.duration = params.duration;
   if (params.aspect_ratio) body.ratio = params.aspect_ratio;
+  // Atlas's own names on the wire: `image` is the first frame, `last_image`
+  // the optional one it ends on.
+  if (kf.first) body.image = kf.first;
+  if (kf.last) body.last_image = kf.last;
   if (imgs.length) body.reference_images = imgs;
   if (vids.length) body.reference_videos = vids;
   if (auds.length) body.reference_audios = auds;
@@ -487,6 +554,7 @@ module.exports = {
   router,
   configured: () => Boolean(KEY),
   buildRequest, buildWanRequest, isWan, modelIdOf, apiframeStatus, refusalKind, splitOutputs,
+  imageToVideoOf, isImageToVideo, framesOf,
   api, startVideo, pollVideo, failedRecord,
   MODELS, DEFAULT_MODEL, RESOLUTIONS, RATIOS, APIFRAME_ROUTE, WAN_MODEL, WAN,
 };

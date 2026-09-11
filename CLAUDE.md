@@ -8345,6 +8345,36 @@ before working on that module. Nothing was deleted — the moved text is verbati
     failing 5 pre-fix).
   Full note: *SHE TRIMS A CLIP AS IT COMES OUT* in
   `docs/modules/audio-and-film.md`; test `node scripts/test-footage-trim.js`.
+  **THE FIRST FRAME OF THE NEXT CLIP IS THE LAST FRAME OF THIS ONE — WIRED ON
+  ALL THREE DOORS (2026-09-11).** Every door takes the same two fields,
+  `firstFrameUrl` / `lastFrameUrl`, and maps them onto its own shape: **Atlas
+  swaps the MODEL ID** to `…/image-to-video` (`image` required, optional
+  `last_image`, and NO reference lists at all, same price per second),
+  **OpenRouter sends `frame_images`** (`{type:'image_url', image_url:{url},
+  frame_type}`), **APIFRAME is unchanged** (`start_image`/`end_image` beside
+  the reference lists — the one door that takes both). **A FIRST FRAME AND
+  REFERENCES TOGETHER ARE REFUSED AT THE DOOR, NEVER HALF-SENT** — Atlas's
+  image-to-video has no reference lists and OpenRouter's own guide says
+  `frame_images` WINS and the references are dropped silently — so `doorFor`
+  ranks only the doors that can take the job's SHAPE, that job goes to
+  APIFRAME, and with no door open the send is refused with what to change. A
+  keyframe is NOT a slot: it leaves the reference lists, takes no `[ImageN]`,
+  and the pictures after it renumber (her prompt is renumbered, never
+  reworded). The log keeps ONE vocabulary — every door writes
+  `start_image`/`end_image` into `params`, which `video-log.js` already files
+  as `references.startImage`/`endImage`, so a chained clip is on the 1080p
+  reading list under the same name whatever door drew it. On the page: a small
+  flag on a picture's thumb cycles none → first → last → none, the slot line
+  says which, a line under the strip says plainly what the doors will do
+  BEFORE she taps, and a finished clip's **last-frame tile** opens big with
+  **first frame** / **reference** beside `save` (no save-and-re-attach). A belt
+  hand-off may carry `firstFrame`/`lastFrame`. **Unmeasured and named:**
+  whether ByteDance honours a keyframe and references together on APIFRAME,
+  which Seedance models take `frame_images` on OpenRouter, whether a last
+  frame alone works there, and Atlas's image-to-video price against a real
+  charge. Full note: *THE FIRST FRAME, ON ALL THREE DOORS* in
+  `docs/modules/audio-and-film.md`; test
+  `node scripts/test-video-keyframes.js`.
   **A CLIP BELONGS TO A PROJECT, AND THE PAGE SHOWS ONE PROJECT AT A TIME
   (2026-09-11, Sophie: "group projects and character references so when I
   switch between projects, I can only see those references offered to me and

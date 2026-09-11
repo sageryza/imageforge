@@ -209,7 +209,12 @@
   .foldrow .fold{flex:1;min-width:0;margin:0}
   .foldrow .fold #ctlfoldlab{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
   .fold.shut svg{transform:rotate(-90deg)}
-  .refs{display:flex;gap:8px;flex-wrap:wrap}
+  /* THE COLUMN GAP IS 16, NOT 8, SINCE THE KEYFRAME MARK LANDED — MEASURED.
+     The ✕ hangs 6px off a cell's RIGHT corner and the flag hangs 6px off the
+     next cell's LEFT, so at an 8px gap the two overlap by 4px and the flag
+     (later in the DOM) paints over the right edge of the ✕ beside it. Four
+     cells still fit a row at 390pt either way. */
+  .refs{display:flex;gap:8px 16px;flex-wrap:wrap}
   .ref{position:relative;width:72px}
   .ref .im{width:72px;height:72px;border:1px solid #e0d8ca;border-radius:6px;overflow:hidden;background:#2b2620;
            display:flex;align-items:center;justify-content:center;color:#f6f2ea}
@@ -218,6 +223,33 @@
   .ref .slot{display:block;width:100%;margin-top:4px;padding:3px 0;font-size:11px;letter-spacing:.04em;background:#fdfbf7}
   .ref .x{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:6px;padding:0;
           background:#fff;border:1px solid #d8cfc0;font-size:12px;line-height:20px;text-align:center}
+  /* THE KEYFRAME MARK (2026-09-11) — a rounded square on the thumb's TOP-LEFT
+     corner, because the ✕ owns top-right. Never a circle (the house rule),
+     and never a word: the word is on the slot line directly underneath,
+     which says `first frame` / `last frame` in place of the slot name. So the
+     mark only has to say on/off, and the line says which.
+     It is drawn on PICTURES only — a video or an audio reference cannot be a
+     keyframe, and a control that does nothing is worse than no control. */
+  .ref .kf{position:absolute;top:-6px;left:-6px;width:22px;height:22px;border-radius:6px;padding:0;
+           background:#fff;border:1px solid #d8cfc0;color:#9a8f7d;
+           display:flex;align-items:center;justify-content:center}
+  .ref .kf svg{width:12px;height:12px}
+  .ref .kf.on{background:#2b2620;border-color:#2b2620;color:#f6f2ea}
+  /* IT READS AS THE SLOT LINE IT REPLACES. A <span> inherits neither the
+     button rule's serif (`font: 15px -apple-system,Georgia,serif`) nor a
+     button's own centred text, so without these two the marked cell's label
+     sat left-aligned in the SANS beside its neighbours' centred serif —
+     PHOTOGRAPHED; no assertion about the strip had looked at either. The
+     family is named rather than `inherit`ed, because what the span inherits
+     is the page's sans. */
+  .ref .slot.kfslot{background:#2b2620;color:#f6f2ea;border-color:#2b2620;
+                    font-family:-apple-system,Georgia,serif;font-size:9.5px;letter-spacing:.02em;
+                    text-align:center;white-space:nowrap;overflow:hidden}
+  /* WHAT THE DOORS WILL DO WITH IT, BEFORE SHE TAPS — nothing hidden. Only
+     drawn while a keyframe and a reference are attached together, which is
+     the one shape where the doors disagree about what a job even is. */
+  #kfnote{margin-top:7px;font-size:11px;line-height:1.35;color:#8a7f6d}
+  #kfnote.bad{color:#a8423a}
   .up{position:relative;overflow:hidden}
   .up input{position:absolute;inset:0;opacity:0;font-size:0}
   #recent{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
@@ -589,6 +621,21 @@
      still lands. */
   #player .psave{margin-left:auto;flex:none;background:rgba(255,255,255,.12);
                  border:1px solid rgba(255,255,255,.3);color:#fff;font-size:13px;padding:6px 12px}
+  /* CHAINING OFF THE FRAME SHE IS LOOKING AT (2026-09-11). The last-frame
+     tile on a card opens the frame BIG, and this is where the two doors onto
+     the next clip live — beside `save`, on the same row, because a second
+     button inside a 3-across tile is far under any tap target. So the ladder
+     is: tap the tile, tap `first frame`, the frame is in the box marked as
+     the frame the next clip starts on. No save-and-re-attach.
+     `margin-left:auto` is `.psave`'s and must stay THERE — the row is
+     right-aligned as a group, so these two sit to its left with a gap. */
+  #player .pfirst, #player .pref{flex:none;background:rgba(255,255,255,.12);
+                 border:1px solid rgba(255,255,255,.3);color:#fff;font-size:13px;padding:6px 12px;
+                 margin-right:8px}
+  #player .pfirst{margin-left:auto}
+  #player .pfirst + .pref{margin-left:0}
+  #player .pfirst:not([hidden]) ~ .psave{margin-left:0}
+  #player .pref:not([hidden]) ~ .psave{margin-left:0}
   /* A TOAST IS A MESSAGE, NEVER A CONTROL — `pointer-events:none` (measured
      2026-09-10, while the trimmer's own test could not reach a button under
      it). Fading to opacity 0 does NOT stop an element hit-testing, so without
@@ -637,6 +684,7 @@
 
   <button type="button" class="fold" id="reffold" aria-expanded="true" aria-controls="refs" hidden><span class="chev"></span><span id="reffoldlab">References</span></button>
   <div class="refs" id="refs"></div>
+  <div id="kfnote" hidden></div>
   <!-- ONE ROW OF CONTROLS, WRAPPING ONLY WHERE IT MUST (2026-09-09, Sophie:
        "no button word labels above (eg seconds)" · "consolidate buttons. same
        row unless it bleeds over"). The picture icon attaches a reference, the
@@ -706,7 +754,7 @@
 <button type="button" class="olderbtn" id="older" hidden>&hellip; older</button>
 <div class="emptynote" id="feedempty" hidden>Nothing made here yet.</div>
 
-<div id="player" hidden><div class="pbar"><button class="pclose" type="button" aria-label="Close"></button><button class="psave" id="psave" type="button" hidden>save</button></div>
+<div id="player" hidden><div class="pbar"><button class="pclose" type="button" aria-label="Close"></button><button class="pfirst" id="pfirst" type="button" hidden>first frame</button><button class="pref" id="pref" type="button" hidden>reference</button><button class="psave" id="psave" type="button" hidden>save</button></div>
   <div class="pstage"></div>
   <div class="trimbar" id="trimbar" hidden>
     <button type="button" class="striphit" id="tstrip" aria-label="Tap to put the playhead here"><span class="strip"><span class="bands" id="tbands"></span><span class="keep" id="tkeep"></span><span class="head" id="thead"></span></span></button>
@@ -765,6 +813,10 @@ var ICONS = {
   divide: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 16-4 4-4-4"/><path d="M3 12h18"/><path d="m8 8 4-4 4 4"/></svg>',
   join: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22v-6"/><path d="M12 8V2"/><path d="M4 12H2"/><path d="M10 12H8"/><path d="M16 12h-2"/><path d="M22 12h-2"/><path d="m15 19-3-3-3 3"/><path d="m15 5-3 3-3-3"/></svg>',
   scissors: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>',
+  // Lucide `flag` — the mark on a picture she has pinned as a keyframe. It
+  // says MARKED and nothing more; which end it is is the word on the slot
+  // line right underneath it.
+  flag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg>',
   // THE ONE GENERATE GLYPH — the hand-fitted star every spend button wears.
   star: '<svg viewBox="0 0 100 100" fill="currentColor" stroke="none" aria-hidden="true"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg>',
 };
@@ -837,6 +889,34 @@ var PAGE_MODELS = ['mini', 'fast', '2.0', '2.5'];
 var PAGE_MODEL = PAGE_MODELS[0];
 var S = { model: PAGE_MODEL, seconds: 4, res: '480p', ratio: '3:4', project: '' };
 var refs = [];                       // [{url, kind, poster, name}]
+// ── THE TWO KEYFRAMES (2026-09-11) ───────────────────────────────────────
+// The frame the clip STARTS on, and optionally the one it ENDS on — each one
+// a url that is also in the strip above, marked with the flag on its thumb.
+// They are held as URLS rather than as a field on the ref object because
+// `cast-line.js`'s own helpers rebuild refs through `cleanRef`, which keeps
+// url/kind/poster/name and drops anything else: a mark living on the object
+// would be lost the first time she took another reference off.
+//
+// A MARKED PICTURE IS NOT A REFERENCE. It takes no slot, it is not in
+// `referenceImageUrls`, and the pictures after it renumber — which is the ✕'s
+// own rule arriving from the other end, so her prompt is rewritten through
+// the same `cast-line.js` primitives rather than a second copy of them.
+var firstUrl = '', lastUrl = '';
+function roleOfUrl(u) { return u && u === firstUrl ? 'first' : (u && u === lastUrl ? 'last' : ''); }
+function roleWord(role) { return role === 'first' ? 'first frame' : role === 'last' ? 'last frame' : ''; }
+// The references that really ride the reference lists — everything but the
+// keyframes. This is what the slot names are counted over, here and on the
+// server (footage.js `slotsOf` skips a ref carrying a `role`).
+function slotRefs() { return refs.filter(function (r) { return !roleOfUrl(r.url); }); }
+// A MARK ONLY MEANS SOMETHING WHILE ITS PICTURE IS STILL ATTACHED — a ✕, a
+// copy-back or a hand-off can take it away, and a keyframe url pointing at
+// nothing would be sent with no thumb on screen saying so.
+function pruneMarks() {
+  var have = {};
+  refs.forEach(function (r) { have[r.url] = 1; });
+  if (firstUrl && !have[firstUrl]) firstUrl = '';
+  if (lastUrl && !have[lastUrl]) lastUrl = '';
+}
 
 // ── THE PROJECT (2026-09-11) ──────────────────────────────────────────────
 // ONE FIELD READ EVERYWHERE. The cast library's films are the projects (one
@@ -943,6 +1023,11 @@ function loadCtl() {
     var d = JSON.parse(localStorage.getItem('footage_draft') || '{}');
     if (d.prompt) $('prompt').value = d.prompt;
     if (Array.isArray(d.refs)) refs = d.refs;
+    // the marks ride the draft beside the strip, or a reload would send the
+    // keyframe as an ordinary reference with nothing on screen saying so
+    if (typeof d.first === 'string') firstUrl = d.first;
+    if (typeof d.last === 'string') lastUrl = d.last;
+    pruneMarks();
     // the blocks after the first, in order, and which one she was in
     if (Array.isArray(d.blocks)) d.blocks.forEach(function (t) { if (typeof t === 'string') addBlock(t); });
     if (d.active > 0 && blocks()[d.active]) setActive(blocks()[d.active]);
@@ -955,6 +1040,8 @@ function saveDraft() {
   try {
     var ws = blocks();
     var d = { prompt: ws[0].querySelector('.pblock').value, refs: refs };
+    if (firstUrl) d.first = firstUrl;
+    if (lastUrl) d.last = lastUrl;
     if (ws.length > 1) {
       d.blocks = ws.slice(1).map(function (w) { return w.querySelector('.pblock').value; });
       d.active = ws.indexOf(activeWrap());
@@ -1009,6 +1096,7 @@ function paintControls(force) {
   // line exists to prevent.
   paintSeedClear();
   paintRefs();
+  paintKfNote();
   paintFolds();
   paintProject();
   if (!CFG) return;
@@ -1131,11 +1219,25 @@ $('ctlfold').addEventListener('click', function () { setFold('ctl', !foldShut('c
 var costSeq = 0;
 function updateCost() {
   var seq = ++costSeq;
-  var hasVideo = refs.some(function (r) { return r.kind === 'video'; });
-  var q = '?model=' + S.model + '&res=' + S.res + '&ratio=' + encodeURIComponent(S.ratio) + '&seconds=' + S.seconds + '&video=' + (hasVideo ? 1 : 0) + '&door=' + doorNow();
+  // THE DOOR IS UNKNOWN WHILE THE ASK IS IN FLIGHT, and the keyframe note is
+  // drawn off it — so it is cleared here rather than left saying what the
+  // LAST shape answered. Attaching a picture beside a first frame used to
+  // flash "no door takes this" for as long as the round trip took, off the
+  // door of the shape before it. Empty means "not yet" and draws no line;
+  // `none` is the server really having no door for it.
+  $('cost').dataset.door = '';
+  paintKfNote();
+  // A KEYFRAME IS NOT A REFERENCE VIDEO, and the SHAPE goes to the server with
+  // the rest: a first frame narrows which doors can take the job at all, so
+  // the price and the DOOR she reads have to be the ones the tap will really
+  // get. Nothing here holds a copy of that rule — `doorFor` is the one place.
+  var plain = slotRefs();
+  var hasVideo = plain.some(function (r) { return r.kind === 'video'; });
+  var q = '?model=' + S.model + '&res=' + S.res + '&ratio=' + encodeURIComponent(S.ratio) + '&seconds=' + S.seconds + '&video=' + (hasVideo ? 1 : 0) + '&door=' + doorNow()
+    + (firstUrl ? '&first=1' : '') + (lastUrl ? '&last=1' : '') + (plain.length ? '&refs=1' : '');
   api('/estimate' + q).then(function (d) {
     if (seq !== costSeq) return;
-    if (!d || d.error) { $('cost').textContent = (d && d.error) || ''; $('cost').dataset.cents = ''; return; }
+    if (!d || d.error) { $('cost').textContent = (d && d.error) || ''; $('cost').dataset.cents = ''; $('cost').dataset.door = 'none'; paintKfNote(); return; }
     // A "~" WHERE THE FIGURE IS NOT PINNED (2026-09-10, Sophie: "add ~ to
     // both" — both resolutions on Atlas, which is every job through the
     // page's one door until a real Atlas charge is read against an
@@ -1147,7 +1249,36 @@ function updateCost() {
     $('cost').textContent = (d.about ? '~' : '') + cents(d.cents) + (d.door ? ' · ' + doorWord(d.door) : '');
     $('cost').dataset.cents = d.cents;
     $('cost').dataset.about = d.about ? '1' : '';
+    $('cost').dataset.door = d.door || '';
+    paintKfNote();
   }).catch(function () {});
+}
+// WHAT THE DOORS WILL DO WITH A KEYFRAME, BEFORE SHE TAPS — nothing hidden.
+// The one shape worth a line is a first (or last) frame WITH other references
+// attached: Atlas Cloud's keyframes live on a model id that has no reference
+// lists at all, and OpenRouter's own guide says `frame_images` beats
+// `input_references` and the references are dropped. So that job can only ride
+// APIFRAME, and if APIFRAME cannot take it the server refuses rather than
+// half-sending — either way she reads it here first.
+// A keyframe on its OWN needs no line: every door takes it and the price line
+// beside the star already names which one this tap goes to.
+function paintKfNote() {
+  var el = $('kfnote');
+  var plain = slotRefs();
+  var has = Boolean(firstUrl || lastUrl);
+  var door = $('cost').dataset.door || '';
+  // no line at all until the server has said which door — a wrong line is
+  // worse than a beat with none
+  if (!has || !plain.length || !door) { el.hidden = true; el.textContent = ''; el.classList.remove('bad'); return; }
+  var word = firstUrl && lastUrl ? 'A first and a last frame' : (firstUrl ? 'A first frame' : 'A last frame');
+  if (door === 'apiframe') {
+    el.textContent = word + ' and references ride one job on APIFRAME only — this tap goes there.';
+    el.classList.remove('bad');
+  } else {
+    el.textContent = word + ' and references cannot ride one job on Atlas Cloud or OpenRouter — take the references off, or take the frame off.';
+    el.classList.add('bad');
+  }
+  el.hidden = false;
 }
 function paintBal() {
   // ATLAS HAS NO BALANCE TO READ (every billing endpoint answered 404,
@@ -1164,9 +1295,22 @@ function paintBal() {
 }
 
 // ── References ────────────────────────────────────────────────────────────
+// A KEYFRAME TAKES NO SLOT, and the pictures after it count as if it were not
+// there — the same arithmetic footage.js's own `slotsOf` runs, so the name
+// under a thumb is the name the door will really see. A card's ref carries
+// its `role` on the record; the strip reads it off the two urls.
 function slotsOf(list) {
   var n = { image: 0, video: 0, audio: 0 };
-  return list.map(function (r) { n[r.kind] += 1; return '[' + (r.kind === 'image' ? 'Image' : r.kind === 'video' ? 'Video' : 'Audio') + n[r.kind] + ']'; });
+  return list.map(function (r) {
+    // THE ROLE IS READ OFF THE ITEM, NEVER OFF THE DRAFT'S MARKS. A CARD's
+    // refs carry their own `role` from the record, and a picture on an old
+    // card can be the very one she has marked in the box right now — reading
+    // the live marks here would relabel a finished clip's reference.
+    var role = r.role;
+    if (role === 'first' || role === 'last') return '';
+    n[r.kind] += 1;
+    return '[' + (r.kind === 'image' ? 'Image' : r.kind === 'video' ? 'Video' : 'Audio') + n[r.kind] + ']';
+  });
 }
 // the doors attach images, then videos, then audio — so the strip is shown
 // in that order, whatever order she added them in
@@ -1181,18 +1325,36 @@ function thumbHtml(r, cls) {
 }
 function paintRefs() {
   var el = $('refs');
+  pruneMarks();
   var list = orderedRefs(); refs = list;
-  var slots = slotsOf(list);
-  var sig = list.map(function (r) { return r.url; }).join('|');
+  var marked = list.map(function (r) { return { url: r.url, kind: r.kind, poster: r.poster, name: r.name, role: roleOfUrl(r.url) }; });
+  var slots = slotsOf(marked);
+  // THE MARKS ARE IN THE SIGNATURE — marking a picture renames the one under
+  // it and renumbers the rest, and a signature of urls alone would leave the
+  // strip showing the names it had before the tap.
+  var sig = list.map(function (r) { return r.url; }).join('|') + ' :: ' + firstUrl + ' :: ' + lastUrl;
   if (el.__sig === sig) return;
   el.__sig = sig;
   el.innerHTML = '';
   list.forEach(function (r, i) {
+    var role = marked[i].role;
     var d = document.createElement('div'); d.className = 'ref';
     d.innerHTML = '<div class="im">' + thumbHtml(r) + '</div>' +
-      '<button type="button" class="slot" title="Put this name in the prompt">' + esc(slots[i]) + '</button>' +
+      (role
+        ? '<span class="slot kfslot">' + esc(roleWord(role)) + '</span>'
+        : '<button type="button" class="slot" title="Put this name in the prompt">' + esc(slots[i]) + '</button>') +
+      // only a PICTURE can be a keyframe — a video or an audio reference gets
+      // no mark at all rather than one that refuses
+      (r.kind === 'image'
+        ? '<button type="button" class="kf' + (role ? ' on' : '') + '" aria-pressed="' + (role ? 'true' : 'false')
+          + '" aria-label="' + (role ? 'This is the ' + roleWord(role) : 'Mark this as the first frame') + '" title="'
+          + (role ? roleWord(role) : 'First frame') + '">' + ICONS.flag + '</button>'
+        : '') +
       '<button type="button" class="x" aria-label="Take this reference off">✕</button>';
-    d.querySelector('.slot').addEventListener('click', function () { insertAtCaret(slots[i]); });
+    var sl = d.querySelector('button.slot');
+    if (sl) sl.addEventListener('click', function () { insertAtCaret(slots[i]); });
+    var kf = d.querySelector('.kf');
+    if (kf) kf.addEventListener('click', function () { markRef(i); });
     // BY POSITION, NEVER BY IDENTITY. The strip's signature is the urls, so
     // putting a clip back whose references are the SAME urls is a no-op paint
     // — and `copyBack` maps them into NEW objects, so the buttons still on
@@ -1219,25 +1381,73 @@ function paintRefs() {
 // across the blocks, so a slot that moved has moved for all of them, and a
 // second block left naming `[Image3]` would draw the wrong picture as surely
 // as the first would have.
-function dropRef(i) {
+// THE ONE RENUMBERING, BOTH DIRECTIONS. A slot is a POSITION in the list of
+// references that really ride the job, so anything that changes that list
+// changes the names: taking a reference off (the ✕), marking one as a
+// keyframe (it leaves the list), and unmarking one (it comes back). All three
+// are the same arithmetic, so they go through the same `cast-line.js`
+// primitives — `slotMap` for the names, `rewriteSlots` for the ONE pass over
+// her words, which is what stops a rename landing on a token another rename
+// is about to read.
+//
+// HER WORDS ARE NOT REWRITTEN, only the names, and EVERY BLOCK is rewritten:
+// the strip is shared across the blocks, so a name that moved has moved for
+// all of them.
+function reslotBlocks(was, now) {
   var CL = window.__castLine;
-  if (!CL || !CL.dropPlan) { refs = refs.filter(function (x, k) { return k !== i; }); saveDraft(); paintControls(); return; }
-  var was = refs, plan = null, changed = 0, renamed = 0;
+  if (!CL || !CL.slotMap || !CL.rewriteSlots) return { changed: 0, renamed: 0, gone: '' };
+  var a = CL.slotMap(was), b = CL.slotMap(now);
+  var map = {}, renamed = 0;
+  now.forEach(function (r) {
+    var o = a.slots[r.url], n = b.slots[r.url];
+    if (o && n && o !== n) { map[o] = n; renamed += 1; }
+  });
+  var gone = '';
+  was.forEach(function (r) { if (!b.slots[r.url] && a.slots[r.url]) gone = a.slots[r.url]; });
+  var changed = 0;
   blocks().forEach(function (w) {
     var box = w.querySelector('.pblock');
-    var p = CL.dropPlan({ refs: was, index: i, prompt: box.value });
-    if (!p.ok) return;
-    plan = p;
-    if (p.changed) { box.value = p.prompt; changed += 1; renamed += p.renamed.length; }
+    var out = CL.rewriteSlots(box.value, gone, map);
+    if (out !== box.value) { box.value = out; changed += 1; }
   });
-  if (!plan) return;
-  refs = plan.refs;
-  if (changed) {
-    if (window.__fitBigPrompt) window.__fitBigPrompt();
-    toast(renamed
-      ? plan.slot + ' came out of the box · ' + renamed + (renamed === 1 ? ' name' : ' names') + ' renumbered'
-      : plan.slot + ' came out of the box');
+  if (changed && window.__fitBigPrompt) window.__fitBigPrompt();
+  return { changed: changed, renamed: renamed, gone: gone };
+}
+function dropRef(i) {
+  if (!refs[i]) return;
+  var was = slotRefs();
+  refs = refs.filter(function (x, k) { return k !== i; });
+  pruneMarks();
+  var r = reslotBlocks(was, slotRefs());
+  if (r.changed && r.gone) {
+    toast(r.renamed
+      ? r.gone + ' came out of the box · ' + r.renamed + (r.renamed === 1 ? ' name' : ' names') + ' renumbered'
+      : r.gone + ' came out of the box');
   }
+  saveDraft(); paintControls();
+}
+// THE FLAG ON A THUMB (2026-09-11, the first-frame pass). One small button,
+// and a press CYCLES: none → first frame → last frame → none. A cycle is
+// right here for the tick-list's reason — the mark has nothing to AIM at, so
+// there is no stop a blind step could surprise her past; it is not the
+// three-way TRACK the house rule forbids cycling on.
+//
+// ONE PICTURE PER END, AND NEVER BOTH ENDS ON ONE PICTURE: marking a second
+// picture as the first frame simply frees the one that had it.
+function markRef(i) {
+  var r = refs[i];
+  if (!r || r.kind !== 'image') return;
+  var was = slotRefs();
+  var next = roleOfUrl(r.url) === '' ? 'first' : (roleOfUrl(r.url) === 'first' ? 'last' : '');
+  if (firstUrl === r.url) firstUrl = '';
+  if (lastUrl === r.url) lastUrl = '';
+  if (next === 'first') firstUrl = r.url;
+  if (next === 'last') lastUrl = r.url;
+  var out = reslotBlocks(was, slotRefs());
+  var said = next ? 'That is the ' + roleWord(next) : 'Back to an ordinary reference';
+  if (out.gone) said += ' · ' + out.gone + ' came out of the box';
+  else if (out.renamed) said += ' · ' + out.renamed + (out.renamed === 1 ? ' name' : ' names') + ' renumbered';
+  toast(said);
   saveDraft(); paintControls();
 }
 function insertAtCaret(text) {
@@ -1694,6 +1904,12 @@ $('go').addEventListener('click', function () {
   if (!prompt.trim()) return toast('Say what the clip is first');
   var body = { prompt: prompt, model: S.model, seconds: S.seconds, resolution: S.res, ratio: S.ratio,
     sound: true, door: doorNow(), refs: orderedRefs(), project: S.project };
+  // THE TWO KEYFRAMES RIDE AS URLS — the server marks the matching reference
+  // with its `role`, leaves it out of the reference lists and maps it onto
+  // whatever the door calls it (`image` on Atlas, `frame_images` on
+  // OpenRouter, `start_image` on APIFRAME).
+  if (firstUrl) body.firstFrameUrl = firstUrl;
+  if (lastUrl) body.lastFrameUrl = lastUrl;
   // blank means nothing is sent, and the door mints one — never a remembered seed
   if (seedVal()) body.seed = Number(seedVal());
   btn.disabled = true;
@@ -1719,7 +1935,12 @@ $('go').addEventListener('click', function () {
     }
     var m = modelOf(S.model);
     jobCard({ id: d.jobId, prompt: prompt, model: S.model, modelLabel: m ? m.label : S.model, door: d.door, seconds: S.seconds,
-      resolution: S.res, ratio: S.ratio, sound: true, refs: body.refs, status: 'drawing', estimate: d.estimate,
+      resolution: S.res, ratio: S.ratio, sound: true,
+      // the optimistic card carries the ROLES, or the clip she just sent
+      // would show its first frame as an ordinary reference until the first
+      // poll lands the server's own record
+      refs: body.refs.map(function (r) { var role = roleOfUrl(r.url); return role ? { url: r.url, kind: r.kind, poster: r.poster, name: r.name, role: role } : r; }),
+      status: 'drawing', estimate: d.estimate,
       // the door answers with the seed it really used — hers, or the one it
       // minted — so the card carries it without waiting for the first poll
       seed: d.seed != null ? d.seed : null, project: S.project,
@@ -2227,7 +2448,14 @@ function jobCard(j) {
   // because the frame is the end of what the DOOR drew and not the end of the
   // part she kept: the one thing worth knowing before chaining a shot off it.
   var cells = '';
-  slotsOf(j.refs || []).forEach(function (slot, i) { var r = j.refs[i]; cells += '<div class="ur"><div>' + thumbHtml(r) + '</div>' + esc(slot.replace(/[\[\]]/g, '')) + '</div>'; });
+  // A KEYFRAME SAYS WHICH END IT IS instead of a slot name — it took no slot,
+  // and a blank label under a picture would be the card saying nothing about
+  // the one reference that decided how the clip opens.
+  slotsOf(j.refs || []).forEach(function (slot, i) {
+    var r = j.refs[i];
+    var label = r && r.role ? roleWord(r.role) : slot.replace(/[\[\]]/g, '');
+    cells += '<div class="ur"><div>' + thumbHtml(r) + '</div>' + esc(label) + '</div>';
+  });
   if (j.lastFrame) {
     cells += '<button type="button" class="ur lfcell lfopen" aria-label="Open the last frame">'
       + '<div><img src="' + esc(j.lastFrame) + '" alt=""></div>'
@@ -2360,6 +2588,15 @@ function castVote(id, kind) {
 function copyBack(j) {
   activeBox().value = j.prompt || '';
   refs = (j.refs || []).map(function (r) { return { url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' }; });
+  // ONLY WHAT THE RECORD KNOWS, the marks included: a clip drawn off a first
+  // frame comes back with that picture still marked, and one drawn with no
+  // keyframe CLEARS the marks rather than leaving the last clip's on the
+  // picture she just put back.
+  firstUrl = ''; lastUrl = '';
+  (j.refs || []).forEach(function (r) {
+    if (r.role === 'first') firstUrl = r.url;
+    if (r.role === 'last') lastUrl = r.url;
+  });
   // ONLY WHAT THE RECORD KNOWS, and only what this page can send: a card
   // drawn on a model the page offers comes back on it, and one drawn on a
   // model it does not (1.5 Pro, an older APIFRAME job) comes back as its
@@ -2388,7 +2625,8 @@ function copyBack(j) {
 // `footage_handoff`, and this page CONSUMES it — reads it, applies it, removes
 // it. Shape:
 //   { prompt, refs:[{url, kind:'image'|'video'|'audio', poster?, name?}],
-//     model?, seconds?, res?, ratio?, seed?, from?, title?, at: Date.now() }
+//     model?, seconds?, res?, ratio?, seed?, from?, title?, at: Date.now(),
+//     firstFrame?, lastFrame? }   — each a url that is also in `refs`
 // NOTHING IS EVER SENT. The star is still her tap — the hand-off only fills
 // the box, which is the whole of what she asked for ("so I can edit it or
 // press go myself").
@@ -2458,6 +2696,14 @@ function takeHandoff() {
   if (h.seconds != null) S.seconds = clampSec(h.seconds);
   if (h.res) S.res = String(h.res);
   if (h.ratio) S.ratio = String(h.ratio);
+  // A BELT SCENE MAY NAME ITS KEYFRAMES TOO — a url that is not among the
+  // references it handed over is ignored rather than attached invisibly, so
+  // a belt page cannot mark a picture that is nowhere on screen.
+  firstUrl = ''; lastUrl = '';
+  var inStrip = {};
+  refs.forEach(function (r) { inStrip[r.url] = 1; });
+  if (typeof h.firstFrame === 'string' && inStrip[h.firstFrame]) firstUrl = h.firstFrame;
+  if (typeof h.lastFrame === 'string' && inStrip[h.lastFrame] && h.lastFrame !== firstUrl) lastUrl = h.lastFrame;
   if (h.seed != null) setSeed(h.seed);
   openFold('refs'); openFold('ctl');
   saveCtl(); saveDraft(); paintControls(true); paintRefs();
@@ -2649,11 +2895,37 @@ function openShot(url) {
   pl.querySelector('.pstage').appendChild(im);
   shotUrl = url;
   $('psave').hidden = false;
+  // CHAINING OFF THE FRAME SHE IS LOOKING AT — the two doors onto the next
+  // clip, beside `save`, because this is the screen the frame is big on and a
+  // second button inside a 3-across tile is far under any tap target.
+  $('pfirst').hidden = false;
+  $('pref').hidden = false;
   $('trimbar').hidden = true;
   pl.hidden = false;
 }
 $('psave').addEventListener('pointerdown', function () { if (shotUrl) primeSave(shotUrl); });
 $('psave').addEventListener('click', function () { if (shotUrl) saveMedia(shotUrl); });
+// USE THIS FRAME — it lands in the draft as a picture reference, marked as
+// the frame the next clip starts on (or unmarked, which is the plain
+// "reference" button beside it). NO save-and-re-attach: the frame is already
+// a public url on our own Storage, so nothing is uploaded and nothing is
+// downloaded — it is one entry in the strip.
+function useShot(asFirst) {
+  var url = shotUrl;
+  if (!url) return;
+  var was = slotRefs();
+  if (!refs.some(function (r) { return r.url === url; })) refs.push({ url: url, kind: 'image', poster: '', name: 'last frame' });
+  if (asFirst) { firstUrl = url; if (lastUrl === url) lastUrl = ''; }
+  else if (roleOfUrl(url)) { if (firstUrl === url) firstUrl = ''; if (lastUrl === url) lastUrl = ''; }
+  reslotBlocks(was, slotRefs());
+  openFold('refs');
+  saveDraft(); paintControls(true);
+  closePlayer();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  toast(asFirst ? 'That frame is the first frame of the next clip' : 'That frame is a reference now');
+}
+$('pfirst').addEventListener('click', function () { useShot(true); });
+$('pref').addEventListener('click', function () { useShot(false); });
 function openPlayer(url, j) {
   var pl = $('player');
   if (window.__scrollStop) window.__scrollStop();
@@ -2678,7 +2950,7 @@ function closePlayer() {
   if (fnote) { try { fnote.destroy(); } catch (e) {} fnote = null; }
   pl.querySelectorAll('video').forEach(function (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (e) {} v.remove(); });
   pl.querySelectorAll('img.pimg').forEach(function (im) { im.remove(); });
-  shotUrl = ''; $('psave').hidden = true;
+  shotUrl = ''; $('psave').hidden = true; $('pfirst').hidden = true; $('pref').hidden = true;
   pl.hidden = true;
   TR = null;
   $('trimbar').hidden = true;

@@ -369,24 +369,62 @@ const REFUSED_WHY = { openrouter: 'a person in it', atlascloud: 'a famous face',
 // comes back before anything draws.
 // `avoid` takes doors off the table (a chat re-sending by hand after a
 // refusal); nothing in this module passes it any more.
-function doorFor({ model, door, hasVideo, resolution, ratio, seconds, avoid }, cfg) {
+// WHICH DOORS CAN TAKE A KEYFRAME JOB AT ALL (2026-09-11, the first-frame
+// pass). This is a SHAPE question, not a price one, and it has to be asked
+// before the ranking or auto would send a job to a door that must refuse it:
+//   · APIFRAME wires `start_image` / `end_image` BESIDE the reference lists,
+//     so it is the one door that takes both. (Whether ByteDance honours both
+//     together is unmeasured — it is sent exactly as it always was.)
+//   · Atlas Cloud's keyframes live on a DIFFERENT model id
+//     (`…/image-to-video`), which has no reference lists in its schema, and
+//     its `image` is required — so it takes a first frame alone, never a
+//     first frame beside references, and never a last frame on its own.
+//   · OpenRouter takes `frame_images` alone: with `input_references` beside
+//     them its own guide says frame_images WINS and the references are
+//     dropped, so that job is refused at the door rather than half-sent.
+// A job with neither keyframe is every door's, exactly as before.
+function doorTakes(door, { hasFirstFrame, hasLastFrame, hasRefs }) {
+  if (!hasFirstFrame && !hasLastFrame) return true;
+  if (door === 'apiframe') return true;
+  if (hasRefs) return false;
+  if (door === 'atlascloud') return Boolean(hasFirstFrame);
+  return true;
+}
+// The line she reads when a keyframe leaves no door open — plain, and it
+// names what to change rather than what is wrong.
+function shapeRefusal({ hasFirstFrame, hasLastFrame, hasRefs }) {
+  if (hasRefs && (hasFirstFrame || hasLastFrame)) {
+    return 'A first frame and references cannot ride one job — only APIFRAME takes both, and it is not open for that. Take the references off, or take the first frame off.';
+  }
+  if (hasLastFrame && !hasFirstFrame) return 'A last frame needs a first frame beside it on the doors that are open — mark the frame the clip starts on.';
+  return 'no door is configured for that';
+}
+
+function doorFor({ model, door, hasVideo, resolution, ratio, seconds, avoid, hasFirstFrame, hasLastFrame, hasRefs }, cfg) {
   const m = typeof model === 'string' ? modelOf(model) : model;
   if (!m) return { error: 'unknown model' };
   cfg = cfg || { openrouter: true, apiframe: true, atlascloud: true };
   const want = String(door || 'auto').toLowerCase();
   const res = m.res.includes(resolution) ? resolution : (resolution || '480p');
-  const orOk = Boolean(m.or) && cfg.openrouter && m.res.includes(res);
-  const afOk = Boolean(m.af) && cfg.apiframe && m.afCents && m.afCents[res] != null;
-  const atOk = Boolean(m.atlas) && cfg.atlascloud && m.atlasCents && m.atlasCents[res] != null;
-  if (want === 'openrouter') return orOk ? { door: 'openrouter', fallback: null, chain: [] } : { error: m.or ? 'OpenRouter is not configured for that' : (m.atlas ? `${m.label} is only on Atlas Cloud` : `${m.label} is only on APIFRAME`) };
-  if (want === 'apiframe') return afOk ? { door: 'apiframe', fallback: null, chain: [] } : { error: 'APIFRAME does not offer that' };
+  const shape = { hasFirstFrame: Boolean(hasFirstFrame), hasLastFrame: Boolean(hasLastFrame), hasRefs: Boolean(hasRefs) };
+  const orOk = Boolean(m.or) && cfg.openrouter && m.res.includes(res) && doorTakes('openrouter', shape);
+  const afOk = Boolean(m.af) && cfg.apiframe && m.afCents && m.afCents[res] != null && doorTakes('apiframe', shape);
+  const atOk = Boolean(m.atlas) && cfg.atlascloud && m.atlasCents && m.atlasCents[res] != null && doorTakes('atlascloud', shape);
+  // A PINNED DOOR THAT CANNOT TAKE THE SHAPE SAYS SO IN THOSE TERMS — "it
+  // does not offer that resolution" would be a wrong reason she then chases.
+  const pinShape = (d) => (doorTakes(d, shape) ? null : { error: shapeRefusal(shape) });
+  if (want === 'openrouter') return pinShape('openrouter') || (orOk ? { door: 'openrouter', fallback: null, chain: [] } : { error: m.or ? 'OpenRouter is not configured for that' : (m.atlas ? `${m.label} is only on Atlas Cloud` : `${m.label} is only on APIFRAME`) });
+  if (want === 'apiframe') return pinShape('apiframe') || (afOk ? { door: 'apiframe', fallback: null, chain: [] } : { error: 'APIFRAME does not offer that' });
   // A PINNED DOOR NEVER FALLS BACK — a refusal on a door she named is a
   // measurement she reads, not a reason to spend on another door behind her
   // back. Only AUTO ranks and walks.
-  if (want === 'atlascloud') return atOk ? { door: 'atlascloud', fallback: null, chain: [] } : { error: m.atlas ? 'Atlas Cloud is not configured (ATLASCLOUD_API_KEY)' : `${m.label} is not on Atlas Cloud` };
+  if (want === 'atlascloud') return pinShape('atlascloud') || (atOk ? { door: 'atlascloud', fallback: null, chain: [] } : { error: m.atlas ? 'Atlas Cloud is not configured (ATLASCLOUD_API_KEY)' : `${m.label} is not on Atlas Cloud` });
   const skip = new Set(Array.isArray(avoid) ? avoid.map(String) : []);
   const open = [orOk && 'openrouter', atOk && 'atlascloud', afOk && 'apiframe'].filter(Boolean).filter((d) => !skip.has(d));
-  if (!open.length) return { error: skip.size ? 'every door has refused it' : 'no door is configured for that' };
+  if (!open.length) {
+    if (skip.size) return { error: 'every door has refused it' };
+    return { error: (shape.hasFirstFrame || shape.hasLastFrame) ? shapeRefusal(shape) : 'no door is configured for that' };
+  }
   // Ranked by what the tap really costs on each, cheapest first. A door whose
   // price cannot be worked out sorts LAST rather than winning by default.
   const priced = open.map((d) => {
@@ -418,12 +456,17 @@ function doorFor({ model, door, hasVideo, resolution, ratio, seconds, avoid }, c
 // `creditCost` — 60–450 on the refused 2.5 jobs — and the team total sits
 // ~1,100 credits UNDER the sum of them, so some failures are refunded; which
 // ones is unmeasured.)
-function estimate({ model, resolution, ratio, seconds, hasVideo, door, discount }, cfg) {
+function estimate({ model, resolution, ratio, seconds, hasVideo, door, discount, hasFirstFrame, hasLastFrame, hasRefs }, cfg) {
   const m = typeof model === 'string' ? modelOf(model) : model;
   if (!m) return { error: 'unknown model' };
   const res = m.res.includes(resolution) ? resolution : m.res[0];
   const s = Number(seconds) || minSeconds(m);
-  const d = doorFor({ model: m, door, hasVideo, resolution: res, ratio, seconds: s }, cfg);
+  // THE SHAPE RIDES INTO THE RANKING — a keyframe narrows which doors can
+  // take the job at all, and the price she reads has to be the price on the
+  // door the tap will really go to. A keyframe costs nothing extra on any
+  // door (Atlas prices image-to-video the same per second as
+  // reference-to-video), so only the DOOR moves, never the rate.
+  const d = doorFor({ model: m, door, hasVideo, resolution: res, ratio, seconds: s, hasFirstFrame, hasLastFrame, hasRefs }, cfg);
   if (d.error) return d;
   const p = priceOn(m, d.door, { res, ratio, seconds: s, hasVideo, discount });
   return p.error ? p : { ...p, door: d.door };
@@ -493,10 +536,18 @@ function priceOn(m, door, { res: resIn, ratio, seconds, hasVideo, discount }) {
 
 // The slot names her prompt uses, in the order both doors attach them:
 // images, then videos, then audio — [Image1] … [Video1] … [Audio1].
+//
+// A KEYFRAME IS NOT A SLOT (2026-09-11). A picture she marked as the first or
+// last frame does not ride the reference lists at all — it is the frame the
+// clip starts or ends on — so it takes NO slot and the pictures after it
+// count as if it were not there. Its `role` is what the card draws in place
+// of a slot name; the page renumbers her prompt the same way the ✕ does.
 function slotsOf(refs) {
   const n = { image: 0, video: 0, audio: 0 };
   return (refs || []).map((r) => {
     const k = kindOf(r);
+    const role = r && (r.role === 'first' || r.role === 'last') ? r.role : '';
+    if (role) return { ...r, kind: k, role, slot: '' };
     n[k] += 1;
     return { ...r, kind: k, slot: `[${k === 'image' ? 'Image' : k === 'video' ? 'Video' : 'Audio'}${n[k]}]` };
   });
@@ -522,16 +573,29 @@ function buildJob(b) {
   const ratio = RATIOS.includes(String(b.ratio)) ? String(b.ratio) : '1:1';
   const seconds = b.seconds == null ? minSeconds(m) : Number(b.seconds);
   if (!secondsOk(m, seconds)) return { error: `${m.label} takes ${m.id === '1.5' ? m.secs.join(', ') : m.secs[0] + '–' + m.secs[1]} seconds` };
-  const refs = slotsOf((Array.isArray(b.refs) ? b.refs : []).filter((r) => r && /^https?:\/\//.test(String(r.url || ''))))
-    .map((r) => ({ url: String(r.url), kind: r.kind, slot: r.slot, poster: r.poster ? String(r.poster) : '', name: r.name ? String(r.name).slice(0, 80) : '' }));
+  // THE TWO KEYFRAMES — one url each, and a url that is not in the strip is
+  // still honoured (a chat sending a frame straight through). A picture
+  // marked as a keyframe carries a `role` and leaves the reference lists: it
+  // is the frame the clip starts or ends on, not something the prompt names.
+  const kfFirst = b.firstFrameUrl && /^https?:\/\//.test(String(b.firstFrameUrl)) ? String(b.firstFrameUrl) : '';
+  const kfLast = b.lastFrameUrl && /^https?:\/\//.test(String(b.lastFrameUrl)) ? String(b.lastFrameUrl) : '';
+  if (kfFirst && kfLast && kfFirst === kfLast) return { error: 'one picture cannot be both the first frame and the last' };
+  const roleOf = (u) => (u === kfFirst ? 'first' : u === kfLast ? 'last' : '');
+  const refs = slotsOf((Array.isArray(b.refs) ? b.refs : []).filter((r) => r && /^https?:\/\//.test(String(r.url || '')))
+    .map((r) => ({ ...r, role: roleOf(String(r.url)) })))
+    .map((r) => ({ url: String(r.url), kind: r.kind, slot: r.slot, poster: r.poster ? String(r.poster) : '', name: r.name ? String(r.name).slice(0, 80) : '',
+      ...(r.role ? { role: r.role } : {}) }));
   const audio = b.sound == null ? (m.audioDefault !== false) : Boolean(b.sound);
+  const plain = refs.filter((r) => !r.role);
   const body = {
     prompt, duration: seconds, resolution: res, aspectRatio: ratio, generateAudio: audio,
-    referenceImageUrls: refs.filter((r) => r.kind === 'image').map((r) => r.url),
-    referenceVideoUrls: refs.filter((r) => r.kind === 'video').map((r) => r.url),
-    referenceAudioUrls: refs.filter((r) => r.kind === 'audio').map((r) => r.url),
+    referenceImageUrls: plain.filter((r) => r.kind === 'image').map((r) => r.url),
+    referenceVideoUrls: plain.filter((r) => r.kind === 'video').map((r) => r.url),
+    referenceAudioUrls: plain.filter((r) => r.kind === 'audio').map((r) => r.url),
     chat: CHAT, title: titleOf(prompt), session: b.session ? String(b.session).slice(0, 80) : undefined,
   };
+  if (kfFirst) body.firstFrameUrl = kfFirst;
+  if (kfLast) body.lastFrameUrl = kfLast;
   // HER OWN SEED, only when she typed one. A blank box sends nothing and the
   // door MINTS one per clip (video-seed.js), which is what the card hands back
   // — so the box being empty means "a fresh one", never "the last one again".
@@ -541,7 +605,7 @@ function buildJob(b) {
   // the project rides the body so every door files it on the log doc
   const project = projectSlug(b.project);
   if (project) body.project = project;
-  return { body, refs, m, res, ratio, seconds, audio };
+  return { body, refs, m, res, ratio, seconds, audio, first: kfFirst, last: kfLast };
 }
 function titleOf(prompt) {
   const t = String(prompt || '').replace(/\s+/g, ' ').trim();
@@ -638,7 +702,14 @@ function cardOf(id, d) {
     // (video-seed.js), so the log's own `params` is the only record there is;
     // a clip drawn before the seed was minted at all has none, honestly.
     seed: p.seed != null && Number.isFinite(Number(p.seed)) ? Number(p.seed) : null,
+    // A clip this page started carries `refs` (its roles included); one filed
+    // by a chat or an older job is rebuilt from the log's own reference
+    // record — and the two KEYFRAMES ride it as `startImage` / `endImage`,
+    // so a chained clip's card says which picture it started on rather than
+    // showing nothing where the frame was.
     refs: Array.isArray(d.refs) ? d.refs : slotsOf([
+      ...((d.references && d.references.startImage) ? [{ url: d.references.startImage, kind: 'image', role: 'first' }] : []),
+      ...((d.references && d.references.endImage) ? [{ url: d.references.endImage, kind: 'image', role: 'last' }] : []),
       ...((d.references && d.references.images) || []).map((url) => ({ url, kind: 'image' })),
       ...((d.references && d.references.videos) || []).map((url) => ({ url, kind: 'video' })),
       ...((d.references && d.references.audio) || []).map((url) => ({ url, kind: 'audio' })),
@@ -1110,10 +1181,13 @@ async function startJob(b) {
   await atlasPrices().catch(() => {});
   const built = buildJob(b);
   if (built.error) { const e = new Error(built.error); e.status = 400; throw e; }
-  const { body, refs, m, res, ratio, seconds } = built;
-  const hasVideo = refs.some((r) => r.kind === 'video');
-  const d = doorFor({ model: m, door: b.door, hasVideo, resolution: res, ratio, seconds }, cfg());
-  if (d.error) { const e = new Error(d.error); e.status = 400; throw e; }
+  const { body, refs, m, res, ratio, seconds, first, last } = built;
+  // A KEYFRAME NEVER COUNTS AS A REFERENCE VIDEO — it is a picture, and
+  // `hasVideo` is what picks APIFRAME's dearer with-a-video rate.
+  const hasVideo = refs.some((r) => r.kind === 'video' && !r.role);
+  const shape = { hasFirstFrame: Boolean(first), hasLastFrame: Boolean(last), hasRefs: refs.some((r) => !r.role) };
+  const d = doorFor({ model: m, door: b.door, hasVideo, resolution: res, ratio, seconds, ...shape }, cfg());
+  if (d.error) { const e = new Error(d.error); e.status = 400; e.refusal = e.refusal || ((shape.hasFirstFrame || shape.hasLastFrame) ? 'shape' : undefined); e.why = d.error; throw e; }
   // A reference under ByteDance's pixel floor is refused before anything
   // draws, so swap in an upscaled copy BEFORE the door sees the body — and
   // keep `refs` (the card) pointing at her originals.
@@ -1123,7 +1197,7 @@ async function startJob(b) {
   body.referenceVideoUrls = floored.urls;
   const over = refVideoTotalRefusal(floored.seconds, d.door);
   if (over) { const e = new Error(over); e.status = 400; e.refusal = 'shape'; e.why = over; throw e; }
-  const est = estimate({ model: m, resolution: res, ratio, seconds, hasVideo, door: d.door }, cfg());
+  const est = estimate({ model: m, resolution: res, ratio, seconds, hasVideo, door: d.door, ...shape }, cfg());
   const extra = { door: d.door, refs, estimate: est.cents != null ? est.cents : null, footage: true, aspect: ratio };
   if (floored.notes.length) extra.note = floored.notes.join(' ');
   if (body.project) extra.project = body.project;
@@ -1179,16 +1253,20 @@ router.get('/status', async (req, res) => {
   res.json({ ok: true, chat: CHAT, doors: cfg(), balances: bal, models: publicModels(), ratios: RATIOS, sizes: SIZES, fee: OR_FEE, handoffProjects: HANDOFF_PROJECTS });
 });
 
-// GET /estimate?model=&res=&ratio=&seconds=&video=1&door= — the price of the
-// tap as the controls stand, with `exact` or `about` saying whether it is
-// pinned. Free; the page asks on every change so it holds no copy of a price,
-// and the live discount is refreshed (cached ten minutes) before it answers.
+// GET /estimate?model=&res=&ratio=&seconds=&video=1&door=&first=1&last=1&refs=1
+// — the price of the tap as the controls stand, with `exact` or `about`
+// saying whether it is pinned. Free; the page asks on every change so it
+// holds no copy of a price, and the live discount is refreshed (cached ten
+// minutes) before it answers. `first` / `last` / `refs` are the job's SHAPE:
+// a keyframe narrows which doors can take it at all, so the door named here
+// is the door the tap will really go to.
 router.get('/estimate', async (req, res) => {
   await discounts().catch(() => {});
   await atlasPrices().catch(() => {});
   const q = req.query || {};
   const e = estimate({ model: q.model, resolution: q.res, ratio: q.ratio, seconds: q.seconds,
-    hasVideo: q.video === '1', door: q.door }, cfg());
+    hasVideo: q.video === '1', door: q.door,
+    hasFirstFrame: q.first === '1', hasLastFrame: q.last === '1', hasRefs: q.refs === '1' }, cfg());
   res.set('Cache-Control', 'no-store');
   if (e.error) return res.status(400).json({ error: e.error });
   res.json({ ok: true, ...e });
@@ -1330,7 +1408,7 @@ router.post('/jobs/:id/trim', async (req, res) => {
 module.exports = {
   router, init,
   MODELS, RATIOS, SIZES, CHAT, OR_FEE,
-  modelOf, doorFor, estimate, priceOn, DOOR_LOOSENESS, DOOR_REFUSAL_FREE, DOOR_WORDS, pollOne, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, resFactor, secondsOk, framesOf, projectSlug, HANDOFF_PROJECTS,
+  modelOf, doorFor, doorTakes, shapeRefusal, estimate, priceOn, DOOR_LOOSENESS, DOOR_REFUSAL_FREE, DOOR_WORDS, pollOne, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, resFactor, secondsOk, framesOf, projectSlug, HANDOFF_PROJECTS,
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf, atlasCacheBust,
   startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf,
   pageJobs, statusOf, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,

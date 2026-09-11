@@ -369,6 +369,11 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
   - **THE AUDIO PATH DOES NOT CHANGE WITH RESOLUTION OR MODEL** — 480p Mini,
     720p Mini and 2.5 all come back 32kHz stereo AAC at ~128 kb/s. So 720p
     buys picture only; it is very unlikely to clean up dialogue.
+  - **SUPERSEDED 2026-09-11 — THE KEYFRAMES ARE WIRED ON ALL THREE DOORS.**
+    The paragraph below is the state of it before that day and is kept as the
+    record; the line that mattered — "APIFRAME's route already wires them, the
+    OpenRouter route deliberately does not" — is no longer true. See *THE
+    FIRST FRAME, ON ALL THREE DOORS* immediately under this bullet.
   - **FEATURES ON EVERY SEEDANCE 2.x THAT NOTHING HERE USES YET** (off the
     served model cards, `GET /api/openrouter/models`): **`first_frame` /
     `last_frame` keyframes** — APIFRAME's route already wires them
@@ -2732,3 +2737,91 @@ never letterbox it.** Black bars would shrink the picture inside the same
 center-crops (~4:5 and the grid's 3:4) — that is how every reel behaves, and
 opening the reel shows the full frame. Keep anything that must survive the
 preview crop near the vertical center; do not "fix" the crop with bars.
+
+### THE FIRST FRAME, ON ALL THREE DOORS (2026-09-11)
+
+The last frame of one clip, pinned as the frame the next one starts on — the
+continuity tool this draft keeps needing, and until this day it existed only
+as `start_image` on APIFRAME, which the Footage page never sent. Every door
+now takes the SAME two fields, **`firstFrameUrl` / `lastFrameUrl`**, and maps
+them onto whatever it calls them on the wire. Read off each vendor's own docs
+on the day; NOTHING here has been SENT — every check is a unit test or a dry
+build of the request body, no clip was drawn and no money spent.
+
+- **ATLAS CLOUD — a keyframe is a DIFFERENT MODEL ID.**
+  `bytedance/seedance-2.0-mini/image-to-video` beside the
+  `…/reference-to-video` this door has always used (the same pattern per
+  family: `…/seedance-2.5/image-to-video` and so on). It takes `image` (the
+  first frame, **required**) and an optional `last_image`, and takes **no
+  `reference_images` / `reference_videos` / `reference_audios` at all**. Same
+  price per second as reference-to-video, so nothing about the estimate moves
+  — only which door can take the job. `atlascloud.js` swaps the id itself
+  (`imageToVideoOf`) when a first frame rides.
+- **OPENROUTER — `frame_images`**, each entry an `input_references` entry plus
+  a `frame_type`: `{ type:'image_url', image_url:{url},
+  frame_type:'first_frame'|'last_frame' }` (its own guide's example,
+  verbatim). Its guide is explicit: *"If both fields are provided,
+  `frame_images` takes precedence and the request is treated as
+  image-to-video"* — i.e. `input_references` is **dropped, with nothing in the
+  answer saying so**.
+- **APIFRAME — unchanged.** `start_image` / `end_image` beside the reference
+  lists, exactly as it always has; the shared names are read as aliases of its
+  own `imageUrl` / `endImageUrl`. It is the one door that takes a keyframe AND
+  references on one job.
+
+**THE TWO SILENT DROPS ARE REFUSED AT THE DOOR, NEVER HALF-SENT.** A job
+carrying a first frame AND references is refused on Atlas (its image-to-video
+schema has no reference lists) and on OpenRouter (its own guide says the
+references go), each with a line naming APIFRAME as the door that takes both.
+A LAST frame with no first frame is refused on Atlas alone — its `image` is
+required — and is sent as asked on the other two.
+
+**THE DOOR CHOICE ASKS THE SHAPE BEFORE IT ASKS THE PRICE.** `doorTakes` in
+`footage.js` is the rule and `doorFor` ranks only the doors that can take the
+job at all, so auto can never send a keyframe job to a door that must refuse
+it; with no door open for a shape the send is refused with **what to change**
+("take the references off, or take the first frame off") rather than sent
+half-dropped. `GET /estimate` carries `first` / `last` / `refs` so the price
+and the DOOR she reads before the tap are the ones the tap really gets.
+
+**A KEYFRAME IS NOT A SLOT.** A picture marked as the first or last frame
+does not ride the reference lists, takes no `[ImageN]`, and the pictures after
+it renumber as if it were not there — the ✕'s own rule from the other end,
+through the same `cast-line.js` primitives, so a slot means one thing on that
+page. Her prompt is renumbered, never reworded, and the toast says what moved.
+
+**THE LOG KEEPS ONE VOCABULARY.** Every door writes `start_image` /
+`end_image` into `params`, which is what `video-log.js` already reads into
+`references.startImage` / `endImage` — so a chained clip is on the
+1080p-redo reading list under the same name whatever door drew it, and the
+exact-prompt rule is satisfied with no new field.
+
+**ON THE PAGE** (`/footage`): a small flag on a picture reference's thumb
+marks it — a press cycles none → first frame → last frame → none (the
+tick-list's rule: a mark with nothing to aim at may cycle; it is not the
+three-way TRACK the house rule forbids cycling on) — and the slot line under
+the thumb says `first frame` / `last frame` in place of its name. A first
+frame WITH other references draws a line under the strip saying plainly, in
+her words, what the doors will do with it, BEFORE she taps; the line is not
+drawn at all until the server has said which door, because a wrong line is
+worse than a beat with none. A finished clip's **last-frame tile** opens the
+frame big, and the two doors onto the next clip live there beside `save` —
+**first frame** and **reference** — so chaining is two taps and no
+save-and-re-attach. A belt hand-off may carry `firstFrame` / `lastFrame` urls,
+and a url that is not among the references it handed over is ignored rather
+than attached invisibly.
+
+**WHAT IS UNMEASURED, PLAINLY:** whether ByteDance honours a `start_image`
+and a reference list together on APIFRAME (unchanged from before, and the
+reason APIFRAME is the fallback for that shape rather than a promise); which
+Seedance models accept `frame_images` on OpenRouter (its guide's example is a
+Wan model and it names no model list); whether a `last_frame` alone is
+accepted there; and Atlas's image-to-video price against a real charge — it is
+assumed equal per second to reference-to-video, off its own model list. Wan
+3.0's image-to-video sibling is unmeasured on the Atlas door, so a keyframe on
+Wan is refused rather than sent under a key nothing has read back.
+
+Tests: `node scripts/test-video-keyframes.js` (the three build functions, the
+shape rules, the log and the send — pure, nothing sent; verified failing 45 of
+57 pre-fix), plus the keyframe blocks of `node scripts/test-footage.js`,
+`node scripts/test-footage-handoff.js` and `node scripts/test-video-log.js`.
