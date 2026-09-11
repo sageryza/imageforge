@@ -469,6 +469,10 @@
   .acts .note.has{border-color:#2b2620;color:#2b2620}
   .acts .note.on{background:#2b2620;border-color:#2b2620;color:#f6f2ea}
   .emptynote{color:#9a8f7d;font-size:13px;padding:6px 2px}
+  /* the opener under the feed — an underlined word, inheriting the feed's
+     type, no box, no fill (the house truncated-text pattern) */
+  .olderbtn{display:block;border:0;background:none;padding:8px 2px;margin:0;font:inherit;font-size:13px;color:#6f675e;text-decoration:underline;cursor:pointer;text-align:left}
+  .olderbtn[disabled]{text-decoration:none;cursor:default}
   /* The player: the clip over the page, tap out to close. Page locked and the
      scroll position restored on close (the lightbox contract).
      AND IT IS THE TRIMMER (2026-09-10) — a COLUMN, so the marks sit UNDER the
@@ -672,6 +676,11 @@
 </div>
 <div id="feed"></div>
 <div id="tiles" hidden></div>
+<!-- THE WAY BACK PAST TODAY (2026-09-11, Sophie: "I can't go back farther
+     than today in footage"). Drawn only while the server says there is a
+     page under the oldest clip on screen; the house underlined word, never
+     a boxed button. It sits under BOTH views. -->
+<button type="button" class="olderbtn" id="older" hidden>&hellip; older</button>
 <div class="emptynote" id="feedempty" hidden>Nothing made here yet.</div>
 
 <div id="player" hidden><div class="pbar"><button class="pclose" type="button" aria-label="Close"></button><button class="psave" id="psave" type="button" hidden>save</button></div>
@@ -806,6 +815,8 @@ var PAGE_MODEL = PAGE_MODELS[0];
 var S = { model: PAGE_MODEL, seconds: 4, res: '480p', ratio: '3:4' };
 var refs = [];                       // [{url, kind, poster, name}]
 var jobsById = {};
+// the feed's walk back past its first page — see loadOlder
+var feedMore = false, olderAt = null, loadingOlder = false;
 var pollT = null;
 function loadCtl() {
   try {
@@ -2348,11 +2359,51 @@ function loadJobs() {
     var jobs = (d && d.jobs) || [];
     batching = true;
     try { jobs.slice().reverse().forEach(jobCard); } finally { batching = false; }
+    // THE NEWEST PAGE'S `more` ONLY SPEAKS UNTIL SHE HAS WALKED PAST IT —
+    // this read runs on every poll and always says "there is a page under
+    // the first 40", which is true and says nothing about the pages she
+    // already holds. Once she has paged, the last older read's answer is
+    // the one that knows.
+    if (olderAt === null) feedMore = !!(d && d.more);
     paintFeed();
+    paintOlder();
     paintRecent();
     schedulePoll(false);
   }).catch(function () {});
 }
+// ── THE WAY BACK PAST TODAY (2026-09-11, Sophie: "I can't go back farther
+// than today in footage") ────────────────────────────────────────────────
+// The feed was the newest 40 clips and nothing else — at ~70 Mini clips a
+// day that is today, and everything before it sat on the log with no door.
+// `… older` asks the server for the page under the OLDEST clip on screen
+// (its sentAt is the cursor, never a count — a clip landing while she reads
+// would shift a count and repeat a page). The poll's newest-40 read only
+// ever ADDS to `jobsById`, so a page she walked back to stays put under it.
+function oldestSentAt() {
+  var l = feedOrder();
+  return l.length ? String(l[l.length - 1].sentAt || '') : '';
+}
+function paintOlder() {
+  var b = $('older');
+  b.hidden = !feedMore;
+  b.disabled = loadingOlder;
+  b.textContent = loadingOlder ? '\u2026 loading older' : '\u2026 older';
+}
+function loadOlder() {
+  if (loadingOlder) return Promise.resolve();
+  var at = oldestSentAt();
+  if (!at) return Promise.resolve();
+  loadingOlder = true; paintOlder();
+  return api('/jobs?limit=40&before=' + encodeURIComponent(at)).then(function (d) {
+    var jobs = (d && d.jobs) || [];
+    olderAt = at;
+    feedMore = !!(d && d.more);
+    batching = true;
+    try { jobs.slice().reverse().forEach(jobCard); } finally { batching = false; }
+    paintFeed();
+  }).catch(function () {}).then(function () { loadingOlder = false; paintOlder(); });
+}
+$('older').addEventListener('click', function () { loadOlder(); });
 // A BAKING TRIM KEEPS THE POLL ALIVE TOO — without this the card sits on
 // "trimming…" until she leaves the page and comes back, and a trim that
 // landed in four seconds reads as one that never landed.

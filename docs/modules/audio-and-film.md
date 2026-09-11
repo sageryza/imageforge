@@ -598,7 +598,13 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     error.
   - **FOOTAGE — SHE SENDS A SEEDANCE CLIP HERSELF (2026-09-09, Sophie: "the
     next step is to build a point so I can just make things on my own time by
-    describing them or uploading references").** `footage.js` +
+    describing them or uploading references").**
+    **THE FEED PAGES BACK PAST TODAY (2026-09-11, Sophie: "I can't go back
+    farther than today in footage")** — `… older` under the feed asks
+    `GET /api/footage/jobs?limit=40&before=<sentAt of the oldest clip on
+    screen>`; the answer carries `more`. `pageJobs` in footage.js is the walk,
+    pure; the CLAUDE.md Footage bullet has the two rules.
+ `footage.js` +
     `public/footage.html` at `/footage` (the film tab's pictures stage in the
     app): a prompt box, references uploaded through the Dump (`bundle=
     Footage`, md5-deduped, each shown with its slot name — tapping `[Image1]`

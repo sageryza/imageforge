@@ -301,6 +301,16 @@ let jobs = [
     trims: [{ key: 't1', status: 'ready', start: 8.93, end: 12.06, seconds: 3.13, url: 'http://127.0.0.1:PORT/clip.mp4' }] } : {}),
 })));
 
+// THE PAGE UNDER TODAY — three clips from the day before, handed out ONLY
+// under a `before` cursor, two at a time, so the walk takes two taps and the
+// second one is the one that says there is nothing left.
+const older = [0, 1, 2].map((i) => ({
+  id: 'y' + i, prompt: 'yesterday\'s clip ' + i, model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', seconds: 4, resolution: '480p', ratio: '3:4',
+  sound: true, refs: [], status: 'done', video: 'http://127.0.0.1:PORT/clip.mp4', poster: 'http://127.0.0.1:PORT/ref.png',
+  cost: 4.4, estimate: 4.4, sentAt: '2026-09-08T1' + i + ':00:00.000Z', vote: '', hidden: false,
+}));
+const jobReads = [];
+
 const server = http.createServer((req, res) => {
   if (servePublic(req, res)) return;
   const u = new URL(req.url, 'http://x');
@@ -339,7 +349,17 @@ const server = http.createServer((req, res) => {
         .filter((x) => !x.error).sort((a, b) => a.cents - b.cents);
       return json({ ok: true, ...ranked[0] });
     }
-    if (u.pathname === '/api/footage/jobs' && req.method === 'GET') return json({ ok: true, jobs });
+    if (u.pathname === '/api/footage/jobs' && req.method === 'GET') {
+      // THE FEED PAGES BACK — the stub is the real route's shape: `before`
+      // is a sentAt cursor, the answer is the page under it, and `more`
+      // says whether anything is left under THAT. The newest read hands
+      // out `jobs` and says there is more while the old pool is untouched.
+      const before = u.searchParams.get('before');
+      jobReads.push(before || '');
+      if (!before) return json({ ok: true, jobs, more: older.length > 0 });
+      const under = older.filter((j) => j.sentAt < before).sort((a, b) => b.sentAt.localeCompare(a.sentAt));
+      return json({ ok: true, jobs: under.slice(0, 2), more: under.length > 2 });
+    }
     if (u.pathname === '/api/footage/jobs' && req.method === 'POST') {
       const b = JSON.parse(body);
       posted.push(b);
@@ -566,6 +586,21 @@ async function pillSweep(pg, where) {
   await page.waitForFunction(() => /¢/.test(document.getElementById('cost').textContent));
   await page.waitForSelector('#job-old1');
   await page.waitForTimeout(1800);                 // let the pill's settling passes run
+
+  // ── THE FEED PAGES BACK — the walk, pure (2026-09-11, Sophie: "I can't go
+  // back farther than today in footage") ──────────────────────────────────
+  {
+    const all = Array.from({ length: 7 }, (_, i) => ({ id: 'j' + i, d: { sentAt: '2026-09-0' + (i + 1) + 'T00:00:00.000Z' } }));
+    const p1 = F.pageJobs(all, { limit: 3 });
+    ok('the first page is the newest three, newest first', p1.docs.map((x) => x.id).join() === 'j6,j5,j4');
+    ok('and it says there is more under it', p1.more === true);
+    const p2 = F.pageJobs(all, { limit: 3, before: p1.docs[2].d.sentAt });
+    ok('the page under a cursor is the three below it, none repeated', p2.docs.map((x) => x.id).join() === 'j3,j2,j1' && p2.more === true);
+    const p3 = F.pageJobs(all, { limit: 3, before: p2.docs[2].d.sentAt });
+    ok('the last page is short and says so', p3.docs.map((x) => x.id).join() === 'j0' && p3.more === false);
+    ok('no cursor and a big limit is everything, and more is false', F.pageJobs(all, { limit: 40 }).more === false && F.pageJobs(all, { limit: 40 }).docs.length === 7);
+    ok('the route answers `more` beside the jobs', /jobs: docs\.map\(\(x\) => cardOf\(x\.id, x\.d\)\), more \}/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
+  }
 
   // ── the page rules ──────────────────────────────────────────────────────
   ok('no page errors', errors.length === 0);
@@ -807,6 +842,41 @@ async function pillSweep(pg, where) {
   await page.waitForTimeout(200);
   ok('a repaint never rebuilds a card that did not change', await page.evaluate((h) => h === document.querySelector('#job-old1 .thumb img'), imgBefore));
 
+  // ── THE WAY BACK PAST TODAY (2026-09-11, Sophie: "I can't go back farther
+  // than today in footage") — every assertion a MEASUREMENT: an opener that
+  // is in the markup and never drawn, a walk that repeats a page, and a poll
+  // that puts the opener back after the last page all read fine in source.
+  ok('the "… older" opener is drawn under the feed while there is a page under it',
+    await page.$eval('#older', (e) => !e.hidden && e.getBoundingClientRect().height > 0 && /older/.test(e.textContent)));
+  ok('it is an underlined word, no box and no fill',
+    await page.$eval('#older', (e) => { const c = getComputedStyle(e); return c.textDecorationLine.includes('underline') && c.borderTopWidth === '0px' && c.backgroundColor === 'rgba(0, 0, 0, 0)'; }));
+  ok('no card from yesterday is on the page yet', await page.$$eval('#feed .job', (els) => !els.some((e) => /^job-y/.test(e.id))));
+  await page.click('#older');
+  await page.waitForSelector('#job-y2');
+  await page.waitForTimeout(150);
+  ok('the tap asked for the page under the OLDEST clip on screen, by its sentAt',
+    jobReads[jobReads.length - 1] === '2026-09-09T00:00:00.000Z');
+  ok('yesterday\'s two newest clips landed at the END of the feed, newest first — ' + await page.$$eval('#feed .job', (els) => els.map((e) => e.id).join(',')),
+    await page.$$eval('#feed .job', (els) => els.map((e) => e.id).slice(-2).join() === 'job-y2,job-y1' && !els.some((e) => e.id === 'job-y0')));
+  ok('the opener is still there — the server said there is one more page',
+    await page.$eval('#older', (e) => !e.hidden && !e.disabled));
+  await page.click('#older');
+  await page.waitForSelector('#job-y0');
+  await page.waitForTimeout(150);
+  ok('the second tap walked under the page it had just loaded, not under today again',
+    jobReads[jobReads.length - 1] === '2026-09-08T11:00:00.000Z');
+  ok('the last clip is at the very end and the opener is gone',
+    await page.$$eval('#feed .job', (els) => els[els.length - 1].id === 'job-y0') && await page.$eval('#older', (e) => e.hidden));
+  ok('nothing was loaded twice — one card per clip', await page.$$eval('#feed .job', (els) => new Set(els.map((e) => e.id)).size === els.length && els.length === 11));
+  // the newest-page poll again — it always says "more under the first 40",
+  // which must not bring the opener back nor take the walked pages away
+  await page.evaluate(() => fetch('/api/footage/jobs?limit=40').then((r) => r.json()));
+  await page.evaluate(() => window.dispatchEvent(new Event('pageshow')));
+  await page.waitForTimeout(400);
+  ok('a later poll of the newest page neither drops the older cards nor re-lights the opener',
+    await page.$$eval('#feed .job', (els) => els.length === 11) && await page.$eval('#older', (e) => e.hidden));
+  ok('the older clips are on the wall too', await page.evaluate(() => { document.getElementById('v-tiles').click(); const n = document.querySelectorAll('#tiles .cell[data-id^="y"]').length; document.getElementById('v-list').click(); return n === 3; }));
+
   // ── LIST · TILES · 3/4, and the number MEASURED off the real cells ───────
   const across = (s2) => page.evaluate((sel2) => {
     const cells = [...document.querySelectorAll(sel2)].filter((c) => !c.hidden && c.getBoundingClientRect().width);
@@ -826,7 +896,8 @@ async function pillSweep(pg, where) {
   await page.waitForFunction(() => document.querySelectorAll('#tiles .cell').length > 0);
   ok('TILES shows the clips as posters, and the list is put away',
     (await page.$eval('#feed', (e) => e.hidden)) && !(await page.$eval('#tiles', (e) => e.hidden))
-    && (await page.$$eval('#tiles .cell img', (i) => i.length)) === 8);
+    // 8 of today's plus the 3 the walk back brought in above
+    && (await page.$$eval('#tiles .cell img', (i) => i.length)) === 11);
   ok('the wall is three across', (await across('#tiles .cell')) === 3);
   await page.click('#v-cols');
   ok('and follows the same tap to four', (await across('#tiles .cell')) === 4);
@@ -1301,6 +1372,9 @@ async function pillSweep(pg, where) {
     // the tap: the PICTURE opens, in the one overlay, with no trim bar
     if (!tile) { report(); }
     await tile.click();
+    // the picture is fetched on the tap — wait for it to land rather than
+    // asking `complete` in the same tick (measured flaky on a longer feed)
+    await page.waitForFunction(() => { const a = document.querySelectorAll('#player .pstage img.pimg'); return a.length === 1 && a[0].complete && a[0].naturalWidth > 0; }, null, { timeout: 5000 }).catch(() => {});
     ok('tapping it opens the picture over the page, page locked',
       !(await page.$eval('#player', (e) => e.hidden))
       && (await page.$$eval('#player .pstage img.pimg', (a) => a.length === 1 && a[0].complete && a[0].naturalWidth > 0))
