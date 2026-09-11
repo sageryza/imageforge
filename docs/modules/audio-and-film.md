@@ -575,6 +575,59 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       read live when the card opens (Atlas has no balance to read); and the Playground's **List / Tiles /
       3-4** switch on the feed, one `--cols` driving the tile wall and a
       card's own reference row. Full rules: the *Footage* bullet in CLAUDE.md.
+    - **DIVIDE HERE — ONE BLOCK IS ONE CLIP (2026-09-11, Sophie: "can u add
+      the feature from story timeline that allows me to divide into two text
+      blocks where my cursor · a button · says divide here · pinned or sticky
+      in footage · icon this time").** The Story Timeline's divide, on the
+      box she types a scene into: a mark beside the bigger-box toggle — Lucide
+      `separator-horizontal`, the icon she asked for in place of the
+      timeline's word — cuts the block at the cursor, and the words after it
+      become a SECOND block right under the first, with the timeline's join
+      mark (`fold-vertical`) in the gap to put them back. A 15-second shot on
+      Mini is two clips, and until this she cut the scene in two by hand:
+      copy the tail out, send the head, paste the tail back in.
+      - **THE STAR SENDS THE BLOCK SHE IS IN** — the last one she tapped into,
+        wearing the star's own gold line once there are two or more; one
+        block wears nothing and the page looks exactly as it did. The
+        references, the model, the seconds and the size are the JOB and are
+        shared across the blocks; the block is the words. A slot tap, a
+        character's line and a card's put-back land in that same block; the
+        ✕ on a reference renames the slot in EVERY block, since the strip is
+        shared and a second block left naming `[Image3]` would draw the wrong
+        picture as surely as the first would have. Every block keeps its
+        words after a send (the box's own rule) and the toast says which
+        block went.
+      - **BOTH CORNER BUTTONS PIN TOGETHER.** `stickybox.js` v2: buttons on
+        ONE box are one control row and pin as a group (the one-at-a-time
+        rule is about two different boxes), and the divide is
+        `data-stickybox="nofollow"` — a divide shrinks the box from its
+        BOTTOM, so the seam is already where her eyes are, and the
+        follow-back that is right for a contract would walk the page away
+        from it.
+      - **THE WRAP HOLDS THE ROOM WHILE A BOX IS MEASURED.** `fitBox` locks
+        the `.promptwrap`'s min-height for the length of the `height:auto`
+        measurement: at `auto` the box collapses to its floor for one layout,
+        and if that layout leaves the document shorter than where she is
+        scrolled the browser CLAMPS the scroll — measured, a divide from the
+        pinned button at line 40 of a 70-line scene threw the page from
+        scrollY 654 to 0 with no script scrolling anything. The same shape
+        sat under every keystroke in a tall big box, where caretkeep pulled
+        the caret back a frame later, so it read as a flicker.
+      - **NOTHING IS SENT BY DIVIDING, NOTHING IS LOST BY JOINING** (the join
+        is the two texts with a blank line between), and there is no ✕ on a
+        block on purpose — emptying it and joining is the way to lose one.
+        A caret at either end divides nothing and says so. A belt hand-off is
+        one scene, so it is one block again. The draft keeps `prompt` as the
+        first block for an older cached page and the rest under `blocks`.
+      - **A BLOCK IS A DIRECT CHILD OF THE PANEL**, never inside a wrapper,
+        or the pill-gap fitter would shorten every block for a pill only the
+        first one touches. `#prompt` / `#bigprompt` stay on the first block,
+        so the hand-off, the tests and every older reader see the box they
+        always did. Test: `node scripts/test-footage-divide.js` (every
+        assertion a MEASUREMENT — the icon with no words, the two buttons
+        pinned side by side and both tappable, the ring's real colour, what
+        the stub really received from the star, the page NOT moving on a
+        pinned divide, the slot renamed in the second block).
     - **SHE TRIMS A CLIP AS IT COMES OUT (2026-09-10, Sophie: "how hard
       would it be to make it possible to trim clips right as they come out of
       the footage module?").** A Mini clip is 4-15 seconds and the shot inside

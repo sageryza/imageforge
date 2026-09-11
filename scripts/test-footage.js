@@ -212,7 +212,7 @@ function report() {
   // it or instruct (the house rule). Her words go in the prompt box, which
   // carries nothing at all; the seed box sits on a row with no word labels on
   // it, so its one-word name is the only thing saying what it is.
-  ok('the prompt box ships empty, with no placeholder of its own', /<textarea id="prompt"><\/textarea>/.test(page));
+  ok('the prompt box ships empty, with no placeholder of its own', /<textarea id="prompt" class="pblock"><\/textarea>/.test(page));
   ok('every placeholder is a NAME — one or two words, no example and no instruction',
     (page.match(/placeholder="([^"]*)"/g) || []).every((m) => {
       const v = m.slice(13, -1);
