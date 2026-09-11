@@ -63,13 +63,14 @@ DOCS = os.path.join(os.path.dirname(HERE), '..', 'docs', 'sean-jonathan')
 SCRIPT_MD = os.path.join(DOCS, 'script.md')
 REFS_JSON = os.path.join(DOCS, 'refs.json')
 SHOT_JSON = os.path.join(DOCS, 'shot.json')
+TYPOS_JSON = os.path.join(DOCS, 'typos.json')
 BASE = 'https://imageforge-q125.onrender.com'
 CHAT = 'sean-jonathan-script'
 SHEET = 'belt-seanjonathan'
 # A NEW VERSION IS A NEW PAGE and the title says which — the house rule for
 # anything posted, because a posted page is frozen and her Compare tab shows
 # them side by side. Bump this and supersede the one it replaces.
-VERSION = 2
+VERSION = 3
 TITLE = 'Sean & Jonathan — the draft belt v%d' % VERSION
 LIMIT = 8000
 
@@ -115,6 +116,28 @@ RUNNING = [
 ]
 
 
+def fixes():
+    return json.load(open(TYPOS_JSON, encoding='utf-8'))['fixes']
+
+
+def correct(text, fx, tally):
+    """Her typos, fixed on the way onto the page — never in her own files.
+
+    2026-09-11, Sophie: "fix those two typos. are there anymore". `script.md`
+    and `shot.json` keep her words exactly as she said them, because they are
+    the record; every correction is one auditable line in `typos.json` and the
+    card says how many landed on it. A `find` that matches more than once
+    anywhere in the script REFUSES the build — a fix that silently matched
+    twice would rewrite a scene she never looked at.
+    """
+    for f in fx:
+        n = text.count(f['find'])
+        if n:
+            tally[f['find']] = tally.get(f['find'], 0) + n
+            text = text.replace(f['find'], f['replace'])
+    return text
+
+
 def block(tag):
     """Her script, split at HER `cut` lines and nowhere else."""
     src = open(SCRIPT_MD, encoding='utf-8').read()
@@ -142,6 +165,7 @@ def split_shot(job):
 def plan():
     """Every card resolved: its words, its header, its references, its clip."""
     R, shot, one, two = sources()
+    fx, tally = fixes(), {}
     pair = R['refs']
     out = []
     for i, c in enumerate(RUNNING):
@@ -172,8 +196,33 @@ def plan():
             else:
                 refs = [dict(r) for r in pair]
                 head = R['whosWho'] + '\n\n' + c['room']
-        out.append(dict(c, n=i + 1, words=words, head=head, refs=refs,
-                        clip=clip, secs=secs, shot=(kind == 'shot')))
+        before = words
+        mine = {}
+        words = correct(words, fx, mine)
+        for k2, v in mine.items():
+            tally[k2] = tally.get(k2, 0) + v
+        out.append(dict(c, n=i + 1, words=words, head=head, refs=refs, clip=clip,
+                        secs=secs, shot=(kind == 'shot'), fixed=sum(mine.values()),
+                        raw=before))
+
+    # EVERY FIX MUST HAVE LANDED, EXACTLY ONCE. A `find` that stopped matching
+    # (her words moved) would fail silently and leave the typo on the page; one
+    # that matched twice would rewrite a scene she never looked at.
+    for f in fx:
+        n = tally.get(f['find'], 0)
+        if n != 1:
+            raise SystemExit('the fix %r matched %d times, not once — check '
+                             'docs/sean-jonathan/typos.json against her words'
+                             % (f['find'][:48], n))
+
+    # THE CAST IS THE LAST CARD, NOT A SCENE (2026-09-11, Sophie: "can u also add
+    # the original two [reference videos] in case i find better videos"). The two
+    # videos that say who is who, on the belt where she can play them and judge
+    # them — no seconds, no price, no Footage button, because nothing about it is
+    # a shot.
+    out.append(dict(key='sj-cast', name='The cast', n=len(out) + 1, cast=True,
+                    refs=[dict(r) for r in pair], shot=False, fixed=0,
+                    clip=None, secs=0, words='', head='', raw=''))
     return out
 
 
@@ -182,6 +231,27 @@ def build():
     cards, toc, films = [], [], []
     for c in plan():
         k = c['key']
+        # THE CAST CARD IS NOT A SHOT — no seconds, no price, no Footage button.
+        # It is the two videos that say who is who, where she can play them and
+        # judge them (2026-09-11: "in case i find better videos").
+        if c.get('cast'):
+            for r in c['refs']:
+                films.append((k + '-' + r['_who'], r['url'],
+                              '%s  %s' % (r['_slot'], r['_who']), r.get('name', '')))
+            cards.append(
+                '<section class="card" id="j-%s" data-key="%s" data-item="%s">\n'
+                '<h2>%s · %s<span class="tag">reference</span></h2>\n'
+                '<p class="done">The two videos that say who is who. They ride every card '
+                'that is not a continuation, in this order — so [Video1] and [Video2] mean '
+                'the same two people on every scene.</p>\n%s'
+                '<p class="done">Found a better video of one of them? Put it in the Dump and '
+                'say which — it swaps here and on all ten scenes at once, and nothing else '
+                'about the belt moves.</p>\n</section>' % (
+                    k, k, k, e(str(c['n'])), e(c['name']),
+                    ''.join('<div class="film" id="film-%s-%s"></div>' % (k, e(r['_who']))
+                            for r in c['refs'])))
+            toc.append('<a href="#j-%s">%s %s</a>' % (k, e(str(c['n'])), e(c['name'])))
+            continue
         # what the footage page reads: url · kind · poster · name, in slot order
         refjson = json.dumps([{x: r[x] for x in ('url', 'kind', 'poster', 'name') if x in r}
                               for r in c['refs']])
@@ -189,8 +259,9 @@ def build():
         if c['shot']:
             films.append((k, c['clip']['url'], c['name'],
                           '%ds · drawn %s' % (c['clip']['seconds'], c['clip']['at'][:10])))
-            shotline = ('<p class="done">the boxes hold what the door really received.</p>'
-                        '<div class="film" id="film-%s"></div>' % k)
+            shotline = ('<p class="done">the boxes hold what the door really received%s.</p>'
+                        '<div class="film" id="film-%s"></div>'
+                        % (', tidied' if c['fixed'] else '', k))
         cards.append(
             '<section class="card" id="j-%s" data-key="%s" data-item="%s">\n'
             '<h2>%s · %s%s</h2>\n%s'
@@ -198,7 +269,7 @@ def build():
             '<div class="refs">%s</div>'
             '<div class="row"><label>seconds <input class="secs" data-key="%s" type="number" min="4" max="15" value="%d"></label>'
             '<a class="tofoot" href="/footage" data-key="%s" data-title="%s">%s ›</a></div>'
-            '<p class="cost" data-key="%s"></p>'
+            '<p class="cost" data-key="%s"></p>%s'
             '<script type="application/json" class="refjson" data-key="%s">%s</script>'
             '</div>\n'
             '<details class="text"><summary>%s</summary>'
@@ -213,7 +284,11 @@ def build():
                 ''.join('<span class="ref"><img src="%s" alt=""><b>%s</b> %s</span>'
                         % (e(r['poster']), e(r['_slot']), e(r['_who'])) for r in c['refs']),
                 k, c['secs'], k, e('%s · %s' % (c['n'], c['name'])),
-                'shoot it again' if c['shot'] else 'send to Footage', k, k, refjson,
+                'shoot it again' if c['shot'] else 'send to Footage', k,
+                ('<p class="fixnote">%d typo%s fixed — your own words otherwise, '
+                 'word for word</p>' % (c['fixed'], '' if c['fixed'] == 1 else 's'))
+                if c['fixed'] else '',
+                k, refjson,
                 'continues the clip before (yours)'
                 if c.get('chain') else 'who’s who (yours)',
                 k, e(c['head']), k, k, e(c['words']), k))
@@ -236,6 +311,10 @@ def build():
         '<b>[Video2]</b> sean. <i>I just moved IN</i> carries the clip before it '
         'instead, the way you drew scene 2. The only line in that box I wrote is '
         '<i>setting:</i>, and it names the room and nothing else.</p>'
+        '<p><b>Your typos are fixed on the page and nowhere else.</b> Your own files keep '
+        'every word as you said it; each fix is one line in <i>typos.json</i> and a card '
+        'says how many landed on it. The last card is <b>the cast</b> — the two reference '
+        'videos, playable, so you can swap one if you find better.</p>'
         '<p>Every card is Seedance 2.0 Mini · 480p · 3:4 · sound on, '
         '<b>through Atlas Cloud</b>. Seconds open at 15, which is what you set both '
         'times; Mini takes 4–15. At Atlas’s ~1.1¢ a second that is about '
@@ -268,6 +347,7 @@ CSS = """<meta charset="utf-8">
 h2{font-size:16px;margin:0 0 8px}
 .tag{display:inline-block;margin-left:8px;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6b6257;border:1px solid #cfc6b6;border-radius:6px;padding:1px 6px;vertical-align:2px}
 p.done{font-size:12px;color:#8a8176;margin:0 0 8px}
+p.fixnote{font-size:11px;color:#8a8176;margin:6px 0 0;font-style:italic}
 .film{margin:0 0 12px}
 .text summary{cursor:pointer;font-size:12px;text-decoration:underline;color:#6b6257;margin-bottom:6px}
 textarea.p{width:100%;box-sizing:border-box;font-family:inherit;font-size:16px;line-height:1.5;padding:10px;border:1px solid #cfc6b6;border-radius:6px;background:#fff;resize:none;min-height:100px}

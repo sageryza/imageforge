@@ -54,40 +54,57 @@ const scenes2 = (fs.readFileSync(MD, 'utf8')
   .split(/\r?\n[ \t]*cut[ \t.!:]*(?=\r?\n)/).map((s) => s.trim()).filter(Boolean);
 const shot = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs', 'sean-jonathan', 'shot.json'), 'utf8')).shot;
 
+const fixes = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs', 'sean-jonathan', 'typos.json'), 'utf8')).fixes;
+const corpus = [...scenes, ...scenes2, ...shot.map((j) => j.prompt)].join('\u0000');
+const correct = (t) => fixes.reduce((a, f) => a.split(f.find).join(f.replace), t);
+
 ok(scenes.length === 6, 'her first message is 6 scenes — her own `cut` lines (' + scenes.length + ')');
 ok(scenes2.length === 2, 'her second message is 2 scenes (' + scenes2.length + ')');
-ok(html.match(/<section class="card"/g).length === scenes.length + scenes2.length + shot.length,
-  'one card a scene across both messages plus the two already shot ('
-  + (scenes.length + scenes2.length + shot.length) + ')');
-[...scenes, ...scenes2].forEach((s, i) => ok(html.includes(esc(s)),
-  'scene ' + (i + 1) + ' is on the page VERBATIM (' + s.length + ' chars)'));
-// the two drawn scenes carry the prompt the DOOR received, split into her own
-// header and her own action — every character of it must still be on the page
-shot.forEach((j) => ok(j.prompt.split(/\n\s*\n/).every((para) => html.includes(esc(para.trim()))),
-  'shot scene ' + j.id.slice(0, 8) + ' is on the page as the door received it'));
+ok(html.match(/<section class="card"/g).length === scenes.length + scenes2.length + shot.length + 1,
+  'one card a scene across both messages, the two already shot, and the cast ('
+  + (scenes.length + scenes2.length + shot.length + 1) + ')');
 
-// HER WORDS DECIDE THE ORDER — the chain, asserted as the running order rather
-// than as prose. Reading the card keys off the page is the only honest way: a
-// RUNNING list that says one thing and renders another looks fine in source.
+// ── HER FILES ARE NEVER EDITED ──────────────────────────────────────────────
+// 2026-09-11: "fix those two typos. are there anymore". The fix happens on the
+// way onto the page; script.md and shot.json stay the record of what she said,
+// so the original survives every rebuild and every fix is one auditable line.
+ok(/jonathan's tongue is in jonathan's mouth/.test(corpus)
+  && /but sean\. breaks one in half/.test(corpus)
+  && /rubs into the kitchen/.test(corpus),
+  'her own files still hold her words exactly as she said them');
+
+// ── EVERY FIX LANDED, EXACTLY ONCE, AND NOTHING ELSE MOVED ──────────────────
+fixes.forEach((f) => {
+  const n = corpus.split(f.find).length - 1;
+  ok(n === 1, 'the fix "' + f.find.slice(0, 34).replace(/\n/g, '\\n') + '…" matches her words exactly once (' + n + ')');
+});
+ok(fixes.filter((f) => f.hers).length === 2, 'the two she named herself are marked as hers');
+ok(/sean's tongue is in jonathan's mouth/.test(html.replace(/&#x27;/g, "'"))
+  && /but sean breaks one in half/.test(html)
+  && /turns on his heel, and runs into the kitchen/.test(html),
+  'and the page carries the corrected words');
+// THE WHOLE ASSERTION, and the one that makes the others safe: the page's text
+// is her text with THESE fixes and no other edit anywhere.
+[...scenes, ...scenes2].forEach((sc, i) => ok(html.includes(esc(correct(sc))),
+  'scene ' + (i + 1) + ' is her words, corrected and otherwise verbatim (' + sc.length + ' chars)'));
+shot.forEach((j) => ok(correct(j.prompt).split(/\n\s*\n/).every((para) => html.includes(esc(para.trim()))),
+  'shot scene ' + j.id.slice(0, 8) + ' is what the door received, corrected'));
+// the fixes are MECHANICAL — none of them may change how many words she wrote
+fixes.forEach((f) => ok(Math.abs(f.replace.split(/\s+/).length - f.find.split(/\s+/).length) <= 1,
+  'the fix "' + f.find.slice(0, 24) + '…" rewords nothing'));
+
+// ── HER WORDS DECIDE THE ORDER ──────────────────────────────────────────────
 const order = [...html.matchAll(/<section class="card"[^>]*data-key="([^"]+)"/g)].map((m) => m[1]);
-ok(order.join(' ') === 'sj-a sj-b sj-c sj-d sj-1 sj-2 sj-3 sj-4 sj-5 sj-6',
-  'the running order is the chain her own words make (' + order.join(' ') + ')');
+ok(order.join(' ') === 'sj-a sj-b sj-c sj-d sj-1 sj-2 sj-3 sj-4 sj-5 sj-6 sj-cast',
+  'the running order is the chain her own words make, the cast last (' + order.join(' ') + ')');
 ok(/we have to sleep in the same bed/.test(shot[1].prompt)
   && /^jonathan \(flabbergasted, splutters\) "WHAT\?!"/.test(scenes2[0])
   && /rubs into the kitchen\.$/.test(scenes2[0])
   && /^now they are in the kitchen together/.test(scenes2[1])
   && /^sean takes fancy tea cups and a tea pot out of the kitchen cabinet/.test(scenes[0]),
   'and each link in it is her own sentence, end to end');
-// A KEY IS IDENTITY: the six cards of her first message keep the keys they were
-// posted with, though four scenes now sit in front of them.
 ok(/data-key="sj-1"[^>]*>\s*<h2>5 · The tea party/.test(html.replace(/\n/g, '')),
   'the tea party is still sj-1 and is now card 5 — a key never moves');
-// nothing tidied: a couple of her own oddities must survive
-ok(html.includes(esc('sean beams from ear to ear,smiles widely')), 'her missing space survives');
-ok(html.includes(esc("jonathan's tongue is in jonathan's mouth")),
-  'her line is NOT corrected on her behalf');
-ok(html.includes(esc('the cookies are burnt, badly, but sean. breaks one in half')),
-  'her stray full stop survives');
 
 // ── THE WHO'S-WHO BLOCK AND THE SLOTS ARE HERS ──────────────────────────────
 ok(html.includes(esc(refs.whosWho)), "the who's-who block is her own job's, word for word");
@@ -150,7 +167,7 @@ const exe = () => {
 
   // the deck really is six snapping cards
   const cards = await page.$$eval('.deck .card', (n) => n.length);
-  ok(cards === 10, 'ten cards in the deck (' + cards + ')');
+  ok(cards === 11, 'eleven cards in the deck — ten scenes and the cast (' + cards + ')');
 
   // THE DECK IS A HORIZONTAL SCROLLER, so a card must be brought into view
   // before anything about it can honestly be measured — off-screen every rect
@@ -183,7 +200,8 @@ const exe = () => {
   // THE SHOT CARDS PLAY. __filmRow is the house player — one per drawn scene.
   const players = await page.$$eval('.film video, .film button, .film a', (n) => n.length);
   const tags = await page.$$eval('.tag', (n) => n.map((x) => x.textContent).join(','));
-  ok(tags === 'shot,shot', 'the two drawn scenes are marked shot (' + tags + ')');
+  ok(tags === 'shot,shot,reference',
+    'the two drawn scenes are marked shot and the cast is marked reference (' + tags + ')');
   ok(players > 0, 'and carry a real player (' + players + ' controls)');
 
   // THE BUTTON IS ON SCREEN WITHOUT SCROLLING, on EVERY card — it is the one
@@ -192,7 +210,8 @@ const exe = () => {
   // `elementFromPoint` answered `none`. The shot cards are the tight ones, since
   // they carry a player as well.
   const vh = page.viewportSize().height;
-  const keys = await page.$$eval('.deck .card', (n) => n.map((c) => c.getAttribute('data-key')));
+  const keys = (await page.$$eval('.deck .card', (n) => n.map((c) => c.getAttribute('data-key'))))
+    .filter((k) => k !== 'sj-cast');
   let worst = { key: '', bottom: 0 }, unreachable = [];
   for (const key of keys) {
     await goCard(key);
@@ -208,6 +227,22 @@ const exe = () => {
     + '(worst: ' + worst.key + ' at ' + Math.round(worst.bottom) + ' of ' + vh + ')');
   ok(unreachable.length === 0,
     'and every one really takes its own tap' + (unreachable.length ? ' — ' + unreachable.join(', ') : ''));
+
+  // THE CAST CARD IS NOT A SHOT — it must not offer a tap that costs money.
+  await goCard('sj-cast');
+  const cast = await page.evaluate(() => ({
+    foot: document.querySelectorAll('.card[data-key="sj-cast"] .tofoot').length,
+    secs: document.querySelectorAll('.card[data-key="sj-cast"] .secs').length,
+    // `textarea.p` is the BELT's own box. __compareNotes adds a note box to
+    // every [data-item] block, the cast card included, and that one is hers.
+    box: document.querySelectorAll('.card[data-key="sj-cast"] textarea.p').length,
+    films: document.querySelectorAll('.card[data-key="sj-cast"] .film').length,
+    players: document.querySelectorAll('.card[data-key="sj-cast"] .film button, .card[data-key="sj-cast"] .film video').length,
+  }));
+  ok(cast.foot === 0 && cast.secs === 0 && cast.box === 0,
+    'the cast card offers no Footage button, no seconds and no scene box');
+  ok(cast.films === 2 && cast.players >= 2,
+    'and plays both original reference videos (' + cast.films + ' rows, ' + cast.players + ' controls)');
 
   await goCard('sj-1');
   const btn = await page.$('.tofoot[data-key="sj-1"]');
@@ -241,6 +276,11 @@ const exe = () => {
   await page.screenshot({ path: path.join(SHOTS, 'sj-belt-card1-shot.png') });
   await goCard('sj-c');
   await page.screenshot({ path: path.join(SHOTS, 'sj-belt-card3-chain.png') });
+  await goCard('sj-cast');
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: path.join(SHOTS, 'sj-belt-cast.png') });
+  await goCard('sj-4');
+  await page.screenshot({ path: path.join(SHOTS, 'sj-belt-card8-fixed.png') });
   await goCard('sj-1');
 
   // WHAT THE TAP REALLY WRITES. It is an <a href="/footage">, so this navigates —

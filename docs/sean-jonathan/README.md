@@ -12,7 +12,8 @@ shape the belt hands over.
 | the belt builder | `scripts/sean-jonathan/belt.py` |
 | the test | `node scripts/test-sean-jonathan-belt.js` |
 | the two already-drawn scenes, verbatim off the job log | `shot.json` |
-| the live page | `sean-jonathan-script` → Compare tab, *Sean & Jonathan — the draft belt v2* (`22JJ1xyf2S9iJPS8yNsA`) |
+| her typos, fixed on the way onto the page | `typos.json` |
+| the live page | `sean-jonathan-script` → Compare tab, *Sean & Jonathan — the draft belt v3* (`DkEGwxPzbR33u1H4jYw6`) |
 
 ## THE RUNNING ORDER, AND WHY IT IS HERS
 
@@ -29,6 +30,32 @@ before it:
 | 4 | `sj-d` | The kitchen | opens *"now they are in the kitchen together"* |
 | 5 | `sj-1` | The tea party | opens *"…out of the **kitchen cabinet**"* |
 | 6-10 | `sj-2`…`sj-6` | Get out · Weeks pass · The white paint · Bedtime · A whole new world | |
+| 11 | `sj-cast` | The cast | **reference** — the two videos, playable, no shot |
+
+## HER FILES ARE NEVER EDITED — `typos.json` IS THE FIX
+
+2026-09-11: *"fix those two typos. are there anymore"*. `script.md` and
+`shot.json` keep her words exactly as she said them, because they are the
+record; the corrections happen on the way onto the page. Each one is a line in
+`typos.json` (`find` · `replace` · `why`, and `hers: true` for the two she named
+herself) and the card says how many landed on it.
+
+**A `find` MUST MATCH EXACTLY ONCE across the whole script or the build
+REFUSES.** A fix that stopped matching would fail silently and leave the typo on
+the page; one that matched twice would rewrite a scene she never looked at.
+
+**Only mechanical fixes go in there.** A missing space, an apostrophe, an
+unclosed quote, one word that is plainly another (`rubs` → `runs`, in a sentence
+that already says *"about to run into the kitchen"*). Anything where the fix
+could go two ways is NOT a fix — it goes to her as a question instead.
+
+## THE CAST CARD
+
+2026-09-11: *"can u also add the original two [reference videos] in case i find
+better videos."* The last card is the two reference videos themselves, playable,
+named by slot and by file — not a scene, so it carries no Footage button, no
+seconds and no price. Swapping one is two lines in `refs.json` and a rebuild,
+and it reaches all ten scenes at once.
 
 **A KEY IS IDENTITY AND A NUMBER IS A POSITION.** Her typed edits live on the
 verdict sheet under the card's key, so the tea party is still `sj-1` while it is

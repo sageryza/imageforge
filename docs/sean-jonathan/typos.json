@@ -1,0 +1,53 @@
+{
+  "_note": "2026-09-11, Sophie: \"fix those two typos. are there anymore\". Her dictation in script.md and her prompts in shot.json are NEVER edited — they are the record of what she said. These are the corrections, applied by the belt builder on the way onto the page, so the original survives and every fix is one auditable line. `find` must match EXACTLY ONCE across the whole script or the build refuses: a fix that silently matched twice would rewrite a scene she never looked at.",
+  "_asked": "The two she named are `hers: true`. The rest are mechanical — a missing space, an apostrophe, an unclosed quote, one word that is plainly another. Anything where the fix could go two ways is NOT here; it goes to her in the reply instead.",
+  "fixes": [
+    {
+      "find": "camera comes closer, jonathan's tongue is in jonathan's mouth\n the kiss is soft",
+      "replace": "camera comes closer, sean's tongue is in jonathan's mouth.\nthe kiss is soft",
+      "why": "the tongue is sean's — jonathan's cannot be in his own mouth",
+      "hers": true
+    },
+    {
+      "find": "but sean. breaks one in half",
+      "replace": "but sean breaks one in half",
+      "why": "a full stop in the middle of the sentence",
+      "hers": true
+    },
+    {
+      "find": "then turns on his heel, and rubs into the kitchen",
+      "replace": "then turns on his heel, and runs into the kitchen",
+      "why": "rubs → runs; the same sentence already says \"about to run into the kitchen\""
+    },
+    {
+      "find": "sean beams from ear to ear,smiles widely",
+      "replace": "sean beams from ear to ear, smiles widely",
+      "why": "missing space after the comma"
+    },
+    {
+      "find": "shining onto the bed(the lights go out)",
+      "replace": "shining onto the bed (the lights go out)",
+      "why": "missing space before the bracket"
+    },
+    {
+      "find": "he is wearing waiters clothes",
+      "replace": "he is wearing waiter's clothes",
+      "why": "missing apostrophe"
+    },
+    {
+      "find": "a frilly pink apron, a bakers hat",
+      "replace": "a frilly pink apron, a baker's hat",
+      "why": "missing apostrophe"
+    },
+    {
+      "find": "of \"a whole new world, combined w willy wonkas \"come with me, and you'll see, a world of pure imagination.",
+      "replace": "of \"a whole new world,\" combined w willy wonka's \"come with me, and you'll see, a world of pure imagination.\"",
+      "why": "both song quotes were left open, and wonkas → wonka's"
+    },
+    {
+      "find": "jonathan trudges in following him. in dis belief.",
+      "replace": "jonathan trudges in following him. in disbelief.",
+      "why": "dis belief → disbelief. This one is in a scene ALREADY DRAWN — the clip was made from the text before the fix, and shot.json keeps that text untouched."
+    }
+  ]
+}
