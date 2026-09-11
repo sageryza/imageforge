@@ -8089,6 +8089,64 @@ before working on that module. Nothing was deleted — the moved text is verbati
     now, its own scrubber directly above the marks.
   Full note: *SHE TRIMS A CLIP AS IT COMES OUT* in
   `docs/modules/audio-and-film.md`; test `node scripts/test-footage-trim.js`.
+  **THE CHARACTER LIBRARY — ONE TAP PUTS A PERSON AND HER LINE IN THE PROMPT
+  (`cast.js`, `/api/cast`, the people icon on the controls row; 2026-09-11,
+  Sophie: "we need a version of 'characters' for footage so i can click a
+  button and it auto adds the line at the top, adding and referencing videos
+  and stills · characters w multiple outfits will have ex, sophie w pajamas vs
+  sophie street clothes · add character icon to footage and have it per film -
+  diff folders · some characters are just stills for now").** Until this, every
+  ward clip's references were hunted by hand — the jazz clip's url, three
+  pajama stills, the doctor's 4-second take, and the exact line naming each of
+  them by slot, retyped per shot, per chat, per belt page. **It spends nothing**
+  — it stores urls that already exist in the Dump and the clip log.
+  - **A LOOK IS A CHARACTER IN ONE OUTFIT** — its references, and the ONE LINE
+    the prompt opens with. `sophie · the blue pajamas` and `sophie · street
+    clothes` are two looks on one character, which is her own example.
+  - **THE LINE IS STORED AS A TEMPLATE AND RESOLVED AT THE TAP — `{1}`, `{2}`
+    … over the look's own references, NEVER a literal `[Video1]`.** That is the
+    load-bearing half: a line written when the pajamas were `[Image1..3]`
+    points at somebody else's stills the moment a second character rides along
+    — and the clip still draws, just of the wrong person. `cast-line.js` is
+    the ONE rule, loaded by `cast.js` on the server and served to the page (the
+    `pause-plan.js` pattern), so **the sheet shows the exact line the tap will
+    insert**, resolved against the strip as it stands. Every other look on
+    screen is re-resolved after an attach, or the sheet is quoting slots that
+    moved.
+  - **THE PAJAMAS FLOAT AND LIVE IN ONE PLACE** (her rule: "these pajamas float
+    w any patient so keep head off · ex francesca/anastasia gets pjs plus dance
+    photo · same for mayra"). A wardrobe entry is its own row and a look WEARS
+    it by slug — `blue-pajamas` takes the outfit's FIRST look, which is the
+    HEAD-OFF pair, and `blue-pajamas:sophie` names the three-still set her own
+    line counts. So swapping the pajama reference swaps it for every patient at
+    once. A still in two outfits rides ONCE and keeps one slot.
+  - **A LINE GOES TO THE TOP OF THE PROMPT, and never twice** — her word ("auto
+    adds the line at the top"); a second tap on the same look adds nothing.
+  - **SOME CHARACTERS ARE JUST STILLS and that is a normal entry**, not a
+    half-made one; a character with nothing on file is still listed, so she can
+    see who is waiting for a reference. **One look is one tap** — Nurse Edna has
+    one clip and one line, so the row IS the button; several looks open.
+  - **NOTHING IS DELETED** — `hidden` is the verb for an entry; a LOOK can be
+    removed, since its references are still in the Dump.
+  - **THE WARD SHELF IS SEEDED FROM HER OWN FILES** —
+    `node scripts/seed-cast-ward.js` (dry by default; `--go`; `--direct` writes
+    through the Admin SDK, which is what fills a shelf before the route is
+    deployed). Every url is out of `docs/mental-hospital/refs/cast.json` or
+    `belt/refs.json` and every clip carries the label the belt pages give it;
+    the lines are hers VERBATIM wherever a card had one, and the script prints
+    how many are mine. 19 entries seeded 2026-09-11 (14 people, 2 outfits,
+    3 places, 45 references).
+  - **A 4s TAKE PER CHARACTER WAS ALREADY DONE, MEASURED** (her "maybe done
+    already"): ffprobe on every person clip the belt pages name — Nurse Edna
+    4.00s, Ms. O'Hara 4.04, the doctor + assistant (office and hall) 4.04, the
+    parents 4.04, Michael 4s. **The one that is not is the jazz clip — Sophie's
+    own, 15.1s** (560x752), so her looks carry that until the 4s one lands.
+  - Tests: `node scripts/test-cast.js` (the slot arithmetic pure — every plan
+    driven against a strip that ALREADY holds something, since a line that
+    resolves right on an empty box is the case that can never catch this — then
+    the real page headless, measuring what is in the prompt box and what the
+    strip really holds after a tap; verified failing against a sheet that does
+    not re-resolve).
 - **Movies** (`movies.js`, `/api/movies`, iOS Movies tab — no web page) — story ->
   ~8-12 self-contained scenes -> gpt-image-2 panels -> Replicate image-to-video ->
   ffmpeg stitch, ~$1.35 for a 12-scene film.

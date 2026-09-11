@@ -366,6 +366,11 @@ loadConfig().then(() => {
   app.use('/api/openrouter', openrouter.router); // Seedance at ByteDance's price, no video references (the second door)
   app.use('/api/atlascloud', atlascloud.router); // Seedance through Atlas Cloud's reference-to-video (the third door; unmeasured)
   app.use('/api/footage', require('./footage').router); // Footage: she makes Seedance clips herself — both doors, one log
+  // The CHARACTER LIBRARY behind the footage page's people icon (2026-09-11,
+  // Sophie: "a version of 'characters' for footage so i can click a button and
+  // it auto adds the line at the top") — one shelf per FILM, characters with
+  // one look per outfit, and a wardrobe that floats across all of them.
+  app.use('/api/cast', require('./cast').router);
   app.use('/api/ingest', ingest.router); // import externally-made art (bring-your-own-MJ)
   app.use('/api/crystals', crystals.router); // crystal drop box (photos + metadata → Etsy listings)
   app.use('/api/drop', dropbox.router); // the Dump — one inbox for anything, labelled later
@@ -3555,6 +3560,15 @@ app.get('/pausing', serveGated('pausing.html', { pill: true }));
 // recording, loaded by the render on the server AND by the page in the
 // browser, so the preview she approves by ear is the take she gets. Public
 // and immutable-ish: it is code, it holds nothing of hers.
+// What a character puts in the prompt, shared the same way (2026-09-11): the
+// footage page's character sheet prints the exact line the tap will insert —
+// resolved against the strip as it stands — so it calls the REAL rule rather
+// than keeping a second copy of the slot arithmetic that drifts.
+app.get('/cast-line.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/cast-line.js');
+});
 app.get('/pause-plan.js', (req, res) => {
   res.type('application/javascript');
   res.set('Cache-Control', 'no-cache, must-revalidate');

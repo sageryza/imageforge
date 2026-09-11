@@ -198,6 +198,39 @@
                    display:flex;align-items:center;justify-content:center;pointer-events:none}
   #recent .rc .bdg svg{width:11px;height:11px}
   #rectog.on{border-color:#2b2620}
+  #casttog.on{border-color:#2b2620}
+  /* THE CHARACTER LIBRARY (2026-09-11, Sophie: "add character icon to footage
+     and have it per film - diff folders"). A sheet under the controls, not an
+     overlay: she is reading it against the prompt box she is typing in, and a
+     slab over the panel would cover the one thing the line is going into. */
+  #cast{margin-top:10px;border:1px solid #e0d8ca;border-radius:6px;background:#fdfbf7;padding:8px}
+  #cast .films{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  #cast .films button{font-size:12px;padding:5px 9px;background:#fff;border:1px solid #d8cfc0;border-radius:6px}
+  #cast .films button.on{background:#2b2620;color:#f6f2ea;border-color:#2b2620}
+  #cast .grp{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#9a8f7d;margin:10px 0 5px}
+  #cast .grp:first-child{margin-top:2px}
+  #cast .ent{border-top:1px solid #efe8dc}
+  #cast .ent:first-of-type{border-top:0}
+  #cast .who{display:flex;align-items:center;gap:9px;width:100%;padding:7px 2px;background:none;border:0;text-align:left;
+             font-family:inherit;font-size:15px;color:#2b2620}
+  #cast .who .im{width:40px;height:40px;flex:none;border:1px solid #e0d8ca;border-radius:6px;overflow:hidden;background:#2b2620;
+                 color:#f6f2ea;display:flex;align-items:center;justify-content:center}
+  #cast .who .im img{width:100%;height:100%;object-fit:cover;display:block}
+  #cast .who .im svg{width:18px;height:18px}
+  #cast .who .nm{flex:1;min-width:0}
+  #cast .who .nm b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #cast .who .nm span{display:block;font-size:11.5px;color:#8b8175}
+  #cast .who .chev{flex:none;color:#9a8f7d;display:flex}
+  #cast .who .chev svg{width:13px;height:13px;transition:transform .15s ease}
+  #cast .ent.open .who .chev svg{transform:rotate(180deg)}
+  #cast .looks{padding:0 2px 8px 51px}
+  #cast .lk{display:block;width:100%;text-align:left;margin:0 0 6px;padding:6px 9px;background:#fff;border:1px solid #d8cfc0;
+            border-radius:6px;font-family:inherit;font-size:13.5px;color:#2b2620}
+  #cast .lk b{font-weight:600}
+  #cast .lk i{display:block;margin-top:3px;font-size:12px;line-height:1.4;color:#6f675e;font-style:italic;
+              word-break:break-word}
+  #cast .lk em{font-style:normal;color:#9a8f7d;font-size:11.5px}
+  #cast .none{font-size:13px;color:#8b8175;padding:6px 2px}
   /* Feed */
   .feedbar{display:flex;align-items:center;gap:8px;margin:0 0 10px;flex-wrap:wrap}
   /* TWO WAYS TO READ THE FEED — the Playground's switch, ported (2026-09-09,
@@ -499,6 +532,7 @@
   <p><b>Sound is always on.</b></p>
   <p><b>The seed</b> is on every finished clip, with a button that puts it back in the box. Leave the box blank and each clip gets a fresh one. A seed repeats the <i>opening</i> of a short clip and then drifts &mdash; it does not survive a changed prompt or a different size, and at 15 seconds it does close to nothing.</p>
   <p><b>Tiles.</b> Each one carries two doors in the middle: <b>&#9654;</b> plays the clip, and the list mark beside it takes you to that clip&rsquo;s card &mdash; its words, its seed, its references and the button that puts them back. The first words of your own newest note on a clip sit along the top of its tile.</p>
+  <p><b>Characters.</b> The people icon opens this film&rsquo;s library. Tap a character &mdash; or one of their outfits &mdash; and their references go into the strip while the line that names them by slot goes to the top of the box. The line under each one is exactly what it will add, worked out against what you already have attached, so a second character gets <b>[Video2]</b> rather than the slot the library was written against. Each film is its own shelf. Taking a reference off afterwards does not rewrite your words &mdash; the slot names in the box are yours to fix.</p>
   <p><b>Notes.</b> The speech mark on a clip opens a note; playing one and tapping it pauses the film and notes the second you stopped on. Either way it lands in the one place chats read their notes, and a chat answers on the note itself.</p>
   <p>What is left is on the Atlas console &mdash; it has no balance to read from here.</p>
 </div>
@@ -516,6 +550,11 @@
   <div class="row" id="controls">
     <button class="up ib" type="button" id="add" aria-label="Add a reference" title="Add a reference"><span id="addicon"></span><input type="file" accept="image/*,video/*,audio/*" multiple id="file"></button>
     <button id="rectog" type="button" aria-expanded="false" aria-label="Recent — clips you made and references you have used" title="Recent — clips you made and references you have used" hidden></button>
+    <!-- THE CHARACTER LIBRARY (2026-09-11, Sophie: "add character icon to
+         footage and have it per film - diff folders"). One tap attaches that
+         character's references AND puts the line that names them by slot at
+         the TOP of the prompt. -->
+    <button id="casttog" type="button" class="ib" aria-expanded="false" aria-label="Characters" title="Characters" hidden></button>
     <!-- TWO MODELS — 2.0 MINI AND 2.0 FAST (2026-09-10, Sophie: "add 2.0
          fast back as an option"). The choice came off the page that morning
          ("get rid of the model choice · just mini for now") and this puts
@@ -528,6 +567,7 @@
     <div class="step"><button type="button" id="secdn" aria-label="Fewer seconds">&minus;</button><input type="number" id="secs" inputmode="numeric" step="1" aria-label="Seconds" title="Seconds"><button type="button" id="secup" aria-label="More seconds">+</button></div>
   </div>
   <div id="recent" hidden></div>
+  <div id="cast" hidden></div>
   <!-- THE STAR IS THE ONE BUTTON AND IT SENDS ON ITS TAP (2026-09-09, Sophie:
        "no plan button"), with the price of that tap right beside it. -->
   <div class="row" style="margin-top:12px">
@@ -579,6 +619,10 @@
      rather than on demand (compare.js's lazy loader is for pages that mostly
      have no film): every row on this page IS a film. -->
 <script src="/filmnote.js"></script>
+<!-- WHAT A CHARACTER PUTS IN THE PROMPT — the ONE rule, loaded by cast.js on
+     the server and served here (the pause-plan.js pattern), so the line the
+     sheet shows under a look IS the line the tap inserts. -->
+<script src="/cast-line.js"></script>
 <script>
 (function () {
 var TOKEN = '__STUDIO_TOKEN__';
@@ -597,6 +641,8 @@ var ICONS = {
   list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/></svg>',
   history: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>',
   note: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+  // Lucide `users` — the library of who is in this film
+  users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
   chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
   maximize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
   minimize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
@@ -611,6 +657,7 @@ document.querySelectorAll('.selwrap .chev').forEach(function (c) { c.innerHTML =
 $('v-liked').innerHTML = ICONS.heart; $('v-hidex').innerHTML = ICONS.x;
 $('seedclear').innerHTML = ICONS.x;
 $('rectog').innerHTML = ICONS.history;
+$('casttog').innerHTML = ICONS.users;
 document.querySelectorAll('.fold .chev').forEach(function (c) { c.innerHTML = ICONS.chev; });
 document.querySelector('#player .pclose').innerHTML = ICONS.x;
 
@@ -1015,6 +1062,176 @@ function paintRecent() {
     });
     el.appendChild(b);
   });
+}
+
+// ── The character library ─────────────────────────────────────────────────
+// 2026-09-11, Sophie: "we need a version of 'characters' for footage so i can
+// click a button and it auto adds the line at the top, adding and referencing
+// videos and stills · characters w multiple outfits will have ex, sophie w
+// pajamas vs sophie street clothes · add character icon to footage and have it
+// per film - diff folders · some characters are just stills for now".
+//
+// ONE TAP ON A LOOK: its references go into the strip and the line that names
+// them BY SLOT goes to the TOP of the prompt. The line is stored as a template
+// over the look's own references (`{1}`, `{2}` …) and resolved HERE against
+// the strip as it stands, so a character attached second gets [Video2] and not
+// whatever slot the library was written against — see cast-line.js.
+//
+// THE SHEET SHOWS THE LINE IT IS ABOUT TO INSERT, resolved, under every look.
+// A tap that silently writes a sentence into her prompt is exactly the kind of
+// thing the Prompt panel exists to stop in the Playground; here the disclosure
+// is the control's own label.
+//
+// THE PLAN IS COMPUTED ON THE PAGE, through the same served `cast-line.js` the
+// server's /plan route uses — the sheet already holds the whole shelf (that is
+// what makes a wardrobe an entry can WEAR reachable), so a round trip per tap
+// would buy nothing and would put a wait in front of a free action.
+var CAST = null;          // { films: [...], entries: [...] } for the film showing
+var castOpen = false, castFilm = '', castEnt = '';
+function castFilmSaved() { try { return localStorage.getItem('footage_castfilm') || ''; } catch (e) { return ''; } }
+function castFilmSave(f) { try { localStorage.setItem('footage_castfilm', f || ''); } catch (e) {} }
+var CL = window.__castLine || null;
+// Its own base — the library is a MODULE of its own (`/api/cast`), shared
+// with any chat that wants to file a character, not a corner of this page's.
+function castApi(path, opts) {
+  opts = opts || {};
+  opts.headers = hdr(opts.body ? { 'Content-Type': 'application/json' } : {});
+  return fetch('/api/cast' + path, opts).then(function (r) { return r.json(); });
+}
+
+function castBySlug() {
+  var by = {};
+  ((CAST && CAST.entries) || []).forEach(function (e) { by[e.slug] = e; });
+  return by;
+}
+// The plan for one look, against the strip AS IT STANDS — so the line under a
+// look updates the moment she attaches something else.
+function castPlan(ent, look) {
+  if (!CL) return null;
+  return CL.plan({ refs: refs, entry: ent, look: look, byslug: castBySlug() });
+}
+function castApply(ent, look) {
+  var p = castPlan(ent, look);
+  if (!p) { toast('Characters are not loaded yet'); return; }
+  if (p.empty && !p.line) { toast('Nothing on ' + (ent.name || ent.slug) + ' yet'); return; }
+  refs = p.refs;
+  var box = $('prompt');
+  var before = box.value;
+  box.value = CL.withLine(before, p.line);
+  if (window.__fitBigPrompt) window.__fitBigPrompt();
+  if (p.added) openFold('refs');
+  saveDraft(); paintControls();
+  // EVERY OTHER LOOK ON SCREEN IS NOW STALE — the previews are resolved
+  // against the strip, so the slot a look would land on moved the instant
+  // this one attached. A sheet showing yesterday's slots is the one thing
+  // this disclosure must never do.
+  paintCast();
+  var said = p.added ? ('Attached ' + p.added) : 'Already attached';
+  toast(box.value === before ? said + ' · the line was already there' : said + ' · line added');
+}
+
+$('casttog').addEventListener('click', function () {
+  castOpen = !castOpen;
+  paintCast();
+  // READ IT ON THE WAY OPEN, not on every paint — the shelf is one small
+  // Firestore read behind a 20s cache and she opens this sheet a few times a
+  // session, where the feed poll runs every few seconds.
+  if (castOpen) loadCast();
+});
+function loadCast() {
+  var f = castFilm || castFilmSaved();
+  return castApi('/' + (f ? '?film=' + encodeURIComponent(f) : ''))
+    .then(function (d) {
+      if (!d || !d.ok) return;
+      // A FILM SHE PICKED THAT IS NOT THERE ANY MORE FALLS TO THE FIRST ONE
+      // rather than showing her an empty shelf with no way to tell why — and
+      // that is the ONE case that re-reads. A read with no film answers the
+      // first folder AND says which it was, so opening the sheet for the
+      // first time is one request, not two.
+      if (f && !(d.films || []).some(function (x) { return x.slug === f; })) {
+        castFilm = ''; castFilmSave(''); return loadCast();
+      }
+      castFilm = d.film || f || '';
+      if (castFilm) castFilmSave(castFilm);
+      CAST = d;
+      paintCast();
+    })
+    .catch(function () {});
+}
+function castCount(e) {
+  var bits = [];
+  if (e.clips) bits.push(e.clips + (e.clips === 1 ? ' clip' : ' clips'));
+  if (e.stills) bits.push(e.stills + (e.stills === 1 ? ' still' : ' stills'));
+  if (!bits.length) bits.push('nothing on file yet');
+  if (e.looks.length > 1) bits.push(e.looks.length + ' looks');
+  return bits.join(' · ');
+}
+var CAST_GROUPS = [['person', 'Who'], ['wardrobe', 'What they wear'], ['setting', 'Where']];
+function paintCast() {
+  var btn = $('casttog'), el = $('cast');
+  btn.hidden = false;
+  btn.classList.toggle('on', castOpen);
+  btn.setAttribute('aria-expanded', castOpen ? 'true' : 'false');
+  el.hidden = !castOpen;
+  if (!castOpen) return;
+  if (!CAST) { el.innerHTML = '<div class="none">Reading the library…</div>'; return; }
+  el.innerHTML = '';
+  // the folders — her "diff folders", one film each
+  var films = CAST.films || [];
+  if (films.length > 1) {
+    var fr = document.createElement('div'); fr.className = 'films';
+    films.forEach(function (f) {
+      var b = document.createElement('button'); b.type = 'button';
+      b.textContent = f.name || f.slug;
+      if (f.slug === castFilm) b.className = 'on';
+      b.addEventListener('click', function () {
+        if (f.slug === castFilm) return;
+        castFilm = f.slug; castFilmSave(castFilm); castEnt = ''; CAST = null; paintCast(); loadCast();
+      });
+      fr.appendChild(b);
+    });
+    el.appendChild(fr);
+  }
+  var ents = CAST.entries || [];
+  if (!ents.length) { el.appendChild(node('div', 'none', 'Nobody in this film yet.')); return; }
+  CAST_GROUPS.forEach(function (g) {
+    var mine = ents.filter(function (e) { return e.kind === g[0]; });
+    if (!mine.length) return;
+    el.appendChild(node('div', 'grp', g[1]));
+    mine.forEach(function (e) { el.appendChild(castRow(e)); });
+  });
+}
+function node(tag, cls, text) { var n = document.createElement(tag); n.className = cls; n.textContent = text; return n; }
+function castRow(e) {
+  var d = document.createElement('div'); d.className = 'ent' + (castEnt === e.slug ? ' open' : '');
+  var who = document.createElement('button'); who.type = 'button'; who.className = 'who';
+  who.innerHTML = '<span class="im">' + (e.face ? '<img src="' + esc(e.face) + '" alt="">' : ICONS.image) + '</span>' +
+    '<span class="nm"><b>' + esc(e.name) + '</b><span>' + esc(castCount(e)) + '</span></span>' +
+    '<span class="chev">' + ICONS.chev + '</span>';
+  // ONE LOOK IS ONE TAP. Opening a row to reveal a single chip is a step that
+  // decides nothing — Nurse Edna has one clip and one line, so the row IS the
+  // button. Several looks open, because there the choice is the whole point.
+  who.addEventListener('click', function () {
+    if (e.looks.length === 1) { castApply(e, e.looks[0]); return; }
+    castEnt = castEnt === e.slug ? '' : e.slug;
+    paintCast();
+  });
+  if (e.looks.length === 1) who.querySelector('.chev').innerHTML = '';
+  d.appendChild(who);
+  if (castEnt === e.slug && e.looks.length > 1) {
+    var box = document.createElement('div'); box.className = 'looks';
+    e.looks.forEach(function (l) {
+      var p = castPlan(e, l);
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'lk';
+      b.innerHTML = '<b>' + esc(l.name || l.key) + '</b>' +
+        (p && p.line ? '<i>' + esc(p.line) + '</i>' : '<em>no line yet</em>') +
+        (l.note ? '<em>' + esc(l.note) + '</em>' : '');
+      b.addEventListener('click', function () { castApply(e, l); });
+      box.appendChild(b);
+    });
+    d.appendChild(box);
+  }
+  return d;
 }
 
 // ── The bigger box (the Playground's corner toggle, in shape) ──────────────
@@ -2212,6 +2429,7 @@ takeHandoff();          // moment 1 — AFTER loadCtl, so a hand-off beats the r
 paintFilt();
 applyCols();
 applyView();
+paintCast();      // the button is on the row from the first paint; the shelf is read on the way open
 // the notes read waits for /status, which is what says which chat they file
 // under — and for the jobs, so there are cards for the threads to land on
 loadStatus().then(loadJobs).then(loadNotes);

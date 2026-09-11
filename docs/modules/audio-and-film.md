@@ -722,6 +722,110 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
   only until that changes; `wan-2.7-i2v` is the proven 3s image route. Probed and
   absent: 2.5-fast, 2.5-lite, 2.5-pro, 2.0-lite, 2.0-pro, 1.5-lite. A
   catalogue page is a hint; the model endpoint is the measurement.
+- **THE CHARACTER LIBRARY — `cast.js`, `/api/cast`, the people icon on the
+  footage controls row (2026-09-11, Sophie: "we need a version of 'characters'
+  for footage so i can click a button and it auto adds the line at the top,
+  adding and referencing videos and stills · characters w multiple outfits will
+  have ex, sophie w pajamas vs sophie street clothes · add character icon to
+  footage and have it per film - diff folders · some characters are just stills
+  for now").** One shelf per FILM. A tap on a character — or on one of their
+  outfits — puts that look's references into the strip and the line that names
+  them BY SLOT at the top of the prompt.
+
+  **WHY IT EXISTS.** Every ward clip's references were hunted by hand: the jazz
+  clip's url, three pajama stills, the doctor's 4-second take, and the exact
+  line naming each of them by slot, retyped per shot, per chat, per belt page.
+  That is where the wrong-slot and wrong-outfit bugs came from, and neither
+  shows as an error — the clip draws, of the wrong person, in the wrong
+  clothes. **It spends nothing:** no model call anywhere, and the urls already
+  exist in the Dump and the clip log.
+
+  - **A DOC IS AN ENTRY**, keyed `<film>__<slug>` so two films may both have a
+    `sophie` and neither can reach the other's:
+    `{ film, slug, name, kind: 'person'|'wardrobe'|'setting', note, order,
+    hidden, looks: [ { key, name, line, refs, wear, note } ] }`.
+  - **A LOOK IS A CHARACTER IN ONE OUTFIT** — the references that carry it and
+    the ONE LINE the prompt opens with. `sophie · the blue pajamas` and
+    `sophie · street clothes` are two looks on one character; that is her own
+    example, and it is why a look rather than a character is what a tap lands
+    on.
+  - **THE LINE IS A TEMPLATE OVER THE LOOK'S OWN REFERENCES — `{1}`, `{2}` …
+    — NEVER a literal `[Video1]`, and that is the load-bearing rule.** A slot
+    is decided by what else is already attached, so her ward line
+    `sophie is the woman in [Video1].  she wears the blue hospital pajamas in
+    [Image1], [Image2] and [Image3], NOT the dress in [Video1]` is stored with
+    `{1}` for the clip and `{2} {3} {4}` for the pajamas, and resolves to
+    `[Image2] [Image3] [Image4]` the moment it is attached beside a still she
+    already had. Stored literally it would point at somebody else's stills as
+    soon as a second character rode along.
+  - **`cast-line.js` IS THE ONE RULE** — pure, loaded by `cast.js` on the
+    server and served to the page at `/cast-line.js` (the `pause-plan.js`
+    pattern). So **the sheet shows the exact line the tap will insert**,
+    resolved against the strip as it stands, and the page and the `/plan`
+    route cannot disagree about a slot. It computes the WHOLE strip after the
+    attach — deduped, then ordered images → videos → audio, which is what
+    `footage.slotsOf` numbers and what `orderedRefs` paints — and reads each
+    slot off that. **A test pins it against `footage.slotsOf` directly.**
+  - **EVERY OTHER LOOK ON SCREEN IS RE-RESOLVED AFTER AN ATTACH.** The
+    previews are computed against the strip, so the slot a look would take
+    moved the instant another one landed; a sheet quoting the old ones is the
+    one thing this disclosure must never do. (Verified failing without the
+    repaint.)
+  - **THE PAJAMAS FLOAT AND LIVE IN ONE PLACE** (her rule the same message:
+    "these pajamas float w any patient so keep head off · ex
+    francesca/anastasia gets pjs plus dance photo · same for mayra"). A
+    wardrobe entry is its own row, and a look WEARS it by slug: bare
+    `blue-pajamas` takes the outfit's FIRST look, which is the HEAD-OFF pair,
+    and `blue-pajamas:sophie` names the three-still set her own line counts.
+    Swapping the pajama reference swaps it for every patient at once, and a
+    still in two outfits rides ONCE and keeps one slot.
+  - **THE LINE GOES TO THE TOP, AND NEVER TWICE** — her word ("auto adds the
+    line at the top"), never at the caret; a second tap on the same look adds
+    nothing, because she taps a character, types, and taps it again to check.
+  - **SOME CHARACTERS ARE JUST STILLS** (her words) and that is a normal entry
+    — a look whose references are all images works exactly as one carrying a
+    clip. A character with NOTHING on file is still listed, saying so, because
+    that is how she sees who is waiting for a reference.
+  - **ONE LOOK IS ONE TAP.** Opening a row to reveal a single chip decides
+    nothing — Nurse Edna has one clip and one line, so the row IS the button.
+    Several looks open.
+  - **NO LINE, NO INVENTED WORDING.** A look she has not written a line for
+    gets the barest true sentence there is — the name, then the slots
+    (`Nurse Edna: [Video1].`) — because anything fuller would be a
+    DESCRIPTION of a reference, which is the one thing a prompt here must
+    never carry.
+  - **NOTHING IS DELETED** — `hidden` is the verb for an entry. A LOOK can be
+    removed, because a look is one entry in a list and its references are
+    still in the Dump.
+  - **A READ WITH NO FILM ANSWERS THE FIRST FOLDER**, never every film at once
+    — a shelf is one film, two Sophies on it is a bug, and it saves the page a
+    round trip to find out which one it is looking at. The folder she picked
+    is remembered per phone; one that has gone falls back to the first, which
+    is the only case that re-reads.
+  - **SEEDING: `node scripts/seed-cast-ward.js`** — dry by default, `--go`
+    writes, `--only <slug>` repairs one, `--direct` writes through the Admin
+    SDK (which is what fills a shelf BEFORE the route it feeds is deployed,
+    and is immune to a deploy restart). Every url is out of
+    `docs/mental-hospital/refs/cast.json` or `belt/refs.json`, every clip
+    carries the LABEL the belt pages give it, and the lines are hers VERBATIM
+    wherever a card had one — the script prints how many are mine. Re-running
+    repairs rather than duplicates, but it OVERWRITES a look she has since
+    edited, which is what `--only` is for.
+  - **A 4s TAKE PER CHARACTER WAS ALREADY DONE — MEASURED, not assumed** (her
+    "maybe done already"): ffprobe on every person clip the belt pages name —
+    Nurse Edna 4.00s, Ms. O'Hara 4.04, the doctor + assistant (office and
+    hall) 4.04, the parents 4.04, Michael 4s, all 560×752. **The one that is
+    not is the jazz clip — Sophie's own, 15.1s** — so her looks carry that
+    until the 4s one lands, and the look says so in its note.
+  - Tests: `node scripts/test-cast.js` — the slot arithmetic pure, every plan
+    driven against a strip that ALREADY holds something (a line that resolves
+    right on an empty box is exactly the case that can never catch this), then
+    the real `public/footage.html` headless, MEASURING what is in the prompt
+    box and what the strip really holds after a tap. An attach that computes
+    the right line and never reaches the box, one that reaches it with the
+    library's own stale slots, and one that writes the same sentence twice all
+    look identical in the source.
+
 - **EVERY REFUSAL A DOOR HAS SENT, IN ONE TABLE, CALLED OUT ON THE CARD
   (`video-refusals.js`, 2026-09-10, Sophie: "check for other refusal
   reasons, make sure they're documented and called out").** Measured that
