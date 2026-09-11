@@ -265,7 +265,7 @@ async function startVideo(b, extra) {
   try {
     await logDoc(jobId).set({
       ...videoLog.sentRecord({ jobId, prompt: b.prompt, model: built.model, params: built.params,
-        tag: { chat: b.chat, scene: b.scene, title: b.title, session: b.session, note: b.note } }),
+        tag: { chat: b.chat, scene: b.scene, title: b.title, session: b.session, note: b.note, project: b.project } }),
       provider: 'openrouter',
       ...(extra && typeof extra === 'object' ? extra : {}),
     }, { merge: true });

@@ -143,7 +143,7 @@ function belt() {
       + '</div></section>');
   }));
   return '<meta charset="utf-8"><div class="wrap"><h1>The belt</h1>' + cards.join('') + '</div>'
-    + '<script>var CHAT=\'a-belt-chat\', SHEET=\'belt-fixture\', LIMIT=8000;</script>';
+    + '<script>var CHAT=\'a-belt-chat\', SHEET=\'belt-fixture\', LIMIT=8000;\nvar PROJECT=\'ward\';</script>';
 }
 
 let fails = 0;
@@ -287,6 +287,7 @@ const server = http.createServer((req, res) => {
   ok(hand && hand.model === 'mini' && hand.res === '480p' && hand.ratio === '16:9',
     'hand-off: Mini · 480p · 16:9');
   ok(hand && hand.from === 'a-belt-chat', 'hand-off: it names the belt\'s own chat (' + (hand && hand.from) + ')');
+  ok(hand && hand.project === 'ward', 'hand-off: a belt that declares PROJECT hands it over (' + (hand && hand.project) + ')');
   ok(hand && /storm/.test(hand.title || '') && !/^1 · /.test(hand.title || ''),
     'hand-off: the title is the scene, without its number (' + (hand && hand.title) + ')');
   ok(hand && hand.refs.length === 2 && /img1/.test(hand.refs[0].url),

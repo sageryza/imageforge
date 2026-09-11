@@ -230,6 +230,7 @@ p.mine{font-size:12px;color:#8a8176;margin:6px 0 0}
 
 SCRIPT = r"""
 var CHAT='%s', SHEET='%s', LIMIT=%d;
+var PROJECT='ticky-tack';   // the footage project a Send-to-Footage lands on
 function post(body){ return fetch('/api/chatfeed/verdict',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}); }
 function cost(k){ var s=parseInt(document.querySelector('.secs[data-key="'+k+'"]').value)||0; document.querySelector('.cost[data-key="'+k+'"]').textContent=(s*1.1).toFixed(1)+'¢ at 1.1¢/s (Atlas Mini 480p) · '+(s*4)+'¢ on APIFRAME'; }
 document.querySelectorAll('.p[data-key]').forEach(function(ta){ var k=ta.getAttribute('data-key'), f=ta.getAttribute('data-field')||'p', sv=document.getElementById('sv-'+k+(f==='p'?'':'-'+f)), timer=null;
