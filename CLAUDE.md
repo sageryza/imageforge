@@ -1555,6 +1555,33 @@ them off the reference sheet, not off the old filenames.
   `test-chats-viewer-escape`); a new one needs the same, or a message from her
   between the fillers. Test: `node scripts/test-chats-dribble-merge.js`
   (verified failing against the pre-merge page).
+  **AND EACH REPLY IN A RUN FOLDS ON ITS OWN (2026-09-11, Sophie: "messages w
+  two replies - make it so i can collapse each reply individually").** Nothing
+  above changed: a run is still ONE message with every part open, in the order
+  it was written — her 2026-09-02 correction stands and the parts are never
+  hidden until she taps one. What was missing is that four long turns are four
+  long turns of scrolling with no way to put any of them away. **THE HEADING IS
+  THE FOLD** — the part's own small time line, the whole of it, not a caret to
+  hit (the pinned heading's rule, and judge.js's piles before it) — so
+  `.m-partt` is a `<button>` wearing the class it already had. Four things not
+  to undo: **shut, the part shows its first line beside its time** (a column of
+  bare timestamps is a message she has to reopen to identify, and it is the
+  same line `.m-preview` leads the row with); the tap **stops propagation**,
+  because a tap on `.m-full` toggles the reading-aid autoscroll and pre-fix a
+  tap on that time line really did start the page walking (MEASURED, 72px in a
+  second); **the fold survives a repaint** — `partShut` is a module-level map
+  keyed by the part's own message id, since the thread rebuilds on every poll
+  and a fold living on the node alone springs open seconds later (the Story
+  Room caption's own bug); and it is **MEMORY, never localStorage** — a
+  reload opens everything, which is the safe direction, and this is how she is
+  reading the thread right now rather than a setting. A jump to a folded turn
+  OPENS it (`focusMessage` — landing on a collapsed reply is landing on
+  nothing), and a message that is not a run carries no fold at all. Test:
+  `node scripts/test-chats-part-fold.js` (the real page headless — every
+  assertion a MEASUREMENT, since a heading with the right markup that folds
+  nothing, a fold whose CSS never landed, one that springs open on the next
+  poll, and a tap that also starts the autoscroll all look identical in the
+  source; verified failing 11 pre-fix).
 - **A REPLY CAN BE BLOCKED BY THE SANDBOX EGRESS FILTER, and the symptom is a
   reply stuck as its partial draft (found live 2026-08-10).** The cloud
   environment's proxy scores outbound POST bodies and answered one with a 403
