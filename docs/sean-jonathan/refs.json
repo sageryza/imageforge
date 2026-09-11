@@ -1,0 +1,23 @@
+{
+  "_note": "The beginning of HER OWN Sean/Jonathan scene — the two videos that say who's who. Lifted verbatim off footage job 86532d0c923d401a8b29060dd673670a (2026-09-10 22:38, Mini · 480p · 3:4 · 15s · Atlas, drew in 3m02s). The slot order is hers and is load-bearing: the header names [Video1] as jonathan and [Video2] as sean, and the footage page assigns slots by the order of this list.",
+  "_source_job": "86532d0c923d401a8b29060dd673670a",
+  "whosWho": "sean (brown haired boy, [Video2])\n\njonathan (blond haired boy, [Video1])\n\nsean voice\n\njonathan voice",
+  "refs": [
+    {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/01433479f5292d2a66ffcbd67fb8d570.mov",
+      "kind": "video",
+      "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/01433479f5292d2a66ffcbd67fb8d570-poster.jpg",
+      "name": "IMG_0575.mov",
+      "_slot": "[Video1]",
+      "_who": "jonathan"
+    },
+    {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8635b6017251e49d5ec0c5a491305868.mov",
+      "kind": "video",
+      "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8635b6017251e49d5ec0c5a491305868-poster.jpg",
+      "name": "IMG_4753.mov",
+      "_slot": "[Video2]",
+      "_who": "sean"
+    }
+  ]
+}
