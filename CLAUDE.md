@@ -8095,6 +8095,36 @@ before working on that module. Nothing was deleted — the moved text is verbati
   a clear that empties the box and leaves the references attached, a bank that
   never reached localStorage, and a word drawn where the pill covers it all
   look identical in the source; verified failing pre-fix).
+  **THE WHOLE PROMPT AREA FOLDS, AND THAT IS THE ONE BUTTON TO THE GALLERY
+  (2026-09-11, Sophie: "make the whole prompt area collapse or one button to
+  get to the gallery at bottom").** A **PROMPT** row leads the panel; shut, the
+  panel IS that row and the feed rises to just under the header — MEASURED at
+  390pt on a two-line scene, the panel 491px → 70 and the first clip's card
+  491 → 185. So the fold and the jump are one tap, and it leaves her at the TOP
+  of the gallery rather than parachuting her into the middle. Six things not to
+  undo: it is **one class over the panel** (`.panel.shut`), never a list of rows
+  in script — a BLOCK is a direct child of the panel and blocks are made and
+  joined as she types, so a sweep would have to be re-run by everything that
+  touches one; what it hides is **DISPLAY-hidden and stays in the DOM**, so
+  every value is set the way she left it and `fitPillGap` sees a zero rect;
+  **opening re-fits every block** (a box measured while it was hidden reports no
+  `scrollHeight`, so without it a panel reopened after a reload comes back one
+  line tall); the **project picker moved onto that row** and is the one control
+  a shut panel still draws, because it narrows the FEED as well as the clip and
+  a filter she cannot see from the screen it is filtering is the failure this
+  app keeps getting burned by; **shut, the row says the first words of the block
+  she is in** (and how many blocks there are) in her own case, not the row's
+  caps — at 390pt a 10.5px caps line at .12em fits about four of her words and
+  reads shouted; and **anything that puts words or a reference back OPENS it**
+  (a belt hand-off, a clip's prompt copied back, a reference landing, a last
+  frame re-attached), so nothing can ride hidden. Remembered, and OPEN until she
+  says otherwise. The star goes with it — the whole prompt area, her word — so
+  there is no send from a screen that is showing her the gallery. Test:
+  `node scripts/test-footage-panel-fold.js` (the real page headless — every
+  assertion a MEASUREMENT, since a fold that sets a class and hides nothing, one
+  that leaves the feed where it was, one that folds the picker away with it and
+  one that reopens a box one line tall all look identical in the source;
+  verified failing pre-fix).
   **THE SEED IS ON THE CARD AND IN A BOX SHE CAN TYPE IN (2026-09-10, Sophie:
   "put a seed box that exposes the seed after the clip is drawn and put a copy
   button next to it so I can reuse the seed … make it into a text box so I can
