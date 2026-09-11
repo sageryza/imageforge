@@ -194,7 +194,17 @@
      say, and `fitPillGap` sees a zero rect and reserves nothing for it.
      Shut, the row says what the hidden thing says: how many references, and
      what the buttons are set to. Open it does not — they are right there
-     (the archive summary's don't-say-it-twice rule). */
+     (the archive summary's don't-say-it-twice rule).
+     THE SEED AND THE TWO DRAWERS GO WITH THE BUTTONS (2026-09-11, Sophie:
+     "make the seed text box also disappear when it collapse buttons" · "the
+     recent references button it stays open, even if I close the collapsible
+     folder"). The seed box is a control and sits in the STAR's row (the star
+     itself never folds — it is the one button), and the Recent drawer and the
+     character sheet are siblings of `#controls` rather than children of it, so
+     neither went away with their own toggle. All three follow it now, and the
+     shut row NAMES a seed that is set: a seed pins the clip, so a fold that
+     hid one silently would be the hidden ingredient this label exists to
+     prevent. */
   /* the margin shorthand would beat `.panel > *`'s reserve (same specificity,
      later rule), so the row carries the pill's column itself */
   .fold{display:flex;align-items:center;gap:6px;border:0;background:none;margin:10px var(--pillgap,0px) 6px 0;
@@ -1268,13 +1278,29 @@ function paintFolds() {
   $('reffold').setAttribute('aria-expanded', rShut ? 'false' : 'true');
   $('reffoldlab').textContent = rShut ? 'References · ' + refs.length : 'References';
   $('controls').style.display = cShut ? 'none' : '';
-  if (cShut) recentOpen = false;                 // the drawer goes with its button
+  // THE SEED IS A CONTROL AND FOLDS WITH THEM, though it lives in the STAR's
+  // row — the star is the one button and never folds. DISPLAY-hidden like the
+  // rest, so a folded Go still sends the seed the box holds.
+  $('seedwrap').style.display = cShut ? 'none' : '';
+  // AND THE TWO DRAWERS GO WITH THEIR BUTTONS. Both toggles are inside
+  // `#controls` and hide with it; `#recent` and `#cast` are its SIBLINGS, so
+  // until this they stayed on screen with no control left to close them.
+  // Repainted only when one was really open, so the common path costs nothing.
+  if (cShut && (recentOpen || castOpen)) {
+    if (recentOpen) { recentOpen = false; paintRecent(); }
+    if (castOpen) { castOpen = false; paintCast(); }
+  }
   $('ctlfold').classList.toggle('shut', cShut);
   $('ctlfold').setAttribute('aria-expanded', cShut ? 'false' : 'true');
   var m = modelOf(S.model);
-  $('ctlfoldlab').textContent = cShut
-    ? 'Buttons · ' + [m ? m.label : S.model, S.res, S.ratio, S.seconds + 's'].join(' · ')
-    : 'Buttons';
+  var bits = [m ? m.label : S.model, S.res, S.ratio, S.seconds + 's'];
+  // A SEED SHE SET LEADS THE LABEL — it is the one hidden value that pins the
+  // clip, and it is the rare one (blank is the default and mints a fresh one),
+  // where the other four are always set. The row ellipsizes to give way to the
+  // project picker (MEASURED at 390pt: it reads "Buttons · 2.0 Mini · 480…"),
+  // so anything appended after them cannot be read at all.
+  if (seedVal()) bits.unshift('seed ' + seedVal());
+  $('ctlfoldlab').textContent = cShut ? 'Buttons · ' + bits.join(' · ') : 'Buttons';
 }
 $('reffold').addEventListener('click', function () { setFold('refs', !foldShut('refs')); });
 $('ctlfold').addEventListener('click', function () { setFold('ctl', !foldShut('ctl')); });
