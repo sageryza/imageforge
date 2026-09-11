@@ -2498,6 +2498,21 @@ function quoteBlocks(part, m){
   }
   return out.join('\n');
 }
+// A NEAR MISS on a checklist item: a tap inside the first MISS_PX of the
+// item's own words, right beside its box. The box's invisible hit area
+// (`.mtick::before`) reaches ~5px into the 7px gap before the first letter;
+// this is the rest of the reach, so a thumb that lands one letter in is
+// still read as aimed at the box and the page stays put. Anything further
+// along the words is a tap ON the words (see the `.m-full` tap in renderMsg).
+// Measured off the item's first line box: an inline span's own rect spans
+// every line it wraps onto, and its left edge is the first line's.
+var MISS_PX=16;
+function tickNearMiss(item, e){
+  try{
+    var r=item.getClientRects()[0]||item.getBoundingClientRect();
+    return typeof e.clientX==='number' && e.clientX < r.left + MISS_PX;
+  }catch(_){ return false; }
+}
 function tickList(part, m){
   var lines=part.split('\n'), kind=[], i;
   for(i=0;i<lines.length;i++){
@@ -7912,9 +7927,22 @@ function renderMsg(m){
   // a 19px box. So the whole item — its words, its saved note, its open note
   // box — is off the tap gesture, alongside pre/code. The rest of the message
   // still toggles.
+  // …AND THAT TOOK THE TAP GESTURE OFF MOST OF EVERY REPLY (2026-09-11,
+  // Sophie: "tapping chats no longer scrolls screen - only pill"). A reply
+  // here is mostly lists — a markdown list of two or more, or three bold-led
+  // paragraphs in a row, both wrap every item's WORDS in `.mtitem` — so
+  // exempting the whole item left nothing on the page to tap. The exemption
+  // is the NEAR MISS now: a tap inside the first `MISS_PX` of an item's own
+  // box, right beside the check box (whose invisible hit area already reaches
+  // ~5px into that gap), is the tap she aimed at the box and moves nothing;
+  // a tap on the words further in is a tap on the page and toggles the
+  // reading-aid, exactly as prose does. The saved note and the open note box
+  // stay off the gesture — those are hers to read and write in.
   row.querySelector('.m-full').onclick=function(e){
     if(e.target.closest('pre')||e.target.closest('code')) return;
-    if(e.target.closest('.mtick,.mtitem,.mtnote,.mtnotev')) return;
+    if(e.target.closest('.mtick,.mtnote,.mtnotev')) return;
+    var it=e.target.closest('.mtitem');
+    if(it && tickNearMiss(it, e)) return;
     window.__scrollTap(e);
   };
   row.querySelector('.m-head').onclick=function(){
@@ -10133,6 +10161,38 @@ function openPage(p){
           return;
         }
       }catch(_){}
+      // THE SECOND NET — A SERVED PAGE THAT ARRIVED WITH ITS OWN PILL
+      // (2026-09-11, the double pill on the ward's scenes index). The
+      // interceptor below rewrites a page-to-page link onto the embed url,
+      // but a navigation it cannot see (a script setting location, a form,
+      // a page cached from before the rewrite) still lands a page here that
+      // the server dressed for a browser: `?embed=1` missing, so pill-inject
+      // ran inside the frame and its capsule sits under this viewer's own.
+      // Two pills in one corner, and a tap on the frame's ▶ drives a
+      // scroller this viewer cannot stop. So: stop the frame's own scroller
+      // (its __scrollStop, before ours replaces it), HIDE its capsule and
+      // arrows — a stylesheet with !important, never a removal: the injected
+      // script keeps painting those nodes (a stop repaints the glyphs, its
+      // ResizeObserver flips the capsule's inline display) and a node taken
+      // out of the document throws inside it — and blank the hooks page code
+      // might still call, exactly the way pill-inject's own opt-out branch
+      // does. THIS viewer's pill is the one pill for whatever the frame shows.
+      try{
+        if(doc && doc.getElementById('vtop') && !doc.getElementById('pv-onepill')){
+          try{ if(typeof w.__scrollStop==='function') w.__scrollStop(); }catch(_){}
+          var st=doc.createElement('style'); st.id='pv-onepill';
+          st.textContent='body > .float,#spd,#ptop,#pbot{display:none !important;}';
+          (doc.head||doc.documentElement).appendChild(st);
+          w.__scrollTap=function(){}; w.__pillSync=function(){}; w.__pillTopSync=function(){};
+        }
+        // …and the bar names the page she is now on, not the one she left
+        var seg=lp.slice('/api/chatfeed/page/'.length).split('?')[0].split('#')[0];
+        var onOther=false; try{ onOther=decodeURIComponent(seg)!==String(p.id); }catch(_){ onOther=seg!==String(p.id); }
+        if(bar && onOther){
+          var tt=(doc && doc.title ? String(doc.title).trim() : '')||p.title;
+          var tel=bar.querySelector('.pv-title'); if(tel) tel.textContent=tt;
+        }
+      }catch(_){}
       // THE INTERCEPTOR: catch the link CLICK itself, before any navigation,
       // so the nested app never boots at all. Capture phase on the page's
       // document — it runs before the page's own handlers (the brief's
@@ -10145,7 +10205,35 @@ function openPage(p){
         if(a.target==='_blank' || /^(mailto:|tel:)/i.test(a.getAttribute('href')||'')) return;
         var u; try{ u=new URL(a.href); }catch(_){ return; }
         if(u.origin!==location.origin) return;
-        if(u.pathname.indexOf('/api/chatfeed/page/')===0) return;
+        // A LINK TO ANOTHER SERVED PAGE STAYS IN THE FRAME — AS AN EMBED
+        // (2026-09-11, Sophie: "pill is double pill in some places · it was
+        // in light blue 3d button ward etc · y dies that happen always"). A
+        // scenes-index key is `/api/chatfeed/page/<belt>#j-<key>`, and this
+        // interceptor let it load in place as written — WITHOUT `?embed=1`,
+        // so the server injected its own pill into the belt page while this
+        // viewer's pill stayed in the corner above it: two pills, every time,
+        // on every page-to-page link. The link is rewritten to the embed url
+        // the viewer itself opens pages with (the hash rides along, so the
+        // key still lands on its scene). A hash-only hop on the page she is
+        // already on is left to the browser — no reload, just the scroll.
+        if(u.pathname.indexOf('/api/chatfeed/page/')===0){
+          var here=null; try{ here=w&&w.location; }catch(_){}
+          if(here && here.pathname===u.pathname && u.hash){
+            // the browser would still RELOAD here — the link carries no
+            // `?embed=1`, so its search differs from the frame's — so the
+            // hop is made on the frame's own url: same document, just the
+            // scroll to the anchor
+            e.preventDefault(); e.stopPropagation();
+            try{ w.location.hash=u.hash; }catch(_){}
+            return;
+          }
+          if(u.searchParams.get('embed')==='1') return;
+          e.preventDefault(); e.stopPropagation();
+          u.searchParams.set('embed','1');
+          if(TOKEN && !u.searchParams.get('token')) u.searchParams.set('token',TOKEN);
+          try{ w.location.href=u.href; }catch(_){ frame.src=u.href; }
+          return;
+        }
         e.preventDefault(); e.stopPropagation();
         var chat=u.searchParams.get('chat');
         v.__close();

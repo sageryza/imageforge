@@ -248,19 +248,32 @@ const items = (page, mid) => page.$$eval('#thread .msg[data-mid="' + mid + '"] .
   for (const k of keys) reaches.push(await reach('#thread .msg[data-mid="lst"] .mtick[data-key="' + k + '"]'));
   const clash = reaches.slice(1).filter((r, i) => r.cy - r.up <= reaches[i].cy + reaches[i].down);
   if (!clash.length) ok('no two boxes\' tap areas overlap'); else fail('overlapping targets: ' + JSON.stringify(clash));
-  // a MISS — a tap on the item's own words — leaves the page where it is
+  // a NEAR MISS — a tap one letter into the item, right beside its box —
+  // leaves the page where it is…
   const y2 = await page.evaluate(() => window.scrollY);
-  await page.click(pig + ' + .mtitem');
+  const itemBox = await page.$eval(pig + ' + .mtitem', (s) => { const r = s.getClientRects()[0]; return { left: r.left, top: r.top, h: r.height, w: r.width }; });
+  await page.mouse.click(itemBox.left + 6, itemBox.top + itemBox.h / 2);
   await page.waitForTimeout(700);
   const y3 = await page.evaluate(() => window.scrollY);
-  if (y3 === y2) ok('tapping the words of a checklist item does not start the autoscroll'); else fail('a miss scrolled ' + y2 + ' → ' + y3);
-  // …and the exemption is NARROW: the message's own prose still toggles it
+  if (y3 === y2) ok('a tap one letter into a checklist item is a miss on the box — the page stays put'); else fail('a near miss scrolled ' + y2 + ' → ' + y3);
+  // …BUT THE WORDS ARE STILL THE PAGE (2026-09-11, Sophie: "tapping chats no
+  // longer scrolls screen - only pill"): a reply is mostly list items, so
+  // exempting every item's words left nothing on the page to tap. A tap on
+  // the words proper toggles the reading-aid like prose does.
+  await page.mouse.click(itemBox.left + Math.min(itemBox.w - 4, 120), itemBox.top + itemBox.h / 2);
+  await page.waitForTimeout(700);
+  const y3b = await page.evaluate(() => window.scrollY);
+  await page.evaluate(() => window.__scrollStop && window.__scrollStop());
+  if (y3b !== y3) ok('a tap on a checklist item\'s WORDS still toggles the autoscroll (' + y3 + ' → ' + y3b + ')'); else fail('the words of a list item no longer scroll: ' + y3 + ' → ' + y3b);
+  // …and the message's own prose toggles it as it always did
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const y3c = await page.evaluate(() => window.scrollY);
   await page.click('#thread .msg[data-mid="lst"] .m-full');
   await page.waitForTimeout(700);
   const y4 = await page.evaluate(() => window.scrollY);
   await page.evaluate(() => window.__scrollStop && window.__scrollStop());
   await page.evaluate(() => window.scrollTo(0, 0));
-  if (y4 !== y3) ok('a tap on the message\'s own prose still toggles the autoscroll'); else fail('the prose tap no longer scrolls: ' + y3 + ' → ' + y4);
+  if (y4 !== y3c) ok('a tap on the message\'s own prose still toggles the autoscroll'); else fail('the prose tap no longer scrolls: ' + y3c + ' → ' + y4);
 
   // 4b. a FOR-CLAUDE note: typed, sent — it posts into the thread through
   //     /reply naming the item, rings /wake, then files state:note + the words
