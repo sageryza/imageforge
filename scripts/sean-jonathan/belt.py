@@ -71,7 +71,7 @@ SHEET = 'belt-seanjonathan'
 # A NEW VERSION IS A NEW PAGE and the title says which — the house rule for
 # anything posted, because a posted page is frozen and her Compare tab shows
 # them side by side. Bump this and supersede the one it replaces.
-VERSION = 6
+VERSION = 7
 TITLE = 'Sean & Jonathan — the draft belt v%d' % VERSION
 LIMIT = 8000
 
@@ -249,6 +249,13 @@ def plan():
         # slotted separately by the footage page, so adding one can never move
         # [Video1]/[Video2] out from under her who's-who block. A still that has
         # not been grabbed yet simply does not ride — the card says so instead.
+        # MY OWN LINES — the two things no still and no video can carry, her own
+        # question answered. Read off the drawn clips, never invented, and named
+        # on the card as mine so nothing of mine is ever in her prompt unsaid.
+        mine_lines = [m['line'] for m in R.get('mineLines', [])
+                      if m['on'] == 'all' or c['key'] in m['on']]
+        if mine_lines:
+            head = head + '\n\n' + '\n\n'.join(mine_lines)
         needs = [t for t in things if c['key'] in (t.get('neededBy') or [])]
         got = [t for t in needs if t.get('still')]
         for m, t in enumerate(got):
@@ -267,7 +274,7 @@ def plan():
             tally[k2] = tally.get(k2, 0) + v
         out.append(dict(c, n=i + 1, words=words, head=head, refs=refs, clip=clip,
                         secs=secs, shot=(kind == 'shot'), fixed=sum(mine.values()),
-                        raw=before, invents=invents, named=named,
+                        raw=before, invents=invents, named=named, mineLines=mine_lines,
                         waiting=[t for t in needs if not t.get('still')]))
 
     # EVERY FIX MUST HAVE LANDED, EXACTLY ONCE. A `find` that stopped matching
@@ -288,6 +295,7 @@ def plan():
     out.append(dict(key='sj-cast', name='The cast', n=len(out) + 1, cast=True,
                     refs=[dict(r) for r in pair], shot=False, fixed=0, clip=None,
                     secs=0, words='', head='', raw='', invents=[], waiting=[], named=[],
+                    mineLines=[],
                     stills=[t for t in things if t.get('still')]))
     return out
 
@@ -308,6 +316,10 @@ def notes(c, label, e):
         out.append('<p class="grab">screenshot once it draws: %s</p>' % ' · '.join(
             '<b>%s</b> (for %s)' % (e(t['name']), e(' and '.join(label[x] for x in t['neededBy'])))
             for t in grab))
+    if c.get('mineLines'):
+        out.append('<p class="grab">two lines in that header are <b>mine</b>, not yours: %s '
+                   'Both are read off the clips you have already drawn — nothing else carries '
+                   'them.</p>' % e(' '.join('“%s”' % x for x in c['mineLines'])))
     if c.get('named'):
         out.append('<p class="ip">this names <b>%s</b> (%s) — a drawn clip can fail on '
                    'copyright at the far end. It is unbilled, so it is worth sending as '

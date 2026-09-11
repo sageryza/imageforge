@@ -30,5 +30,23 @@
  ],
  "_added": "2026-09-11, Sophie, sending IMG_4816.mov: \"name this video as jonathan, the first video, then this one) (two takes) and say he's wearing the navy sweater in the new video and he's 5'10 and three quarters, sean is 5'10 and six eighths (leave the joke math)\". So jonathan has TWO takes, [Video1] and [Video3], and the new one is appended rather than inserted — inserting it would have made sean [Video3] and rewritten who is who on every card already on file.",
  "_jokemath": "SIX EIGHTHS IS THREE QUARTERS. They are the same height and that is the joke — her words, and 'leave the joke math' is her saying so. NEVER normalise it.",
- "_glasses": "UNRESOLVED, and hers to call: jonathan wears glasses in [Video1] and the two drawn clips, and NOT in [Video3]. Two takes that disagree about glasses is the one thing in here a model cannot reconcile on its own."
+ "_glasses": "UNRESOLVED, and hers to call: jonathan wears glasses in [Video1] and the two drawn clips, and NOT in [Video3]. Two takes that disagree about glasses is the one thing in here a model cannot reconcile on its own.",
+ "_mine": "`mineLines` is MINE, not hers, and the belt says so on the card. It answers her own question — 2026-09-11, \"do u think there's any continuity lost that needs words?\" — with the two things no still and no video can carry. Every one is READ OFF the drawn clips rather than invented, and each is one line.",
+ "mineLines": [
+  {
+   "line": "jonathan wears his glasses.",
+   "why": "her two takes disagree: he has them in [Video1] and in both drawn clips, and not in [Video3]. Nothing but a word can settle which, and the drawn clips are the film.",
+   "on": "all"
+  },
+  {
+   "line": "night, the lamps on, dark outside.",
+   "why": "cards 1 to 6 are ONE continuous evening — the drawn clips are lamp-lit with the windows dark — and nothing in a still or a reference says what time it is, so a kitchen drawn in daylight would fight the clip before it. Off after weeks pass.",
+   "on": [
+    "sj-c",
+    "sj-d",
+    "sj-1",
+    "sj-2"
+   ]
+  }
+ ]
 }

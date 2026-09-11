@@ -15,7 +15,7 @@ shape the belt hands over.
 | her typos, fixed on the way onto the page | `typos.json` |
 | what the model invents, and who has to match it | `continuity.json` |
 | the still grabber | `scripts/sean-jonathan/grab-still.js` |
-| the live page | `sean-jonathan-script` → Compare tab, *Sean & Jonathan — the draft belt v5* (`Gl0oN5KcfHjTzbIpHrhw`) |
+| the live page | `sean-jonathan-script` → Compare tab, *Sean & Jonathan — the draft belt v7* (`7nYSMm1CV0wH2Php1TpC`) |
 
 ## THE RUNNING ORDER, AND WHY IT IS HERS
 
@@ -75,6 +75,34 @@ the page; one that matched twice would rewrite a scene she never looked at.
 unclosed quote, one word that is plainly another (`rubs` → `runs`, in a sentence
 that already says *"about to run into the kitchen"*). Anything where the fix
 could go two ways is NOT a fix — it goes to her as a question instead.
+
+## TWO LINES ARE MINE, AND THE CARD SAYS SO
+
+2026-09-11, Sophie: *"do u think there's any continuity lost that needs words?"*
+Yes — two things, and neither can be carried by a still or a reference video.
+They live in `mineLines` in `refs.json`, apart from her own who's-who block, and
+the card names them as mine word for word.
+
+- **"jonathan wears his glasses."** — her two takes disagree. He has them in
+  `[Video1]` and in both drawn clips; he does not in `[Video3]`. Nothing but a
+  word settles which, and the drawn clips are the film.
+- **"night, the lamps on, dark outside."** — on `sj-c`, `sj-d`, `sj-1` and `sj-2`
+  only. Cards 1 to 6 are ONE continuous evening (the drawn clips are lamp-lit
+  with the windows dark) and nothing in a still says what time it is, so a
+  kitchen drawn in daylight would fight the clip before it. Off after weeks pass.
+
+Both are READ OFF the drawn clips rather than invented. **The six of wave 1 were
+sent before these existed**, so they carry neither.
+
+## STILL OPEN, HERS TO CALL
+
+- **Where the dining table lives.** Her script says "dining room table" and the
+  apartment in the clips is one open space. If the tea party draws its own
+  dining room, "get out" walking from the table to the front door loses its
+  geography.
+- **What sean is wearing after the waiter's outfit.** He puts it on inside the
+  tea party; "get out" follows immediately and nothing says whether he still
+  has it on.
 
 ## THE ROOMS ARE SCREENSHOTS — `continuity.json`
 
