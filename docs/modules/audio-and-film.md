@@ -957,9 +957,18 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     francesca/anastasia gets pjs plus dance photo · same for mayra"). A
     wardrobe entry is its own row, and a look WEARS it by slug: bare
     `blue-pajamas` takes the outfit's FIRST look, which is the HEAD-OFF pair,
-    and `blue-pajamas:sophie` names the three-still set her own line counts.
-    Swapping the pajama reference swaps it for every patient at once, and a
-    still in two outfits rides ONCE and keeps one slot.
+    and `blue-pajamas:sophie` names her own set. Swapping the pajama
+    reference swaps it for every patient at once, and a still in two outfits
+    rides ONCE and keeps one slot. **SOPHIE'S SET IS ONE FULL-BODY STILL
+    SINCE 2026-09-11 (her call on the first Wan job: "just the full body
+    pajama, no tape pocket or second, and note that everywhere")** — "A —
+    Sophie alone" (`52a036…`, head to shin, eyes blurred) rides alone, and
+    her line reads `she wears the blue hospital pajamas in {2}` where it
+    counted `{2}, {3} and {4}` (A, "C — teacher cropped out" and the tape
+    pocket) on every ward clip before. The head-off pair for the OTHER
+    patients still carries the tape pocket; taking it off there is hers to
+    say. Changed on the live shelf, in `scripts/seed-cast-ward.js`, and in
+    the wan-test job.
   - **THE LINE GOES TO THE TOP, AND NEVER TWICE** — her word ("auto adds the
     line at the top"), never at the caret; a second tap on the same look adds
     nothing, because she taps a character, types, and taps it again to check.

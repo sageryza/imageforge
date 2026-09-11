@@ -68,7 +68,15 @@ sale, one mixed `refers` array, Alibaba's slot words `Image 1` / `Video 1`;
 from a container `node scripts/atlascloud-send.js --job job.json [--dry]`
 sends THROUGH the module so the job is logged the moment it is sent). The
 first job — her md-31b climax, every reference off the cast shelf — is
-written up in `docs/mental-hospital/wan-test/` and waits on her "go".**
+written up in `docs/mental-hospital/wan-test/` and was SENT on her go
+2026-09-11 (Atlas job `27fcbe6e73354f0599715eb38dee352f`, 15s · 480p ·
+16:9, ~60¢). **AND SOPHIE'S PAJAMA REFERENCE IS ONE FULL-BODY STILL FROM
+THAT GO ON (Sophie: "just the full body pajama, no tape pocket or second,
+and note that everywhere")** — "A — Sophie alone" (`52a036…`) alone; "C —
+teacher cropped out" and the tape pocket are off her line and off the cast
+shelf's `blue-pajamas:sophie` look (the head-off pair the OTHER patients
+wear still carries the pocket — hers to drop). A belt card that still
+names three pajama stills is out of date, not a rule.**
 
 **Every FIVE turns, not every turn (2026-09-07, Sophie: "change the rule to
 every 5 turns")** — the hook's reminder fires on every fifth prompt of a
