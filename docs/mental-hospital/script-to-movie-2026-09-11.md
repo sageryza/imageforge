@@ -283,3 +283,42 @@ cheaper than anyone sells it.
   https://www.seedance.tv/blog/seedance-2-5-timestamp-prompts
 - The honest-review consensus — https://mstudio.ai/insights/best-script-to-video-tools-2026 ·
   https://www.screenweaver.ai/blog/script-to-video-ai-tools-compared-2026
+
+---
+
+## MEASURED 2026-09-11 — Mini DOES cut between numbered shots, and the face holds
+
+Sophie: "yes lay out test · pick 3 scenes · go · spend less than $1." Three
+15-second Mini clips through Atlas, 480p 16:9, her own reference set from the
+faint clip (the jazz clip as `[Video1]`, the pajamas still as `[Image1]`),
+her scene text verbatim split into `Shot 1 —` / `Shot 2 —` / `Shot 3 —` lines
+with no timestamps. Atlas billed **251,518 tokens each** (the reference
+videos ride as tokens on top of the 144,510 the picture alone costs), so
+about **29¢ a clip, ~86¢ total** by the token count — Atlas has no billing
+read, so that is an estimate. Cuts measured with ffmpeg `scene>0.3`; the
+five-frame strips are on the Compare page *Mini multi-shot test v1* in the
+`continuity-characters-research` chat.
+
+- **C — "Tomorrow?" (3 shots, Sophie + the doctor):** cut **three times**
+  — 4.2s, 5.9s, 8.2s — wide two-shot with the assistant behind them → the
+  doctor's close-up, arms crossed → Sophie's close-up, lip trembling. Same
+  face, same doctor, same office across every cut. The clean win.
+- **B — the tape sculptures (2 shots):** cut **once** at 9.1s — wide of her
+  taping the contraption to the wall → close on her hands and the roll. Same
+  face, same room.
+- **A — the tray (2 shots):** **no cut** — one continuous take that does
+  both actions in order; and in the second half the other patients vanish
+  from the background and the tray slides to a different spot. So a
+  single-take Mini clip drifts INSIDE the take; a cut is where it re-anchors.
+
+So the 2.0 guides are right that Mini ignores exact timecodes, and the
+ordered-shot form works: **2 of 3 clips cut where asked, 3 of 3 held the
+face across the clip.** What that does to the draft: a scene that is now two
+or three cards can be one 15-second Mini card at ~17-29¢ with the continuity
+inside it free — and shot/reverse-shot dialogue (C) is exactly the shape it
+does best. A's miss suggests two ACTIONS in one place read as one shot; two
+FRAMINGS (wide → close) read as a cut.
+
+Jobs on the log under `chat: continuity-characters-research`, scenes
+`mini-shots-A-tray` · `mini-shots-B-tape` · `mini-shots-C-tomorrow`; each
+carries its `lastFrame`.
