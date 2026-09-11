@@ -1,0 +1,32 @@
+{
+ "chat": "continuity-characters-research-01mtjq",
+ "scene": "md-31b",
+ "title": "Wan 3.0 test v2 — Climax 3 at 30s, 3:4 — the grin, the ghost, You can go now",
+ "session": "01Mtjqs3mHZwW6U98TbyUu18",
+ "note": "v1 again with three fields changed on her word, 2026-09-11: 'ok just try the same, vids n all at 30s' / 'wait make it 3:4' / '480p'. Same prompt, same four references, same order. 30s is Wan 3.0's ceiling on this door; the two reference videos are 8.1s together, inside the 15s input cap.",
+ "model": "alibaba/wan-3.0/reference-to-video",
+ "seconds": 30,
+ "res": "480p",
+ "ratio": "3:4",
+ "audio": true,
+ "images": [
+  "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png",
+  "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/7e4069ef6345be703f51b480f96edd90.png"
+ ],
+ "videos": [
+  "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/ward-refs/jazz-best4s-1789011108116.mp4",
+  "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e9a630abb4fc88d8178d02e49389d727.mp4"
+ ],
+ "audios": [],
+ "promptFile": "climax3b-wan-v1.prompt.txt",
+ "refNames": {
+  "Image 1": "A — Sophie alone, the full-body pajama still (the ONE pajama still, her call 2026-09-11)",
+  "Image 2": "the office — the doctor in his chair, the assistant at the door (the shelf's setting still, a frame of Video 2)",
+  "Video 1": "the jazz, best 4s (4.06s)",
+  "Video 2": "the doctor and the assistant — office, eye level (4.04s)"
+ },
+ "mine": [
+  "nothing new: the prompt is byte-for-byte climax3b-wan-v1.prompt.txt, the references are the same four in the same order. Only seconds (15 → 30), ratio (16:9 → 3:4) and the title changed.",
+  "the assistant's ruling-out line is STILL IN, and v1 measured that it does not hold — she is in Video 2 and Image 2, so she may appear again. Kept because 'the same, vids n all' means the same references and the same words."
+ ]
+}
