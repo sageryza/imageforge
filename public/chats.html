@@ -400,6 +400,34 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .m-count{font-family:-apple-system,sans-serif; font-size:10px; color:var(--ink2);}
 .m-part+.m-part{margin-top:16px; padding-top:12px; border-top:1px solid var(--line);}
 .m-partt{font-family:-apple-system,sans-serif; font-size:10px; color:var(--ink2); margin-bottom:6px;}
+/* EACH REPLY IN A RUN FOLDS ON ITS OWN (2026-09-11, Sophie: "messages w two
+   replies - make it so i can collapse each reply individually"). THE HEADING
+   IS THE FOLD — the part's own small time line, the whole of it, not a caret
+   to hit (the pinned heading's rule, and judge.js's piles before it) — so it
+   is a <button> wearing `.m-partt`, the same furniture it already was.
+   PARTS OPEN BY DEFAULT and nothing is hidden until she taps one: her
+   correction to the first cut of the merge stands ("i need the messages
+   combined into one message, so i can read them in the right order, not
+   separated and hidden"). SHUT, the part shows its first line beside its
+   time, so she can tell which reply she put away — a row of bare timestamps
+   is a message she has to reopen to identify. The fold is in MEMORY, for this
+   visit (`partShut`): the thread rebuilds on every poll, so it has to survive
+   a repaint or a fold springs open under her (the Story Room caption's own
+   bug), and a reload opens everything, which is the safe direction. */
+button.m-partt{display:flex; align-items:center; gap:8px; width:100%; text-align:left;
+  border:none; background:none; padding:7px 0; margin:0 0 4px; min-height:30px;
+  box-sizing:border-box; cursor:pointer; color:var(--ink2); font:inherit;
+  font-family:-apple-system,sans-serif; font-size:10px;
+  -webkit-tap-highlight-color:transparent;}
+.m-partt .mp-t{flex:none;}
+.m-partt .mp-chev{width:12px; height:12px; flex:none; display:block; order:3;
+  margin-left:auto; transition:transform .16s ease; transform:rotate(180deg);}
+.m-part.shut .m-partt .mp-chev{transform:none;}
+.m-partt .mp-pv{display:none;}
+.m-part.shut .m-partt .mp-pv{display:block; flex:1; min-width:0; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap;
+  font-family:'EBGaramond',Georgia,serif; font-size:14px; color:var(--ink2);}
+.m-part.shut .m-partb{display:none;}
 .msg.flash{background:color-mix(in srgb, var(--rose) 16%, var(--paper)); border-radius:8px;}
 .m-head{display:flex; gap:8px; align-items:baseline;}
 .m-chat{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2);}
@@ -7715,6 +7743,11 @@ function renderList(el,g,names){
 // touches the data, the home list, the Update tab, the Questions view or the
 // counts — a merged reply is still its own doc everywhere but this one scroll.
 var MERGE_MS=60*60*1000;
+// Which parts of a run she has folded away — keyed by the part's OWN message
+// id, in memory for this visit (see the `.m-partt` note in the styles). The
+// thread rebuilds on every poll, so a fold that lived on the node alone would
+// spring open under her a few seconds after she tapped it.
+var partShut={};
 function mergePlan(rendered, plan){
   var lead={}, hid={};
   function foldable(m){ return !!m && m.from!=='sophie' && !m.working && !m.bookmarked; }
@@ -7742,7 +7775,17 @@ function renderMsg(m){
   var first=parts?parts[0]:m;
   var firstLine=plain((first.tldr||first.text||'').split('\n')[0]).slice(0,140);
   var body=parts
-    ? parts.map(function(p){ return '<div class="m-part" data-mid="'+esc(String(p.id||''))+'"><div class="m-partt">'+ago(p.created)+'</div>'+foldBody(p.text, p.head, p.tail, p)+'</div>'; }).join('')
+    ? parts.map(function(p){
+        var pid=String(p.id||''), shut=!!partShut[pid];
+        // the first line is what the shut heading shows, so a folded reply is
+        // still identifiable — the same line `.m-preview` leads the row with
+        var pv=plain((p.tldr||p.text||'').split('\n')[0]).slice(0,120);
+        return '<div class="m-part'+(shut?' shut':'')+'" data-mid="'+esc(pid)+'">'
+          +'<button type="button" class="m-partt" aria-expanded="'+(shut?'false':'true')+'">'
+          +'<span class="mp-t">'+esc(ago(p.created))+'</span>'
+          +'<span class="mp-pv">'+esc(pv)+'</span>'
+          +CHEV.replace('hb-chev','mp-chev')+'</button>'
+          +'<div class="m-partb">'+foldBody(p.text, p.head, p.tail, p)+'</div></div>'; }).join('')
     : foldBody(m.text, m.head, m.tail, m);
   row.innerHTML='<div class="m-head"><span class="m-chat'+(m.from==='sophie'?' sophie':'')+'">'
     +(m.from==='sophie'?'me':'claude')+'</span><span class="m-time">'+ago(m.created)+'</span>'
@@ -7758,6 +7801,19 @@ function renderMsg(m){
       var body=ft.nextElementSibling, open=body.hasAttribute('hidden');
       if(open){ body.removeAttribute('hidden'); ft.setAttribute('aria-expanded','true'); ft.classList.add('open'); }
       else { body.setAttribute('hidden',''); ft.setAttribute('aria-expanded','false'); ft.classList.remove('open'); }
+    };
+  });
+  // EACH PART OF A RUN FOLDS ON ITS OWN — the heading IS the fold, so the
+  // whole time line is the target rather than a caret. Stops propagation so a
+  // tap never also toggles the reading-aid autoscroll under it.
+  row.querySelectorAll('.m-partt').forEach(function(ph){
+    ph.onclick=function(e){ e.stopPropagation();
+      var pe=ph.closest('.m-part'); if(!pe) return;
+      var shut=!pe.classList.contains('shut');
+      pe.classList.toggle('shut', shut);
+      ph.setAttribute('aria-expanded', shut?'false':'true');
+      var pid=pe.dataset.mid;
+      if(pid){ if(shut) partShut[pid]=1; else delete partShut[pid]; }
     };
   });
   // The list ticks: hers, saved on the message doc (`ticks`, keyed by the
@@ -9820,6 +9876,12 @@ function focusMessage(name, id, noFetch){
   if(row){
     row.classList.add('open');
     var part=row.dataset.mid!==sid && row.querySelector('.m-part[data-mid="'+sid+'"]');
+    // a part she folded away is OPENED by the jump — landing on a collapsed
+    // reply is landing on nothing, and the jump is her asking for that turn
+    if(part && part.classList.contains('shut')){
+      part.classList.remove('shut'); delete partShut[sid];
+      var ph=part.querySelector('.m-partt'); if(ph) ph.setAttribute('aria-expanded','true');
+    }
     if(part) part.scrollIntoView({block:'center'}); else row.scrollIntoView({block:'center'});
     row.classList.add('flash');
     setTimeout(function(){ row.classList.remove('flash'); }, 2400);
