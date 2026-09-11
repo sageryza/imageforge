@@ -518,6 +518,115 @@ function sheetSeam(fullPrompt, panels) {
   };
 }
 
+/**
+ * panelParse — a filed SHEET read back into its panels, so the Playground
+ * door can slot them into the boxes instead of one wall of text (2026-09-06,
+ * Sophie, on the uncut 3x3 in her Assets tab: "when i press copy on the
+ * original uncut grid it shud slot all 9 into panels").
+ *
+ * Takes the RECORD — { style, content, label, caption } — and answers
+ * { count, across, down, panels, via } or null. Null means "not a sheet, or
+ * not readable as one": the door then sends the one prompt it always sent.
+ * A panel is never dropped and never padded; a split that does not come out
+ * at exactly N is null.
+ *
+ * THE MARKERS, in order, and none of them is the shape of the content alone:
+ *   1. A CUT PANEL IS NEVER A SHEET. Its caption carries the `1/9 (4K)` slot
+ *      (size-tier.js cutSize), and its content is one panel — her 2026-08-27
+ *      rule that a panel's button copies "into the single picture … not the
+ *      whole panel". A fraction in the caption answers null before anything
+ *      else is read.
+ *   2. THE GRID SENTENCE — panelBlock's own opening line ("This page is a 3x3
+ *      grid of 9 separate panels …" / "a single row of N …" / "a single column
+ *      of N …"), read for N wherever it sits: a server-filed sheet carries it
+ *      in the style half (sheetSeam puts everything before the panel lines in
+ *      the prefix), a container-filed one may carry it at the head of the
+ *      content. `via: 'grid'`.
+ *   3. THE LABEL'S OWN GRID, for a sheet filed WITHOUT the sentence — the
+ *      shape the mental-hospital-storyboard chat filed (style half = wrapper +
+ *      [content], content = the panels joined by a blank line, label "The
+ *      whole 3x3 sheet — …"). `AxB` in the label, and only when that is a grid
+ *      this module knows, so a stray number pair cannot invent one. `via:
+ *      'label'`. The honest fix at the source is to file the exact sent text,
+ *      grid sentence included; this rung is for the records already on file.
+ *
+ * THE PANELS, once N is known:
+ *   - Labeled lines — `Panel k (name): …` — are the server's shape. Each such
+ *     line opens a panel and the lines after it belong to that panel until the
+ *     next label, so a panel typed across several lines survives. The numbers
+ *     must run 1..N; anything else is null.
+ *   - Otherwise the content splits on BLANK lines (the container join), and a
+ *     single newline inside a panel stays inside it. Exactly N or null.
+ * A leading grid sentence in the content is stripped before either read (it
+ * was the sent text's opening line, not a panel).
+ */
+const GRID_SENTENCE = /This page is (?:a (\d+)x(\d+) grid of (\d+) separate panels|a single row of (\d+) separate panels|a single column of (\d+) separate panels)\b/;
+const PANEL_LINE = /^Panel\s+(\d+)\s*(?:\([^)]*\))?\s*:\s?(.*)$/;
+const CUT_CAPTION = /\b\d+\s*\/\s*\d+\s*\(/;      // the `1/9 (4K)` size slot
+
+function gridOf(across, down) {
+  const hit = Object.keys(GRIDS).find((k) => GRIDS[k].across === across && GRIDS[k].down === down);
+  return hit ? { count: Number(hit), across, down } : null;
+}
+
+function gridFromSentence(text) {
+  const m = GRID_SENTENCE.exec(String(text || ''));
+  if (!m) return null;
+  if (m[1]) {
+    const across = Number(m[1]), down = Number(m[2]), count = Number(m[3]);
+    return across * down === count ? { count, across, down } : null;
+  }
+  if (m[4]) return { count: Number(m[4]), across: Number(m[4]), down: 1 };
+  return { count: Number(m[5]), across: 1, down: Number(m[5]) };
+}
+
+function gridFromLabel(label) {
+  const m = /\b(\d)\s*[x×]\s*(\d)\b/i.exec(String(label || ''));
+  return m ? gridOf(Number(m[1]), Number(m[2])) : null;
+}
+
+function panelParse(rec) {
+  const r = rec || {};
+  if (CUT_CAPTION.test(String(r.caption || ''))) return null;
+  let content = String(r.content || '').replace(/\r\n/g, '\n').trim();
+  if (!content) return null;
+  let grid = gridFromSentence(r.style);
+  let via = 'grid';
+  // The sentence may lead the content instead — strip it either way, it is
+  // not a panel.
+  const lead = content.split('\n')[0];
+  const leadGrid = gridFromSentence(lead);
+  if (leadGrid) {
+    if (!grid) grid = leadGrid;
+    content = content.slice(lead.length).replace(/^\s+/, '');
+  }
+  if (!grid) { grid = gridFromLabel(r.label); via = 'label'; }
+  if (!grid || !content) return null;
+  const n = grid.count;
+  let panels;
+  const lines = content.split('\n');
+  if (PANEL_LINE.test(lines[0].trim())) {
+    panels = [];
+    let seq = 0;
+    for (const line of lines) {
+      const m = line.trim().match(PANEL_LINE);
+      if (m) {
+        if (Number(m[1]) !== seq + 1) return null;
+        seq++;
+        panels.push(m[2]);
+      } else if (panels.length) {
+        panels[panels.length - 1] += '\n' + line;
+      }
+    }
+    panels = panels.map((p) => p.trim());
+  } else {
+    panels = content.split(/\n[ \t]*\n+/).map((p) => p.trim()).filter(Boolean);
+  }
+  if (panels.length !== n) return null;
+  return { count: n, across: grid.across, down: grid.down, panels, via };
+}
+
 return { GRIDS, SHAPES, sheetFor, derive, positions, layoutWords, panelBlock,
-  CAST_INTRO, CAST_INTRO_ONE, castRows, castBlock, castParse, cellRects, applySheet, findSeams, seamBoxes, sheetSeam };
+  CAST_INTRO, CAST_INTRO_ONE, castRows, castBlock, castParse, cellRects, applySheet, findSeams, seamBoxes, sheetSeam,
+  GRID_SENTENCE, panelParse };
 }));

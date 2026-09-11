@@ -426,5 +426,76 @@ console.log('\nsheetSeam — the sheet’s own verbatim seam');
   ok(sheetGrid.sheetSeam(full, []) === null, 'no panels → null');
 }
 
+console.log('\npanelParse — a filed sheet read back into its panels');
+// 2026-09-06, Sophie, on the uncut 3x3 in her Assets tab: "when i press copy
+// on the original uncut grid it shud slot all 9 into panels". The door sends
+// `?panels=&grid=` for a sheet and `?prompt=` for everything else, and THIS is
+// what decides which — pinned against panelBlock, the one writer of the grid
+// sentence and the panel lines, so a reword of the block fails here and not in
+// her hand.
+{
+  const panels = ['a fox by a well', 'a moon over water\nand its reflection', 'a boat',
+    'a key in a lock', 'a bell', 'a crow', 'a hat', 'a well', 'a door'];
+  const cast = [{ name: 'Joan', description: 'long black hair' }];
+  const head = 'STYLE PREFIX — copy the drawing style.';
+  const tail = 'THE TAIL — minimal text.';
+  const full = [head, sheetGrid.castBlock(cast), sheetGrid.panelBlock(9, panels), tail].join('\n\n');
+  // (a) THE SERVER'S SHAPE — sheetSeam's halves, as fileCreationDoc files
+  //     them: the grid sentence in the PREFIX, the labeled lines as the content.
+  const seam = sheetGrid.sheetSeam(full, panels);
+  const style = [seam.prefix, '[content]', seam.suffix].join('\n\n');
+  const a = sheetGrid.panelParse({ style, content: seam.content, label: 'the sheet — 9 panels',
+    caption: 'gpt-image-2 · medium · 4K' });
+  ok(!!a && a.count === 9 && a.across === 3 && a.down === 3 && a.via === 'grid',
+    'a server-filed sheet reads N off the grid sentence in its style half');
+  ok(!!a && JSON.stringify(a.panels) === JSON.stringify(panels),
+    'and every panel comes back VERBATIM, labels off, a two-line panel intact');
+  // (b) THE CONTAINER SHAPE — draw-panel-sheet.js's caller files the panels
+  //     joined by a blank line, with the grid sentence still in the style half.
+  const b = sheetGrid.panelParse({ style, content: panels.join('\n\n'),
+    label: 'The whole 3x3 sheet — uncut', caption: 'gpt-image-2 · medium · 4K' });
+  ok(!!b && b.count === 9 && JSON.stringify(b.panels) === JSON.stringify(panels),
+    'a container-filed sheet (blank-line join) splits back into the same nine');
+  // (c) THE mental-hospital-storyboard SHAPE — no grid sentence anywhere; the
+  //     label's own "3x3" is what says N (measured on the live records
+  //     2026-09-06: style = wrapper + [content], content = nine chunks).
+  const bare = [head, sheetGrid.castBlock(cast), '[content]', tail].join('\n\n');
+  const c = sheetGrid.panelParse({ style: bare, content: panels.join('\n\n'),
+    label: 'The whole 3x3 sheet — Sandy mirror, uncut', caption: 'gpt-image-2 · medium · 4K' });
+  ok(!!c && c.count === 9 && c.via === 'label' && JSON.stringify(c.panels) === JSON.stringify(panels),
+    'a sheet filed without the sentence reads N off the label’s own 3x3');
+  ok(sheetGrid.panelParse({ style: bare, content: panels.join('\n\n'),
+    label: 'nine chunks, no grid named', caption: 'gpt-image-2 · medium · 4K' }) === null,
+    'no sentence and no AxB in the label → null, never a count read off the shape of the text');
+  ok(sheetGrid.panelParse({ style: bare, content: panels.slice(0, 4).join('\n\n'),
+    label: 'a 7x7 sheet', caption: '' }) === null,
+    'an AxB no grid knows (7x7) invents nothing');
+  // The grid sentence leading the CONTENT (a chat that filed the whole block
+  // as her words) is stripped, not counted as a panel.
+  const d = sheetGrid.panelParse({ style: bare, content: sheetGrid.panelBlock(4, panels.slice(0, 4)),
+    label: '', caption: '' });
+  ok(!!d && d.count === 4 && JSON.stringify(d.panels) === JSON.stringify(panels.slice(0, 4)),
+    'a grid sentence at the head of the content says N and is not a panel');
+  // A single row / single column sentence reads too.
+  const row2 = sheetGrid.panelParse({ style: 'This page is a single column of 2 separate panels, one above the other — …',
+    content: 'top words\n\nbottom words', label: '', caption: '' });
+  ok(!!row2 && row2.count === 2 && row2.down === 2 && row2.panels[1] === 'bottom words',
+    'a single-column sentence reads N and its shape');
+  // (d) A CUT PANEL IS NEVER A SHEET — the `1/9 (4K)` caption rules it out
+  //     before anything is read, her 2026-08-27 rule.
+  ok(sheetGrid.panelParse({ style, content: 'a fox by a well', label: '1. The fox — 9-panel sheet',
+    caption: 'gpt-image-2 · medium · 1/9 (4K)' }) === null,
+    'a cut panel (1/9 caption) is null even with the grid sentence in its style half');
+  // (e) NEVER DROP, NEVER PAD — a split that misses N is null outright.
+  ok(sheetGrid.panelParse({ style, content: panels.slice(0, 8).join('\n\n'), label: '', caption: '' }) === null,
+    'eight chunks under a 9-grid → null (never padded)');
+  ok(sheetGrid.panelParse({ style, content: panels.concat(['a tenth']).join('\n\n'), label: '', caption: '' }) === null,
+    'ten chunks under a 9-grid → null (never dropped)');
+  const skewed = seam.content.replace('Panel 3 (', 'Panel 4 (');
+  ok(sheetGrid.panelParse({ style, content: skewed, label: '', caption: '' }) === null,
+    'labeled lines out of sequence → null');
+  ok(sheetGrid.panelParse({ style, content: '', label: '', caption: '' }) === null, 'no content → null');
+}
+
 console.log(fails ? `\n${fails} FAILED` : '\nall good');
 process.exit(fails ? 1 : 0);
