@@ -49,11 +49,39 @@ const scenes = body.split(/\r?\n[ \t]*cut[ \t.!:]*(?=\r?\n)/).map((s) => s.trim(
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
 
-ok(scenes.length === 6, 'her script has 6 scenes — her own `cut` lines (' + scenes.length + ')');
-ok(html.match(/<section class="card"/g).length === scenes.length,
-  'one card a scene, no more and no fewer');
-scenes.forEach((s, i) => ok(html.includes(esc(s)),
+const scenes2 = (fs.readFileSync(MD, 'utf8')
+  .split('<!-- SCENES-2 BEGIN -->')[1].split('<!-- SCENES-2 END -->')[0])
+  .split(/\r?\n[ \t]*cut[ \t.!:]*(?=\r?\n)/).map((s) => s.trim()).filter(Boolean);
+const shot = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs', 'sean-jonathan', 'shot.json'), 'utf8')).shot;
+
+ok(scenes.length === 6, 'her first message is 6 scenes — her own `cut` lines (' + scenes.length + ')');
+ok(scenes2.length === 2, 'her second message is 2 scenes (' + scenes2.length + ')');
+ok(html.match(/<section class="card"/g).length === scenes.length + scenes2.length + shot.length,
+  'one card a scene across both messages plus the two already shot ('
+  + (scenes.length + scenes2.length + shot.length) + ')');
+[...scenes, ...scenes2].forEach((s, i) => ok(html.includes(esc(s)),
   'scene ' + (i + 1) + ' is on the page VERBATIM (' + s.length + ' chars)'));
+// the two drawn scenes carry the prompt the DOOR received, split into her own
+// header and her own action — every character of it must still be on the page
+shot.forEach((j) => ok(j.prompt.split(/\n\s*\n/).every((para) => html.includes(esc(para.trim()))),
+  'shot scene ' + j.id.slice(0, 8) + ' is on the page as the door received it'));
+
+// HER WORDS DECIDE THE ORDER — the chain, asserted as the running order rather
+// than as prose. Reading the card keys off the page is the only honest way: a
+// RUNNING list that says one thing and renders another looks fine in source.
+const order = [...html.matchAll(/<section class="card"[^>]*data-key="([^"]+)"/g)].map((m) => m[1]);
+ok(order.join(' ') === 'sj-a sj-b sj-c sj-d sj-1 sj-2 sj-3 sj-4 sj-5 sj-6',
+  'the running order is the chain her own words make (' + order.join(' ') + ')');
+ok(/we have to sleep in the same bed/.test(shot[1].prompt)
+  && /^jonathan \(flabbergasted, splutters\) "WHAT\?!"/.test(scenes2[0])
+  && /rubs into the kitchen\.$/.test(scenes2[0])
+  && /^now they are in the kitchen together/.test(scenes2[1])
+  && /^sean takes fancy tea cups and a tea pot out of the kitchen cabinet/.test(scenes[0]),
+  'and each link in it is her own sentence, end to end');
+// A KEY IS IDENTITY: the six cards of her first message keep the keys they were
+// posted with, though four scenes now sit in front of them.
+ok(/data-key="sj-1"[^>]*>\s*<h2>5 · The tea party/.test(html.replace(/\n/g, '')),
+  'the tea party is still sj-1 and is now card 5 — a key never moves');
 // nothing tidied: a couple of her own oddities must survive
 ok(html.includes(esc('sean beams from ear to ear,smiles widely')), 'her missing space survives');
 ok(html.includes(esc("jonathan's tongue is in jonathan's mouth")),
@@ -122,7 +150,20 @@ const exe = () => {
 
   // the deck really is six snapping cards
   const cards = await page.$$eval('.deck .card', (n) => n.length);
-  ok(cards === 6, 'six cards in the deck (' + cards + ')');
+  ok(cards === 10, 'ten cards in the deck (' + cards + ')');
+
+  // THE DECK IS A HORIZONTAL SCROLLER, so a card must be brought into view
+  // before anything about it can honestly be measured — off-screen every rect
+  // sits past the right edge and elementFromPoint answers `none`.
+  const goCard = async (key) => {
+    await page.evaluate((k) => {
+      const d = document.getElementById('deck');
+      const i = [...d.children].findIndex((c) => c.getAttribute('data-key') === k);
+      d.scrollTo({ left: i * d.clientWidth, behavior: 'instant' });
+      scrollTo(0, 0);
+    }, key);
+    await page.waitForTimeout(250);
+  };
 
   // the scene box is filled with her words and the header box with hers
   const filled = await page.$eval('.p[data-key="sj-1"]:not([data-field])', (t) => t.value.length);
@@ -130,22 +171,46 @@ const exe = () => {
   const head = await page.$eval('.p[data-key="sj-1"][data-field="mine"]', (t) => t.value);
   ok(head.includes('[Video1]') && head.includes('[Video2]') && /^setting:/m.test(head),
     "the header box holds her who's-who plus one setting line");
+  // THE CHAINED CARD CARRIES THE CLIP BEFORE IT, not the who's-who pair — the way
+  // she drew scene 2 herself. Measured off what the card really holds.
+  const chained = await page.evaluate(() => ({
+    head: document.querySelector('.p[data-key="sj-c"][data-field="mine"]').value,
+    refs: JSON.parse(document.querySelector('.refjson[data-key="sj-c"]').textContent),
+  }));
+  ok(chained.refs.length === 1 && /atlascloud-video/.test(chained.refs[0].url)
+    && /^this scene continues \[Video1\]\./.test(chained.head),
+    'card 3 chains off the clip before it, one video, named by its slot');
+  // THE SHOT CARDS PLAY. __filmRow is the house player — one per drawn scene.
+  const players = await page.$$eval('.film video, .film button, .film a', (n) => n.length);
+  const tags = await page.$$eval('.tag', (n) => n.map((x) => x.textContent).join(','));
+  ok(tags === 'shot,shot', 'the two drawn scenes are marked shot (' + tags + ')');
+  ok(players > 0, 'and carry a real player (' + players + ' controls)');
 
-  // THE BUTTON IS ON SCREEN WITHOUT SCROLLING, and that is the assertion —
-  // it is the one control this page exists for. Measured with no scroll of any
-  // kind at 390x844: a footer button under a fitted 894-character scene box
-  // sat ~600px down and `elementFromPoint` answered `none`.
-  const btn = await page.$('.tofoot[data-key="sj-1"]');
-  const box = await btn.boundingBox();
+  // THE BUTTON IS ON SCREEN WITHOUT SCROLLING, on EVERY card — it is the one
+  // control this page exists for. Measured with no vertical scroll at 390x844:
+  // a footer button under a fitted 894-character scene box sat ~600px down and
+  // `elementFromPoint` answered `none`. The shot cards are the tight ones, since
+  // they carry a player as well.
   const vh = page.viewportSize().height;
-  ok(box.y + box.height <= vh,
-    'the Footage button is above the fold on a 390x844 phone (bottom at '
-    + Math.round(box.y + box.height) + ' of ' + vh + ')');
-  const hit = await page.evaluate(([x, y]) => {
-    const el = document.elementFromPoint(x, y);
-    return el ? (el.className || el.tagName) + '' : 'none';
-  }, [box.x + box.width / 2, box.y + box.height / 2]);
-  ok(/tofoot/.test(hit), 'and it really takes its own tap (' + hit + ')');
+  const keys = await page.$$eval('.deck .card', (n) => n.map((c) => c.getAttribute('data-key')));
+  let worst = { key: '', bottom: 0 }, unreachable = [];
+  for (const key of keys) {
+    await goCard(key);
+    const b = await (await page.$('.tofoot[data-key="' + key + '"]')).boundingBox();
+    if (b.y + b.height > worst.bottom) worst = { key, bottom: b.y + b.height };
+    const hit = await page.evaluate(([x, y]) => {
+      const el = document.elementFromPoint(x, y);
+      return el ? (el.className || el.tagName) + '' : 'none';
+    }, [b.x + b.width / 2, b.y + b.height / 2]);
+    if (!/tofoot/.test(hit)) unreachable.push(key + ':' + hit);
+  }
+  ok(worst.bottom <= vh, 'the Footage button is above the fold on all ten cards '
+    + '(worst: ' + worst.key + ' at ' + Math.round(worst.bottom) + ' of ' + vh + ')');
+  ok(unreachable.length === 0,
+    'and every one really takes its own tap' + (unreachable.length ? ' — ' + unreachable.join(', ') : ''));
+
+  await goCard('sj-1');
+  const btn = await page.$('.tofoot[data-key="sj-1"]');
 
   // the price wears a tilde (Atlas has no billing API) — read BEFORE the tap,
   // which is a real link and navigates
@@ -170,12 +235,13 @@ const exe = () => {
   });
   ok(clash === '' || clash === 'no pill', "nothing runs into the pill's column (" + clash + ')');
 
-  await page.screenshot({ path: path.join(SHOTS, 'sj-belt-card1.png') });
-  await page.evaluate(() => document.getElementById('next').click());
-  await page.waitForTimeout(600);
-  await page.screenshot({ path: path.join(SHOTS, 'sj-belt-card2.png') });
-  await page.evaluate(() => document.getElementById('prev').click());
-  await page.waitForTimeout(600);
+  await page.screenshot({ path: path.join(SHOTS, 'sj-belt-card5.png') });
+  await goCard('sj-a');
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: path.join(SHOTS, 'sj-belt-card1-shot.png') });
+  await goCard('sj-c');
+  await page.screenshot({ path: path.join(SHOTS, 'sj-belt-card3-chain.png') });
+  await goCard('sj-1');
 
   // WHAT THE TAP REALLY WRITES. It is an <a href="/footage">, so this navigates —
   // every layout assertion above had to come first, and the hand-off is read back
@@ -208,7 +274,7 @@ const exe = () => {
     'the belt sends nothing — the star on the Footage page is still hers'
     + (sent.length ? ' (' + sent.join(', ') + ')' : ''));
 
-  console.log('shots: ' + SHOTS + '/sj-belt-card{1,2}.png');
+  console.log('shots: ' + SHOTS + '/sj-belt-card{5,1-shot,3-chain}.png');
   await browser.close();
   server.close();
   console.log(fails ? '\n' + fails + ' FAILED' : '\nall good');

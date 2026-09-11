@@ -4,31 +4,47 @@
 2026-09-11, Sophie, handing over the script: *"take the beginning of my original
 sean jonathan scene that has the videos that says who's who · make a belt · with
 a footage button per scene"* — and, first word of the message, *"through
-atlas"*.
+atlas"*. Then, an hour later, two more scenes and *"slot these in best order."*
 
 The twin of `scripts/ticky-tack/belt.py` (the newest belt builder, and the one
-that already carries the Send-to-Footage button). Three differences, each of
-them something she said:
+that already carries the Send-to-Footage button). What is different here, and
+each of them is something she said:
 
-1.  **THE SCENES ARE HER `cut`s AND NOBODY ELSE'S.** `docs/sean-jonathan/
-    script.md` holds her dictation verbatim and this file splits it on a line
-    reading only `cut`. No scene is added, dropped, merged, reordered or tidied
-    — the Story Timeline's rule ("did u add delete or change my words · if so
-    undo") applied to a script. The card NAMES are mine and are the only words
-    on the page that are.
+1.  **THE BELT IS THE FILM IN ORDER, SHOT SCENES INCLUDED.** Two scenes are
+    already drawn (the night of 2026-09-10, on `/footage`) and they are the
+    first two cards, carrying the clip she can play and the prompt the door
+    really received, read back off the job log into `docs/sean-jonathan/
+    shot.json`. Without them "best order" is invisible: the new kitchen scene
+    would sit at the top of a belt with nothing in front of it.
 
-2.  **THE WHO'S-WHO BLOCK IS HERS, LIFTED OFF HER OWN JOB.** `docs/sean-
-    jonathan/refs.json` carries the opening lines of footage job
-    `86532d0c923d401a8b29060dd673670a` — her original Sean/Jonathan scene — with
-    the two reference videos in HER slot order ([Video1] jonathan, [Video2]
-    sean). It rides the header box on every card, where she can edit it. The
-    only line in that box that is mine is `setting:`, and it names the room and
-    nothing else (the never-describe-a-reference rule).
+2.  **HER WORDS DECIDE THE ORDER, NOT ME.** They chain end to end — the drawn
+    scene 2 ends *"we have to sleep in the same bed"*, the bed scene opens
+    *"no it doesn't"* and ends *"rubs into the kitchen"*, the kitchen scene
+    opens *"now they are in the kitchen together"*, and the tea party opens
+    *"sean takes fancy tea cups … out of the kitchen cabinet"*. `RUNNING` below
+    is that chain written down; the reason for each link is in `script.md`.
 
-3.  **ATLAS, 3:4, 15 SECONDS.** Both of her Sean/Jonathan clips were Mini · 480p
-    · 3:4 · 15s · sound on, through Atlas, so that is what a card hands over —
-    not the ward film's landscape 16:9, which is a different film. The seconds
-    box is hers and Mini takes 4-15.
+3.  **A KEY IS IDENTITY, A NUMBER IS A POSITION.** Her typed edits live on the
+    verdict sheet under the card's key, so a card keeps its key forever and the
+    number on its heading is just where it currently sits. That is why the tea
+    party is still `sj-1` while it is the FIFTH card. Renumbering the keys would
+    re-point every note and every edit at a different scene — the mistake the
+    Compare pages' "an item's id is its identity" rule exists to stop.
+
+4.  **THE SCENES ARE HER `cut`s.** `script.md` holds her dictation verbatim and
+    this file splits it on a line reading only `cut`. The one split she did not
+    mark herself is the seam in her second message, and *"slot these in best
+    order"* is what authorizes it — she is saying they are separable pieces. It
+    is written down in `script.md` where she can see it.
+
+5.  **THE WHO'S-WHO BLOCK IS HERS, LIFTED OFF HER OWN JOB.** `refs.json` carries
+    the opening of footage job `86532d0c…` with the two reference videos in HER
+    slot order ([Video1] jonathan, [Video2] sean). A card that is a literal
+    CONTINUATION of a clip that already exists chains off that clip instead —
+    which is what she did herself for the drawn scene 2.
+
+6.  **ATLAS, 3:4, 15 SECONDS** — the shape both of her own clips were, not the
+    ward film's landscape 16:9, which is a different film.
 
 Nothing on the page is sent. The button writes the hand-off (`footage_handoff`)
 and walks her to `/footage`, where the star is still her tap.
@@ -46,108 +62,199 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DOCS = os.path.join(os.path.dirname(HERE), '..', 'docs', 'sean-jonathan')
 SCRIPT_MD = os.path.join(DOCS, 'script.md')
 REFS_JSON = os.path.join(DOCS, 'refs.json')
+SHOT_JSON = os.path.join(DOCS, 'shot.json')
 BASE = 'https://imageforge-q125.onrender.com'
 CHAT = 'sean-jonathan-script'
 SHEET = 'belt-seanjonathan'
-TITLE = 'Sean & Jonathan — the draft belt'
+# A NEW VERSION IS A NEW PAGE and the title says which — the house rule for
+# anything posted, because a posted page is frozen and her Compare tab shows
+# them side by side. Bump this and supersede the one it replaces.
+VERSION = 2
+TITLE = 'Sean & Jonathan — the draft belt v%d' % VERSION
 LIMIT = 8000
 
 # Mini · 480p · 3:4 · sound on, through Atlas — her own two clips' shape.
 MODEL, RES, RATIO, SECS = 'mini', '480p', '3:4', 15
 ATLAS_PER_SEC = 1.1  # ¢/s, Atlas Mini 480p while the sale holds — read live on /footage
 
-# A name and a room per scene, in her order. MINE, not hers — the only words on
-# the page that are. The room line says the room and never what a picture shows.
-SCENES = [
-    ('1', 'The tea party',
-     "setting: jonathan's apartment — the small round dining table, the window, a rose bush below it."),
-    ('2', 'Get out',
-     "setting: jonathan's apartment — the front door, then the skylight in the roof above him."),
-    ('3', 'Weeks pass',
-     "setting: jonathan's apartment — a wall calendar, his easy chair, then the kitchen and its oven."),
-    ('4', 'The white paint',
-     "setting: jonathan's apartment — his desk, standing, then the bathroom and the shower."),
-    ('5', 'Bedtime',
-     "setting: jonathan's apartment — his bed, night, moonlight coming in at the end."),
-    ('6', 'A whole new world',
-     "setting: the apartment, then outside — a field of rose petals, then swings at a park."),
+# Where a shot scene's own header stops and its action starts. DECLARED rather
+# than guessed: her two prompts are on file word for word, and a clever rule
+# that missed would silently move her words between two boxes.
+SHOT_SPLIT = {
+    '86532d0c923d401a8b29060dd673670a': 'jonathan and sean stand on the carpet',
+    'b1341353f59c439b98a9ea8f727abc83': 'jonathan: "hey! that\'s my couch!"',
+}
+
+# THE RUNNING ORDER. `key` is identity and never moves; the number on the card
+# is its position in this list. `src` says where the words come from:
+#   shot:<job id>   her prompt as the door received it, plus the clip
+#   one:<n>         the nth scene of her first message (split at her `cut`s)
+#   two:<n>         the nth scene of her second message
+# `room` is MINE — one line, the room and nothing else. `chain` names a card
+# whose CLIP this one continues; its reference is that clip rather than the
+# who's-who pair, which is how she drew the second scene herself.
+RUNNING = [
+    dict(key='sj-a', name='The couch', src='shot:86532d0c923d401a8b29060dd673670a'),
+    dict(key='sj-b', name='My couch, my bedroom', src='shot:b1341353f59c439b98a9ea8f727abc83'),
+    dict(key='sj-c', name='I just moved IN', src='two:1', chain='sj-b',
+         room="setting: jonathan's apartment — the bed, then the bedroom doorway."),
+    dict(key='sj-d', name='The kitchen', src='two:2',
+         room="setting: jonathan's apartment — the kitchen, its cupboards, a vase of flowers, the oven."),
+    dict(key='sj-1', name='The tea party', src='one:1',
+         room="setting: jonathan's apartment — the small round dining table, the window, a rose bush below it."),
+    dict(key='sj-2', name='Get out', src='one:2',
+         room="setting: jonathan's apartment — the front door, then the skylight in the roof above him."),
+    dict(key='sj-3', name='Weeks pass', src='one:3',
+         room="setting: jonathan's apartment — a wall calendar, his easy chair, then the kitchen and its oven."),
+    dict(key='sj-4', name='The white paint', src='one:4',
+         room="setting: jonathan's apartment — his desk, standing, then the bathroom and the shower."),
+    dict(key='sj-5', name='Bedtime', src='one:5',
+         room="setting: jonathan's apartment — his bed, night, moonlight coming in at the end."),
+    dict(key='sj-6', name='A whole new world', src='one:6',
+         room="setting: the apartment, then outside — a field of rose petals, then swings at a park."),
 ]
 
 
-def scenes():
+def block(tag):
     """Her script, split at HER `cut` lines and nowhere else."""
     src = open(SCRIPT_MD, encoding='utf-8').read()
-    body = src.split('<!-- SCENES BEGIN -->', 1)[1].split('<!-- SCENES END -->', 1)[0]
+    body = src.split('<!-- %s BEGIN -->' % tag, 1)[1].split('<!-- %s END -->' % tag, 1)[0]
     parts = [p.strip('\n') for p in re.split(r'(?m)^[ \t]*cut[ \t.!:]*$', body)]
     return [p.strip() for p in parts if p.strip()]
 
 
-def refs():
-    return json.load(open(REFS_JSON, encoding='utf-8'))
+def sources():
+    R = json.load(open(REFS_JSON, encoding='utf-8'))
+    shot = {s['id']: s for s in json.load(open(SHOT_JSON, encoding='utf-8'))['shot']}
+    return R, shot, block('SCENES'), block('SCENES-2')
+
+
+def split_shot(job):
+    """Her own header and her own action, as the door received them."""
+    mark = SHOT_SPLIT[job['id']]
+    i = job['prompt'].find(mark)
+    if i < 0:
+        raise SystemExit('the split marker is not in job %s — her prompt moved, and '
+                         'nothing may guess where her header stops' % job['id'])
+    return job['prompt'][:i].strip(), job['prompt'][i:].strip()
+
+
+def plan():
+    """Every card resolved: its words, its header, its references, its clip."""
+    R, shot, one, two = sources()
+    pair = R['refs']
+    out = []
+    for i, c in enumerate(RUNNING):
+        kind, _, arg = c['src'].partition(':')
+        clip = None
+        if kind == 'shot':
+            job = shot[arg]
+            head, words = split_shot(job)
+            secs = job['seconds']
+            refs = [dict(r, _slot='[Video%d]' % (n + 1),
+                         _who=next((p['_who'] for p in pair if p['url'] == r['url']),
+                                   'the clip before'))
+                    for n, r in enumerate(job['refs'])]
+            clip = dict(url=job['video'], poster=job['poster'], seconds=job['seconds'],
+                        at=job['sentAt'])
+        else:
+            words = (one if kind == 'one' else two)[int(arg) - 1]
+            secs = SECS
+            if c.get('chain'):
+                prev = next(p for p in out if p['key'] == c['chain'])
+                if not prev.get('clip'):
+                    raise SystemExit('%s chains off %s, which has no clip yet'
+                                     % (c['key'], c['chain']))
+                refs = [dict(url=prev['clip']['url'], kind='video',
+                             poster=prev['clip']['poster'], name=prev['name'],
+                             _slot='[Video1]', _who='the clip before')]
+                head = 'this scene continues [Video1].\n\n' + c['room']
+            else:
+                refs = [dict(r) for r in pair]
+                head = R['whosWho'] + '\n\n' + c['room']
+        out.append(dict(c, n=i + 1, words=words, head=head, refs=refs,
+                        clip=clip, secs=secs, shot=(kind == 'shot')))
+    return out
 
 
 def build():
     e = html.escape
-    parts, R = scenes(), refs()
-    if len(parts) != len(SCENES):
-        raise SystemExit('her script has %d scenes, SCENES names %d — name them, '
-                         'never re-split her words' % (len(parts), len(SCENES)))
-    # what the footage page reads: url · kind · poster · name, in HER slot order
-    refjson = json.dumps([{k: r[k] for k in ('url', 'kind', 'poster', 'name') if k in r}
-                          for r in R['refs']])
-    cards, toc = [], []
-    for (n, name, room), words in zip(SCENES, parts):
-        k = 'sj-%s' % n
-        header = R['whosWho'] + '\n\n' + room
+    cards, toc, films = [], [], []
+    for c in plan():
+        k = c['key']
+        # what the footage page reads: url · kind · poster · name, in slot order
+        refjson = json.dumps([{x: r[x] for x in ('url', 'kind', 'poster', 'name') if x in r}
+                              for r in c['refs']])
+        shotline = ''
+        if c['shot']:
+            films.append((k, c['clip']['url'], c['name'],
+                          '%ds · drawn %s' % (c['clip']['seconds'], c['clip']['at'][:10])))
+            shotline = ('<p class="done">the boxes hold what the door really received.</p>'
+                        '<div class="film" id="film-%s"></div>' % k)
         cards.append(
             '<section class="card" id="j-%s" data-key="%s" data-item="%s">\n'
-            '<h2>%s · %s</h2>\n'
+            '<h2>%s · %s%s</h2>\n%s'
             '<div class="attached">'
             '<div class="refs">%s</div>'
             '<div class="row"><label>seconds <input class="secs" data-key="%s" type="number" min="4" max="15" value="%d"></label>'
-            '<a class="tofoot" href="/footage" data-key="%s" data-title="%s">send to Footage ›</a></div>'
+            '<a class="tofoot" href="/footage" data-key="%s" data-title="%s">%s ›</a></div>'
             '<p class="cost" data-key="%s"></p>'
             '<script type="application/json" class="refjson" data-key="%s">%s</script>'
             '</div>\n'
-            '<details class="text"><summary>who’s who (yours — goes out above the scene)</summary>'
+            '<details class="text"><summary>%s</summary>'
             '<textarea class="p" data-key="%s" data-field="mine" spellcheck="false">%s</textarea>'
             '<div class="saved" id="sv-%s-mine"></div></details>\n'
             '<details class="text" open><summary>the scene (your words)</summary>'
             '<textarea class="p" data-key="%s" spellcheck="false">%s</textarea>'
             '<div class="saved" id="sv-%s"></div></details>\n'
             '</section>' % (
-                k, k, k, e(n), e(name),
+                k, k, k, e(str(c['n'])), e(c['name']),
+                '<span class="tag">shot</span>' if c['shot'] else '', shotline,
                 ''.join('<span class="ref"><img src="%s" alt=""><b>%s</b> %s</span>'
-                        % (e(r['poster']), e(r['_slot']), e(r['_who'])) for r in R['refs']),
-                k, SECS, k, e('%s · %s' % (n, name)), k, k, refjson,
-                k, e(header), k, k, e(words), k))
-        toc.append('<a href="#j-%s">%s %s</a>' % (k, e(n), e(name)))
+                        % (e(r['poster']), e(r['_slot']), e(r['_who'])) for r in c['refs']),
+                k, c['secs'], k, e('%s · %s' % (c['n'], c['name'])),
+                'shoot it again' if c['shot'] else 'send to Footage', k, k, refjson,
+                'continues the clip before (yours)'
+                if c.get('chain') else 'who’s who (yours)',
+                k, e(c['head']), k, k, e(c['words']), k))
+        toc.append('<a href="#j-%s">%s %s</a>' % (k, e(str(c['n'])), e(c['name'])))
 
     help_html = (
-        '<p><b>Nothing on this page is sent.</b> One card a scene, split where '
-        '<i>you</i> put <i>cut</i> — six of them, in the order you dictated. The scene '
-        'box holds your own words and is yours to change; a line with only <i>cut</i> on it '
-        'splits a card into pieces.</p>'
-        '<p><i>Who’s who</i> is the beginning of your first Sean &amp; Jonathan scene, '
-        'word for word, with the same two videos in the same slots — <b>[Video1]</b> '
-        'jonathan, <b>[Video2]</b> sean. It goes out above the scene. The only line in that '
-        'box I wrote is <i>setting:</i>, and it names the room and nothing else.</p>'
+        '<p><b>Nothing on this page is sent.</b> The whole film in order, one card a '
+        'scene. The first two are <b>already shot</b> — their clip is on the card and '
+        'their boxes hold the prompt the door really received. The rest are yours to '
+        'shoot; a line with only <i>cut</i> on it splits a card into pieces.</p>'
+        '<p><b>The order is read off your own words, not chosen.</b> Scene 2 ends '
+        '“we have to sleep in the same bed”; <i>I just moved IN</i> opens '
+        '“no it doesn’t” and ends “rubs into the kitchen”; '
+        '<i>the kitchen</i> opens “now they are in the kitchen together”; and '
+        'the tea party opens “sean takes fancy tea cups … out of the kitchen '
+        'cabinet”. The two you just sent came run together with no <i>cut</i>, so I '
+        'split them at the line break you left and put the bed one first.</p>'
+        '<p><i>Who’s who</i> is the beginning of your first scene, word for word, '
+        'with the same two videos in the same slots — <b>[Video1]</b> jonathan, '
+        '<b>[Video2]</b> sean. <i>I just moved IN</i> carries the clip before it '
+        'instead, the way you drew scene 2. The only line in that box I wrote is '
+        '<i>setting:</i>, and it names the room and nothing else.</p>'
         '<p>Every card is Seedance 2.0 Mini · 480p · 3:4 · sound on, '
-        '<b>through Atlas Cloud</b> — the shape both of your clips last night were. '
-        'Seconds open at 15, which is what you set both times; Mini takes 4–15. At '
-        'Atlas’s ~1.1¢ a second that is about ~16.5¢ a card, ~$1 for all six. '
-        '<b>Send to Footage</b> fills the box on the Footage page with the header, the scene '
-        'and both videos — the star there is still yours.</p>'
+        '<b>through Atlas Cloud</b>. Seconds open at 15, which is what you set both '
+        'times; Mini takes 4–15. At Atlas’s ~1.1¢ a second that is about '
+        '~16.5¢ a card. <b>Send to Footage</b> fills the box on the Footage page with '
+        'the header, the scene and the references — the star there is still yours.</p>'
         '<p class="toc">' + ' · '.join(toc) + '</p>')
+
+    filmjs = ''.join(
+        "window.__filmRow({url:%s,label:%s,meta:%s,mount:'#film-%s'});\n"
+        % (json.dumps(u), json.dumps(l), json.dumps(m), k) for k, u, l, m in films)
 
     return CSS + (
         '<h1>%s</h1>\n'
         '<div class="nav"><button id="prev" type="button">‹ back</button>'
         '<span id="pos"></span><button id="next" type="button">next ›</button></div>\n'
         '<div class="deck" id="deck">%s</div>\n'
-        '<script>\n%s\n%s\n</script>\n'
+        '<script>\n%s\n%s\n%s\n</script>\n'
     ) % (e(TITLE), '\n'.join(cards), SCRIPT % (CHAT, SHEET, LIMIT, ATLAS_PER_SEC),
-         'window.__compareHelp({html:%s});' % json.dumps(help_html))
+         filmjs, 'window.__compareHelp({html:%s});' % json.dumps(help_html))
 
 
 CSS = """<meta charset="utf-8">
@@ -156,14 +263,17 @@ CSS = """<meta charset="utf-8">
 <script src="/caretkeep.js"></script>
 <style>
 .deck{display:flex;align-items:flex-start;overflow-x:auto;overflow-y:visible;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none} .deck::-webkit-scrollbar{display:none}
-.card h2,.card .text summary{margin-right:58px}
+.card h2,.card .text summary,.card .done,.card .film{margin-right:58px}
 .card{flex:0 0 100%;scroll-snap-align:start;scroll-snap-stop:always;box-sizing:border-box;padding:6px 14px 60px}
 h2{font-size:16px;margin:0 0 8px}
+.tag{display:inline-block;margin-left:8px;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6b6257;border:1px solid #cfc6b6;border-radius:6px;padding:1px 6px;vertical-align:2px}
+p.done{font-size:12px;color:#8a8176;margin:0 0 8px}
+.film{margin:0 0 12px}
 .text summary{cursor:pointer;font-size:12px;text-decoration:underline;color:#6b6257;margin-bottom:6px}
 textarea.p{width:100%;box-sizing:border-box;font-family:inherit;font-size:16px;line-height:1.5;padding:10px;border:1px solid #cfc6b6;border-radius:6px;background:#fff;resize:none;min-height:100px}
 .saved{font-size:11px;color:#8a8176;min-height:14px;margin-top:3px} .saved.bad{color:#b5473c;font-weight:600}
 /* THE SEND ROW IS AT THE TOP OF THE CARD, and that is measured: a 894-character
-   scene in a box fitted to its own words puts a footer button ~600px down a
+   scene in a box fitted to its own words puts a footer button ~600px down an
    844px phone, so the one control this page exists for was below the fold on
    every card. Chrome above, her words below. */
 .attached{margin:0 58px 12px 0;padding-bottom:10px;border-bottom:1px solid #e3dccd}
@@ -207,8 +317,9 @@ document.querySelectorAll('.p[data-key]').forEach(function(ta){ var k=ta.getAttr
   window.addEventListener('pagehide',function(){ if(!timer) return; clearTimeout(timer); timer=null; try{ navigator.sendBeacon('/api/chatfeed/verdict', new Blob([JSON.stringify({chat:CHAT,sheet:SHEET,item:k+'.'+f,text:ta.value.slice(0,LIMIT)})],{type:'application/json'})); }catch(e){} });
 });
 // Her edits come back on the next open and WIN over the words baked into the
-// page — the posted html is the script as she dictated it, the sheet is what
-// she has typed since.
+// page — the posted html is the script as she dictated it, the sheet is what she
+// has typed since. A card's KEY is its identity and never moves, so a scene
+// slotted in ahead of it can never re-point her edits at different words.
 fetch('/api/chatfeed/verdict?chat='+encodeURIComponent(CHAT)+'&sheet='+encodeURIComponent(SHEET)).then(function(r){return r.json();}).then(function(d){ var T=d.texts||{};
   document.querySelectorAll('.p[data-key]').forEach(function(ta){ var k=ta.getAttribute('data-key'), f=ta.getAttribute('data-field')||'p', v=T[k+'.'+f];
     if(typeof v==='string' && v.length){ ta.value=v; ta.style.height='auto'; ta.style.height=(ta.scrollHeight+2)+'px'; } });
@@ -256,9 +367,13 @@ if __name__ == '__main__':
     body = build()
     out = os.path.join(HERE, 'belt.html')
     open(out, 'w').write(body)
-    parts = scenes()
-    print('%s  %d bytes  %d cards  longest scene %d chars  (limit %d)'
-          % (out, len(body), len(parts), max(len(p) for p in parts), LIMIT))
+    cs = plan()
+    print('%s  %d bytes  %d cards (%d shot)  longest scene %d chars  (limit %d)'
+          % (out, len(body), len(cs), sum(1 for c in cs if c['shot']),
+             max(len(c['words']) for c in cs), LIMIT))
+    for c in cs:
+        print('  %2d %-6s %-22s %s' % (c['n'], c['key'], c['name'],
+                                       ' · '.join(r['_slot'] + ' ' + r['_who'] for r in c['refs'])))
     if '--post' in sys.argv:
         i = sys.argv.index('--supersede') if '--supersede' in sys.argv else -1
         post(body, sys.argv[i + 1] if i > 0 else None)

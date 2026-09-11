@@ -1,0 +1,53 @@
+{
+ "_note": "The two Sean & Jonathan clips she drew on /footage the night of 2026-09-10, oldest first \u2014 the prompt EXACTLY as the door received it, read back off the job log so nothing is reconstructed. These are the first two scenes of the film and the belt carries them as cards so the running order is visible.",
+ "shot": [
+  {
+   "id": "86532d0c923d401a8b29060dd673670a",
+   "prompt": "\nsean (brown haired boy, [Video2])\n\njonathan (blond haired boy, [Video1])\n\nsean voice\n\njonathan voice\n\nsetting: jonathan's apartment, brown leather couch, green carpet)\n\njonathan and sean stand on the carpet, facing each other, diagonally. sean is closer to the couch.\n\njonathan: \"i think you're being...*mean* to me (voice, shaking, cracks, feels like he's about to cry)\n\nsean: \"oh yeah?!\" (sneers) \"well that's because you're a *nasty* little dumper but\" \"nah nah nah nah boohoo\" (he pulls his ears out and waggles his tongue, then immediately gets up on the couch and starts running in place.\n\nsean: \"and look. i can run *faster* than you too!\"\n\nhe keeps jogging in place, making eye contact with jonathan, while jonathan shlumps his shoulders, and looks defeated.",
+   "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789080125649-2ktnq0.mp4",
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/footage/posters/86532d0c923d401a8b29060dd673670a.jpg",
+   "lastFrame": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-lastframe/1789080127340-aqce69.png",
+   "seconds": 15,
+   "ratio": "3:4",
+   "res": "480p",
+   "model": "mini",
+   "seed": 360755278,
+   "sentAt": "2026-09-10T22:38:58.416Z",
+   "refs": [
+    {
+     "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/01433479f5292d2a66ffcbd67fb8d570.mov",
+     "kind": "video",
+     "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/01433479f5292d2a66ffcbd67fb8d570-poster.jpg",
+     "name": "IMG_0575.mov"
+    },
+    {
+     "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8635b6017251e49d5ec0c5a491305868.mov",
+     "kind": "video",
+     "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8635b6017251e49d5ec0c5a491305868-poster.jpg",
+     "name": "IMG_4753.mov"
+    }
+   ]
+  },
+  {
+   "id": "b1341353f59c439b98a9ea8f727abc83",
+   "prompt": "this scene continues the previous one.\n\njonathan: \"hey! that's my couch!\" \n\nsean (still running, now in circles): \"oh yeah? well guess what? NOW it's mine too!\n\njonathan looks annoyed and disappointed.\n\nsean: \"i live here now. YOUR couch is MY couch. YOUR bedroom\" (he says, while running into the bedroom) is MY bedroom.\"\n\njonathan trudges in following him. in dis belief.\n\nsean continues, now starting to run in circles on his bed. \"and guess what?! Now that we LIVE in the same HOUSE, we have to sleep in the same bed.",
+   "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789087038575-9fc2na.mp4",
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/footage/posters/b1341353f59c439b98a9ea8f727abc83.jpg",
+   "lastFrame": "",
+   "seconds": 15,
+   "ratio": "3:4",
+   "res": "480p",
+   "model": "mini",
+   "seed": 1214480524,
+   "sentAt": "2026-09-10T22:51:03.330Z",
+   "refs": [
+    {
+     "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/18070cbf3b1f35ed12c04ad1c97e318a.mp4",
+     "kind": "video",
+     "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/18070cbf3b1f35ed12c04ad1c97e318a-poster.jpg",
+     "name": "1789080125649-2ktnq0.mp4"
+    }
+   ]
+  }
+ ]
+}

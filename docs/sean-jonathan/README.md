@@ -11,7 +11,37 @@ shape the belt hands over.
 | the who's-who block + the two reference videos | `refs.json` |
 | the belt builder | `scripts/sean-jonathan/belt.py` |
 | the test | `node scripts/test-sean-jonathan-belt.js` |
-| the live page | `sean-jonathan-script` → Compare tab, *Sean & Jonathan — the draft belt* (`Zsr6Vu1fNtfvpWQy69To`, v1) |
+| the two already-drawn scenes, verbatim off the job log | `shot.json` |
+| the live page | `sean-jonathan-script` → Compare tab, *Sean & Jonathan — the draft belt v2* (`22JJ1xyf2S9iJPS8yNsA`) |
+
+## THE RUNNING ORDER, AND WHY IT IS HERS
+
+2026-09-11, her second message, two scenes run together with no `cut` and
+*"slot these in best order."* Her own words chain end to end, so the order is
+**read off them** rather than chosen — each link is a sentence answering the one
+before it:
+
+| # | key | scene | |
+|---|---|---|---|
+| 1 | `sj-a` | The couch | **shot** — ends *"i can run faster than you too!"* |
+| 2 | `sj-b` | My couch, my bedroom | **shot** — ends *"we have to sleep in the same bed"* |
+| 3 | `sj-c` | I just moved IN | opens *"no it doesn't"*, ends *"rubs into the kitchen"* |
+| 4 | `sj-d` | The kitchen | opens *"now they are in the kitchen together"* |
+| 5 | `sj-1` | The tea party | opens *"…out of the **kitchen cabinet**"* |
+| 6-10 | `sj-2`…`sj-6` | Get out · Weeks pass · The white paint · Bedtime · A whole new world | |
+
+**A KEY IS IDENTITY AND A NUMBER IS A POSITION.** Her typed edits live on the
+verdict sheet under the card's key, so the tea party is still `sj-1` while it is
+the FIFTH card. Slotting a scene in never renumbers a key — that would re-point
+every edit and every note at a different scene (the Compare pages' *an item's id
+is its identity* rule). `RUNNING` in the builder is the order; the numbers fall
+out of it.
+
+**A CARD THAT CONTINUES A CLIP CHAINS OFF THAT CLIP** rather than the who's-who
+pair — `[Video1]` is the shot before it, and the header says
+*this scene continues [Video1].* That is how she drew scene 2 herself. It needs
+the previous clip to EXIST, so today only `sj-c` chains; once `sj-c` is drawn,
+its clip is one tap away in the Footage page's RECENT drawer for `sj-d`.
 
 ## THE TWO VIDEOS ARE THE WHOLE CAST, AND THE SLOTS ARE HERS
 
