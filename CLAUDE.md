@@ -4834,6 +4834,28 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     `<script src="/stickybox.js"></script>` and `data-stickybox` on its
     toggle — picked up present and future, so a button built in script needs
     only the attribute.
+  - **THE FOOTAGE BOX KEEPS ONE WIDTH WHETHER THE PILL IS DRAWN OR NOT
+    (2026-09-11, Sophie: "issue w footage textbox. switches back and forth
+    between narrow (viewport - scroll pill), and full width. whyyy · related?
+    cursor often covered by keyboard").** The pill is CONDITIONAL — its own
+    sync hides it while the page is under one screen tall — and footage's
+    `fitPillGap` reserved the pill's column only while the pill had a rect,
+    so the box's WIDTH tracked the page's HEIGHT: a short feed, the caret
+    keeper borrowing room under the keyboard and giving it back, the keyboard
+    itself, a draft growing past the fold — each flipped the box 49px
+    (MEASURED on the real page: 340 → 291 → 340) and re-wrapped the line she
+    was typing, which is also how her caret landed under the keyboard after
+    `caretkeep.js` had put it above (the two reports are one bug). `pillRect`
+    measures the pill where it WOULD sit — shown for one synchronous
+    measurement, invisible, put back before anything paints — so a row in its
+    band keeps its width whether the pill is drawn this second or not. Still
+    the pill's REAL rect (its top rides the safe-area inset), never a
+    hardcoded band, and a page served with no pill still reserves nothing.
+    The same shape lives in Freeform's and the Character page's `fitPillGap`
+    and is NOT ported there — neither has a box she writes a scene into; port
+    it the day one flickers. Test: `node scripts/test-footage-box-width.js`
+    (every assertion a MEASUREMENT of the rendered box across the pill coming
+    and going; verified failing 4 pre-fix).
   - **AND AN EXPANDED CLIP IN THE FOOTAGE FEED CARRIES ONE TOO (2026-09-11,
     Sophie: "add a floating collapse button for expanded list view videos in
     footage").** The house `.moretxt` opener REMOVED ITSELF on the tap that
