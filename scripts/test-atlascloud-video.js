@@ -26,6 +26,14 @@ ok('audio alone is refused (Atlas\'s own rule)', /reference audio needs/.test(a.
 ok('ten pictures are refused', /at most 9/.test(a.buildRequest({ prompt: 'p', referenceImageUrls: Array(10).fill('https://x/i.png') }).error));
 ok('four videos are refused', /at most 3/.test(a.buildRequest({ prompt: 'p', referenceVideoUrls: Array(4).fill('https://x/v.mp4') }).error));
 ok('16 seconds is refused, -1 rides', /4-15/.test(a.buildRequest({ prompt: 'p', duration: 16 }).error) && a.buildRequest({ prompt: 'p', duration: -1 }).body.duration === -1);
+// THE RANGE IS PER MODEL (2026-09-11): 2.5 takes 4-30 on Atlas's own schema,
+// so a 30s 2.5 job rides and 31 is refused; Mini still stops at 15.
+{
+  const m25 = 'bytedance/seedance-2.5/reference-to-video';
+  ok('30 seconds rides on 2.5', a.buildRequest({ prompt: 'p', model: m25, duration: 30 }).body.duration === 30);
+  ok('31 seconds is refused on 2.5, naming 4-30', /4-30/.test(a.buildRequest({ prompt: 'p', model: m25, duration: 31 }).error || ''));
+  ok('16 seconds is still refused on Mini', /4-15/.test(a.buildRequest({ prompt: 'p', duration: 16 }).error || ''));
+}
 ok('an unknown resolution is refused, 720p-SR rides', /resolution/.test(a.buildRequest({ prompt: 'p', resolution: '4k' }).error) && a.buildRequest({ prompt: 'p', resolution: '720p-SR' }).body.resolution === '720p-SR');
 ok('an unknown ratio is refused, adaptive rides', /aspectRatio/.test(a.buildRequest({ prompt: 'p', aspectRatio: '2:3' }).error) && a.buildRequest({ prompt: 'p', aspectRatio: 'adaptive' }).body.ratio === 'adaptive');
 ok('audio off is honoured', a.buildRequest({ prompt: 'p', generateAudio: false }).body.generate_audio === false);
