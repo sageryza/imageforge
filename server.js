@@ -3577,6 +3577,14 @@ app.get('/clip-diff.js', (req, res) => {
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(__dirname + '/clip-diff.js');
 });
+// What a clip's card SAYS, for the footage page's search (2026-09-11): the
+// client filter that runs while the server's answer is in flight and the
+// server's own `?q=` over the whole log read one haystack, never two copies.
+app.get('/footage-hay.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/footage-hay.js');
+});
 app.get('/pause-plan.js', (req, res) => {
   res.type('application/javascript');
   res.set('Cache-Control', 'no-cache, must-revalidate');

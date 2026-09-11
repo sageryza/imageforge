@@ -318,7 +318,8 @@ let jobs = [
   cost: 8.8, estimate: 8.8, sentAt: '2026-09-09T07:30:00.000Z', vote: '', hidden: false,
 }]).concat(Array.from({ length: 7 }, (_, i) => ({
   project: i < 3 ? 'ward' : '',
-  id: 'f' + i, prompt: 'the socks on the line ' + i, model: 'mini', modelLabel: '2.0 Mini', door: 'openrouter', seconds: 4, resolution: '480p', ratio: '3:4',
+  // f4 is the FAST clip — the one the model chip has to find alone
+  id: 'f' + i, prompt: 'the socks on the line ' + i, model: i === 4 ? 'fast' : 'mini', modelLabel: i === 4 ? '2.0 Fast' : '2.0 Mini', door: 'openrouter', seconds: 4, resolution: '480p', ratio: '3:4',
   sound: true, refs: [], status: 'done', video: 'http://127.0.0.1:PORT/clip.mp4', poster: 'http://127.0.0.1:PORT/ref.png',
   // f6 is the LONG one: the box opens at the model's minimum, so a clip that
   // is 4 seconds proves nothing about the seconds coming back with the words
@@ -334,11 +335,15 @@ let jobs = [
 // under a `before` cursor, two at a time, so the walk takes two taps and the
 // second one is the one that says there is nothing left.
 const older = [0, 1, 2].map((i) => ({
-  id: 'y' + i, prompt: 'yesterday\'s clip ' + i, model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', seconds: 4, resolution: '480p', ratio: '3:4',
+  // y2 says a word NO clip on the page says: the search has to reach the server
+  id: 'y' + i, prompt: i === 2 ? 'a heron at the window' : 'yesterday\'s clip ' + i, model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', seconds: 4, resolution: '480p', ratio: '3:4',
   sound: true, refs: [], status: 'done', video: 'http://127.0.0.1:PORT/clip.mp4', poster: 'http://127.0.0.1:PORT/ref.png',
   cost: 4.4, estimate: 4.4, sentAt: '2026-09-08T1' + i + ':00:00.000Z', vote: '', hidden: false,
 }));
 const jobReads = [];
+const qReads = [];       // every `q` the page asked the server with
+const grammar = require('../search-grammar');
+const { hayOf } = require('../footage-hay');
 const projReads = [];    // the `project` every feed read asked for
 const projMoves = [];    // every clip the page moved to a project, in order
 const castReads = [];    // the film every shelf read asked for
@@ -416,7 +421,16 @@ const server = http.createServer((req, res) => {
       // the page is cut; no `project` is every clip
       const proj = u.searchParams.get('project') || '';
       projReads.push(proj);
-      const mine = proj ? jobs.filter((j) => (j.project || '') === proj) : jobs;
+      let mine = proj ? jobs.filter((j) => (j.project || '') === proj) : jobs;
+      // A SEARCH reads the WHOLE log — the older pool included — with the
+      // real haystack and the real grammar, which is what the route does
+      const q = u.searchParams.get('q') || '';
+      if (q) {
+        qReads.push(q);
+        const groups = grammar.compileFeed(q);
+        const pool = mine.concat(proj ? older.filter((j) => (j.project || '') === proj) : older);
+        return json({ ok: true, jobs: pool.filter((j) => grammar.feedMatches(hayOf(j), groups)), more: false });
+      }
       if (!before) return json({ ok: true, jobs: mine, more: older.length > 0 });
       const under = older.filter((j) => j.sentAt < before).sort((a, b) => b.sentAt.localeCompare(a.sentAt));
       return json({ ok: true, jobs: under.slice(0, 2), more: under.length > 2 });
@@ -987,6 +1001,123 @@ async function pillSweep(pg, where) {
   await page.click('#v-cols');
   await page.waitForSelector('#job-old1');
   ok('back in the list, and the count went with her', (await says()) === '3' && (await across('#job-old1 .usedrefs .ur')) === 3);
+
+  // ── THE SEARCH AND THE FILTER DRAWER (2026-09-11, Sophie: "add a search
+  // button and filter like playground" · "single magnifying glass button
+  // that expands" · "yea footage") ─────────────────────────────────────────
+  // Every assertion a MEASUREMENT of what is on screen or of what the server
+  // really received: a box that opens and filters nothing, a search that
+  // never reaches the server, and a filter that lights and hides nothing are
+  // all the same markup to any source assertion.
+  {
+    const hayHead = fs.readFileSync(path.join(ROOT, 'footage-hay.js'), 'utf8');
+    ok('the haystack is ONE served file, loaded by footage.js and by the page',
+      /require\('\.\/footage-hay'\)/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8'))
+      && /src="\/footage-hay\.js"/.test(fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8'))
+      && /sendFile\(__dirname \+ '\/footage-hay\.js'\)/.test(fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8'))
+      && /root\.FootageHay = factory\(\)/.test(hayHead));
+    ok('the route searches the whole log with the grammar BEFORE the page is cut',
+      /grammar\.feedMatches\(hayOf\(cardOf\(x\.id, x\.d\)\), groups\)/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
+    ok('the pure half: a card says its model, its seconds, its shape and its parts',
+      (() => { const h = F.hayOf({ prompt: 'a dog', modelLabel: '2.0 Mini', model: 'mini', seconds: 4, resolution: '480p', ratio: '3:4', trims: [{}], refs: [{ kind: 'video' }] });
+        return /a dog/.test(h) && /2\.0 Mini/.test(h) && /\b4s\b/.test(h) && /480p/.test(h) && /3:4/.test(h) && /trimmed/.test(h) && /video ref/.test(h); })());
+    const visible = () => page.evaluate(() => Array.from(document.querySelectorAll('#feed .job:not([hidden])')).map((e) => e.dataset.id).sort().join(','));
+    const boxState = () => page.evaluate(() => ({ hidden: document.getElementById('feedsearch').hidden, on: document.getElementById('v-search').classList.contains('on'),
+      focused: document.activeElement === document.getElementById('q'), value: document.getElementById('q').value,
+      glassW: Math.round(document.getElementById('v-search').getBoundingClientRect().width),
+      boxW: Math.round(document.getElementById('q').getBoundingClientRect().width) }));
+    const at0 = await boxState();
+    ok('the glass is on the bar and the box is shut at load', at0.hidden && !at0.on && at0.glassW > 30);
+    ok('the glass draws a glyph, not a word', await page.$eval('#v-search svg', (e) => !!e));
+    await page.click('#v-search');
+    const at1 = await boxState();
+    ok('a tap opens the box, lights the glass and puts the caret in it', !at1.hidden && at1.on && at1.focused && at1.boxW > 120);
+    // WHAT SHE TYPES NARROWS THE FEED AT ONCE, over the loaded clips
+    const nQ = qReads.length;
+    await page.type('#q', 'dog');
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 1);
+    ok('typing narrows the loaded feed at once to the clip that says it', (await visible()) === 'old1');
+    await page.waitForTimeout(600);
+    ok('and the server is asked with the words — ' + qReads.slice(nQ).join('|'), qReads.slice(nQ).indexOf('dog') >= 0);
+    ok('the ✕ inside the field shows once there are words', !(await page.$eval('#qclear', (e) => e.hidden)));
+    ok('and the older door is off while a search stands', await page.$eval('#older', (e) => e.hidden));
+    // A CLIP THE FEED NEVER PAGED IN — only the server can find it
+    await page.click('#qclear');
+    await page.type('#q', 'heron');
+    await page.waitForSelector('#job-y2:not([hidden])', { timeout: 4000 });
+    ok('a word only an older clip says lands that clip on the page, alone', (await visible()) === 'y2');
+    await page.click('#v-tiles');
+    await page.waitForFunction(() => document.querySelectorAll('#tiles .cell:not([hidden])').length === 1);
+    ok('the tile wall agrees', (await page.evaluate(() => Array.from(document.querySelectorAll('#tiles .cell:not([hidden])')).map((e) => e.dataset.id).join())) === 'y2');
+    await page.click('#v-list');
+    // THE GRAMMAR: a minus takes one out, quotes keep a phrase
+    await page.click('#qclear');
+    await page.type('#q', 'socks -"line 3"');
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 6);
+    ok('bare words AND a -"phrase" take one clip out — ' + (await visible()), (await visible()) === 'f0,f1,f2,f4,f5,f6');
+    // NOTHING MATCHES says so
+    await page.click('#qclear');
+    await page.type('#q', 'zebra');
+    await page.waitForFunction(() => !document.getElementById('feedempty').hidden);
+    ok('an emptied feed says the search emptied it', /matches/.test(await page.$eval('#feedempty', (e) => e.textContent)));
+    // THE ✕ WIPES THE WORDS AND KEEPS HER IN THE BOX
+    await page.click('#qclear');
+    const at2 = await boxState();
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length >= 8);
+    ok('the ✕ clears the words, keeps the box open and focused, and the feed is back', at2.value === '' && !at2.hidden && at2.focused && (await visible()).split(',').length >= 8);
+    // SHUTTING THE GLASS CLEARS THE QUERY — a query she cannot see never hides a clip
+    await page.type('#q', 'dog');
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 1);
+    await page.click('#v-search');
+    const at3 = await boxState();
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length >= 8);
+    ok('the glass shuts the box, unlights, and the words go with it', at3.hidden && !at3.on && at3.value === '' && (await visible()).split(',').length >= 8);
+    ok('the older door is back once the search is gone', !(await page.$eval('#older', (e) => e.hidden)));
+
+    // THE DRAWER — the shared shell, shut until she taps the funnel
+    const dr = await page.evaluate(() => {
+      const m = document.getElementById('feedfilters');
+      const chip = m.querySelector('.filtchip'), drawer = m.querySelector('.filtdrawer');
+      const cr = chip.getBoundingClientRect(), gr = document.getElementById('v-search').getBoundingClientRect();
+      return { chip: !!chip, shut: drawer.hidden, funnel: !!chip.querySelector('svg'), chipH: Math.round(cr.height), glassH: Math.round(gr.height),
+        sameRow: Math.abs((cr.top + cr.height / 2) - (gr.top + gr.height / 2)) < 4,
+        rows: Array.from(drawer.querySelectorAll('.filtrow')).map((r) => Array.from(r.querySelectorAll('.filtcbtn')).map((b) => b.textContent.trim()).join('·')) };
+    });
+    ok('the funnel chip is on the bar beside the glass, the drawer shut — ' + JSON.stringify(dr.rows), dr.chip && dr.shut && dr.funnel && dr.sameRow && dr.rows[0] === 'Mini·Fast·2.0·2.5' && dr.rows[1] === 'Today·This week·This month');
+    ok('the model chips are the models the page offers, pinned to PAGE_MODELS', /var PAGE_MODELS = \['mini', 'fast', '2\.0', '2\.5'\]/.test(fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8')));
+    await page.click('#feedfilters .filtchip');
+    ok('the tap opens the drawer', !(await page.$eval('#feedfilters .filtdrawer', (e) => e.hidden)));
+    await page.click('#feedfilters .filtcbtn[data-v="fast"]');
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 1);
+    ok('the Fast chip keeps only the Fast clip', (await visible()) === 'f4');
+    ok('and the chip is lit', await page.$eval('#feedfilters .filtcbtn[data-v="fast"]', (e) => e.classList.contains('on')));
+    await page.click('#feedfilters .filtcbtn[data-v="mini"]');
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length >= 8);
+    ok('Mini AND Fast together is both of them', (await visible()).split(',').length >= 8);
+    await page.click('#feedfilters .filtcbtn[data-v="fast"]');
+    await page.click('#feedfilters .filtcbtn[data-v="mini"]');
+    // WHEN — every clip on the page is dated 2026-09-09, so "today" empties
+    // the feed, and the note has to say WHICH filter did it (a shut drawer is
+    // exactly the thing she cannot see)
+    await page.click('#feedfilters .filtcbtn[data-v="today"]');
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 0 && !document.getElementById('feedempty').hidden);
+    ok('Today keeps only a clip sent today — none here — and the note names the filter', /recent/.test(await page.$eval('#feedempty', (e) => e.textContent)));
+    // the chip wears the count while the drawer is SHUT
+    await page.evaluate(() => document.body.click());
+    const worn = await page.evaluate(() => { const m = document.getElementById('feedfilters'); return { shut: m.querySelector('.filtdrawer').hidden, w: m.querySelector('.filtchipw').textContent.trim(), on: m.querySelector('.filtchip').classList.contains('on') }; });
+    ok('tapping out shuts the drawer and the chip wears the count', worn.shut && worn.w === '1' && worn.on);
+    // STICKY — a reload keeps the filter, like the ♥ and the ✕ beside it
+    await page.reload();
+    await page.waitForSelector('#job-old1', { state: 'attached' });
+    await page.waitForTimeout(600);
+    ok('a reload keeps the filter she set, and the chip still wears it', (await visible()) === '' && (await page.evaluate(() => localStorage.getItem('footage_filt_when'))) === 'today'
+      && (await page.evaluate(() => document.querySelector('#feedfilters .filtchipw').textContent.trim())) === '1');
+    await page.click('#feedfilters .filtchip');
+    await page.click('#feedfilters .filtcbtn[data-v="today"]');
+    await page.evaluate(() => document.body.click());
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length >= 8);
+    ok('tapping the lit chip clears it and everything is back', (await visible()).split(',').length >= 8);
+  }
 
   // ── nothing sits under the pill, at her inset ────────────────────────────
   await page.evaluate(() => window.scrollTo(0, 0));

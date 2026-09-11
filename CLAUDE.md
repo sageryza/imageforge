@@ -7791,6 +7791,31 @@ before working on that module. Nothing was deleted — the moved text is verbati
   either: the failed card's "Try again" puts the clip back in the box and stops
   there. (A second chat built the same tool as `/motion` the same hour — PR
   #2231, tag `motion-page-3f0fce9` — and it was NOT merged: one ask, one tile.)
+  **THE FEED HAS THE PLAYGROUND'S SEARCH AND ITS FILTER DRAWER (2026-09-11,
+  Sophie: "add a search button and filter like playground" · "single
+  magnifying glass button that expands" · "yea footage").** A GLASS in its
+  own box beside the ♥/✕ pair: a tap opens the field (beside it, or on its
+  own line when the row is full) and lights the glass in INK — a door, not a
+  mark; shutting it CLEARS the words, since a query she cannot see must never
+  go on hiding clips. The ✕ inside the field wipes the words and keeps her in
+  it. The house grammar, searched as she dictates (`/feedkit.js`); the loaded
+  feed is narrowed AT ONCE and a beat later the server answers over the WHOLE
+  log — `GET /jobs?q=` filters before the page is cut, up to 300 hits, and a
+  hit the feed never paged in lands as a card like any other (the Assets
+  tab's truncate lesson). **ONE haystack, `footage-hay.js`** — loaded by
+  footage.js and served to the page (the clip-diff.js pattern), so the client
+  filter and the server search read the same words: the prompt, the model's
+  label and id, the door, `4s`, the size, the shape, the project, `seed N`,
+  the status, `trimmed`, `video ref`, `first frame`. The `… older` door is
+  off while a search stands (there is no page under a whole-log answer). The
+  FUNNEL is `/searchfilters.js`, the one shell, with this page's two rows —
+  MODEL (the four `PAGE_MODELS`, several at once) and WHEN (the shell's own
+  days-back chips) — sticky under `footage_filt_*` like the ♥ and ✕ beside
+  them; an emptied feed names which of them emptied it. Both stay OUT of the
+  drawer (her 2026-09-02 word). Test: the search block of
+  `node scripts/test-footage.js` (every assertion a MEASUREMENT of what is on
+  screen or of what the stub server really received — a word only an older
+  clip says has to reach the server and come back as a card).
   **THE FEED HAS THE PLAYGROUND'S SWITCH (same list: "add tile/list/3/4 grid
   feature from playground")** — LIST is a box per clip, TILES is the posters
   `--cols` across, and the third segment is the NUMBER, 3 or 4, never bars (at
