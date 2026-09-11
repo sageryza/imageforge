@@ -8375,6 +8375,49 @@ before working on that module. Nothing was deleted — the moved text is verbati
   charge. Full note: *THE FIRST FRAME, ON ALL THREE DOORS* in
   `docs/modules/audio-and-film.md`; test
   `node scripts/test-video-keyframes.js`.
+  **A CLIP BELONGS TO A PROJECT, AND THE PAGE SHOWS ONE PROJECT AT A TIME
+  (2026-09-11, Sophie: "group projects and character references so when I
+  switch between projects, I can only see those references offered to me and
+  only related files in the tiles list view area" · "good plan … go ahead for
+  now").** The cast library's FILMS are the projects — one vocabulary, never a
+  second list — and `project` is ONE field on the job doc read everywhere: the
+  picker (a drop-down at the right end of the **Buttons** fold row, remembered
+  as `footage_project`, replacing the sheet's own `footage_castfilm`), the feed
+  (`GET /jobs?project=`, filtered server-side over the whole collection before
+  the page is cut, and `shown()` on the page for a card a poll lands), the
+  Recent drawer (derived from the feed, so it narrows by itself), the character
+  sheet (opens on the project's shelf, no film chips while a project is
+  picked; a project with no shelf yet shows an empty one, never another film's
+  people), the Dump (an upload lands in an album named after the project), and
+  the star (every clip sent carries it, on all three doors' log tags). **All is
+  a real stop**: every clip shows, each card says its project. Switching
+  empties the feed and re-asks; her words and the references already attached
+  stay — only what is OFFERED narrows. **A belt hand-off switches the picker**
+  (the plan's first automatic case): a belt declaring `var PROJECT='…'` names
+  it, else its `from` chat is mapped through `HANDOFF_PROJECTS` in footage.js
+  (served on `/status`; every ward belt → `ward`, Ticky Tack → `ticky-tack`),
+  and a project the shelf lacks becomes a film on it (`POST /api/cast/films`).
+  **THE PICKER IS ON THE FOLD ROW, NOT THE CONTROLS ROW, and that is
+  measured**: at 390pt with the pill's column reserved the eight controls come
+  to 641px against the 574 two lines hold, in any order — a third line, the
+  "buttons take up too much room" that row was cut down from. Its rows say
+  "All" and "New…" for the same reason (a select is as wide as its longest
+  row). **Moving a clip after the fact is a route with no control yet** —
+  `POST /jobs/:id/project {project}` — because she has not decided she wants
+  one ("we'll have to work out if I want to manually move something"). **The
+  174 clips already on the log were filed under the ward** by
+  `node scripts/footage-project-backfill.js --project ward --go` (dry by
+  default, only ever fills a blank; every clip was three days of one draft on
+  the one film the shelf had). Not built yet, deliberately: the evidence
+  rules (a job's references on one film's shelf, chaining off another job's
+  output) — they PROPOSE a project and belong to step 5 of
+  `docs/footage-projects-plan.md`. Tests: the project section of `node
+  scripts/test-footage.js` (the picker's rows, the feed read asked FOR the
+  project, only its clips on screen in both views, the send and the upload
+  carrying it, the sheet reading its shelf, a reload remembering, All
+  bringing the rest back, and a hand-off from a second page switching it —
+  every assertion a measurement) and the PROJECT line of
+  `node scripts/test-scene-index.js`.
   **THE CHARACTER LIBRARY — ONE TAP PUTS A PERSON AND HER LINE IN THE PROMPT
   (`cast.js`, `/api/cast`, the people icon on the controls row; 2026-09-11,
   Sophie: "we need a version of 'characters' for footage so i can click a

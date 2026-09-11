@@ -74,6 +74,34 @@ const videoRefusals = require('./video-refusals');
 
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 const CHAT = 'footage';
+
+// A CLIP BELONGS TO A PROJECT (2026-09-11, Sophie: "group projects and
+// character references so when I switch between projects, I can only see
+// those references offered to me and only related files in the tiles list
+// view area"). The project vocabulary is the cast library's FILMS — one
+// word, the same slug shape `cast.js` keys a shelf by — and it rides every
+// job doc as `project`, so the feed, the drawer and the character sheet all
+// narrow on one field. Absent means "no project", which is what every clip
+// drawn before this carries and what a page cached from before still sends.
+// Plan: docs/footage-projects-plan.md.
+function projectSlug(s) {
+  return String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+}
+// A BELT HAND-OFF NAMES ITS CHAT, and the chat says which film it belongs to.
+// scene-index.js already writes `from: belt.chat` into `footage_handoff`; the
+// page maps it through this table (served on /status) and switches the
+// picker, so a scene sent from a ward belt lands on the ward with no tap. A
+// belt that declares `var PROJECT='…'` beside its CHAT names the project
+// itself and skips the table. A chat not listed leaves the picker alone.
+const HANDOFF_PROJECTS = {
+  'soap-pill-scene': 'ward',
+  'hospital-severance-rough-cut': 'ward',
+  'hospital-night-film': 'ward',
+  'climax-dissociation-accounts': 'ward',
+  'severance-api-multiple-frames': 'ward',
+  'ward-film-page-duplicate': 'ward',
+  'ticky-tack-film-page-dupe': 'ticky-tack',
+};
 const POLL_EVERY_MS = 12000;   // a running job is asked at most this often, whoever asks
 const BAL_CACHE_MS = 60000;
 
@@ -574,6 +602,9 @@ function buildJob(b) {
   // An unusable value is DROPPED rather than sent: `seedFor` would replace it
   // at the door anyway, and dropping it here keeps the read-back honest.
   if (videoSeed.okSeed(b.seed)) body.seed = Number(b.seed);
+  // the project rides the body so every door files it on the log doc
+  const project = projectSlug(b.project);
+  if (project) body.project = project;
   return { body, refs, m, res, ratio, seconds, audio, first: kfFirst, last: kfLast };
 }
 function titleOf(prompt) {
@@ -709,6 +740,9 @@ function cardOf(id, d) {
     vote: d.vote || '', hidden: Boolean(d.hidden), title: d.title || '',
     // A REFUSAL THAT WALKED ON — the id of the card the job was sent again as
     resentAs: d.resentAs || '',
+    // WHICH PROJECT — the cast library's film slug; '' for a clip drawn
+    // before projects existed or sent under "All"
+    project: projectSlug(d.project),
   };
 }
 
@@ -1166,6 +1200,7 @@ async function startJob(b) {
   const est = estimate({ model: m, resolution: res, ratio, seconds, hasVideo, door: d.door, ...shape }, cfg());
   const extra = { door: d.door, refs, estimate: est.cents != null ? est.cents : null, footage: true, aspect: ratio };
   if (floored.notes.length) extra.note = floored.notes.join(' ');
+  if (body.project) extra.project = body.project;
   const mod = getDoors()[d.door];
   // THE LAST FRAME RIDES ALONG ON ATLAS, AND ONLY THERE (2026-09-10,
   // Sophie: "on"). It is FREE — measured 2026-09-09, billed to the token
@@ -1215,7 +1250,7 @@ router.get('/status', async (req, res) => {
   const bal = await balances().catch(() => null);
   await discounts().catch(() => {});
   await atlasPrices().catch(() => {});
-  res.json({ ok: true, chat: CHAT, doors: cfg(), balances: bal, models: publicModels(), ratios: RATIOS, sizes: SIZES, fee: OR_FEE });
+  res.json({ ok: true, chat: CHAT, doors: cfg(), balances: bal, models: publicModels(), ratios: RATIOS, sizes: SIZES, fee: OR_FEE, handoffProjects: HANDOFF_PROJECTS });
 });
 
 // GET /estimate?model=&res=&ratio=&seconds=&video=1&door=&first=1&last=1&refs=1
@@ -1269,7 +1304,14 @@ function pageJobs(all, { limit, before } = {}) {
 router.get('/jobs', async (req, res) => {
   try {
     const snap = await coll().where('chat', '==', CHAT).get();
-    const { docs, more } = pageJobs(snap.docs.map((d) => ({ id: d.id, d: d.data() })), { limit: req.query.limit, before: req.query.before });
+    // ONE PROJECT AT A TIME when the page asks for one. Filtered here, over
+    // the whole collection the read already holds, BEFORE the page is cut —
+    // filtering a truncated page client-side is the Assets tab's own lesson.
+    // No `project` on the query is every clip, which is what a page cached
+    // from before this sends.
+    const project = projectSlug(req.query.project);
+    const all = snap.docs.map((d) => ({ id: d.id, d: d.data() })).filter((x) => !project || projectSlug(x.d.project) === project);
+    const { docs, more } = pageJobs(all, { limit: req.query.limit, before: req.query.before });
     // ask the doors about the ones still drawing — throttled per job, so a
     // page polling every few seconds is one provider read per job per 12s
     await Promise.all(docs.map(async (x) => {
@@ -1289,6 +1331,18 @@ router.post('/jobs/:id/vote', async (req, res) => {
     const vote = v === 'like' || v === 'dislike' ? v : '';
     await coll().doc(String(req.params.id)).set({ vote }, { merge: true });
     res.json({ ok: true, vote });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+// POST /jobs/:id/project { project } — MOVE a clip to a project, or off one
+// with ''. One field, nothing else on the doc moves. The backfill and a chat
+// use it; whether the card grows a control for it is hers to ask for
+// (2026-09-11: "we'll have to work out if I want to manually move something
+// into a different project after the fact").
+router.post('/jobs/:id/project', async (req, res) => {
+  try {
+    const project = projectSlug(req.body && req.body.project);
+    await coll().doc(String(req.params.id)).set({ project }, { merge: true });
+    res.json({ ok: true, project });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 router.post('/jobs/:id/hide', async (req, res) => {
@@ -1354,7 +1408,7 @@ router.post('/jobs/:id/trim', async (req, res) => {
 module.exports = {
   router, init,
   MODELS, RATIOS, SIZES, CHAT, OR_FEE,
-  modelOf, doorFor, doorTakes, shapeRefusal, estimate, priceOn, DOOR_LOOSENESS, DOOR_REFUSAL_FREE, DOOR_WORDS, pollOne, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, resFactor, secondsOk, framesOf,
+  modelOf, doorFor, doorTakes, shapeRefusal, estimate, priceOn, DOOR_LOOSENESS, DOOR_REFUSAL_FREE, DOOR_WORDS, pollOne, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, resFactor, secondsOk, framesOf, projectSlug, HANDOFF_PROJECTS,
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf, atlasCacheBust,
   startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf,
   pageJobs, statusOf, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,

@@ -5,8 +5,15 @@ switch between projects, I can only see those references offered to me and
 only related files in the tiles list view area · come up with a plan · think
 of cases · besides manually switching, any way to easily group work".
 
-Nothing here is built. This is the plan, the cases, and what was measured
-before writing it.
+Written as the plan before anything was built. **Steps 1–4 and the backfill
+shipped the same day** (her "good plan … go ahead for now"): the picker, the
+field on every clip, the feed filter, the Dump album, the hand-off switch, the
+174 clips filed under the ward. Still open: the evidence rules (step 5 / the
+"?" chip) and a control for moving a clip after the fact (the route exists,
+`POST /api/footage/jobs/:id/project`; the control is hers to ask for). One
+change from the plan: the picker sits on the **Buttons** fold row, not the
+controls row — measured, the controls row cannot hold it at 390pt without a
+third line.
 
 ## What is already there (measured 2026-09-11)
 
