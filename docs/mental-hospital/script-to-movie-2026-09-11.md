@@ -120,12 +120,32 @@ commercial answer, and it is **Higgsfield**:
 - **Soul ID** trains on 20+ photos of one face and applies it across Kling
   3.0, Veo 3.1 and **Seedance 2.0** — i.e. the model that refuses our real
   photos at the input filter accepts a Higgsfield-trained identity.
-- **The Curlyhill Boys** (Metal Lab, Aug 2026) — a **110-minute feature with a
-  real cast**, shot on **Seedance 2.5 through Higgsfield**, with Claude writing
-  the prompts and Nano Banana editing the stills. Real people (UFC fighters
+- **The Cully Hill Boys** (Higgsfield's own film, premiered Aug 5 2026 at The
+  Glasshouse, New York; written up by Metal Lab) — a **110-minute feature with
+  a real cast**, shot on **Seedance 2.5 through Higgsfield**, with Claude
+  writing the prompts and Nano Banana editing the stills. Real people (UFC fighters
   Israel Adesanya and Quinton Jackson, streamer N3on) signed **likeness and
   voice rights agreements**; source photos contractually deleted within 30
   days, no training use.
+
+**What it is, and how it landed** (Sophie's questions 2026-09-11: gross?
+plot? reaction? whose? why?): Higgsfield is the PLATFORM — CEO Alex Mashrabov
+(ex-head of generative AI at Snap), ARR past $500M by June 2026, reportedly
+raising at up to $5B — and the film is an advertisement for Cinema Studio 4.0
+aimed at studios and brands, plus a proof that licensed real likenesses scale;
+every prompt, character sheet and the 137-entry production log were then
+open-sourced, which is the half people admired. Plot: an action-comedy —
+three broke East London rappers try to shoot a music video, end up with a
+stolen boat of loot, and land between rival gangs; screenplay by Timothy
+Planagan (paid WGA scale). No theatrical run and no gross: free on YouTube and
+higgsfield.ai after the premiere (view count unreadable from this container —
+YouTube and Variety both refuse it). Reaction, mixed-polite: The Verge called
+it a polished proof of concept "demonstrating a pipeline more than telling a
+story", with "the best parts all human"; Forbes was "swept into the story"
+after a few minutes; Mindplex found it "interesting and fun enough",
+Netflix-grade, with too-white teeth, too-crisp props, garbled on-screen text
+and weak character interactions, and said fans of the cast might watch it and
+nobody else would seek it out.
 
 Their working method, which is ours with two things we don't do:
 - faces extracted **only from close-up portraits** (one smiling, one neutral),
@@ -178,11 +198,17 @@ so nothing has to be built to try it.
 them are Mini.
 
 **Two cheap tests, in this order:**
-1. **Does 2.0 Mini follow timestamps?** Timestamping is advertised as a 2.5
-   feature; Mini is the 2.0 family and it is what the 480p draft runs on. One
-   15-second Mini clip on Atlas is **~17¢** (1.1¢/s at the sale price) — write
-   one card as two beats and look. If it works, the draft's card count roughly
-   halves and continuity inside a card is free.
+1. **Does 2.0 Mini hold a face across a multi-shot clip?** Researched
+   2026-09-11 (Sophie: "can't u research if mini does it?"): every prompt
+   guide agrees that **Seedance 2.0 ignores exact timestamps** — they are a
+   2.5 feature (prompt-architects, kapwing, morphic; "forcing exact durations
+   onto segments can actively break the generation"). What 2.0 DOES follow is
+   an ORDERED shot list with no times — `Shot 1 — … Shot 2 — … Shot 3 — …`,
+   camera move, then action, then position, then sound — and it finds its own
+   pacing. Nobody has published a Mini-specific test. So the Mini form is a
+   15-second clip written as two or three numbered shots, on Atlas at
+   **~17¢** (1.1¢/s at the sale price). If the face and the room hold across
+   the cut, the draft's card count roughly halves.
 2. **A 30-second 2.5 scene**, on the 720p redo (step 2 of her plan). Atlas
    prices 2.5 at 13.4¢/s at 480p, so a 30s scene is **~$4.02** at 480p and
    **~$9.05** at 720p (the 2.2482× pixel factor) — against roughly the same
@@ -219,11 +245,16 @@ cheaper than anyone sells it.
   what she has for THIS film.** The things they sell (a cast list, a
   storyboard, a timeline) are conveniences; the things they can't sell her are
   the ledger, the per-shot door at 4¢, and a real face that clears the filter.
-- **The one thing to consider buying is Higgsfield**, and only for Soul ID: a
-  trained identity that works on Seedance 2.0 is exactly the problem the
-  eyes-blur stills work around, and a 110-minute feature has already been shot
-  with it. From $9/mo. Unmeasured from here — it needs an account and 20+
-  photos of a face.
+- **Higgsfield is worth knowing about, not paying for — CORRECTED
+  2026-09-11 (Sophie: "my ex bf movie got their faces fine right?").** Right:
+  *Sean & Jonathan* (Film Editor cut `9WyQ1XE8OvQXrNtnvfsD`, v3 2:45) was drawn
+  on Mini through **Atlas** with three real videos of the two men as
+  `[Video1..3]` references, 14 jobs on the log, and they came out as
+  themselves. So Atlas already takes a real, non-famous person with no
+  clearance step. Soul ID is only ahead for a FAMOUS face (the Radcliffe
+  output gate) or on a door that refuses people (OpenRouter → ByteDance
+  direct). The first draft of this doc said "worth buying"; that overstated
+  it.
 - **The one thing to try for free is the timestamped shot list**, today, on a
   17¢ Mini clip.
 - **The one thing worth building is the script→cards writer**, not another
