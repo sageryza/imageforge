@@ -35,7 +35,8 @@ JOBS = [
     ('sj-4', 'bad0417adf9f483c8e4c9a423b176bbd', ''),
     ('sj-5', 'df785dd454284ef88327ee1e8bdeeb26', ''),
     ('sj-6', '21e5ff92c58440049f152e14319557c4', 'sound on'),
-    ('sj-6', '0a68e157e54c4789a36ce657bda68771', 'silent'),
+    ('sj-6', '0a68e157e54c4789a36ce657bda68771', 'silent — her exact words'),
+    ('sj-6', '70572d702a1a4544bc96fb740d1ac0f5', 'with sound — titles swapped out'),
     ('sj-e', '4abab7f1fdd345fe9fdd79f406890332', ''),
 ]
 # THE LAST CARD went last because the dining table had to come out of the tea

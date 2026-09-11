@@ -48,5 +48,13 @@
     "sj-2"
    ]
   }
+ ],
+ "_hers": "`herLines` is HERS — continuity she calls after watching a clip come back. Kept apart from `mineLines` so the card can say which is which, and so nothing of mine is ever mistaken for something she asked for.",
+ "herLines": [
+  {
+   "line": "jonathan wears trousers.",
+   "why": "2026-09-11, Sophie, watching the tea party come back: \"next round might need jonathan in pants\" — the model put him in a sweater and underwear.",
+   "on": "all"
+  }
  ]
 }
