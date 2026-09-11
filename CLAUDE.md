@@ -61,7 +61,14 @@ REAL face and what the belt would cost through it is measured in
 answer is that they are a UI over our engine, refuse or approximate a
 private person, and cost 6–200x the Mini door. Sora 2 is shut down
 (API off 2026-09-24). Wan 3.0 takes a script FILE + 20 references in one
-30s pass at 5¢/s with no face rule in its docs — unmeasured on our cast.**
+30s pass at 5¢/s with no face rule in its docs — unmeasured on our cast.
+**WAN 3.0 RIDES THE ATLAS DOOR SINCE 2026-09-11** (`atlascloud.js`, model
+`wan-3.0` → `alibaba/wan-3.0/reference-to-video`, 4¢/s at 480p on Atlas's
+sale, one mixed `refers` array, Alibaba's slot words `Image 1` / `Video 1`;
+from a container `node scripts/atlascloud-send.js --job job.json [--dry]`
+sends THROUGH the module so the job is logged the moment it is sent). The
+first job — her md-31b climax, every reference off the cast shelf — is
+written up in `docs/mental-hospital/wan-test/` and waits on her "go".**
 
 **Every FIVE turns, not every turn (2026-09-07, Sophie: "change the rule to
 every 5 turns")** — the hook's reminder fires on every fifth prompt of a
@@ -421,13 +428,15 @@ line is the PERSON, not the video:
   clip it came off, so chaining a shot is one tap. Off by default still for
   any other caller: `returnLastFrame: true` is what asks. Full numbers:
   *`return_last_frame`* in `docs/modules/audio-and-film.md`; test
-  `node scripts/test-atlas-lastframe.js`. **AND IT IS THE FOOTAGE
-  PAGE'S ONLY DOOR AND `doorFor`'s AUTO DEFAULT SINCE THE SAME EVENING
-  (Sophie: "make atlas the default and only route through footage")** — it
-  rode for an afternoon as its own "2.0 Mini · Atlas" row; now every 2.x row
-  carries an Atlas id, the page pins `door:'atlascloud'`, and auto goes Atlas
-  → APIFRAME (a famous face) → OpenRouter only for a shape Atlas does not
-  price. Full note: *ATLAS CLOUD — THE THIRD DOOR* in
+  `node scripts/test-atlas-lastframe.js`. **AND IT WAS THE FOOTAGE PAGE'S ONLY DOOR
+  FROM THAT EVENING TO 2026-09-11 (Sophie: "make atlas the default and only
+  route through footage")** — it rode for an afternoon as its own "2.0 Mini ·
+  Atlas" row, then every 2.x row carried an Atlas id and the page pinned
+  `door:'atlascloud'`. **SUPERSEDED 2026-09-11 by "choose cheapest"**: auto
+  ranks the three doors by what the tap really costs, which keeps Mini and
+  Fast on Atlas (its 80%/70% sale) and moves 2.0 and 2.5 to OpenRouter (only
+  20% off there) — so a 2.0 or 2.5 clip gets NO last frame, since that rides
+  on Atlas alone. Full note: *ATLAS CLOUD — THE THIRD DOOR* in
   `docs/modules/audio-and-film.md`.
   The "go" rule applies word for word.** Likeliest
   reading of APIFRAME's looseness is a Runway-style backend rather than a
@@ -7526,14 +7535,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
   control set is one row). The Add word is a **picture icon** (Lucide `image`
   in a rounded square at the house 6px, never a circle). Resolution and shape
   are **drop-downs** with the platform's chrome off (`appearance:none`) and our
-  own inline chevron drawn in. **THE MODEL IS A DROP-DOWN OF TWO — 2.0 MINI
-  AND 2.0 FAST (2026-09-10, Sophie: "add 2.0 fast back as an option").** It was
-  pinned to Mini alone that morning ("get rid of the model choice · just mini
-  for now") and this puts back exactly the row she named: **`PAGE_MODELS` in
-  `footage.html` is the one line**, Mini leads and is the default, and 2.0 and
-  2.5 stay off it — they are on the served table and were never asked back, so
-  offering them again is that array. The list is still DERIVED (a model must be
-  on Atlas AND in `PAGE_MODELS`, which is what keeps 1.5 Pro off), a belt
+  own inline chevron drawn in. **THE MODEL IS A DROP-DOWN OF THE WHOLE 2.x
+  FAMILY — MINI · FAST · 2.0 · 2.5 (2026-09-11, Sophie: "ok add 2.0 and
+  2.5"; Fast came back 2026-09-10, "add 2.0 fast back as an option").** It was
+  pinned to Mini alone one morning ("get rid of the model choice · just mini
+  for now"): **`PAGE_MODELS` in `footage.html` is the one line**, Mini leads
+  and is the default, and taking a row off again is that array. **1.5 Pro
+  stays off — it is on APIFRAME only.** The list is still DERIVED (a model
+  must be in `PAGE_MODELS` AND on at least one live door — it used to require
+  ATLAS specifically, which with the door chosen by price would take a row off
+  the page for being missing from a door that is not even the cheapest one for
+  it), a belt
   hand-off's `model` is honoured when the page offers it and falls to Mini when
   it does not, and the seconds and the size re-validate against whichever model
   is picked. **THE MODEL IS NOT STICKY, and that is a change from before the
@@ -7565,19 +7577,50 @@ before working on that module. Nothing was deleted — the moved text is verbati
   opens — it is a fact about the account, not a control, and it was sitting
   where the price of the tap belongs; OpenRouter's balance only, since APIFRAME
   is not this page's door.
-  **ONLY ATLAS CLOUD (2026-09-09, Sophie: "make atlas the default and only
-  route through footage").** The DOOR row came off the page that morning
-  (OpenRouter only, then) and by the evening the one door was Atlas: it takes
-  a person in a reference — a real photo, a Seedance clip with people in it —
-  and prices Mini at a fifth of list (the 80% sale, read live off its own
-  model list; see the Atlas bullet above). The page always sends
-  `door:'atlascloud'`, its model list is DERIVED from which rows Atlas carries
-  (every 2.x row; **1.5 Pro stays off**, APIFRAME-only), its "?" card quotes
-  no balance (Atlas has none to read — the console is the only billing read)
-  and says "2.0 Mini is 80% off right now" while there is a sale, and a
-  content refusal — a FAMOUS face, free, on the POST — shows with its own
-  line (*a famous face in a reference; a chat can try this one through
-  APIFRAME*). **720p IS THE PIXEL RATIO DEARER THAN 480p, AND THE PAGE QUOTED
+  **WHICHEVER DOOR IS CHEAPEST, CHOSEN BY THE SERVER (2026-09-11, Sophie,
+  adding 2.0 and 2.5: "are they cheapest through router, atlas or frame?
+  choose cheapest").** This SUPERSEDES the 2026-09-09 "make atlas the default
+  and only route through footage" — which was right while the page offered
+  Mini and Fast, because Atlas IS far the cheapest for those two and simply
+  wins the ranking. It is not the cheapest for the two big rows, so with them
+  on the page the pin would be spending her money to keep a rule that was only
+  ever about price. **Measured live 2026-09-11, one 4s 480p 16:9 clip, off all
+  three doors' own prices:** Mini **4.4¢ Atlas** · 13.6¢ OpenRouter · 16¢
+  APIFRAME; Fast **10.8¢ Atlas** · 16.3¢ · 28¢; 2.0 **27.2¢ OpenRouter** · 32¢
+  APIFRAME · 36¢ Atlas; 2.5 **41.6¢ OpenRouter** · 52¢ APIFRAME · 53.6¢ Atlas.
+  The split is Atlas's sale: 80% off Mini and 70% off Fast against only 20% off
+  2.0 and 2.5. So the page sends `door:'auto'` and `doorFor` ranks the doors by
+  what THIS tap costs — the shape, the resolution, the seconds and a reference
+  video all move the answer, so nothing is written down.
+  - **A CONTENT REFUSAL IS FREE ON EVERY DOOR AND COMES BACK BEFORE ANYTHING
+    DRAWS**, which is what makes trying the cheapest first cost a round trip
+    and never money. `chain` is every door to try after it, and **the walk only
+    ever gets LOOSER** (`DOOR_LOOSENESS`: OpenRouter refuses any person,
+    Atlas only a famous face, APIFRAME takes everything). A door that is
+    cheaper but no looser than the one that just refused is SKIPPED — it would
+    refuse the same reference for free and leave her with no clip. So a person
+    reference on 2.0 goes OpenRouter → (free refusal) → APIFRAME by itself, and
+    the card says which door drew it and why it moved.
+  - **A PINNED DOOR NEVER FALLS BACK** — a refusal on a door a chat named is a
+    measurement, not a reason to spend elsewhere. Only `auto` ranks and walks.
+  - **THE PRICE LINE NAMES THE DOOR AGAIN.** It came off 2026-09-09 only
+    because one door was left to name; which door a tap goes to is a fact about
+    the CLIP as well as the bill — **the last frame rides on Atlas alone**, so
+    a 2.0 or 2.5 clip has none.
+  - **A FAILED ATLAS PRICE READ KEEPS THE LAST GOOD PRICES** (`atlasPrices`).
+    It used to fall back to the table's LIST rate, which was only a high figure
+    on screen when Atlas was the one door and is now a DOOR CHANGE: every Mini
+    job would go to OpenRouter at 3x the real price (13.59¢ against 4.40¢) for
+    the ten minutes the cache holds, silently.
+  - **AN OPENROUTER PRICE IS `exact` ONLY WHERE THE CANVAS IS MEASURED**
+    (`canvasMeasured`, Mini alone). The token count is w × h × frames, so the
+    price is only as pinned as the canvas — and the published table has been
+    wrong once already, which is how Mini's was found. Fast, 2.0 and 2.5 answer
+    "about" until a real charge is read against one.
+  The "?" card quotes no balance (Atlas has none to read — the console is the
+  only billing read) and says "2.0 Mini is 80% off right now" while there is a
+  sale. A content refusal that reaches HER has been through every door, so the
+  page says so rather than naming one to try next. **720p IS THE PIXEL RATIO DEARER THAN 480p, AND THE PAGE QUOTED
   THEM THE SAME UNTIL 2026-09-10 (Sophie: "check 720p prices in footage").**
   Atlas's `GET /models` publishes ONE flat `base_price` per model, so the
   Atlas branch priced purely per second, ignored the resolution it was handed
