@@ -366,6 +366,15 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     references are worth keeping for re-cuts and pickups rather than for a
     wholesale redraw. Price not yet measured — run one of her clips through
     and read it off the prediction.
+  - **THE ATLAS DOOR'S SECONDS CHECK IS PER MODEL SINCE 2026-09-11 (Sophie:
+    "it says too long but 2.5 allows 30s").** `atlascloud.js` clamped EVERY
+    Seedance model to 4-15, so a 30s 2.5 job that `/footage` had accepted
+    (its own table says 4-30) walked OpenRouter → refused (a person in
+    [Video1]) → Atlas, and Atlas's OWN door refused it with "duration is 4-15".
+    Atlas's schema files (`static.atlascloud.ai/model/schema/bytedance-seedance-
+    *-reference-to-video.json`) say 2.5 is 4-30 and Mini / Fast / 2.0 are
+    4-15; `secondsRange(model)` reads that. Pinned by
+    `node scripts/test-atlascloud-video.js`.
   - **2.5 CANNOT DO 1080p OR 4K — only `seedance-2.0` can.** The served cards:
     2.5 is 480p/720p and 4-30s; 2.0 is 480p/720p/1080p/4K but 4-15s; Mini and
     2.0-fast are 480p/720p, 4-15s. So the eventual 1080p redo of the ward film

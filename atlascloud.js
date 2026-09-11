@@ -187,6 +187,16 @@ function buildWanRequest(b, prompt, model) {
 // APIFRAME-shaped record (reference_*_urls, aspect_ratio…) so one log has
 // one vocabulary; `body` is what Atlas really receives (`ratio`,
 // `reference_images`…).
+// THE SECONDS RANGE IS PER MODEL — read off Atlas's own schema files
+// (static.atlascloud.ai/model/schema/bytedance-seedance-*-reference-to-video.json,
+// 2026-09-11): 2.5 takes 4-30, every 2.0 (Mini, Fast, 2.0) takes 4-15.
+// This door used to clamp EVERY model to 15, so a 30s 2.5 job that
+// footage.js had already accepted was refused here with "4-15" — Sophie's
+// "it says too long but 2.5 allows 30s". -1 (the model picks) rides either way.
+function secondsRange(model) {
+  return /seedance-2\.5/.test(String(model || '')) ? [4, 30] : [4, 15];
+}
+
 function buildRequest(b) {
   b = b || {};
   const prompt = String(b.prompt == null ? '' : b.prompt);
@@ -207,7 +217,8 @@ function buildRequest(b) {
   const params = { resolution };
   if (b.duration != null) {
     const d = Number(b.duration);
-    if (!Number.isInteger(d) || (d !== -1 && (d < 4 || d > 15))) return { error: 'duration is 4-15 seconds (or -1 to let the model choose)' };
+    const [lo, hi] = secondsRange(model);
+    if (!Number.isInteger(d) || (d !== -1 && (d < lo || d > hi))) return { error: `duration is ${lo}-${hi} seconds (or -1 to let the model choose)` };
     params.duration = d;
   }
   if (b.aspectRatio) {
