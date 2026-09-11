@@ -78,7 +78,9 @@ const SCENE = Array.from({ length: 70 }, (_, i) => 'line ' + (i + 1) + ' — the
 // where the button really is, and whether a tap would reach it
 const readBtn = () => {
   const b = document.getElementById('bigprompt');
-  const w = document.querySelector('.promptwrap');
+  // ITS OWN wrap — the setup block above it is a `.promptwrap` too, and it
+  // is the first in the document
+  const w = document.getElementById('prompt').closest('.promptwrap');
   const r = b.getBoundingClientRect(), wr = w.getBoundingClientRect();
   const hit = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2));
   return {
@@ -145,7 +147,7 @@ const readBtn = () => {
 
   // ── 4. scrolled PAST the box entirely, it lets go ───────────────────────
   await page.evaluate(() => {
-    const w = document.querySelector('.promptwrap').getBoundingClientRect();
+    const w = document.getElementById('prompt').closest('.promptwrap').getBoundingClientRect();
     window.scrollTo(0, window.scrollY + w.bottom + 40);
   });
   await page.waitForTimeout(250);

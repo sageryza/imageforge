@@ -945,6 +945,77 @@ async function pillSweep(pg, where) {
   const blank = posted.filter((p) => p.prompt).pop();
   ok('a blank box sends NO seed at all — the door mints one instead', blank && blank.seed === undefined);
 
+  // ── THE SETUP BLOCK (2026-09-11, Sophie: "make the character and setting
+  // lines in a separate collapsible text block from the scene one") ────────
+  // MEASURED, since a third box that renders and never reaches the request,
+  // one that folds and hides nothing, and a copy-back that silently doubles
+  // her setup lines all read the same in the source.
+  await page.evaluate(() => {
+    const set = (id, v) => { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); };
+    set('setup', 'sophie is the woman in [Video1].\nsetting: a locked ward at night.');
+    set('prompt', 'she stands at the window');
+  });
+  await page.waitForTimeout(120);
+  const beforeSplit = posted.length;
+  await page.click('#go');
+  await page.waitForFunction((n) => true, beforeSplit);
+  await page.waitForTimeout(300);
+  const sentSplit = posted[posted.length - 1];
+  ok('the two boxes leave as ONE prompt — the setup lines, then the scene: ' + JSON.stringify(sentSplit.prompt),
+    sentSplit.prompt === 'sophie is the woman in [Video1].\nsetting: a locked ward at night.\nshe stands at the window');
+  ok('her words stay in both boxes after a send — a re-roll is one tap',
+    (await page.$eval('#setup', (t) => t.value)).indexOf('sophie is the woman') === 0
+    && (await page.$eval('#prompt', (t) => t.value)) === 'she stands at the window');
+  // SETUP LINES ALONE ARE NOT A CLIP
+  const onlySetup = posted.length;
+  await page.evaluate(() => { const e = document.getElementById('prompt'); e.value = ''; e.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.click('#go');
+  await page.waitForTimeout(250);
+  ok('with the scene empty nothing is sent, whatever the setup block says', posted.length === onlySetup);
+  await page.evaluate(() => { const e = document.getElementById('prompt'); e.value = 'she stands at the window'; e.dispatchEvent(new Event('input', { bubbles: true })); });
+  // THE FOLD
+  await page.click('#setfold');
+  await page.waitForTimeout(120);
+  const setShut = await page.evaluate(() => ({
+    box: (() => { const r = document.getElementById('setupwrap').getBoundingClientRect(); return !!(r.width && r.height); })(),
+    scene: (() => { const r = document.getElementById('prompt').getBoundingClientRect(); return !!(r.width && r.height); })(),
+    lab: document.getElementById('setfoldlab').textContent,
+    kept: document.getElementById('setup').value,
+  }));
+  ok('folding it hides the setup box and leaves the scene alone ' + JSON.stringify(setShut.box) + '/' + setShut.scene,
+    !setShut.box && setShut.scene);
+  ok('shut, the row leads on what is riding: ' + setShut.lab, /^Characters & setting · sophie is the woman/.test(setShut.lab));
+  // the fold row is caps with letter-spacing — her first line must not turn
+  // it into a two-line heading
+  const rowH = await page.evaluate(() => ({ set: Math.round(document.getElementById('setfold').getBoundingClientRect().height),
+    ctl: Math.round(document.getElementById('ctlfold').getBoundingClientRect().height) }));
+  ok('and it stays one line, the height of every other fold row ' + JSON.stringify(rowH), rowH.set === rowH.ctl);
+  ok('a folded block keeps its words — hidden, never emptied', /^sophie is the woman/.test(setShut.kept));
+  const shutSend = posted.length;
+  await page.click('#go');
+  await page.waitForFunction((n) => true, shutSend);
+  await page.waitForTimeout(300);
+  ok('and a folded block still rides the prompt',
+    /^sophie is the woman in \[Video1\]\./.test(posted[posted.length - 1].prompt));
+  // PUTTING IT BACK KEEPS THE SPLIT WHEN THE RECORD STILL STARTS WITH HER
+  // SETUP, and otherwise puts the whole prompt in the scene box rather than
+  // sending those lines twice.
+  const backSame = await page.evaluate(() => {
+    window.__applyPrompt('sophie is the woman in [Video1].\nsetting: a locked ward at night.\nshe sits on the bed');
+    return { setup: document.getElementById('setup').value, scene: document.getElementById('prompt').value };
+  });
+  ok('a clip whose prompt still starts with her setup comes back split ' + JSON.stringify(backSame),
+    /^sophie is the woman/.test(backSame.setup) && backSame.scene === 'she sits on the bed');
+  const backOther = await page.evaluate(() => {
+    window.__applyPrompt('a seagull on a fence, nothing else');
+    return { setup: document.getElementById('setup').value, scene: document.getElementById('prompt').value };
+  });
+  ok('one that does not comes back whole in the scene box, the setup emptied ' + JSON.stringify(backOther),
+    backOther.setup === '' && backOther.scene === 'a seagull on a fence, nothing else');
+  await page.evaluate(() => { document.getElementById('setup').value = ''; document.getElementById('prompt').value = ''; });
+  await page.click('#setfold');
+  await page.waitForTimeout(120);
+
   // ── ♥ / ✕ — what the server really received ──────────────────────────────
   await page.click('#job-old1 .heart');
   const v = posted.find((p) => p.vote);

@@ -246,7 +246,10 @@ const server = http.createServer((req, res) => {
   await page.reload({ waitUntil: 'networkidle' });
 
   const shown = (sel) => page.evaluate((s) => { const e = document.querySelector(s); return !!e && !e.hidden && e.getBoundingClientRect().width > 0; }, sel);
-  const box = () => page.evaluate(() => document.getElementById('prompt').value);
+  // THE WORDS THAT WOULD REALLY BE SENT — the setup block and the scene
+  // joined (2026-09-11, the two boxes): a character line lands in the SETUP
+  // box, so reading the scene box alone would say the tap did nothing.
+  const box = () => page.evaluate(() => window.__promptText());
   const strip = () => page.evaluate(() => Array.prototype.map.call(document.querySelectorAll('#refs .ref .slot'), (b) => b.textContent).join(','));
 
   ok('the character icon is on the controls row from the first paint', await shown('#casttog'));
@@ -290,6 +293,10 @@ const server = http.createServer((req, res) => {
   await page.evaluate(() => document.querySelector('#cast .ent.open .lk').click());
   await page.waitForTimeout(120);
   ok('the line lands at the TOP of her words', /^sophie is the woman in \[Video1\]\./.test(await box()) && /she stands at the window$/.test(await box()));
+  // IT IS THE SETUP BLOCK IT LANDS IN, not the scene she is writing
+  const split = await page.evaluate(() => ({ setup: document.getElementById('setup').value, scene: document.getElementById('prompt').value }));
+  ok('the character line is in the setup block and the scene is untouched',
+    /^sophie is the woman in \[Video1\]\./.test(split.setup) && split.scene === 'she stands at the window');
   ok('the references really reached the strip', (await strip()) === '[Image1],[Image2],[Image3],[Video1]');
   ok('the line and the strip agree about every slot', (function (b, s) {
     return b.indexOf('[Video1]') >= 0 && s.indexOf('[Video1]') >= 0;

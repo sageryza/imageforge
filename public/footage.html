@@ -83,12 +83,21 @@
      which 34 are the corner the expand button reserves: 2.3 readable lines
      ending in a clipped half-line, on the one surface she types a whole
      scene into. */
-  #prompt{max-height:30vh}
-  #prompt.big{min-height:24vh;max-height:none}
-  #bigprompt{position:absolute;right:56px;bottom:6px;width:26px;height:26px;display:flex;
+  #prompt,#setup{max-height:30vh}
+  #prompt.big,#setup.big{min-height:24vh;max-height:none}
+  /* THE SETUP BOX IS SHORT BY NATURE — a line or two naming who is in the
+     clip and where it is — so it does not carry the prompt box's 135px
+     floor; it fits its own words like everything else here. */
+  #setup{min-height:0}
+  #setupwrap{margin-bottom:8px}
+  /* the shut label carries her first line, and the fold row is caps with
+     letter-spacing — it must never become a two-line heading */
+  #setfoldlab{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  #setfold{max-width:100%}
+  #bigprompt,#bigsetup{position:absolute;right:56px;bottom:6px;width:26px;height:26px;display:flex;
              align-items:center;justify-content:center;padding:0;margin:0;border:1px solid #d8cfc0;
              border-radius:6px;background:#fdfbf7;color:#6f675e}
-  #bigprompt svg{width:14px;height:14px}
+  #bigprompt svg,#bigsetup svg{width:14px;height:14px}
   .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   button{border:1px solid #d8cfc0;border-radius:6px;background:#fff;color:#2b2620;
          font:15px -apple-system,Georgia,serif;padding:7px 11px}
@@ -532,12 +541,24 @@
   <p><b>Sound is always on.</b></p>
   <p><b>The seed</b> is on every finished clip, with a button that puts it back in the box. Leave the box blank and each clip gets a fresh one. A seed repeats the <i>opening</i> of a short clip and then drifts &mdash; it does not survive a changed prompt or a different size, and at 15 seconds it does close to nothing.</p>
   <p><b>Tiles.</b> Each one carries two doors in the middle: <b>&#9654;</b> plays the clip, and the list mark beside it takes you to that clip&rsquo;s card &mdash; its words, its seed, its references and the button that puts them back. The first words of your own newest note on a clip sit along the top of its tile.</p>
-  <p><b>Characters.</b> The people icon opens this film&rsquo;s library. Tap a character &mdash; or one of their outfits &mdash; and their references go into the strip while the line that names them by slot goes to the top of the box. The line under each one is exactly what it will add, worked out against what you already have attached, so a second character gets <b>[Video2]</b> rather than the slot the library was written against. Each film is its own shelf. Taking a reference off afterwards does not rewrite your words &mdash; the slot names in the box are yours to fix.</p>
+  <p><b>Two boxes.</b> <b>Characters &amp; setting</b> holds the lines that stand for the whole film &mdash; who is in it and where it is &mdash; and folds away once you have them; the box under it is the scene, rewritten per clip. They go out as one prompt, the setup lines first. Putting a clip back keeps the split when its words still start with your setup lines, and otherwise drops the whole prompt into the scene box.</p>
+  <p><b>Characters.</b> The people icon opens this film&rsquo;s library. Tap a character &mdash; or one of their outfits &mdash; and their references go into the strip while the line that names them by slot goes into the <b>Characters &amp; setting</b> box. The line under each one is exactly what it will add, worked out against what you already have attached, so a second character gets <b>[Video2]</b> rather than the slot the library was written against. Each film is its own shelf. Taking a reference off afterwards does not rewrite your words &mdash; the slot names in the box are yours to fix.</p>
   <p><b>Notes.</b> The speech mark on a clip opens a note; playing one and tapping it pauses the film and notes the second you stopped on. Either way it lands in the one place chats read their notes, and a chat answers on the note itself.</p>
   <p>What is left is on the Atlas console &mdash; it has no balance to read from here.</p>
 </div>
 
 <div class="panel">
+  <!-- WHO AND WHERE, IN THEIR OWN FOLDED BLOCK (2026-09-11, Sophie: "make the
+       character and setting lines in a separate collapsible text block from
+       the scene one"). Those lines stand for a whole film — the character
+       library writes them, the setting rarely changes — and the scene is what
+       she rewrites per clip; one box meant scrolling past the standing half to
+       reach the words she was editing. The two are joined with a newline on
+       the way out, so the job, its log and every read-back see ONE prompt
+       exactly as before. -->
+  <button type="button" class="fold" id="setfold" aria-expanded="true" aria-controls="setupwrap"><span class="chev"></span><span id="setfoldlab">Characters &amp; setting</span></button>
+  <div class="promptwrap" id="setupwrap"><textarea id="setup"></textarea><button type="button" id="bigsetup" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
+
   <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
 
   <button type="button" class="fold" id="reffold" aria-expanded="true" aria-controls="refs" hidden><span class="chev"></span><span id="reffoldlab">References</span></button>
@@ -725,11 +746,39 @@ function loadCtl() {
     if (c.ratio) S.ratio = c.ratio;
     var d = JSON.parse(localStorage.getItem('footage_draft') || '{}');
     if (d.prompt) $('prompt').value = d.prompt;
+    if (d.setup) $('setup').value = d.setup;
     if (Array.isArray(d.refs)) refs = d.refs;
   } catch (e) {}
 }
 function saveCtl() { try { localStorage.setItem('footage_ctl', JSON.stringify({ ratio: S.ratio })); } catch (e) {} }
-function saveDraft() { try { localStorage.setItem('footage_draft', JSON.stringify({ prompt: $('prompt').value, refs: refs })); } catch (e) {} }
+function saveDraft() { try { localStorage.setItem('footage_draft', JSON.stringify({ prompt: $('prompt').value, setup: $('setup').value, refs: refs })); } catch (e) {} }
+// THE TWO BOXES ARE ONE PROMPT ON THE WAY OUT — the setup lines, then the
+// scene, joined by a newline. Nothing downstream knows about the split: the
+// job, the exact-prompt log and the 1080p redo all see the prompt they always
+// saw, which is what lets the split be a page change alone.
+function setupText() { return $('setup').value.trim(); }
+function promptText() { return [setupText(), $('prompt').value.trim()].filter(Boolean).join('\n'); }
+window.__promptText = promptText;   // the tests ask for the words that would really be sent
+// PUTTING A PROMPT BACK PUTS THE SPLIT BACK WHEN IT CAN KNOW IT — the record
+// holds one prompt, so the only honest split is the one it still starts with:
+// her standing setup lines. Anything else goes into the scene box WHOLE and
+// the setup box is emptied, because leaving lines up there that are also in
+// the scene would send them twice.
+function splitPrompt(p) {
+  p = String(p || '');
+  var s = setupText();
+  if (s && p.slice(0, s.length) === s) return { setup: s, scene: p.slice(s.length).replace(/^\n+/, '') };
+  return { setup: '', scene: p };
+}
+function applyPrompt(p) {
+  var cut = splitPrompt(p);
+  $('setup').value = cut.setup;
+  $('prompt').value = cut.scene;
+  if (cut.setup) openFold('setup');
+  paintFolds();
+  if (window.__fitBigPrompt) window.__fitBigPrompt();
+}
+window.__applyPrompt = applyPrompt;   // the tests ask the split rule directly
 // THE LIST IS DERIVED, NEVER TYPED: a model this page offers is one Atlas
 // Cloud carries — which is what takes 1.5 Pro off it, since that one exists
 // only on APIFRAME and this page has the one door — AND one named in
@@ -861,12 +910,22 @@ $('seedclear').addEventListener('click', function () { $('seedbox').value = ''; 
 // putting a clip back, a belt hand-off, a reference landing — OPENS the one it
 // changed, because a value she cannot see is the hidden ingredient the price
 // line beside the star exists to prevent.
-var FOLDS = { refs: 'footage_fold_refs', ctl: 'footage_fold_ctl' };
+var FOLDS = { setup: 'footage_fold_setup', refs: 'footage_fold_refs', ctl: 'footage_fold_ctl' };
 function foldShut(k) { try { return localStorage.getItem(FOLDS[k]) === '1'; } catch (e) { return false; } }
 function setFold(k, shut) { try { localStorage.setItem(FOLDS[k], shut ? '1' : '0'); } catch (e) {} paintFolds(); }
 function openFold(k) { if (foldShut(k)) setFold(k, false); }
 function paintFolds() {
-  var rShut = foldShut('refs'), cShut = foldShut('ctl');
+  var rShut = foldShut('refs'), cShut = foldShut('ctl'), sShut = foldShut('setup');
+  // SHUT, IT SAYS WHAT IS RIDING — a bare "Characters & setting" over a
+  // hidden box is a value she cannot see, and these lines go out on every
+  // clip. The first line is what names them; the browser clamps it.
+  $('setupwrap').style.display = sShut ? 'none' : '';
+  $('setfold').classList.toggle('shut', sShut);
+  $('setfold').setAttribute('aria-expanded', sShut ? 'false' : 'true');
+  var first = ($('setup').value || '').split('\n').filter(function (l) { return l.trim(); })[0] || '';
+  $('setfoldlab').textContent = sShut && first
+    ? 'Characters & setting · ' + (first.length > 22 ? first.slice(0, 21).replace(/\s+\S*$/, '') + '…' : first)
+    : 'Characters & setting';
   // never a dead control: with nothing attached there is nothing to fold
   $('reffold').hidden = !refs.length;
   $('refs').style.display = (rShut && refs.length) ? 'none' : '';
@@ -882,6 +941,7 @@ function paintFolds() {
     ? 'Buttons · ' + [m ? m.label : S.model, S.res, S.ratio, S.seconds + 's'].join(' · ')
     : 'Buttons';
 }
+$('setfold').addEventListener('click', function () { setFold('setup', !foldShut('setup')); });
 $('reffold').addEventListener('click', function () { setFold('refs', !foldShut('refs')); });
 $('ctlfold').addEventListener('click', function () { setFold('ctl', !foldShut('ctl')); });
 
@@ -963,8 +1023,15 @@ function paintRefs() {
     el.appendChild(d);
   });
 }
+// A SLOT LANDS IN THE BOX SHE WAS LAST IN — a slot name belongs to whichever
+// half she is writing (the setup names who, the scene names what they do),
+// and the scene is the default because that is where most of them go.
+var lastBox = 'prompt';
+['prompt', 'setup'].forEach(function (id) {
+  $(id).addEventListener('focus', function () { lastBox = id; });
+});
 function insertAtCaret(text) {
-  var box = $('prompt');
+  var box = $(lastBox === 'setup' && !foldShut('setup') ? 'setup' : 'prompt');
   // `||` read a caret at position 0 as "no caret" and dropped the slot at
   // the END of the box — the one place she was not looking
   var s = box.selectionStart != null ? box.selectionStart : box.value.length;
@@ -1115,9 +1182,14 @@ function castApply(ent, look) {
   if (!p) { toast('Characters are not loaded yet'); return; }
   if (p.empty && !p.line) { toast('Nothing on ' + (ent.name || ent.slug) + ' yet'); return; }
   refs = p.refs;
-  var box = $('prompt');
+  // THE LINE GOES IN THE SETUP BOX — that is the block it names (2026-09-11):
+  // who is in the clip stands for the whole film, where the scene under it is
+  // rewritten per shot. "The top of the prompt" is still exactly where it
+  // lands, since the setup rides first on the way out.
+  var box = $('setup');
   var before = box.value;
   box.value = CL.withLine(before, p.line);
+  openFold('setup');
   if (window.__fitBigPrompt) window.__fitBigPrompt();
   if (p.added) openFold('refs');
   saveDraft(); paintControls();
@@ -1235,24 +1307,33 @@ function castRow(e) {
 }
 
 // ── The bigger box (the Playground's corner toggle, in shape) ──────────────
+// BOTH BOXES, ONE WIRING — the scene and the setup behave identically, so
+// neither can grow a habit the other does not have.
 (function () {
-  var box = $('prompt'), btn = $('bigprompt'), big = false;
-  // `height:auto` FIRST or the box can only ever grow — scrollHeight on a box
-  // already sized to its old height reports that height. The border is added
-  // back because the box is `border-box` and scrollHeight excludes it, so
-  // every fit would otherwise be two pixels short and scroll its own last
-  // line. Both bounds are CSS, so the browser clamps and no vh is re-derived
-  // here.
-  function fitBig() {
-    box.style.height = 'auto';
-    box.style.height = (box.scrollHeight + (box.offsetHeight - box.clientHeight)) + 'px';
+  var fits = [];
+  function wire(boxId, btnId, after) {
+    var box = $(boxId), btn = $(btnId), big = false;
+    // `height:auto` FIRST or the box can only ever grow — scrollHeight on a box
+    // already sized to its old height reports that height. The border is added
+    // back because the box is `border-box` and scrollHeight excludes it, so
+    // every fit would otherwise be two pixels short and scroll its own last
+    // line. Both bounds are CSS, so the browser clamps and no vh is re-derived
+    // here.
+    function fitBig() {
+      box.style.height = 'auto';
+      box.style.height = (box.scrollHeight + (box.offsetHeight - box.clientHeight)) + 'px';
+    }
+    function paint() { btn.innerHTML = big ? ICONS.minimize : ICONS.maximize; btn.title = btn.getAttribute('aria-label'); box.classList.toggle('big', big); fitBig(); }
+    btn.addEventListener('click', function () { big = !big; btn.setAttribute('aria-label', big ? 'Smaller box' : 'Bigger box'); paint(); });
+    box.addEventListener('input', function () { fitBig(); saveDraft(); if (after) after(); });
+    fits.push(fitBig);
+    paint();
   }
-  function paint() { btn.innerHTML = big ? ICONS.minimize : ICONS.maximize; btn.title = btn.getAttribute('aria-label'); box.classList.toggle('big', big); fitBig(); }
-  btn.addEventListener('click', function () { big = !big; btn.setAttribute('aria-label', big ? 'Smaller box' : 'Bigger box'); paint(); });
-  box.addEventListener('input', function () { fitBig(); saveDraft(); });
-  window.addEventListener('resize', fitBig);
-  window.__fitBigPrompt = fitBig;
-  paint();
+  wire('prompt', 'bigprompt');
+  wire('setup', 'bigsetup', paintFolds);      // the shut label leads on the setup's first line
+  function fitAll() { fits.forEach(function (f) { f(); }); }
+  window.addEventListener('resize', fitAll);
+  window.__fitBigPrompt = fitAll;
 })();
 
 // ── The star: it sends on its tap ────────────────────────────
@@ -1265,9 +1346,11 @@ function castRow(e) {
 $('go').addEventListener('click', function () {
   var btn = $('go');
   if (btn.disabled) return;                       // one tap is one job
-  var prompt = $('prompt').value;
   $('err').hidden = true;
-  if (!prompt.trim()) return toast('Say what the clip is first');
+  // the SCENE is the clip: setup lines alone are not a shot, so they cannot
+  // send one on their own
+  if (!$('prompt').value.trim()) return toast('Say what the clip is first');
+  var prompt = promptText();
   var body = { prompt: prompt, model: S.model, seconds: S.seconds, resolution: S.res, ratio: S.ratio,
     sound: true, door: doorNow(), refs: orderedRefs() };
   // blank means nothing is sent, and the door mints one — never a remembered seed
@@ -1902,7 +1985,7 @@ function castVote(id, kind) {
 // PUTTING A PROMPT BACK PUTS ITS REFERENCES AND ITS SETTINGS BACK — only
 // what the record knows: a card with no references clears the strip.
 function copyBack(j) {
-  $('prompt').value = j.prompt || '';
+  applyPrompt(j.prompt || '');
   refs = (j.refs || []).map(function (r) { return { url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' }; });
   // ONLY WHAT THE RECORD KNOWS, and only what this page can send: a card
   // drawn on Mini or Fast comes back on it, and one drawn on a model the
@@ -1976,8 +2059,12 @@ function takeHandoff() {
   if (!h) return;
   // A HAND-OFF REPLACES THE DRAFT, and that is deliberate: it is a button she
   // pressed on a scene. The words that were in the box are not lost — every
-  // keystroke has been going into `footage_draft` all along.
-  $('prompt').value = h.prompt;
+  // keystroke has been going into `footage_draft` all along. A belt carries
+  // ONE prompt (its own character and setting lines included), so it is split
+  // the way a clip's own prompt is: her standing setup lines survive when the
+  // hand-off still starts with them, and otherwise the whole thing lands in
+  // the scene box rather than being sent twice.
+  applyPrompt(h.prompt);
   if (Array.isArray(h.refs)) {
     var seen = {};
     refs = [];
