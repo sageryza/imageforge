@@ -122,6 +122,69 @@ const BY = { sophie, 'blue-pajamas': pj, mayra, 'her-room': place };
     CL.withLine('A: [Image1].\n\nthe door opens', 'A: [Image1].') === 'A: [Image1].\n\nthe door opens');
   ok('a blank line changes nothing', CL.withLine('the door opens', '') === 'the door opens');
 
+  // ── TAKING A REFERENCE OFF (2026-09-11, Sophie: "if i delete an image, it
+  // shud remove the tags associated w that image") ───────────────────────────
+  // The one that can be wrong in a way nobody sees, from the other end: a ✕
+  // that leaves her words alone leaves a name pointing at a DIFFERENT picture,
+  // and the clip still draws.
+  {
+    const strip = alone.refs;                       // [Image1..3] + [Video1]
+    const line = alone.line;
+    const mid = CL.dropPlan({ refs: strip, index: 1, prompt: line });
+    ok('the ✕ on the middle still takes its own name out of her prompt',
+      mid.slot === '[Image2]' && mid.prompt.indexOf('[Image3]') < 0);
+    ok('and renumbers the one behind it, so no name points at another picture',
+      mid.prompt === 'sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], and [Image2], NOT the dress in [Video1]'
+      && JSON.stringify(mid.renamed) === '[{"from":"[Image3]","to":"[Image2]"}]');
+    ok('the strip it hands back is the strip that is left, renumbered the same way',
+      mid.refs.length === 3 && CL.slotMap(mid.refs).names.join(',') === '[Image1],[Image2],[Video1]');
+    ok('the kinds are counted apart — dropping a still never moves the clip',
+      /the woman in \[Video1\]/.test(mid.prompt) && /NOT the dress in \[Video1\]$/.test(mid.prompt));
+
+    // EVERY OCCURRENCE, because her line names the clip twice
+    const clip = CL.dropPlan({ refs: strip, index: 3, prompt: line });
+    ok('a name she used twice comes out both times',
+      clip.slot === '[Video1]' && clip.prompt.indexOf('[Video1]') < 0
+      && clip.prompt.indexOf('[Image1], [Image2] and [Image3]') > 0);
+
+    // THE LAST ONE, and the first one
+    ok('dropping the last still renumbers nothing',
+      CL.dropPlan({ refs: strip, index: 2, prompt: line }).renamed.length === 0);
+    const first = CL.dropPlan({ refs: strip, index: 0, prompt: line });
+    ok('dropping the first still moves both the others',
+      first.renamed.map((r) => r.from + '→' + r.to).join(',') === '[Image2]→[Image1],[Image3]→[Image2]');
+    // ONE PASS — two sequential renames would eat `[Image2]` twice and leave
+    // her prompt naming the same picture in two places
+    ok('one pass, so a rename never lands on a token another rename reads',
+      first.prompt === 'sophie is the woman in [Video1].  she wears the blue hospital pajamas in, [Image1] and [Image2], NOT the dress in [Video1]');
+    ok('no picture is named twice after a rename — the whole point of one pass',
+      (first.prompt.match(/\[Image1\]/g) || []).length === 1 && (first.prompt.match(/\[Image2\]/g) || []).length === 1);
+
+    // HER WORDS ARE NOT REWRITTEN — only the names and the space each sat in
+    ok('the name takes its own space with it and nothing else',
+      CL.dropPlan({ refs: [{ url: 'https://x/a.png' }], index: 0, prompt: 'the dog in [Image1] eats.' }).prompt === 'the dog in eats.');
+    ok('a name in front of punctuation leaves no space behind it',
+      CL.dropPlan({ refs: [{ url: 'https://x/a.png' }], index: 0, prompt: 'the woman in [Image1].' }).prompt === 'the woman in.');
+    ok('a dangling comma is HERS and is left alone',
+      /\[Image1\], and \[Image2\]/.test(mid.prompt));
+
+    // TOLERANT OF HER TYPING, canonical on the way out
+    ok('a name she typed loosely is still found', (function () {
+      const r = CL.dropPlan({ refs: [{ url: 'https://x/a.png' }, { url: 'https://x/b.png' }], index: 0, prompt: 'a [image 1] and a [IMAGE2]' });
+      return r.prompt === 'a and a [Image1]';
+    })());
+    ok('a name nothing maps is left verbatim rather than quietly changed',
+      CL.dropPlan({ refs: [{ url: 'https://x/a.png' }], index: 0, prompt: 'a [Image1] and a [Image7]' }).prompt === 'a and a [Image7]');
+
+    // A ✕ THAT POINTS AT NOTHING CHANGES NOTHING
+    const none = CL.dropPlan({ refs: strip, index: 9, prompt: line });
+    ok('an index off the end drops nothing and says so',
+      none.ok === false && none.changed === false && none.prompt === line && none.refs.length === 4);
+    ok('a reference can also be named by url', CL.dropPlan({ refs: strip, url: POCKET, prompt: line }).slot === '[Image3]');
+    ok('a prompt that never named it comes back untouched',
+      CL.dropPlan({ refs: strip, index: 0, prompt: 'a woman at a window' }).changed === false);
+  }
+
   // KINDS ARE READ THE WAY footage.js READS THEM
   ok('a .mov is a video and a .m4a is audio, declared or not',
     CL.kindOf({ url: 'https://x/a.mov' }) === 'video' && CL.kindOf({ url: 'https://x/a.m4a' }) === 'audio' && CL.kindOf({ url: 'https://x/a.png' }) === 'image');
@@ -325,6 +388,44 @@ const server = http.createServer((req, res) => {
   await page.evaluate(() => Array.prototype.find.call(document.querySelectorAll('#cast .who'), (w) => /Mayra/.test(w.textContent)).click());
   await page.waitForTimeout(120);
   ok('a second tap on the same look changes nothing', (await box()) === before);
+
+  // ── THE ✕ TAKES THE NAME OUT OF THE BOX (2026-09-11, Sophie: "if i delete an
+  // image, it shud remove the tags associated w that image") ─────────────────
+  // MEASURED on the real page: a ✕ that removes the row and leaves her words
+  // alone, one that removes the wrong row, and one that renumbers nothing all
+  // look identical in the source — and the failure is silent, because the clip
+  // still draws, of the wrong reference.
+  {
+    const had = await box();
+    ok('the strip is full and her box names every slot, before the tap',
+      (await strip()) === '[Image1],[Image2],[Image3],[Image4],[Image5],[Video1]'
+      && had.indexOf('[Image5]') > 0);
+    // the SECOND still — the one whose removal moves three names behind it
+    await page.evaluate(() => document.querySelectorAll('#refs .ref')[1].querySelector('.x').click());
+    await page.waitForTimeout(80);
+    const now = await box();
+    ok('the strip is one shorter and renumbered', (await strip()) === '[Image1],[Image2],[Image3],[Image4],[Video1]');
+    ok('her prompt no longer names the slot that is gone off the end', now.indexOf('[Image5]') < 0);
+    ok('the name she had used for it came out of the box',
+      /pajamas in \[Image1\], and \[Image2\]/.test(now));
+    ok('the names behind it moved with the strip — Mayra still points at her own stills',
+      /Mayra: the woman in \[Image3\]\. she wears the blue hospital pajamas in \[Image4\] and \[Image2\]\./.test(now));
+    ok('the clip is untouched — the kinds are counted apart', /the woman in \[Video1\]/.test(now));
+    ok('her words around the names are hers — nothing else was rewritten',
+      /sophie is the woman in \[Video1\]\./.test(now) && /NOT the dress in \[Video1\]/.test(now)
+      && /she stands at the window$/.test(now) && now.length === had.length - '[Image5] '.length);
+    // A CHANGE TO HER PROMPT SHE CANNOT SEE IS THE FAILURE THIS SAYS OUT LOUD
+    ok('the toast says what came out and how many names moved', await page.evaluate(() => {
+      const t = document.getElementById('toast');
+      return /\[Image2\] came out of the box/.test(t.textContent) && /renumbered/.test(t.textContent);
+    }));
+    // THE LAST ONE RENUMBERS NOTHING, so there is nothing to announce about it
+    await page.evaluate(() => document.getElementById('prompt').value = 'a woman at a window');
+    await page.evaluate(() => document.querySelectorAll('#refs .ref')[0].querySelector('.x').click());
+    await page.waitForTimeout(80);
+    ok('a prompt that never named it is left exactly as she typed it', (await box()) === 'a woman at a window');
+    ok('and the reference really came off anyway', (await strip()) === '[Image1],[Image2],[Image3],[Video1]');
+  }
 
   // ── THE FOLDERS ────────────────────────────────────────────────────────────
   ok('both films are on the chip row', await page.evaluate(() =>

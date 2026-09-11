@@ -8153,6 +8153,21 @@ before working on that module. Nothing was deleted — the moved text is verbati
     insert**, resolved against the strip as it stands. Every other look on
     screen is re-resolved after an attach, or the sheet is quoting slots that
     moved.
+  - **AND THE ✕ TAKES THAT NAME BACK OUT, RENUMBERING THE REST — `dropPlan`,
+    the same file (2026-09-11, Sophie: "if i delete an image, it shud remove
+    the tags associated w that image").** The template rule's own bug from the
+    other end: a slot is a POSITION, so taking the second of three images off
+    left `[Image2]` naming nothing AND `[Image3]` naming a picture that is now
+    `[Image2]`, and the clip still drew, of the wrong reference. ONE pass over
+    the prompt (a rename must never land on a token another rename is about to
+    read); **only the NAMES change** — the name takes the space it stood in
+    with it and nothing else, dangling commas included, because the slot names
+    are the page's vocabulary and the sentence is hers; and the TOAST says what
+    came out and how many moved, since a change to her prompt she cannot see is
+    the hidden-ingredient failure. `slotMap` is the one numbering rule now,
+    shared by the attach and the ✕. Full note in
+    `docs/modules/audio-and-film.md`; measured by
+    `node scripts/test-cast.js` (verified failing 5 pre-fix).
   - **THE PAJAMAS FLOAT AND LIVE IN ONE PLACE** (her rule: "these pajamas float
     w any patient so keep head off · ex francesca/anastasia gets pjs plus dance
     photo · same for mayra"). A wardrobe entry is its own row and a look WEARS

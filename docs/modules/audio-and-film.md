@@ -771,6 +771,42 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     moved the instant another one landed; a sheet quoting the old ones is the
     one thing this disclosure must never do. (Verified failing without the
     repaint.)
+  - **AND TAKING A REFERENCE OFF TAKES ITS NAME OUT OF THE PROMPT AND
+    RENUMBERS THE REST — `dropPlan`, the same file (2026-09-11, Sophie: "if i
+    delete an image, it shud remove the tags associated w that image").** The
+    ✕ on the strip used to remove the reference and leave her words alone,
+    which is the template rule's own bug arriving from the other end: a slot
+    is a POSITION, so taking the second of three images off left `[Image2]`
+    naming nothing AND `[Image3]` naming a picture that is now `[Image2]` —
+    and the clip still draws, of the wrong reference. Four things not to undo:
+    - **ONE PASS over the prompt**, so a rename can never land on a token
+      another rename is about to read — `[Image3]` → `[Image2]` beside
+      `[Image2]` → gone is the ordinary case, and two sequential passes eat
+      it, leaving her prompt naming one picture in two places.
+    - **HER WORDS ARE NOT REWRITTEN, only the names.** The slot names are the
+      page's own vocabulary (she taps them in; she never types them) and the
+      whitespace a name stood in belongs to the name — so a removal leaves no
+      double space and no space in front of punctuation, and leaves the
+      dangling comma in `[Image1], and [Image2]` exactly where it is. A prompt
+      that reads a little wrong is hers to fix; one that reads fine and names
+      the wrong picture is not.
+    - **THE TOAST SAYS WHAT MOVED** (`[Image2] came out of the box · 1 name
+      renumbered`) — a change to her prompt she cannot see is the
+      hidden-ingredient failure the price line exists to prevent. A prompt
+      that never named the reference is left byte-for-byte as she typed it and
+      says nothing.
+    - **BY POSITION when an index is given**, because that is the row the
+      strip drew: a copy-back makes NEW objects at the same urls, so an
+      identity filter removes nothing (`footage.html`'s own finding). A token
+      nothing maps — a name she typed pointing past the end — is left VERBATIM
+      rather than quietly changed.
+    Matching is tolerant of her typing (`[image 1]`, `[IMAGE2]`) and the
+    replacement is canonical. `slotMap` is the ONE numbering rule now, shared
+    by `stripAfter` (the attach) and `dropPlan` (the ✕), so the two halves can
+    never disagree about a slot. MEASURED on the real page in
+    `node scripts/test-cast.js` (verified failing 5 pre-fix) — a ✕ that
+    removes the row and leaves her words alone, one that removes the wrong
+    row, and one that renumbers nothing all look identical in the source.
   - **THE PAJAMAS FLOAT AND LIVE IN ONE PLACE** (her rule the same message:
     "these pajamas float w any patient so keep head off · ex
     francesca/anastasia gets pjs plus dance photo · same for mayra"). A
