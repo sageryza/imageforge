@@ -202,7 +202,17 @@
      say, and `fitPillGap` sees a zero rect and reserves nothing for it.
      Shut, the row says what the hidden thing says: how many references, and
      what the buttons are set to. Open it does not — they are right there
-     (the archive summary's don't-say-it-twice rule). */
+     (the archive summary's don't-say-it-twice rule).
+     THE SEED AND THE TWO DRAWERS GO WITH THE BUTTONS (2026-09-11, Sophie:
+     "make the seed text box also disappear when it collapse buttons" · "the
+     recent references button it stays open, even if I close the collapsible
+     folder"). The seed box is a control and sits in the STAR's row (the star
+     itself never folds — it is the one button), and the Recent drawer and the
+     character sheet are siblings of `#controls` rather than children of it, so
+     neither went away with their own toggle. All three follow it now, and the
+     shut row NAMES a seed that is set: a seed pins the clip, so a fold that
+     hid one silently would be the hidden ingredient this label exists to
+     prevent. */
   /* the margin shorthand would beat `.panel > *`'s reserve (same specificity,
      later rule), so the row carries the pill's column itself */
   .fold{display:flex;align-items:center;gap:6px;border:0;background:none;margin:10px var(--pillgap,0px) 6px 0;
@@ -485,6 +495,13 @@
   /* a word in the row of squares: the box hugs it (PHOTO'd 2026-09-10 —
      `.acts button{width:32px}` won and the word ran out of the box) */
   .acts button.again{width:auto;padding:0 10px;font-size:13px;white-space:nowrap}
+  /* the move drop-down sits with the 32px icons, on their height, at the
+     end of the row; the row wraps rather than squeezing it */
+  .acts{flex-wrap:wrap}
+  .acts .projsel{margin-left:auto}
+  .acts .projsel select{height:32px;font-size:12px;padding:0 22px 0 8px;max-width:150px;
+        overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .acts .projsel .chev{height:32px;right:6px}
   /* HER NOTES ON A CLIP (2026-09-10, Sophie: "can you make it possible to add
      notes on clips that come out of the footage module").
      THE THREAD IS THE HOUSE ONE — `forge-asset-votes`, keyed chat+url, the
@@ -1417,13 +1434,29 @@ function paintFolds() {
   $('reffold').setAttribute('aria-expanded', rShut ? 'false' : 'true');
   $('reffoldlab').textContent = rShut ? 'References · ' + refs.length : 'References';
   $('controls').style.display = cShut ? 'none' : '';
-  if (cShut) recentOpen = false;                 // the drawer goes with its button
+  // THE SEED IS A CONTROL AND FOLDS WITH THEM, though it lives in the STAR's
+  // row — the star is the one button and never folds. DISPLAY-hidden like the
+  // rest, so a folded Go still sends the seed the box holds.
+  $('seedwrap').style.display = cShut ? 'none' : '';
+  // AND THE TWO DRAWERS GO WITH THEIR BUTTONS. Both toggles are inside
+  // `#controls` and hide with it; `#recent` and `#cast` are its SIBLINGS, so
+  // until this they stayed on screen with no control left to close them.
+  // Repainted only when one was really open, so the common path costs nothing.
+  if (cShut && (recentOpen || castOpen)) {
+    if (recentOpen) { recentOpen = false; paintRecent(); }
+    if (castOpen) { castOpen = false; paintCast(); }
+  }
   $('ctlfold').classList.toggle('shut', cShut);
   $('ctlfold').setAttribute('aria-expanded', cShut ? 'false' : 'true');
   var m = modelOf(S.model);
-  $('ctlfoldlab').textContent = cShut
-    ? 'Buttons · ' + [m ? m.label : S.model, S.res, S.ratio, S.seconds + 's'].join(' · ')
-    : 'Buttons';
+  var bits = [m ? m.label : S.model, S.res, S.ratio, S.seconds + 's'];
+  // A SEED SHE SET LEADS THE LABEL — it is the one hidden value that pins the
+  // clip, and it is the rare one (blank is the default and mints a fresh one),
+  // where the other four are always set. The row ellipsizes to give way to the
+  // project picker (MEASURED at 390pt: it reads "Buttons · 2.0 Mini · 480…"),
+  // so anything appended after them cannot be read at all.
+  if (seedVal()) bits.unshift('seed ' + seedVal());
+  $('ctlfoldlab').textContent = cShut ? 'Buttons · ' + bits.join(' · ') : 'Buttons';
 }
 $('reffold').addEventListener('click', function () { setFold('refs', !foldShut('refs')); });
 $('ctlfold').addEventListener('click', function () { setFold('ctl', !foldShut('ctl')); });
@@ -2622,6 +2655,9 @@ function jobCard(j) {
   // genuinely has none — it never renders for a clip drawn here, and a silent
   // one saying nothing about it would be the card lying.
   var tags = [!S.project && j.project ? projectName(j.project) : '',
+    // A CHAT'S CLIP SAYS WHICH CHAT (2026-09-11) — the feed holds every
+    // chat's clips now, and one with nothing saying so reads as hers
+    j.chat && j.chat !== noteChat() ? 'from ' + j.chat : '',
     j.modelLabel || j.model, j.seconds != null ? j.seconds + 's' : '', j.resolution, j.ratio, j.sound ? '' : 'silent',
     doorWord(j.door) || 'APIFRAME',
     // ONE RULE ABOUT THE PRICE ON THIS PAGE: a real charge is a number, an
@@ -2698,6 +2734,13 @@ function jobCard(j) {
     // photos") — it was a link to the clip's own url, which on her phone
     // opens a player she then has to long-press out of. Now `saveMedia`.
     (j.video ? '<button type="button" class="save">save</button>' : '') +
+    // MOVE IT (2026-09-11, Sophie: "can you also add the move project UI").
+    // A drop-down of the same films the picker lists, the clip's own project
+    // lit, "No project" first: a clip drawn under the wrong picker — or sorted
+    // wrong by a chat — is one tap from the right shelf. The rows come from
+    // FILMS, so the select's html changes when the names land and the card
+    // rebuilds with them (the signature rule).
+    '<span class="selwrap projsel"><select aria-label="Move to a project" title="Move to a project">' + projOptions(j.project) + '</select><span class="chev">' + ICONS.chev + '</span></span>' +
     '</div>' +
     // OUTSIDE the signature below: the thread and her open box live here, so a
     // note landing repaints words and never rebuilds the card
@@ -2727,6 +2770,7 @@ function jobCard(j) {
     el.querySelector('.cmpb').addEventListener('click', function () { compareTap(j.id); });
     var sc = el.querySelector('.seedcopy');
     if (sc) sc.addEventListener('click', function () { setSeed(j.seed); toast('Seed ' + j.seed + ' is in the box'); });
+    el.querySelector('.projsel select').addEventListener('change', function (ev) { moveProject(j.id, ev.target.value); });
     // "Try again" puts the failed clip back in the box and stops there: the
     // star is the one tap that spends, so nothing else may send.
     var again = el.querySelector('.again');
@@ -2807,6 +2851,28 @@ function castVote(id, kind) {
   jobCard(j);                       // ends in paintFeed → applyFilt, which paints the wall's marks
   paintRecent();                    // the drawer is drawn off the feed, so it repaints with it
   api('/jobs/' + encodeURIComponent(id) + '/vote', { method: 'POST', body: JSON.stringify({ vote: j.vote }) }).catch(function () {});
+}
+// THE ROWS OF A CARD'S MOVE DROP-DOWN — the picker's own films, the clip's
+// project selected; a project the shelf no longer lists is still a row so
+// the select can show what the clip really carries.
+function projOptions(cur) {
+  var rows = [{ id: '', label: 'No project' }].concat(FILMS.map(function (f) { return { id: f.slug, label: f.name || f.slug }; }));
+  if (cur && !FILMS.some(function (f) { return f.slug === cur; })) rows.push({ id: cur, label: cur });
+  return rows.map(function (r) { return '<option value="' + esc(r.id) + '"' + (r.id === (cur || '') ? ' selected' : '') + '>' + esc(r.label) + '</option>'; }).join('');
+}
+// MOVE A CLIP TO ANOTHER PROJECT. Optimistic: the card rebuilds with the new
+// project and, inside a project view, leaves it — the toast says where it
+// went, so a card vanishing under her thumb is a card she just sent
+// somewhere. One field on the doc; nothing else moves.
+function moveProject(id, project) {
+  var j = jobsById[id]; if (!j) return;
+  project = String(project || '');
+  if (project === (j.project || '')) return;
+  j.project = project;
+  jobCard(j);
+  paintRecent();
+  toast(project ? 'Moved to ' + projectName(project) : 'Taken off its project');
+  api('/jobs/' + encodeURIComponent(id) + '/project', { method: 'POST', body: JSON.stringify({ project: project }) }).catch(function () {});
 }
 // PUTTING A PROMPT BACK PUTS ITS REFERENCES AND ITS SETTINGS BACK — only
 // what the record knows: a card with no references clears the strip.

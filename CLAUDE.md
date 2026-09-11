@@ -5349,10 +5349,13 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     - `node scripts/test-asset-lightbox.js` carries the sweep: every surface
       that opens a feed hands over a nav hook, and a new picture surface joins
       it by linking the shared file.
-- **THE BOTTOM BAR'S THREE ARE PERMANENT — Story Room · Story Timeline ·
-  Playground (2026-08-26, Sophie: "right now the bottom real icons switch off
-  can you change it so they're permanent I want the story room, the story
-  timeline and the playground").** The three middle slots used to rotate by
+- **THE BOTTOM BAR'S SLOTS ARE PERMANENT — Story Room · Story Timeline ·
+  Playground · Footage (2026-08-26, Sophie: "right now the bottom real icons
+  switch off can you change it so they're permanent I want the story room, the
+  story timeline and the playground"; **Footage joined them 2026-09-11**, "make
+  footage rotate w the three bottom nav buttons" — a FOURTH slot, not a swap:
+  she named the other three herself, so nothing came off to make room).** The
+  middle slots used to rotate by
   most-recently-used, so the tools under her thumb moved every time she opened
   anything else from Home — a bar that can never be learned. `barTools` in
   `RootView.swift` is the whole list and the ONE place the order is written
@@ -5362,8 +5365,8 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   - **THE ALIVE SET IS NOT THE BAR ANY MORE, and that is the half that breaks
     if it is "tidied".** The ZStack used to keep exactly the bar's three tools
     alive, which only worked because opening a tool from Home promoted it INTO
-    that three; with the slots fixed, a tool opened from Home is in neither, so
-    `alive` = the three + the currently-open tool + the ONE most recent tool
+    that set; with the slots fixed, a tool opened from Home is in neither, so
+    `alive` = the bar's tools + the currently-open tool + the ONE most recent tool
     from outside the bar. Drop the first and a tool opened from Home renders as
     a blank screen; drop the second and Home → Playground → Home silently
     throws away her half-typed prompt.
@@ -8465,13 +8468,31 @@ before working on that module. Nothing was deleted — the moved text is verbati
   to 641px against the 574 two lines hold, in any order — a third line, the
   "buttons take up too much room" that row was cut down from. Its rows say
   "All" and "New…" for the same reason (a select is as wide as its longest
-  row). **Moving a clip after the fact is a route with no control yet** —
-  `POST /jobs/:id/project {project}` — because she has not decided she wants
-  one ("we'll have to work out if I want to manually move something"). **The
-  174 clips already on the log were filed under the ward** by
-  `node scripts/footage-project-backfill.js --project ward --go` (dry by
-  default, only ever fills a blank; every clip was three days of one draft on
-  the one film the shelf had). Not built yet, deliberately: the evidence
+  row). **EVERY CHAT'S CLIPS RIDE THE FEED SINCE THE SAME EVENING (Sophie: "most
+  of them made in chat. Are you adding them to footage? If so, good")** — the
+  read was `chat == footage`, the page's own 174, and ~200 clips the chats had
+  drawn for the same films were reachable from nowhere she looks; `/jobs`
+  reads the whole log now and a card that was not this page's says
+  `from <chat>`. **AND THE SORT WAS DONE BY READING THE PROMPTS, NOT BY ONE
+  WORD (her "lots of different projects … are you able to sort that out").**
+  The first backfill filed all 174 as `ward`, which was wrong for a third of
+  them — the page had drawn the Jonathan and Sean scenes, the witch
+  commercials, the train and the house under one picker. Every clip on the
+  log (369) was read and stamped from a `{id: project}` map
+  (`node scripts/footage-project-backfill.js --map sort.json --go`, the
+  whole log, overwriting; `--project` still only fills a blank): ward 220 ·
+  secretly-a-witch 66 (the kit commercials, the b-roll, the christmas and
+  "It's Sophie" voiceovers, the doctor-with-a-wand and pill-commercial
+  scenes) · jonathan-and-sean 17 · box-on-the-shelf 13 (the little-girl
+  kit-on-the-closet-shelf scene) · train 12 · nautchaug 10 (the bus, the
+  school library) · house 8 (the woods and the mansion) · ticky-tack 6 ·
+  none 17 (door probes, the dialogue test, the harry potter joke, the taxi,
+  the dunce-hat class, the therapy-with-ants clip — hers to place). The seven
+  new films are on the cast shelf (`POST /api/cast/films`), so the picker
+  lists them. **MOVING A CLIP IS THE DROP-DOWN ON ITS CARD** (her "add the
+  move project UI"): the same films, "No project" first, the clip's own lit;
+  a change POSTs `/jobs/:id/project`, the toast says where it went, and
+  inside a project view the card leaves. A wrong guess above is one tap. Not built yet, deliberately: the evidence
   rules (a job's references on one film's shelf, chaining off another job's
   output) — they PROPOSE a project and belong to step 5 of
   `docs/footage-projects-plan.md`. Tests: the project section of `node
