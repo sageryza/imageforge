@@ -2207,6 +2207,19 @@ them off the reference sheet, not off the old filenames.
     and `msgId` + `key`. **Answer it ON THE NOTE**, the picture-note rule:
     `POST /api/chatfeed/tick/reply {id: msgId, key, text}` — it reads back
     under her note in the app. A just-for-me note is in no inbox.
+  - **THE WORDS OF A LIST ITEM ARE STILL THE PAGE — ONLY A NEAR MISS IS
+    EXEMPT (2026-09-11, Sophie: "tapping chats no longer scrolls screen -
+    only pill").** The 09-09 fix below took the whole item — its words
+    included — off the tap gesture, and a reply here is mostly list items (a
+    markdown list of 2+, or 3+ bold-led paragraphs, both wrap every item's
+    words in `.mtitem`), so there was nothing left on most replies to tap.
+    `tickNearMiss` is the rule now: a tap inside the first 16px of the item's
+    own first line, right beside the box (whose invisible hit area already
+    reaches ~5px into the gap), is the tap she aimed at the box and moves
+    nothing; anything further along the words toggles the reading-aid like
+    prose. The saved note and the open note box stay off the gesture. Pinned
+    by `node scripts/test-chats-list-ticks.js` (a near miss MEASURED still,
+    the words MEASURED moving).
   - **THE TARGET IS BIGGER THAN THE BOX, AND A MISS NEVER MOVES THE PAGE
     (2026-09-09, Sophie: "can you make the targets for the message X checklist
     bigger or make it so it doesn't also scroll the page").** Both halves,
@@ -4586,6 +4599,24 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     box move and the back-to-top would stay dark. Test:
     `node scripts/test-page-viewer-piles.js` (the real `mkPagePill` over the
     real rendered deck template in a real iframe; verified failing 3 pre-fix).
+  - **A LINK FROM ONE SERVED PAGE TO ANOTHER STAYS AN EMBED — THAT WAS THE
+    DOUBLE PILL (2026-09-11, Sophie: "pill is double pill in some places · it
+    was in light blue 3d button ward etc · y dies that happen always").** The
+    viewer opens a page at `?embed=1` (no injected pill; `mkPagePill` in the
+    parent drives the frame), and its click interceptor let a link to
+    `/api/chatfeed/page/<x>` load in place AS WRITTEN — a scenes-index key is
+    `/api/chatfeed/page/<belt>#j-<key>`, no embed — so the server dressed the
+    belt for a browser and pill-inject ran INSIDE the frame under the
+    viewer's own pill. Every page-to-page link did it, which is her
+    "always". Two nets in `openPage` (chats.html): the click is rewritten
+    onto the embed url with the hash kept (a hash-only hop on the page she is
+    on is made on the frame's own url, no reload), and the load handler,
+    finding `#vtop` in the frame anyway (a script navigation, an old cached
+    page), stops the frame's scroller and HIDES its capsule with an
+    `!important` stylesheet — never a removal, the injected script keeps
+    painting those nodes — and blanks its hooks; the bar retitles to the page
+    she is on. Test: `node scripts/test-chats-viewer-page-link.js` (verified
+    failing 7 pre-fix).
   - **A RESUME GOES DOWN — SHE REVERTED THE `dir` VERSION (2026-08-26, Sophie:
     "it used to go down after I stopped it even if it was going up before. now
     it doesn't seem to do that" → "can you just revert that one change for the
