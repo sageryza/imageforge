@@ -139,7 +139,7 @@ const MODELS = [
   // on Atlas and stays null.
   { id: 'mini', label: '2.0 Mini', or: 'bytedance/seedance-2.0-mini', af: 'seedance-2-mini',
     atlas: 'bytedance/seedance-2.0-mini/reference-to-video',
-    res: ['480p', '720p'], secs: [4, 15], family: '2.0', sizes: '2.5',
+    res: ['480p', '720p'], secs: [4, 15], family: '2.0', sizes: '2.5', canvasMeasured: true,
     orTok: { '480p': 3.5e-6, '720p': 3.5e-6 },
     afCents: { '480p': 4, '720p': 9 }, afVid: { '480p': 5 }, afExact: ['480p+video'],
     atlasCents: { '480p': 5.6, '720p': 5.6 } },
@@ -231,9 +231,18 @@ async function atlasPrices() {
       }
     } catch { /* full list */ }
   }
-  atlasCache = { at: Date.now(), val: out };
-  return out;
+  // A FAILED OR EMPTY READ KEEPS THE LAST GOOD PRICES, and since 2026-09-11
+  // that matters for more than the figure on screen: the door is chosen by
+  // price now, so falling back to the table's LIST rate would quietly send
+  // every Mini job to OpenRouter at 3x the real Atlas price (13.59¢ against
+  // 4.40¢ on a 4s 480p 16:9 clip) for the ten minutes the cache holds. The
+  // list rate is still the floor when nothing has ever been read.
+  atlasCache = { at: Date.now(), val: Object.keys(out).length ? out : atlasCache.val };
+  return atlasCache.val;
 }
+// For a test that needs a second live read inside the cache window — nothing
+// in the app calls it; the ten-minute cache is the point everywhere else.
+function atlasCacheBust() { atlasCache = { at: 0, val: atlasCache.val }; }
 function atlasPerSecOf(m, res) {
   const v = atlasCache.val[m.id];
   return v && Number.isFinite(v.perSec) ? v.perSec : m.atlasCents[res] / 100;
@@ -274,31 +283,70 @@ function resFactor(m, res, ratio) {
   return base > 0 ? (w * h) / base : 1;
 }
 
-// Which door a job goes through. Answers { door, fallback } — `fallback` is
-// the door tried second when the first refuses for content. Or { error }.
-function doorFor({ model, door, hasVideo, resolution }, cfg) {
+// HOW LOOSE EACH DOOR'S CONTENT FILTER IS, measured (see the ward-film notes
+// in CLAUDE.md): OpenRouter forwards to ByteDance directly and refuses ANY
+// person in a reference; Atlas takes a person and a real untouched photo and
+// refuses only a FAMOUS face; APIFRAME takes every reference the film has.
+// This is the ONE thing the price ranking below is not allowed to ignore: a
+// door that refused for content can only be followed by a LOOSER one, or the
+// fallback is a second free refusal and no clip.
+const DOOR_LOOSENESS = { openrouter: 0, atlascloud: 1, apiframe: 2 };
+const DOOR_WORDS = { openrouter: 'OpenRouter', atlascloud: 'Atlas Cloud', apiframe: 'APIFRAME' };
+// What each door's refusal really means, in her terms — the card says it.
+const REFUSED_WHY = { openrouter: 'a person in it', atlascloud: 'a famous face', apiframe: 'its content filter' };
+
+// Which door a job goes through. Answers { door, fallback, chain } — `chain`
+// is every remaining door to try, in order, when one refuses for CONTENT, and
+// `fallback` is its first entry (kept for any older reader). Or { error }.
+//
+// AUTO IS CHEAPEST-FIRST SINCE 2026-09-11 (Sophie, adding 2.0 and 2.5 to the
+// page: "are they cheapest through router, atlas or frame? choose cheapest").
+// That supersedes the 2026-09-09 "make atlas the default" for the ORDER —
+// Atlas is still the cheapest door for Mini and Fast, by a lot, and simply
+// wins the ranking there. It is NOT the cheapest for 2.0 or 2.5: measured
+// live 2026-09-11 on a 4s 480p 16:9 clip, Mini is 4.4¢ Atlas · 13.6¢
+// OpenRouter · 16¢ APIFRAME and Fast 10.8¢ · 16.3¢ · 28¢, where 2.0 is
+// 27.2¢ OPENROUTER · 32¢ APIFRAME · 36¢ Atlas and 2.5 is 41.6¢ · 52¢ ·
+// 53.6¢ — because Atlas's 80%/70% sale is on the two small models and only
+// 20% on the two big ones. A refusal on OpenRouter and on Atlas is FREE and
+// comes back before anything draws, so trying the cheapest door first costs
+// a round trip and never money.
+function doorFor({ model, door, hasVideo, resolution, ratio, seconds }, cfg) {
   const m = typeof model === 'string' ? modelOf(model) : model;
   if (!m) return { error: 'unknown model' };
   cfg = cfg || { openrouter: true, apiframe: true, atlascloud: true };
   const want = String(door || 'auto').toLowerCase();
-  const orOk = Boolean(m.or) && cfg.openrouter && m.res.includes(resolution || '480p');
-  const afOk = Boolean(m.af) && cfg.apiframe && m.afCents && m.afCents[resolution || '480p'] != null;
-  const atOk = Boolean(m.atlas) && cfg.atlascloud && m.atlasCents && m.atlasCents[resolution || '480p'] != null;
-  if (want === 'openrouter') return orOk ? { door: 'openrouter', fallback: null } : { error: m.or ? 'OpenRouter is not configured for that' : (m.atlas ? `${m.label} is only on Atlas Cloud` : `${m.label} is only on APIFRAME`) };
-  if (want === 'apiframe') return afOk ? { door: 'apiframe', fallback: null } : { error: 'APIFRAME does not offer that' };
-  // A PINNED DOOR NEVER FALLS BACK — the page pins Atlas (its only door), and
-  // a refusal there is a measurement she reads, not a reason to spend on
-  // another door behind her back.
-  if (want === 'atlascloud') return atOk ? { door: 'atlascloud', fallback: null } : { error: m.atlas ? 'Atlas Cloud is not configured (ATLASCLOUD_API_KEY)' : `${m.label} is not on Atlas Cloud` };
-  // AUTO: ATLAS FIRST (2026-09-09, her "make atlas the default") — it takes
-  // a person in a reference and is the cheapest door for one; a content
-  // refusal there (a famous face) falls through to APIFRAME. OpenRouter is
-  // the door for a model Atlas does not price (2.0 at 1080p), APIFRAME the
-  // last resort.
-  if (atOk) return { door: 'atlascloud', fallback: afOk ? 'apiframe' : null };
-  if (orOk) return { door: 'openrouter', fallback: afOk ? 'apiframe' : null };
-  if (afOk) return { door: 'apiframe', fallback: null };
-  return { error: 'no door is configured for that' };
+  const res = m.res.includes(resolution) ? resolution : (resolution || '480p');
+  const orOk = Boolean(m.or) && cfg.openrouter && m.res.includes(res);
+  const afOk = Boolean(m.af) && cfg.apiframe && m.afCents && m.afCents[res] != null;
+  const atOk = Boolean(m.atlas) && cfg.atlascloud && m.atlasCents && m.atlasCents[res] != null;
+  if (want === 'openrouter') return orOk ? { door: 'openrouter', fallback: null, chain: [] } : { error: m.or ? 'OpenRouter is not configured for that' : (m.atlas ? `${m.label} is only on Atlas Cloud` : `${m.label} is only on APIFRAME`) };
+  if (want === 'apiframe') return afOk ? { door: 'apiframe', fallback: null, chain: [] } : { error: 'APIFRAME does not offer that' };
+  // A PINNED DOOR NEVER FALLS BACK — a refusal on a door she named is a
+  // measurement she reads, not a reason to spend on another door behind her
+  // back. Only AUTO ranks and walks.
+  if (want === 'atlascloud') return atOk ? { door: 'atlascloud', fallback: null, chain: [] } : { error: m.atlas ? 'Atlas Cloud is not configured (ATLASCLOUD_API_KEY)' : `${m.label} is not on Atlas Cloud` };
+  const open = [orOk && 'openrouter', atOk && 'atlascloud', afOk && 'apiframe'].filter(Boolean);
+  if (!open.length) return { error: 'no door is configured for that' };
+  // Ranked by what the tap really costs on each, cheapest first. A door whose
+  // price cannot be worked out sorts LAST rather than winning by default.
+  const priced = open.map((d) => {
+    const p = priceOn(m, d, { res, ratio, seconds, hasVideo });
+    return { door: d, cents: Number.isFinite(p && p.cents) ? p.cents : Infinity };
+  }).sort((a, b) => a.cents - b.cents);
+  const pick = priced[0].door;
+  // The walk only ever gets LOOSER, and it is greedy over the price order —
+  // so a door cheaper than the last one but no looser than it is skipped
+  // rather than tried, since it would refuse the same reference for free and
+  // leave her with no clip.
+  let loose = DOOR_LOOSENESS[pick];
+  const chain = [];
+  for (const x of priced.slice(1)) {
+    if (DOOR_LOOSENESS[x.door] <= loose) continue;
+    chain.push(x.door);
+    loose = DOOR_LOOSENESS[x.door];
+  }
+  return { door: pick, fallback: chain[0] || null, chain, ranked: priced };
 }
 
 // WHAT THE TAP COSTS, in list-credit cents. EXACT where it is measured —
@@ -327,16 +375,34 @@ function estimate({ model, resolution, ratio, seconds, hasVideo, door, discount 
   if (!m) return { error: 'unknown model' };
   const res = m.res.includes(resolution) ? resolution : m.res[0];
   const s = Number(seconds) || minSeconds(m);
-  const d = doorFor({ model: m, door, hasVideo, resolution: res }, cfg);
+  const d = doorFor({ model: m, door, hasVideo, resolution: res, ratio, seconds: s }, cfg);
   if (d.error) return d;
-  if (d.door === 'openrouter') {
+  const p = priceOn(m, d.door, { res, ratio, seconds: s, hasVideo, discount });
+  return p.error ? p : { ...p, door: d.door };
+}
+
+// The price ON ONE NAMED DOOR — no door choice in it, which is what lets
+// `doorFor` rank with it without the two calling each other forever.
+function priceOn(m, door, { res: resIn, ratio, seconds, hasVideo, discount }) {
+  const res = m.res.includes(resIn) ? resIn : m.res[0];
+  const s = Number(seconds) || minSeconds(m);
+  if (door === 'openrouter') {
+    if (!m.orTok || m.orTok[res] == null) return { error: 'OpenRouter does not price that' };
     const [w, h] = canvasOf(m, res, RATIOS.includes(ratio) ? ratio : '1:1');
     const tokens = (w * h * framesOf(s)) / 1024;
     const off = Number.isFinite(discount) ? discount : discountOf(m.id);
     const usd = tokens * m.orTok[res] * (1 - off);
-    return { cents: Math.round(usd * 10000) / 100, door: 'openrouter', ...(hasVideo ? { about: true } : { exact: true }) };
+    // EXACT NEEDS THE CANVAS MEASURED, not only the formula. The token count
+    // is w × h × frames, so the price is only as pinned as the canvas — and
+    // the published table has been WRONG once already: Mini turned out to
+    // render on the 2.5 canvases rather than its own family's (ffprobe, every
+    // clip). 2.0, Fast and 2.5 have never gone through OpenRouter, so their
+    // canvases are the published table and unverified, and their price
+    // answers "about" until a real charge is read against one.
+    const pinned = m.canvasMeasured && !hasVideo;
+    return { cents: Math.round(usd * 10000) / 100, door: 'openrouter', ...(pinned ? { exact: true } : { about: true }) };
   }
-  if (d.door === 'atlascloud') {
+  if (door === 'atlascloud') {
     // Atlas's per-second rate is a 480p rate, and RESOLUTION IS A BILLING
     // DIMENSION IT DOES NOT EXPOSE (2026-09-10). Its `GET /models` publishes
     // ONE flat `base_price` per model, which is why this branch used to
@@ -354,9 +420,11 @@ function estimate({ model, resolution, ratio, seconds, hasVideo, door, discount 
     // ~ to both"). Atlas has no billing API; her console is the only read,
     // and no Atlas charge has ever been read against an estimate. Every
     // Atlas figure answers `about` until one is.
+    if (!m.atlasCents || m.atlasCents[res] == null) return { error: 'Atlas Cloud does not price that' };
     const cents = atlasPerSecOf(m, res) * 100 * s * resFactor(m, res, ratio);
     return { cents: Math.round(cents * 100) / 100, door: 'atlascloud', about: true };
   }
+  if (!m.afCents || m.afCents[res] == null) return { error: 'APIFRAME does not price that' };
   const per = (hasVideo && m.afVid && m.afVid[res] != null) ? m.afVid[res] : m.afCents[res];
   const measured = (m.afExact || []).indexOf(res + (hasVideo ? '+video' : '')) >= 0;
   return { cents: Math.round(per * s * 100) / 100, door: 'apiframe', ...(measured ? { exact: true } : { about: true }) };
@@ -968,7 +1036,7 @@ async function startJob(b) {
   if (built.error) { const e = new Error(built.error); e.status = 400; throw e; }
   const { body, refs, m, res, ratio, seconds } = built;
   const hasVideo = refs.some((r) => r.kind === 'video');
-  const d = doorFor({ model: m, door: b.door, hasVideo, resolution: res }, cfg());
+  const d = doorFor({ model: m, door: b.door, hasVideo, resolution: res, ratio, seconds }, cfg());
   if (d.error) { const e = new Error(d.error); e.status = 400; throw e; }
   // A reference under ByteDance's pixel floor is refused before anything
   // draws, so swap in an upscaled copy BEFORE the door sees the body — and
@@ -1003,20 +1071,36 @@ async function startJob(b) {
     const seed = r.params && r.params.seed != null ? Number(r.params.seed) : null;
     return { jobId: r.jobId, door, sent: r.sent || req, seed: Number.isFinite(seed) ? seed : null };
   };
+  // THE WALK: the cheapest door, then every LOOSER one in price order, only
+  // ever on a CONTENT refusal — which is free on OpenRouter and on Atlas and
+  // comes back before anything draws, so a fall costs a round trip and never
+  // money. Anything else (a shape refusal, a door that is down) throws as it
+  // always did: those are hers to read, not a reason to spend elsewhere.
+  let tried = d.door;
   try {
     const r = await send(d.door);
     return { ...r, fellBack: false, estimate: est.cents, note: extra.note || '' };
-  } catch (e) {
-    if (e.refusal === 'content' && d.fallback === 'apiframe') {
-      const est2 = estimate({ model: m, resolution: res, ratio, seconds, hasVideo, door: 'apiframe' }, cfg());
+  } catch (first) {
+    if (first.refusal !== 'content' || !(d.chain || []).length) throw first;
+    let last = first;
+    for (const next of d.chain) {
+      // A door that would refuse this SHAPE is skipped rather than sent — the
+      // Atlas reference-video cap is checked at the top for the first door
+      // and has to be checked again for one we fall onto.
+      if (refVideoTotalRefusal(floored.seconds, next)) continue;
+      const est2 = estimate({ model: m, resolution: res, ratio, seconds, hasVideo, door: next }, cfg());
       extra.estimate = est2.cents != null ? est2.cents : null;
-      const note = d.door === 'atlascloud'
-        ? 'Atlas Cloud refused a reference (a famous face) — sent through APIFRAME instead'
-        : 'OpenRouter refused a reference (a person in it) — sent through APIFRAME instead';
-      const r = await send('apiframe', note);
-      return { ...r, fellBack: true, estimate: est2.cents, note: [extra.note, note].filter(Boolean).join(' ') };
+      const note = `${DOOR_WORDS[tried] || tried} refused a reference (${REFUSED_WHY[tried] || 'its content filter'}) — sent through ${DOOR_WORDS[next] || next} instead`;
+      try {
+        const r = await send(next, note);
+        return { ...r, fellBack: true, estimate: est2.cents, note: [extra.note, note].filter(Boolean).join(' ') };
+      } catch (e) {
+        last = e;
+        tried = next;
+        if (e.refusal !== 'content') throw e;
+      }
     }
-    throw e;
+    throw last;
   }
 }
 
@@ -1164,8 +1248,8 @@ router.post('/jobs/:id/trim', async (req, res) => {
 module.exports = {
   router, init,
   MODELS, RATIOS, SIZES, CHAT, OR_FEE,
-  modelOf, doorFor, estimate, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, resFactor, secondsOk, framesOf,
-  discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf,
+  modelOf, doorFor, estimate, priceOn, DOOR_LOOSENESS, DOOR_WORDS, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, resFactor, secondsOk, framesOf,
+  discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf, atlasCacheBust,
   startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf,
   statusOf, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
 };

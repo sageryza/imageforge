@@ -526,15 +526,16 @@
   <p><b>Say what the clip is.</b> Add references &mdash; a picture, a clip, a sound &mdash; and name each one in the prompt by its slot: <b>[Image1]</b>, <b>[Video1]</b>, <b>[Audio1]</b>. Tap a slot name to drop it into the box. Never describe what a reference shows; the picture is the point.</p>
   <p><b>The star sends it.</b> One tap, and the line beside it says what that tap costs. With a reference video that figure is the closest the door will say up front; the real charge lands on the card when the clip finishes.</p>
   <p><b>Every clip says how long it took.</b> <i>drew in 2m 34s</i> on the card is the door's own figure, not how long you were watching — close the app and it keeps drawing, and the time it reports is still the real one. A clip drawn before this says nothing rather than guessing.</p>
-  <p><b>Through Atlas Cloud</b> &mdash; it takes a reference with a person in it, a real photo or a clip, and draws the likeness. A famous face is refused, free, before anything draws; a chat can try that one through APIFRAME.</p>
-  <p><b>Two models.</b> <b>2.0 Mini</b> is the default and the cheap one. <b>2.0 Fast</b> is the option, and it is dearer &mdash; the line beside the star says what the tap costs either way. Fast is also the stricter of the two: a plain prompt with no reference at all has come back refused there with a copyright line (free, unbilled, measured 2026-09-09) where the same words drew on Mini.</p>
+  <p><b>Whichever door is cheapest</b> &mdash; the line beside the star names it. Right now that is <b>Atlas Cloud</b> for Mini and Fast and <b>OpenRouter</b> for 2.0 and 2.5, but nothing here is written down: the three doors are priced for the exact clip you have set up and the cheapest one gets it. If a door refuses a reference &mdash; free, before anything draws &mdash; the job falls to the next cheapest door that is looser, so a person in a reference ends up somewhere that takes one without you doing anything. A famous face is the one thing all three refuse.</p>
+  <p><b>Four models.</b> <b>2.0 Mini</b> is the default and much the cheapest. <b>2.0 Fast</b>, <b>2.0</b> and <b>2.5</b> climb from there &mdash; the line beside the star says what the tap costs before you make it. Two things worth knowing: <b>Fast is the strict one</b> (a plain prompt with no reference at all has come back refused there with a copyright line, free and unbilled, where the same words drew on Mini), and <b>2.0 is the only one that does 1080p</b>.</p>
+  <p><b>The last frame of a clip</b> &mdash; the picture behind it in the recent drawer, for chaining one shot into the next &mdash; rides on Atlas Cloud only. A clip that went out through another door has none.</p>
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
   <p><b>The seed</b> is on every finished clip, with a button that puts it back in the box. Leave the box blank and each clip gets a fresh one. A seed repeats the <i>opening</i> of a short clip and then drifts &mdash; it does not survive a changed prompt or a different size, and at 15 seconds it does close to nothing.</p>
   <p><b>Tiles.</b> Each one carries two doors in the middle: <b>&#9654;</b> plays the clip, and the list mark beside it takes you to that clip&rsquo;s card &mdash; its words, its seed, its references and the button that puts them back. The first words of your own newest note on a clip sit along the top of its tile.</p>
   <p><b>Characters.</b> The people icon opens this film&rsquo;s library. Tap a character &mdash; or one of their outfits &mdash; and their references go into the strip while the line that names them by slot goes to the top of the box. The line under each one is exactly what it will add, worked out against what you already have attached, so a second character gets <b>[Video2]</b> rather than the slot the library was written against. Each film is its own shelf. Taking a reference off afterwards does not rewrite your words &mdash; the slot names in the box are yours to fix.</p>
   <p><b>Notes.</b> The speech mark on a clip opens a note; playing one and tapping it pauses the film and notes the second you stopped on. Either way it lands in the one place chats read their notes, and a chat answers on the note itself.</p>
-  <p>What is left is on the Atlas console &mdash; it has no balance to read from here.</p>
+  <p>What is left on Atlas is on its own console &mdash; it has no balance to read from here.</p>
 </div>
 
 <div class="panel">
@@ -690,23 +691,31 @@ document.addEventListener('click', function () { if (!$('helpcard').hidden) $('h
 
 // ── State ─────────────────────────────────────────────────────────────────
 var CFG = null;                      // GET /status
-// ONLY ATLAS CLOUD (2026-09-09, Sophie: "make atlas the default and only
-// route through footage"). The door row came off the page that morning
-// (OpenRouter only, then), Atlas rode for an afternoon as its own model row,
-// and by the evening it was the page's one door: it takes a person in a
-// reference and prices Mini at a fifth of list. OpenRouter and APIFRAME are
-// still doors — footage.js keeps them, and a chat sends a job through either
-// by hand — they are just not choices here, so there is nothing to pick and
+// THE CHEAPEST DOOR, CHOSEN BY THE SERVER (2026-09-11, Sophie: "are they
+// cheapest through router, atlas or frame? choose cheapest"). It was pinned
+// to Atlas from 2026-09-09 ("make atlas the default and only route through
+// footage"), which was right while the page offered Mini and Fast — Atlas is
+// far the cheapest for those two and still wins them on price. It is NOT the
+// cheapest for 2.0 or 2.5, so with those on the page the pin would be
+// spending her money to keep a rule that was only ever about price. `auto`
+// ranks the three doors by what this exact tap costs and sends to the
+// cheapest; a CONTENT refusal there is free and falls through to the next
+// LOOSER door (footage.js `doorFor`). There is still nothing here to pick and
 // nothing to remember. Sound is always on, and sent explicitly rather than
 // left to the model's own default.
-var DOOR = 'atlascloud';
+var DOOR = 'auto';
 function doorNow() { return DOOR; }
-// MINI AND FAST (2026-09-10, Sophie: "add 2.0 fast back as an option"). This
-// line is the whole of which models the page offers — it was `'mini'` alone
-// for a morning ("get rid of the model choice · just mini for now") and the
-// drop-down is derived from it, so offering 2.0 or 2.5 again is this list.
-// FIRST IS THE DEFAULT and is what an unknown model falls back to.
-var PAGE_MODELS = ['mini', 'fast'];
+// ONE SPELLING OF EACH DOOR — the price line before the tap and the card
+// after it have to say the same word for the same door.
+function doorWord(d) { return d === 'openrouter' ? 'OpenRouter' : d === 'atlascloud' ? 'Atlas Cloud' : d === 'apiframe' ? 'APIFRAME' : (d || ''); }
+// THE WHOLE 2.x FAMILY (2026-09-11, Sophie: "ok add 2.0 and 2.5"). This line
+// is the whole of which models the page offers — it was `'mini'` alone for a
+// morning ("get rid of the model choice · just mini for now"), then Mini and
+// Fast, and the drop-down is derived from it, so taking one off again is this
+// list. 1.5 Pro stays off: it is on APIFRAME only.
+// FIRST IS THE DEFAULT and is what an unknown model falls back to — Mini,
+// because the draft is on Mini and the dear rows are her own tap.
+var PAGE_MODELS = ['mini', 'fast', '2.0', '2.5'];
 var PAGE_MODEL = PAGE_MODELS[0];
 var S = { model: PAGE_MODEL, seconds: 4, res: '480p', ratio: '3:4' };
 var refs = [];                       // [{url, kind, poster, name}]
@@ -730,14 +739,16 @@ function loadCtl() {
 }
 function saveCtl() { try { localStorage.setItem('footage_ctl', JSON.stringify({ ratio: S.ratio })); } catch (e) {} }
 function saveDraft() { try { localStorage.setItem('footage_draft', JSON.stringify({ prompt: $('prompt').value, refs: refs })); } catch (e) {} }
-// THE LIST IS DERIVED, NEVER TYPED: a model this page offers is one Atlas
-// Cloud carries — which is what takes 1.5 Pro off it, since that one exists
-// only on APIFRAME and this page has the one door — AND one named in
-// `PAGE_MODELS`. So the drop-down can never offer a row the door cannot
-// send, and never a row she did not ask for.
+// THE LIST IS DERIVED, NEVER TYPED: a model this page offers is one at least
+// one live door carries, AND one named in `PAGE_MODELS`. So the drop-down can
+// never offer a row nothing can send, and never a row she did not ask for.
+// It used to require ATLAS specifically, back when Atlas was the one door;
+// with the door chosen by price that would take a row off the page for being
+// missing from the door that is not even the cheapest one for it.
 function models() {
-  return (CFG && CFG.models ? CFG.models : []).filter(function (m) { return m.atlascloud && PAGE_MODELS.indexOf(m.id) >= 0; })
-    .sort(function (a, b) { return PAGE_MODELS.indexOf(a.id) - PAGE_MODELS.indexOf(b.id); });
+  return (CFG && CFG.models ? CFG.models : []).filter(function (m) {
+    return PAGE_MODELS.indexOf(m.id) >= 0 && (m.atlascloud || m.openrouter || m.apiframe);
+  }).sort(function (a, b) { return PAGE_MODELS.indexOf(a.id) - PAGE_MODELS.indexOf(b.id); });
 }
 function modelOf(id) { return models().filter(function (m) { return m.id === id; })[0]; }
 
@@ -886,7 +897,13 @@ $('reffold').addEventListener('click', function () { setFold('refs', !foldShut('
 $('ctlfold').addEventListener('click', function () { setFold('ctl', !foldShut('ctl')); });
 
 // The price is ASKED, never computed here — the server holds the one table.
-// ONE DOOR, so the line no longer names it (2026-09-09): "about 7.6¢".
+// AND IT NAMES THE DOOR AGAIN (2026-09-11, her "choose cheapest"): with four
+// models the cheapest door is no longer the same one every time — Atlas for
+// Mini and Fast, OpenRouter for 2.0 and 2.5 — and which door a tap goes to is
+// a fact about the clip, not only about the bill: the last frame rides on
+// Atlas alone, and OpenRouter refuses any person in a reference (free, before
+// drawing, then the job falls to a looser door). It came off on 2026-09-09
+// only because there was one door left to name.
 var costSeq = 0;
 function updateCost() {
   var seq = ++costSeq;
@@ -903,7 +920,7 @@ function updateCost() {
     // job and spent a line saying the same thing every time, where one
     // character costs nothing and still says the number is not a promise.
     // The flag stays on the element for anything that needs to know.
-    $('cost').textContent = (d.about ? '~' : '') + cents(d.cents);
+    $('cost').textContent = (d.about ? '~' : '') + cents(d.cents) + (d.door ? ' · ' + doorWord(d.door) : '');
     $('cost').dataset.cents = d.cents;
     $('cost').dataset.about = d.about ? '1' : '';
   }).catch(function () {});
@@ -1282,7 +1299,12 @@ $('go').addEventListener('click', function () {
       // can try that job instead. On Atlas the refusal is a FAMOUS face (a
       // real photo of anyone else passes).
       if (d && d.why) msg = d.why + (d.error && d.error !== d.why ? ' (' + d.error + ')' : '');
-      else if (d && d.refusal === 'content') msg += ' — a famous face in a reference. A chat can try this one through APIFRAME.';
+      // EVERY DOOR REFUSED IT, not just one: the server walks the cheapest
+      // door and then every looser one on a content refusal, so a content
+      // refusal that reaches her here has already been through APIFRAME,
+      // which takes every reference this film has. A famous face is the one
+      // thing all three refuse.
+      else if (d && d.refusal === 'content') msg += ' — a reference every door refused, which in practice means a famous face in it.';
       // THE DOOR ITSELF IS DOWN (2026-09-10): Atlas's job endpoint gave
       // nothing for two minutes. The server says so in her words (`hint`);
       // her words and references stay in the box for the next tap.
@@ -1746,7 +1768,7 @@ function jobCard(j) {
   // genuinely has none — it never renders for a clip drawn here, and a silent
   // one saying nothing about it would be the card lying.
   var tags = [j.modelLabel || j.model, j.seconds != null ? j.seconds + 's' : '', j.resolution, j.ratio, j.sound ? '' : 'silent',
-    j.door === 'openrouter' ? 'OpenRouter' : j.door === 'atlascloud' ? 'Atlas Cloud' : 'APIFRAME',
+    doorWord(j.door) || 'APIFRAME',
     // ONE RULE ABOUT THE PRICE ON THIS PAGE: a real charge is a number, an
     // ESTIMATE wears a "~" (2026-09-10, her "add ~ to both"). The card needs
     // no flag to know which — falling back to `estimate` because the door
@@ -1905,8 +1927,8 @@ function copyBack(j) {
   $('prompt').value = j.prompt || '';
   refs = (j.refs || []).map(function (r) { return { url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' }; });
   // ONLY WHAT THE RECORD KNOWS, and only what this page can send: a card
-  // drawn on Mini or Fast comes back on it, and one drawn on a model the
-  // page does not offer (2.0, 2.5, an older APIFRAME job) comes back as its
+  // drawn on a model the page offers comes back on it, and one drawn on a
+  // model it does not (1.5 Pro, an older APIFRAME job) comes back as its
   // words, its references and its settings, on whichever model is showing —
   // never silently switched to a row she cannot see in the box.
   if (j.model && modelOf(j.model)) S.model = j.model;
