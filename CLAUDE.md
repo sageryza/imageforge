@@ -8002,6 +8002,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   panel or the pill-gap fitter would shorten them all. Full note: *DIVIDE
   HERE* in `docs/modules/audio-and-film.md`; test
   `node scripts/test-footage-divide.js`.
+  **WHAT CHANGED BETWEEN TWO CLIPS — THE COMPARE MARK ON EVERY CARD
+  (2026-09-11, Sophie: "is there an easy way I can diff video clips like I
+  can't remember what I changed … sometimes it's a single line or a reference
+  for the model the timing etc · It's always been Sophie clips since they're
+  pretty similar").** One tap opens a paper sheet on this clip against the
+  clip BEFORE it in the same project and draws only what moved: a word diff
+  of the prompt (in = underlined on green, out = struck on rose), one row per
+  setting that changed (`seconds 8s → 12s`), and the references slot by slot
+  — a different picture in `[Image2]` is ONE `swapped` row, named off the
+  cast library ("Sophie · the blue pajamas"), never a Storage hash. `‹ older`
+  / `newer ›` walk the other side along the project, `pick a clip` lets her
+  tap any card's mark instead, and a clip older than the page holds is read
+  off the server one at a time into a side pool (the `… older` cursor is
+  untouched). **Nothing new is stored** — every card already carries the
+  prompt, the settings and every reference, and `clip-diff.js` (pure, served
+  at `/clip-diff.js`) is the one rule the panel and the test drive. Full
+  note: *WHAT CHANGED — THE COMPARE PANEL* in
+  `docs/modules/audio-and-film.md`; test `node scripts/test-clip-diff.js`.
   **THE SEED IS ON THE CARD AND IN A BOX SHE CAN TYPE IN (2026-09-10, Sophie:
   "put a seed box that exposes the seed after the clip is drawn and put a copy
   button next to it so I can reuse the seed … make it into a text box so I can

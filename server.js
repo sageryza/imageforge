@@ -3569,6 +3569,14 @@ app.get('/cast-line.js', (req, res) => {
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(__dirname + '/cast-line.js');
 });
+// What changed between two clips, shared the same way (2026-09-11, Sophie:
+// "is there an easy way I can diff video clips"): the footage page's compare
+// panel and the test drive the identical word/settings/reference arithmetic.
+app.get('/clip-diff.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/clip-diff.js');
+});
 app.get('/pause-plan.js', (req, res) => {
   res.type('application/javascript');
   res.set('Cache-Control', 'no-cache, must-revalidate');
