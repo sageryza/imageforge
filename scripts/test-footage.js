@@ -70,12 +70,20 @@ function report() {
     autoMini.ranked.length === 3 && autoMini.ranked.every((x, i, a) => i === 0 || a[i - 1].cents <= x.cents));
   ok('at Atlas\'s LIST rate the cheapest door for Mini is OpenRouter (13.59¢ against 22.4¢)',
     autoMini.door === 'openrouter' && autoMini.ranked[0].cents === 13.59);
-  // THE WALK ONLY EVER GETS LOOSER. OpenRouter refuses any person in a
-  // reference, Atlas only a famous face, APIFRAME takes everything — so a
-  // door that is cheaper but no looser than the one that just refused is
-  // SKIPPED, or the fallback is a second free refusal and no clip.
-  ok('the fallback chain only ever gets looser', autoMini.chain.join(',') === 'apiframe'
-    && autoMini.chain.every((d, i, a) => F.DOOR_LOOSENESS[d] > F.DOOR_LOOSENESS[i ? a[i - 1] : autoMini.door]));
+  // THE CHAIN IS EVERY OTHER DOOR, NONE SKIPPED (2026-09-11 afternoon). The
+  // morning's rule skipped a door "no looser" than the last one, and on 2.5
+  // — price order OpenRouter · APIFRAME · Atlas — that dropped Atlas from
+  // the chain outright; APIFRAME then refused the real face too, and the one
+  // door measured to take those pictures was never tried. Doors whose
+  // refusal is free on the POST come first, each group cheapest first.
+  ok('the chain holds every other door', autoMini.chain.length === 2 && new Set(autoMini.chain.concat([autoMini.door])).size === 3);
+  ok('a door whose refusal is free on the POST comes before one whose refusal lands on the poll',
+    autoMini.chain.join(',') === 'atlascloud,apiframe' && F.DOOR_REFUSAL_FREE.atlascloud === true && F.DOOR_REFUSAL_FREE.apiframe === false);
+  ok('2.5 with pictures walks OpenRouter → Atlas → APIFRAME, not APIFRAME first (the bug)',
+    F.doorFor({ model: '2.5', door: 'auto', resolution: '480p', ratio: '9:16', seconds: 4 }, three).chain.join(',') === 'atlascloud,apiframe');
+  ok('`avoid` takes the doors that already refused off the table',
+    (() => { const d = F.doorFor({ model: '2.5', door: 'auto', resolution: '480p', avoid: ['openrouter', 'apiframe'] }, three); return d.door === 'atlascloud' && d.chain.length === 0; })());
+  ok('and with every door refused it says so', /every door has refused/.test(F.doorFor({ model: '2.5', door: 'auto', resolution: '480p', avoid: ['openrouter', 'apiframe', 'atlascloud'] }, three).error || ''));
   ok('every 2.x row is on Atlas; 1.5 Pro is not', ['mini', 'fast', '2.0', '2.5'].every((id) => F.doorFor({ model: id, door: 'atlascloud', resolution: '480p' }, three).door === 'atlascloud')
     && /not on Atlas Cloud/.test(F.doorFor({ model: '1.5', door: 'atlascloud', resolution: '480p' }, three).error || ''));
   ok('a pinned door never falls back — a refusal on a door she named is hers to read',
@@ -444,6 +452,39 @@ async function pillSweep(pg, where) {
       F.cardOf('j1', { model: 'bytedance/seedance-2.0-mini', params: {}, video: 'v.mp4', lastFrame: 'f.png' }).lastFrame === 'f.png');
     ok('and a clip drawn before this carries none, honestly',
       F.cardOf('j2', { model: 'bytedance/seedance-2.0-mini', params: {}, video: 'v.mp4' }).lastFrame === '');
+    // THE POLL-TIME WALK (2026-09-11): APIFRAME ACCEPTS the job and refuses
+    // the real face ten seconds later, on the poll — the job goes on to the
+    // next door on its walk, once, with the same seed, and the new card says
+    // who refused. An OUTPUT gate, and a walk with nothing left, are left
+    // exactly as the poll found them.
+    {
+      const REAL = "Generation failed: The request failed because the input image 'content[1]' may contain real person. Request id: x";
+      const doc = { door: 'apiframe', prompt: 'the ward corridor', model: 'seedance-2.5', params: { seed: 4242, duration: 4 }, status: 'sent',
+        walk: { req: { prompt: 'the ward corridor', model: '2.5', seconds: 4, resolution: '480p', ratio: '9:16', sound: true, refs: [] }, tried: ['openrouter', 'apiframe'], left: ['atlascloud'] } };
+      const refusing = (text) => ({ ...door('apiframe'), pollVideo: async () => ({ id: 'x', status: 'FAILED', patch: { status: 'failed', error: text, doneAt: 'now' } }) });
+      const settle = () => new Promise((r) => setTimeout(r, 300));
+      ok('walkPlan: a content refusal with a door left is sent again, same seed, avoiding both that refused',
+        (() => { const p = F.walkPlan(doc, { status: 'failed', error: REAL }); return p && p.req.seed === 4242 && p.req.door === 'auto' && p.tried.join(',') === 'openrouter,apiframe'; })());
+      ok('walkPlan: an output gate, a pinned door (no walk), nothing left, and a job already re-sent all answer null',
+        F.walkPlan(doc, { status: 'failed', error: 'output video may be related to copyright' }) === null
+        && F.walkPlan({ ...doc, walk: undefined }, { status: 'failed', error: REAL }) === null
+        && F.walkPlan({ ...doc, walk: { ...doc.walk, left: [] } }, { status: 'failed', error: REAL }) === null
+        && F.walkPlan({ ...doc, resentAs: 'other' }, { status: 'failed', error: REAL }) === null);
+      let before = seen.length;
+      F.init({ apiframe: refusing(REAL) });
+      await F.pollOne('walk-1', doc); await settle();
+      ok('a content refusal landing on the poll sends the job again through the next door',
+        seen.length === before + 1 && seen[before].name === 'atlas');
+      ok('with the SAME seed, and the note naming who refused and where it went',
+        seen.length === before + 1 && seen[before].req.seed === 4242 && /APIFRAME refused a reference \(a real face in a picture\) after taking the job — sent again through Atlas Cloud/.test(seen[before].req.note || ''));
+      before = seen.length;
+      F.init({ apiframe: refusing('Generation failed: the generated video may be related to copyright restrictions') });
+      await F.pollOne('walk-2', doc); await settle();
+      ok('an OUTPUT refusal on the poll is left as found — nothing sent', seen.length === before);
+      F.init({ apiframe: refusing(REAL) });
+      await F.pollOne('walk-3', { ...doc, walk: { ...doc.walk, left: [] } }); await settle();
+      ok('a walk with nothing left sends nothing', seen.length === before);
+    }
     F.init({ atlascloud: require('../atlascloud'), apiframe: require('../apiframe'), openrouter: require('../openrouter') });
   }
   {
