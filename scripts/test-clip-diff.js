@@ -89,6 +89,30 @@ const D = require('../clip-diff');
   ok('the clip before is the next older one in the SAME project', D.previousOf(jobs[0], jobs).id === 'b' && D.previousOf(b, jobs).id === 'a');
   ok('an unfiled clip is compared against the unfiled ones, not another project', D.previousOf({ id: 'q', project: '', sentAt: '2026-09-10T04:00:00Z' }, jobs).id === 'z');
   ok('the oldest has nothing before it', D.previousOf(jobs[4], jobs) === null);
+  // KIN — the clip before is the nearest older NEAR-TWIN, not the one before
+  // it in time (her screenshot: a 15s 9:16 clip against the 4s failed 3:4
+  // clip that merely came before it)
+  const stray = { id: 'stray', project: 'ward', prompt: 'a commercial for a witchcraft kit on a kitchen table, camera pushes in', sentAt: '2026-09-10T02:30:00Z' };
+  const withStray = [jobs[0], stray, b, a];
+  const kn = D.kinOf({ ...jobs[0], prompt: b.prompt + ' and waits' }, withStray);
+  ok('an unrelated clip immediately before is skipped for the twin behind it', kn && kn.job.id === 'b' && kn.kin === true && kn.back === 2);
+  const ks = D.kinOf(stray, withStray);
+  ok('with no twin at all the plain previous clip answers, marked kin:false', ks && ks.job.id === 'b' && ks.kin === false && ks.back === 1);
+  ok('previousOf follows kin', D.previousOf({ ...jobs[0], prompt: b.prompt }, withStray).id === 'b');
+  ok('two twins measure alike, two strangers do not', D.similarity(a.prompt, b.prompt) >= D.KIN && D.similarity(a.prompt, stray.prompt) < D.KIN);
+  // LINES FIRST — two unrelated prompts are a line out and a line in, never a
+  // hash of matched "the"s; a reworded twin line lights only its words
+  const un = D.wordDiff(stray.prompt, a.prompt);
+  ok('unrelated prompts diff as whole lines: ' + JSON.stringify(un.map((t) => t.op)), un.every((t) => t.op !== 'same') && un.filter((t) => t.op === 'del').length === 1 && un.filter((t) => t.op === 'add').length === 1);
+  const dstr = D.diff(stray, a);
+  ok('and the summary calls it a different prompt', dstr.kin === false && /^a different prompt/.test(D.summary(dstr)));
+  const tw = D.wordDiff('one line here\nsophie walks down the hall\nend', 'one line here\nsophie runs down the hall\nend');
+  ok('a reworded twin line lights only the word: ' + JSON.stringify(tw), tw.filter((t) => t.op === 'del').map((t) => t.t.trim()).join() === 'walks' && tw.filter((t) => t.op === 'add').map((t) => t.t.trim()).join() === 'runs');
+  const join = (d, side) => d.filter((t) => t.op === 'same' || t.op === side).map((t) => t.t).join('');
+  [['a\nb', 'a\nb\nc\nd'], ['a\nb\nc', 'a'], ['', 'x\ny'], ['x\ny', ''], ['p\n\nq', 'p\n\nq\n\nr'], [stray.prompt, a.prompt], ['s\nt', 'u\nt']].forEach(([x, y], i) => {
+    const d = D.wordDiff(x, y);
+    ok('the line diff re-joins byte for byte to both prompts (case ' + i + ')', join(d, 'del') === x && join(d, 'add') === y);
+  });
   // a pasted scene past the cap still answers, as one block
   const big = Array.from({ length: 1600 }, (_, i) => 'w' + i).join(' ');
   ok('a prompt past the size cap diffs as one block rather than hanging', D.wordDiff(big, big + ' x').length === 2);
@@ -114,6 +138,10 @@ const base = { model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', resolu
 let jobs = [
   { ...base, id: 'c3', prompt: 'sophie is the woman in [Video1]. she walks slowly down the hall, camera at eye level', seconds: 12, seed: 7,
     video: 'http://127.0.0.1:PORT/c3.mp4', refs: [{ url: 'http://127.0.0.1:PORT/jazz.mp4', kind: 'video', poster: 'http://127.0.0.1:PORT/ref.png' }, { url: 'http://127.0.0.1:PORT/pj-c.png', kind: 'image' }], sentAt: '2026-09-10T03:00:00.000Z' },
+  // an UNRELATED ward clip right before c3 — the shape of her screenshot —
+  // never the "clip before" for a twin further back
+  { ...base, id: 'ux', prompt: 'a commercial for a witchcraft kit on a kitchen table, camera pushes in', seconds: 4, seed: 2, status: 'failed', ratio: '9:16',
+    video: '', refs: [], sentAt: '2026-09-10T02:30:00.000Z' },
   { ...base, id: 'c2', prompt: 'sophie is the woman in [Video1]. she walks down the hall, camera at eye level', seconds: 8, seed: 7,
     video: 'http://127.0.0.1:PORT/c2.mp4', refs: [{ url: 'http://127.0.0.1:PORT/jazz.mp4', kind: 'video', poster: 'http://127.0.0.1:PORT/ref.png' }, { url: 'http://127.0.0.1:PORT/pj-a.png', kind: 'image' }], sentAt: '2026-09-10T02:00:00.000Z' },
   // another project between them — never the "clip before" for a ward clip
@@ -146,6 +174,16 @@ const server = http.createServer((req, res) => {
       if (u.searchParams.get('before')) { asked.push(u.search); return json({ ok: true, jobs: [older], more: false }); }
       return json({ ok: true, jobs, more: true });
     }
+    // the server's kin route — the REAL rule over the whole project, the
+    // off-page clip included
+    const km = u.pathname.match(/^\/api\/footage\/jobs\/([^/]+)\/kin$/);
+    if (km) {
+      asked.push(u.pathname);
+      const all = jobs.concat([older]);
+      const j = all.find((x) => x.id === km[1]);
+      const k = j ? D.kinOf(j, all) : null;
+      return json({ ok: true, job: k ? k.job : null, kin: k ? k.kin : false, back: k ? k.back : 0 });
+    }
     if (u.pathname === '/api/cast/films') return json({ ok: true, films: [{ slug: 'ward', name: 'The ward' }] });
     if (u.pathname === '/api/cast/' || u.pathname === '/api/cast') {
       return json({ ok: true, film: 'ward', films: [{ slug: 'ward', name: 'The ward' }], entries: [
@@ -176,7 +214,7 @@ const server = http.createServer((req, res) => {
   await page.waitForTimeout(400);
   ok('no page errors', errors.length === 0);
   ok('the panel is shut until she asks', await page.$eval('#cmp', (e) => e.hidden));
-  ok('every card carries the compare mark', (await page.$$('#feed .job .cmpb')).length === 4);
+  ok('every card carries the compare mark', (await page.$$('#feed .job .cmpb')).length === 5);
 
   // ONE TAP: this clip against the one before it in its project
   await page.click('#job-c3 .cmpb');
@@ -185,7 +223,8 @@ const server = http.createServer((req, res) => {
   ok('the panel opened', !(await page.$eval('#cmp', (e) => e.hidden)));
   ok('the page behind it is locked', await page.evaluate(() => document.body.style.overflow === 'hidden'));
   const before = await page.$eval('#cmp .cpair .cclip:first-child', (e) => e.textContent);
-  ok('the other side is c2 — the ward clip before, NOT the ticky-tack one between', /8s/.test(before) && !/4s/.test(before));
+  ok('the other side is c2 — the nearest ward TWIN, not the unrelated ward clip right before it nor the ticky-tack one', /8s/.test(before) && !/4s/.test(before));
+  ok('the twin was found on the page, nothing asked of the server yet', asked.length === 0);
   const adds = await page.$$eval('#cmp .cprompt .dadd', (els) => els.map((e) => e.textContent.trim()));
   const dels = await page.$$eval('#cmp .cprompt .ddel', (els) => els.map((e) => e.textContent.trim()));
   ok('the one added word is lit and nothing is struck — got ' + JSON.stringify(adds) + ' / ' + JSON.stringify(dels), adds.length === 1 && adds[0] === 'slowly' && dels.length === 0);
@@ -199,23 +238,23 @@ const server = http.createServer((req, res) => {
   const names = await page.$eval('#cmp .cref.swapped', (e) => Array.from(e.querySelectorAll('.rname')).map((n) => n.textContent));
   ok('the swapped picture wears its cast-library name, not a filename: ' + names.join(' → '), names[0] === 'Blue pajamas' && names[1] === 'Sophie · the blue pajamas');
   ok('the summary says it in one line', /1 word · seconds 8s → 12s · \[Image1\] swapped/.test(await page.$eval('#cmp .csum', (e) => e.textContent)));
-  ok('the walk says how far back the other side is', await page.$eval('#cmp .cwhich', (e) => e.textContent) === 'the clip before');
+  ok('the walk says how far back the other side is (the stray counts)', await page.$eval('#cmp .cwhich', (e) => e.textContent) === '2 clips back');
 
   // WALK OLDER: the other side steps to c1 (skipping the other project)
   await page.click('#cmpolder');
   await page.waitForTimeout(100);
-  ok('older walks the other side to c1, two clips back', await page.$eval('#cmp .cwhich', (e) => e.textContent) === '2 clips back');
+  ok('older walks the other side to c1, three clips back', await page.$eval('#cmp .cwhich', (e) => e.textContent) === '3 clips back');
   const dels2 = await page.$$eval('#cmp .cprompt .ddel', (els) => els.map((e) => e.textContent.trim()));
   ok('against c1 the words she took out are struck: ' + JSON.stringify(dels2), dels2.length >= 1 && dels2.join(' ').indexOf('stands') >= 0);
   // OLDER PAST THE PAGE: asked of the server, off the cursor
   await page.click('#cmpolder');
   await page.waitForTimeout(400);
-  ok('a clip older than the page holds is asked of the server under c1\'s sentAt, in the project', asked.length === 1 && /before=2026-09-10T01/.test(asked[0]) && /project=ward/.test(asked[0]));
+  ok('a clip older than the page holds is asked of the server\'s kin route for c1: ' + asked.join(','), asked.length === 1 && asked[0] === '/api/footage/jobs/c1/kin');
   ok('and it becomes the other side', /4s/.test(await page.$eval('#cmp .cpair .cclip:first-child', (e) => e.textContent)));
-  ok('the fetched clip did NOT land on the feed (the … older cursor is untouched)', (await page.$$('#feed .job')).length === 4);
+  ok('the fetched clip did NOT land on the feed (the … older cursor is untouched)', (await page.$$('#feed .job')).length === 5);
   await page.click('#cmpnewer');
   await page.waitForTimeout(100);
-  ok('newer walks back', await page.$eval('#cmp .cwhich', (e) => e.textContent) === '2 clips back');
+  ok('newer walks back', await page.$eval('#cmp .cwhich', (e) => e.textContent) === '3 clips back');
 
   // PICK: close, the mark on c3 lights, tapping c1's mark compares c3 against c1
   await page.click('#cmppick');
@@ -224,7 +263,7 @@ const server = http.createServer((req, res) => {
   ok('and the page is unlocked while she picks', await page.evaluate(() => document.body.style.overflow === ''));
   await page.click('#job-c1 .cmpb');
   await page.waitForSelector('#cmp:not([hidden])');
-  ok('the pick lands: c3 against c1', await page.$eval('#cmp .cwhich', (e) => e.textContent) === '2 clips back' && /12s/.test(await page.$eval('#cmp .cpair .cclip:last-child', (e) => e.textContent)));
+  ok('the pick lands: c3 against c1', await page.$eval('#cmp .cwhich', (e) => e.textContent) === '3 clips back' && /12s/.test(await page.$eval('#cmp .cpair .cclip:last-child', (e) => e.textContent)));
   ok('the pick mark is off again', !(await page.$eval('#job-c3 .cmpb', (e) => e.classList.contains('on'))));
 
   // the ✕ and the app's chevron both close it, back where she was
@@ -233,6 +272,15 @@ const server = http.createServer((req, res) => {
   await page.click('#job-c2 .cmpb');
   await page.waitForSelector('#cmp:not([hidden])');
   ok('__navBack closes it and answers true', await page.evaluate(() => window.__navBack()) && await page.$eval('#cmp', (e) => e.hidden));
+
+  // A CLIP WITH NO TWIN: the panel says "a different prompt" and paints no hash
+  await page.click('#job-ux .cmpb');
+  await page.waitForSelector('#cmp:not([hidden])');
+  await page.waitForTimeout(500);
+  ok('a clip with no twin still opens, on the plain clip before it', /8s/.test(await page.$eval('#cmp .cpair .cclip:first-child', (e) => e.textContent)));
+  ok('and says the prompt is different rather than lighting a hash of words', /a different prompt/.test(await page.$eval('#cmp .csum', (e) => e.textContent)) && (await page.$$('#cmp .cprompt .dadd, #cmp .cprompt .ddel')).length === 0);
+  ok('this clip\'s own words are shown plain', /witchcraft kit/.test(await page.$eval('#cmp .cprompt', (e) => e.textContent)));
+  await page.click('#cmpclose');
 
   // identical clips say so
   await page.evaluate(() => { window.__cmpTest = 1; });

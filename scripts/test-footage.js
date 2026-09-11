@@ -1089,16 +1089,33 @@ async function pillSweep(pg, where) {
     ok('the glass shuts the box, unlights, and the words go with it', at3.hidden && !at3.on && at3.value === '' && (await visible()).split(',').length >= 8);
     ok('the older door is back once the search is gone', !(await page.$eval('#older', (e) => e.hidden)));
 
-    // THE DRAWER — the shared shell, shut until she taps the funnel
+    // THE FUNNEL IS A SUB MENU OF THE GLASS (2026-09-11, Sophie: "filter is
+    // sub menu of glass · only one main button"). Shut, the bar carries the
+    // glass and nothing else; the funnel comes and goes with the field.
+    const funnelBox = () => page.evaluate(() => {
+      const chip = document.querySelector('#feedfilters .filtchip');
+      const r = chip.getBoundingClientRect(), q = document.getElementById('q').getBoundingClientRect();
+      const g = document.getElementById('v-search').getBoundingClientRect();
+      return { w: Math.round(r.width), h: Math.round(r.height), qh: Math.round(q.height),
+        mountShut: document.getElementById('feedfilters').hidden,
+        afterField: r.left >= q.right - 1,
+        sameRow: Math.abs((r.top + r.height / 2) - (q.top + q.height / 2)) < 4,
+        glassW: Math.round(g.width) };
+    });
+    const shut = await funnelBox();
+    ok('with the glass shut the funnel is NOT on the bar — one main button', shut.mountShut && shut.w === 0 && shut.glassW > 30);
+    await page.click('#v-search');
     const dr = await page.evaluate(() => {
       const m = document.getElementById('feedfilters');
       const chip = m.querySelector('.filtchip'), drawer = m.querySelector('.filtdrawer');
-      const cr = chip.getBoundingClientRect(), gr = document.getElementById('v-search').getBoundingClientRect();
-      return { chip: !!chip, shut: drawer.hidden, funnel: !!chip.querySelector('svg'), chipH: Math.round(cr.height), glassH: Math.round(gr.height),
-        sameRow: Math.abs((cr.top + cr.height / 2) - (gr.top + gr.height / 2)) < 4,
+      return { chip: !!chip, shut: drawer.hidden, funnel: !!chip.querySelector('svg'),
         rows: Array.from(drawer.querySelectorAll('.filtrow')).map((r) => Array.from(r.querySelectorAll('.filtcbtn')).map((b) => b.textContent.trim()).join('·')) };
     });
-    ok('the funnel chip is on the bar beside the glass, the drawer shut — ' + JSON.stringify(dr.rows), dr.chip && dr.shut && dr.funnel && dr.sameRow && dr.rows[0] === 'Mini·Fast·2.0·2.5' && dr.rows[1] === 'Today·This week·This month');
+    const open = await funnelBox();
+    ok('the glass opens the field AND the funnel beside it, the drawer shut — ' + JSON.stringify(dr.rows),
+      dr.chip && dr.shut && dr.funnel && open.w > 20 && open.afterField && open.sameRow
+      && dr.rows[0] === 'Mini·Fast·2.0·2.5' && dr.rows[1] === 'Today·This week·This month');
+    ok('and the funnel stretches to the field beside it, not the shell’s 34 — ' + open.h + ' vs ' + open.qh, Math.abs(open.h - open.qh) <= 2);
     ok('the model chips are the models the page offers, pinned to PAGE_MODELS', /var PAGE_MODELS = \['mini', 'fast', '2\.0', '2\.5'\]/.test(fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8')));
     await page.click('#feedfilters .filtchip');
     ok('the tap opens the drawer', !(await page.$eval('#feedfilters .filtdrawer', (e) => e.hidden)));
@@ -1121,17 +1138,27 @@ async function pillSweep(pg, where) {
     await page.evaluate(() => document.body.click());
     const worn = await page.evaluate(() => { const m = document.getElementById('feedfilters'); return { shut: m.querySelector('.filtdrawer').hidden, w: m.querySelector('.filtchipw').textContent.trim(), on: m.querySelector('.filtchip').classList.contains('on') }; });
     ok('tapping out shuts the drawer and the chip wears the count', worn.shut && worn.w === '1' && worn.on);
+    // AND THE GLASS WEARS IT ONCE THE FUNNEL IS OFF THE BAR — a filter she
+    // cannot see must never go on quietly hiding clips
+    await page.click('#v-search');
+    const glassWorn = () => page.evaluate(() => { const g = document.getElementById('v-search'), c = g.querySelector('.qcount'); return { count: (c.textContent || '').trim(), shown: c && !c.hidden, on: g.classList.contains('on'), mountShut: document.getElementById('feedfilters').hidden }; });
+    const gw = await glassWorn();
+    ok('shutting the glass takes the funnel with it and the GLASS wears the count', gw.mountShut && gw.count === '1' && gw.shown && gw.on);
     // STICKY — a reload keeps the filter, like the ♥ and the ✕ beside it
     await page.reload();
     await page.waitForSelector('#job-old1', { state: 'attached' });
     await page.waitForTimeout(600);
-    ok('a reload keeps the filter she set, and the chip still wears it', (await visible()) === '' && (await page.evaluate(() => localStorage.getItem('footage_filt_when'))) === 'today'
-      && (await page.evaluate(() => document.querySelector('#feedfilters .filtchipw').textContent.trim())) === '1');
+    const gw2 = await glassWorn();
+    ok('a reload keeps the filter she set, and the shut glass still wears it',
+      (await visible()) === '' && (await page.evaluate(() => localStorage.getItem('footage_filt_when'))) === 'today'
+      && gw2.mountShut && gw2.count === '1' && gw2.on);
+    await page.click('#v-search');
     await page.click('#feedfilters .filtchip');
     await page.click('#feedfilters .filtcbtn[data-v="today"]');
     await page.evaluate(() => document.body.click());
     await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length >= 8);
     ok('tapping the lit chip clears it and everything is back', (await visible()).split(',').length >= 8);
+    ok('and with nothing narrowed the glass wears no count', (await glassWorn()).count === '');
   }
 
   // ── nothing sits under the pill, at her inset ────────────────────────────

@@ -7793,12 +7793,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
   #2231, tag `motion-page-3f0fce9` — and it was NOT merged: one ask, one tile.)
   **THE FEED HAS THE PLAYGROUND'S SEARCH AND ITS FILTER DRAWER (2026-09-11,
   Sophie: "add a search button and filter like playground" · "single
-  magnifying glass button that expands" · "yea footage").** A GLASS in its
-  own box beside the ♥/✕ pair: a tap opens the field (beside it, or on its
-  own line when the row is full) and lights the glass in INK — a door, not a
-  mark; shutting it CLEARS the words, since a query she cannot see must never
-  go on hiding clips. The ✕ inside the field wipes the words and keeps her in
-  it. The house grammar, searched as she dictates (`/feedkit.js`); the loaded
+  magnifying glass button that expands" · "yea footage" · "filter is sub menu
+  of glass · only one main button").** A GLASS in its own box beside the ♥/✕
+  pair, and it is the ONLY main button this row grew: a tap opens the field
+  (beside it, or on its own line when the row is full) **and the FUNNEL at the
+  field's right end**, and lights the glass in INK — a door, not a mark;
+  shutting it takes the funnel with it and CLEARS the words, since a query she
+  cannot see must never go on hiding clips. The ✕ inside the field wipes the
+  words and keeps her in it. **A FILTER IS STICKY AND SURVIVES THE GLASS
+  SHUTTING, so the GLASS WEARS THE COUNT the funnel chip wears on the rows
+  below** (lit, with the digit beside the glyph) — tucking the funnel behind
+  the glass with nothing on screen saying a filter is on is exactly the silent
+  filter this app keeps getting burned by. The funnel STRETCHES to the field
+  beside it rather than keeping the shell's 34px (the door stretches to the row
+  it stands on), and the drawer she left open is left open. The house grammar, searched as she dictates (`/feedkit.js`); the loaded
   feed is narrowed AT ONCE and a beat later the server answers over the WHOLE
   log — `GET /jobs?q=` filters before the page is cut, up to 300 hits, and a
   hit the feed never paged in lands as a card like any other (the Assets
@@ -7808,7 +7816,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
   label and id, the door, `4s`, the size, the shape, the project, `seed N`,
   the status, `trimmed`, `video ref`, `first frame`. The `… older` door is
   off while a search stands (there is no page under a whole-log answer). The
-  FUNNEL is `/searchfilters.js`, the one shell, with this page's two rows —
+  funnel is `/searchfilters.js`, the one shell, with this page's two rows —
   MODEL (the four `PAGE_MODELS`, several at once) and WHEN (the shell's own
   days-back chips) — sticky under `footage_filt_*` like the ♥ and ✕ beside
   them; an emptied feed names which of them emptied it. Both stay OUT of the
@@ -8045,8 +8053,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
   off the server one at a time into a side pool (the `… older` cursor is
   untouched). **Nothing new is stored** — every card already carries the
   prompt, the settings and every reference, and `clip-diff.js` (pure, served
-  at `/clip-diff.js`) is the one rule the panel and the test drive. Full
-  note: *WHAT CHANGED — THE COMPARE PANEL* in
+  at `/clip-diff.js`) is the one rule the panel and the test drive. **LINES
+  FIRST, AND THE OTHER SIDE IS THE NEAREST TWIN (the same evening, her
+  screenshot of the live panel: "text looks wrong. It should call out
+  exactly what changed")** — a whole-prompt word LCS against the clip merely
+  before it in time lined up every "the" in two unrelated paragraphs and
+  painted a hash. Now the prompt is diffed as LINES (a near-twin line is
+  word-diffed against its twin, anything else is a whole line out or in),
+  `kinOf` picks the nearest older clip in the project sharing 0.4 of its
+  words (the page over what it holds, `GET /api/footage/jobs/:id/kin` over
+  the whole project when the twin is further back), and with no twin the
+  panel says "a different prompt" and shows the words plain rather than a
+  hash. Full note: *WHAT CHANGED — THE COMPARE PANEL* in
   `docs/modules/audio-and-film.md`; test `node scripts/test-clip-diff.js`.
   **CLEAR, AND THE UNDO BESIDE IT (2026-09-11, Sophie: "add a clear button to
   footage · with an undo · make a draft save automatically").** Two underlined
