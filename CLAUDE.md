@@ -8057,11 +8057,13 @@ before working on that module. Nothing was deleted — the moved text is verbati
     and the comment there claimed the opposite. The undo is exactly the
     mechanism for it.
   **THE ROW WRAPS AT 390pt AND THAT IS HER OWN RULE** ("same row unless it
-  bleeds over"): MEASURED, the seed (130) + the star (75) + the price (95) plus
-  two 8px gaps leave 24px of a 340px row and a word is 25, so a drawn word
-  lands hard right on the line under the price — 40px → 69px. With neither word
-  drawn the GROUP is hidden outright, so an empty page is byte-for-byte the row
-  it always was. `paintWipe` is called from `saveDraft`, which is the ONE signal
+  bleeds over"): MEASURED with the Buttons fold OPEN, the seed (130) + the star
+  (75) + the price (95) plus two 8px gaps leave 24px of a 340px row and a word
+  is 25, so a drawn word lands hard right on the line under the price — 40px →
+  69px. **Shut, the seed folds away with the buttons and both words sit on the
+  star's own line** (measured after #2326: go 25-100, cost 108-203, clear
+  302-327, undo 339-365, all level). With neither word drawn the GROUP is
+  hidden outright, so an empty page is byte-for-byte the row it always was. `paintWipe` is called from `saveDraft`, which is the ONE signal
   every path that changes the job already sends. Test:
   `node scripts/test-footage-clear.js` (the real page headless — every
   assertion a MEASUREMENT or a reading of what really landed in storage, since
