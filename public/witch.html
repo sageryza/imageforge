@@ -4560,6 +4560,7 @@
     modelsCache = [
       ...(m.replicate || []).map(x => ({ ...x, provider: 'replicate' })),
       ...(m.dalle || []).map(x => ({ ...x, provider: 'dalle' })),
+      ...(m.muapi || []).map(x => ({ ...x, provider: 'muapi' })),
     ];
     return modelsCache;
   }
@@ -4574,7 +4575,7 @@
     all.forEach(m => {
       const d = document.createElement('div');
       d.className = 'style-opt' + (selModel === m.id ? ' sel' : '');
-      d.innerHTML = `<div class="n">${esc(m.name)}</div><div class="p">${m.provider === 'dalle' ? 'DALL·E' : 'Replicate'}</div>`;
+      d.innerHTML = `<div class="n">${esc(m.name)}</div><div class="p">${m.provider === 'muapi' ? 'MuAPI' : m.provider === 'dalle' ? 'DALL·E' : 'Replicate'}</div>`;
       d.addEventListener('click', () => {
         selModel = m.id; selStylePrompt = m.stylePrompt || ''; selProvider = m.provider;
         mBook.styleModel = m.id; saveBook();
@@ -4589,6 +4590,9 @@
       const s = modelSettings(selModel);
       const parts = [prompt, s.suffix].filter(Boolean);
       const d = await api('/api/generate/replicate', { prompt: parts.join(', '), model: selModel, settings: s });
+      return d.url;
+    } else if (selProvider === 'muapi') {
+      const d = await api('/api/generate/muapi', { prompt, model: selModel });
       return d.url;
     } else {
       const full = selStylePrompt ? `${selStylePrompt}. ${prompt}` : prompt;

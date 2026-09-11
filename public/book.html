@@ -426,6 +426,7 @@
       allModelsCache = [
         ...(models.replicate || []).map(m => ({ ...m, provider: 'replicate' })),
         ...(models.dalle || []).map(m => ({ ...m, provider: 'dalle' })),
+        ...(models.muapi || []).map(m => ({ ...m, provider: 'muapi' })),
       ];
       return allModelsCache;
     }
@@ -446,7 +447,7 @@
         div.className = 'style-option' + (selectedModel === m.id ? ' selected' : '');
         div.innerHTML = `
           <div class="style-option-name">${escHtml(m.name)}</div>
-          <div class="style-option-id">${m.provider === 'dalle' ? 'DALL·E' : 'Replicate'}</div>`;
+          <div class="style-option-id">${m.provider === 'muapi' ? 'MuAPI' : m.provider === 'dalle' ? 'DALL·E' : 'Replicate'}</div>`;
         div.addEventListener('click', () => {
           selectedModel = m.id; selectedStylePrompt = m.stylePrompt || ''; selectedProvider = m.provider;
           book.styleModel = m.id; saveBook();
@@ -465,6 +466,13 @@
         const data = await safeFetchJson('/api/generate/replicate', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: parts.join(', '), model: selectedModel, settings }),
+        });
+        if (data.error) throw new Error(data.error);
+        return data.url;
+      } else if (selectedProvider === 'muapi') {
+        const data = await safeFetchJson('/api/generate/muapi', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, model: selectedModel }),
         });
         if (data.error) throw new Error(data.error);
         return data.url;

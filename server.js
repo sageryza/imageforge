@@ -22,6 +22,7 @@ const fetch = require('node-fetch');
 const path = require('path');
 const fs = require('fs');
 const FormData = require('form-data');
+const muapiImage = require('./muapi-image');
 const admin = require('firebase-admin');
 
 // Natal-chart deps (Secretly a Witch). Guarded so a missing/broken install
@@ -3680,6 +3681,10 @@ const MODELS = {
   openai: [
     { id: 'gpt-image-2', name: 'ChatGPT (gpt-image-2)', quality: 'low' },
   ],
+  // MuAPI's OpenAI-compatible image door. Keep the model pinned to the
+  // provider's documented fast default; the route refuses unknown ids rather
+  // than guessing a different model or silently changing providers.
+  muapi: muapiImage.MODELS,
   // House styles that render through gpt-image-2's EDITS endpoint with Sophie's
   // own style-reference images (the same engine the illustrated lessons use) —
   // NOT a Replicate LoRA. All four attach the SAME two Witch School refs.
@@ -5377,6 +5382,35 @@ app.post('/api/generate/dalle', async (req, res) => {
     res.json({ url: permanentUrl, revised_prompt: data.data[0].revised_prompt });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Single image: MuAPI OpenAI-compatible image generation ────────
+// MuAPI's compatibility door is generation-only: it accepts a prompt/model,
+// waits for the provider's internal job, and returns an HTTPS image URL. The
+// existing ImageForge storage and My Creations paths remain the same as the
+// other Test Station providers.
+app.post('/api/generate/muapi', async (req, res) => {
+  try {
+    const built = muapiImage.buildRequest(req.body || {});
+    if (built.error) return res.status(400).json({ error: built.error });
+    if (!process.env.MUAPI_API_KEY) return res.status(503).json({ error: 'MUAPI_API_KEY not set on the server' });
+
+    const data = await muapiImage.generate(built.body);
+    const url = muapiImage.imageUrls(data)[0];
+    if (!url) return res.status(502).json({ error: 'MuAPI returned no HTTPS image URL' });
+
+    const permanentUrl = await saveToFirebase(url, 'muapi', {
+      fullPrompt: built.prompt, promptContent: built.prompt,
+      model: built.model, canvas: built.size,
+      size: require('./size-tier').captionSize(built.size),
+    });
+    await fileGenerateRoute({ url: permanentUrl, prompt: built.prompt, full: built.prompt,
+      model: built.model, canvas: built.size });
+    res.json({ url: permanentUrl, model: built.model });
+  } catch (err) {
+    const status = Number.isInteger(err.status) ? err.status : 500;
+    res.status(status).json({ error: String(err.message || err).slice(0, 300) });
   }
 });
 
@@ -8178,6 +8212,15 @@ app.post('/api/generate/style-test', async (req, res) => {
             body: JSON.stringify({ prompt: `${stylePrompt} ${subject}`.trim(), model: model || 'sageryza/gosh', settings }),
           });
           imageData = await internal.json();
+        } else if (provider === 'muapi') {
+          const endpoint = `http://localhost:${process.env.PORT || 3001}/api/generate/muapi`;
+          const prompt = stylePrompt ? `${stylePrompt}. ${subject}` : subject;
+          const internal = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, model: model || muapiImage.DEFAULT_MODEL }),
+          });
+          imageData = await internal.json();
         } else {
           const endpoint = `http://localhost:${process.env.PORT || 3001}/api/generate/dalle`;
           const prompt = stylePrompt ? `${stylePrompt}. ${subject}` : subject;
@@ -8221,6 +8264,15 @@ app.post('/api/generate/deck-batch', async (req, res) => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt, model: model || 'sageryza/gosh', settings }),
+          });
+          imageData = await internal.json();
+        } else if (provider === 'muapi') {
+          const endpoint = `http://localhost:${process.env.PORT || 3001}/api/generate/muapi`;
+          const prompt = stylePrompt ? `${stylePrompt}. ${card.subject}` : card.subject;
+          const internal = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, model: model || muapiImage.DEFAULT_MODEL }),
           });
           imageData = await internal.json();
         } else {

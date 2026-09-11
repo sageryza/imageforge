@@ -4,6 +4,24 @@ The surfaces that draw: the Playground, Freeform, the Vector pipeline, and the M
 
 *(Moved out of `CLAUDE.md` Aug 2026 — see the pointer there. Nothing was rewritten; this is the text as it stood.)*
 
+## MuAPI image door
+
+The Test Station and the main Single Image / Card Deck pickers expose one
+optional MuAPI row: **FLUX Schnell (MuAPI)**. It uses MuAPI's documented
+OpenAI-compatible `POST https://api.muapi.ai/v1/images/generations` endpoint
+with Bearer authentication, `model`, `prompt`, `n: 1`, and one of the three
+documented sizes (`1024x1024`, `1792x1024`, or `1024x1792`). The adapter is
+generation-only; image edits and reference-image workflows stay on their
+existing OpenAI paths. `MUAPI_API_KEY` is optional, and an unset key returns a
+clear configuration error rather than routing the request through another
+provider. The response must contain an HTTPS image URL before ImageForge saves
+and files it in My Creations.
+
+The provider contract lives in `muapi-image.js`; `scripts/test-muapi-image.js`
+tests its request, auth, error, and output handling without making a paid
+request. See MuAPI's [image API guide](https://muapi.ai/ai-image-api) and
+[API reference](https://muapi.ai/docs/api-reference) for the public contract.
+
 **Writing the words that go in the box? Keep it SHORT — a few clear sentences
 of what HAPPENS, not a paragraph of specification.** Length buys nothing from
 gpt-image-2 and costs you the ability to fix a bad draw one change at a time;
