@@ -70,7 +70,17 @@ sends THROUGH the module so the job is logged the moment it is sent). The
 first job — her md-31b climax, every reference off the cast shelf — is
 written up in `docs/mental-hospital/wan-test/` and was SENT on her go
 2026-09-11 (Atlas job `27fcbe6e73354f0599715eb38dee352f`, 15s · 480p ·
-16:9, ~60¢). **AND SOPHIE'S PAJAMA REFERENCE IS ONE FULL-BODY STILL FROM
+16:9) — **AND IT DREW: 15s in 4m16s for 60¢ (Atlas's own `price` field on
+the job), four person references accepted without a word, and the whole
+four-beat scene landed in order** — the office, the close-up going blank,
+the ghost against the ceiling tiles, the walk out the door, Sophie in the
+pajamas from the still throughout (`climax3b-wan-v1.result.md`). **THE ONE
+MISS IS A RULE: A "does NOT appear" LINE DOES NOT KEEP A PERSON OUT.** The
+red-haired assistant is in both office references, the prompt's fourth line
+ruled her out by name, and she stands in the doorway for the whole first
+shot anyway. A person is kept out of a Wan clip by not sending a reference
+that holds her (a solo still, a crop), never by a negation.
+**AND SOPHIE'S PAJAMA REFERENCE IS ONE FULL-BODY STILL FROM
 THAT GO ON (Sophie: "just the full body pajama, no tape pocket or second,
 and note that everywhere")** — "A — Sophie alone" (`52a036…`) alone; "C —
 teacher cropped out" and the tape pocket are off her line and off the cast
