@@ -8134,13 +8134,37 @@ before working on that module. Nothing was deleted — the moved text is verbati
     deployed). Every url is out of `docs/mental-hospital/refs/cast.json` or
     `belt/refs.json` and every clip carries the label the belt pages give it;
     the lines are hers VERBATIM wherever a card had one, and the script prints
-    how many are mine. 19 entries seeded 2026-09-11 (14 people, 2 outfits,
-    3 places, 45 references).
+    how many are mine. **20 entries, 66 references** (15 people, 2 outfits,
+    3 places).
   - **A 4s TAKE PER CHARACTER WAS ALREADY DONE, MEASURED** (her "maybe done
     already"): ffprobe on every person clip the belt pages name — Nurse Edna
     4.00s, Ms. O'Hara 4.04, the doctor + assistant (office and hall) 4.04, the
-    parents 4.04, Michael 4s. **The one that is not is the jazz clip — Sophie's
-    own, 15.1s** (560x752), so her looks carry that until the 4s one lands.
+    parents 4.04, Michael 4s (560x752).
+  - **THE 4s JAZZ CLIP WAS ALREADY RIDING EVERY SOPHIE JOB, AND NO QUALITY IS
+    LOST (2026-09-11, Sophie: "it's on every sophie video in footage · is
+    quality lost? a chat gave it to me first / if lost quality, find og
+    chat").** The first pass hunted it in the video LOG and the Dump BY NAME
+    and reported it missing; it is on **24 of the 83 footage jobs** as a
+    REFERENCE VIDEO (`jazz-best4s.mp4`). Measured against the 15.1s original:
+    the last 4.06s of it (aligned at 11.04s frame by frame), same 560x752,
+    same 24fps, same H.264 High/L3.1, 2.15 Mb/s against 2.22, **PSNR 46-48 dB
+    — visually lossless**, so there is nothing to recover from the original
+    chat. A re-encode, not a stream copy (the decoded frames differ), and the
+    two copies on file are BYTE-IDENTICAL (md5 `042e7aaa…`). Sophie's four
+    clip looks carry it; the 15.1s take stays as its own `jazz-long` look.
+  - **AND ANOTHER CHAT'S CHARACTER PAGE HAD MORE THAN THE REPO DID (2026-09-11,
+    Sophie: "did u even look on the character page another chat created").**
+    It is **"The ward film — every reference (v7)"**, a grid page in the
+    `pajama-assets` chat, 47 items in seven groups — and the first seed, built
+    from `docs/mental-hospital/refs/cast.json` alone, missed **Juanita
+    entirely** plus eleven references (Mrs. Norbert's own two clips, Sophie's
+    other three faces and three jazz stills, the doctor's second still, the
+    assistant's intake still, the socks on her feet). **A chat's own reference
+    page is a SOURCE, not a duplicate — read it before seeding a library out
+    of the repo.** Her pajama stills stay the repo's ORIGINALS: the page's
+    optA/optC are the identical crops re-encoded smaller. Four photographs on
+    that page are attached to nobody and are deliberately left out — naming
+    them is hers. Full note in `docs/modules/audio-and-film.md`.
   - Tests: `node scripts/test-cast.js` (the slot arithmetic pure — every plan
     driven against a strip that ALREADY holds something, since a line that
     resolves right on an empty box is the case that can never catch this — then

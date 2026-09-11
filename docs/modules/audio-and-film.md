@@ -814,9 +814,51 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
   - **A 4s TAKE PER CHARACTER WAS ALREADY DONE — MEASURED, not assumed** (her
     "maybe done already"): ffprobe on every person clip the belt pages name —
     Nurse Edna 4.00s, Ms. O'Hara 4.04, the doctor + assistant (office and
-    hall) 4.04, the parents 4.04, Michael 4s, all 560×752. **The one that is
-    not is the jazz clip — Sophie's own, 15.1s** — so her looks carry that
-    until the 4s one lands, and the look says so in its note.
+    hall) 4.04, the parents 4.04, Michael 4s, all 560x752.
+  - **AND SO WAS THE 4s JAZZ CLIP — IT WAS ALREADY RIDING EVERY SOPHIE JOB
+    (2026-09-11, Sophie: "it's on every sophie video in footage · is quality
+    lost? a chat gave it to me first. / if lost quality, find og chat").** The
+    first pass looked for it in the video LOG and the Dump by name and
+    reported it missing; it is on **24 of the 83 footage jobs**, as a
+    REFERENCE VIDEO called `jazz-best4s.mp4` — which is a different question
+    from the one that was asked, and the reason the answer came back wrong.
+    **Quality is NOT lost, measured rather than eyeballed:** it is the last
+    4.06s of the 15.1s original (aligned at 11.04s by a frame-by-frame
+    search), same 560x752 canvas, same 24fps, same H.264 High / level 3.1,
+    2.15 Mb/s against 2.22 — and **PSNR 46-48 dB against the original span**,
+    which is visually lossless (anything over ~45 dB is imperceptible). The
+    decoded frames are not byte-identical, so it IS a re-encode and not a
+    stream copy; at 48 dB that costs nothing worth going back to the original
+    chat for. **And the two copies on file are BYTE-IDENTICAL** (md5
+    `042e7aaa…`): `ward-refs/jazz-best4s-1789011108116.mp4` off the ward
+    references page and `drops/_/042e7aaa….mp4` in the Dump are one clip.
+    Sophie's four clip looks carry it now; the 15.1s original stays as its own
+    `jazz-long` look, since 15.2s is the whole reference-video budget and it
+    leaves room for nothing else.
+  - **AND THE SHELF WAS FILLED FROM HER OWN FILES ALONE — THE OTHER CHAT'S
+    CHARACTER PAGE HAD MORE (2026-09-11, Sophie: "did u even look on the
+    character page another chat created").** It is **"The ward film — every
+    reference (v7)"**, a grid page in the `pajama-assets` chat — 47 items in
+    seven groups, and the first seed (built from
+    `docs/mental-hospital/refs/cast.json` + `belt/refs.json`) missed a
+    person and eleven references. Folded in: **Juanita**, who was not in the
+    library at all (her still, her scenes-only cut, her five pulled frames);
+    Mrs. Norbert's own two clips beside her 25s origin take; Sophie's other
+    three faces and her three jazz stills (a door that refuses a person VIDEO
+    still takes a frame of one); the doctor's second still, the assistant's
+    intake still, and the socks on her feet. **A chat's own reference page is
+    a source, not a duplicate — read it before seeding a library from the
+    repo.** Live: **20 entries, 66 references.**
+    - **HER PAJAMA STILLS ARE THE REPO'S COPIES, ON PURPOSE.** The page
+      carries its own optA/optC at the identical 392x932 and 319x752 but
+      smaller on disk (467KB vs 734KB, 305KB vs 326KB) — re-encodes of the
+      same crop — so the seed keeps `cast.json`'s originals, the house
+      *nothing stands between the source and the output* rule. The headless
+      still and the tape pocket are the same file on both.
+    - **The page's first group — "People — photographs" — has four
+      photographs attached to nobody** (Grey sweater, Blonde studio, Blazer
+      portrait, Blazer full length). They are not in the library because
+      there is no character to attach them to; naming one is hers.
   - Tests: `node scripts/test-cast.js` — the slot arithmetic pure, every plan
     driven against a strip that ALREADY holds something (a line that resolves
     right on an empty box is exactly the case that can never catch this), then
