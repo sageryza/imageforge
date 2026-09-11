@@ -4878,6 +4878,16 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     measured while the button sits in the page, so any `.sbx-pin` styling that
     changes its box (footage's padding) would push it off its own column — one
     correction after it lands, never a second guess.
+  - **TWO BUTTONS ON ONE BOX PIN TOGETHER, AND `nofollow` KEEPS THE PAGE STILL
+    (2026-09-11, footage's corner grew DIVIDE HERE beside the bigger-box
+    toggle).** "One pinned button at a time" is about two different BOXES;
+    buttons sharing a box are one control row, and a row that pinned one and
+    put the other away reads as half a control — whichever box wins, every
+    marked button on it pins. `data-stickybox="nofollow"` opts a button out
+    of the follow-back: a tap that shrinks the box from its BOTTOM (a divide
+    at the cursor) leaves the seam where her eyes are, and bringing the box's
+    top back would walk the page away from it. Measured by the pinned-pair
+    and pinned-divide blocks of `node scripts/test-footage-divide.js`.
   - Tests: `node scripts/test-footage-collapse.js` (the expanded clip — every
     assertion a MEASUREMENT, since an opener that removes itself, one that
     stays but sits six screens down, and one that collapses the card and
@@ -7867,6 +7877,32 @@ before working on that module. Nothing was deleted — the moved text is verbati
   really POSTs — a clip's poster and a still reference are the same markup,
   and a lit thumb says nothing about what left the phone; verified failing 5
   against the page that listed them).
+  **DIVIDE HERE — ONE BLOCK IS ONE CLIP (2026-09-11, Sophie: "can u add the
+  feature from story timeline that allows me to divide into two text blocks
+  where my cursor · a button · says divide here · pinned or sticky in footage
+  · icon this time").** The Story Timeline's divide on the prompt box: a mark
+  beside the bigger-box toggle (Lucide `separator-horizontal` — her "icon this
+  time") cuts the block at the cursor, the words after it become a SECOND
+  block right under the first, and the timeline's join mark (`fold-vertical`)
+  in the gap puts them back with a blank line between. **THE STAR SENDS THE
+  BLOCK SHE IS IN** — the one she last tapped into, wearing the star's gold
+  line once there are two or more; the references, model, seconds and size
+  are the job and are shared, the block is the words; a slot tap, a
+  character's line and a put-back land in the active block, and the ✕ on a
+  reference renames the slot in EVERY block. Both corner buttons pin
+  together (`stickybox.js` v2 — buttons on one box are a group; the divide is
+  `nofollow`, since it shrinks the box from the bottom and the seam is
+  already where her eyes are). **`fitBox` holds the wrap's height while a box
+  is measured** — at `height:auto` the box collapses for one layout and the
+  browser clamps a deep scroll to the shorter page (measured: scrollY 654 →
+  0 on a pinned divide at line 40; the same shape flickered under every
+  keystroke in a tall big box). Nothing is sent by dividing, nothing is lost
+  by joining, no ✕ on a block on purpose; a hand-off is one scene and
+  collapses to one block; the draft keeps `prompt` as the first block for an
+  older page and the rest under `blocks`; a block is a direct child of the
+  panel or the pill-gap fitter would shorten them all. Full note: *DIVIDE
+  HERE* in `docs/modules/audio-and-film.md`; test
+  `node scripts/test-footage-divide.js`.
   **THE SEED IS ON THE CARD AND IN A BOX SHE CAN TYPE IN (2026-09-10, Sophie:
   "put a seed box that exposes the seed after the clip is drawn and put a copy
   button next to it so I can reuse the seed … make it into a text box so I can

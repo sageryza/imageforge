@@ -42,6 +42,16 @@
    Include it once, anywhere: `<script src="/stickybox.js"></script>`, and
    mark the button `data-stickybox`. It picks up marked buttons present and
    future, so a button built in script only needs the attribute.
+
+   TWO BUTTONS ON ONE BOX PIN TOGETHER (2026-09-11 — footage's corner grew a
+   DIVIDE HERE beside the bigger-box toggle). "One pinned button at a time"
+   is about two different BOXES; buttons sharing a box are one control row,
+   and a row that pinned one of them and put the other away would read as
+   half a control. Whichever box wins, every marked button on it pins.
+   `data-stickybox="nofollow"` opts a button out of the follow-back below —
+   for a tap that shrinks the box from its BOTTOM (a divide at the cursor)
+   the seam is already where her eyes are, and bringing the box's TOP back
+   on screen would walk the page away from it.
 */
 (function () {
   if (window.__stickyBox) return;
@@ -207,7 +217,8 @@
       if (p && (!best || p.score > best.p.score)) best = plans[plans.length - 1];
     }
     for (var k = 0; k < plans.length; k += 1) {
-      if (best && plans[k].e === best.e) pin(plans[k].e, plans[k].p);
+      // the winning box's buttons pin together; every other box lets go
+      if (best && plans[k].p && plans[k].e.wrap === best.e.wrap) pin(plans[k].e, plans[k].p);
       else unpin(plans[k].e);
     }
     // an entry whose button has left the page
@@ -246,10 +257,11 @@
     if (!btn) { soon(); return; }
     var e = entry(btn);
     var was = e.pinned;
+    var nofollow = /\bnofollow\b/.test(btn.getAttribute('data-stickybox') || '');
     // the page's own handler runs first and changes the box; then we place
     setTimeout(function () {
       sync();
-      if (was && !e.pinned) follow(e);               // it shrank — bring the box back
+      if (was && !e.pinned && !nofollow) follow(e);  // it shrank — bring the box back
       burst();
     }, 0);
   }, true);
@@ -270,7 +282,7 @@
   else burst();
 
   window.__stickyBox = {
-    version: 1,
+    version: 2,
     sync: sync,
     pinned: function (btn) { var e = entry(btn); return !!e.pinned; },
   };

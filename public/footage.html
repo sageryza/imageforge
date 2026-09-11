@@ -83,12 +83,39 @@
      which 34 are the corner the expand button reserves: 2.3 readable lines
      ending in a clipped half-line, on the one surface she types a whole
      scene into. */
-  #prompt{max-height:30vh}
-  #prompt.big{min-height:24vh;max-height:none}
-  #bigprompt{position:absolute;right:56px;bottom:6px;width:26px;height:26px;display:flex;
+  .pblock{max-height:30vh}
+  .pblock.big{min-height:24vh;max-height:none}
+  /* THE CORNER CARRIES TWO BUTTONS, AND EVERY BLOCK CARRIES THE CORNER
+     (2026-09-11, Sophie: "add the feature from story timeline that allows me
+     to divide into two text blocks where my cursor · a button · pinned or
+     sticky in footage · icon this time"). The bigger-box toggle at right:56
+     (the pill's column, its settled seat) and DIVIDE HERE beside it at
+     right:88 — the Story Timeline's `divide here` word as a Lucide
+     `separator-horizontal` (a line with the two halves pulling apart), the
+     size the corner already wears. Both are `data-stickybox`, so deep in a
+     tall scene they float together at the bottom of what she can see; the
+     divide is `nofollow` because a divide SHRINKS the box from the bottom
+     and the seam is already where her eyes are — the follow-back that is
+     right for a contract would walk the page away from it. A second block
+     is the same `.promptwrap` again, so it gets the same corner. */
+  .promptwrap .boxbtn{position:absolute;bottom:6px;width:26px;height:26px;display:flex;
              align-items:center;justify-content:center;padding:0;margin:0;border:1px solid #d8cfc0;
              border-radius:6px;background:#fdfbf7;color:#6f675e}
-  #bigprompt svg{width:14px;height:14px}
+  .promptwrap .boxbtn svg{width:14px;height:14px}
+  .promptwrap .bigger{right:56px}
+  .promptwrap .divide{right:88px}
+  /* THE GAP BETWEEN TWO BLOCKS HOLDS THE JOIN — the timeline's mark in the
+     gap, Lucide `fold-vertical`, the divide's opposite: the two halves pushed
+     back onto one line. Its own row, a direct child of the panel, so the
+     pill-gap fitter judges it on its own rect like every other row. */
+  .joinrow{display:flex;justify-content:center;padding:4px 0 6px}
+  .joinrow .joinb{width:26px;height:26px;padding:0;display:inline-flex;align-items:center;
+             justify-content:center;background:#fdfbf7;color:#6f675e}
+  .joinrow .joinb svg{width:14px;height:14px;display:block}
+  /* THE STAR SENDS THE BLOCK SHE IS IN, and only with two or more blocks does
+     that need saying: the active block wears the star's own gold line. One
+     block wears nothing — the page looks exactly as it did. */
+  .panel.many .promptwrap.active .pblock{border-color:#c9a96a;box-shadow:0 0 0 1px #c9a96a}
   .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   button{border:1px solid #d8cfc0;border-radius:6px;background:#fff;color:#2b2620;
          font:15px -apple-system,Georgia,serif;padding:7px 11px}
@@ -531,6 +558,7 @@
   <p><b>The last frame of a clip</b> &mdash; the picture behind it in the recent drawer, for chaining one shot into the next &mdash; rides on Atlas Cloud only. A clip that went out through another door has none.</p>
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
+  <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. Every block has the same two buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing.</p>
   <p><b>The seed</b> is on every finished clip, with a button that puts it back in the box. Leave the box blank and each clip gets a fresh one. A seed repeats the <i>opening</i> of a short clip and then drifts &mdash; it does not survive a changed prompt or a different size, and at 15 seconds it does close to nothing.</p>
   <p><b>Tiles.</b> Each one carries two doors in the middle: <b>&#9654;</b> plays the clip, and the list mark beside it takes you to that clip&rsquo;s card &mdash; its words, its seed, its references and the button that puts them back. The first words of your own newest note on a clip sit along the top of its tile.</p>
   <p><b>Characters.</b> The people icon opens this film&rsquo;s library. Tap a character &mdash; or one of their outfits &mdash; and their references go into the strip while the line that names them by slot goes to the top of the box. The line under each one is exactly what it will add, worked out against what you already have attached, so a second character gets <b>[Video2]</b> rather than the slot the library was written against. Each film is its own shelf. Taking a reference off takes its slot name out of the box and renumbers the rest, so a name never points at the wrong picture. Only the names change &mdash; the words around them are yours.</p>
@@ -539,7 +567,11 @@
 </div>
 
 <div class="panel">
-  <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
+  <!-- ONE BLOCK IS ONE CLIP (2026-09-11). Divide here cuts the block at the
+       cursor into two; the second half becomes a block of its own right under
+       this one, with a join mark in the gap. The star sends the block she is
+       in — the one with the gold line — once there is more than one. -->
+  <div class="promptwrap active"><textarea id="prompt" class="pblock"></textarea><button type="button" id="divide" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block"></button><button type="button" id="bigprompt" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
 
   <button type="button" class="fold" id="reffold" aria-expanded="true" aria-controls="refs" hidden><span class="chev"></span><span id="reffoldlab">References</span></button>
   <div class="refs" id="refs"></div>
@@ -647,6 +679,9 @@ var ICONS = {
   chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
   maximize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
   minimize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
+  // divide here (Lucide separator-horizontal) and join (Lucide fold-vertical)
+  divide: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 16-4 4-4-4"/><path d="M3 12h18"/><path d="m8 8 4-4 4 4"/></svg>',
+  join: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22v-6"/><path d="M12 8V2"/><path d="M4 12H2"/><path d="M10 12H8"/><path d="M16 12h-2"/><path d="M22 12h-2"/><path d="m15 19-3-3-3 3"/><path d="m15 5-3 3-3-3"/></svg>',
   scissors: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>',
   // THE ONE GENERATE GLYPH — the hand-fitted star every spend button wears.
   star: '<svg viewBox="0 0 100 100" fill="currentColor" stroke="none" aria-hidden="true"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg>',
@@ -735,10 +770,25 @@ function loadCtl() {
     var d = JSON.parse(localStorage.getItem('footage_draft') || '{}');
     if (d.prompt) $('prompt').value = d.prompt;
     if (Array.isArray(d.refs)) refs = d.refs;
+    // the blocks after the first, in order, and which one she was in
+    if (Array.isArray(d.blocks)) d.blocks.forEach(function (t) { if (typeof t === 'string') addBlock(t); });
+    if (d.active > 0 && blocks()[d.active]) setActive(blocks()[d.active]);
   } catch (e) {}
 }
 function saveCtl() { try { localStorage.setItem('footage_ctl', JSON.stringify({ ratio: S.ratio })); } catch (e) {} }
-function saveDraft() { try { localStorage.setItem('footage_draft', JSON.stringify({ prompt: $('prompt').value, refs: refs })); } catch (e) {} }
+// `prompt` is still the first block, so a page cached from before the blocks
+// reads the draft as it always did; `blocks` are the ones after it.
+function saveDraft() {
+  try {
+    var ws = blocks();
+    var d = { prompt: ws[0].querySelector('.pblock').value, refs: refs };
+    if (ws.length > 1) {
+      d.blocks = ws.slice(1).map(function (w) { return w.querySelector('.pblock').value; });
+      d.active = ws.indexOf(activeWrap());
+    }
+    localStorage.setItem('footage_draft', JSON.stringify(d));
+  } catch (e) {}
+}
 // THE LIST IS DERIVED, NEVER TYPED: a model this page offers is one at least
 // one live door carries, AND one named in `PAGE_MODELS`. So the drop-down can
 // never offer a row nothing can send, and never a row she did not ask for.
@@ -991,23 +1041,33 @@ function paintRefs() {
 // HER WORDS ARE NOT REWRITTEN, only the names — and the toast says what moved,
 // because a change to her prompt that she cannot see is the hidden-ingredient
 // failure this page's price line exists to prevent.
+// EVERY BLOCK IS REWRITTEN, not only the one she is in: the strip is shared
+// across the blocks, so a slot that moved has moved for all of them, and a
+// second block left naming `[Image3]` would draw the wrong picture as surely
+// as the first would have.
 function dropRef(i) {
-  var CL = window.__castLine, box = $('prompt');
+  var CL = window.__castLine;
   if (!CL || !CL.dropPlan) { refs = refs.filter(function (x, k) { return k !== i; }); saveDraft(); paintControls(); return; }
-  var p = CL.dropPlan({ refs: refs, index: i, prompt: box.value });
-  if (!p.ok) return;
-  refs = p.refs;
-  if (p.changed) {
-    box.value = p.prompt;
+  var was = refs, plan = null, changed = 0, renamed = 0;
+  blocks().forEach(function (w) {
+    var box = w.querySelector('.pblock');
+    var p = CL.dropPlan({ refs: was, index: i, prompt: box.value });
+    if (!p.ok) return;
+    plan = p;
+    if (p.changed) { box.value = p.prompt; changed += 1; renamed += p.renamed.length; }
+  });
+  if (!plan) return;
+  refs = plan.refs;
+  if (changed) {
     if (window.__fitBigPrompt) window.__fitBigPrompt();
-    toast(p.renamed.length
-      ? p.slot + ' came out of the box · ' + p.renamed.length + (p.renamed.length === 1 ? ' name' : ' names') + ' renumbered'
-      : p.slot + ' came out of the box');
+    toast(renamed
+      ? plan.slot + ' came out of the box · ' + renamed + (renamed === 1 ? ' name' : ' names') + ' renumbered'
+      : plan.slot + ' came out of the box');
   }
   saveDraft(); paintControls();
 }
 function insertAtCaret(text) {
-  var box = $('prompt');
+  var box = activeBox();
   // `||` read a caret at position 0 as "no caret" and dropped the slot at
   // the END of the box — the one place she was not looking
   var s = box.selectionStart != null ? box.selectionStart : box.value.length;
@@ -1158,7 +1218,7 @@ function castApply(ent, look) {
   if (!p) { toast('Characters are not loaded yet'); return; }
   if (p.empty && !p.line) { toast('Nothing on ' + (ent.name || ent.slug) + ' yet'); return; }
   refs = p.refs;
-  var box = $('prompt');
+  var box = activeBox();
   var before = box.value;
   box.value = CL.withLine(before, p.line);
   if (window.__fitBigPrompt) window.__fitBigPrompt();
@@ -1277,26 +1337,166 @@ function castRow(e) {
   return d;
 }
 
-// ── The bigger box (the Playground's corner toggle, in shape) ──────────────
-(function () {
-  var box = $('prompt'), btn = $('bigprompt'), big = false;
-  // `height:auto` FIRST or the box can only ever grow — scrollHeight on a box
-  // already sized to its old height reports that height. The border is added
-  // back because the box is `border-box` and scrollHeight excludes it, so
-  // every fit would otherwise be two pixels short and scroll its own last
-  // line. Both bounds are CSS, so the browser clamps and no vh is re-derived
-  // here.
-  function fitBig() {
-    box.style.height = 'auto';
-    box.style.height = (box.scrollHeight + (box.offsetHeight - box.clientHeight)) + 'px';
+// ── THE BLOCKS: one block is one clip (2026-09-11, Sophie: "add the feature
+// from story timeline that allows me to divide into two text blocks where my
+// cursor · a button · says divide here · pinned or sticky in footage · icon
+// this time") ─────────────────────────────────────────────────────────────
+// The Story Timeline's divide, on the box she types a scene into: the words
+// after the cursor become a SECOND block right under the first, with the
+// timeline's join mark in the gap to put them back together. A 15-second
+// shot on Mini is two clips, and until this she cut the scene in two by hand
+// — copy the tail out, send the head, paste the tail back in. Four things:
+//   - ONE BLOCK IS ONE CLIP. The references, the model, the seconds and the
+//     size are the JOB and are shared; the block is the words. THE STAR SENDS
+//     THE BLOCK SHE IS IN — the last one she tapped into, wearing the gold
+//     line once there are two or more — and every block keeps its words after
+//     a send, the box's own rule (a re-roll is one tap). A slot tap, a
+//     character's line and a put-back land in that same block; the ✕ on a
+//     reference renames the slot in EVERY block, since the strip is shared.
+//   - EVERY BLOCK IS THE SAME `.promptwrap`, so each carries the two corner
+//     buttons and its own bigger-box toggle. `#prompt` / `#bigprompt` stay on
+//     the first, so a cached page, the belt's hand-off, the tests and the
+//     draft (`prompt` first, `blocks` after it) all read as before.
+//   - NOTHING IS SENT BY DIVIDING, and nothing is lost by joining: the join is
+//     the two texts with a blank line between, never a delete. There is no ✕
+//     on a block on purpose — emptying it and joining is the way to lose one,
+//     and both of those are hers to type.
+//   - A BLOCK IS A DIRECT CHILD OF THE PANEL, never inside a wrapper, or the
+//     pill-gap fitter would shorten every block for a pill only the first one
+//     touches (2026-09-10, "not a column for pill scroll").
+function panelEl() { return $('prompt').closest('.panel'); }
+function blocks() {
+  var out = [], kids = panelEl().children;
+  for (var i = 0; i < kids.length; i++) if (kids[i].classList.contains('promptwrap')) out.push(kids[i]);
+  return out;
+}
+function activeWrap() { return panelEl().querySelector('.promptwrap.active') || blocks()[0]; }
+function activeBox() { return activeWrap().querySelector('.pblock'); }
+function setActive(w) {
+  if (!w || w.classList.contains('active')) return;
+  blocks().forEach(function (x) { x.classList.toggle('active', x === w); });
+}
+// `height:auto` FIRST or the box can only ever grow — scrollHeight on a box
+// already sized to its old height reports that height. The border is added
+// back because the box is `border-box` and scrollHeight excludes it, so
+// every fit would otherwise be two pixels short and scroll its own last
+// line. Both bounds are CSS, so the browser clamps and no vh is re-derived
+// here.
+// AND THE WRAP HOLDS THE ROOM WHILE THE BOX IS MEASURED. At `height:auto`
+// the box collapses to its floor for one layout, and if that layout leaves
+// the document shorter than where she is scrolled, the browser CLAMPS the
+// scroll — measured 2026-09-11: a divide from the pinned button at line 40 of
+// a 70-line scene threw the page from scrollY 654 to 0 with no script
+// scrolling anything, because the head's `auto` moment made the page 824px
+// tall under an 844px viewport. A min-height on the wrap for the length of
+// the measurement means the document changes height ONCE, to the real fit.
+// (The same shape sat under every keystroke in a tall big box — caretkeep
+// pulled the caret back a frame later, which is why it read as a flicker
+// rather than a jump.)
+function fitBox(box) {
+  var w = box.parentNode, lock = !!(w && w.classList && w.classList.contains('promptwrap'));
+  if (lock) w.style.minHeight = w.getBoundingClientRect().height + 'px';
+  box.style.height = 'auto';
+  box.style.height = (box.scrollHeight + (box.offsetHeight - box.clientHeight)) + 'px';
+  if (lock) w.style.minHeight = '';
+}
+function fitAll() { blocks().forEach(function (w) { fitBox(w.querySelector('.pblock')); }); }
+function mountBlock(w) {
+  var box = w.querySelector('.pblock'), big = w.querySelector('.bigger'), div = w.querySelector('.divide');
+  function paint() {
+    var on = box.classList.contains('big');
+    big.innerHTML = on ? ICONS.minimize : ICONS.maximize;
+    big.setAttribute('aria-label', on ? 'Smaller box' : 'Bigger box');
+    big.title = big.getAttribute('aria-label');
+    fitBox(box);
   }
-  function paint() { btn.innerHTML = big ? ICONS.minimize : ICONS.maximize; btn.title = btn.getAttribute('aria-label'); box.classList.toggle('big', big); fitBig(); }
-  btn.addEventListener('click', function () { big = !big; btn.setAttribute('aria-label', big ? 'Smaller box' : 'Bigger box'); paint(); });
-  box.addEventListener('input', function () { fitBig(); saveDraft(); });
-  window.addEventListener('resize', fitBig);
-  window.__fitBigPrompt = fitBig;
+  big.addEventListener('click', function () { box.classList.toggle('big'); paint(); });
+  div.innerHTML = ICONS.divide;
+  div.addEventListener('click', function () { divideBlock(box); });
+  box.addEventListener('input', function () { fitBox(box); saveDraft(); });
   paint();
-})();
+}
+function addBlock(text, after) {
+  var w = document.createElement('div');
+  w.className = 'promptwrap';
+  w.innerHTML = '<textarea class="pblock" aria-label="Another block"></textarea>'
+    + '<button type="button" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block"></button>'
+    + '<button type="button" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button>';
+  w.querySelector('.pblock').value = text || '';
+  var ws = blocks();
+  var at = after && ws.indexOf(after) >= 0 ? after : ws[ws.length - 1];
+  at.insertAdjacentElement('afterend', w);
+  mountBlock(w);
+  paintBlocks();
+  return w;
+}
+// The rows between the blocks are REBUILT from the blocks on every paint, so
+// they can never drift from where the blocks really are.
+function paintBlocks() {
+  var panel = panelEl(), ws = blocks(), i;
+  var rows = [], kids = panel.children;
+  for (i = 0; i < kids.length; i++) if (kids[i].classList.contains('joinrow')) rows.push(kids[i]);
+  rows.forEach(function (r) { r.remove(); });
+  for (i = 1; i < ws.length; i++) {
+    var r = document.createElement('div');
+    r.className = 'joinrow';
+    r.innerHTML = '<button type="button" class="joinb" aria-label="Join these two" title="Join these two blocks back into one">' + ICONS.join + '</button>';
+    (function (row) { row.querySelector('.joinb').addEventListener('click', function () { joinAt(row); }); })(r);
+    panel.insertBefore(r, ws[i]);
+  }
+  panel.classList.toggle('many', ws.length > 1);
+  if (!panel.querySelector('.promptwrap.active')) setActive(ws[0]);
+  if (window.__fitPillGap) window.__fitPillGap();
+}
+// THE CUT IS THE TIMELINE'S: the words before the caret stay, the words after
+// it become the next block, the whitespace either side of the seam trimmed.
+// A caret at either end has nothing to divide, and says so rather than doing
+// nothing. The head shrinks from the BOTTOM, so the seam is exactly where
+// her eyes already are — no scroll is made here, and the pinned button is
+// `nofollow` so stickybox makes none either.
+function divideBlock(box) {
+  var all = box.value, cut = box.selectionStart;
+  if (cut == null) cut = 0;
+  var head = all.slice(0, cut).replace(/\s+$/, ''), tail = all.slice(cut).replace(/^\s+/, '');
+  if (!head || !tail) { toast('Put the cursor where the second block should start'); return false; }
+  var w = box.closest('.promptwrap'), first = blocks().length === 1;
+  box.value = head;
+  addBlock(tail, w);
+  setActive(w);
+  fitAll(); saveDraft();
+  if (first) toast('Two blocks — the star sends the one with the gold line');
+  return true;
+}
+function joinAt(row) {
+  var above = row.previousElementSibling, below = row.nextElementSibling;
+  if (!above || !below || !above.classList.contains('promptwrap') || !below.classList.contains('promptwrap')) return;
+  var a = above.querySelector('.pblock'), b = below.querySelector('.pblock');
+  var av = a.value.replace(/\s+$/, ''), bv = b.value.replace(/^\s+/, '');
+  a.value = av && bv ? av + '\n\n' + bv : (av || bv);
+  below.remove(); row.remove();
+  setActive(above);
+  paintBlocks(); fitAll(); saveDraft();
+}
+// back to ONE block holding these words — a hand-off replaces the draft
+function collapseBlocks(text) {
+  blocks().slice(1).forEach(function (w) { w.remove(); });
+  $('prompt').value = text;
+  setActive(blocks()[0]);
+  paintBlocks();
+}
+// tapping into a block, or any button on it, is what makes it the one the
+// star sends — focusin for the keyboard and dictation, click for the corner
+document.addEventListener('focusin', function (e) {
+  var t = e.target;
+  if (t && t.classList && t.classList.contains('pblock')) setActive(t.closest('.promptwrap'));
+});
+document.addEventListener('click', function (e) {
+  var w = e.target && e.target.closest && e.target.closest('.promptwrap');
+  if (w && w.parentNode === panelEl()) setActive(w);
+});
+window.addEventListener('resize', fitAll);
+window.__fitBigPrompt = fitAll;
+mountBlock(blocks()[0]);
 
 // ── The star: it sends on its tap ────────────────────────────
 // THE PLAN STEP IS HISTORY (2026-09-09, Sophie: "no plan button"). It shipped
@@ -1308,7 +1508,7 @@ function castRow(e) {
 $('go').addEventListener('click', function () {
   var btn = $('go');
   if (btn.disabled) return;                       // one tap is one job
-  var prompt = $('prompt').value;
+  var box = activeBox(), prompt = box.value;      // the block she is in
   $('err').hidden = true;
   if (!prompt.trim()) return toast('Say what the clip is first');
   var body = { prompt: prompt, model: S.model, seconds: S.seconds, resolution: S.res, ratio: S.ratio,
@@ -1346,7 +1546,7 @@ $('go').addEventListener('click', function () {
       // minted — so the card carries it without waiting for the first poll
       seed: d.seed != null ? d.seed : null,
       sentAt: new Date().toISOString(), note: d.note || '', video: '', poster: '', vote: '' });
-    toast('Drawing…');
+    toast(blocks().length > 1 ? 'Drawing block ' + (blocks().indexOf(box.closest('.promptwrap')) + 1) + '…' : 'Drawing…');
     // her words STAY in the box after a send (a re-roll is one tap), and so
     // does the draft — it used to be wiped here while the box still showed
     // the words, so a reload right after a send opened on an empty box
@@ -1950,7 +2150,7 @@ function castVote(id, kind) {
 // PUTTING A PROMPT BACK PUTS ITS REFERENCES AND ITS SETTINGS BACK — only
 // what the record knows: a card with no references clears the strip.
 function copyBack(j) {
-  $('prompt').value = j.prompt || '';
+  activeBox().value = j.prompt || '';
   refs = (j.refs || []).map(function (r) { return { url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' }; });
   // ONLY WHAT THE RECORD KNOWS, and only what this page can send: a card
   // drawn on a model the page offers comes back on it, and one drawn on a
@@ -2024,8 +2224,9 @@ function takeHandoff() {
   if (!h) return;
   // A HAND-OFF REPLACES THE DRAFT, and that is deliberate: it is a button she
   // pressed on a scene. The words that were in the box are not lost — every
-  // keystroke has been going into `footage_draft` all along.
-  $('prompt').value = h.prompt;
+  // keystroke has been going into `footage_draft` all along. A hand-off is
+  // ONE scene, so it is one block again whatever she had divided.
+  collapseBlocks(h.prompt);
   if (Array.isArray(h.refs)) {
     var seen = {};
     refs = [];
