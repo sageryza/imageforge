@@ -1251,13 +1251,26 @@ router.post('/jobs', async (req, res) => {
   }
 });
 
+// THE FEED PAGES BACK (2026-09-11, Sophie: "I can't go back farther than
+// today in footage"). The read was the newest 40 and nothing else, and at
+// ~70 Mini clips a day that IS today — everything before it existed on the
+// log and was reachable from nowhere (the Assets tab's own hard-truncate
+// lesson, arriving at the page she draws in most). `before` is the sentAt of
+// the oldest clip she holds; the answer is the page under it and `more` says
+// whether anything is left under THAT. Pure, so the walk has a test that
+// needs no Firestore.
+function pageJobs(all, { limit, before } = {}) {
+  const lim = Math.min(Number(limit) || 40, 200);
+  const sorted = all.slice().sort((a, b) => String(b.d.sentAt || '').localeCompare(String(a.d.sentAt || '')));
+  const under = before ? sorted.filter((x) => String(x.d.sentAt || '') < String(before)) : sorted;
+  const docs = under.slice(0, lim);
+  return { docs, more: under.length > docs.length };
+}
+
 router.get('/jobs', async (req, res) => {
   try {
-    const limit = Math.min(Number(req.query.limit) || 40, 200);
     const snap = await coll().where('chat', '==', CHAT).get();
-    const docs = snap.docs.map((d) => ({ id: d.id, d: d.data() }))
-      .sort((a, b) => String(b.d.sentAt || '').localeCompare(String(a.d.sentAt || '')))
-      .slice(0, limit);
+    const { docs, more } = pageJobs(snap.docs.map((d) => ({ id: d.id, d: d.data() })), { limit: req.query.limit, before: req.query.before });
     // ask the doors about the ones still drawing — throttled per job, so a
     // page polling every few seconds is one provider read per job per 12s
     await Promise.all(docs.map(async (x) => {
@@ -1267,7 +1280,7 @@ router.get('/jobs', async (req, res) => {
       if (r && r.patch) Object.assign(x.d, r.patch, r.video ? { video: r.video } : {});
     }));
     res.set('Cache-Control', 'no-store');
-    res.json({ ok: true, jobs: docs.map((x) => cardOf(x.id, x.d)) });
+    res.json({ ok: true, jobs: docs.map((x) => cardOf(x.id, x.d)), more });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1345,5 +1358,5 @@ module.exports = {
   modelOf, doorFor, estimate, priceOn, DOOR_LOOSENESS, DOOR_REFUSAL_FREE, DOOR_WORDS, walkPlan, walkOn, pollOne, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, resFactor, secondsOk, framesOf,
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf, atlasCacheBust,
   startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf,
-  statusOf, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
+  pageJobs, statusOf, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
 };
