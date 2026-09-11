@@ -694,6 +694,65 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         pinned side by side and both tappable, the ring's real colour, what
         the stub really received from the star, the page NOT moving on a
         pinned divide, the slot renamed in the second block).
+    - **WHAT CHANGED — THE COMPARE PANEL (2026-09-11, Sophie: "is there an
+      easy way I can diff video clips like I can't remember what I changed for
+      example sometimes it's a single line or a reference for the model the
+      timing etc … It's always been Sophie clips since they're pretty similar.
+      I can't remember what I was trying to fix").** A compare mark on every
+      card (Lucide `git-compare`) opens a paper sheet — the same ✕ in the same
+      corner as the player — on THIS clip against the one BEFORE it in the
+      same project, and draws only what moved: a **word diff of the prompt**
+      (what she put in underlined on a green wash, what she took out struck
+      on rose — her Sophie clips share ~90% of their words, so a plain
+      side-by-side hides the one line), **one row per setting that changed**
+      (`seconds 8s → 12s`; the seed, the model, the size, the shape, the door
+      and the project — never `sound`, which every clip here has), and the
+      **references matched slot by slot** in the doors' order, so a different
+      picture in `[Image2]` is ONE `swapped` row rather than a removal and an
+      addition, with the keyframes on their own lane. A one-line summary sits
+      over it (`1 word · seconds 8s → 12s · [Image1] swapped`), which is also
+      what a chat can print off `summary()`.
+      - **NOTHING NEW IS STORED.** Every card already carries the exact
+        prompt, the settings and every reference url; the panel is a READ of
+        two cards through `clip-diff.js` — pure, at the repo root, loaded by
+        the test and served to the page at `/clip-diff.js` (the
+        `pause-plan.js` pattern), so the panel and the test drive one rule.
+      - **A REFERENCE IS NAMED, NEVER SHOWN AS A HASH.** The name is resolved
+        off the CAST LIBRARY (`castNames`: url → "Sophie · the blue pajamas",
+        the character alone on a one-look entry; the wardrobe entry itself for
+        a floating outfit), then the ref's own `name`, then the url's filename
+        — and a Storage id (random hex) is refused as a name, so the slot and
+        the thumb stand alone rather than a string that says nothing. The
+        shelf is read once per film (`cmpCast`), lazily, when the panel opens.
+      - **THE OTHER SIDE DEFAULTS TO THE CLIP BEFORE, IN THE PROJECT**
+        (`previousOf`: next older by `sentAt`, same project; an unfiled clip
+        is compared against the unfiled ones, never against another
+        project's). Most redos are one clip chained off the last, so one tap
+        answers "what did I change". `‹ older` / `newer ›` walk the other
+        side along the project; **`pick a clip`** closes the panel, lights the
+        mark on the clip the pick is for, and the next compare mark she taps
+        is the other side (tapping the lit one again cancels). A clip with
+        nothing before it on the page goes straight to a pick with a toast.
+      - **A CLIP OLDER THAN THE PAGE HOLDS IS ASKED OF THE SERVER**, one at a
+        time, off the feed's own cursor (`/jobs?limit=1&before=<sentAt>` in
+        the project) — and kept in a SIDE POOL (`cmpPool`), never landed on
+        the feed, so the `… older` walk's cursor is untouched and a page she
+        has not walked to is not skipped.
+      - **The pill still owns its column.** `#cmp` sits over the pill in
+        z-order, but the pill adopts a nearly-full-screen scroller and lifts
+        itself above it — which is right, the body scrolls — so the panel
+        reserves the 64px on its right like every other sheet here. The
+        page is locked behind it and put back on close; `__navBack` closes it
+        first, the way it closes the player.
+      - Tests: `node scripts/test-clip-diff.js` (the rules pure — the diff
+        re-joins to either prompt byte for byte, a swapped slot is one row,
+        the names, the previous-in-project rule, a pasted scene past the size
+        cap — then the real page headless: the panel opened on the clip
+        before and NOT the other project's clip between them, the added word
+        MEASURED as a painted span, the settings row, the cast name on the
+        swapped reference, the walk, the server read for the clip under the
+        page with its cursor, the pick landing on the tapped card, ✕ and
+        `__navBack` closing it).
     - **SHE TRIMS A CLIP AS IT COMES OUT (2026-09-10, Sophie: "how hard
       would it be to make it possible to trim clips right as they come out of
       the footage module?").** A Mini clip is 4-15 seconds and the shot inside
