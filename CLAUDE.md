@@ -8045,8 +8045,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
   off the server one at a time into a side pool (the `… older` cursor is
   untouched). **Nothing new is stored** — every card already carries the
   prompt, the settings and every reference, and `clip-diff.js` (pure, served
-  at `/clip-diff.js`) is the one rule the panel and the test drive. Full
-  note: *WHAT CHANGED — THE COMPARE PANEL* in
+  at `/clip-diff.js`) is the one rule the panel and the test drive. **LINES
+  FIRST, AND THE OTHER SIDE IS THE NEAREST TWIN (the same evening, her
+  screenshot of the live panel: "text looks wrong. It should call out
+  exactly what changed")** — a whole-prompt word LCS against the clip merely
+  before it in time lined up every "the" in two unrelated paragraphs and
+  painted a hash. Now the prompt is diffed as LINES (a near-twin line is
+  word-diffed against its twin, anything else is a whole line out or in),
+  `kinOf` picks the nearest older clip in the project sharing 0.4 of its
+  words (the page over what it holds, `GET /api/footage/jobs/:id/kin` over
+  the whole project when the twin is further back), and with no twin the
+  panel says "a different prompt" and shows the words plain rather than a
+  hash. Full note: *WHAT CHANGED — THE COMPARE PANEL* in
   `docs/modules/audio-and-film.md`; test `node scripts/test-clip-diff.js`.
   **CLEAR, AND THE UNDO BESIDE IT (2026-09-11, Sophie: "add a clear button to
   footage · with an undo · make a draft save automatically").** Two underlined
