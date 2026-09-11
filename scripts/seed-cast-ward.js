@@ -39,9 +39,23 @@ const S = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/
 const U = {
   // people — stills (cast.json `current`)
   sophieFaceA: S + 'drops/_/40c4297c5ad31247083c19fee84d8275.png',
+  sophieFaceB: S + 'drops/_/a40594e3ae3e837ecd569b2549850205.png',
+  sophieFaceC: S + 'drops/_/fe1416ac2bed79672468d5532aa747ca.png',
+  sophieFaceD: S + 'drops/_/9d8e857abcf6969f45539ebcd46314bf.png',
+  sophieJazzA: S + 'drops/_/bfce90db708632742f6183f3b8d8ce77.png',
+  sophieJazzB: S + 'drops/_/53d7eef594ff757f26027e5b8edf283c.png',
+  sophieJazzC: S + 'drops/_/e0a3d5c8a24893877433083e2e4f9912.png',
   doctor: S + 'drops/_/86064af3393b1ea3c4b8b6861cf21971.png',
   doctorChair: S + 'drops/_/de01cfce24b93207f44fb79cafae6880.png',
+  doctorB: S + 'drops/_/c10792630f014457fc08d9713483b60d.png',
   assistant: S + 'drops/_/29b79fed3e5b81a9296535be1c13a775.png',
+  assistantIntake: S + 'drops/_/2eeb52f27625e039f68ae73252cd650c.png',
+  juanita: S + 'drops/_/f411e188b6d541c869edf368340a0c20.png',
+  juanita829: S + 'drops/_/2a00213c7a9d25fc06950bcd77620dca.png',
+  juanita846: S + 'drops/_/011d70298df55c4d1e388a2c7a41677e.png',
+  juanita879: S + 'drops/_/cb2aa829aeaa6a18140ab5612915e486.png',
+  juanita1158: S + 'drops/_/63bc7fe5f85f36e15361f73453dfc1c5.png',
+  juanita1408: S + 'drops/_/9d0e9ea2c49538b91a5466fba7fbfe34.png',
   musicTeacher: S + 'drops/_/34b928828a45afae468eb264fe3fe29e.png',
   whiteCoatNurse: S + 'drops/_/0bebd32cdd733225fecb2c4970f4ff72.png',
   mayra: S + 'drops/_/8eab1f8fd9499e6940357110d55c32d1.png',
@@ -53,7 +67,15 @@ const U = {
   rnStation: S + 'drops/_/bc375a01222171f4f6b810f1b05e8ff3.png',
   rnLeaving: S + 'drops/_/1fc18be6120777a658c97835b4015100.png',
   // people — clips, each with the label the belt pages give it
-  jazz: S + 'apiframe-video/1788736757836-f3j8qh.mp4',                 // Sophie · 15.1s
+  // THE 4s JAZZ CLIP (Sophie, 2026-09-11: "it's on every sophie video in
+  // footage"). It is, on 24 of the 83 footage jobs, as `jazz-best4s.mp4` —
+  // the last 4.06s of the 15.1s original, MEASURED at 46-48 dB PSNR against
+  // it (same 560x752 canvas, same 24fps, same H.264 High/L3.1, 2.15 Mb/s
+  // against 2.22): a re-encode, and visually lossless, so there is nothing
+  // to go back to the original chat for. The Dump copy and the ward-refs
+  // copy are BYTE-IDENTICAL (md5 042e7aaa…), so this is one clip.
+  jazz: S + 'ward-refs/jazz-best4s-1789011108116.mp4',                 // Sophie · 4.06s
+  jazzLong: S + 'apiframe-video/1788736757836-f3j8qh.mp4',             // the original take · 15.1s
   edna: S + 'drops/_/f6138a818f436df0ce0cf4591c62f434.mp4',            // Nurse Edna · 4.0s
   ohara: S + 'drops/_/3c1e96d9f2034fc6a6a496b25926746a.mp4',           // Ms. O'Hara's audition · 4.0s
   docAssistOffice: S + 'drops/_/e9a630abb4fc88d8178d02e49389d727.mp4', // office, eye level · 4.0s
@@ -62,6 +84,9 @@ const U = {
   michael: S + 'drops/_/fa846543c4c57f8c4178a4d79a126156.mp4',         // Michael's reference clip · 4s
   scaleAud: S + 'drops/_/4dba2d7c7eae518339f4312d3f13d9ee.mp4',        // Mayra + the white-coat nurse
   artClass: S + 'drops/_/5d39cde4c324500a9da9aefdff9a3459.mp4',        // the art class, her origin · 25s
+  norbert: S + 'drops/_/862ec4c5a9600d25100ced5a894d3a59.mp4',         // Mrs. Norbert
+  norbertLong: S + 'drops/_/fd2deb6a2e9e0ab62465ab32528f7985.mp4',     // Mrs. Norbert, the long take
+  juanitaCut: S + 'drops/_/d23ef7ce8c73ec2169dd37b2ccc8a385.mp4',      // Juanita, her scenes only
   // wardrobe
   pjHeadless: S + 'drops/_/d0470544456526eedcc911e5a03ff93b.png',
   pjPocket: S + 'drops/_/418f17e802ee8e01e0b55afedb0fc483.png',
@@ -69,6 +94,7 @@ const U = {
   pjOptC: S + 'drops/_/12c13654fcb9fb3fc3c30b463acdb562.png',
   pjWhole: S + 'drops/_/29b0531b15fa98895bd18fb9e16e90d3.png',
   socksOG: S + 'drops/_/6658c95fe5f66559c659f688e6371e7c.jpg',
+  socksFrame: S + 'drops/_/929514d99e35b79a0b2bd67972695d08.png',
   // settings
   office: S + 'drops/_/7e4069ef6345be703f51b480f96edd90.png',
   herRoom: S + 'drops/_/a26b474c31334b9e2b32d1d10b6ec5bc.png',
@@ -85,16 +111,22 @@ const SOPHIE_PJ = 'sophie is the woman in {1}.  she wears the blue hospital paja
 const ENTRIES = [
   // ── the people ───────────────────────────────────────────────────────
   { slug: 'sophie', name: 'Sophie', kind: 'person', order: 1, looks: [
-    { key: 'pajamas', name: 'the blue pajamas', refs: [vid(U.jazz, 'the jazz')], wear: ['blue-pajamas:sophie'], line: SOPHIE_PJ,
-      note: 'the jazz clip is 15.1s — swap it for the 4s one when it lands' },
-    { key: 'pink-nightdress', name: "the pink nightdress", refs: [vid(U.jazz, 'the jazz')],
+    { key: 'pajamas', name: 'the blue pajamas', refs: [vid(U.jazz, 'the jazz (4s)')], wear: ['blue-pajamas:sophie'], line: SOPHIE_PJ },
+    { key: 'pink-nightdress', name: "the pink nightdress", refs: [vid(U.jazz, 'the jazz (4s)')],
       line: "sophie is the woman in {1}.  she wears a pink nightdress (her grandmother's), NOT the dress in {1}" },
-    { key: 'boots', name: 'the pajamas with boots', refs: [vid(U.jazz, 'the jazz')], wear: ['blue-pajamas:sophie'],
+    { key: 'boots', name: 'the pajamas with boots', refs: [vid(U.jazz, 'the jazz (4s)')], wear: ['blue-pajamas:sophie'],
       line: 'sophie is the woman in {1}.  she still wears the blue hospital pajamas, with boots, NOT the dress in {1}' },
-    { key: 'street', name: 'street clothes', refs: [vid(U.jazz, 'the jazz')], line: 'sophie is the woman in {1}.',
+    { key: 'street', name: 'street clothes', refs: [vid(U.jazz, 'the jazz (4s)')], line: 'sophie is the woman in {1}.',
       note: 'the outfit she is already wearing in the clip — no pajama clause' },
     { key: 'face', name: 'the face still only', refs: [img(U.sophieFaceA, 'sophie-face-A')], line: 'sophie is the woman in {1}.',
       note: 'the biggest face in the library (640px), head-on' },
+    { key: 'faces', name: 'all four faces', refs: [img(U.sophieFaceA, 'face A'), img(U.sophieFaceB, 'face B'), img(U.sophieFaceC, 'face C'), img(U.sophieFaceD, 'face D')], mine: true,
+      line: 'sophie is the woman in {1}.', note: "the four off the ward references page" },
+    { key: 'jazz-stills', name: 'the jazz, as stills', refs: [img(U.sophieJazzA, 'jazz A'), img(U.sophieJazzB, 'jazz B'), img(U.sophieJazzC, 'jazz C')], mine: true,
+      line: 'sophie is the woman in {1}.', note: 'frames off the jazz take — for a door that refuses a person VIDEO' },
+    { key: 'jazz-long', name: 'the jazz, the whole take', refs: [vid(U.jazzLong, 'the jazz (the original, 15.1s)')], mine: true,
+      line: 'sophie is the woman in {1}.',
+      note: 'the 15.1s original the 4s is cut from — 15.2s is the whole reference-video budget, so it leaves room for nothing else' },
   ] },
   { slug: 'the-doctor', name: 'Dr. Grayson', kind: 'person', order: 2, looks: [
     { key: 'office', name: 'the office', refs: [vid(U.docAssistOffice, 'the doctor and the assistant (office, eye level, 4s)'), img(U.doctor, 'the doctor')],
@@ -103,13 +135,13 @@ const ENTRIES = [
       line: 'Dr. Grayson: the doctor in {1}.' },
     { key: 'with-the-assistant', name: 'with the assistant', refs: [vid(U.docAssistOffice, 'the doctor and the assistant (office, eye level, 4s)')],
       line: 'Dr. Grayson: the doctor in {1}. the assistant: the woman with the clipboard in {1}.' },
-    { key: 'still', name: 'the still only', refs: [img(U.doctor, 'the doctor'), img(U.doctorChair, 'the doctor in his chair')],
+    { key: 'still', name: 'the still only', refs: [img(U.doctor, 'the doctor'), img(U.doctorB, 'the doctor, second still'), img(U.doctorChair, 'the doctor in his chair')],
       line: 'Dr. Grayson: the doctor in {1}.' },
   ] },
   { slug: 'the-assistant', name: 'the assistant', kind: 'person', order: 3, looks: [
     { key: 'office', name: 'the office', refs: [vid(U.docAssistOffice, 'the doctor and the assistant (office, eye level, 4s)'), img(U.assistant, 'the assistant')],
       line: 'the assistant: the woman with the clipboard in {1}.' },
-    { key: 'still', name: 'the still only', refs: [img(U.assistant, 'the assistant')],
+    { key: 'still', name: 'the still only', refs: [img(U.assistant, 'the assistant'), img(U.assistantIntake, 'the assistant, intake')],
       line: 'the assistant: the woman with the clipboard in {1}.' },
   ] },
   { slug: 'nurse-edna', name: 'Nurse Edna', kind: 'person', order: 4, looks: [
@@ -148,8 +180,12 @@ const ENTRIES = [
       line: 'Michael: the boy in {1}.', note: 'no still — barred crops from the table clip only' },
   ] },
   { slug: 'mrs-norbert', name: 'Mrs. Norbert (art)', kind: 'person', order: 11, looks: [
+    { key: 'default', name: 'her clip', refs: [vid(U.norbert, 'Mrs. Norbert')], mine: true,
+      line: 'Mrs. Norbert: the art teacher in {1}.', note: 'no still — only video references' },
+    { key: 'long-take', name: 'the long take', refs: [vid(U.norbertLong, 'Mrs. Norbert, the long take')], mine: true,
+      line: 'Mrs. Norbert: the art teacher in {1}.' },
     { key: 'art-class', name: 'the art class', refs: [vid(U.artClass, 'the art class (her origin, 25s)')], mine: true,
-      line: 'Mrs. Norbert: the art teacher in {1}.', note: 'no still — only this video reference' },
+      line: 'Mrs. Norbert: the art teacher in {1}.', note: 'her origin clip — 25s, over the 15.2s budget on its own' },
   ] },
   { slug: 'the-music-teacher', name: 'the music teacher', kind: 'person', order: 12, looks: [
     { key: 'still', name: 'the still', refs: [img(U.musicTeacher, 'the music teacher')], mine: true,
@@ -159,7 +195,16 @@ const ENTRIES = [
     { key: 'station', name: 'the nurses station', refs: [img(U.rnStation, 'rn — the station'), img(U.rnLeaving, 'leaving in her coat')], mine: true,
       line: 'the nurse: the woman in {1}.', note: 'OG, hop album. Possibly Nurse Mary — unconfirmed' },
   ] },
-  { slug: 'anastasia', name: 'Anastasia', kind: 'person', order: 14,
+  { slug: 'juanita', name: 'Juanita', kind: 'person', order: 14, looks: [
+    { key: 'still', name: 'her still', refs: [img(U.juanita, 'Juanita')], mine: true,
+      line: 'Juanita: the woman in {1}.' },
+    { key: 'scenes', name: 'her scenes only', refs: [vid(U.juanitaCut, 'Juanita, her scenes only')], mine: true,
+      line: 'Juanita: the woman in {1}.' },
+    { key: 'frames', name: 'her six frames', refs: [img(U.juanita, 'Juanita'), img(U.juanita829, '8.29s — at the cart, eyes open'), img(U.juanita846, '8.46s — clean profile, sharp'), img(U.juanita879, '8.79s — her biggest face'), img(U.juanita1158, '11.58s — leaning on the mop'), img(U.juanita1408, '14.08s — the last clean look')], mine: true,
+      line: 'Juanita: the woman in {1}.',
+      note: 'the frames the pajama-assets chat pulled off her take' },
+  ] },
+  { slug: 'anastasia', name: 'Anastasia', kind: 'person', order: 15,
     note: 'waiting on the dance photo — Sophie has it', looks: [
     { key: 'pajamas', name: 'the blue pajamas', refs: [], wear: ['blue-pajamas'], mine: true,
       line: 'Anastasia: the woman in {1}. she wears the blue hospital pajamas in {1} and {2}.',
@@ -180,6 +225,8 @@ const ENTRIES = [
   { slug: 'socks', name: 'the hospital socks', kind: 'wardrobe', order: 2, looks: [
     { key: 'og', name: 'the product photo', refs: [img(U.socksOG, 'the socks (Medline product photo)')], mine: true,
       line: 'the socks in {1}.', note: 'the OG photo — no people in it' },
+    { key: 'on-her-feet', name: 'on her feet', refs: [img(U.socksFrame, 'the socks on her feet')], mine: true,
+      line: 'the socks in {1}.' },
   ] },
 
   // ── the places ────────────────────────────────────────────────────────
