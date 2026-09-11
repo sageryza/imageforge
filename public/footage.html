@@ -156,6 +156,14 @@
         align-items:center;justify-content:center;border:0;background:none;color:#9a8f7d}
   #seedclear svg{width:13px;height:13px;display:block}
   .cost{color:#6f675e;font-size:13px}
+  /* CLEAR AND UNDO — the house inline opener's paint (`.moretxt`, `.olderbtn`):
+     an underlined WORD, never a boxed button, so the one filled thing on this
+     row stays the star. Hard right, so the star keeps its place whether one
+     word is drawn or two. `flex:none` because the cost line beside them is
+     what should give when the row runs out of room. */
+  .wipes{margin-left:auto;display:inline-flex;align-items:center;gap:12px;flex:none}
+  .wipe{border:0;background:none;padding:2px 0;margin:0;font:inherit;font-size:13px;
+        color:#6f675e;text-decoration:underline;line-height:1.3;-webkit-tap-highlight-color:transparent}
   .bal{color:#9a8f7d;font-size:12px}
   /* THE STAR IS THE ONE THING THAT SPENDS — the house generate glyph in a
      filled ink square, the word beside it. */
@@ -729,6 +737,7 @@
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
   <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. Every block has the same two buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing.</p>
+  <p><b>Clear</b> beside the star wipes the job &mdash; every block, the references, the marks and the seed &mdash; and leaves the model, the size, the shape and the project where you set them. It asks nothing, because <b>undo</b> appears next to it and puts the whole thing back, even after a reload: the cleared job is saved the moment you clear it. Tap undo again and you are back where you were. Your words are saved as you type them either way.</p>
   <p><b>The seed</b> is on every finished clip, with a button that puts it back in the box. Leave the box blank and each clip gets a fresh one. A seed repeats the <i>opening</i> of a short clip and then drifts &mdash; it does not survive a changed prompt or a different size, and at 15 seconds it does close to nothing.</p>
   <p><b>Tiles.</b> Each one carries two doors in the middle: <b>&#9654;</b> plays the clip, and the list mark beside it takes you to that clip&rsquo;s card &mdash; its words, its seed, its references and the button that puts them back. The first words of your own newest note on a clip sit along the top of its tile.</p>
   <p><b>Projects.</b> The first drop-down on the buttons row is the project &mdash; the same folders the character library keeps. Pick one and the clips, the Recent drawer and the characters narrow to it, and every clip you send is filed under it; <b>All projects</b> shows everything, with each clip saying which it belongs to. A scene sent from a belt page switches to its own project by itself. Your words and the references already attached stay put when you switch &mdash; only what is offered narrows.</p>
@@ -794,6 +803,20 @@
     <span class="seedwrap" id="seedwrap"><input type="text" id="seedbox" inputmode="numeric" autocomplete="off" placeholder="Seed" aria-label="Seed" title="Seed — leave it blank for a fresh one"><button type="button" id="seedclear" aria-label="Clear the seed" title="Clear the seed" hidden></button></span>
     <button class="go" id="go" type="button"><span id="gostar"></span>Go</button>
     <span class="cost" id="cost"></span>
+    <!-- CLEAR, AND AN UNDO BESIDE IT (2026-09-11, Sophie: "add a clear button
+         to footage · with an undo · make a draft save automatically"). It
+         wipes the JOB — every block, the references, the two keyframe marks
+         and the seed — and never the settings above it (the model, the size,
+         the shape, the seconds, the project are hers and sticky; a clear that
+         reset them would be the shape rule going backwards). It does NOT ask
+         first: she asked for an undo INSTEAD of a confirm, which is the
+         cheaper direction — a confirm is a tap on every clear, an undo is a
+         tap only on the ones she regrets. Two underlined words, the house
+         inline opener's paint, each drawn only while it means something. -->
+    <span class="wipes" id="wipes">
+      <button type="button" class="wipe" id="clearjob" hidden>clear</button>
+      <button type="button" class="wipe" id="undojob" hidden>undo</button>
+    </span>
   </div>
   <div class="err" id="err" hidden></div>
 </div>
@@ -1103,6 +1126,8 @@ function loadCtl() {
     if (Array.isArray(d.blocks)) d.blocks.forEach(function (t) { if (typeof t === 'string') addBlock(t); });
     if (d.active > 0 && blocks()[d.active]) setActive(blocks()[d.active]);
   } catch (e) {}
+  // the job a clear put aside, so the undo survives a reload and a deploy
+  loadBank();
 }
 function saveCtl() { try { localStorage.setItem('footage_ctl', JSON.stringify({ ratio: S.ratio })); } catch (e) {} }
 // `prompt` is still the first block, so a page cached from before the blocks
@@ -1119,7 +1144,130 @@ function saveDraft() {
     }
     localStorage.setItem('footage_draft', JSON.stringify(d));
   } catch (e) {}
+  // saveDraft is the ONE signal every path that changes the job already
+  // sends — typing, the ✕, a keyframe mark, an attach, a divide, a join, a
+  // slot tap, a copy-back, a hand-off — so the two words are repainted from
+  // here rather than from a list of call sites one of them would fall off.
+  paintWipe();
 }
+
+// ── CLEAR, AND THE UNDO BESIDE IT ────────────────────────────────────────
+// (2026-09-11, Sophie: "add a clear button to footage · with an undo · make a
+// draft save automatically".)
+//
+// THE JOB IS WHAT IT WIPES: every block, the references, the two keyframe
+// marks and the seed. NOT the settings above them — the model, the size, the
+// shape, the seconds and the project are hers and sticky, and a clear that
+// reset them would be the shape rule ("the shape is remembered") running
+// backwards once a day.
+//
+// IT ASKS NOTHING. She asked for an undo INSTEAD of a confirm, and that is
+// the cheaper direction: a confirm costs a tap on every clear, an undo costs
+// one only on the clears she regrets. So nothing here is ever a dialog.
+//
+// AND THE CLEARED JOB IS SAVED AUTOMATICALLY — the third line of her ask.
+// Her words and her references have gone into `footage_draft` on every
+// keystroke since the blocks landed; what was missing is the one moment that
+// deliberately EMPTIES that draft. The cleared job is banked in its own key,
+// so the undo survives a reload, an app restart and a deploy rather than
+// living for the life of one page.
+//
+// THE SEED RIDES THE BANK, and that is the one deliberate exception to "the
+// seed is never sticky across loads". That rule is about a value that rides a
+// job with nothing on screen saying so; here the tap IS the saying, and the
+// number lands back in its own visible box. An ordinary reload still opens
+// with the seed box empty — only `undo` brings one back.
+var BANK_KEY = 'footage_cleared';
+var bank = null;                      // the job a clear put aside, or null
+// A SNAPSHOT IS A COPY, never the live arrays — `refs` is rebuilt by the ✕
+// and pushed to by an attach, and a bank sharing it would change under her.
+function jobNow() {
+  var ws = blocks();
+  return {
+    blocks: ws.map(function (w) { return w.querySelector('.pblock').value; }),
+    active: Math.max(0, ws.indexOf(activeWrap())),
+    refs: refs.map(function (r) { return { url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' }; }),
+    first: firstUrl, last: lastUrl, seed: seedVal(),
+  };
+}
+// Nothing typed, nothing attached, no seed — so there is nothing to clear and
+// nothing worth offering back. Never a dead control (the seed ✕'s own rule).
+function jobEmpty(j) {
+  if (!j) return true;
+  if ((j.refs || []).length) return false;
+  if (String(j.seed || '').trim()) return false;
+  return !(j.blocks || []).some(function (t) { return String(t || '').trim(); });
+}
+function applyJob(j) {
+  j = j || { blocks: [''], active: 0, refs: [], first: '', last: '', seed: '' };
+  var ws = j.blocks && j.blocks.length ? j.blocks : [''];
+  collapseBlocks(String(ws[0] || ''));
+  ws.slice(1).forEach(function (t) { addBlock(String(t || '')); });
+  var all = blocks();
+  if (all[j.active]) setActive(all[j.active]);
+  refs = (j.refs || []).map(function (r) { return { url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' }; });
+  firstUrl = String(j.first || ''); lastUrl = String(j.last || '');
+  pruneMarks();
+  setSeed(j.seed || '');
+  if (window.__fitBigPrompt) window.__fitBigPrompt();
+}
+function saveBank() {
+  try {
+    if (bank) localStorage.setItem(BANK_KEY, JSON.stringify(bank));
+    else localStorage.removeItem(BANK_KEY);
+  } catch (e) {}
+}
+function loadBank() {
+  try {
+    var b = JSON.parse(localStorage.getItem(BANK_KEY) || 'null');
+    bank = (b && typeof b === 'object' && Array.isArray(b.blocks) && !jobEmpty(b)) ? b : null;
+  } catch (e) { bank = null; }
+}
+// EACH WORD IS DRAWN ONLY WHILE IT MEANS SOMETHING — `clear` while there is a
+// job to wipe, `undo` while something is banked. So an empty page carries
+// neither, and the row is the star and its price again.
+function paintWipe() {
+  var c = $('clearjob'), u = $('undojob');
+  if (!c || !u) return;
+  c.hidden = jobEmpty(jobNow());
+  u.hidden = !bank;
+  // AND THE GROUP GOES WITH THEM, so an empty page costs the row nothing.
+  // MEASURED at 390pt: the star's row has 24px of slack left after the seed,
+  // the star and the price, and a word is ~38 — so a drawn word WRAPS to a
+  // line of its own, hard right under the price (her own rule: "same row
+  // unless it bleeds over"). A `.wipes` left in the flow with both children
+  // hidden is 0 wide and would not wrap, but hiding it outright is what
+  // guarantees the row is the height it has always been while nothing is
+  // offered.
+  $('wipes').hidden = c.hidden && u.hidden;
+}
+function clearJob() {
+  var was = jobNow();
+  if (jobEmpty(was)) return;
+  bank = was; saveBank();
+  applyJob(null);
+  openFold('refs');                  // so an undo lands where she can see it
+  saveDraft(); paintControls(true); paintRefs();
+  var n = was.refs.length;
+  toast('Cleared' + (n ? ' · ' + n + (n === 1 ? ' reference' : ' references') : '') + ' — tap undo to put it back');
+}
+// UNDO IS A SWAP, so it can never lose anything: the banked job comes back
+// and whatever was on screen takes its place in the bank. Tap it again and
+// you are where you started. The one asymmetry is deliberate — swapping back
+// an EMPTY job drops the bank rather than leaving an `undo` on screen that
+// would restore nothing.
+function undoJob() {
+  if (!bank) return;
+  var back = bank, here = jobNow();
+  bank = jobEmpty(here) ? null : here;
+  saveBank();
+  applyJob(back);
+  openFold('refs');
+  saveDraft(); paintControls(true); paintRefs();
+  toast(bank ? 'Swapped back — undo again to return' : 'Back');
+}
+$('clearjob').addEventListener('click', clearJob);
+$('undojob').addEventListener('click', undoJob);
 // THE LIST IS DERIVED, NEVER TYPED: a model this page offers is one at least
 // one live door carries, AND one named in `PAGE_MODELS`. So the drop-down can
 // never offer a row nothing can send, and never a row she did not ask for.
@@ -1166,6 +1314,7 @@ function paintControls(force) {
   // and a Go would have sent them — the hidden ingredient this page's price
   // line exists to prevent.
   paintSeedClear();
+  paintWipe();
   paintRefs();
   paintKfNote();
   paintFolds();
@@ -1245,8 +1394,8 @@ function paintSeedClear() {
   $('seedclear').hidden = !has;
   $('seedwrap').classList.toggle('hasseed', has);
 }
-$('seedbox').addEventListener('input', paintSeedClear);
-$('seedclear').addEventListener('click', function () { $('seedbox').value = ''; paintSeedClear(); $('seedbox').focus(); });
+$('seedbox').addEventListener('input', function () { paintSeedClear(); paintWipe(); });
+$('seedclear').addEventListener('click', function () { $('seedbox').value = ''; paintSeedClear(); paintWipe(); $('seedbox').focus(); });
 
 // ── THE TWO FOLDS ────────────────────────────────────────────────────────
 // Remembered, and OPEN until she says otherwise: shut is a state she has to
@@ -2745,9 +2894,18 @@ function takeHandoff() {
   var h = readHandoff();
   if (!h) return;
   // A HAND-OFF REPLACES THE DRAFT, and that is deliberate: it is a button she
-  // pressed on a scene. The words that were in the box are not lost — every
-  // keystroke has been going into `footage_draft` all along. A hand-off is
-  // ONE scene, so it is one block again whatever she had divided.
+  // pressed on a scene. A hand-off is ONE scene, so it is one block again
+  // whatever she had divided.
+  //
+  // AND WHAT IT REPLACES GOES IN THE CLEAR'S BANK (2026-09-11). This line used
+  // to say the words in the box were not lost because "every keystroke has
+  // been going into `footage_draft`" — and that was not true of this one path,
+  // which overwrites that draft in the same breath a few lines down. A belt
+  // scene arriving on top of a scene she was writing was the one silent loss
+  // left on this page; the undo beside the star is exactly the mechanism for
+  // it, so the job it replaces is banked and `undo` puts it back.
+  var was = jobNow();
+  if (!jobEmpty(was)) { bank = was; saveBank(); }
   collapseBlocks(h.prompt);
   if (Array.isArray(h.refs)) {
     var seen = {};
