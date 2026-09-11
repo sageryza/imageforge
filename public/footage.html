@@ -463,14 +463,23 @@
   .likefilt svg{width:16px;height:16px}
   .likefilt.on{background:#c25a72;color:#fff}
   .xfilt.on{background:#9a938a;color:#fff}
-  /* THE SEARCH — a magnifying glass that EXPANDS (2026-09-11, Sophie: "add a
-     search button and filter like playground" · "single magnifying glass
-     button that expands"). The glass sits in a box of its own beside the
-     ♥/✕ pair; its tap opens the field and lights it, and lit is the INK, not
-     the rose — it is a door, not a mark she cast (the funnel's own rule).
-     Shutting it CLEARS the words: a query she cannot see must never go on
-     hiding clips behind a shut box, the drawer's own rule. */
+  /* THE SEARCH — a magnifying glass that EXPANDS, and it is the ONLY main
+     button (2026-09-11, Sophie: "single magnifying glass button that
+     expands" · "filter is sub menu of glass · only one main button"). The
+     glass sits in a box of its own beside the ♥/✕ pair; its tap opens the
+     field AND the funnel beside it, and lit is the INK, not the rose — it is
+     a door, not a mark she cast (the funnel's own rule). Shutting it CLEARS
+     the words: a query she cannot see must never go on hiding clips behind a
+     shut box, the drawer's own rule.
+     A FILTER, THOUGH, IS STICKY AND SURVIVES THE GLASS SHUTTING — so the
+     GLASS WEARS THE COUNT the funnel chip used to wear on the bar, and stays
+     lit while one is narrowing. Tucking the funnel behind the glass with
+     nothing on screen saying a filter is on is exactly the silent filter this
+     app keeps getting burned by. */
   .qfilt.on{background:#2b2620;color:#f6f2ea}
+  .qfilt{gap:5px}
+  .qcount{font-family:-apple-system,sans-serif;font-size:11px;font-weight:600;letter-spacing:.04em}
+  .qcount[hidden]{display:none !important}
   /* The field takes what is left of the row and drops to a line of its own
      when the row has no room ("same row unless it bleeds over"). 16px is a
      FLOOR: iOS auto-zooms a focused input under it, and that zoom ignores
@@ -486,20 +495,26 @@
   .feedsearch input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
   .qclear{position:absolute;left:0;top:0;height:100%;width:28px;border:0;background:none;color:#8a8177;
         font-size:18px;line-height:1;padding:0}
-  /* THE FILTER DRAWER — model and when, the shared shell. The mount is
+  /* THE FILTER DRAWER — model and when, the shared shell, and it is a SUB
+     MENU OF THE GLASS (her word): the mount is hidden with the field and
+     shows with it, so the feed bar carries ONE main button. The mount is
      `display:contents` so the funnel chip and the drawer are both items of
-     the feed bar: the chip stands in the row and the drawer takes a whole
-     line under it, IN FLOW (the Meta Assets call — this bar is not sticky
-     and nothing hangs under it). The tokens still reach the chip and the
-     drawer: custom properties inherit through display:contents. */
+     the feed bar — the chip stands at the end of the field's line and the
+     drawer takes a whole line under it, IN FLOW (the Meta Assets call — this
+     bar is not sticky and nothing hangs under it). The tokens still reach
+     both: custom properties inherit through display:contents. */
   #feedfilters{display:contents;--fsf-ink:#2b2620;--fsf-ink2:#6f675e;--fsf-line:#d8cfc0;--fsf-paper:#fdfbf7;--fsf-on:#c25a72}
-  /* The box comes first under the controls (it belongs to the glass) and the
-     drawer under that; both take a whole line. The drawer keeps the pill's
-     column clear — the bar is not sticky, but a drawer she opens is usually
-     at the top of the screen, right where the pill sits (PHOTOgraphed: the
-     third chip ran under it), so its chips wrap short of that column. */
+  /* The field comes first under the controls (it belongs to the glass), the
+     funnel at its right end, the drawer under both on a whole line. The
+     funnel STRETCHES to the field it stands beside rather than keeping the
+     shell's 34 (the door stretches to the row it stands on, and its row here
+     is the field's). The drawer keeps the pill's column
+     clear — the bar is not sticky, but a drawer she opens is usually at the
+     top of the screen, right where the pill sits (PHOTOgraphed: the third
+     chip ran under it), so its chips wrap short of that column. */
   .feedsearch{order:1}
-  #feedfilters .filtdrawer{flex:1 1 100%;margin:0 0 2px;order:2;padding-right:58px}
+  #feedfilters .filtchip{order:2;align-self:stretch;min-height:0;min-width:32px;padding:0 8px}
+  #feedfilters .filtdrawer{flex:1 1 100%;margin:0 0 2px;order:3;padding-right:58px}
   .job{background:#fff;border:1px solid #e0d8ca;border-radius:6px;padding:10px;margin-bottom:11px}
   .job.nay{opacity:.45}
   /* WHICH CARD SHE LANDED ON (2026-09-10, Sophie: "clicking on a tile in
@@ -946,7 +961,7 @@
   <div class="filttog">
     <button type="button" class="likefilt qfilt" id="v-search" aria-label="Search the clips" title="Search" aria-expanded="false" aria-controls="feedsearch"></button>
   </div>
-  <div id="feedfilters"></div>
+  <div id="feedfilters" hidden></div>
   <div class="feedsearch" id="feedsearch" hidden>
     <input id="q" type="search" placeholder="Search" aria-label="Search your clips"
            autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
@@ -1055,7 +1070,7 @@ $('addicon').innerHTML = ICONS.image;
 document.querySelectorAll('.selwrap .chev').forEach(function (c) { c.innerHTML = ICONS.chev; });
 document.querySelectorAll('.iconsel .ico').forEach(function (c) { c.innerHTML = ICONS.folder; });
 $('v-liked').innerHTML = ICONS.heart; $('v-hidex').innerHTML = ICONS.x;
-$('v-search').innerHTML = ICONS.search;
+$('v-search').innerHTML = ICONS.search + '<span class="qcount" hidden></span>';
 $('seedclear').innerHTML = ICONS.x;
 $('rectog').innerHTML = ICONS.history;
 $('casttog').innerHTML = ICONS.users;
@@ -2569,11 +2584,33 @@ $('qclear').addEventListener('click', function () {
   box.value = ''; qLive.sync(); readSearch(); box.focus();
 });
 function searchOpen() { return !$('feedsearch').hidden; }
+// HOW MANY FILTERS ARE NARROWING, for the glass to wear while it is shut.
+// The shell's own chip counts its narrowed specs; this is the same question
+// asked of the two rows this page has, so the digit on the glass and the
+// digit on the funnel can never say different things.
+function filtCount() {
+  if (!FILT) return 0;
+  return ((FILT.get('model') || []).length ? 1 : 0) + (FILT.get('when') ? 1 : 0);
+}
+function paintSearchBtn() {
+  var n = filtCount(), g = $('v-search'), c = g.querySelector('.qcount');
+  // LIT means "this door has something behind it" — open, or a filter on.
+  g.classList.toggle('on', searchOpen() || !!n);
+  if (c) { c.textContent = n ? String(n) : ''; c.hidden = !n; }
+  g.setAttribute('aria-label', 'Search the clips' + (n ? ' — ' + n + ' filter' + (n > 1 ? 's' : '') + ' on' : ''));
+}
 function setSearchOpen(open) {
   $('feedsearch').hidden = !open;
-  $('v-search').classList.toggle('on', open);
+  // THE FUNNEL IS A SUB MENU OF THE GLASS (2026-09-11, Sophie: "filter is sub
+  // menu of glass · only one main button"), so it comes and goes with the
+  // field. The mount is `display:contents`; `[hidden]` beats that, so hiding
+  // it takes the chip AND the drawer off the bar.
+  $('feedfilters').hidden = !open;
+  // The drawer is deliberately left as she left it: reopening the glass shows
+  // the funnel exactly as it was, and nothing here may clear a filter of hers.
   $('v-search').setAttribute('aria-expanded', open ? 'true' : 'false');
   var box = $('q');
+  paintSearchBtn();
   if (open) { box.focus(); return; }
   if (box.value) { box.value = ''; qLive.sync(); readSearch(); }
 }
@@ -2597,7 +2634,8 @@ var FILT = SF ? SF.build($('feedfilters'), [
   { key: 'when', kind: 'chips', label: SF.WHEN.label, vals: SF.WHEN.vals, words: SF.WHEN.words,
     get: function () { try { return localStorage.getItem('footage_filt_when') || ''; } catch (e) { return ''; } },
     set: function (v) { try { localStorage.setItem('footage_filt_when', v || ''); } catch (e) {} } },
-], function () { paintFeed(); }, { label: 'Filters' }) : null;
+], function () { paintFeed(); paintSearchBtn(); }, { label: 'Filters' }) : null;
+paintSearchBtn();
 function passesFilt(j) {
   if (!FILT) return true;
   var ms = FILT.get('model') || [];
