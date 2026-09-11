@@ -9,16 +9,14 @@
    "name": "the living room",
    "what": "the brown leather couch, the green plaid rug, the plant, the framed print",
    "establishedOn": "sj-a",
-   "neededBy": [
-    "sj-6",
-    "sj-e"
-   ],
+   "neededBy": [],
    "line": "the room is [SLOT].",
    "at": 12,
    "still": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/92a1276681dc970f42c824cc9ff74236.jpg",
    "dumpId": "2iEM1GHx9jxGfukowXgE",
    "from": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789080125649-2ktnq0.mp4",
-   "grabbedAt": "2026-09-11T01:11:50.026Z"
+   "grabbedAt": "2026-09-11T01:11:50.026Z",
+   "why_no_longer_rides": "her call — the living room is in the reference videos, and the setting line carries it in words"
   },
   {
    "key": "bedroom",
@@ -26,9 +24,10 @@
    "what": "the bed, the grey headboard, the white built-in closet doors, the bedside lamp",
    "establishedOn": "sj-b",
    "neededBy": [
+    "sj-c",
     "sj-5"
    ],
-   "line": "the room is [SLOT].",
+   "line": "the bed is the one in [SLOT].",
    "at": 9.5,
    "still": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3e7321278eb15609a1b42180d84807e3.jpg",
    "dumpId": "M7q5TOzLoY0tVJJ3zCyK",
@@ -40,17 +39,14 @@
    "name": "what they are wearing",
    "what": "the clothes the model put them in — it is one continuous evening until weeks pass",
    "establishedOn": "sj-b",
-   "neededBy": [
-    "sj-d",
-    "sj-1",
-    "sj-2"
-   ],
+   "neededBy": [],
    "line": "they wear what they are wearing in [SLOT].",
    "at": 14.9,
    "still": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/9d843a55b9fd7776e8a671dc9b40c6ab.jpg",
    "dumpId": "YIdGv7JxaJGmZWNbkV6s",
    "from": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789087038575-9fc2na.mp4",
-   "grabbedAt": "2026-09-11T01:11:51.675Z"
+   "grabbedAt": "2026-09-11T01:11:51.675Z",
+   "why_no_longer_rides": "her call — three reference videos carry what they look like"
   },
   {
    "key": "kitchen",
@@ -126,5 +122,6 @@
    "neededBy": [],
    "at": null
   }
- ]
+ ],
+ "_her_call": "2026-09-11, Sophie: \"ok the loving room is in the video so leave the stills out. just the bed one for the bedroom scenes\" and \"the living room is described in words, keep the words for all the living room scenes.\" So the living room and the wardrobe are RECORDS now — grabbed, kept, and riding nothing — because her reference videos already show that room and those clothes, and a still saying the same thing again is the same fact twice. The BED is the one still that rides, on the two scenes set in the bedroom."
 }

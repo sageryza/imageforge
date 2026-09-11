@@ -1,23 +1,34 @@
 {
-  "_note": "The beginning of HER OWN Sean/Jonathan scene — the two videos that say who's who. Lifted verbatim off footage job 86532d0c923d401a8b29060dd673670a (2026-09-10 22:38, Mini · 480p · 3:4 · 15s · Atlas, drew in 3m02s). The slot order is hers and is load-bearing: the header names [Video1] as jonathan and [Video2] as sean, and the footage page assigns slots by the order of this list.",
-  "_source_job": "86532d0c923d401a8b29060dd673670a",
-  "whosWho": "sean (brown haired boy, [Video2])\n\njonathan (blond haired boy, [Video1])\n\nsean voice\n\njonathan voice",
-  "refs": [
-    {
-      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/01433479f5292d2a66ffcbd67fb8d570.mov",
-      "kind": "video",
-      "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/01433479f5292d2a66ffcbd67fb8d570-poster.jpg",
-      "name": "IMG_0575.mov",
-      "_slot": "[Video1]",
-      "_who": "jonathan"
-    },
-    {
-      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8635b6017251e49d5ec0c5a491305868.mov",
-      "kind": "video",
-      "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8635b6017251e49d5ec0c5a491305868-poster.jpg",
-      "name": "IMG_4753.mov",
-      "_slot": "[Video2]",
-      "_who": "sean"
-    }
-  ]
+ "_note": "The who's-who block. It began as the opening of HER OWN Sean/Jonathan scene (footage job 86532d0c923d401a8b29060dd673670a, 2026-09-10) and she has added to it since. The slot order is hers and is load-bearing: the footage page assigns slots by the order of this list, so swapping two entries swaps who is who in every prompt while the page goes on looking correct.",
+ "_source_job": "86532d0c923d401a8b29060dd673670a",
+ "whosWho": "sean (brown haired boy, [Video2])\n\njonathan (blond haired boy, [Video1], then [Video3]) — two takes\n\nhe's wearing the navy sweater in [Video3]\n\nhe's 5'10 and three quarters, sean is 5'10 and six eighths\n\nsean voice\n\njonathan voice",
+ "refs": [
+  {
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/01433479f5292d2a66ffcbd67fb8d570.mov",
+   "kind": "video",
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/01433479f5292d2a66ffcbd67fb8d570-poster.jpg",
+   "name": "IMG_0575.mov",
+   "_slot": "[Video1]",
+   "_who": "jonathan"
+  },
+  {
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8635b6017251e49d5ec0c5a491305868.mov",
+   "kind": "video",
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8635b6017251e49d5ec0c5a491305868-poster.jpg",
+   "name": "IMG_4753.mov",
+   "_slot": "[Video2]",
+   "_who": "sean"
+  },
+  {
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/14eda86764c5f9e9ad65fa45b017f898.mov",
+   "kind": "video",
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/b3fe768f0798e6bf5ed6c454f811f11d.jpg",
+   "name": "IMG_4816.mov",
+   "_slot": "[Video3]",
+   "_who": "jonathan, take 2"
+  }
+ ],
+ "_added": "2026-09-11, Sophie, sending IMG_4816.mov: \"name this video as jonathan, the first video, then this one) (two takes) and say he's wearing the navy sweater in the new video and he's 5'10 and three quarters, sean is 5'10 and six eighths (leave the joke math)\". So jonathan has TWO takes, [Video1] and [Video3], and the new one is appended rather than inserted — inserting it would have made sean [Video3] and rewritten who is who on every card already on file.",
+ "_jokemath": "SIX EIGHTHS IS THREE QUARTERS. They are the same height and that is the joke — her words, and 'leave the joke math' is her saying so. NEVER normalise it.",
+ "_glasses": "UNRESOLVED, and hers to call: jonathan wears glasses in [Video1] and the two drawn clips, and NOT in [Video3]. Two takes that disagree about glasses is the one thing in here a model cannot reconcile on its own."
 }

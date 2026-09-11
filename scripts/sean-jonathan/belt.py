@@ -71,7 +71,7 @@ SHEET = 'belt-seanjonathan'
 # A NEW VERSION IS A NEW PAGE and the title says which — the house rule for
 # anything posted, because a posted page is frozen and her Compare tab shows
 # them side by side. Bump this and supersede the one it replaces.
-VERSION = 5
+VERSION = 6
 TITLE = 'Sean & Jonathan — the draft belt v%d' % VERSION
 LIMIT = 8000
 
@@ -104,6 +104,17 @@ IP_TITLES = {
     'willy wonka': 'Warner Bros.',
 }
 
+# THE LIVING ROOM IS CARRIED IN WORDS, NOT BY A STILL (2026-09-11, Sophie: "ok
+# the loving room is in the video so leave the stills out ... the living room is
+# described in words, keep the words for all the living room scenes"). Her
+# reference videos are shot in it — the new one, IMG_4816, is jonathan sitting on
+# that green rug in front of that couch — so a still of it would be the same fact
+# twice. ONE constant, appended to every scene set in it, so the description
+# cannot drift from card to card. The words are what the two drawn clips really
+# show, read off them rather than invented.
+LIVING_ROOM = ('the living room — the brown leather couch, the green plaid rug, '
+               'cream walls, a framed print, a tall plant in the corner')
+
 # THE RUNNING ORDER. `key` is identity and never moves; the number on the card
 # is its position in this list. `src` says where the words come from:
 #   shot:<job id>   her prompt as the door received it, plus the clip
@@ -121,18 +132,18 @@ RUNNING = [
          room="setting: jonathan's apartment — the kitchen, its cupboards, a vase of flowers, the oven."),
     dict(key='sj-1', name='The tea party', src='one:1',
          room="setting: jonathan's apartment — the small round dining table, the window, a rose bush below it."),
-    dict(key='sj-2', name='Get out', src='one:2',
+    dict(key='sj-2', name='Get out', src='one:2', living=True,
          room="setting: jonathan's apartment — the front door, then the skylight in the roof above him."),
-    dict(key='sj-3', name='Weeks pass', src='one:3',
+    dict(key='sj-3', name='Weeks pass', src='one:3', living=True,
          room="setting: jonathan's apartment — a wall calendar, his easy chair, then the kitchen and its oven."),
     dict(key='sj-4', name='The white paint', src='one:4',
          room="setting: jonathan's apartment — his desk, standing, then the bathroom and the shower."),
     dict(key='sj-5', name='Bedtime', src='one:5',
          room="setting: jonathan's apartment — his bed, night, moonlight coming in at the end."),
-    dict(key='sj-6', name='A whole new world', src='one:6',
-         room="setting: the apartment, then outside — a field of rose petals, then swings at a park."),
-    dict(key='sj-e', name='The rain', src='three:1',
-         room="setting: jonathan's apartment — the leather couch, the window, the television, rain outside."),
+    dict(key='sj-6', name='A whole new world', src='one:6', living=True,
+         room="setting: jonathan's apartment — then outside, a field of rose petals, then swings at a park."),
+    dict(key='sj-e', name='The rain', src='three:1', living=True,
+         room="setting: jonathan's apartment — the window with rain on it, the television."),
 ]
 
 
@@ -229,7 +240,11 @@ def plan():
                 head = 'this scene continues [Video1].\n\n' + c['room']
             else:
                 refs = [dict(r) for r in pair]
-                head = R['whosWho'] + '\n\n' + c['room']
+                room = c['room']
+                if c.get('living'):
+                    room = ("setting: jonathan's apartment — " + LIVING_ROOM + '. '
+                            + c['room'].split('—', 1)[1].strip())
+                head = R['whosWho'] + '\n\n' + room
         # THE CONTINUITY STILLS RIDE AFTER THE VIDEOS. Images and videos are
         # slotted separately by the footage page, so adding one can never move
         # [Video1]/[Video2] out from under her who's-who block. A still that has
@@ -321,8 +336,8 @@ def build():
         # It is the two videos that say who is who, where she can play them and
         # judge them (2026-09-11: "in case i find better videos").
         if c.get('cast'):
-            for r in c['refs']:
-                films.append((k + '-' + r['_who'], r['url'],
+            for m, r in enumerate(c['refs']):
+                films.append(('%s-%d' % (k, m + 1), r['url'],
                               '%s  %s' % (r['_slot'], r['_who']), r.get('name', '')))
             cards.append(
                 '<section class="card" id="j-%s" data-key="%s" data-item="%s">\n'
@@ -334,8 +349,8 @@ def build():
                 'say which — it swaps here and on all ten scenes at once, and nothing else '
                 'about the belt moves.</p>%s\n</section>' % (
                     k, k, k, e(str(c['n'])), e(c['name']),
-                    ''.join('<div class="film" id="film-%s-%s"></div>' % (k, e(r['_who']))
-                            for r in c['refs']),
+                    ''.join('<div class="film" id="film-%s-%d"></div>' % (k, m + 1)
+                            for m, r in enumerate(c['refs'])),
                     ('<h3>the rooms so far</h3><p class="done">Screenshots of what the model '
                      'invented, pulled out of the clips that made them. Each one rides the '
                      'later cards that have to match it.</p><div class="stills">%s</div>'

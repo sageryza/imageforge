@@ -109,8 +109,15 @@ ok(grabbed.length >= 3, 'at least the three from the drawn clips are grabbed ('
   + grabbed.map((t) => t.key).join(' ') + ')');
 ok(cont.every((t) => !t.still || /^https:\/\/storage\.googleapis\.com\//.test(t.still)),
   'every still is a real hosted url');
-ok(cont.every((t) => !(t.neededBy || []).includes('sj-c')),
-  'the chained card asks for no still — its clip already carries the room and the clothes');
+// 2026-09-11: "just the bed one for the bedroom scenes." The bed still is the
+// ONLY one that rides now — the living room and the wardrobe are in her
+// reference videos — and it rides both bedroom scenes, the chained one included,
+// because she named them. Nothing else may reach a chained card.
+ok(cont.filter((t) => (t.neededBy || []).includes('sj-c')).map((t) => t.key).join(' ') === 'bedroom',
+  'the chained card takes the bed still and nothing else');
+ok(cont.filter((t) => ['livingroom', 'wardrobe'].includes(t.key))
+     .every((t) => (t.neededBy || []).length === 0 && t.still),
+  'the living room and the wardrobe are kept as records and ride nothing');
 ok(cont.every((t) => (t.neededBy || []).every((k) => k !== t.establishedOn)),
   'nothing is its own reference');
 
@@ -229,9 +236,10 @@ const exe = () => {
     head: document.querySelector('.p[data-key="sj-c"][data-field="mine"]').value,
     refs: JSON.parse(document.querySelector('.refjson[data-key="sj-c"]').textContent),
   }));
-  ok(chained.refs.length === 1 && /atlascloud-video/.test(chained.refs[0].url)
+  ok(chained.refs.filter((r) => r.kind === 'video').length === 1
+    && /atlascloud-video/.test(chained.refs[0].url)
     && /^this scene continues \[Video1\]\./.test(chained.head),
-    'card 3 chains off the clip before it, one video, named by its slot');
+    'card 3 chains off the clip before it — one video, named by its slot');
   // THE SHOT CARDS PLAY. __filmRow is the house player — one per drawn scene.
   const players = await page.$$eval('.film video, .film button, .film a', (n) => n.length);
   const tags = await page.$$eval('.tag', (n) => n.map((x) => x.textContent).join(','));
@@ -296,8 +304,8 @@ const exe = () => {
   }));
   ok(cast.foot === 0 && cast.secs === 0 && cast.box === 0,
     'the cast card offers no Footage button, no seconds and no scene box');
-  ok(cast.films === 2 && cast.players >= 2,
-    'and plays both original reference videos (' + cast.films + ' rows, ' + cast.players + ' controls)');
+  ok(cast.films === refs.refs.length && cast.players >= refs.refs.length,
+    'and plays every reference video (' + cast.films + ' rows, ' + cast.players + ' controls)');
   // MEASURED, not counted: a figure that collapses to nothing while the picture
   // loads puts the captions on top of each other, which is what the photo caught.
   const stills = await page.evaluate(() => [...document.querySelectorAll(
@@ -380,8 +388,8 @@ const exe = () => {
     // of this list, so a still slipping in front would move [Video1]/[Video2] out
     // from under her who's-who block — the one thing the belt must never do.
     const kinds = h.refs.map((r) => r.kind).join(' ');
-    ok(/^video video( image)*$/.test(kinds),
-      'the two who\'s-who videos lead, the continuity stills follow (' + kinds + ')');
+    ok(/^video+( video)*( image)*$/.test(kinds) && !/image video/.test(kinds),
+      'every who\'s-who video leads, the continuity stills follow (' + kinds + ')');
     ok(h.model === 'mini' && h.res === '480p' && h.ratio === '3:4' && h.seconds === 15,
       'Mini · 480p · 3:4 · 15s — the shape of her own two clips'
       + ' (' + [h.model, h.res, h.ratio, h.seconds].join(' · ') + ')');
