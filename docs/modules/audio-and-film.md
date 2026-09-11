@@ -756,6 +756,25 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       a part is baked — which it already did for the clip itself, so the rule
       cost nothing. Re-pulling the frame from the trim is the fix if she ever
       wants both; nothing does it yet.
+      **THE WAY OUT IS ITS OWN ROW ABOVE THE PICTURE (2026-09-11, Sophie:
+      "all the stuff at the bottom in trim view, esp after a trim is added,
+      makes it impossible to close the player").** The ✕ shipped absolute in
+      the player's top-left corner — the slack a bottom-aligned stage leaves,
+      which a PORTRAIT clip does not leave. Measured at the app's 390x700
+      with a 3:4 clip: the stage fills to the top, the video paints over the
+      button (later in the DOM, both positioned), `elementFromPoint` at the
+      ✕'s centre answers VIDEO, and 0% of the screen is bare backdrop (6.9%
+      with parts listed — two thin side strips). So the trim view of every
+      ward clip had no way out but the app's chevron, and the main test's
+      presence check on `.pclose` passed throughout. `.ptop` is a `flex:none`
+      row in the column the stage yields to, so the ✕ is on screen whatever
+      the clip's shape (the picture is one row shorter), clear of the video's
+      own top-left controls, and the row's dead space closes like the stage.
+      Pinned by the portrait block of the test (verified failing 5 pre-fix):
+      the ✕ asked with `elementFromPoint`, the video's rect proved to start
+      under it, and the tap a positional `mouse.click` — playwright's element
+      click refuses a covered target with a timeout, a crash rather than a
+      finding.
       Test: `node scripts/test-footage-trim.js` (the rules pure, then a REAL
       encode measured with ffprobe — a recipe that reads perfectly and a file
       that is the wrong length look identical to any source assertion — then

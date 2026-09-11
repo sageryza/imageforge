@@ -219,6 +219,11 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
   execFileSync(FF, ['-y', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc=size=320x240:rate=24:duration=5',
     '-c:v', 'libvpx', '-b:v', '200k', webm]);
   const WEBM = fs.readFileSync(webm);
+  // and a PORTRAIT one — 3:4, the ward film's shape — for the way-out block
+  const tallWebm = path.join(tmp, 'tall.webm');
+  execFileSync(FF, ['-y', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc=size=420x560:rate=24:duration=5',
+    '-c:v', 'libvpx', '-b:v', '200k', tallWebm]);
+  const TALL = fs.readFileSync(tallWebm);
 
   const got = [];                 // every trim the server really received
   let jobs = [{
@@ -258,6 +263,7 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
         res.writeHead(200, { 'content-type': 'text/html' }); return res.end(html);
       }
       if (u.pathname === '/clip.webm' || u.pathname === '/trimmed.webm') return serveMedia(req, res, WEBM, 'video/webm');
+      if (u.pathname === '/tall.webm') return serveMedia(req, res, TALL, 'video/webm');
       if (u.pathname === '/ref.png') { res.writeHead(200, { 'content-type': 'image/png' }); return res.end(PNG); }
       if (u.pathname === '/api/footage/status') {
         return json({ ok: true, doors: { atlascloud: true }, balances: { atlascloud: { configured: true } },
@@ -589,6 +595,65 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
   await page.evaluate(() => document.querySelector('#player .pstage').click());
   await page.waitForTimeout(150);
   ok('a tap on the backdrop closes the player', await page.$eval('#player', (el) => el.hidden));
+
+  // ── THE WAY OUT ON A PORTRAIT CLIP WITH PARTS (2026-09-11, Sophie: "all
+  // the stuff at the bottom in trim view, esp after a trim is added, makes
+  // it impossible to close the player") ──────────────────────────────────
+  // The ✕ used to be absolute in the top-left corner, and on a 3:4 clip the
+  // stage fills to the top and the VIDEO paints over it — a presence check
+  // on `.pclose` passed the whole time. Every assertion here is a
+  // MEASUREMENT at the app's own 390x700: the ✕ asked with elementFromPoint,
+  // the video's rect proved to start UNDER it, and the tap really closing.
+  {
+    jobs.push({
+      id: 'tall1', prompt: 'the ER, close', model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud',
+      seconds: 4, resolution: '480p', ratio: '3:4', sound: true, status: 'done',
+      video: '/tall.webm', source: '/tall.webm', poster: '/ref.png', refs: [],
+      sentAt: '2026-09-10T09:00:00.000Z', cost: 4, estimate: 4, vote: '', hidden: false,
+      trims: [{ key: 'k0-1', start: 0, end: 1, seconds: 1, status: 'ready', url: '/tall.webm', error: '' },
+        { key: 'k1-2', start: 1, end: 2, seconds: 1, status: 'ready', url: '/tall.webm', error: '' }],
+    });
+    await page.setViewportSize({ width: 390, height: 700 });
+    await page.reload();
+    await page.waitForSelector('#job-tall1');
+    await page.click('#job-tall1 .thumb');
+    await page.waitForFunction(() => !document.getElementById('player').hidden && !document.getElementById('trimbar').hidden);
+    await page.waitForFunction(() => { const v = document.querySelector('#player video'); return v && v.videoWidth > 0; });
+    await page.waitForTimeout(400);
+    const out = await page.evaluate(() => {
+      const c = document.querySelector('#player .pclose'); const q = c.getBoundingClientRect();
+      const hit = document.elementFromPoint(q.x + q.width / 2, q.y + q.height / 2);
+      const v = document.querySelector('#player video').getBoundingClientRect();
+      const t = document.getElementById('trimbar').getBoundingClientRect();
+      return { reach: !!(hit && hit.closest('.pclose')), x: Math.round(q.x), y: Math.round(q.y), w: Math.round(q.width), h: Math.round(q.height),
+        videoTop: Math.round(v.y), closeBottom: Math.round(q.bottom), videoBottom: Math.round(v.bottom), trimTop: Math.round(t.y),
+        parts: document.querySelectorAll('.trimbar .tpart').length };
+    });
+    ok('the ✕ takes its own tap on a portrait clip with parts listed (' + JSON.stringify(out) + ')', out.reach);
+    ok('the picture starts UNDER the ✕ row, never over it', out.videoTop >= out.closeBottom);
+    ok('and still ends above the trim bar (the stage yields, the row does not)', out.videoBottom <= out.trimTop && out.h === 34);
+    ok('both parts are on the bar — this is the screen she could not leave', out.parts === 2);
+    // a REAL tap at the ✕'s own centre — playwright's element click refuses a
+    // covered target with a timeout, which is a crash rather than a finding
+    await page.mouse.click(out.x + out.w / 2, out.y + out.h / 2);
+    await page.waitForTimeout(150);
+    ok('tapping the ✕ closes the player', await page.$eval('#player', (el) => el.hidden));
+    ok('and unlocks the page', (await page.evaluate(() => document.body.style.overflow)) === '');
+    // the row's dead space is backdrop too (leave by the app's chevron first if
+    // the ✕ failed, so a pre-fix page reports the finding rather than crashing)
+    await page.evaluate(() => window.__navBack());
+    await page.click('#job-tall1 .thumb');
+    await page.waitForFunction(() => !document.getElementById('player').hidden);
+    await page.waitForTimeout(300);
+    await page.evaluate(() => { const t = document.querySelector('#player .ptop'); if (t) t.click(); });
+    await page.waitForTimeout(150);
+    ok('a tap on the row beside the ✕ closes it too', await page.$eval('#player', (el) => el.hidden));
+    jobs.pop();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
+    await page.waitForSelector('#job-clip1');
+    await page.waitForTimeout(300);
+  }
 
   // ── AND THE WALL SAYS SO TOO (2026-09-10, Sophie: "can you put a little
   // icon on clips that have been trimmed even in the tile view?") ────────

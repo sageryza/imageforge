@@ -1378,7 +1378,20 @@ async function pillSweep(pg, where) {
   await page.click('#player', { position: { x: 6, y: 500 } });
   await page.waitForFunction(() => document.getElementById('player').hidden);
   ok('a tap on the backdrop still closes it', true);
-  ok('and the close button closes it', inPlayer.close);
+  // the ✕ is TAPPED, never merely found — a presence check passed for a day
+  // while the video painted over it on every portrait clip (2026-09-11)
+  await page.click('#job-old1 .thumb');
+  await page.waitForFunction(() => !document.getElementById('player').hidden);
+  await page.waitForTimeout(300);
+  const reach = await page.evaluate(() => {
+    const c = document.querySelector('#player .pclose'); const q = c.getBoundingClientRect();
+    const hit = document.elementFromPoint(q.x + q.width / 2, q.y + q.height / 2);
+    return { ok: !!(hit && hit.closest('.pclose')), x: q.x + q.width / 2, y: q.y + q.height / 2 };
+  });
+  ok('the close button is reachable', inPlayer.close && reach.ok);
+  await page.mouse.click(reach.x, reach.y);
+  await page.waitForTimeout(200);
+  ok('and the close button closes it', await page.$eval('#player', (e) => e.hidden));
 
   // ── A BATCH OF CARDS PAINTS THE WALL ONCE ───────────────────────────────
   // `loadJobs` hands every clip to jobCard in turn and the wall's signature
