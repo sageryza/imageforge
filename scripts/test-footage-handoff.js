@@ -142,7 +142,7 @@ const readState = () => ({
     if (h !== null) await page.evaluate(arm(h));
     await page.goto(base + '/footage');
     await page.waitForFunction(() => document.querySelectorAll('#ratio option').length > 0);
-    await page.waitForFunction(() => /¢$/.test(document.getElementById('cost').textContent));
+    await page.waitForFunction(() => /¢/.test(document.getElementById('cost').textContent));
     await page.waitForTimeout(500);
     return { ctx, page };
   }
@@ -184,7 +184,7 @@ const readState = () => ({
   const two = await scene('storage', null);
   const belt = await two.ctx.newPage();
   await belt.goto(base + '/belt');
-  await belt.evaluate(arm(handoff(port, { title: 'Scene 12b', model: '2.5', seconds: 99, res: '480p', ratio: '3:4' })));
+  await belt.evaluate(arm(handoff(port, { title: 'Scene 12b', model: '1.5', seconds: 99, res: '480p', ratio: '3:4' })));
   let landed = false;
   try {
     await two.page.waitForFunction(() => /the ward corridor/.test(document.getElementById('prompt').value), null, { timeout: 6000 });
@@ -195,9 +195,11 @@ const readState = () => ({
   ok('a hand-off written by another same-origin document lands with no reload', landed);
   if (s2) {
     ok('and it brings its refs — ' + s2.refs, s2.refs === 3);
-    // 2.5 is on the served table and NOT on this page's list, so it falls to
-    // the first row — a belt page can never send a dearer model by naming one
-    ok('a model the page does not offer falls to the first row (2.5 → Mini) — ' + s2.model, s2.model === 'mini');
+    // 1.5 Pro is on the served table and NOT on this page's list (it is on
+    // APIFRAME only), so it falls to the first row — a belt page can never
+    // send a model the page does not offer by naming one. 2.0 and 2.5 ARE on
+    // the list since 2026-09-11 and land as themselves.
+    ok('a model the page does not offer falls to the first row (1.5 Pro → Mini) — ' + s2.model, s2.model === 'mini');
     ok('and 99 seconds is CLAMPED to Mini\'s max, never sent as typed — ' + s2.secs, s2.secs === '15');
     ok('and its shape — ' + s2.ratio, s2.ratio === '3:4');
     ok('and the key is gone here too', s2.key === null);

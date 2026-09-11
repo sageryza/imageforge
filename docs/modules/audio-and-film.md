@@ -473,9 +473,10 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       1080p-SR · 1440p-SR`, seconds 4-15 (or -1), ratios the six plus
       `adaptive`, up to 9 images / 3 videos / 3 audios (audio needs a
       picture or video beside it — refused before sending).
-    **THE FOOTAGE PAGE'S ONLY DOOR, AND THE AUTO DEFAULT (2026-09-09,
-    Sophie, the same evening: "make atlas the default and only route through
-    footage").** It rode for an afternoon as its own model row ("2.0 Mini ·
+    **THE FOOTAGE PAGE'S ONLY DOOR AND THE AUTO DEFAULT FROM 2026-09-09 TO
+    2026-09-11 (Sophie, that evening: "make atlas the default and only route
+    through footage"; superseded by "choose cheapest" — see *THE CHEAPEST
+    DOOR* below, which keeps Mini and Fast here and moves 2.0 and 2.5 off).** It rode for an afternoon as its own model row ("2.0 Mini ·
     Atlas", her "did you add it to the footage tile?") beside the OpenRouter
     Mini; by the evening the two measurements above — a person video and a
     real photo both pass, a famous face is refused free — plus the real 80%
@@ -483,20 +484,53 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     carries an Atlas id (`atlas`) and Atlas's LIST rate per second
     (`atlasCents`: Mini 5.6¢ · Fast 9¢ · 2.0 11.2¢ · 2.5 16.7¢, off its own
     `GET /models` `price.origin`; 2.0 at 1080p is unpriced there and null);
-    the page pins `door:'atlascloud'` on every job, its model list is the
-    rows Atlas carries (1.5 Pro stays off), its "?" card names Atlas and
-    quotes NO balance (Atlas has none to read — the console is the only
+    the page pinned `door:'atlascloud'` on every job (it sends `auto` now),
+    its model list was the rows Atlas carries (1.5 Pro stays off), its "?"
+    card quotes NO balance (Atlas has none to read — the console is the only
     billing read), and its sale line reads `atlasPays` ("2.0 Mini is 80% off
     right now" while Atlas charges 20% of list). `doorFor`'s AUTO order is
     Atlas first with APIFRAME as the content-refusal fallback (a famous face
     — `startJob` re-sends there with a note saying so), OpenRouter for a
-    shape Atlas does not price, APIFRAME last; a PINNED Atlas door never
-    falls back, so the page's refusal is a measurement she reads, with its
-    own line ("a famous face in a reference; a chat can try this one through
-    APIFRAME"). **The price is EXACT on Atlas with no reference video** —
-    it bills per second, so the live rate × seconds is the bill — and
-    "about" with one (the one job measured ~19% more) or when the live read
-    failed and the list rate stands in. With no key set the page answers a
+    shape Atlas does not price, APIFRAME last; a PINNED door never falls
+    back, so a refusal on a door a chat named is a measurement it reads.
+    **NOTHING ON ATLAS IS `exact`** — it publishes no billing API, her
+    console is the only read, and no Atlas charge has ever been read against
+    an estimate (2026-09-10, her "add ~ to both").
+
+    **THE CHEAPEST DOOR (2026-09-11, Sophie, adding 2.0 and 2.5 to the page:
+    "are they cheapest through router, atlas or frame? choose cheapest").**
+    `doorFor`'s AUTO ranks every configured door by `priceOn` — the same
+    per-door price `estimate` answers with, split out so the two cannot call
+    each other forever — and sends to the cheapest. Measured live that day,
+    one 4s 480p 16:9 clip: Mini **4.4¢ Atlas** · 13.6¢ OpenRouter · 16¢
+    APIFRAME; Fast **10.8¢ Atlas** · 16.3¢ · 28¢; 2.0 **27.2¢ OpenRouter** ·
+    32¢ APIFRAME · 36¢ Atlas; 2.5 **41.6¢ OpenRouter** · 52¢ APIFRAME · 53.6¢
+    Atlas. The split is Atlas's own sale — 80% off Mini and 70% off Fast
+    against 20% off the two big rows — so nothing about the order is written
+    down: the shape, the resolution, the seconds and a reference video all
+    move it (2.5 WITH a video is the one row where Atlas beats APIFRAME, 53.6¢
+    against 60¢, because APIFRAME charges its own dearer video rate).
+    - **THE WALK ONLY EVER GETS LOOSER.** `DOOR_LOOSENESS` is the measured
+      order — OpenRouter refuses ANY person in a reference, Atlas only a
+      famous face, APIFRAME takes every reference this film has — and `chain`
+      is the remaining doors in price order with anything no looser than the
+      last one SKIPPED: it would refuse the same reference for free and leave
+      her with no clip. A content refusal is free and lands before anything
+      draws on every door, which is what makes trying the cheapest first cost
+      a round trip and never money. `startJob` walks the chain and the card
+      names which door refused, why, and where it went.
+    - **A FAILED ATLAS PRICE READ KEEPS THE LAST GOOD PRICES.** It used to
+      fall back to the table's LIST rate, which was only a high number on
+      screen while Atlas was the one door and is now a DOOR CHANGE — every
+      Mini job to OpenRouter at 3x the real price, silently, for the ten
+      minutes the cache holds.
+    - **`exact` NEEDS THE CANVAS MEASURED, not only the formula**
+      (`canvasMeasured`, Mini alone). The token count is w × h × frames, so an
+      OpenRouter price is only as pinned as the canvas — and the published
+      table has been wrong once already, which is how Mini's 2.5 canvases were
+      found. Fast, 2.0 and 2.5 answer "about" there until a charge is read.
+    - **THE LAST FRAME RIDES ON ATLAS ALONE**, so a 2.0 or 2.5 clip has none.
+      The page's "?" card says so. With no key set the page answers a
     plain error naming `ATLASCLOUD_API_KEY`. OpenRouter and APIFRAME stay
     built and a chat pins either by hand (`door:'openrouter'` /
     `'apiframe'`).
