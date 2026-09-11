@@ -11,6 +11,29 @@ const d = v.sentRecord({ jobId: 'j1', prompt: 'her words', model: 'seedance-2.5'
 ok('the literal prompt and the exact params ride the doc', d.prompt === 'her words' && d.params === params && d.model === 'seedance-2.5');
 ok('every reference is pulled out by kind', d.references.videos[0] === 'https://x/v.mp4' && d.references.images[0] === 'https://x/i.jpg' && d.references.audio.length === 0);
 ok('the tag is whitelisted', d.chat === 'c' && d.scene === 'b1' && d.title === 't' && !('ignored' in d));
+// THE TWO KEYFRAMES ARE ON FILE TOO (2026-09-11) — `start_image` / `end_image`
+// is the ONE vocabulary every door writes into `params`, whatever it calls
+// them on the wire (Atlas `image`/`last_image`, OpenRouter `frame_images`,
+// APIFRAME `start_image`/`end_image`), so the 1080p redo can re-send a
+// chained clip exactly as it was drawn. A clip with no keyframe files the
+// empty string, exactly as it always has.
+const kf = v.sentRecord({ jobId: 'j3', prompt: 'p', model: 'seedance-2.5',
+  params: { ...params, start_image: 'https://x/first.png', end_image: 'https://x/last.png' } });
+ok('a first and last frame ride the doc as startImage / endImage',
+  kf.references.startImage === 'https://x/first.png' && kf.references.endImage === 'https://x/last.png');
+ok('and the exact params keep them as they were sent',
+  kf.params.start_image === 'https://x/first.png' && kf.params.end_image === 'https://x/last.png');
+ok('a clip with no keyframe files empty strings, not undefined',
+  d.references.startImage === '' && d.references.endImage === '');
+// every door must put them in `params` under those names, or the log records
+// a clip whose first frame nothing can find
+for (const [name, file, re] of [
+  ['Atlas Cloud', 'atlascloud.js', /params\.start_image = kf\.first/],
+  ['OpenRouter', 'openrouter.js', /params\.start_image = url1/],
+  ['APIFRAME', 'apiframe.js', /params\.start_image = first/]]) {
+  ok(name + ' writes the first frame into params under the log\'s own name',
+    re.test(fs.readFileSync(__dirname + '/../' + file, 'utf8')));
+}
 ok('status opens as sent with a time', d.status === 'sent' && /^\d{4}-/.test(d.sentAt));
 ok('a running job patches nothing', v.finishPatch({ status: 'PROCESSING' }, null) === null);
 const f = v.finishPatch({ status: 'COMPLETED' }, 'https://storage/x.mp4');

@@ -265,6 +265,8 @@ const atlasRate = (id) => (ATLAS_LIST[id] || 0) * atlasPays / 100;
 const threads = {};      // clip url → the note thread the server holds
 const noteReads = [];    // which chat each /notes read asked for
 let refuse = false;      // the next POST comes back as a ByteDance content refusal
+let noApiframe = false;  // APIFRAME shut, so a keyframe+references job has NO door
+let uploads = 0;         // so two uploads are two references, not one deduped
 let slow = 0;            // ms the next POST is held, so the one-tap guard is measurable
 
 // EIGHT CLIPS, ALL 3:4 — eight divides by neither 3 nor 4 raggedly enough to
@@ -333,8 +335,18 @@ const server = http.createServer((req, res) => {
         return F.priceOn(F.modelOf(q.model), door, { res: q.res, ratio: q.ratio, seconds: Number(q.seconds), hasVideo: q.video === '1', discount });
       };
       if (q.door && q.door !== 'auto') return json({ ok: true, ...priceOn(q.door) });
-      const ranked = ['openrouter', 'atlascloud', 'apiframe'].map(priceOn)
-        .filter((x) => !x.error).sort((a, b) => a.cents - b.cents);
+      // THE SHAPE NARROWS THE DOORS, exactly as footage.js's `doorTakes`
+      // does: a keyframe WITH references rides APIFRAME alone, because
+      // Atlas's image-to-video has no reference lists and OpenRouter's own
+      // guide says frame_images beats input_references. The RULE is pinned
+      // against the real `doorTakes` in the pure block above and in
+      // test-video-keyframes.js; what this half measures is that the page
+      // sends the shape and prints the door it is given.
+      const kf = q.first === '1' || q.last === '1';
+      let open = ['openrouter', 'atlascloud', 'apiframe'];
+      if (kf && q.refs === '1') open = noApiframe ? [] : ['apiframe'];
+      if (!open.length) return json({ error: 'A first frame and references cannot ride one job' }, 400);
+      const ranked = open.map(priceOn).filter((x) => !x.error).sort((a, b) => a.cents - b.cents);
       return json({ ok: true, ...ranked[0] });
     }
     if (u.pathname === '/api/footage/jobs' && req.method === 'GET') return json({ ok: true, jobs });
@@ -371,7 +383,13 @@ const server = http.createServer((req, res) => {
     }
     if (u.pathname === '/api/drop/upload-file') {
       posted.push({ upload: Object.fromEntries(u.searchParams), ct: req.headers['content-type'], bytes: body.length });
-      return json({ ok: true, item: { id: 'd1', url: 'http://127.0.0.1:' + server.address().port + '/ref.png', posterUrl: null, media: 'image' } });
+      // THE DUMP ANSWERS A URL PER FILE, not one url forever — the page
+      // dedupes the strip by url, so a constant one made every upload after
+      // the first a no-op and the strip could never hold two pictures.
+      uploads += 1;
+      const nm = (Object.fromEntries(u.searchParams).filename || '') + uploads;
+      const isVid = /\.(mp4|mov|webm|m4v)$/i.test(nm);
+      return json({ ok: true, item: { id: 'd' + uploads, url: 'http://127.0.0.1:' + server.address().port + (isVid ? '/clip.mp4?f=' : '/ref.png?f=') + encodeURIComponent(nm), posterUrl: null, media: isVid ? 'video' : 'image' } });
     }
     res.writeHead(404); res.end('nope');
   });
@@ -938,7 +956,7 @@ async function pillSweep(pg, where) {
   ok('one tap on the star is one job, and a second tap while it is in flight is swallowed', sentAll.length === sentBefore + 1);
   const sent = sentAll[sentAll.length - 1];
   ok('GO POSTs the prompt, the reference with its kind, the model, the seconds, the size and the shape',
-    sent && sent.prompt === 'her mother is the woman in [Image1]' && sent.refs.length === 1 && sent.refs[0].kind === 'image' && /ref\.png$/.test(sent.refs[0].url)
+    sent && sent.prompt === 'her mother is the woman in [Image1]' && sent.refs.length === 1 && sent.refs[0].kind === 'image' && /ref\.png(\?|$)/.test(sent.refs[0].url)
     && sent.model === 'mini' && sent.seconds === 4 && sent.resolution === '480p' && sent.ratio === '9:16');
   ok('sound is always on and always sent, never left to the model\'s default', sent.sound === true);
   ok('the seed in the box is the seed the job is sent with', sent.seed === 4242);
@@ -1307,6 +1325,13 @@ async function pillSweep(pg, where) {
     // the tap: the PICTURE opens, in the one overlay, with no trim bar
     if (!tile) { report(); }
     await tile.click();
+    // the picture is DECODED before it is measured — `complete` is false for a
+    // frame or two after the src is set, and this assertion has flaked on the
+    // shape of the run rather than on anything about the page
+    await page.waitForFunction(() => {
+      const i = document.querySelector('#player .pstage img.pimg');
+      return i && i.complete && i.naturalWidth > 0;
+    }, null, { timeout: 5000 }).catch(() => {});
     ok('tapping it opens the picture over the page, page locked',
       !(await page.$eval('#player', (e) => e.hidden))
       && (await page.$$eval('#player .pstage img.pimg', (a) => a.length === 1 && a[0].complete && a[0].naturalWidth > 0))
@@ -1522,6 +1547,198 @@ async function pillSweep(pg, where) {
   await page.mouse.click(reach.x, reach.y);
   await page.waitForTimeout(200);
   ok('and the close button closes it', await page.$eval('#player', (e) => e.hidden));
+
+
+  // ── THE FIRST FRAME, ON THE PAGE (2026-09-11) ───────────────────────────
+  // The last frame of one clip pinned as the frame the next one starts on.
+  // In its OWN context, because the marks and the strip ride localStorage and
+  // every assertion above was written against a page with neither.
+  //
+  // Every check here is a MEASUREMENT or a reading of what the server really
+  // received: a flag that lights and never reaches the request, a slot line
+  // that renumbers on screen and not in her prompt, and a warning that renders
+  // below the fold all look identical in the source.
+  {
+    const ctxK = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+    const pk = await ctxK.newPage();
+    const kerr = [];
+    pk.on('pageerror', (e) => kerr.push(String(e)));
+    await pk.addInitScript(INSET(47), 47);
+    await pk.goto(`http://127.0.0.1:${port}/footage`);
+    await pk.waitForSelector('#job-old1');
+    await pk.waitForTimeout(400);
+    // A missing control must give a COUNT, not a crash — against the page
+    // before this pass there is no `#pfirst` at all and every step after the
+    // first would throw or time out.
+    try {
+
+    // THE LAST-FRAME TILE IS THE DOOR — no save-and-re-attach
+    await pk.click('#job-old1 .lfopen');
+    await pk.waitForFunction(() => !document.getElementById('player').hidden);
+    await pk.waitForTimeout(250);
+    const doors = await pk.evaluate(() => {
+      const hit = (q) => { const e = document.querySelector(q);
+        if (!e) return { shown: false, reach: false, right: 0 };
+        const r = e.getBoundingClientRect();
+        const h = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+        return { shown: !!(r.width && r.height), reach: !!(h && h.closest(q)), right: Math.round(r.right) }; };
+      return { first: hit('#pfirst'), ref: hit('#pref'), save: hit('.psave'), w: innerWidth };
+    });
+    ok('the frame opens big with BOTH doors onto the next clip, beside save ' + JSON.stringify(doors),
+      doors.first.shown && doors.first.reach && doors.ref.shown && doors.ref.reach && doors.save.shown && doors.save.reach);
+    ok('and the three of them fit the row at 390pt', doors.save.right <= doors.w);
+    await pk.click('#pfirst');
+    await pk.waitForFunction(() => document.getElementById('player').hidden);
+    await pk.waitForTimeout(250);
+    const landed = await pk.evaluate(() => ({
+      n: document.querySelectorAll('#refs .ref').length,
+      lit: document.querySelectorAll('#refs .kf.on').length,
+      label: (document.querySelector('#refs .slot') || {}).textContent,
+      isSpan: (document.querySelector('#refs .slot') || {}).tagName,
+      open: (() => { const r = document.getElementById('refs').getBoundingClientRect(); return !!(r.width && r.height); })(),
+    }));
+    ok('tapping "first frame" attaches it and marks it, with the references fold open ' + JSON.stringify(landed),
+      landed.n === 1 && landed.lit === 1 && landed.label === 'first frame' && landed.open);
+    ok('a marked picture wears the WORD in place of its slot, and the slot is no longer a button to tap in',
+      landed.isSpan === 'SPAN');
+    // BOTH OF THESE WERE FOUND BY PHOTOGRAPHING THE PAGE, and neither is
+    // visible to any markup assertion: a <span> inherits neither the button
+    // rule's serif nor a button's centred text, so the marked cell's label
+    // sat left-aligned in the SANS beside its neighbours' centred serif.
+    const look = await pk.evaluate(() => {
+      const s = getComputedStyle(document.querySelector('#refs .kfslot'));
+      const b = getComputedStyle(document.querySelector('#refs button.slot') || document.querySelector('#refs .kfslot'));
+      const e = document.querySelector('#refs .kfslot');
+      return { fam: s.fontFamily, bfam: b.fontFamily, align: s.textAlign, over: e.scrollWidth > e.clientWidth };
+    });
+    ok('the marked label reads as the slot line it replaces — same family, centred, not overflowing ' + JSON.stringify(look),
+      look.align === 'center' && look.fam === look.bfam && !look.over);
+
+    // THE SHAPE REACHES THE SERVER — the price and the door she reads have to
+    // be the ones this tap will really get
+    await pk.waitForFunction(() => /¢/.test(document.getElementById('cost').textContent));
+    const q1 = estQ[estQ.length - 1];
+    ok('the estimate is asked with first=1 and NO refs — a keyframe is not a reference ' + JSON.stringify(q1),
+      q1 && q1.first === '1' && q1.refs === undefined);
+    ok('with the keyframe alone there is nothing to warn about — every door takes it',
+      await pk.$eval('#kfnote', (e) => e.hidden));
+
+    // A PICTURE BESIDE IT: the doors disagree, so she is told BEFORE she taps
+    await pk.setInputFiles('#file', { name: 'wall.png', mimeType: 'image/png', buffer: PNG });
+    await pk.waitForFunction(() => document.querySelectorAll('#refs .ref').length === 2);
+    await pk.waitForFunction(() => !document.getElementById('kfnote').hidden);
+    const note = await pk.evaluate(() => {
+      const e = document.getElementById('kfnote'); const r = e.getBoundingClientRect();
+      return { text: e.textContent, bad: e.classList.contains('bad'), onScreen: r.top >= 0 && r.top < innerHeight && r.height > 0,
+        door: document.getElementById('cost').dataset.door,
+        cost: document.getElementById('cost').textContent };
+    });
+    ok('a first frame beside a reference says so plainly, on screen, before the tap: ' + note.text,
+      /APIFRAME only/.test(note.text) && note.onScreen && !note.bad);
+    ok('and the price line names the door that tap will really go to: ' + note.cost, note.door === 'apiframe');
+    // THE ✕ AND THE NEXT CELL'S FLAG EACH HANG 6px OFF THEIR CORNER, so at
+    // the old 8px gap they overlapped by 4px and the flag painted over the ✕
+    // beside it — asked with elementFromPoint, the only honest question.
+    const corners = await pk.evaluate(() => {
+      const cells = [...document.querySelectorAll('#refs .ref')];
+      const at = (e) => { const r = e.getBoundingClientRect();
+        const h = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+        return !!(h && (h === e || h.closest('.x') === e || h.closest('.kf') === e)); };
+      return { x0: at(cells[0].querySelector('.x')), kf1: at(cells[1].querySelector('.kf')),
+        rows: new Set(cells.map((c) => Math.round(c.getBoundingClientRect().top))).size };
+    });
+    ok('the ✕ and the next cell\'s flag each take their own tap, and two cells still share a row ' + JSON.stringify(corners),
+      corners.x0 && corners.kf1 && corners.rows === 1);
+    const slots2 = await pk.$$eval('#refs .slot', (ns) => ns.map((n) => n.textContent));
+    ok('the picture beside it is [Image1] — the keyframe took no slot: ' + JSON.stringify(slots2),
+      slots2.filter((s) => /Image/.test(s)).join(',') === '[Image1]');
+
+    // HER PROMPT IS RENUMBERED, NOT REWRITTEN — three pictures, mark the
+    // middle one, and read the box. This is the ✕'s own rule from the other
+    // end and it is the half that is invisible from any markup assertion.
+    await pk.setInputFiles('#file', { name: 'chair.png', mimeType: 'image/png', buffer: PNG });
+    await pk.waitForFunction(() => document.querySelectorAll('#refs .ref').length === 3);
+    // take the frame's own mark off so all three are ordinary references
+    await pk.evaluate(() => document.querySelector('#refs .kf.on').click());
+    await pk.evaluate(() => document.querySelector('#refs .kf.on').click());
+    await pk.waitForFunction(() => document.querySelectorAll('#refs .kf.on').length === 0);
+    await pk.fill('#prompt', 'a in [Image1], b in [Image2], c in [Image3]');
+    await pk.evaluate(() => document.querySelectorAll('#refs .kf')[1].click());
+    await pk.waitForTimeout(200);
+    const renum = await pk.evaluate(() => ({
+      prompt: document.getElementById('prompt').value,
+      labels: [...document.querySelectorAll('#refs .slot')].map((n) => n.textContent),
+    }));
+    ok('marking the middle picture takes its name out of the box and renumbers the rest: ' + renum.prompt,
+      renum.prompt === 'a in [Image1], b in, c in [Image2]');
+    ok('and the strip says the same thing: ' + JSON.stringify(renum.labels),
+      renum.labels.join(',') === '[Image1],first frame,[Image2]');
+    // …and unmarking gives the name back and puts the numbering up again
+    await pk.evaluate(() => document.querySelector('#refs .kf.on').click());
+    await pk.evaluate(() => document.querySelector('#refs .kf.on').click());
+    await pk.waitForFunction(() => document.querySelectorAll('#refs .kf.on').length === 0);
+    const back = await pk.$eval('#prompt', (e) => e.value);
+    ok('unmarking it renumbers the rest back up: ' + back, back === 'a in [Image1], b in, c in [Image3]');
+    // the cycle's middle stop
+    await pk.evaluate(() => document.querySelectorAll('#refs .kf')[1].click());
+    await pk.evaluate(() => document.querySelectorAll('#refs .kf')[1].click());
+    await pk.waitForTimeout(150);
+    ok('a second press is LAST frame, a third is neither — the mark cycles',
+      (await pk.$eval('#refs .slot + .slot, #refs .kfslot', (e) => e.textContent)) === 'last frame');
+
+    // WITH NO DOOR OPEN FOR THAT SHAPE SHE IS TOLD WHAT TO CHANGE
+    noApiframe = true;
+    await pk.evaluate(() => { document.getElementById('ratio').dispatchEvent(new Event('change')); });
+    await pk.waitForFunction(() => document.getElementById('kfnote').classList.contains('bad'));
+    const badNote = await pk.$eval('#kfnote', (e) => e.textContent);
+    ok('with no door open for that shape the line says what to take off: ' + badNote,
+      /take the references off, or take the frame off/i.test(badNote));
+    noApiframe = false;
+
+    // WHAT REALLY LEAVES THE PHONE
+    // it is sitting on LAST; the cycle is none → first → last → none, so two
+    // presses bring it back round to FIRST
+    await pk.evaluate(() => document.querySelectorAll('#refs .kf')[1].click());
+    await pk.waitForTimeout(120);
+    await pk.evaluate(() => document.querySelectorAll('#refs .kf')[1].click());
+    await pk.waitForFunction(() => document.querySelectorAll('#refs .kfslot').length === 1
+      && document.querySelector('#refs .kfslot').textContent === 'first frame');
+    await pk.fill('#prompt', 'she walks out of the office');
+    const wasSent = posted.filter((p) => p.prompt).length;
+    await pk.click('#go');
+    await pk.waitForFunction((n) => true, wasSent);
+    await pk.waitForTimeout(400);
+    const k = posted.filter((p) => p.prompt).pop();
+    ok('GO carries firstFrameUrl, and the marked picture is still in refs with its role for the log',
+      k && typeof k.firstFrameUrl === 'string' && /ref\.png/.test(k.firstFrameUrl) && k.refs.length === 3);
+    ok('and no lastFrameUrl when she marked no last frame', k && k.lastFrameUrl === undefined);
+    // the optimistic card says which end it is rather than a blank label
+    const cardLab = await pk.evaluate(() => {
+      const c = document.querySelector('#feed .job .usedrefs');
+      return c ? c.textContent : '';
+    });
+    ok('the new card labels the keyframe by name, never with an empty slot: ' + cardLab, /first frame/.test(cardLab));
+
+    // A KEYFRAME SURVIVES A RELOAD — the draft carries it, or a reload would
+    // send it as an ordinary reference with nothing on screen saying so
+    await pk.reload();
+    await pk.waitForFunction(() => document.querySelectorAll('#refs .ref').length === 3);
+    await pk.waitForTimeout(250);
+    ok('the mark rides the draft across a reload',
+      (await pk.$$eval('#refs .kf.on', (n) => n.length)) === 1);
+
+    // …and a card with no keyframe CLEARS the marks, the only-what-the-record-
+    // knows rule the seed and the photo reference already follow
+    await pk.click('#job-f0 .copy');
+    await pk.waitForTimeout(300);
+    ok('putting back a clip that had no keyframe clears the marks',
+      (await pk.$$eval('#refs .kf.on', (n) => n.length)) === 0);
+
+    ok('no page errors in the keyframe pass — ' + kerr.join(' | '), kerr.length === 0);
+    } catch (e) { ok('the keyframe pass ran to the end — ' + String(e).slice(0, 120), false); }
+    await pk.close();
+    await ctxK.close();
+  }
 
   // ── A BATCH OF CARDS PAINTS THE WALL ONCE ───────────────────────────────
   // `loadJobs` hands every clip to jobCard in turn and the wall's signature

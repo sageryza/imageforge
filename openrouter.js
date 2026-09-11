@@ -107,17 +107,31 @@ function buildRequest(b) {
   b = b || {};
   const prompt = String(b.prompt == null ? '' : b.prompt);
   if (!prompt.trim()) return { error: 'prompt is required' };
-  // No start/end frame here (`imageUrl` / `endImageUrl` are ignored): the
-  // keyframe door is APIFRAME's. A reference VIDEO rides as `video_url` and
-  // ByteDance decides: a person-free clip passes (measured 2026-09-08, the
-  // socks B-roll, 6.5¢), a clip with a person is refused for free before
-  // anything draws — that refusal comes back as { refusal:'content' } and
-  // names APIFRAME, the door that accepts it.
+  // THE KEYFRAMES RIDE `frame_images` SINCE 2026-09-11 (read off OpenRouter's
+  // own video-generation guide). Each entry is an `input_references` entry
+  // plus a `frame_type`: `{ type:'image_url', image_url:{url},
+  // frame_type:'first_frame'|'last_frame' }`. The guide is explicit that "if
+  // both fields are provided, `frame_images` takes precedence and the request
+  // is treated as image-to-video" — i.e. `input_references` is DROPPED, with
+  // nothing in the answer saying so. That silent drop is the one thing this
+  // route must never do, so the two together are refused below.
+  // A reference VIDEO rides as `video_url` and ByteDance decides: a
+  // person-free clip passes (measured 2026-09-08, the socks B-roll, 6.5¢), a
+  // clip with a person is refused for free before anything draws — that
+  // refusal comes back as { refusal:'content' } and names APIFRAME, the door
+  // that accepts it.
   const model = modelIdOf(b.model);
   if (!model) return { error: `unknown model "${b.model}" — one of ${MODELS.join(', ')}` };
   const imgs = (Array.isArray(b.referenceImageUrls) ? b.referenceImageUrls : []).map(String).filter(Boolean);
   const vids = (Array.isArray(b.referenceVideoUrls) ? b.referenceVideoUrls : []).map(String).filter(Boolean);
   const auds = (Array.isArray(b.referenceAudioUrls) ? b.referenceAudioUrls : []).map(String).filter(Boolean);
+  const url1 = b.firstFrameUrl == null || b.firstFrameUrl === '' ? '' : String(b.firstFrameUrl);
+  const url2 = b.lastFrameUrl == null || b.lastFrameUrl === '' ? '' : String(b.lastFrameUrl);
+  if (url1 && !/^https?:\/\//.test(url1)) return { error: 'firstFrameUrl must be a public https url' };
+  if (url2 && !/^https?:\/\//.test(url2)) return { error: 'lastFrameUrl must be a public https url' };
+  if ((url1 || url2) && (imgs.length || vids.length || auds.length)) {
+    return { error: 'OpenRouter takes a first frame OR references, never both on one job — it would drop the references silently. Take them off, or send it through APIFRAME, which wires a first frame beside them' };
+  }
   const params = { resolution: String(b.resolution || '480p') };
   if (b.duration != null) params.duration = Number(b.duration);
   if (b.aspectRatio) params.aspect_ratio = String(b.aspectRatio);
@@ -131,6 +145,12 @@ function buildRequest(b) {
   if (imgs.length) params.reference_image_urls = imgs;
   if (vids.length) params.reference_video_urls = vids;
   if (auds.length) params.reference_audio_urls = auds;
+  // ONE LOG VOCABULARY — `start_image` / `end_image` are APIFRAME's names for
+  // the two keyframes and `video-log.js` reads exactly those off `params`, so
+  // a frame sent through this door is on the 1080p-redo reading list under
+  // the same name it has on every other door.
+  if (url1) params.start_image = url1;
+  if (url2) params.end_image = url2;
   const body = { model, prompt, resolution: params.resolution, generate_audio: params.generate_audio };
   if (params.duration != null) body.duration = params.duration;
   if (params.aspect_ratio) body.aspect_ratio = params.aspect_ratio;
@@ -141,6 +161,13 @@ function buildRequest(b) {
     ...auds.map((url) => ({ type: 'audio_url', audio_url: { url } })),
   ];
   if (refs.length) body.input_references = refs;
+  // The entry shape is `input_references`'s plus `frame_type` — the guide's
+  // own example, verbatim. FIRST then LAST, the order they read in.
+  const frames = [
+    ...(url1 ? [{ type: 'image_url', image_url: { url: url1 }, frame_type: 'first_frame' }] : []),
+    ...(url2 ? [{ type: 'image_url', image_url: { url: url2 }, frame_type: 'last_frame' }] : []),
+  ];
+  if (frames.length) body.frame_images = frames;
   return { body, params, model };
 }
 

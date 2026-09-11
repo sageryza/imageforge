@@ -122,8 +122,17 @@ async function seedanceVideo(prompt, opts = {}) {
   if (opts.duration != null) params.duration = Number(opts.duration);
   if (opts.generateAudio != null) params.generate_audio = Boolean(opts.generateAudio);
   if (opts.aspectRatio) params.aspect_ratio = String(opts.aspectRatio);
-  if (opts.imageUrl) params.start_image = opts.imageUrl;
-  if (opts.endImageUrl) params.end_image = opts.endImageUrl;
+  // THE TWO KEYFRAMES. `imageUrl` / `endImageUrl` are this route's own names
+  // and are unchanged; `firstFrameUrl` / `lastFrameUrl` are the SHARED names
+  // every door reads since 2026-09-11, so one body reaches all three doors
+  // and the footage page has one field to send. APIFRAME is the only door
+  // that takes a keyframe BESIDE the reference lists — whether ByteDance
+  // honours both together is UNMEASURED, and nothing here changed about how
+  // it is sent.
+  const first = opts.firstFrameUrl || opts.imageUrl;
+  const last = opts.lastFrameUrl || opts.endImageUrl;
+  if (first) params.start_image = first;
+  if (last) params.end_image = last;
   // The Seedance 2.x family (2-mini, 2, 2-fast, 2.5) also takes REFERENCE
   // LISTS — the catalogue's `reference_image_urls` (up to 9; 30 on 2.5),
   // `reference_video_urls` and `reference_audio_urls` (3; 10 on 2.5) — which

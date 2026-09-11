@@ -116,6 +116,8 @@ const readState = () => ({
   secs: document.getElementById('secs').value,
   res: document.getElementById('res').value,
   ratio: (document.getElementById('ratio') || {}).value || '',
+  marks: [...document.querySelectorAll('#refs .kf.on')].length,
+  kfslot: [...document.querySelectorAll('#refs .kfslot')].map((n) => n.textContent),
   key: localStorage.getItem('footage_handoff'),
   draft: localStorage.getItem('footage_draft'),
   toast: (document.getElementById('toast').classList.contains('show') ? document.getElementById('toast').textContent : ''),
@@ -241,6 +243,28 @@ const readState = () => ({
   ok('coming back to the page picks up a hand-off written while she was away — ' + JSON.stringify(s6.prompt.slice(0, 20)), back);
   ok('and spends the key', s6.key === null);
   await six.ctx.close();
+
+  // ── 6. THE KEYFRAMES A BELT SCENE MAY NAME (2026-09-11) ──────────────────
+  // `firstFrame` / `lastFrame` are urls that must ALSO be in the refs it hands
+  // over — a belt page cannot mark a picture that is nowhere on screen, which
+  // is the hidden-ingredient failure the price line exists to prevent.
+  const seven = await scene('keyframe', handoff(port, { title: 'Scene 41',
+    firstFrame: 'http://127.0.0.1:' + port + '/ref.png' }));
+  const s7 = await seven.page.evaluate(readState);
+  ok('a belt scene can name the frame the clip starts on — ' + JSON.stringify(s7.kfslot),
+    s7.marks === 1 && s7.kfslot.join(',') === 'first frame');
+  ok('and the pictures beside it renumber as if it were not there — ' + JSON.stringify(s7.slots),
+    s7.slots.filter((x) => /Image/.test(x)).join(',') === '[Image1]');
+  ok('the draft carries the mark, so a reload does not send it as an ordinary reference',
+    /"first"\s*:/.test(s7.draft || ''));
+  await seven.ctx.close();
+
+  const eight = await scene('keyframe-stray', handoff(port, { title: 'Scene 42',
+    firstFrame: 'http://127.0.0.1:' + port + '/nowhere.png' }));
+  const s8 = await eight.page.evaluate(readState);
+  ok('a keyframe url that is not among the references it handed over is IGNORED, never attached invisibly',
+    s8.marks === 0 && s8.refs === 3);
+  await eight.ctx.close();
 
   ok('no page errors anywhere — ' + JSON.stringify(errors), errors.length === 0);
   ok('nothing was ever sent', posted.length === 0);
