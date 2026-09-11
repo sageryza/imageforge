@@ -8519,7 +8519,31 @@ before working on that module. Nothing was deleted — the moved text is verbati
   lists them. **MOVING A CLIP IS THE DROP-DOWN ON ITS CARD** (her "add the
   move project UI"): the same films, "No project" first, the clip's own lit;
   a change POSTs `/jobs/:id/project`, the toast says where it went, and
-  inside a project view the card leaves. A wrong guess above is one tap. Not built yet, deliberately: the evidence
+  inside a project view the card leaves. A wrong guess above is one tap.
+  **AND A PROJECT HAS SUB-FOLDERS SINCE THE SAME NIGHT (Sophie: "can we do
+  sub folders ex the witch commercials" · "make the drop down a folder icon
+  · the name of the current folder replaces footage in the header").** One
+  more field on the clip, `folder`, the same slug shape, meaningful only
+  beside a `project`. **The folders a project has are DERIVED, never
+  stored** — `foldersOf` in footage.js answers `folders: {project: [...]}`
+  on every `/jobs` read off the whole log — so a folder is exactly the clips
+  filed in it, an emptied one stops being offered, and there is no second
+  vocabulary to keep in step with the cast shelf. **The picker is ONE
+  `<select>` drawn as a Lucide `folder` icon** (34px rounded square, its own
+  text transparent, lit in ink while a project is picked — a narrowed feed
+  is never silent), its rows every project with its folders indented under
+  it (`project/folder` values), "New project…" always and "New folder…"
+  inside a project; **the header says where she is** — Footage · The ward ·
+  The ward › commercials. Every card's move drop-down is the same list, so
+  one control moves a clip anywhere; **a move to another project drops the
+  folder** (it belonged to the project the clip left), and a folder named on
+  a card joins the picker at once. The feed asks `?project=&folder=`,
+  remembered as `footage_folder` beside the project; a belt hand-off may
+  carry `folder`. The three doors and `video-log.js` file it on the log tag;
+  `footage-project-backfill.js --map` takes `project/folder` values — the 25
+  witch commercial clips (every prompt opening "a commercial for", the
+  voiceover ads, the pill commercial) are in `secretly-a-witch/commercials`.
+  Not built yet, deliberately: the evidence
   rules (a job's references on one film's shelf, chaining off another job's
   output) — they PROPOSE a project and belong to step 5 of
   `docs/footage-projects-plan.md`. Tests: the project section of `node

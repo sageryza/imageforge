@@ -13,7 +13,11 @@ was redone the same evening by reading every prompt on the log (369 clips,
 nine projects; the counts are in CLAUDE.md's Footage note). Also shipped that
 evening, both on her word: **the move drop-down on every card** (step 6) and
 **every chat's clips in the feed** (case 9 below is superseded — "if so,
-good"). Still open: the evidence rules (step 5 / the "?" chip). One change
+good"). **Later the same night: sub-folders** ("can we do sub folders ex the
+witch commercials") — a `folder` field inside a project, derived rather than
+stored, one picker drawn as a folder icon with the header carrying the name,
+the card's drop-down moving a clip anywhere; full note in CLAUDE.md's Footage
+section. Still open: the evidence rules (step 5 / the "?" chip). One change
 from the plan: the picker sits on the **Buttons** fold row, not the controls
 row — measured, the controls row cannot hold it at 390pt without a third
 line.
