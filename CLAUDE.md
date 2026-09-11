@@ -7804,6 +7804,21 @@ before working on that module. Nothing was deleted — the moved text is verbati
   times to end with N cells (measured on a first load of 40 clips: 39 wipes,
   820 cells created for the 40 that stayed). Only a BATCH is deferred — a
   vote, a new job and a view switch still paint on the spot.
+  **AND THE FEED PAGES BACK PAST TODAY (2026-09-11, Sophie: "I can't go back
+  farther than today in footage").** The read was the newest 40 clips and
+  nothing else — at ~70 Mini clips a day that IS today, so everything before
+  it sat on the log with no door (the Assets tab's hard-truncate lesson,
+  arriving at the page she draws in most). An underlined **… older** under
+  both views asks `GET /jobs?before=<sentAt>` for the page under the OLDEST
+  clip on screen; the route answers `more` beside the jobs (`pageJobs`,
+  pure). Two things not to undo: the cursor is a **sentAt, never a count** (a
+  clip landing while she reads would shift a count and repeat a page), and
+  **the newest-page poll's `more` is ignored once she has walked past it** —
+  that read runs every few seconds and always says "there is a page under the
+  first 40", which says nothing about the pages she already holds; it only
+  ever ADDS to `jobsById`, so a page she walked back to stays put. Pinned by
+  the walk block of `node scripts/test-footage.js` (the cursor read off what
+  the stub really received, the order off the DOM).
   **THE PRICE IS EXACT, AND THE 60% SALE IS OPENROUTER'S TO PASS ON
   (2026-09-09 — measured off 113 completed OpenRouter jobs' own `usage.cost`,
   44 APIFRAME jobs' `creditCost`, and ffprobe on the output clips).** Four
