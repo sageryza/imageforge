@@ -284,6 +284,11 @@ const DRIVE = `<script>
       tap(a, '.bot');
       ok(ids()[ids().length - 1] === a, 'the other sends it to the bottom', '');
       var box = unitOf(a).querySelector('.no');
+      // two digits must FIT the box — tool.css's input padding once left 8px
+      // for them and every number past 9 read as "1" (2026-09-06)
+      box.value = '12';
+      ok(box.scrollWidth <= box.clientWidth, 'a two-digit number fits its box',
+         box.scrollWidth + ' > ' + box.clientWidth);
       box.value = '3'; box.dispatchEvent(new FocusEvent('blur'));
       ok(ids()[2] === a, 'typing 3 lands it on 3', ids().slice(0, 5).join(' / '));
 
@@ -364,6 +369,44 @@ const DRIVE = `<script>
              'and loses the sticky border band', '');
           document.body.classList.remove('embed');
 
+          // SELECT — pick several, delete them together (2026-09-06)
+          var selC = count();
+          var selbar = document.getElementById('selbar');
+          ok(selbar.hidden, 'the mode bar is hidden until she taps Select', '');
+          document.getElementById('select').click();
+          ok(!selbar.hidden && document.body.classList.contains('selmode'), 'Select opens the mode bar', '');
+          ok(getComputedStyle(card(a).querySelector('.pencil')).display === 'none',
+             'the pencil hides while she is picking', '');
+          ok(Object.keys(localStorage).length === 0, 'the mode lives in memory, never localStorage', '');
+          var host = unitOf(mid);
+          ok(!host.classList.contains('open'), 'the folded unit starts shut', '');
+          card(mid).click();
+          ok(card(mid).classList.contains('picked') && !host.classList.contains('open'),
+             'a tap on a folded middle PICKS it rather than unfolding', '');
+          card(fid).click();
+          ok(card(fid).classList.contains('picked'), 'a tap on a card picks it', '');
+          ok(document.getElementById('selcount').textContent === '2 picked', 'the bar counts them',
+             document.getElementById('selcount').textContent);
+          card(fid).click();
+          ok(!card(fid).classList.contains('picked'), 'a second tap unpicks it', '');
+          card(fid).click();
+          var del = document.getElementById('sel-del');
+          del.click();
+          ok(count() === selC && del.classList.contains('armed') && /2/.test(del.textContent),
+             'the first Delete tap only ARMS it and says how many', del.textContent + ' / ' + count());
+          del.click();
+          ok(count() === selC - 2, 'the second tap deletes both', count() + ' vs ' + selC);
+          ok(!card(mid) && !card(fid), 'the picked cards are gone from the page', '');
+          ok(document.body.classList.contains('selmode'), 'she is still picking afterwards', '');
+          document.getElementById('sel-all').click();
+          ok(document.querySelectorAll('#tl .mcard.picked').length === count(), 'All picks every card', '');
+          document.getElementById('sel-all').click();
+          ok(document.querySelectorAll('#tl .mcard.picked').length === 0, 'None clears them', '');
+          document.getElementById('sel-done').click();
+          ok(selbar.hidden && !document.body.classList.contains('selmode')
+             && getComputedStyle(card(a).querySelector('.pencil')).display !== 'none',
+             'Done leaves the mode and the pencils come back', '');
+
           setTimeout(function () {
             var last = PUTS[PUTS.length - 1];
             ok(!!last && Array.isArray(last.units), 'it saves the arrangement to the server', '');
@@ -371,6 +414,11 @@ const DRIVE = `<script>
                'and the words with it', last && Object.keys(last.moments || {}).length);
             ok(!!last && last.units.every(function (u) { return u.length; }),
                'no empty unit is ever sent', '');
+            var flat = last ? [].concat.apply([], last.units) : [];
+            ok(!!last && flat.indexOf(mid) < 0 && flat.indexOf(fid) < 0,
+               'the PUT no longer carries the deleted cards in its units', '');
+            ok(!!last && !!last.moments[mid] && !!last.moments[fid],
+               'but their words are still in moments — the undo', '');
             realFetch('/result?r=' + encodeURIComponent(L.join(' | ')));
           }, 900);
         }, 260);
