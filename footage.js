@@ -286,14 +286,24 @@ function resFactor(m, res, ratio) {
 // HOW LOOSE EACH DOOR'S CONTENT FILTER IS, measured (see the ward-film notes
 // in CLAUDE.md): OpenRouter forwards to ByteDance directly and refuses ANY
 // person in a reference; Atlas takes a person and a real untouched photo and
-// refuses only a FAMOUS face; APIFRAME takes every reference the film has.
-// This is the ONE thing the price ranking below is not allowed to ignore: a
-// door that refused for content can only be followed by a LOOSER one, or the
-// fallback is a second free refusal and no clip.
+// refuses only a FAMOUS face; APIFRAME took every reference the ward film had
+// on Mini — AND REFUSED A REAL FACE IN A PICTURE ON 2.5, TWICE, ON
+// 2026-09-11, ~10s after ACCEPTING the job, while Atlas drew the same three
+// pictures. So this is a PREFERENCE for the order of the walk, never a reason
+// to skip a door: a table like this is per model and probabilistic, and the
+// day it is wrong the skipped door was the one that would have drawn.
 const DOOR_LOOSENESS = { openrouter: 0, atlascloud: 1, apiframe: 2 };
+// WHERE A DOOR'S CONTENT REFUSAL LANDS. OpenRouter and Atlas refuse on the
+// POST — free, before anything draws, measured on both. APIFRAME accepts the
+// POST and the refusal comes back on the POLL (2026-09-11: both 2.5 jobs
+// `FAILED` ten seconds in), and whether that bills is UNMEASURED (its failed
+// 2.5 jobs have shown a creditCost, and some failures are refunded). So a
+// door whose refusal is free comes BEFORE one whose refusal may cost her the
+// clip's price, whatever the price order says.
+const DOOR_REFUSAL_FREE = { openrouter: true, atlascloud: true, apiframe: false };
 const DOOR_WORDS = { openrouter: 'OpenRouter', atlascloud: 'Atlas Cloud', apiframe: 'APIFRAME' };
 // What each door's refusal really means, in her terms — the card says it.
-const REFUSED_WHY = { openrouter: 'a person in it', atlascloud: 'a famous face', apiframe: 'its content filter' };
+const REFUSED_WHY = { openrouter: 'a person in it', atlascloud: 'a famous face', apiframe: 'a real face in a picture' };
 
 // Which door a job goes through. Answers { door, fallback, chain } — `chain`
 // is every remaining door to try, in order, when one refuses for CONTENT, and
@@ -311,7 +321,9 @@ const REFUSED_WHY = { openrouter: 'a person in it', atlascloud: 'a famous face',
 // 20% on the two big ones. A refusal on OpenRouter and on Atlas is FREE and
 // comes back before anything draws, so trying the cheapest door first costs
 // a round trip and never money.
-function doorFor({ model, door, hasVideo, resolution, ratio, seconds }, cfg) {
+// `avoid` is every door that has ALREADY refused this job — the poll-time
+// walk (walkOn) hands them in so the next send never re-tries one.
+function doorFor({ model, door, hasVideo, resolution, ratio, seconds, avoid }, cfg) {
   const m = typeof model === 'string' ? modelOf(model) : model;
   if (!m) return { error: 'unknown model' };
   cfg = cfg || { openrouter: true, apiframe: true, atlascloud: true };
@@ -326,8 +338,9 @@ function doorFor({ model, door, hasVideo, resolution, ratio, seconds }, cfg) {
   // measurement she reads, not a reason to spend on another door behind her
   // back. Only AUTO ranks and walks.
   if (want === 'atlascloud') return atOk ? { door: 'atlascloud', fallback: null, chain: [] } : { error: m.atlas ? 'Atlas Cloud is not configured (ATLASCLOUD_API_KEY)' : `${m.label} is not on Atlas Cloud` };
-  const open = [orOk && 'openrouter', atOk && 'atlascloud', afOk && 'apiframe'].filter(Boolean);
-  if (!open.length) return { error: 'no door is configured for that' };
+  const skip = new Set(Array.isArray(avoid) ? avoid.map(String) : []);
+  const open = [orOk && 'openrouter', atOk && 'atlascloud', afOk && 'apiframe'].filter(Boolean).filter((d) => !skip.has(d));
+  if (!open.length) return { error: skip.size ? 'every door has refused it' : 'no door is configured for that' };
   // Ranked by what the tap really costs on each, cheapest first. A door whose
   // price cannot be worked out sorts LAST rather than winning by default.
   const priced = open.map((d) => {
@@ -335,17 +348,17 @@ function doorFor({ model, door, hasVideo, resolution, ratio, seconds }, cfg) {
     return { door: d, cents: Number.isFinite(p && p.cents) ? p.cents : Infinity };
   }).sort((a, b) => a.cents - b.cents);
   const pick = priced[0].door;
-  // The walk only ever gets LOOSER, and it is greedy over the price order —
-  // so a door cheaper than the last one but no looser than it is skipped
-  // rather than tried, since it would refuse the same reference for free and
-  // leave her with no clip.
-  let loose = DOOR_LOOSENESS[pick];
-  const chain = [];
-  for (const x of priced.slice(1)) {
-    if (DOOR_LOOSENESS[x.door] <= loose) continue;
-    chain.push(x.door);
-    loose = DOOR_LOOSENESS[x.door];
-  }
+  // THE CHAIN IS EVERY OTHER DOOR — none skipped. It shipped 2026-09-11
+  // morning skipping any door "no looser" than the last one, and that
+  // afternoon the skip cost her the clip: on 2.5 the price order is
+  // OpenRouter · APIFRAME · Atlas, so APIFRAME was pushed first and Atlas was
+  // dropped for being "less loose" than it — then APIFRAME refused the real
+  // face too, and the one door measured to take those three pictures was
+  // never tried. A content refusal costs a round trip, so an untried door is
+  // never worth the clip. The ORDER: doors whose refusal is free on the POST
+  // first (a refusal there can never bill), each group cheapest first.
+  const rest = priced.slice(1).map((x) => x.door);
+  const chain = rest.filter((d) => DOOR_REFUSAL_FREE[d]).concat(rest.filter((d) => !DOOR_REFUSAL_FREE[d]));
   return { door: pick, fallback: chain[0] || null, chain, ranked: priced };
 }
 
@@ -564,7 +577,7 @@ function trimCard(t) {
 // The card the page draws, off the log doc.
 function whyOf(d) {
   if (!d || String(d.status || '').toLowerCase() !== 'failed' || !d.error) return '';
-  const e = videoRefusals.explain(d.error, d.errorCode);
+  const e = videoRefusals.explain(d.error, d.errorCode, d.door || d.provider || '');
   return e && e.line ? e.line : '';
 }
 function cardOf(id, d) {
@@ -616,6 +629,8 @@ function cardOf(id, d) {
     // the page's call, since a trimmed tail no longer ends on this frame.
     lastFrame: d.lastFrame || '',
     vote: d.vote || '', hidden: Boolean(d.hidden), title: d.title || '',
+    // A REFUSAL THAT WALKED ON — the id of the card the job was sent again as
+    resentAs: d.resentAs || '',
   };
 }
 
@@ -631,8 +646,56 @@ async function pollOne(id, d) {
   try {
     const r = await mod.pollVideo(id);
     if (r && r.video && !d.poster) bakePoster(id, r.video).catch(() => {});
+    // A REFUSAL THAT LANDS ON THE POLL GOES ON WALKING — never awaited by the
+    // page's read; the new card is on its next poll.
+    if (r && r.patch && walkPlan(d, r.patch)) walkOn(id, d, r.patch).catch(() => {});
     return r;
   } catch (e) { return null; }
+}
+
+// THE POLL-TIME WALK (2026-09-11, Sophie's 2.5 clip of the witchcraft kit:
+// OpenRouter refused the real face on the POST, the walk sent it through
+// APIFRAME, APIFRAME ACCEPTED and then refused the same face ten seconds
+// later — on the poll, where nothing was listening — and Atlas, which drew
+// those three pictures twice that hour on Mini, was never tried).
+// `walkPlan` is the pure decision: a job that FAILED for CONTENT, with doors
+// still left on its walk and not already sent again, is sent again through
+// the next one. Anything else — a shape refusal, an output gate, a door that
+// is down, a pinned door (no walk on the doc), a job already re-sent — is
+// left exactly as the poll found it.
+function walkPlan(d, patch) {
+  if (!d || !patch || String(patch.status || '').toLowerCase() !== 'failed') return null;
+  const w = d.walk;
+  if (!w || !w.req || !Array.isArray(w.left) || !w.left.length) return null;
+  if (d.resentAs || d.walkDone) return null;
+  if (videoRefusals.kindOf(patch.error, patch.errorCode) !== 'content') return null;
+  const door = d.door || d.provider || 'apiframe';
+  const tried = Array.from(new Set((Array.isArray(w.tried) ? w.tried : []).concat([door])));
+  // THE SAME SEED — it is the same clip asked of another door, and the seed
+  // the first door minted is the one the card already says.
+  const seed = d.params && d.params.seed != null ? Number(d.params.seed) : (w.req.seed != null ? w.req.seed : undefined);
+  return { door, tried, req: { ...w.req, door: 'auto', ...(Number.isFinite(seed) ? { seed } : {}) } };
+}
+const resending = new Set();   // job ids mid-walk in this process — one re-send per refusal
+async function walkOn(id, d, patch) {
+  const plan = walkPlan(d, patch);
+  if (!plan || resending.has(id)) return null;
+  resending.add(id);
+  try {
+    // a fresh read, so two polls landing on the same refusal send it once
+    try { const snap = await coll().doc(String(id)).get(); if (snap.exists && (snap.data().resentAs || snap.data().walkDone)) return null; } catch { /* best effort */ }
+    const mark = async (patch2) => { try { await coll().doc(String(id)).set(patch2, { merge: true }); } catch { /* best effort — the send is what matters */ } };
+    let r;
+    try {
+      r = await startJob(plan.req, { avoid: plan.tried, after: { id, door: plan.door } });
+    } catch (e) {
+      await mark({ walkDone: true, note: [d.note, `${DOOR_WORDS[plan.door] || plan.door} refused it after taking the job, and every other door refused it too`].filter(Boolean).join(' · ') });
+      return { refusedEverywhere: true, error: e.message };
+    }
+    await mark({ resentAs: r.jobId, resentDoor: r.door, walkDone: true,
+      note: [d.note, `${DOOR_WORDS[plan.door] || plan.door} refused it after taking the job — sent again through ${DOOR_WORDS[r.door] || r.door} (the newer card)`].filter(Boolean).join(' · ') });
+    return r;
+  } finally { resending.delete(id); }
 }
 
 // A first frame for the card — the clip itself is 1-3MB and a <video> on iOS
@@ -1042,15 +1105,25 @@ function refVideoTotalRefusal(seconds, door) {
 
 // ─── Starting a job: the door, the fallback, the log ───────────────────
 // Answers { jobId, door, sent, fellBack } or throws with status/hint.
-async function startJob(b) {
+// `opts.avoid` / `opts.after` are the poll-time walk's (walkOn): the doors
+// that have already refused this job, and the job it is being sent again
+// for — the first send then carries that note and counts as a fall-back.
+async function startJob(b, opts) {
+  opts = opts || {};
   await discounts().catch(() => {});
   await atlasPrices().catch(() => {});
   const built = buildJob(b);
   if (built.error) { const e = new Error(built.error); e.status = 400; throw e; }
-  const { body, refs, m, res, ratio, seconds } = built;
+  const { body, refs, m, res, ratio, seconds, audio } = built;
   const hasVideo = refs.some((r) => r.kind === 'video');
-  const d = doorFor({ model: m, door: b.door, hasVideo, resolution: res, ratio, seconds }, cfg());
+  const d = doorFor({ model: m, door: b.door, hasVideo, resolution: res, ratio, seconds, avoid: opts.avoid }, cfg());
   if (d.error) { const e = new Error(d.error); e.status = 400; throw e; }
+  // THE WALK RIDES ON THE DOC, so a refusal that lands on the POLL (APIFRAME's
+  // does) can go on from where the POST-time walk stopped: the page's own
+  // request, every door tried, and the doors still left, in order.
+  const walkReq = { prompt: body.prompt, model: m.id, seconds, resolution: res, ratio, sound: audio, refs,
+    ...(body.seed != null ? { seed: body.seed } : {}) };
+  const tried = Array.isArray(opts.avoid) ? opts.avoid.slice() : [];
   // A reference under ByteDance's pixel floor is refused before anything
   // draws, so swap in an upscaled copy BEFORE the door sees the body — and
   // keep `refs` (the card) pointing at her originals.
@@ -1078,7 +1151,9 @@ async function startJob(b) {
       ...(door === 'atlascloud' ? { returnLastFrame: true } : {}) };
     const say = [extra.note, note].filter(Boolean).join(' ');
     if (say) req.note = say;
-    const r = await mod.startVideo(req, { ...extra, door, ...(say ? { note: say } : {}) });
+    const all = [d.door].concat(d.chain || []);
+    const walk = { req: walkReq, tried: tried.concat([door]), left: all.slice(all.indexOf(door) + 1) };
+    const r = await mod.startVideo(req, { ...extra, door, walk, ...(say ? { note: say } : {}) });
     // the seed the door really used — hers, or the one it minted — so the card
     // this tap draws carries it without waiting for the first poll
     const seed = r.params && r.params.seed != null ? Number(r.params.seed) : null;
@@ -1089,11 +1164,15 @@ async function startJob(b) {
   // comes back before anything draws, so a fall costs a round trip and never
   // money. Anything else (a shape refusal, a door that is down) throws as it
   // always did: those are hers to read, not a reason to spend elsewhere.
-  let tried = d.door;
+  let lastDoor = d.door;
+  const afterNote = opts.after && opts.after.door
+    ? `${DOOR_WORDS[opts.after.door] || opts.after.door} refused a reference (${REFUSED_WHY[opts.after.door] || 'its content filter'}) after taking the job — sent again through ${DOOR_WORDS[d.door] || d.door}`
+    : '';
   try {
-    const r = await send(d.door);
-    return { ...r, fellBack: false, estimate: est.cents, note: extra.note || '' };
+    const r = await send(d.door, afterNote);
+    return { ...r, fellBack: Boolean(afterNote), estimate: est.cents, note: [extra.note, afterNote].filter(Boolean).join(' ') };
   } catch (first) {
+    first.door = first.door || d.door;
     if (first.refusal !== 'content' || !(d.chain || []).length) throw first;
     let last = first;
     for (const next of d.chain) {
@@ -1103,13 +1182,15 @@ async function startJob(b) {
       if (refVideoTotalRefusal(floored.seconds, next)) continue;
       const est2 = estimate({ model: m, resolution: res, ratio, seconds, hasVideo, door: next }, cfg());
       extra.estimate = est2.cents != null ? est2.cents : null;
-      const note = `${DOOR_WORDS[tried] || tried} refused a reference (${REFUSED_WHY[tried] || 'its content filter'}) — sent through ${DOOR_WORDS[next] || next} instead`;
+      const note = [afterNote, `${DOOR_WORDS[lastDoor] || lastDoor} refused a reference (${REFUSED_WHY[lastDoor] || 'its content filter'}) — sent through ${DOOR_WORDS[next] || next} instead`].filter(Boolean).join(' · ');
+      tried.push(lastDoor);
       try {
         const r = await send(next, note);
         return { ...r, fellBack: true, estimate: est2.cents, note: [extra.note, note].filter(Boolean).join(' ') };
       } catch (e) {
+        e.door = e.door || next;
         last = e;
-        tried = next;
+        lastDoor = next;
         if (e.refusal !== 'content') throw e;
       }
     }
@@ -1165,7 +1246,7 @@ router.post('/jobs', async (req, res) => {
   } catch (e) {
     // `why` is the table's line for the door's text — the card's own field,
     // so a refusal on the POST reads the same as one that lands on the poll
-    const ex = e.why ? null : videoRefusals.explain(e.body || e.message, e.errorCode);
+    const ex = e.why ? null : videoRefusals.explain(e.body || e.message, e.errorCode, e.door || '');
     res.status(e.status || 500).json({ error: e.message, refusal: e.refusal, hint: e.hint, why: e.why || (ex && ex.line) || undefined });
   }
 });
@@ -1261,7 +1342,7 @@ router.post('/jobs/:id/trim', async (req, res) => {
 module.exports = {
   router, init,
   MODELS, RATIOS, SIZES, CHAT, OR_FEE,
-  modelOf, doorFor, estimate, priceOn, DOOR_LOOSENESS, DOOR_WORDS, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, resFactor, secondsOk, framesOf,
+  modelOf, doorFor, estimate, priceOn, DOOR_LOOSENESS, DOOR_REFUSAL_FREE, DOOR_WORDS, walkPlan, walkOn, pollOne, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, resFactor, secondsOk, framesOf,
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf, atlasCacheBust,
   startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf,
   statusOf, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,

@@ -57,11 +57,13 @@ const ROWS = [
     seen: 'APIFRAME ×1' },
   // ── content: an input gate, before anything draws ───────────────────
   { re: /InputVideoSensitiveContentDetected|input video .*may contain real person/i, kind: 'content', free: true,
-    line: 'A reference VIDEO has a person in it and this door refuses those (Atlas takes a person; APIFRAME takes what Atlas refuses).',
+    line: 'A reference VIDEO has a person in it and this door refuses those — send it through Atlas or APIFRAME.',
+    lineFor: (door) => `A reference VIDEO has a person in it and ${doorName(door)} refuse${door ? 'd' : 's'} it — send it through ${elsewhere(door)}.`,
     seen: 'OpenRouter, APIFRAME ×1' },
   { re: /InputImageSensitiveContentDetected|input image .*may contain real person|PrivacyInformation/i, kind: 'content', free: true,
-    line: 'A reference PICTURE has a real face in it and this door refuses those — blur the eyes, or send it through Atlas or APIFRAME.',
-    seen: 'OpenRouter, APIFRAME ×2' },
+    line: 'A reference PICTURE has a real face in it and this door refuses it — blur the eyes, or send it through Atlas or APIFRAME.',
+    lineFor: (door) => `A reference PICTURE has a real face in it and ${doorName(door)} refuse${door ? 'd' : 's'} it${door === 'apiframe' ? ' after taking the job' : ''} — blur the eyes, or send it through ${elsewhere(door)}.`,
+    seen: 'OpenRouter; APIFRAME ×2 on 2.5, 2026-09-11, on the POLL ~10s after the POST was accepted (Atlas drew the same three pictures)' },
   { re: /famous|public figure/i, kind: 'content', free: true,
     line: 'A famous face in a reference — Atlas refuses public figures on the way in. A chat can try this one through APIFRAME.',
     seen: 'Atlas 2026-09-09 (Radcliffe), on the POST' },
@@ -81,11 +83,23 @@ const ROWS = [
     seen: 'APIFRAME ×1, Atlas 2026-09-10' },
 ];
 
-function explain(text, code) {
+// THE LINE NAMES THE OTHER DOORS, NEVER THE ONE IT IS ON (2026-09-11: an
+// APIFRAME card told her to "send it through Atlas or APIFRAME"). `door` is
+// the door the job went through; with none the line says "this door".
+const DOOR_NAMES = { openrouter: 'OpenRouter', atlascloud: 'Atlas', apiframe: 'APIFRAME' };
+const PERSON_DOORS = ['atlascloud', 'apiframe'];   // the doors that take a person at all
+function doorName(door) { return DOOR_NAMES[door] || 'this door'; }
+function elsewhere(door) {
+  const rest = PERSON_DOORS.filter((d) => d !== door).map((d) => DOOR_NAMES[d]);
+  return rest.length ? rest.join(' or ') : 'another door';
+}
+
+function explain(text, code, door) {
   const t = String(text || '');
   const c = code != null && code !== '' ? Number(code) : null;
+  const dr = door && DOOR_NAMES[String(door)] ? String(door) : '';
   for (const r of ROWS) {
-    if ((c != null && r.code === c) || r.re.test(t)) return { kind: r.kind, line: r.line, free: r.free, seen: r.seen };
+    if ((c != null && r.code === c) || r.re.test(t)) return { kind: r.kind, line: r.lineFor ? r.lineFor(dr) : r.line, free: r.free, seen: r.seen };
   }
   if (!t) return null;
   return { kind: 'other', line: '', free: null, seen: '' };

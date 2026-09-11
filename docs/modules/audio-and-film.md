@@ -549,15 +549,29 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     down: the shape, the resolution, the seconds and a reference video all
     move it (2.5 WITH a video is the one row where Atlas beats APIFRAME, 53.6¢
     against 60¢, because APIFRAME charges its own dearer video rate).
-    - **THE WALK ONLY EVER GETS LOOSER.** `DOOR_LOOSENESS` is the measured
-      order — OpenRouter refuses ANY person in a reference, Atlas only a
-      famous face, APIFRAME takes every reference this film has — and `chain`
-      is the remaining doors in price order with anything no looser than the
-      last one SKIPPED: it would refuse the same reference for free and leave
-      her with no clip. A content refusal is free and lands before anything
-      draws on every door, which is what makes trying the cheapest first cost
-      a round trip and never money. `startJob` walks the chain and the card
-      names which door refused, why, and where it went.
+    - **THE CHAIN IS EVERY OTHER DOOR, NONE SKIPPED (2026-09-11 afternoon —
+      this REPLACES the morning's "the walk only ever gets looser").**
+      `DOOR_LOOSENESS` (OpenRouter refuses any person, Atlas a famous face,
+      APIFRAME the loosest) is a preference, never a pruning rule: on 2.5 the
+      price order is OpenRouter · APIFRAME · Atlas, so the old rule pushed
+      APIFRAME first and dropped Atlas as "less loose" — and APIFRAME
+      accepted Sophie's witchcraft-kit job and refused the real face ten
+      seconds later ON THE POLL, twice, while Atlas drew the same three
+      pictures (Mini ×2 that hour, then 2.5 from a container, same seed:
+      3m32s, job `0eab8ac88bf740cbae9793c184b192b8`). `chain` is now the
+      remaining doors with the ones whose refusal is free on the POST first
+      (`DOOR_REFUSAL_FREE`: OpenRouter, Atlas), each group cheapest first;
+      APIFRAME's refusal lands on the poll and whether it bills is
+      unmeasured. **A refusal on the poll walks on**: `walk {req, tried,
+      left}` rides the log doc from `startJob`, `pollOne` asks `walkPlan`
+      (pure — content kind, doors left, not already re-sent) and `walkOn`
+      sends the same request again through `startJob({avoid, after})`, same
+      seed, once per refusal (an in-process set plus a fresh read of
+      `resentAs`); the refused doc gets `resentAs`/`walkDone` and a note, the
+      new doc's note names who refused. `doorFor` takes `avoid`; with every
+      door refused it answers "every door has refused it". The card's `why`
+      line is door-aware (`explain(text, code, door)`) so it never names the
+      door it is on.
     - **A FAILED ATLAS PRICE READ KEEPS THE LAST GOOD PRICES.** It used to
       fall back to the table's LIST rate, which was only a high number on
       screen while Atlas was the one door and is now a DOOR CHANGE — every
