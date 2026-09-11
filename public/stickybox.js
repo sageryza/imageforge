@@ -140,24 +140,26 @@
     s.position = ''; s.top = ''; s.left = ''; s.right = ''; s.bottom = ''; s.zIndex = ''; s.margin = '';
   }
 
-  function place(e) {
+  // What this button WANTS, measured: null to let go, else where to pin it and
+  // how much of its box is inside the band (the tie-break below).
+  function evaluate(e) {
     var btn = e.btn;
-    if (!btn.isConnected || btn.hidden) { unpin(e); return; }
+    if (!btn.isConnected || btn.hidden) return null;
     var wrap = btn.offsetParent || e.wrap;
     if (!e.pinned) {
       // the button is where the page put it: measure its insets from the wrap
       wrap = btn.offsetParent || btn.parentElement;
       e.wrap = wrap;
-      if (!wrap) return;
+      if (!wrap) return null;
       var br = btn.getBoundingClientRect(), wr0 = wrap.getBoundingClientRect();
-      if (!br.width || !br.height) return;          // not laid out (a hidden panel)
+      if (!br.width || !br.height) return null;     // not laid out (a hidden panel)
       e.dx = br.right - wr0.right;
       e.dy = br.bottom - wr0.bottom;
       e.w = br.width; e.h = br.height;
     }
-    if (!wrap || e.dy === null) return;
+    if (!wrap || e.dy === null) return null;
     var wr = wrap.getBoundingClientRect();
-    if (!wr.height) { unpin(e); return; }
+    if (!wr.height) return null;
 
     var limit = Math.min(bandBottom(), regionBottom(btn)) - GAP;
     var top = bandTop();
@@ -165,23 +167,49 @@
 
     // pin only while the button's own corner is out of reach AND the box it
     // belongs to is still on screen
-    var want = homeBottom > limit && wr.top < limit && wr.bottom > top;
-    if (want && !e.pinned && !fixedIsViewport(btn)) want = false;
-
-    if (!want) { unpin(e); return; }
-    e.pinned = true;
-    btn.classList.add('sbx-pin');
-    var s = btn.style;
-    s.position = 'fixed';
-    s.top = Math.round(limit - e.h) + 'px';
-    s.left = Math.round(wr.right + e.dx - e.w) + 'px';
-    s.right = 'auto'; s.bottom = 'auto'; s.margin = '0';
-    s.zIndex = '8';                                  // under the autoscroll pill's 9
+    if (!(homeBottom > limit && wr.top < limit && wr.bottom > top)) return null;
+    if (!e.pinned && !fixedIsViewport(btn)) return null;
+    return { wr: wr, limit: limit, score: Math.min(wr.bottom, limit) - Math.max(wr.top, top) };
   }
 
+  function pin(e, p) {
+    e.pinned = true;
+    e.btn.classList.add('sbx-pin');
+    var s = e.btn.style;
+    var wantR = p.wr.right + e.dx, wantB = p.limit;
+    s.position = 'fixed';
+    s.top = Math.round(wantB - e.h) + 'px';
+    s.left = Math.round(wantR - e.w) + 'px';
+    s.right = 'auto'; s.bottom = 'auto'; s.margin = '0';
+    s.zIndex = '8';                                  // under the autoscroll pill's 9
+    // A PAGE MAY DRESS THE PINNED BUTTON, so measure it where it landed: the
+    // insets above were read while it sat in the page, and `.sbx-pin` styling
+    // (footage's "… less" takes padding for its shadow to sit on) changes the
+    // box after the arithmetic. One correction, off the real rect.
+    var r = e.btn.getBoundingClientRect();
+    if (Math.abs(r.right - wantR) > 0.5 || Math.abs(r.bottom - wantB) > 0.5) {
+      s.left = Math.round(wantR - r.width) + 'px';
+      s.top = Math.round(wantB - r.height) + 'px';
+    }
+  }
+
+  // ONE PINNED BUTTON AT A TIME — the one whose box she is actually inside.
+  // A page can carry several marked buttons (footage's own box, plus a
+  // "… less" on every expanded clip in the feed), and two boxes can both end
+  // below the fold for a scroll position or two — two floating words stacked
+  // in the same spot reads as a broken control. The most-visible box wins.
   function sync() {
-    var list = marked();
-    for (var i = 0; i < list.length; i += 1) place(entry(list[i]));
+    var list = marked(), plans = [], best = null;
+    for (var i = 0; i < list.length; i += 1) {
+      var e = entry(list[i]);
+      var p = evaluate(e);
+      plans.push({ e: e, p: p });
+      if (p && (!best || p.score > best.p.score)) best = plans[plans.length - 1];
+    }
+    for (var k = 0; k < plans.length; k += 1) {
+      if (best && plans[k].e === best.e) pin(plans[k].e, plans[k].p);
+      else unpin(plans[k].e);
+    }
     // an entry whose button has left the page
     seen = seen.filter(function (e) {
       if (e.btn.isConnected) return true;
