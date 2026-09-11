@@ -40,13 +40,13 @@ def api(path, body=None):
             return {'error': 'HTTP %d %s' % (e.code, raw)}
 
 
-def bodyFor(c):
+def bodyFor(c, sound=True):
     """Exactly what the card's own Send to Footage button would hand over."""
     head = (c['head'].strip() + '\n\n') if c['head'].strip() else ''
     return dict(
         prompt=head + c['words'],
         model=belt.MODEL, seconds=c['secs'], resolution=belt.RES, ratio=belt.RATIO,
-        sound=True, door='atlascloud', returnLastFrame=True, session=SESSION,
+        sound=sound, door='atlascloud', returnLastFrame=True, session=SESSION,
         refs=[{k: r[k] for k in ('url', 'kind', 'poster', 'name') if k in r}
               for r in c['refs']])
 
@@ -80,7 +80,7 @@ def main():
     total = 0
     for k in keys:
         c = cards[k]
-        b = bodyFor(c)
+        b = bodyFor(c, '--silent' not in argv)
         est = api('/api/footage/estimate?model=%s&seconds=%d&resolution=%s&ratio=%s&hasVideo=1&door=atlascloud'
                   % (b['model'], b['seconds'], b['resolution'], b['ratio']))
         cents = est.get('cents')
@@ -100,9 +100,10 @@ def main():
         print('\nDRY — add --go to send.')
         return
 
+    sound = '--silent' not in argv
     for k in keys:
         c = cards[k]
-        out = api('/api/footage/jobs', bodyFor(c))
+        out = api('/api/footage/jobs', bodyFor(c, sound))
         print('%-6s → %s' % (k, json.dumps(out)[:220]))
         time.sleep(1)
 

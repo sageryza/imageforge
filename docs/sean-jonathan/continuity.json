@@ -58,7 +58,11 @@
     "sj-3"
    ],
    "line": "the room is [SLOT].",
-   "at": null
+   "at": 10,
+   "still": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1afff93ccd1516f193ad3262a7a86798.jpg",
+   "dumpId": "Bx0EuPJK9tXtL0FT3GY0",
+   "from": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789091297197-mua1xy.mp4",
+   "grabbedAt": "2026-09-11T01:50:07.930Z"
   },
   {
    "key": "oven",
@@ -69,7 +73,11 @@
     "sj-3"
    ],
    "line": "the oven is the one in [SLOT].",
-   "at": null
+   "at": 12.5,
+   "still": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0bfc7a72a01ee707b37db0d65d1ec759.jpg",
+   "dumpId": "3zzQL0gHEijrGoNypurs",
+   "from": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789091297197-mua1xy.mp4",
+   "grabbedAt": "2026-09-11T01:50:09.592Z"
   },
   {
    "key": "table",
