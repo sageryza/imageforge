@@ -74,6 +74,18 @@ Editor: https://imageforge-q125.onrender.com/filmeditor?c=pxan7kLF6I7iMWxlVb5C
   context-line pair, the seed tests and the 720p B takes. Reversing it is
   writing `statusWas` back.
 
+- v7 (her "add more of the story so it makes sense"): five pieces added, all
+  from clips the cut already held. `call` — c5 5.0–8.95, the woman on the
+  phone ("a girl, she just fell… I think she's had a seizure"), placed between
+  the spinning and the ambulance. Then the intake scene opened out into its
+  own four shots, cut on the SOURCE's own cut points (8.833 / 17.125 / 22.25 /
+  26.75) with the dead air between them taken out: `game` 8.85–17.12 (she
+  tells him the game, hands going), `flat` 19.7–22.24 (the smile leaves her
+  face while he says nothing), `docwrite` 23.2–26.5 (he is writing, head down,
+  "and what drugs had you taken that day?") and `none` 27.3–29.9 ("None.").
+  Her disappointment IS `flat` — the clip gives it five seconds of silence and
+  2.5 of them are in.
+
 - Substitutions, named: "Francesca kicked out of class" = Yolanda scolded in
   music class (s18 18.3–21.8; the seated woman is the Francesca description);
   "Michael: I know what you mean" = the hallway walk's "I know the feeling";
