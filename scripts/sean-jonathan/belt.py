@@ -71,7 +71,7 @@ SHEET = 'belt-seanjonathan'
 # A NEW VERSION IS A NEW PAGE and the title says which — the house rule for
 # anything posted, because a posted page is frozen and her Compare tab shows
 # them side by side. Bump this and supersede the one it replaces.
-VERSION = 4
+VERSION = 5
 TITLE = 'Sean & Jonathan — the draft belt v%d' % VERSION
 LIMIT = 8000
 
@@ -85,6 +85,23 @@ ATLAS_PER_SEC = 1.1  # ¢/s, Atlas Mini 480p while the sale holds — read live 
 SHOT_SPLIT = {
     '86532d0c923d401a8b29060dd673670a': 'jonathan and sean stand on the carpet',
     'b1341353f59c439b98a9ea8f727abc83': 'jonathan: "hey! that\'s my couch!"',
+}
+
+# TITLES THAT ARE SOMEONE ELSE'S, AND WHAT IS MEASURED ABOUT THEM. Seedance 2.0
+# took a Disney cease-and-desist on 2026-02-13 (with Paramount Skydance, Netflix,
+# Warner Bros. Discovery, Sony and Universal behind it) and ByteDance said on
+# 02-15 it would stop generating IP-protected characters. There is a measured
+# OUTPUT gate: a clip draws for a full minute and then fails with "the output
+# video may be related to copyright restrictions" (error 1012004). It is
+# PROBABILISTIC and per MODEL — it refused a plain reference-free dialogue prompt
+# twice on 2.0 Fast and drew the same prompt on Mini, which is what this belt
+# uses. A blocked job is UNBILLED, so finding out costs nothing but the wait.
+# Naming a title in the prompt is the thing most likely to trip it; the scene
+# almost always works without the name.
+IP_TITLES = {
+    'the lion king': 'Disney — the studio that sent the cease-and-desist',
+    'a whole new world': 'Disney (Aladdin)',
+    'willy wonka': 'Warner Bros.',
 }
 
 # THE RUNNING ORDER. `key` is identity and never moves; the number on the card
@@ -114,6 +131,8 @@ RUNNING = [
          room="setting: jonathan's apartment — his bed, night, moonlight coming in at the end."),
     dict(key='sj-6', name='A whole new world', src='one:6',
          room="setting: the apartment, then outside — a field of rose petals, then swings at a park."),
+    dict(key='sj-e', name='The rain', src='three:1',
+         room="setting: jonathan's apartment — the leather couch, the window, the television, rain outside."),
 ]
 
 
@@ -163,7 +182,7 @@ def block(tag):
 def sources():
     R = json.load(open(REFS_JSON, encoding='utf-8'))
     shot = {s['id']: s for s in json.load(open(SHOT_JSON, encoding='utf-8'))['shot']}
-    return R, shot, block('SCENES'), block('SCENES-2')
+    return R, shot, block('SCENES'), block('SCENES-2'), block('SCENES-3')
 
 
 def split_shot(job):
@@ -178,7 +197,7 @@ def split_shot(job):
 
 def plan():
     """Every card resolved: its words, its header, its references, its clip."""
-    R, shot, one, two = sources()
+    R, shot, one, two, three = sources()
     fx, tally = fixes(), {}
     things = continuity()
     pair = R['refs']
@@ -197,7 +216,7 @@ def plan():
             clip = dict(url=job['video'], poster=job['poster'], seconds=job['seconds'],
                         at=job['sentAt'])
         else:
-            words = (one if kind == 'one' else two)[int(arg) - 1]
+            words = {'one': one, 'two': two, 'three': three}[kind][int(arg) - 1]
             secs = SECS
             if c.get('chain'):
                 prev = next(p for p in out if p['key'] == c['chain'])
@@ -225,6 +244,7 @@ def plan():
                 t['line'].replace('[SLOT]', '[Image%d]' % (m + 1))
                 for m, t in enumerate(got))
         invents = [t for t in things if t.get('establishedOn') == c['key']]
+        named = sorted({t for t in IP_TITLES if t in words.lower()})
         before = words
         mine = {}
         words = correct(words, fx, mine)
@@ -232,7 +252,7 @@ def plan():
             tally[k2] = tally.get(k2, 0) + v
         out.append(dict(c, n=i + 1, words=words, head=head, refs=refs, clip=clip,
                         secs=secs, shot=(kind == 'shot'), fixed=sum(mine.values()),
-                        raw=before, invents=invents,
+                        raw=before, invents=invents, named=named,
                         waiting=[t for t in needs if not t.get('still')]))
 
     # EVERY FIX MUST HAVE LANDED, EXACTLY ONCE. A `find` that stopped matching
@@ -252,7 +272,7 @@ def plan():
     # a shot.
     out.append(dict(key='sj-cast', name='The cast', n=len(out) + 1, cast=True,
                     refs=[dict(r) for r in pair], shot=False, fixed=0, clip=None,
-                    secs=0, words='', head='', raw='', invents=[], waiting=[],
+                    secs=0, words='', head='', raw='', invents=[], waiting=[], named=[],
                     stills=[t for t in things if t.get('still')]))
     return out
 
@@ -273,6 +293,12 @@ def notes(c, label, e):
         out.append('<p class="grab">screenshot once it draws: %s</p>' % ' · '.join(
             '<b>%s</b> (for %s)' % (e(t['name']), e(' and '.join(label[x] for x in t['neededBy'])))
             for t in grab))
+    if c.get('named'):
+        out.append('<p class="ip">this names <b>%s</b> (%s) — a drawn clip can fail on '
+                   'copyright at the far end. It is unbilled, so it is worth sending as '
+                   'written; if it trips, the scene works with the title out of the words.</p>'
+                   % (e(' and '.join(c['named'])),
+                      e(' · '.join(IP_TITLES[t].rstrip('.') for t in c['named']))))
     if c['waiting']:
         froms = []
         for t in c['waiting']:
@@ -421,6 +447,8 @@ p.done{font-size:12px;color:#8a8176;margin:0 0 8px}
 p.fixnote{font-size:11px;color:#8a8176;margin:6px 0 0;font-style:italic}
 p.grab{font-size:11px;color:#6b6257;margin:6px 0 0}
 p.grab b{font-weight:600;color:#3a352e}
+p.ip{font-size:11px;color:#6b6257;margin:6px 0 0}
+p.ip b{font-weight:600;color:#3a352e}
 /* SCOPED TO THE CARD — compare.css styles h3 at its own serif size and wins on
    a bare tag selector, so this read as a big heading until it was photographed. */
 .card h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#8a8176;margin:16px 58px 6px 0;font-weight:600;font-family:inherit}

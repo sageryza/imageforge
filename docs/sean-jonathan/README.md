@@ -15,7 +15,7 @@ shape the belt hands over.
 | her typos, fixed on the way onto the page | `typos.json` |
 | what the model invents, and who has to match it | `continuity.json` |
 | the still grabber | `scripts/sean-jonathan/grab-still.js` |
-| the live page | `sean-jonathan-script` → Compare tab, *Sean & Jonathan — the draft belt v4* (`hFNh09kvwyegOn56muSy`) |
+| the live page | `sean-jonathan-script` → Compare tab, *Sean & Jonathan — the draft belt v5* (`Gl0oN5KcfHjTzbIpHrhw`) |
 
 ## THE RUNNING ORDER, AND WHY IT IS HERS
 
@@ -32,7 +32,32 @@ before it:
 | 4 | `sj-d` | The kitchen | opens *"now they are in the kitchen together"* |
 | 5 | `sj-1` | The tea party | opens *"…out of the **kitchen cabinet**"* |
 | 6-10 | `sj-2`…`sj-6` | Get out · Weeks pass · The white paint · Bedtime · A whole new world | |
-| 11 | `sj-cast` | The cast | **reference** — the two videos, playable, no shot |
+| 11 | `sj-e` | The rain | the ending — sean in his lap under the blanket, the same couch he stood ON in card 1 |
+| 12 | `sj-cast` | The cast | **reference** — the two videos, playable, no shot |
+
+## A CARD THAT NAMES SOMEONE ELSE'S TITLE SAYS SO
+
+2026-09-11, Sophie: *"will it trip on wonka lion king etc?"* Two cards name a
+title — *A whole new world* (Aladdin, and Willy Wonka) and *The rain* (the Lion
+King) — and `IP_TITLES` in the builder scans her own scene words for them, so the
+warning can only ever land on a card that really names one.
+
+What is measured, and it is the reason the note says *try it*:
+
+- Seedance 2.0 took a **Disney cease-and-desist on 2026-02-13** (Paramount
+  Skydance, Netflix, Warner Bros. Discovery, Sony and Universal behind it) and
+  ByteDance said on 02-15 it would stop generating IP-protected characters.
+- There is an **OUTPUT gate**: a clip draws for a full minute and then fails with
+  *"the output video may be related to copyright restrictions"* (`1012004`).
+- It is **probabilistic and per MODEL** — it refused a plain reference-free
+  dialogue prompt twice on 2.0 Fast and drew the same prompt on Mini, which is
+  what this belt uses.
+- **A blocked job is unbilled.** Both blocked jobs on file left no
+  `generation_id`. So finding out costs the wait and nothing else.
+
+The fix if it trips is to take the title out of the words, not out of the scene:
+the TV can be a glow on their faces with the screen off-frame, and the song can
+be sung without being named.
 
 ## HER FILES ARE NEVER EDITED — `typos.json` IS THE FIX
 

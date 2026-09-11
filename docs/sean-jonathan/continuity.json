@@ -10,7 +10,8 @@
    "what": "the brown leather couch, the green plaid rug, the plant, the framed print",
    "establishedOn": "sj-a",
    "neededBy": [
-    "sj-6"
+    "sj-6",
+    "sj-e"
    ],
    "line": "the room is [SLOT].",
    "at": 12,

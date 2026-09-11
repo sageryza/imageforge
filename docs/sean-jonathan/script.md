@@ -111,3 +111,36 @@ sean bends over, opening the oven and looking inside, then nods approvingly.
 
 the shot shows his face, as though shot from inside the oven, a dark metal box, sean's face at the other end
 <!-- SCENES-2 END -->
+
+---
+
+# The ending (2026-09-11, her third message)
+
+Verbatim. She sent it with *"the end (for now)"* on the last line — that line is
+hers and stays in the scene box, where she can take it out; left in, a model may
+letter THE END on screen, which may be the joke or may not.
+
+It goes LAST. It inverts the first scene without being told to: scene 1 is sean
+standing ON the couch to be taller than him; this one is sean sitting IN his lap
+under his blanket, on the same couch.
+
+**No typos in it.** "whatchya watchin", "ohh alllright" and "acknowledgment" are
+all hers on purpose.
+
+<!-- SCENES-3 BEGIN -->
+outside the window, it is raining. jonathan is sitting on his leather couch, watching a movie, drinking hot cocoa from a steaming white mug.
+
+sean comes over from the kitchen. "it's raining pretty hard," he says to jonathan.
+jonathan grunts in acknowledgment
+"whatchya watchin?"
+
+he is watching the lion king.
+
+"can i watch too?" asks sean
+
+jonathan sighs. "ohh alllright," he says, opening up the blanket that is across his lap, to let sean join, and sean happily climbs in, settling onto his lap.
+
+then they watch the lion king together, and sean takes little sips from jonathan's cocoa mug.
+
+the end (for now)
+<!-- SCENES-3 END -->

@@ -49,6 +49,9 @@ const scenes = body.split(/\r?\n[ \t]*cut[ \t.!:]*(?=\r?\n)/).map((s) => s.trim(
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
 
+const scenes3 = (fs.readFileSync(MD, 'utf8')
+  .split('<!-- SCENES-3 BEGIN -->')[1].split('<!-- SCENES-3 END -->')[0])
+  .split(/\r?\n[ \t]*cut[ \t.!:]*(?=\r?\n)/).map((s) => s.trim()).filter(Boolean);
 const scenes2 = (fs.readFileSync(MD, 'utf8')
   .split('<!-- SCENES-2 BEGIN -->')[1].split('<!-- SCENES-2 END -->')[0])
   .split(/\r?\n[ \t]*cut[ \t.!:]*(?=\r?\n)/).map((s) => s.trim()).filter(Boolean);
@@ -56,14 +59,16 @@ const shot = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs', 'sean-jonathan',
 
 const cont = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs', 'sean-jonathan', 'continuity.json'), 'utf8')).things;
 const fixes = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs', 'sean-jonathan', 'typos.json'), 'utf8')).fixes;
-const corpus = [...scenes, ...scenes2, ...shot.map((j) => j.prompt)].join('\u0000');
+const corpus = [...scenes, ...scenes2, ...scenes3, ...shot.map((j) => j.prompt)].join('\u0000');
 const correct = (t) => fixes.reduce((a, f) => a.split(f.find).join(f.replace), t);
 
 ok(scenes.length === 6, 'her first message is 6 scenes — her own `cut` lines (' + scenes.length + ')');
 ok(scenes2.length === 2, 'her second message is 2 scenes (' + scenes2.length + ')');
-ok(html.match(/<section class="card"/g).length === scenes.length + scenes2.length + shot.length + 1,
-  'one card a scene across both messages, the two already shot, and the cast ('
-  + (scenes.length + scenes2.length + shot.length + 1) + ')');
+ok(scenes3.length === 1, 'her third message is the one ending scene (' + scenes3.length + ')');
+ok(html.match(/<section class="card"/g).length
+   === scenes.length + scenes2.length + scenes3.length + shot.length + 1,
+  'one card a scene across all three messages, the two already shot, and the cast ('
+  + (scenes.length + scenes2.length + scenes3.length + shot.length + 1) + ')');
 
 // ── HER FILES ARE NEVER EDITED ──────────────────────────────────────────────
 // 2026-09-11: "fix those two typos. are there anymore". The fix happens on the
@@ -86,7 +91,7 @@ ok(/sean's tongue is in jonathan's mouth/.test(html.replace(/&#x27;/g, "'"))
   'and the page carries the corrected words');
 // THE WHOLE ASSERTION, and the one that makes the others safe: the page's text
 // is her text with THESE fixes and no other edit anywhere.
-[...scenes, ...scenes2].forEach((sc, i) => ok(html.includes(esc(correct(sc))),
+[...scenes, ...scenes2, ...scenes3].forEach((sc, i) => ok(html.includes(esc(correct(sc))),
   'scene ' + (i + 1) + ' is her words, corrected and otherwise verbatim (' + sc.length + ' chars)'));
 shot.forEach((j) => ok(correct(j.prompt).split(/\n\s*\n/).every((para) => html.includes(esc(para.trim()))),
   'shot scene ' + j.id.slice(0, 8) + ' is what the door received, corrected'));
@@ -109,9 +114,23 @@ ok(cont.every((t) => !(t.neededBy || []).includes('sj-c')),
 ok(cont.every((t) => (t.neededBy || []).every((k) => k !== t.establishedOn)),
   'nothing is its own reference');
 
+// ── A CARD THAT NAMES SOMEONE ELSE'S TITLE SAYS SO ────────────────────────
+// Measured, not guessed: Seedance has an OUTPUT gate that fails a drawn clip on
+// copyright, it is probabilistic and per model, and a blocked job is unbilled.
+// The warning must land on exactly the cards whose OWN WORDS name a title.
+const ipCards = [...html.matchAll(/data-key="(sj-[a-z0-9]+)"[\s\S]*?(?=<section|$)/g)]
+  .map((m) => [m[1], /class="ip"/.test(m[0])]);
+const withIp = ipCards.filter(([, y]) => y).map(([k]) => k);
+ok(withIp.join(' ') === 'sj-6 sj-e',
+  'the copyright note is on the two cards that name a title, and nowhere else ('
+  + withIp.join(' ') + ')');
+ok(/the lion king/.test(scenes3[0]) && /a whole new world/.test(scenes[5])
+  && /willy wonka/.test(correct(scenes[5])),
+  'and those are the two scenes that really name one');
+
 // ── HER WORDS DECIDE THE ORDER ──────────────────────────────────────────────
 const order = [...html.matchAll(/<section class="card"[^>]*data-key="([^"]+)"/g)].map((m) => m[1]);
-ok(order.join(' ') === 'sj-a sj-b sj-c sj-d sj-1 sj-2 sj-3 sj-4 sj-5 sj-6 sj-cast',
+ok(order.join(' ') === 'sj-a sj-b sj-c sj-d sj-1 sj-2 sj-3 sj-4 sj-5 sj-6 sj-e sj-cast',
   'the running order is the chain her own words make, the cast last (' + order.join(' ') + ')');
 ok(/we have to sleep in the same bed/.test(shot[1].prompt)
   && /^jonathan \(flabbergasted, splutters\) "WHAT\?!"/.test(scenes2[0])
@@ -183,7 +202,7 @@ const exe = () => {
 
   // the deck really is six snapping cards
   const cards = await page.$$eval('.deck .card', (n) => n.length);
-  ok(cards === 11, 'eleven cards in the deck — ten scenes and the cast (' + cards + ')');
+  ok(cards === 12, 'twelve cards in the deck — eleven scenes and the cast (' + cards + ')');
 
   // THE DECK IS A HORIZONTAL SCROLLER, so a card must be brought into view
   // before anything about it can honestly be measured — off-screen every rect
@@ -329,6 +348,9 @@ const exe = () => {
   await page.screenshot({ path: path.join(SHOTS, 'sj-belt-card1-shot.png') });
   await goCard('sj-c');
   await page.screenshot({ path: path.join(SHOTS, 'sj-belt-card3-chain.png') });
+  await goCard('sj-e');
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: path.join(SHOTS, 'sj-belt-ending.png') });
   await goCard('sj-cast');
   await page.waitForTimeout(400);
   await page.screenshot({ path: path.join(SHOTS, 'sj-belt-cast.png') });
