@@ -53,6 +53,40 @@ Filed into the Dump with a real filename:
 `Sean Jonathan.mp4` rather than `Sean & Jonathan.mp4` — cosmetic, and worth
 knowing before promising a filename in a reply.
 
+### AND A SMALL SHARE COPY — 2026-09-11, *"it's too long won't send to wesley"*
+
+44MB is past what a messaging app will carry, so there are two answers and they
+are different things:
+
+**A LINK, which is the real answer, because a link does not care how big the
+file is.** Every Dump object is PUBLIC and served `video/mp4` with **no
+content-disposition**, so the raw Storage url PLAYS inline in any browser with
+no login — measured, both copies. That is what you text a friend.
+`/api/drop/file/<id>` is the SAVE link and always sets `attachment`, so it is
+never the one to send (house rule 3d2).
+
+**A SMALLER FILE, for when she wants to attach one anyway.** This is a DERIVED
+display copy — the webp rule applied to video — so unlike the clean export it
+is genuinely re-encoded and the pixels are NOT identical:
+
+    ffmpeg -i "Sean and Jonathan.mp4" -c:v libx264 -crf 30 -preset slow \
+      -pix_fmt yuv420p -c:a aac -b:a 96k -movflags +faststart -map_metadata -1 \
+      "Sean and Jonathan (small).mp4"
+
+**44.2MB → 12.9MB, a 3.4x cut**, same 560x752, same 2:45, video 1936 → 519 kb/s.
+PHOTOGRAPHED before it was handed over: four moments pulled from both copies and
+stacked side by side (`/tmp/sjc/cmp-strip.jpg`) — indistinguishable at this frame
+size, which is the only reason crf 30 is defensible on a film. **Look at the
+strip before shipping a re-encode; a bitrate number says nothing about a face.**
+
+| | id | link |
+|---|---|---|
+| full, clean | `wIEEG22Zaw0GtrMBaEOS` | `drops/_/a51bf794fe29ec67597c153196faf8e4.mp4` |
+| small, share | `f0Y6yFw2EjiXiKh7XoXi` | `drops/_/8d43b0066269f2029ba6a33d66253d8d.mp4` |
+
+**The originals are untouched and stay** — `filmeditor/9WyQ1XE8OvQXrNtnvfsD/film-3.mp4`
+is still the render and still the pin.
+
 ## WHAT MINI GOT WRONG, AND WHAT IS STILL WRONG IN v3
 
 2026-09-11, her notes watching it back, and each one is a line in `herLines`
