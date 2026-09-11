@@ -29,11 +29,12 @@ TAKE = [
     ('sj-3', '6839d29e2ab345a5a3ea653cc7f855f5'),
     ('sj-4', 'bad0417adf9f483c8e4c9a423b176bbd'),
     ('sj-5', 'df785dd454284ef88327ee1e8bdeeb26'),
-    # THE SILENT TAKE IS IN THE FILM, and that is a real choice rather than a
-    # fallback: its prompt is her exact words, titles and all, and the gate only
-    # ever blocked the SINGING. The song is laid in at the edit, which it had to
-    # be anyway. The sounded take with the titles swapped is on the dailies.
-    ('sj-6', '0a68e157e54c4789a36ce657bda68771'),
+    # THE SOUNDED TAKE IS IN THE FILM SINCE v2 (2026-09-11, Sophie: "redo the
+    # copyright w sound · change the lyrics till we get it" — the first change
+    # did it, and it came back with real audio, mean -17.9 dB). Her exact-words
+    # SILENT take is still on the dailies; only the one line naming the two
+    # titles differs between them.
+    ('sj-6', '70572d702a1a4544bc96fb740d1ac0f5'),
     ('sj-e', '4abab7f1fdd345fe9fdd79f406890332'),
 ]
 

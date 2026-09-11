@@ -55,6 +55,25 @@
    "line": "jonathan wears trousers.",
    "why": "2026-09-11, Sophie, watching the tea party come back: \"next round might need jonathan in pants\" — the model put him in a sweater and underwear.",
    "on": "all"
+  },
+  {
+   "line": "sean's tank top stays the same colour the whole way through.",
+   "why": "2026-09-11, Sophie watching v1: \"sean's tank top changes color\".",
+   "on": "all"
+  },
+  {
+   "line": "the teapot and the cups are separate objects, not one piece.",
+   "why": "2026-09-11: \"teapot cups a single object\" — mini fused the tea set in the tea party.",
+   "on": [
+    "sj-1"
+   ]
+  },
+  {
+   "line": "the cookie he throws has weight — it hits jonathan and falls to the floor. nothing hangs in the air.",
+   "why": "2026-09-11: \"cookies in midair\" — mini froze them mid-flight in weeks pass.",
+   "on": [
+    "sj-3"
+   ]
   }
  ]
 }
