@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Footage</title>
+<!-- THE FILTER DRAWER'S PAINT — the one shell (/searchfilters.js), linked, never copied -->
+<link rel="stylesheet" href="/searchfilters.css">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   [hidden]{display:none !important}
@@ -430,6 +432,43 @@
   .likefilt svg{width:16px;height:16px}
   .likefilt.on{background:#c25a72;color:#fff}
   .xfilt.on{background:#9a938a;color:#fff}
+  /* THE SEARCH — a magnifying glass that EXPANDS (2026-09-11, Sophie: "add a
+     search button and filter like playground" · "single magnifying glass
+     button that expands"). The glass sits in a box of its own beside the
+     ♥/✕ pair; its tap opens the field and lights it, and lit is the INK, not
+     the rose — it is a door, not a mark she cast (the funnel's own rule).
+     Shutting it CLEARS the words: a query she cannot see must never go on
+     hiding clips behind a shut box, the drawer's own rule. */
+  .qfilt.on{background:#2b2620;color:#f6f2ea}
+  /* The field takes what is left of the row and drops to a line of its own
+     when the row has no room ("same row unless it bleeds over"). 16px is a
+     FLOOR: iOS auto-zooms a focused input under it, and that zoom ignores
+     `user-scalable=no`, so one tap would leave the page stuck zoomed. The ✕
+     is at the LEFT end (the Playground's rule — the right end is where her
+     caret sits and where dictated text grows), and its padding exists only
+     while there are words to wipe. */
+  .feedsearch{flex:1 1 150px;min-width:0;position:relative;display:flex}
+  .feedsearch input{width:100%;min-width:0;font:inherit;font-size:16px;color:#2b2620;background:#fdfbf7;
+        border:1px solid #d8cfc0;border-radius:6px;padding:6px 9px}
+  .feedsearch input.hasq{padding-left:28px}
+  .feedsearch input:focus{outline:none;border-color:#c25a72}
+  .feedsearch input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+  .qclear{position:absolute;left:0;top:0;height:100%;width:28px;border:0;background:none;color:#8a8177;
+        font-size:18px;line-height:1;padding:0}
+  /* THE FILTER DRAWER — model and when, the shared shell. The mount is
+     `display:contents` so the funnel chip and the drawer are both items of
+     the feed bar: the chip stands in the row and the drawer takes a whole
+     line under it, IN FLOW (the Meta Assets call — this bar is not sticky
+     and nothing hangs under it). The tokens still reach the chip and the
+     drawer: custom properties inherit through display:contents. */
+  #feedfilters{display:contents;--fsf-ink:#2b2620;--fsf-ink2:#6f675e;--fsf-line:#d8cfc0;--fsf-paper:#fdfbf7;--fsf-on:#c25a72}
+  /* The box comes first under the controls (it belongs to the glass) and the
+     drawer under that; both take a whole line. The drawer keeps the pill's
+     column clear — the bar is not sticky, but a drawer she opens is usually
+     at the top of the screen, right where the pill sits (PHOTOgraphed: the
+     third chip ran under it), so its chips wrap short of that column. */
+  .feedsearch{order:1}
+  #feedfilters .filtdrawer{flex:1 1 100%;margin:0 0 2px;order:2;padding-right:58px}
   .job{background:#fff;border:1px solid #e0d8ca;border-radius:6px;padding:10px;margin-bottom:11px}
   .job.nay{opacity:.45}
   /* WHICH CARD SHE LANDED ON (2026-09-10, Sophie: "clicking on a tile in
@@ -860,6 +899,15 @@
     <button type="button" class="likefilt" id="v-liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
     <button type="button" class="likefilt xfilt" id="v-hidex" aria-label="Hide the ones you have crossed out" title="Hide the &times;'d"></button>
   </div>
+  <div class="filttog">
+    <button type="button" class="likefilt qfilt" id="v-search" aria-label="Search the clips" title="Search" aria-expanded="false" aria-controls="feedsearch"></button>
+  </div>
+  <div id="feedfilters"></div>
+  <div class="feedsearch" id="feedsearch" hidden>
+    <input id="q" type="search" placeholder="Search" aria-label="Search your clips"
+           autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
+    <button type="button" class="qclear" id="qclear" aria-label="Clear search" hidden>&times;</button>
+  </div>
 </div>
 <div id="feed"></div>
 <div id="tiles" hidden></div>
@@ -910,6 +958,14 @@
      references slot by slot. Loaded by the test on the server and served here
      (the pause-plan.js pattern), so the panel and the test drive one rule. -->
 <script src="/clip-diff.js"></script>
+<!-- THE SEARCH (2026-09-11, Sophie: "add a search button and filter like
+     playground"): the house grammar and the two live-box helpers from
+     /feedkit.js, the filter drawer's one shell, and the haystack — loaded by
+     footage.js on the server and served here, so the filter that runs while
+     the server's answer is in flight reads the same words the server does. -->
+<script src="/feedkit.js"></script>
+<script src="/searchfilters.js"></script>
+<script src="/footage-hay.js"></script>
 <script>
 (function () {
 var TOKEN = '__STUDIO_TOKEN__';
@@ -920,6 +976,8 @@ var ICONS = {
   heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
   x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
   copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>',
+  // Lucide `search` — the glass that opens the box
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
   play: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>',
   film: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>',
   audio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>',
@@ -953,6 +1011,7 @@ $('addicon').innerHTML = ICONS.image;
 document.querySelectorAll('.selwrap .chev').forEach(function (c) { c.innerHTML = ICONS.chev; });
 document.querySelectorAll('.iconsel .ico').forEach(function (c) { c.innerHTML = ICONS.folder; });
 $('v-liked').innerHTML = ICONS.heart; $('v-hidex').innerHTML = ICONS.x;
+$('v-search').innerHTML = ICONS.search;
 $('seedclear').innerHTML = ICONS.x;
 $('rectog').innerHTML = ICONS.history;
 $('casttog').innerHTML = ICONS.users;
@@ -1135,6 +1194,7 @@ function setProject(p, opts) {
   paintProject(); paintFolder(); paintControls(); paintCast(); paintRecent();
   if (castOpen) loadCast();
   loadJobs();
+  if (searchQ) { qHits = null; runSearch(); }     // the answer was the old project's
 }
 // ── THE SUB-FOLDER (2026-09-11, Sophie: "can we do sub folders ex the witch
 // commercials") ─────────────────────────────────────────────────────────
@@ -2318,7 +2378,8 @@ function paintFilt() {
 function shown(j) {
   return !j.hidden && !(likedOnly() && j.vote !== 'like') && !(hideX() && j.vote === 'dislike')
     && !(S.project && (j.project || '') !== S.project)
-    && !(S.project && S.folder && (j.folder || '') !== S.folder);
+    && !(S.project && S.folder && (j.folder || '') !== S.folder)
+    && passesSearch(j) && passesFilt(j);
 }
 function applyFilt() {
   var tiles = curView() === 'tiles', any = false;
@@ -2353,10 +2414,119 @@ function applyFilt() {
   var n = Object.keys(jobsById).length;
   $('feedbar').hidden = !n;
   $('feedempty').hidden = !!any;
-  $('feedempty').textContent = n ? (likedOnly() ? 'Nothing hearted yet.' : 'Everything here is crossed out.') : 'Nothing made here yet.';
+  // AN EMPTIED FEED SAYS WHICH FILTER EMPTIED IT — a shut drawer is exactly
+  // the thing she cannot see, so "nothing here" would read as a lost history.
+  $('feedempty').textContent = !n ? 'Nothing made here yet.'
+    : qGroups.length ? 'Nothing matches that.'
+    : (FILT && (FILT.get('model') || []).length) ? 'Nothing on that model.'
+    : (FILT && FILT.get('when')) ? 'Nothing that recent.'
+    : likedOnly() ? 'Nothing hearted yet.' : 'Everything here is crossed out.';
 }
 $('v-liked').addEventListener('click', function () { try { localStorage.setItem('footage_liked', likedOnly() ? '' : '1'); } catch (e) {} paintFilt(); applyFilt(); });
 $('v-hidex').addEventListener('click', function () { try { localStorage.setItem('footage_hidex', hideX() ? '' : '1'); } catch (e) {} paintFilt(); applyFilt(); });
+
+// ── THE SEARCH (2026-09-11, Sophie: "add a search button and filter like
+// playground" · "single magnifying glass button that expands" · "yea
+// footage") ─────────────────────────────────────────────────────────────
+// The Playground's search, ported: the house grammar (bare words AND within
+// one clip, `OR`, `-word`, "a phrase"), searched as she DICTATES (liveInput —
+// iOS can fill a field without firing `input`), Return ending it
+// (enterSubmits). The loaded feed is filtered INSTANTLY over what is on
+// screen; a beat later the server answers over the WHOLE log (`?q=`, the
+// Assets tab's lesson — the feed is 40 clips a page and a box that only
+// filters the page answers "nothing" for everything behind it) and the feed
+// becomes those clips. Both halves read ONE haystack, /footage-hay.js.
+//
+// THE GLASS IS THE ONE CONTROL: shut, it is a button on the bar; open, the
+// field is beside it (or on its own line when the row is full) and the glass
+// is lit. Shutting it CLEARS the words — a query she cannot see must never go
+// on hiding clips (the drawer's own rule). The ✕ inside the field only wipes
+// the words and keeps her in it.
+var qparse = window.FeedKit ? window.FeedKit.qparse : function () { return []; };
+var qmatch = window.FeedKit ? window.FeedKit.qmatch : function () { return true; };
+var searchQ = '', qGroups = [], qHits = null, qSeq = 0, qTimer = null;
+function hayOf(j) { return window.FootageHay ? window.FootageHay.hayOf(j) : ''; }
+// WHICH CLIPS A SEARCH KEEPS: the server's answer once it has landed, the
+// same words matched over the loaded feed until then. A SEARCH DECIDES
+// MEMBERSHIP, NEVER WHAT A CLIP SAYS — `qHits` is a set of ids and every
+// card still reads `jobsById`, so a vote cast during a search shows.
+function passesSearch(j) {
+  if (!qGroups.length) return true;
+  if (qHits) return !!qHits[j.id];
+  return qmatch(hayOf(j), qGroups);
+}
+function runSearch() {
+  var seq = ++qSeq, want = searchQ;
+  if (!want) { qHits = null; return; }
+  var asked = S.project;
+  api('/jobs?limit=300&q=' + encodeURIComponent(want) + projQ()).then(function (d) {
+    if (seq !== qSeq || asked !== S.project) return;      // she typed on, or moved
+    var jobs = (d && d.jobs) || [];
+    // a hit may be a clip the feed itself has never paged in — it lands as
+    // a card like any other, so its own doors, notes and trims all work
+    batching = true;
+    try { jobs.slice().reverse().forEach(jobCard); } finally { batching = false; }
+    qHits = {};
+    jobs.forEach(function (j) { qHits[j.id] = true; });
+    paintFeed(); paintOlder();
+  }).catch(function () { /* the client-filtered view stands */ });
+}
+function readSearch() {
+  var box = $('q');
+  searchQ = (box.value || '').trim();
+  qGroups = qparse(searchQ);
+  $('qclear').hidden = !searchQ;
+  box.classList.toggle('hasq', !!box.value);            // the ✕'s padding, only while it shows
+  qHits = null;                                          // the loaded feed answers meanwhile
+  clearTimeout(qTimer);
+  if (searchQ) qTimer = setTimeout(runSearch, 350);
+  else qSeq++;                                           // and any answer still coming is dropped
+  paintFeed(); paintOlder();
+}
+var qLive = window.FeedKit ? window.FeedKit.liveInput($('q'), readSearch) : { sync: function () {} };
+if (window.FeedKit) window.FeedKit.enterSubmits($('q'), function () { readSearch(); qLive.sync(); });
+$('qclear').addEventListener('click', function () {
+  var box = $('q');
+  box.value = ''; qLive.sync(); readSearch(); box.focus();
+});
+function searchOpen() { return !$('feedsearch').hidden; }
+function setSearchOpen(open) {
+  $('feedsearch').hidden = !open;
+  $('v-search').classList.toggle('on', open);
+  $('v-search').setAttribute('aria-expanded', open ? 'true' : 'false');
+  var box = $('q');
+  if (open) { box.focus(); return; }
+  if (box.value) { box.value = ''; qLive.sync(); readSearch(); }
+}
+$('v-search').addEventListener('click', function () { setSearchOpen(!searchOpen()); });
+
+// ── THE FILTER DRAWER — the shared shell, the Playground's own two rows
+// with this page's facts in them: MODEL (the four the page offers, chips,
+// several at once — a ladder is Mini beside 2.5) and WHEN (days back from
+// now). Sticky under `footage_filt_*`, like the ♥ and the ✕ beside them:
+// a filter over what she is LOOKING at costs nothing. The ♥ and the ✕ stay
+// on the bar — her 2026-09-02 word on the Playground ("put the heart x
+// thing exactly where it was"). ──────────────────────────────────────────
+var SF = window.ForgeSearchFilters || null;
+var FILT_MODELS = { mini: 'Mini', fast: 'Fast', '2.0': '2.0', '2.5': '2.5' };
+function readList(k) { try { return (localStorage.getItem(k) || '').split(',').filter(Boolean); } catch (e) { return []; } }
+var FILT = SF ? SF.build($('feedfilters'), [
+  { key: 'model', kind: 'chips', multi: true, label: 'Model',
+    vals: PAGE_MODELS.slice(), words: PAGE_MODELS.map(function (id) { return FILT_MODELS[id] || id; }),
+    get: function () { return readList('footage_filt_model'); },
+    set: function (v) { try { localStorage.setItem('footage_filt_model', v.join(',')); } catch (e) {} } },
+  { key: 'when', kind: 'chips', label: SF.WHEN.label, vals: SF.WHEN.vals, words: SF.WHEN.words,
+    get: function () { try { return localStorage.getItem('footage_filt_when') || ''; } catch (e) { return ''; } },
+    set: function (v) { try { localStorage.setItem('footage_filt_when', v || ''); } catch (e) {} } },
+], function () { paintFeed(); }, { label: 'Filters' }) : null;
+function passesFilt(j) {
+  if (!FILT) return true;
+  var ms = FILT.get('model') || [];
+  if (ms.length && ms.indexOf(String(j.model || '')) < 0) return false;
+  var since = SF.sinceMs(FILT.get('when'));
+  if (since && !(Date.parse(j.sentAt || '') >= since)) return false;
+  return true;
+}
 
 // ── TWO WAYS TO READ THE FEED (2026-09-09, Sophie: "add tile/list/3/4 grid
 // feature from playground") ──────────────────────────────────────────────
@@ -3199,7 +3369,8 @@ function oldestSentAt() {
 }
 function paintOlder() {
   var b = $('older');
-  b.hidden = !feedMore;
+  // a search already read the whole log — there is no page under it
+  b.hidden = !feedMore || !!qGroups.length;
   b.disabled = loadingOlder;
   b.textContent = loadingOlder ? '\u2026 loading older' : '\u2026 older';
 }

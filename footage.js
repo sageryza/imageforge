@@ -71,6 +71,10 @@ const videoLog = require('./video-log');
 const videoSeed = require('./video-seed');
 const videoFloor = require('./video-floor');
 const videoRefusals = require('./video-refusals');
+// THE SEARCH — the house grammar over what a clip's card says (footage-hay.js
+// is served to the page too, so the client filter reads the same words)
+const grammar = require('./search-grammar');
+const { hayOf } = require('./footage-hay');
 
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 const CHAT = 'footage';
@@ -1321,8 +1325,8 @@ router.post('/jobs', async (req, res) => {
 // the oldest clip she holds; the answer is the page under it and `more` says
 // whether anything is left under THAT. Pure, so the walk has a test that
 // needs no Firestore.
-function pageJobs(all, { limit, before } = {}) {
-  const lim = Math.min(Number(limit) || 40, 200);
+function pageJobs(all, { limit, before, max } = {}) {
+  const lim = Math.min(Number(limit) || 40, max || 200);
   const sorted = all.slice().sort((a, b) => String(b.d.sentAt || '').localeCompare(String(a.d.sentAt || '')));
   const under = before ? sorted.filter((x) => String(x.d.sentAt || '') < String(before)) : sorted;
   const docs = under.slice(0, lim);
@@ -1350,11 +1354,23 @@ router.get('/jobs', async (req, res) => {
     // and ONE FOLDER of it when asked — only ever beside a project
     const folder = project ? folderSlug(req.query.folder) : '';
     const rows = snap.docs.map((d) => ({ id: d.id, d: d.data() }));
-    const all = rows.filter((x) => (!project || projectSlug(x.d.project) === project) && (!folder || folderSlug(x.d.folder) === folder));
-    const { docs, more } = pageJobs(all, { limit: req.query.limit, before: req.query.before });
+    let all = rows.filter((x) => (!project || projectSlug(x.d.project) === project) && (!folder || folderSlug(x.d.folder) === folder));
     // every project's folders, off the whole read — the picker's and the
     // card's rows, derived rather than stored
     const folders = foldersOf(rows);
+    // A SEARCH READS THE WHOLE LOG, NOT THE PAGE SHE IS LOOKING AT (2026-09-11,
+    // Sophie: "add a search button and filter like playground") — the Assets
+    // tab's lesson: a box that only filters the loaded page answers "nothing
+    // matches" for everything behind the first 40. Filtered here over every
+    // clip the read holds, BEFORE the page is cut, with the same words the
+    // page's own filter reads (footage-hay.js) and the feed's own matcher
+    // (search-grammar.js). A search may ask for a bigger page.
+    const q = String(req.query.q || '').trim();
+    if (q) {
+      const groups = grammar.compileFeed(q);
+      all = all.filter((x) => grammar.feedMatches(hayOf(cardOf(x.id, x.d)), groups));
+    }
+    const { docs, more } = pageJobs(all, { limit: q ? Math.min(Number(req.query.limit) || 40, 300) : req.query.limit, before: req.query.before, max: q ? 300 : undefined });
     // ask the doors about the ones still drawing — throttled per job, so a
     // page polling every few seconds is one provider read per job per 12s
     await Promise.all(docs.map(async (x) => {
@@ -1457,5 +1473,5 @@ module.exports = {
   modelOf, doorFor, doorTakes, shapeRefusal, estimate, priceOn, DOOR_LOOSENESS, DOOR_REFUSAL_FREE, DOOR_WORDS, pollOne, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, resFactor, secondsOk, framesOf, projectSlug, HANDOFF_PROJECTS,
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf, atlasCacheBust,
   startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf,
-  pageJobs, foldersOf, folderSlug, statusOf, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
+  pageJobs, hayOf, foldersOf, folderSlug, statusOf, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
 };
