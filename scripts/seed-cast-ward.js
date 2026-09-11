@@ -207,8 +207,13 @@ const ENTRIES = [
   { slug: 'anastasia', name: 'Anastasia', kind: 'person', order: 15,
     note: 'waiting on the dance photo — Sophie has it', looks: [
     { key: 'pajamas', name: 'the blue pajamas', refs: [], wear: ['blue-pajamas'], mine: true,
-      line: 'Anastasia: the woman in {1}. she wears the blue hospital pajamas in {1} and {2}.',
-      note: 'no reference of her own yet — add the dance photo as the first one and the line reads right' },
+      // NO REFERENCE OF HER OWN YET, so the line may not claim one — {1} here is
+      // the headless pajama still, and naming it as her is the slot lying about
+      // who is in the picture. It names the PAJAMAS only until her dance photo
+      // lands; add that photo as the FIRST ref and change the line to
+      // 'Anastasia: the woman in {1}. she wears the blue hospital pajamas in {2} and {3}.'
+      line: 'she wears the blue hospital pajamas in {1} and {2}.',
+      note: 'waiting on her dance photo — Sophie has it. The line names only the pajamas until then' },
   ] },
 
   // ── the wardrobe, which floats across every patient ───────────────────
