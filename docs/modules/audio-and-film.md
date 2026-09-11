@@ -791,10 +791,30 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       the frame it really ends on — the door's own render rather than a decode
       of the mp4, and free. A TRIM MOVES THAT END: the baked frame belongs to
       the SOURCE clip, so the card answers it whatever the trims say (it is a
-      fact about the source) and the RECENT drawer stops offering it the moment
-      a part is baked — which it already did for the clip itself, so the rule
-      cost nothing. Re-pulling the frame from the trim is the fix if she ever
-      wants both; nothing does it yet.
+      fact about the source).
+      **AND IT IS ON THE CARD SINCE 2026-09-11, WHICH IS THE ONLY DOOR IT HAS
+      (Sophie: "how do i get these last frames").** The RECENT drawer was the
+      only place it had ever shown and she took the outputs out of that drawer
+      the same day it shipped ("recents is recent UPLOADED"), so for a day
+      every Atlas clip carried a picture with nothing on the page drawing it —
+      and the "?" card still said it was in the drawer, which is how it stayed
+      invisible. It is a tile in the card's own picture row now, BESIDE the
+      references (one grid: it takes the next free column, so the card is no
+      taller — a row of its own read as a second reference stacked under the
+      first, PHOTOGRAPHED both ways). Tapping it opens it big in the clip's own
+      player — no trim bar, no filmnote, there is nothing to mark and no second
+      to note — with a **save** in the way-out row that goes to Photos through
+      the same three-path ladder the clip's save uses (`saveMedia`, which
+      sniffs a picture off the url for the name and the share-sheet type; the
+      native bridge already routes a picture to PhotoSaver and a clip to
+      VideoSaver, so nothing on the Swift side moved). A tap ON the picture
+      does not close it, the house rule the player already keeps.
+      **THE LABEL SAYS `last frame · whole clip` ON A TRIMMED CLIP** — the
+      frame is the end of what the DOOR drew, never the end of the part she
+      kept, and that is the one thing worth knowing before chaining a shot off
+      it. Re-pulling the frame from the trim is the fix if she ever wants both;
+      nothing does it yet, and there is no "use this as a reference" button
+      either — chaining is still save, then attach.
       **THE WAY OUT IS ITS OWN ROW ABOVE THE PICTURE (2026-09-11, Sophie:
       "all the stuff at the bottom in trim view, esp after a trim is added,
       makes it impossible to close the player").** The ✕ shipped absolute in

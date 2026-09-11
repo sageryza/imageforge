@@ -412,6 +412,19 @@
                      display:flex;align-items:center;justify-content:center;color:#f6f2ea}
   .usedrefs .ur img{width:100%;height:100%;object-fit:cover;display:block}
   .usedrefs .ur svg{width:14px;height:14px}
+  /* THE CLIP'S OWN LAST FRAME, ON THE CLIP'S OWN CARD (2026-09-11, Sophie:
+     "how do i get these last frames"). Every Atlas job has asked for one since
+     2026-09-10 and the page drew it NOWHERE: the only place it had ever shown
+     was the RECENT drawer, and she took the outputs out of there the same day
+     ("recents is recent UPLOADED"), so a picture that was being baked and
+     banked on every clip had no door at all. It sits under the references it
+     was drawn from, the SAME tile at the same size and on the same `--cols`
+     grid, so it reads as part of that row rather than a new kind of thing —
+     but it is a BUTTON, because unlike a reference this one opens. The plate
+     is reset or the global `button` rule draws a white box round it, and
+     `font-family` has to be said because that rule's `font:` shorthand sets
+     the family as well as the size. */
+  .usedrefs .lfcell{border:0;background:none;padding:0;display:block;width:100%;font-family:inherit;cursor:pointer}
   .acts{display:flex;gap:6px;margin-top:8px;align-items:center}
   .acts button{width:32px;height:32px;padding:0;display:inline-flex;align-items:center;justify-content:center;
                background:#fdfbf7;color:#6f675e}
@@ -478,6 +491,11 @@
      belongs, and the marks stay clear. */
   #player .pstage{position:relative;flex:1;min-height:0;width:100%;display:flex;align-items:flex-end;justify-content:center}
   #player .pstage video{max-width:100%;max-height:100%;display:block;background:#000}
+  /* A PICTURE IN THE SAME OVERLAY — one lightbox on this page, not a second
+     one behind a second backdrop. It is `align-self:center` because the stage
+     bottom-aligns the VIDEO to sit directly above the trim marks, and with no
+     marks under a still all that slack would be dead room over her head. */
+  #player .pstage img.pimg{max-width:100%;max-height:100%;display:block;align-self:center}
   .trimbar{flex:none;width:100%;max-width:520px;display:flex;flex-direction:column;gap:8px;color:#f6f2ea;
            background:#141110;border-top:1px solid rgba(255,255,255,.13);
            padding:10px 14px calc(12px + env(safe-area-inset-bottom))}
@@ -540,11 +558,26 @@
      shape; it also keeps clear of the video's OWN top-left controls
      (fullscreen, picture-in-picture), which a z-lifted button would sit on.
      A tap on the row's dead space closes too — it is backdrop. */
-  #player .ptop{flex:none;width:100%;display:flex;align-items:center;
+  /* THE WAY-OUT ROW IS `.pbar`, NEVER `.ptop` — MEASURED 2026-09-11, and it
+     was drawing wrong on main. The INJECTED autoscroll pill styles `.ptop`
+     GLOBALLY (it is its back-to-top button): 38px, `border-radius:50%`, a
+     cream background and a shadow. This page's own `#player .ptop` rule
+     out-specified the width and the display and said nothing about the paint,
+     so the player's top row rendered as a CREAM ELLIPSE across the screen
+     behind the ✕ on every clip she opened. PHOTOGRAPHED; no assertion about
+     the row had ever looked at what it painted. */
+  #player .pbar{flex:none;width:100%;display:flex;align-items:center;
                 padding:calc(8px + env(safe-area-inset-top)) 14px 8px}
   #player .pclose{width:34px;height:34px;padding:0;border-radius:6px;flex:none;
                   background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#fff}
   #player .pclose svg{width:16px;height:16px}
+  /* SAVE RIDES THE WAY-OUT ROW while a picture is open — the row is otherwise
+     one button and a screen of backdrop, and a control DOWN there would be
+     under the toast, which sits top-right whenever the player is up. The
+     toast covering it is fine: a toast is `pointer-events:none`, so the tap
+     still lands. */
+  #player .psave{margin-left:auto;flex:none;background:rgba(255,255,255,.12);
+                 border:1px solid rgba(255,255,255,.3);color:#fff;font-size:13px;padding:6px 12px}
   /* A TOAST IS A MESSAGE, NEVER A CONTROL — `pointer-events:none` (measured
      2026-09-10, while the trimmer's own test could not reach a button under
      it). Fading to opacity 0 does NOT stop an element hit-testing, so without
@@ -572,7 +605,7 @@
   <p><b>Every clip says how long it took.</b> <i>drew in 2m 34s</i> on the card is the door's own figure, not how long you were watching — close the app and it keeps drawing, and the time it reports is still the real one. A clip drawn before this says nothing rather than guessing.</p>
   <p><b>Whichever door is cheapest</b> &mdash; the line beside the star names it. Right now that is <b>Atlas Cloud</b> for Mini and Fast and <b>OpenRouter</b> for 2.0 and 2.5, but nothing here is written down: the three doors are priced for the exact clip you have set up and the cheapest one gets it. If a door refuses a reference &mdash; free, before anything draws &mdash; the job falls to the next cheapest door that is looser, so a person in a reference ends up somewhere that takes one without you doing anything. A famous face is the one thing all three refuse.</p>
   <p><b>Four models.</b> <b>2.0 Mini</b> is the default and much the cheapest. <b>2.0 Fast</b>, <b>2.0</b> and <b>2.5</b> climb from there &mdash; the line beside the star says what the tap costs before you make it. Two things worth knowing: <b>Fast is the strict one</b> (a plain prompt with no reference at all has come back refused there with a copyright line, free and unbilled, where the same words drew on Mini), and <b>2.0 is the only one that does 1080p</b>.</p>
-  <p><b>The last frame of a clip</b> &mdash; the picture behind it in the recent drawer, for chaining one shot into the next &mdash; rides on Atlas Cloud only. A clip that went out through another door has none.</p>
+  <p><b>The last frame of a clip</b> &mdash; the small picture under its references, for chaining one shot into the next. Tap it to see it big and save it. It rides on Atlas Cloud only, so a clip that went out through another door has none and shows no picture.</p>
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
   <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. Every block has the same two buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing.</p>
@@ -641,7 +674,7 @@
 <div id="tiles" hidden></div>
 <div class="emptynote" id="feedempty" hidden>Nothing made here yet.</div>
 
-<div id="player" hidden><div class="ptop"><button class="pclose" type="button" aria-label="Close"></button></div>
+<div id="player" hidden><div class="pbar"><button class="pclose" type="button" aria-label="Close"></button><button class="psave" id="psave" type="button" hidden>save</button></div>
   <div class="pstage"></div>
   <div class="trimbar" id="trimbar" hidden>
     <button type="button" class="striphit" id="tstrip" aria-label="Tap to put the playhead here"><span class="strip"><span class="bands" id="tbands"></span><span class="keep" id="tkeep"></span><span class="head" id="thead"></span></span></button>
@@ -1962,18 +1995,24 @@ function primeSave(url) {
     .then(function (b) { saveBlob = { url: url, blob: b }; })
     .catch(function () {});
 }
+// A PICTURE GOES THE SAME THREE WAYS (2026-09-11, the last frame). The bridge
+// sniffs the container and routes a picture to PhotoSaver and a clip to
+// VideoSaver, so the only thing the page owes it is a name that keeps the
+// extension — which every url here has. Nothing about the clip path moved.
+function isPic(url) { return /\.(png|jpe?g|webp|gif)(\?|$)/i.test(String(url)); }
 function saveName(url) {
   var n = String(url).split('?')[0].split('/').pop() || '';
-  return /\.\w{2,4}$/.test(n) ? n : 'clip.mp4';
+  return /\.\w{2,4}$/.test(n) ? n : (isPic(url) ? 'frame.png' : 'clip.mp4');
 }
-function saveVideo(url) {
+function saveMedia(url) {
+  var pic = isPic(url);
   var native = nativeSaver();
   if (native) { native.postMessage(url); toast('Saving\u2026'); return; }
   if (!(saveBlob && saveBlob.url === url)) {
-    primeSave(url); toast('Getting the clip \u2014 tap save again in a moment'); return;
+    primeSave(url); toast('Getting the ' + (pic ? 'picture' : 'clip') + ' \u2014 tap save again in a moment'); return;
   }
   var blob = saveBlob.blob, name = saveName(url), file = null;
-  try { file = new File([blob], name, { type: blob.type || 'video/mp4' }); } catch (e) {}
+  try { file = new File([blob], name, { type: blob.type || (pic ? 'image/png' : 'video/mp4') }); } catch (e) {}
   if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
     navigator.share({ files: [file] })
       .catch(function (err) { if (err && err.name !== 'AbortError') toast('Couldn\u2019t open the share sheet'); });
@@ -2045,11 +2084,24 @@ function jobCard(j) {
     // has no `why` and the raw text takes the red line alone.
     '<div class="st' + (j.status === 'failed' ? ' bad' : '') + '" data-st>' + (j.status === 'failed' ? esc(j.why || j.error || 'failed') : '') + '</div>' +
     (j.status === 'failed' && j.why && j.error ? '<div class="st raw">' + esc(j.error) + '</div>' : '');
-  if ((j.refs || []).length) {
-    html += '<div class="usedrefs">';
-    slotsOf(j.refs).forEach(function (slot, i) { var r = j.refs[i]; html += '<div class="ur"><div>' + thumbHtml(r) + '</div>' + esc(slot.replace(/[\[\]]/g, '')) + '</div>'; });
-    html += '</div>';
+  // THE PICTURE ROW: what went IN, and then the clip's own LAST FRAME beside
+  // them (2026-09-11, Sophie: "a small picture next to the references"). One
+  // grid, so the frame sits in the next free column rather than opening a row
+  // of its own — PHOTOGRAPHED both ways, and on a one-reference card a row of
+  // its own reads as a second reference stacked under the first. Atlas is the
+  // only door that bakes one, so a clip that went out through another door
+  // has none and the tile is simply ABSENT — the Assets tab's silence rule,
+  // never a dead control. The label says `whole clip` on a TRIMMED clip,
+  // because the frame is the end of what the DOOR drew and not the end of the
+  // part she kept: the one thing worth knowing before chaining a shot off it.
+  var cells = '';
+  slotsOf(j.refs || []).forEach(function (slot, i) { var r = j.refs[i]; cells += '<div class="ur"><div>' + thumbHtml(r) + '</div>' + esc(slot.replace(/[\[\]]/g, '')) + '</div>'; });
+  if (j.lastFrame) {
+    cells += '<button type="button" class="ur lfcell lfopen" aria-label="Open the last frame">'
+      + '<div><img src="' + esc(j.lastFrame) + '" alt=""></div>'
+      + (jobParts(j).length ? 'last frame \u00b7 whole clip' : 'last frame') + '</button>';
   }
+  if (cells) html += '<div class="usedrefs">' + cells + '</div>';
   html += '<div class="acts">' +
     '<button type="button" class="heart' + (j.vote === 'like' ? ' on' : '') + '" data-vote="like" aria-label="Heart this clip" title="Heart">' + ICONS.heart + '</button>' +
     '<button type="button" class="nope' + (j.vote === 'dislike' ? ' on' : '') + '" data-vote="dislike" aria-label="Cross this clip out" title="Cross out">' + ICONS.x + '</button>' +
@@ -2060,7 +2112,7 @@ function jobCard(j) {
     (j.status === 'failed' && j.prompt ? '<button type="button" class="again">Try again</button>' : '') +
     // SAVE GOES TO PHOTOS (2026-09-10, Sophie: "shud save directly to my
     // photos") — it was a link to the clip's own url, which on her phone
-    // opens a player she then has to long-press out of. Now `saveVideo`.
+    // opens a player she then has to long-press out of. Now `saveMedia`.
     (j.video ? '<button type="button" class="save">save</button>' : '') +
     '</div>' +
     // OUTSIDE the signature below: the thread and her open box live here, so a
@@ -2104,7 +2156,14 @@ function jobCard(j) {
     var sv = el.querySelector('.acts .save');
     if (sv) {
       sv.addEventListener('pointerdown', function () { var jj = jobsById[j.id] || j; if (jj.video) primeSave(jj.video); });
-      sv.addEventListener('click', function () { var jj = jobsById[j.id] || j; if (jj.video) saveVideo(jj.video); });
+      sv.addEventListener('click', function () { var jj = jobsById[j.id] || j; if (jj.video) saveMedia(jj.video); });
+    }
+    // the last frame opens BIG, where the save is — the same primed-bytes
+    // ladder, since the share sheet needs them in hand before the tap
+    var lf = el.querySelector('.lfopen');
+    if (lf) {
+      lf.addEventListener('pointerdown', function () { var jj = jobsById[j.id] || j; if (jj.lastFrame) primeSave(jj.lastFrame); });
+      lf.addEventListener('click', function () { var jj = jobsById[j.id] || j; if (jj.lastFrame) openShot(jj.lastFrame); });
     }
   }
   var st = el.querySelector('[data-st]');
@@ -2372,6 +2431,27 @@ var TRIM_EPS = 0.03;     // "at the end" — a frame at 24fps is 0.042s
 function fsec(x) { return String(Math.round(Number(x) * 100) / 100); }
 function r3(x) { return Math.round(Number(x) * 1000) / 1000; }
 
+// THE LAST FRAME, BIG, WITH A SAVE (2026-09-11, Sophie: "how do i get these
+// last frames"). The SAME overlay the clip opens in — one lightbox on this
+// page — with no trim bar and no filmnote: there is no timeline to mark and
+// no second to note. A tap on the picture does NOT close (the house rule the
+// player already keeps); the backdrop and the ✕ do.
+var shotUrl = '';
+function openShot(url) {
+  var pl = $('player');
+  if (window.__scrollStop) window.__scrollStop();
+  savedY = window.scrollY || 0;
+  document.body.style.overflow = 'hidden';
+  var im = document.createElement('img');
+  im.className = 'pimg'; im.src = url; im.alt = '';
+  pl.querySelector('.pstage').appendChild(im);
+  shotUrl = url;
+  $('psave').hidden = false;
+  $('trimbar').hidden = true;
+  pl.hidden = false;
+}
+$('psave').addEventListener('pointerdown', function () { if (shotUrl) primeSave(shotUrl); });
+$('psave').addEventListener('click', function () { if (shotUrl) saveMedia(shotUrl); });
 function openPlayer(url, j) {
   var pl = $('player');
   if (window.__scrollStop) window.__scrollStop();
@@ -2395,6 +2475,8 @@ function closePlayer() {
   var pl = $('player');
   if (fnote) { try { fnote.destroy(); } catch (e) {} fnote = null; }
   pl.querySelectorAll('video').forEach(function (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (e) {} v.remove(); });
+  pl.querySelectorAll('img.pimg').forEach(function (im) { im.remove(); });
+  shotUrl = ''; $('psave').hidden = true;
   pl.hidden = true;
   TR = null;
   $('trimbar').hidden = true;
@@ -2407,10 +2489,10 @@ function closePlayer() {
 // button and on every tap inside its sheet, and on every trim control — none
 // of those is a video. The STAGE counts as backdrop: the picture is
 // bottom-aligned in it, so the room above the clip is the black margin she has
-// always been able to tap out on — and the `.ptop` row holding the ✕ is
+// always been able to tap out on — and the `.pbar` row holding the ✕ is
 // backdrop too: on a portrait clip it is the only margin there is.
 $('player').addEventListener('click', function (e) {
-  if (e.target === $('player') || e.target.classList.contains('pstage') || e.target.classList.contains('ptop')
+  if (e.target === $('player') || e.target.classList.contains('pstage') || e.target.classList.contains('pbar')
     || (e.target.closest && e.target.closest('.pclose'))) closePlayer();
 });
 window.__navBack = function () { if (!$('player').hidden) { closePlayer(); return true; } return false; };
