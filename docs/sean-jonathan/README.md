@@ -13,7 +13,9 @@ shape the belt hands over.
 | the test | `node scripts/test-sean-jonathan-belt.js` |
 | the two already-drawn scenes, verbatim off the job log | `shot.json` |
 | her typos, fixed on the way onto the page | `typos.json` |
-| the live page | `sean-jonathan-script` → Compare tab, *Sean & Jonathan — the draft belt v3* (`DkEGwxPzbR33u1H4jYw6`) |
+| what the model invents, and who has to match it | `continuity.json` |
+| the still grabber | `scripts/sean-jonathan/grab-still.js` |
+| the live page | `sean-jonathan-script` → Compare tab, *Sean & Jonathan — the draft belt v4* (`hFNh09kvwyegOn56muSy`) |
 
 ## THE RUNNING ORDER, AND WHY IT IS HERS
 
@@ -48,6 +50,46 @@ the page; one that matched twice would rewrite a scene she never looked at.
 unclosed quote, one word that is plainly another (`rubs` → `runs`, in a sentence
 that already says *"about to run into the kitchen"*). Anything where the fix
 could go two ways is NOT a fix — it goes to her as a question instead.
+
+## THE ROOMS ARE SCREENSHOTS — `continuity.json`
+
+2026-09-11, Sophie: *"we need to take screenshots of any rooms it invents or
+objects that repeat."* Ten scenes drawn as ten separate clips means the model
+invents the apartment ten times over. The reference VIDEOS carry the two men;
+nothing carried the rooms.
+
+So each thing is grabbed ONCE out of the clip that establishes it and rides as a
+reference IMAGE on every later card that needs it:
+
+    node scripts/sean-jonathan/grab-still.js --list
+    node scripts/sean-jonathan/grab-still.js --key kitchen --at 6.5        # dry
+    node scripts/sean-jonathan/grab-still.js --key kitchen --at 6.5 --go   # files it
+
+**It costs nothing** — one download, one ffmpeg frame, one upload, all on our own
+box. **Dry by default on purpose**: it writes the frame to /tmp and prints the
+path so it can be LOOKED AT before it starts steering ten clips. Re-running is
+free and idempotent (the Dump dedupes by content hash).
+
+**The frame is pulled at the clip's own resolution and never scaled**, and the
+clip is never touched — *nothing stands between the source and the output*.
+
+Grabbed (from the two drawn clips): **the living room** · **the bedroom** ·
+**what they are wearing**. Waiting on their scenes: the kitchen, the oven, the
+dining table. Each card says which it is missing and which card will make it.
+
+**THE VIDEOS LEAD AND THE STILLS FOLLOW.** The footage page slots by the order of
+the list, so a still slipping in front would move `[Video1]`/`[Video2]` out from
+under her who's-who block. Images and videos are numbered separately, so a card
+reads `[Video1] [Video2] [Image1]` and the header names the still by its slot and
+never describes it.
+
+**A CHAINED CARD ASKS FOR NO STILL.** `sj-c` continues the clip before it, which
+already carries that clip's room and its clothes; adding the same room again as
+a still would be the same fact twice. A test pins it.
+
+**`neededBy: []` MEANS A RECORD, NEVER A REFERENCE** — the front door, the
+skylight, the easy chair, the desk, the bathroom each appear in one scene only,
+so nothing has to carry them and they never ride a card.
 
 ## THE CAST CARD
 

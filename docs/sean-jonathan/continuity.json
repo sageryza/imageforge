@@ -1,0 +1,129 @@
+{
+ "_note": "2026-09-11, Sophie: \"we need to take screenshots of any rooms it invents or objects that repeat.\" Ten scenes drawn as ten separate clips means the model invents the apartment ten times over. The reference VIDEOS carry the two men; nothing carried the rooms. So each thing below is grabbed once out of the clip that establishes it (scripts/sean-jonathan/grab-still.js — free, one ffmpeg frame on our own box) and then rides as a reference IMAGE on every later card that needs it.",
+ "_rules": "A thing with `neededBy: []` is a RECORD, not a reference — it appears in one scene only, so nothing carries it and it never rides a card. A card that CHAINS off the clip before it already carries that clip's room and clothes, so it is never listed (that is why sj-c asks for neither the bedroom nor the wardrobe). `line` is what goes in the header, filled with the slot the builder assigns: a reference is named by its slot and never described.",
+ "dumpSession": "sean-jonathan-continuity",
+ "dumpBundle": "Sean & Jonathan — continuity",
+ "things": [
+  {
+   "key": "livingroom",
+   "name": "the living room",
+   "what": "the brown leather couch, the green plaid rug, the plant, the framed print",
+   "establishedOn": "sj-a",
+   "neededBy": [
+    "sj-6"
+   ],
+   "line": "the room is [SLOT].",
+   "at": 12,
+   "still": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/92a1276681dc970f42c824cc9ff74236.jpg",
+   "dumpId": "2iEM1GHx9jxGfukowXgE",
+   "from": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789080125649-2ktnq0.mp4",
+   "grabbedAt": "2026-09-11T01:11:50.026Z"
+  },
+  {
+   "key": "bedroom",
+   "name": "the bedroom",
+   "what": "the bed, the grey headboard, the white built-in closet doors, the bedside lamp",
+   "establishedOn": "sj-b",
+   "neededBy": [
+    "sj-5"
+   ],
+   "line": "the room is [SLOT].",
+   "at": 9.5,
+   "still": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3e7321278eb15609a1b42180d84807e3.jpg",
+   "dumpId": "M7q5TOzLoY0tVJJ3zCyK",
+   "from": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789087038575-9fc2na.mp4",
+   "grabbedAt": "2026-09-11T01:11:51.002Z"
+  },
+  {
+   "key": "wardrobe",
+   "name": "what they are wearing",
+   "what": "the clothes the model put them in — it is one continuous evening until weeks pass",
+   "establishedOn": "sj-b",
+   "neededBy": [
+    "sj-d",
+    "sj-1",
+    "sj-2"
+   ],
+   "line": "they wear what they are wearing in [SLOT].",
+   "at": 14.9,
+   "still": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/9d843a55b9fd7776e8a671dc9b40c6ab.jpg",
+   "dumpId": "YIdGv7JxaJGmZWNbkV6s",
+   "from": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789087038575-9fc2na.mp4",
+   "grabbedAt": "2026-09-11T01:11:51.675Z"
+  },
+  {
+   "key": "kitchen",
+   "name": "the kitchen",
+   "what": "the cupboards and cabinets sean opens — the tea cups come out of one of them in the tea party",
+   "establishedOn": "sj-d",
+   "neededBy": [
+    "sj-1",
+    "sj-3"
+   ],
+   "line": "the room is [SLOT].",
+   "at": null
+  },
+  {
+   "key": "oven",
+   "name": "the oven",
+   "what": "sean looks inside it in the kitchen and pulls the burnt cookies out of it weeks later",
+   "establishedOn": "sj-d",
+   "neededBy": [
+    "sj-3"
+   ],
+   "line": "the oven is the one in [SLOT].",
+   "at": null
+  },
+  {
+   "key": "table",
+   "name": "the dining table",
+   "what": "the small round dining room table, and the window beside it",
+   "establishedOn": "sj-1",
+   "neededBy": [
+    "sj-2"
+   ],
+   "line": "the table is the one in [SLOT].",
+   "at": null
+  },
+  {
+   "key": "door",
+   "name": "the front door",
+   "what": "the door he padlocks and chains",
+   "establishedOn": "sj-2",
+   "neededBy": [],
+   "at": null
+  },
+  {
+   "key": "skylight",
+   "name": "the skylight",
+   "what": "the skylight sean's face appears in",
+   "establishedOn": "sj-2",
+   "neededBy": [],
+   "at": null
+  },
+  {
+   "key": "easychair",
+   "name": "the easy chair",
+   "what": "the chair jonathan watches from",
+   "establishedOn": "sj-3",
+   "neededBy": [],
+   "at": null
+  },
+  {
+   "key": "desk",
+   "name": "his desk",
+   "what": "the desk he paints at, standing",
+   "establishedOn": "sj-4",
+   "neededBy": [],
+   "at": null
+  },
+  {
+   "key": "bathroom",
+   "name": "the bathroom",
+   "what": "the shower, its curtain and its rod",
+   "establishedOn": "sj-4",
+   "neededBy": [],
+   "at": null
+  }
+ ]
+}

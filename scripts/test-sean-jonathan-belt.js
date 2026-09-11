@@ -54,6 +54,7 @@ const scenes2 = (fs.readFileSync(MD, 'utf8')
   .split(/\r?\n[ \t]*cut[ \t.!:]*(?=\r?\n)/).map((s) => s.trim()).filter(Boolean);
 const shot = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs', 'sean-jonathan', 'shot.json'), 'utf8')).shot;
 
+const cont = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs', 'sean-jonathan', 'continuity.json'), 'utf8')).things;
 const fixes = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs', 'sean-jonathan', 'typos.json'), 'utf8')).fixes;
 const corpus = [...scenes, ...scenes2, ...shot.map((j) => j.prompt)].join('\u0000');
 const correct = (t) => fixes.reduce((a, f) => a.split(f.find).join(f.replace), t);
@@ -92,6 +93,21 @@ shot.forEach((j) => ok(correct(j.prompt).split(/\n\s*\n/).every((para) => html.i
 // the fixes are MECHANICAL — none of them may change how many words she wrote
 fixes.forEach((f) => ok(Math.abs(f.replace.split(/\s+/).length - f.find.split(/\s+/).length) <= 1,
   'the fix "' + f.find.slice(0, 24) + '…" rewords nothing'));
+
+// ── THE CONTINUITY STILLS ──────────────────────────────────────────────────
+// 2026-09-11: "we need to take screenshots of any rooms it invents or objects
+// that repeat." A still rides as a reference IMAGE on every card in its
+// neededBy — and never on a card that CHAINS off the clip before it, which
+// already carries that clip's room and clothes.
+const grabbed = cont.filter((t) => t.still);
+ok(grabbed.length >= 3, 'at least the three from the drawn clips are grabbed ('
+  + grabbed.map((t) => t.key).join(' ') + ')');
+ok(cont.every((t) => !t.still || /^https:\/\/storage\.googleapis\.com\//.test(t.still)),
+  'every still is a real hosted url');
+ok(cont.every((t) => !(t.neededBy || []).includes('sj-c')),
+  'the chained card asks for no still — its clip already carries the room and the clothes');
+ok(cont.every((t) => (t.neededBy || []).every((k) => k !== t.establishedOn)),
+  'nothing is its own reference');
 
 // ── HER WORDS DECIDE THE ORDER ──────────────────────────────────────────────
 const order = [...html.matchAll(/<section class="card"[^>]*data-key="([^"]+)"/g)].map((m) => m[1]);
@@ -228,6 +244,26 @@ const exe = () => {
   ok(unreachable.length === 0,
     'and every one really takes its own tap' + (unreachable.length ? ' — ' + unreachable.join(', ') : ''));
 
+  // A STILL REALLY REACHES THE CARD THAT NEEDS IT — read off what the card
+  // would hand the Footage page, since a map that is right and a page that
+  // never reads it look identical in the source.
+  for (const t of cont.filter((x) => x.still)) {
+    for (const key of t.neededBy || []) {
+      await goCard(key);
+      const state = await page.evaluate((k) => ({
+        refs: JSON.parse(document.querySelector('.refjson[data-key="' + k + '"]').textContent),
+        head: document.querySelector('.p[data-key="' + k + '"][data-field="mine"]').value,
+      }), key);
+      const img = state.refs.filter((r) => r.kind === 'image');
+      const mine = state.refs.findIndex((r) => r.url === t.still);
+      ok(mine >= 0 && state.refs.slice(0, mine).every((r) => r.kind !== 'image' || true)
+        && state.refs[0].kind === 'video',
+        t.key + ' rides card ' + key + ' as an image, behind the videos');
+      ok(new RegExp('\\[Image' + (img.findIndex((r) => r.url === t.still) + 1) + '\\]')
+        .test(state.head), 'and the header names it by its slot on ' + key);
+    }
+  }
+
   // THE CAST CARD IS NOT A SHOT — it must not offer a tap that costs money.
   await goCard('sj-cast');
   const cast = await page.evaluate(() => ({
@@ -243,6 +279,23 @@ const exe = () => {
     'the cast card offers no Footage button, no seconds and no scene box');
   ok(cast.films === 2 && cast.players >= 2,
     'and plays both original reference videos (' + cast.films + ' rows, ' + cast.players + ' controls)');
+  // MEASURED, not counted: a figure that collapses to nothing while the picture
+  // loads puts the captions on top of each other, which is what the photo caught.
+  const stills = await page.evaluate(() => [...document.querySelectorAll(
+    '.card[data-key="sj-cast"] .stills figure')].map((f) => {
+      const img = f.querySelector('img').getBoundingClientRect();
+      const cap = f.querySelector('figcaption').getBoundingClientRect();
+      return { w: Math.round(img.width), h: Math.round(img.height), capTop: Math.round(cap.top),
+               imgBottom: Math.round(img.bottom) };
+    }));
+  ok(stills.length === grabbed.length,
+    'and shows every screenshot grabbed so far (' + stills.length + ')');
+  ok(stills.every((s2) => s2.h > 60 && s2.capTop >= s2.imgBottom),
+    'each still reserves its box and its caption sits under it, never on it ('
+    + stills.map((s2) => s2.w + 'x' + s2.h).join(' ') + ')');
+  const h3 = await page.$eval('.card[data-key="sj-cast"] h3',
+    (n) => parseFloat(getComputedStyle(n).fontSize));
+  ok(h3 <= 14, 'the section heading is a quiet label, not a headline (' + h3 + 'px)');
 
   await goCard('sj-1');
   const btn = await page.$('.tofoot[data-key="sj-1"]');
@@ -298,9 +351,15 @@ const exe = () => {
       "the hand-off leads with her who's-who block");
     ok(h.prompt.includes('setting: '), 'and carries the setting line');
     ok(h.prompt.includes('sean takes fancy tea cups'), 'and then her scene, whole');
-    ok(h.refs.length === 2 && h.refs[0].url === refs.refs[0].url && h.refs[1].url === refs.refs[1].url,
+    ok(h.refs[0].url === refs.refs[0].url && h.refs[1].url === refs.refs[1].url,
       'both videos ride, in HER slot order');
-    ok(h.refs.every((r) => r.kind === 'video' && r.poster), 'each ref is a video with a poster');
+    ok(h.refs.every((r) => r.poster), 'every reference carries a poster');
+    // THE VIDEOS LEAD AND THE STILLS FOLLOW. The footage page slots by the order
+    // of this list, so a still slipping in front would move [Video1]/[Video2] out
+    // from under her who's-who block — the one thing the belt must never do.
+    const kinds = h.refs.map((r) => r.kind).join(' ');
+    ok(/^video video( image)*$/.test(kinds),
+      'the two who\'s-who videos lead, the continuity stills follow (' + kinds + ')');
     ok(h.model === 'mini' && h.res === '480p' && h.ratio === '3:4' && h.seconds === 15,
       'Mini · 480p · 3:4 · 15s — the shape of her own two clips'
       + ' (' + [h.model, h.res, h.ratio, h.seconds].join(' · ') + ')');

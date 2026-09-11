@@ -64,13 +64,14 @@ SCRIPT_MD = os.path.join(DOCS, 'script.md')
 REFS_JSON = os.path.join(DOCS, 'refs.json')
 SHOT_JSON = os.path.join(DOCS, 'shot.json')
 TYPOS_JSON = os.path.join(DOCS, 'typos.json')
+CONT_JSON = os.path.join(DOCS, 'continuity.json')
 BASE = 'https://imageforge-q125.onrender.com'
 CHAT = 'sean-jonathan-script'
 SHEET = 'belt-seanjonathan'
 # A NEW VERSION IS A NEW PAGE and the title says which — the house rule for
 # anything posted, because a posted page is frozen and her Compare tab shows
 # them side by side. Bump this and supersede the one it replaces.
-VERSION = 3
+VERSION = 4
 TITLE = 'Sean & Jonathan — the draft belt v%d' % VERSION
 LIMIT = 8000
 
@@ -114,6 +115,19 @@ RUNNING = [
     dict(key='sj-6', name='A whole new world', src='one:6',
          room="setting: the apartment, then outside — a field of rose petals, then swings at a park."),
 ]
+
+
+def continuity():
+    """What the model invents, and which later cards have to match it.
+
+    2026-09-11, Sophie: "we need to take screenshots of any rooms it invents or
+    objects that repeat." Ten scenes drawn as ten clips means the apartment is
+    invented ten times over; the reference videos carry the two men and nothing
+    carried the rooms. A thing is grabbed once out of the clip that establishes
+    it (`scripts/sean-jonathan/grab-still.js`, free) and then rides as a
+    reference IMAGE on every card in its `neededBy`.
+    """
+    return json.load(open(CONT_JSON, encoding='utf-8'))['things']
 
 
 def fixes():
@@ -166,6 +180,7 @@ def plan():
     """Every card resolved: its words, its header, its references, its clip."""
     R, shot, one, two = sources()
     fx, tally = fixes(), {}
+    things = continuity()
     pair = R['refs']
     out = []
     for i, c in enumerate(RUNNING):
@@ -196,6 +211,20 @@ def plan():
             else:
                 refs = [dict(r) for r in pair]
                 head = R['whosWho'] + '\n\n' + c['room']
+        # THE CONTINUITY STILLS RIDE AFTER THE VIDEOS. Images and videos are
+        # slotted separately by the footage page, so adding one can never move
+        # [Video1]/[Video2] out from under her who's-who block. A still that has
+        # not been grabbed yet simply does not ride — the card says so instead.
+        needs = [t for t in things if c['key'] in (t.get('neededBy') or [])]
+        got = [t for t in needs if t.get('still')]
+        for m, t in enumerate(got):
+            refs.append(dict(url=t['still'], kind='image', poster=t['still'],
+                             name=t['name'], _slot='[Image%d]' % (m + 1), _who=t['name']))
+        if got:
+            head = head + '\n\n' + '\n'.join(
+                t['line'].replace('[SLOT]', '[Image%d]' % (m + 1))
+                for m, t in enumerate(got))
+        invents = [t for t in things if t.get('establishedOn') == c['key']]
         before = words
         mine = {}
         words = correct(words, fx, mine)
@@ -203,7 +232,8 @@ def plan():
             tally[k2] = tally.get(k2, 0) + v
         out.append(dict(c, n=i + 1, words=words, head=head, refs=refs, clip=clip,
                         secs=secs, shot=(kind == 'shot'), fixed=sum(mine.values()),
-                        raw=before))
+                        raw=before, invents=invents,
+                        waiting=[t for t in needs if not t.get('still')]))
 
     # EVERY FIX MUST HAVE LANDED, EXACTLY ONCE. A `find` that stopped matching
     # (her words moved) would fail silently and leave the typo on the page; one
@@ -221,15 +251,45 @@ def plan():
     # them — no seconds, no price, no Footage button, because nothing about it is
     # a shot.
     out.append(dict(key='sj-cast', name='The cast', n=len(out) + 1, cast=True,
-                    refs=[dict(r) for r in pair], shot=False, fixed=0,
-                    clip=None, secs=0, words='', head='', raw=''))
+                    refs=[dict(r) for r in pair], shot=False, fixed=0, clip=None,
+                    secs=0, words='', head='', raw='', invents=[], waiting=[],
+                    stills=[t for t in things if t.get('still')]))
     return out
+
+
+def notes(c, label, e):
+    """The three quiet lines under a card's controls: what was corrected, what to
+    screenshot once this scene draws, and what this scene is still waiting for.
+
+    Named by CARD rather than by key — `sj-d` means nothing to her, "4 · The
+    kitchen" does.
+    """
+    out = []
+    if c['fixed']:
+        out.append('<p class="fixnote">%d typo%s fixed — your own words otherwise, '
+                   'word for word</p>' % (c['fixed'], '' if c['fixed'] == 1 else 's'))
+    grab = [t for t in c['invents'] if t.get('neededBy') and not t.get('still')]
+    if grab:
+        out.append('<p class="grab">screenshot once it draws: %s</p>' % ' · '.join(
+            '<b>%s</b> (for %s)' % (e(t['name']), e(' and '.join(label[x] for x in t['neededBy'])))
+            for t in grab))
+    if c['waiting']:
+        froms = []
+        for t in c['waiting']:
+            if label[t['establishedOn']] not in froms:
+                froms.append(label[t['establishedOn']])
+        out.append('<p class="grab">waiting on a screenshot of <b>%s</b> — from %s. '
+                   'It rides here the moment it is grabbed.</p>'
+                   % (e(' and '.join(t['name'] for t in c['waiting'])), e(' and '.join(froms))))
+    return ''.join(out)
 
 
 def build():
     e = html.escape
     cards, toc, films = [], [], []
-    for c in plan():
+    cs = plan()
+    label = {c['key']: '%d · %s' % (c['n'], c['name']) for c in cs}
+    for c in cs:
         k = c['key']
         # THE CAST CARD IS NOT A SHOT — no seconds, no price, no Footage button.
         # It is the two videos that say who is who, where she can play them and
@@ -246,10 +306,16 @@ def build():
                 'the same two people on every scene.</p>\n%s'
                 '<p class="done">Found a better video of one of them? Put it in the Dump and '
                 'say which — it swaps here and on all ten scenes at once, and nothing else '
-                'about the belt moves.</p>\n</section>' % (
+                'about the belt moves.</p>%s\n</section>' % (
                     k, k, k, e(str(c['n'])), e(c['name']),
                     ''.join('<div class="film" id="film-%s-%s"></div>' % (k, e(r['_who']))
-                            for r in c['refs'])))
+                            for r in c['refs']),
+                    ('<h3>the rooms so far</h3><p class="done">Screenshots of what the model '
+                     'invented, pulled out of the clips that made them. Each one rides the '
+                     'later cards that have to match it.</p><div class="stills">%s</div>'
+                     % ''.join('<figure><img src="%s" alt=""><figcaption>%s</figcaption></figure>'
+                               % (e(t['still']), e(t['name'])) for t in c['stills']))
+                    if c.get('stills') else ''))
             toc.append('<a href="#j-%s">%s %s</a>' % (k, e(str(c['n'])), e(c['name'])))
             continue
         # what the footage page reads: url · kind · poster · name, in slot order
@@ -285,9 +351,7 @@ def build():
                         % (e(r['poster']), e(r['_slot']), e(r['_who'])) for r in c['refs']),
                 k, c['secs'], k, e('%s · %s' % (c['n'], c['name'])),
                 'shoot it again' if c['shot'] else 'send to Footage', k,
-                ('<p class="fixnote">%d typo%s fixed — your own words otherwise, '
-                 'word for word</p>' % (c['fixed'], '' if c['fixed'] == 1 else 's'))
-                if c['fixed'] else '',
+                notes(c, label, e),
                 k, refjson,
                 'continues the clip before (yours)'
                 if c.get('chain') else 'who’s who (yours)',
@@ -311,6 +375,13 @@ def build():
         '<b>[Video2]</b> sean. <i>I just moved IN</i> carries the clip before it '
         'instead, the way you drew scene 2. The only line in that box I wrote is '
         '<i>setting:</i>, and it names the room and nothing else.</p>'
+        '<p><b>The rooms are screenshots now.</b> The model invents the apartment '
+        'once per clip, so a still of each room is pulled out of the clip that made it '
+        '(free — a frame off our own box) and rides every later card that has to match '
+        'it, as <b>[Image1]</b>. The living room, the bedroom and what they are wearing '
+        'are grabbed already; the kitchen, the oven and the dining table are waiting on '
+        'their scenes being drawn, and each card says which it is missing. The last card '
+        'shows them all.</p>'
         '<p><b>Your typos are fixed on the page and nowhere else.</b> Your own files keep '
         'every word as you said it; each fix is one line in <i>typos.json</i> and a card '
         'says how many landed on it. The last card is <b>the cast</b> — the two reference '
@@ -348,6 +419,18 @@ h2{font-size:16px;margin:0 0 8px}
 .tag{display:inline-block;margin-left:8px;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6b6257;border:1px solid #cfc6b6;border-radius:6px;padding:1px 6px;vertical-align:2px}
 p.done{font-size:12px;color:#8a8176;margin:0 0 8px}
 p.fixnote{font-size:11px;color:#8a8176;margin:6px 0 0;font-style:italic}
+p.grab{font-size:11px;color:#6b6257;margin:6px 0 0}
+p.grab b{font-weight:600;color:#3a352e}
+/* SCOPED TO THE CARD — compare.css styles h3 at its own serif size and wins on
+   a bare tag selector, so this read as a big heading until it was photographed. */
+.card h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#8a8176;margin:16px 58px 6px 0;font-weight:600;font-family:inherit}
+.stills{display:flex;gap:10px;flex-wrap:wrap;margin-right:58px}
+.stills figure{margin:0;width:98px}
+/* THE BOX IS RESERVED BEFORE THE PICTURE LANDS — 3:4, the shape every clip on
+   this film is. Without it the figure collapses to nothing while the image
+   loads and the captions land on each other (photographed). */
+.stills img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:6px;border:1px solid #e3dccd;display:block;background:#efe9dc}
+.stills figcaption{font-size:11px;color:#8a8176;margin-top:4px;line-height:1.3}
 .film{margin:0 0 12px}
 .text summary{cursor:pointer;font-size:12px;text-decoration:underline;color:#6b6257;margin-bottom:6px}
 textarea.p{width:100%;box-sizing:border-box;font-family:inherit;font-size:16px;line-height:1.5;padding:10px;border:1px solid #cfc6b6;border-radius:6px;background:#fff;resize:none;min-height:100px}
