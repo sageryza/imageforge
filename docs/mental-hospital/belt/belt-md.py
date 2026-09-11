@@ -66,6 +66,7 @@ p.mine{font-size:12px;color:#8a8176;margin:6px 0 0} pre.mine{font:inherit;font-s
 <div class="deck" id="deck">__SECS__</div>
 <script>
 var CHAT='__CHAT__', SHEET='__SHEET__', LIMIT=8000;
+var PROJECT='ward';   // the footage project a Send-to-Footage lands on
 function post(body){ return fetch('/api/chatfeed/verdict',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}); }
 function cost(k){ var s=parseInt(document.querySelector('.secs[data-key="'+k+'"]').value)||0; document.querySelector('.cost[data-key="'+k+'"]').textContent='$'+(s*0.15).toFixed(2)+' at 15¢/s'; }
 document.querySelectorAll('.p[data-key]').forEach(function(ta){ var k=ta.getAttribute('data-key'), f=ta.getAttribute('data-field')||'p', sv=document.getElementById('sv-'+k+(f==='p'?'':'-'+f)), timer=null;

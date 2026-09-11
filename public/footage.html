@@ -201,6 +201,13 @@
         padding:2px 0;font-family:inherit;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
         color:#9a8f7d;text-align:left;-webkit-tap-highlight-color:transparent}
   .fold svg{width:13px;height:13px;flex:none;transition:transform .15s ease}
+  /* the fold row that also carries the project picker: the row takes the
+     fold's own margins (and the pill's reserve — the shorthand rule above),
+     the fold inside it takes none, and a long shut label gives way to the
+     picker rather than wrapping under it */
+  .foldrow{display:flex;align-items:center;gap:8px;margin:10px var(--pillgap,0px) 6px 0}
+  .foldrow .fold{flex:1;min-width:0;margin:0}
+  .foldrow .fold #ctlfoldlab{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
   .fold.shut svg{transform:rotate(-90deg)}
   .refs{display:flex;gap:8px;flex-wrap:wrap}
   .ref{position:relative;width:72px}
@@ -615,6 +622,7 @@
   <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. Every block has the same two buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing.</p>
   <p><b>The seed</b> is on every finished clip, with a button that puts it back in the box. Leave the box blank and each clip gets a fresh one. A seed repeats the <i>opening</i> of a short clip and then drifts &mdash; it does not survive a changed prompt or a different size, and at 15 seconds it does close to nothing.</p>
   <p><b>Tiles.</b> Each one carries two doors in the middle: <b>&#9654;</b> plays the clip, and the list mark beside it takes you to that clip&rsquo;s card &mdash; its words, its seed, its references and the button that puts them back. The first words of your own newest note on a clip sit along the top of its tile.</p>
+  <p><b>Projects.</b> The first drop-down on the buttons row is the project &mdash; the same folders the character library keeps. Pick one and the clips, the Recent drawer and the characters narrow to it, and every clip you send is filed under it; <b>All projects</b> shows everything, with each clip saying which it belongs to. A scene sent from a belt page switches to its own project by itself. Your words and the references already attached stay put when you switch &mdash; only what is offered narrows.</p>
   <p><b>Characters.</b> The people icon opens this film&rsquo;s library. Tap a character &mdash; or one of their outfits &mdash; and their references go into the strip while the line that names them by slot goes to the top of the box. The line under each one is exactly what it will add, worked out against what you already have attached, so a second character gets <b>[Video2]</b> rather than the slot the library was written against. Each film is its own shelf. Taking a reference off takes its slot name out of the box and renumbers the rest, so a name never points at the wrong picture. Only the names change &mdash; the words around them are yours.</p>
   <p><b>Notes.</b> The speech mark on a clip opens a note; playing one and tapping it pauses the film and notes the second you stopped on. Either way it lands in the one place chats read their notes, and a chat answers on the note itself.</p>
   <p>What is left on Atlas is on its own console &mdash; it has no balance to read from here.</p>
@@ -633,7 +641,22 @@
        "no button word labels above (eg seconds)" · "consolidate buttons. same
        row unless it bleeds over"). The picture icon attaches a reference, the
        two drop-downs are the model and the size, the stepper is the length. -->
-  <button type="button" class="fold" id="ctlfold" aria-expanded="true" aria-controls="controls"><span class="chev"></span><span id="ctlfoldlab">Buttons</span></button>
+  <!-- THE PROJECT (2026-09-11, Sophie: "group projects and character
+       references so when I switch between projects, I can only see those
+       references offered to me and only related files in the tiles list view
+       area"). The cast library's films ARE the list; picking one narrows the
+       feed, the Recent drawer and the character sheet to it and stamps it on
+       every clip sent. "All" is a real stop. IT SITS ON THE FOLD ROW, at the
+       right end of the slack "Buttons" already leaves, because the controls
+       row cannot hold it: MEASURED at 390pt with the pill's column reserved,
+       the eight controls come to 641px against the 574 two lines hold, in
+       any order — a third line, which is the "buttons take up too much room"
+       this row was cut down from. The fold row is never hidden, so the
+       picker is never a trap on an empty project. -->
+  <div class="foldrow">
+    <button type="button" class="fold" id="ctlfold" aria-expanded="true" aria-controls="controls"><span class="chev"></span><span id="ctlfoldlab">Buttons</span></button>
+    <span class="selwrap"><select id="project" aria-label="Project" title="Project"></select><span class="chev"></span></span>
+  </div>
   <div class="row" id="controls">
     <button class="up ib" type="button" id="add" aria-label="Add a reference" title="Add a reference"><span id="addicon"></span><input type="file" accept="image/*,video/*,audio/*" multiple id="file"></button>
     <button id="rectog" type="button" aria-expanded="false" aria-label="Recent — clips you made and references you have used" title="Recent — clips you made and references you have used" hidden></button>
@@ -812,8 +835,96 @@ function doorWord(d) { return d === 'openrouter' ? 'OpenRouter' : d === 'atlascl
 // because the draft is on Mini and the dear rows are her own tap.
 var PAGE_MODELS = ['mini', 'fast', '2.0', '2.5'];
 var PAGE_MODEL = PAGE_MODELS[0];
-var S = { model: PAGE_MODEL, seconds: 4, res: '480p', ratio: '3:4' };
+var S = { model: PAGE_MODEL, seconds: 4, res: '480p', ratio: '3:4', project: '' };
 var refs = [];                       // [{url, kind, poster, name}]
+
+// ── THE PROJECT (2026-09-11) ──────────────────────────────────────────────
+// ONE FIELD READ EVERYWHERE. The cast library's films are the projects (one
+// vocabulary, never a second list): `FILMS` is `GET /api/cast/films`, the
+// picker is remembered as `footage_project` ('' is All), the feed asks
+// `/jobs?project=`, `shown()` keeps a card of another project off both views
+// even if a poll lands it, the Recent drawer narrows by itself (it is derived
+// from the feed), the character sheet opens on the project's shelf, an upload
+// lands in a Dump album named after it, and the star stamps it on the clip.
+// It REPLACES the sheet's own `footage_castfilm` memory — two memories of
+// which film she is on can disagree; one cannot.
+var FILMS = [];                      // [{slug, name, order, …}] off /api/cast/films
+var NEW_PROJECT = '__new';
+function projectSaved() {
+  try { return localStorage.getItem('footage_project') || localStorage.getItem('footage_castfilm') || ''; } catch (e) { return ''; }
+}
+function projectSave(p) { try { localStorage.setItem('footage_project', p || ''); } catch (e) {} }
+function projectName(slug) {
+  var f = FILMS.filter(function (x) { return x.slug === slug; })[0];
+  return f ? (f.name || f.slug) : (slug || '');
+}
+function loadFilms() {
+  return castApi('/films').then(function (d) {
+    if (!(d && d.ok && Array.isArray(d.films))) return;
+    FILMS = d.films; paintProject();
+    // a card painted before the names landed says the slug; jobCard rebuilds
+    // only a card whose words changed, so this touches exactly those
+    if (!S.project) repaintCards();
+  }).catch(function () {});
+}
+function repaintCards() {
+  batching = true;
+  try { Object.keys(jobsById).forEach(function (k) { jobCard(jobsById[k]); }); } finally { batching = false; }
+  paintFeed();
+}
+// The picker is filled only when its rows really changed (the house repaint
+// rule — see fillSel). A remembered project the shelf no longer lists is
+// still offered as a row, so a clip filed under it is never unreachable.
+function paintProject() {
+  var el = $('project');
+  // "All" and "New…", not "All projects" and "New project…": a select is as
+  // wide as its longest row, and the long words cost the controls a third
+  // line at 390pt (MEASURED: 127px against 96, the stepper pushed to a row
+  // of its own). The title says Project; the help card says the rest.
+  var rows = [{ id: '', label: 'All' }].concat(FILMS.map(function (f) { return { id: f.slug, label: f.name || f.slug }; }));
+  if (S.project && !FILMS.some(function (f) { return f.slug === S.project; })) rows.push({ id: S.project, label: S.project });
+  rows.push({ id: NEW_PROJECT, label: 'New\u2026' });
+  fillSel(el, rows, S.project);
+}
+// SWITCHING EMPTIES THE FEED AND RE-ASKS — a card of another project must not
+// sit there until the next poll happens to notice. Her words, her attached
+// references and the draft are untouched (case 4 of the plan): only what is
+// OFFERED narrows.
+function setProject(p, opts) {
+  opts = opts || {};
+  p = String(p || '');
+  if (p === S.project && !opts.force) return;
+  S.project = p; projectSave(p);
+  jobsById = {}; olderAt = null; feedMore = false;
+  $('feed').innerHTML = ''; $('tiles').innerHTML = '';
+  castFilm = p; castFilmSave(p); castEnt = ''; CAST = null;
+  paintProject(); paintControls(); paintCast(); paintRecent();
+  if (castOpen) loadCast();
+  loadJobs();
+}
+// A NEW PROJECT IS A NEW FILM ON THE CAST SHELF — one name, free, and the
+// character sheet grows the folder the same moment. The box ships empty.
+function newProject() {
+  var name = window.prompt('Name the project');
+  if (name == null) { paintProject(); return; }
+  name = String(name).trim();
+  if (!name) { paintProject(); return; }
+  var slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  if (!slug) { paintProject(); return; }
+  castApi('/films', { method: 'POST', body: JSON.stringify({ slug: slug, name: name.slice(0, 60) }) })
+    .then(function (d) { if (d && d.ok && Array.isArray(d.films)) FILMS = d.films; })
+    .catch(function () {})
+    .then(function () {
+      if (!FILMS.some(function (f) { return f.slug === slug; })) FILMS.push({ slug: slug, name: name });
+      setProject(slug, { force: true });
+      toast('Project: ' + name);
+    });
+}
+$('project').addEventListener('change', function () {
+  var v = $('project').value;
+  if (v === NEW_PROJECT) { $('project').value = S.project; newProject(); return; }
+  setProject(v);
+});
 var jobsById = {};
 // the feed's walk back past its first page — see loadOlder
 var feedMore = false, olderAt = null, loadingOlder = false;
@@ -899,6 +1010,7 @@ function paintControls(force) {
   paintSeedClear();
   paintRefs();
   paintFolds();
+  paintProject();
   if (!CFG) return;
   var list = models(); if (!list.length) return;
   var m = modelOf(S.model) || list[0]; S.model = m.id;
@@ -1162,7 +1274,9 @@ $('file').addEventListener('change', function (e) {
   toast('Uploading ' + files.length + (files.length === 1 ? ' file…' : ' files…'));
   files.reduce(function (p, f) {
     return p.then(function () {
-      var q = '?bundle=Footage&filename=' + encodeURIComponent(f.name || 'reference');
+      // the project's own album, so the Dump is grouped by the same word;
+      // "Footage" stays the album for a reference attached under All
+      var q = '?bundle=' + encodeURIComponent(S.project ? projectName(S.project) : 'Footage') + '&filename=' + encodeURIComponent(f.name || 'reference');
       return fetch('/api/drop/upload-file' + q, { method: 'POST', headers: hdr({ 'Content-Type': f.type || 'application/octet-stream' }), body: f })
         .then(function (r) { return r.json(); })
         .then(function (j) {
@@ -1314,6 +1428,9 @@ function loadCast() {
       // first folder AND says which it was, so opening the sheet for the
       // first time is one request, not two.
       if (f && !(d.films || []).some(function (x) { return x.slug === f; })) {
+        // A PROJECT WITH NO SHELF YET shows an empty one, never another
+        // film's people under this project's name.
+        if (S.project) { CAST = { ok: true, film: f, films: d.films || [], entries: [] }; paintCast(); return; }
         castFilm = ''; castFilmSave(''); return loadCast();
       }
       castFilm = d.film || f || '';
@@ -1343,7 +1460,9 @@ function paintCast() {
   el.innerHTML = '';
   // the folders — her "diff folders", one film each
   var films = CAST.films || [];
-  if (films.length > 1) {
+  // the picker on the controls row is the control while a project is picked;
+  // the chips are for All, where the sheet still has to say which shelf it is
+  if (films.length > 1 && !S.project) {
     var fr = document.createElement('div'); fr.className = 'films';
     films.forEach(function (f) {
       var b = document.createElement('button'); b.type = 'button';
@@ -1358,7 +1477,7 @@ function paintCast() {
     el.appendChild(fr);
   }
   var ents = CAST.entries || [];
-  if (!ents.length) { el.appendChild(node('div', 'none', 'Nobody in this film yet.')); return; }
+  if (!ents.length) { el.appendChild(node('div', 'none', S.project ? 'Nobody in ' + projectName(S.project) + ' yet.' : 'Nobody in this film yet.')); return; }
   CAST_GROUPS.forEach(function (g) {
     var mine = ents.filter(function (e) { return e.kind === g[0]; });
     if (!mine.length) return;
@@ -1574,7 +1693,7 @@ $('go').addEventListener('click', function () {
   $('err').hidden = true;
   if (!prompt.trim()) return toast('Say what the clip is first');
   var body = { prompt: prompt, model: S.model, seconds: S.seconds, resolution: S.res, ratio: S.ratio,
-    sound: true, door: doorNow(), refs: orderedRefs() };
+    sound: true, door: doorNow(), refs: orderedRefs(), project: S.project };
   // blank means nothing is sent, and the door mints one — never a remembered seed
   if (seedVal()) body.seed = Number(seedVal());
   btn.disabled = true;
@@ -1603,7 +1722,7 @@ $('go').addEventListener('click', function () {
       resolution: S.res, ratio: S.ratio, sound: true, refs: body.refs, status: 'drawing', estimate: d.estimate,
       // the door answers with the seed it really used — hers, or the one it
       // minted — so the card carries it without waiting for the first poll
-      seed: d.seed != null ? d.seed : null,
+      seed: d.seed != null ? d.seed : null, project: S.project,
       sentAt: new Date().toISOString(), note: d.note || '', video: '', poster: '', vote: '' });
     toast(blocks().length > 1 ? 'Drawing block ' + (blocks().indexOf(box.closest('.promptwrap')) + 1) + '…' : 'Drawing…');
     // her words STAY in the box after a send (a re-roll is one tap), and so
@@ -1631,7 +1750,10 @@ function paintFilt() {
 }
 // WHICH CLIPS SHOW — one predicate, read by both views, so the wall and the
 // list can never disagree about what a filter means.
-function shown(j) { return !j.hidden && !(likedOnly() && j.vote !== 'like') && !(hideX() && j.vote === 'dislike'); }
+function shown(j) {
+  return !j.hidden && !(likedOnly() && j.vote !== 'like') && !(hideX() && j.vote === 'dislike')
+    && !(S.project && (j.project || '') !== S.project);
+}
 function applyFilt() {
   var tiles = curView() === 'tiles', any = false;
   document.querySelectorAll('#feed .job').forEach(function (el) {
@@ -2058,7 +2180,8 @@ function jobCard(j) {
   // on every card and told her nothing. `silent` is KEPT for a clip that
   // genuinely has none — it never renders for a clip drawn here, and a silent
   // one saying nothing about it would be the card lying.
-  var tags = [j.modelLabel || j.model, j.seconds != null ? j.seconds + 's' : '', j.resolution, j.ratio, j.sound ? '' : 'silent',
+  var tags = [!S.project && j.project ? projectName(j.project) : '',
+    j.modelLabel || j.model, j.seconds != null ? j.seconds + 's' : '', j.resolution, j.ratio, j.sound ? '' : 'silent',
     doorWord(j.door) || 'APIFRAME',
     // ONE RULE ABOUT THE PRICE ON THIS PAGE: a real charge is a number, an
     // ESTIMATE wears a "~" (2026-09-10, her "add ~ to both"). The card needs
@@ -2340,6 +2463,27 @@ function takeHandoff() {
   saveCtl(); saveDraft(); paintControls(true); paintRefs();
   if (window.__fitBigPrompt) window.__fitBigPrompt();
   toast(h.title ? 'From the belt: ' + h.title : 'From the belt');
+  handoffProject(h);
+}
+// A HAND-OFF SWITCHES THE PROJECT (the plan's first automatic case). A belt
+// that declares `var PROJECT='…'` names it outright; one that only names its
+// chat (`from`) is mapped through the served table — which may not have
+// landed at moment 1, so the chat is held and resolved when /status answers.
+var handoffFrom = '';
+function handoffProject(h) {
+  var p = h.project ? String(h.project).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) : '';
+  if (!p && h.from) {
+    if (!CFG) { handoffFrom = String(h.from); return; }
+    p = (CFG.handoffProjects || {})[h.from] || '';
+  }
+  if (p) adoptProject(p, h.projectName);
+}
+function adoptProject(p, name) {
+  if (!FILMS.some(function (f) { return f.slug === p; })) {
+    FILMS.push({ slug: p, name: name || p });
+    castApi('/films', { method: 'POST', body: JSON.stringify({ slug: p, name: name || p }) }).catch(function () {});
+  }
+  setProject(p);
 }
 document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') takeHandoff(); });
 window.addEventListener('pageshow', function () { takeHandoff(); });
@@ -2352,10 +2496,17 @@ function loadStatus() {
     if (!d || !d.models) return;
     CFG = d;
     paintControls();
+    if (handoffFrom) { var f = handoffFrom; handoffFrom = ''; if (CFG.handoffProjects && CFG.handoffProjects[f]) adoptProject(CFG.handoffProjects[f]); }
   }).catch(function () {});
 }
+// the project rides every feed read — and the answer is checked against the
+// project the page is on NOW, so a switch mid-flight cannot land the old
+// project's cards on the new one's screen
+function projQ() { return S.project ? '&project=' + encodeURIComponent(S.project) : ''; }
 function loadJobs() {
-  return api('/jobs?limit=40').then(function (d) {
+  var asked = S.project;
+  return api('/jobs?limit=40' + projQ()).then(function (d) {
+    if (asked !== S.project) return;
     var jobs = (d && d.jobs) || [];
     batching = true;
     try { jobs.slice().reverse().forEach(jobCard); } finally { batching = false; }
@@ -2394,7 +2545,9 @@ function loadOlder() {
   var at = oldestSentAt();
   if (!at) return Promise.resolve();
   loadingOlder = true; paintOlder();
-  return api('/jobs?limit=40&before=' + encodeURIComponent(at)).then(function (d) {
+  var asked = S.project;
+  return api('/jobs?limit=40&before=' + encodeURIComponent(at) + projQ()).then(function (d) {
+    if (asked !== S.project) return;
     var jobs = (d && d.jobs) || [];
     olderAt = at;
     feedMore = !!(d && d.more);
@@ -2848,6 +3001,9 @@ window.__fitPillGap = fitPillGap;
 })();
 
 loadCtl();
+S.project = projectSaved(); castFilm = S.project;   // the ONE memory of which project she is on
+paintProject();
+loadFilms();
 if (window.__fitBigPrompt) window.__fitBigPrompt();   // a restored draft fits its own box
 takeHandoff();          // moment 1 — AFTER loadCtl, so a hand-off beats the restored draft
 paintFilt();

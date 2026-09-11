@@ -177,6 +177,14 @@ function report() {
   ok('the body carries chat=footage, the seconds, the shape and the sound the page always sends',
     b.body.chat === 'footage' && b.body.duration === 4 && b.body.aspectRatio === '3:4' && b.body.generateAudio === true && b.body.resolution === '480p');
   ok('a blank prompt is refused before anything is sent', Boolean(F.buildJob({ prompt: '  ' }).error));
+  // ── THE PROJECT (2026-09-11) ──
+  ok('the project rides the body as the cast\'s own slug shape', F.buildJob({ prompt: 'x', project: 'The Ward!' }).body.project === 'the-ward');
+  ok('no project sends no field at all (what an older page sends)', !('project' in F.buildJob({ prompt: 'x' }).body) && !('project' in F.buildJob({ prompt: 'x', project: '' }).body));
+  ok('cardOf reads the project back, blank for a clip drawn before projects', F.cardOf('x', { prompt: 'p', project: 'ward', params: {} }).project === 'ward' && F.cardOf('x', { prompt: 'p', params: {} }).project === '');
+  ok('every ward belt chat maps to the ward, Ticky Tack to its own', ['soap-pill-scene', 'hospital-severance-rough-cut', 'hospital-night-film', 'climax-dissociation-accounts', 'severance-api-multiple-frames'].every((c) => F.HANDOFF_PROJECTS[c] === 'ward') && F.HANDOFF_PROJECTS['ticky-tack-film-page-dupe'] === 'ticky-tack');
+  ok('the log record keeps the project a door is handed', require('../video-log').sentRecord({ jobId: 'j', prompt: 'p', model: 'm', params: {}, tag: { chat: 'footage', project: 'ward' } }).project === 'ward');
+  ok('all three doors put the project on the log tag', ['openrouter.js', 'atlascloud.js', 'apiframe.js'].every((f) => /note: b\.note, project: b\.project \}/.test(fs.readFileSync(path.join(ROOT, f), 'utf8'))));
+  ok('the feed route filters by project and the move route exists', /projectSlug\(req\.query\.project\)/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')) && /router\.post\('\/jobs\/:id\/project'/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
   ok('seconds outside the model are refused (3s on Mini)', /seconds/.test(F.buildJob({ prompt: 'x', model: 'mini', seconds: 3 }).error || ''));
   ok('the minimum is the default when no seconds are sent', F.buildJob({ prompt: 'x', model: '2.5' }).seconds === 4);
   ok('the title is the prompt cut at a word', F.titleOf('a '.repeat(60)).length <= 70 && F.titleOf('short') === 'short');
@@ -287,8 +295,12 @@ let jobs = [
     // clip is an Atlas one and the f* clips below are not: the tile has to be
     // absent on those, not merely different.
     lastFrame: 'http://127.0.0.1:PORT/frame.png',
-    cost: 5.6, estimate: 6, sentAt: '2026-09-09T08:00:00.000Z', vote: '', hidden: false },
+    cost: 5.6, estimate: 6, sentAt: '2026-09-09T08:00:00.000Z', vote: '', hidden: false,
+    // THE PROJECT (2026-09-11): old1 and f0-f2 are the ward's, f3-f6 belong
+    // to none — so a project filter that leaks in either direction shows
+    project: 'ward' },
 ].concat(Array.from({ length: 7 }, (_, i) => ({
+  project: i < 3 ? 'ward' : '',
   id: 'f' + i, prompt: 'the socks on the line ' + i, model: 'mini', modelLabel: '2.0 Mini', door: 'openrouter', seconds: 4, resolution: '480p', ratio: '3:4',
   sound: true, refs: [], status: 'done', video: 'http://127.0.0.1:PORT/clip.mp4', poster: 'http://127.0.0.1:PORT/ref.png',
   // f6 is the LONG one: the box opens at the model's minimum, so a clip that
@@ -310,6 +322,10 @@ const older = [0, 1, 2].map((i) => ({
   cost: 4.4, estimate: 4.4, sentAt: '2026-09-08T1' + i + ':00:00.000Z', vote: '', hidden: false,
 }));
 const jobReads = [];
+const projReads = [];    // the `project` every feed read asked for
+const castReads = [];    // the film every shelf read asked for
+const filmsPosted = [];  // every new film the page named
+const films = [{ slug: 'ward', name: 'The ward', order: 1, people: 15, wardrobe: 2, settings: 3 }];
 
 const server = http.createServer((req, res) => {
   if (servePublic(req, res)) return;
@@ -328,7 +344,7 @@ const server = http.createServer((req, res) => {
     if (u.pathname === '/api/footage/status') {
       statusCalls += 1;
       return json({ ok: true, doors: { openrouter: true, apiframe: true, atlascloud: true }, balances: { openrouter: { configured: true, left: 35.72 }, apiframe: { configured: true, credits: 817 }, atlascloud: { configured: true } },
-        models: F.publicModels().map((m) => ({ ...m, ...(m.openrouter ? { discount } : {}), ...(m.atlascloud ? { atlasPerSec: atlasRate(m.id) / 100, atlasPays } : {}) })), ratios: F.RATIOS, sizes: F.SIZES, fee: F.OR_FEE });
+        models: F.publicModels().map((m) => ({ ...m, ...(m.openrouter ? { discount } : {}), ...(m.atlascloud ? { atlasPerSec: atlasRate(m.id) / 100, atlasPays } : {}) })), ratios: F.RATIOS, sizes: F.SIZES, fee: F.OR_FEE, handoffProjects: F.HANDOFF_PROJECTS });
     }
     if (u.pathname === '/api/footage/estimate') {
       const q = Object.fromEntries(u.searchParams);
@@ -349,6 +365,18 @@ const server = http.createServer((req, res) => {
         .filter((x) => !x.error).sort((a, b) => a.cents - b.cents);
       return json({ ok: true, ...ranked[0] });
     }
+    // THE CAST LIBRARY, as far as the picker and the sheet read it
+    if (u.pathname === '/api/cast/films' && req.method === 'GET') return json({ ok: true, films });
+    if (u.pathname === '/api/cast/films' && req.method === 'POST') {
+      const b = JSON.parse(body); filmsPosted.push(b);
+      if (!films.some((f) => f.slug === b.slug)) films.push({ slug: b.slug, name: b.name || b.slug, order: 0, people: 0, wardrobe: 0, settings: 0 });
+      return json({ ok: true, films });
+    }
+    if (u.pathname === '/api/cast/' || u.pathname === '/api/cast') {
+      castReads.push(u.searchParams.get('film') || '');
+      const f = u.searchParams.get('film') || (films[0] && films[0].slug) || '';
+      return json({ ok: true, film: f, films, entries: [] });
+    }
     if (u.pathname === '/api/footage/jobs' && req.method === 'GET') {
       // THE FEED PAGES BACK — the stub is the real route's shape: `before`
       // is a sentAt cursor, the answer is the page under it, and `more`
@@ -356,7 +384,12 @@ const server = http.createServer((req, res) => {
       // out `jobs` and says there is more while the old pool is untouched.
       const before = u.searchParams.get('before');
       jobReads.push(before || '');
-      if (!before) return json({ ok: true, jobs, more: older.length > 0 });
+      // the real route filters by project over the WHOLE collection before
+      // the page is cut; no `project` is every clip
+      const proj = u.searchParams.get('project') || '';
+      projReads.push(proj);
+      const mine = proj ? jobs.filter((j) => (j.project || '') === proj) : jobs;
+      if (!before) return json({ ok: true, jobs: mine, more: older.length > 0 });
       const under = older.filter((j) => j.sentAt < before).sort((a, b) => b.sentAt.localeCompare(a.sentAt));
       return json({ ok: true, jobs: under.slice(0, 2), more: under.length > 2 });
     }
@@ -369,7 +402,7 @@ const server = http.createServer((req, res) => {
         // one, else the one it minted (video-seed.js)
         const seed = b.seed != null ? Number(b.seed) : 999111;
         jobs.unshift({ id: 'new1', prompt: b.prompt, model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', seconds: b.seconds, resolution: b.resolution, ratio: b.ratio,
-          sound: true, refs: [], status: 'drawing', seed, sentAt: new Date().toISOString(), estimate: 7, vote: '' });
+          sound: true, refs: [], status: 'drawing', seed, sentAt: new Date().toISOString(), estimate: 7, vote: '', project: b.project || '' });
         json({ ok: true, jobId: 'new1', door: 'atlascloud', fellBack: false, estimate: 7, seed }, 202);
       };
       if (slow) { const ms = slow; slow = 0; return setTimeout(answer, ms); }
@@ -662,7 +695,7 @@ async function pillSweep(pg, where) {
     /var PAGE_MODELS = \['mini', 'fast', '2\.0', '2\.5'\]/.test(PAGE_SRC));
   ok('the resolution is a <select>', sel.rTag === 'SELECT');
   ok('the native chrome is off and the box is the house 6px', sel.appearance === 'none' && sel.radius === '6px');
-  ok('the three drop-downs (model, size, shape) each draw our own inline chevron', sel.chevs === 3);
+  ok('the four drop-downs (project, model, size, shape) each draw our own inline chevron', sel.chevs === 4);
   ok('the resolution opens at Mini\'s minimum', sel.rvalue === '480p' && sel.reses.join(',') === '480p,720p');
   // PICKING FAST REALLY REACHES THE PRICE AND THE JOB — a select whose change
   // handler never fires looks identical to one that works
@@ -1623,6 +1656,111 @@ async function pillSweep(pg, where) {
   ok('the wall is built ONCE for a whole page of clips — ' + JSON.stringify(churn),
     churn.cells >= 8 && churn.made === churn.cells && churn.wipes === 0);
   await ctxT.close();
+
+  // ── THE PROJECT (2026-09-11, Sophie: "group projects and character
+  // references so when I switch between projects, I can only see those
+  // references offered to me and only related files in the tiles list view
+  // area"). Every assertion a MEASUREMENT of what the page shows or what the
+  // stub really received — a picker that paints and filters nothing, a send
+  // that drops the field, and a hand-off that never switches all look fine
+  // in the source. ──────────────────────────────────────────────────────────
+  {
+  const ctxP = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const pgP = await ctxP.newPage();
+  await pgP.goto(`http://127.0.0.1:${port}/footage`);
+  await pgP.waitForSelector('#job-old1');
+  await pgP.waitForTimeout(400);
+  const pick0 = await pgP.evaluate(() => ({
+    rows: Array.from(document.querySelectorAll('#project option')).map((o) => o.value + '=' + o.textContent),
+    val: document.getElementById('project').value,
+    cards: document.querySelectorAll('#feed .job:not([hidden])').length,
+    wardTag: /The ward/.test(document.querySelector('#job-old1 .tags').textContent),
+    noneTag: /The ward/.test(document.querySelector('#job-f4 .tags').textContent),
+  }));
+  ok('the picker opens on All with the cast\'s films and a New row — ' + pick0.rows.join(' '), pick0.val === '' && pick0.rows[0] === '=All' && pick0.rows[1] === 'ward=The ward' && pick0.rows[pick0.rows.length - 1] === '__new=New…');
+  ok('on All every clip shows and a ward clip SAYS so on its card, a project-less one does not', pick0.cards === new Set(jobs.map((j) => j.id)).size && pick0.wardTag && !pick0.noneTag);
+  ok('the feed read under All asked for no project', projReads.length > 0 && projReads.every((p) => p === ''));
+  // pick the ward
+  const n0 = projReads.length;
+  await pgP.selectOption('#project', 'ward');
+  await pgP.waitForFunction(() => document.querySelectorAll('#feed .job').length === 4);
+  await pgP.waitForTimeout(300);
+  const pick1 = await pgP.evaluate(() => ({
+    ids: Array.from(document.querySelectorAll('#feed .job:not([hidden])')).map((e) => e.dataset.id).sort().join(','),
+    wardTag: /The ward/.test(document.querySelector('#job-old1 .tags').textContent),
+    saved: localStorage.getItem('footage_project'),
+    fold: document.getElementById('ctlfoldlab').textContent,
+  }));
+  ok('picking the ward re-asks the feed FOR the ward — ' + projReads.slice(n0).join('|'), projReads.slice(n0).length >= 1 && projReads.slice(n0).every((p) => p === 'ward'));
+  ok('and only the ward\'s four clips are on screen — ' + pick1.ids, pick1.ids === 'f0,f1,f2,old1');
+  ok('inside a project the card does not repeat its name', !pick1.wardTag);
+  ok('the pick is remembered', pick1.saved === 'ward');
+  // the picker sits on the fold row, on one line with it, clear of the pill
+  const seat = await pgP.evaluate(() => {
+    const p = document.getElementById('project'), f = document.getElementById('ctlfold');
+    const pr = p.getBoundingClientRect(), fr = f.getBoundingClientRect(), pill = document.querySelector('body > .float').getBoundingClientRect();
+    const hit = document.elementFromPoint(pr.x + pr.width / 2, pr.y + pr.height / 2);
+    return { sameRow: p.closest('.foldrow') === f.closest('.foldrow'), level: Math.abs((pr.y + pr.height / 2) - (fr.y + fr.height / 2)) < 4, clear: pr.right <= pill.left, tappable: !!(hit && hit.closest('#project')), val: p.value };
+  });
+  ok('the picker sits on the Buttons fold row, level with it, clear of the pill and tappable — ' + JSON.stringify(seat), seat.sameRow && seat.level && seat.clear && seat.tappable && seat.val === 'ward');
+  // the tiles narrow too
+  await pgP.click('#v-tiles');
+  await pgP.waitForTimeout(300);
+  const tiles1 = await pgP.evaluate(() => Array.from(document.querySelectorAll('#tiles .cell:not([hidden])')).map((e) => e.dataset.id).sort().join(','));
+  ok('the wall is the same four — ' + tiles1, tiles1 === 'f0,f1,f2,old1');
+  await pgP.click('#v-list');
+  // a send carries it
+  const nPost = posted.length;
+  await pgP.fill('#prompt', 'the ward corridor, camera at eye level');
+  await pgP.waitForFunction(() => /¢/.test(document.getElementById('cost').textContent));
+  await pgP.click('#go');
+  await pgP.waitForSelector('#job-new1');
+  const sentP = posted.slice(nPost).find((p) => p.prompt);
+  ok('the job the server really received carries project=ward', sentP && sentP.project === 'ward');
+  const newShown = await pgP.evaluate(() => !document.getElementById('job-new1').hidden);
+  ok('and the new clip is on screen inside the project', newShown);
+  // an upload lands in the project\'s own album
+  const nUp = posted.length;
+  await pgP.setInputFiles('#file', { name: 'edna.png', mimeType: 'image/png', buffer: PNG });
+  await pgP.waitForTimeout(600);
+  const up = posted.slice(nUp).find((p) => p.upload);
+  ok('an upload under the ward lands in the "The ward" Dump album', up && up.upload.bundle === 'The ward');
+  // the character sheet opens on the project\'s shelf, with no film chips
+  const nCast = castReads.length;
+  await pgP.click('#casttog');
+  await pgP.waitForTimeout(300);
+  const castV = await pgP.evaluate(() => ({ chips: document.querySelectorAll('#cast .films').length, open: !document.getElementById('cast').hidden }));
+  ok('the character sheet reads the ward\'s shelf — ' + castReads.slice(nCast).join('|'), castReads.slice(nCast).length === 1 && castReads.slice(nCast)[0] === 'ward');
+  ok('and draws no film chips — the picker is the control', castV.open && castV.chips === 0);
+  await pgP.click('#casttog');
+  // a reload remembers, and All brings everything back
+  await pgP.reload();
+  await pgP.waitForSelector('#job-old1');
+  await pgP.waitForTimeout(400);
+  const afterReload = await pgP.evaluate(() => ({ val: document.getElementById('project').value, ids: Array.from(document.querySelectorAll('#feed .job:not([hidden])')).map((e) => e.dataset.id).sort().join(',') }));
+  ok('a reload opens on the remembered project with only its clips — ' + afterReload.ids, afterReload.val === 'ward' && afterReload.ids === 'f0,f1,f2,new1,old1');
+  await pgP.selectOption('#project', '');
+  await pgP.waitForFunction(() => document.querySelectorAll('#feed .job').length === 9);
+  const allAgain = await pgP.evaluate(() => document.querySelectorAll('#feed .job:not([hidden])').length);
+  ok('All brings the other four back', allAgain === 9);
+  // A HAND-OFF SWITCHES THE PROJECT — written by a second page on the same
+  // origin, the way a belt writes it; the map is on /status
+  const pgB = await ctxP.newPage();
+  await pgB.goto(`http://127.0.0.1:${port}/ref.png`);
+  await pgB.evaluate(() => localStorage.setItem('footage_handoff', JSON.stringify({ prompt: 'from the belt', refs: [], model: 'mini', res: '480p', ratio: '16:9', from: 'climax-dissociation-accounts', title: 'the office', at: Date.now() })));
+  await pgP.waitForFunction(() => document.getElementById('project').value === 'ward' && document.querySelectorAll('#feed .job:not([hidden])').length === 5);
+  const hoff = await pgP.evaluate(() => ({ val: document.getElementById('project').value, prompt: document.getElementById('prompt').value, ids: Array.from(document.querySelectorAll('#feed .job:not([hidden])')).map((e) => e.dataset.id).sort().join(',') }));
+  ok('a hand-off from a ward belt switches the picker to the ward and narrows the feed — ' + hoff.ids, hoff.val === 'ward' && hoff.prompt === 'from the belt' && hoff.ids === 'f0,f1,f2,new1,old1');
+  // a belt that DECLARES a project the shelf has never heard of names a new one
+  const nFilms = filmsPosted.length;
+  await pgB.evaluate(() => localStorage.setItem('footage_handoff', JSON.stringify({ prompt: 'ticky tack scene', refs: [], model: 'mini', res: '480p', ratio: '16:9', from: 'ticky-tack-film-page-dupe', project: 'ticky-tack', title: 't', at: Date.now() })));
+  await pgP.waitForFunction(() => document.getElementById('project').value === 'ticky-tack');
+  await pgP.waitForTimeout(300);
+  const tt = await pgP.evaluate(() => ({ rows: Array.from(document.querySelectorAll('#project option')).map((o) => o.value), cards: document.querySelectorAll('#feed .job:not([hidden])').length, empty: !document.getElementById('feedempty').hidden }));
+  ok('a declared project the shelf lacks becomes a row, is filed on the shelf, and shows an empty feed — ' + tt.rows.join(' '), tt.rows.indexOf('ticky-tack') > 0 && filmsPosted.slice(nFilms).some((f) => f.slug === 'ticky-tack') && tt.cards === 0);
+  await pgB.close();
+  await ctxP.close();
+  }
 
   // ── the same sweep at the other inset ────────────────────────────────────
   const pg2 = await ctx.newPage();

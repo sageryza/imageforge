@@ -311,9 +311,13 @@
       .then(function (r) { return r.text(); })
       .then(function (t) {
         var m = /var\s+CHAT\s*=\s*'([^']*)'\s*,\s*SHEET\s*=\s*'([^']*)'/.exec(t);
+        // A BELT MAY NAME ITS PROJECT (2026-09-11) — `var PROJECT='ward'`
+        // beside its CHAT — and the hand-off carries it so the footage page
+        // switches to it. A belt that does not is mapped by its chat there.
+        var pm = /var\s+PROJECT\s*=\s*'([^']*)'/.exec(t);
         return {
           doc: new DOMParser().parseFromString(t, 'text/html'),
-          chat: m ? m[1] : '', sheet: m ? m[2] : '',
+          chat: m ? m[1] : '', sheet: m ? m[2] : '', project: pm ? pm[1] : '',
         };
       }));
   }
@@ -381,6 +385,7 @@
       title: title, at: Date.now() };
     if (s > 0) h.seconds = s;
     if (belt.chat) h.from = belt.chat;
+    if (belt.project) h.project = belt.project;
     return h;
   }
 

@@ -257,7 +257,7 @@ async function startVideo(b, extra) {
   try {
     await admin.firestore().collection(videoLog.COLL).doc(String(jobId))
       .set({ ...videoLog.sentRecord({ jobId, prompt: b.prompt, model, params,
-        tag: { chat: b.chat, scene: b.scene, title: b.title, session: b.session, note: b.note } }),
+        tag: { chat: b.chat, scene: b.scene, title: b.title, session: b.session, note: b.note, project: b.project } }),
       ...(extra && typeof extra === 'object' ? extra : {}) }, { merge: true });
   } catch (e) { console.warn('[apiframe] video log write failed', e.message); }
   return { jobId, model, params };
