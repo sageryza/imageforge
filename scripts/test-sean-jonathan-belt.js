@@ -137,16 +137,24 @@ ok(/the lion king/.test(scenes3[0]) && /a whole new world/.test(scenes[5])
 
 // ── HER WORDS DECIDE THE ORDER ──────────────────────────────────────────────
 const order = [...html.matchAll(/<section class="card"[^>]*data-key="([^"]+)"/g)].map((m) => m[1]);
-ok(order.join(' ') === 'sj-a sj-b sj-c sj-d sj-1 sj-2 sj-3 sj-4 sj-5 sj-6 sj-e sj-cast',
-  'the running order is the chain her own words make, the cast last (' + order.join(' ') + ')');
+// 2026-09-11, Sophie: "the showtime scene goes after code violation before tea
+// party" — the kitchen inspection is the code violation, so the showtune moved
+// from 10 to 5. Her order, and the cast is always last.
+ok(order.join(' ') === 'sj-a sj-b sj-c sj-d sj-6 sj-1 sj-2 sj-3 sj-4 sj-5 sj-e sj-cast',
+  'the running order is hers, the cast last (' + order.join(' ') + ')');
 ok(/we have to sleep in the same bed/.test(shot[1].prompt)
   && /^jonathan \(flabbergasted, splutters\) "WHAT\?!"/.test(scenes2[0])
   && /rubs into the kitchen\.$/.test(scenes2[0])
   && /^now they are in the kitchen together/.test(scenes2[1])
   && /^sean takes fancy tea cups and a tea pot out of the kitchen cabinet/.test(scenes[0]),
   'and each link in it is her own sentence, end to end');
-ok(/data-key="sj-1"[^>]*>\s*<h2>5 · The tea party/.test(html.replace(/\n/g, '')),
-  'the tea party is still sj-1 and is now card 5 — a key never moves');
+// A KEY NEVER MOVES, asserted as a SURVIVAL rather than against a number: the
+// tea party is still `sj-1` and is no longer card 1, which is only meaningful
+// because scenes have been slotted in front of it twice now.
+const teaNum = Number((html.replace(/\n/g, '')
+  .match(/data-key="sj-1"[^>]*>\s*<h2>(\d+) · The tea party/) || [])[1]);
+ok(teaNum === order.indexOf('sj-1') + 1 && teaNum !== 1,
+  'the tea party is still sj-1 and is now card ' + teaNum + ' — a key never moves');
 
 // ── THE WHO'S-WHO BLOCK AND THE SLOTS ARE HERS ──────────────────────────────
 ok(html.includes(esc(refs.whosWho)), "the who's-who block is her own job's, word for word");

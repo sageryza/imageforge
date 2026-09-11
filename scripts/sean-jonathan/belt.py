@@ -71,7 +71,7 @@ SHEET = 'belt-seanjonathan'
 # A NEW VERSION IS A NEW PAGE and the title says which — the house rule for
 # anything posted, because a posted page is frozen and her Compare tab shows
 # them side by side. Bump this and supersede the one it replaces.
-VERSION = 9
+VERSION = 10
 TITLE = 'Sean & Jonathan — the draft belt v%d' % VERSION
 LIMIT = 8000
 
@@ -130,6 +130,8 @@ RUNNING = [
          room="setting: jonathan's apartment — the bed, then the bedroom doorway."),
     dict(key='sj-d', name='The kitchen', src='two:2',
          room="setting: jonathan's apartment — the kitchen, its cupboards, a vase of flowers, the oven."),
+    dict(key='sj-6', name='A whole new world', src='one:6', living=True,
+         room="setting: jonathan's apartment — then outside, a field of rose petals, then swings at a park."),
     dict(key='sj-1', name='The tea party', src='one:1',
          room="setting: jonathan's apartment — the small round dining table, the window, a rose bush below it."),
     dict(key='sj-2', name='Get out', src='one:2', living=True,
@@ -140,8 +142,6 @@ RUNNING = [
          room="setting: jonathan's apartment — his desk, standing, then the bathroom and the shower."),
     dict(key='sj-5', name='Bedtime', src='one:5',
          room="setting: jonathan's apartment — his bed, night, moonlight coming in at the end."),
-    dict(key='sj-6', name='A whole new world', src='one:6', living=True,
-         room="setting: jonathan's apartment — then outside, a field of rose petals, then swings at a park."),
     dict(key='sj-e', name='The rain', src='three:1', living=True,
          room="setting: jonathan's apartment — the window with rain on it, the television."),
 ]

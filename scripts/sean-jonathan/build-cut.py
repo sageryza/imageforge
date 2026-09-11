@@ -24,17 +24,17 @@ TAKE = [
     ('sj-b', 'b1341353f59c439b98a9ea8f727abc83'),
     ('sj-c', 'f326c81f859b4bf4b3b295462a1efd71'),
     ('sj-d', '000c61c2f3e54e03a51bea256df5b3af'),
-    ('sj-1', '18904a5141bd4642a9d4c65c7aea72c6'),
-    ('sj-2', '594ec76e2b9148088730d7b9a6fd2479'),
-    ('sj-3', '6839d29e2ab345a5a3ea653cc7f855f5'),
-    ('sj-4', 'bad0417adf9f483c8e4c9a423b176bbd'),
-    ('sj-5', 'df785dd454284ef88327ee1e8bdeeb26'),
     # THE SOUNDED TAKE IS IN THE FILM SINCE v2 (2026-09-11, Sophie: "redo the
     # copyright w sound · change the lyrics till we get it" — the first change
     # did it, and it came back with real audio, mean -17.9 dB). Her exact-words
     # SILENT take is still on the dailies; only the one line naming the two
     # titles differs between them.
     ('sj-6', '70572d702a1a4544bc96fb740d1ac0f5'),
+    ('sj-1', '18904a5141bd4642a9d4c65c7aea72c6'),
+    ('sj-2', '594ec76e2b9148088730d7b9a6fd2479'),
+    ('sj-3', '6839d29e2ab345a5a3ea653cc7f855f5'),
+    ('sj-4', 'bad0417adf9f483c8e4c9a423b176bbd'),
+    ('sj-5', 'df785dd454284ef88327ee1e8bdeeb26'),
     ('sj-e', '4abab7f1fdd345fe9fdd79f406890332'),
 ]
 
