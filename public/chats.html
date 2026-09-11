@@ -9254,8 +9254,9 @@ function openChat(name, keepScroll, focusId, noFetch){
     var row=renderMsg(parts.length>1 ? Object.assign({}, m, {parts:parts}) : m);
     // a run stays open if ANY of its turns was open before the rebuild
     if(parts.some(function(p){ return p.id&&wasOpen[p.id]; })) row.classList.add('open');
-    mrows.push({row:row, who:(m.from==='sophie'?'me':'claude'),
-      hay:(parts.map(function(p){ return (p.tldr||'')+' '+(p.text||''); }).join(' ')+' '+(m.from==='sophie'?'me':'claude')).toLowerCase()});
+    var mwho=msgWho(m);
+    mrows.push({row:row, who:mwho,
+      hay:(parts.map(function(p){ return (p.tldr||'')+' '+(p.text||''); }).join(' ')+' '+mwho).toLowerCase()});
     mlist.appendChild(row);
   });
   function applyMsgFilter(){
@@ -11262,6 +11263,23 @@ var triNext = window.triNext || function (el, count, ev, cur) {
 // chatfeed.js) are UNTOUCHED and still lead with `all`, because `pickOne`
 // there leans on exactly that index-0 rule to widen an unknown value: this is
 // a display ORDER, and the values on the wire are the same strings.
+// WHOSE MESSAGE IS THIS — the thread filter's twin of the server's `whoOf`
+// (chatfeed.js), and it has to agree with it or the same word narrows to two
+// different piles on two screens. A compaction summary is stamped
+// `from:'sophie'` because the harness hands it over as a user turn, and it is
+// neither hers nor a reply — `auto`, so it leaves the moment she picks a side
+// and stays while she has not. The regex is the harness's own opening line,
+// ANCHORED, so a message merely talking about compaction is untouched; it is
+// COMPACTED in questions.js and the two are pinned equal by the test.
+function msgWho(m){
+  // The regex lives INSIDE the function on purpose: this is a hoisted
+  // declaration called from renderThread, two thousand lines above, and a
+  // `var` beside it would still be undefined if anything ever calls it before
+  // this line runs.
+  if(/^\s*\[?\s*this session is being continued from a previous conversation/i
+     .test(String((m&&m.text)||''))) return 'auto';
+  return (m&&m.from)==='sophie' ? 'me' : 'claude';
+}
 var FILTERS = {
   who: { key:'who', kind:'tri', param:'from', vals:['me','all','claude'], neutral:'all',
          words:['Mine','Everyone','Claude\u2019s'],

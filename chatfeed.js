@@ -731,8 +731,29 @@ function bestPerChat(ranked) {
 // stamp `sophie`. So an unstamped record has to land on Claude's side, and a
 // `from` value nobody has seen must never be counted as hers: silence is the
 // safe direction for the smaller pile.
+//
+// AND A COMPACTION SUMMARY IS NEITHER OF THEM (2026-09-11, Sophie, looking at
+// a MINE search full of billing formulas and container script paths: "these r
+// sposed to be only MY messages"). When a session runs out of context the
+// harness hands the model a recap as a USER turn, so the hook lifts it exactly
+// like something she typed and it is stamped `from:'sophie'` — 8,000
+// characters of another chat's technical notes sitting in the one pile she
+// narrowed the search down to. `isCompacted` already kept these out of the
+// Questions tab and the archive wrap-up line and questions.js's own note names
+// this as the half that was left: "the feed still shows the thing as hers in
+// the thread and under the search's Mine filter". This is that half, for the
+// search.
+//
+// IT IS `auto`, NOT CLAUDE'S. The recap is not a reply either — it quotes her
+// words back, so filing it under Claude's would put an 8,000-character echo of
+// her own messages into the pile she picks when she wants what a chat TOLD
+// her, and a summary quotes far above its weight (4 of 408 messages produced 5
+// of 35 question rows on the same measurement). A third value means it stays
+// findable with NO side picked — the default, and what every older cached page
+// still sends — and leaves the moment she picks one.
 const SEARCH_WHO = ['all', 'me', 'claude'];
-const whoOf = (from) => (from === 'sophie' ? 'me' : 'claude');
+const whoOf = (from, text) => (isCompacted(text) ? 'auto'
+  : from === 'sophie' ? 'me' : 'claude');
 // ONE reader for every search filter, because they all fail the same way: an
 // unknown value must be `all`, never an empty result. A filter she cannot see
 // — an old cached page sending nothing, or a word this server has not learned
@@ -743,7 +764,7 @@ const pickOne = (v, list) => {
   return list.indexOf(w) > 0 ? w : 'all';
 };
 const whoParam = (v) => pickOne(v, SEARCH_WHO);
-const whoMatches = (who, from) => who === 'all' || whoOf(from) === who;
+const whoMatches = (who, from, text) => who === 'all' || whoOf(from, text) === who;
 
 // ---- THE ARCHIVE — the second filter (Aug 2026, Sophie: "another filter to
 // add can be archived as in does it search the archive or not or just the
@@ -819,7 +840,7 @@ router.get('/search', async (req, res) => {
     const limit = Math.min(200, parseInt(req.query.limit, 10) || 80);
     // Every word she typed has to land in the SAME message — that is the whole
     // point — so the haystack is the one message, name and TLDR included.
-    const hits = searchIndex.filter((m) => whoMatches(who, m.from)
+    const hits = searchIndex.filter((m) => whoMatches(who, m.from, m.text)
       && archMatches(arch, archivedChat(m.chat))
       && queryMatches(m.chat + '\n' + m.tldr + '\n' + m.text, groups));
     // Her order first, then newest — see IN THE ORDER SHE TYPED THEM above.
