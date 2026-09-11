@@ -61,7 +61,14 @@ REAL face and what the belt would cost through it is measured in
 answer is that they are a UI over our engine, refuse or approximate a
 private person, and cost 6–200x the Mini door. Sora 2 is shut down
 (API off 2026-09-24). Wan 3.0 takes a script FILE + 20 references in one
-30s pass at 5¢/s with no face rule in its docs — unmeasured on our cast.**
+30s pass at 5¢/s with no face rule in its docs — unmeasured on our cast.
+**WAN 3.0 RIDES THE ATLAS DOOR SINCE 2026-09-11** (`atlascloud.js`, model
+`wan-3.0` → `alibaba/wan-3.0/reference-to-video`, 4¢/s at 480p on Atlas's
+sale, one mixed `refers` array, Alibaba's slot words `Image 1` / `Video 1`;
+from a container `node scripts/atlascloud-send.js --job job.json [--dry]`
+sends THROUGH the module so the job is logged the moment it is sent). The
+first job — her md-31b climax, every reference off the cast shelf — is
+written up in `docs/mental-hospital/wan-test/` and waits on her "go".**
 
 **Every FIVE turns, not every turn (2026-09-07, Sophie: "change the rule to
 every 5 turns")** — the hook's reminder fires on every fifth prompt of a
