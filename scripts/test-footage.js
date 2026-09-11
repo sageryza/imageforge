@@ -752,7 +752,7 @@ async function pillSweep(pg, where) {
       mvalue: m && m.value,
       reses: [...r.options].map((o) => o.value),
       appearance: cs.appearance || cs.webkitAppearance, radius: cs.borderRadius,
-      chevs: document.querySelectorAll('#controls .selwrap .chev svg, .foldrow .selwrap .chev svg').length,
+      chevs: document.querySelectorAll('#controls .selwrap .chev svg').length,
       rvalue: r.value };
   });
   ok('the model is a <select> and it holds the whole 2.x family — ' + sel.models.join(','),
@@ -1170,12 +1170,21 @@ async function pillSweep(pg, where) {
   // in a drop-down and Recent as an icon it still fits on two lines inside
   // what is left. That is the whole of the fix: the reserve is honest and the
   // row is no longer a column.
-  ok('nothing in the controls row is left sitting under the pill',
-    await page.evaluate(() => {
-      const f = document.querySelector('body > .float').getBoundingClientRect();
-      return [...document.getElementById('res').closest('.row').children]
-        .every((k) => { const r = k.getBoundingClientRect(); return !r.width || r.right <= f.left + 1; });
-    }));
+  // THE ROW'S SHAPE, MEASURED. The band invariant above already guards every
+  // row that overlaps the pill (a row BELOW it keeps the panel's whole width
+  // and passes under the rail, like the star's row and like any other content
+  // — that is the reserve rule, and the oscillation the 2026-09-11 rewrite of
+  // `fitPillGap` exists to prevent). What this asks is the thing the project
+  // picker could have broken when it moved into the row on 2026-09-11: with
+  // eight controls on it, it is still the two lines it has always been, never
+  // the third line this row was cut down from.
+  const ctlRow = await page.evaluate(() => {
+    const row = document.getElementById('res').closest('.row');
+    const kids = [...row.children].map((k) => { const r = k.getBoundingClientRect(); return { id: k.id || k.className, y: Math.round(r.y), h: Math.round(r.height) }; }).filter((k) => k.h);
+    return { lines: new Set(kids.map((k) => Math.round(k.y / 8))).size, n: kids.length, kids };
+  });
+  ok('the controls row is two lines with the picker on it, never three — ' + JSON.stringify(ctlRow),
+    ctlRow.n === 8 && ctlRow.lines === 2);
 
   // ── a reference through the Dump door, and its slot into the prompt ──────
   await page.setInputFiles('#file', { name: 'mayra.png', mimeType: 'image/png', buffer: PNG });
@@ -2135,14 +2144,36 @@ async function pillSweep(pg, where) {
   // the picker sits on the PANEL's fold row (2026-09-11 — it moved up there
   // with the whole-panel fold, because that row is the one thing a shut panel
   // still draws and the picker narrows the feed as well as the clip), on one
-  // line with it, clear of the pill
+  // it LEADS the Buttons row (her "folder in buttons not next to"), level with
+  // the add button, clear of the pill, and really tappable
   const seat = await pgP.evaluate(() => {
-    const p = document.getElementById('project'), f = document.getElementById('panelfold');
-    const pr = p.getBoundingClientRect(), fr = f.getBoundingClientRect(), pill = document.querySelector('body > .float').getBoundingClientRect();
+    const p = document.getElementById('project'), row = document.getElementById('controls'), add = document.getElementById('add');
+    const pr = p.getBoundingClientRect(), ar = add.getBoundingClientRect(), pill = document.querySelector('body > .float').getBoundingClientRect();
     const hit = document.elementFromPoint(pr.x + pr.width / 2, pr.y + pr.height / 2);
-    return { sameRow: p.closest('.foldrow') === f.closest('.foldrow'), level: Math.abs((pr.y + pr.height / 2) - (fr.y + fr.height / 2)) < 4, clear: pr.right <= pill.left, tappable: !!(hit && hit.closest('#project')), val: p.value };
+    const ys = [...row.children].map((e) => Math.round(e.getBoundingClientRect().y));
+    return { inRow: p.closest('#controls') === row, first: row.firstElementChild === p.parentElement,
+      level: Math.abs((pr.y + pr.height / 2) - (ar.y + ar.height / 2)) < 4,
+      sameSize: Math.abs(pr.height - ar.height) < 2,
+      lines: new Set(ys.map((y) => Math.round(y / 8))).size,
+      onFold: !!p.closest('.foldrow'),
+      clear: pr.right <= pill.left, tappable: !!(hit && hit.closest('#project')), val: p.value };
   });
-  ok('the picker sits on the panel fold row, level with it, clear of the pill and tappable — ' + JSON.stringify(seat), seat.sameRow && seat.level && seat.clear && seat.tappable && seat.val === 'ward');
+  ok('the picker leads the Buttons row, level with the add button, clear of the pill and tappable — ' + JSON.stringify(seat),
+    seat.inRow && seat.first && seat.level && seat.sameSize && seat.clear && seat.tappable && seat.val === 'ward');
+  ok('it is on no fold row any more', !seat.onFold);
+  ok('and the row still costs the two lines it already did — ' + seat.lines, seat.lines === 2);
+  // folding the buttons away takes it with them — the header still says where she is
+  const folded = await pgP.evaluate(async () => {
+    document.getElementById('ctlfold').click();
+    await new Promise((r) => setTimeout(r, 140));
+    const gone = !document.getElementById('project').getBoundingClientRect().height;
+    const title = document.getElementById('title').textContent;
+    document.getElementById('ctlfold').click();
+    await new Promise((r) => setTimeout(r, 140));
+    return { gone, title, back: !!document.getElementById('project').getBoundingClientRect().height };
+  });
+  ok('folded, the picker goes with the buttons and the header still names the project — ' + JSON.stringify(folded),
+    folded.gone && /ward/i.test(folded.title) && folded.back);
   // the tiles narrow too
   await pgP.click('#v-tiles');
   await pgP.waitForTimeout(300);

@@ -17,10 +17,10 @@ good"). **Later the same night: sub-folders** ("can we do sub folders ex the
 witch commercials") — a `folder` field inside a project, derived rather than
 stored, one picker drawn as a folder icon with the header carrying the name,
 the card's drop-down moving a clip anywhere; full note in CLAUDE.md's Footage
-section. Still open: the evidence rules (step 5 / the "?" chip). One change
-from the plan: the picker sits on the **Buttons** fold row, not the controls
-row — measured, the controls row cannot hold it at 390pt without a third
-line.
+section. Still open: the evidence rules (step 5 / the "?" chip). The picker
+rode the **Buttons** fold row for an hour and is IN the buttons row, leading
+it, since her "folder in buttons not next to" — measured at 390pt, it costs
+that row no extra line.
 
 ## What is already there (measured 2026-09-11)
 
