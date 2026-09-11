@@ -4758,7 +4758,33 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     `<script src="/stickybox.js"></script>` and `data-stickybox` on its
     toggle — picked up present and future, so a button built in script needs
     only the attribute.
-  - Test: `node scripts/test-sticky-box.js` (the real footage page headless —
+  - **AND AN EXPANDED CLIP IN THE FOOTAGE FEED CARRIES ONE TOO (2026-09-11,
+    Sophie: "add a floating collapse button for expanded list view videos in
+    footage").** The house `.moretxt` opener REMOVED ITSELF on the tap that
+    opened it, so an expanded clip had no way back at all — measured on one
+    70-line scene at 390x844: a **209px card becomes 4,690px**, six screens of
+    prose with no control anywhere in it. It is a TOGGLE now (`… more` /
+    `… less`, the same underlined word, never a boxed button) and it is
+    marked `data-stickybox`, so from the middle of an expanded card the way
+    out is at the bottom of the band and collapsing brings the card's top
+    back with her. Pinned it takes a little padding and a radius for the
+    shadow to sit on (`.moretxt.sbx-pin`) — floating over her words it is a
+    control, not a word riding the last line.
+  - **ONE PINNED BUTTON AT A TIME — the box she is actually inside.** A page
+    can now carry several marked buttons (footage's own box, plus a `… less`
+    on every expanded clip), and two boxes can both end below the fold for a
+    scroll position or two; two floating words stacked in the same spot reads
+    as a broken control. `sync` scores each by how much of its box is inside
+    the band and pins the winner.
+  - **THE PINNED PLACEMENT IS CORRECTED OFF THE REAL RECT.** The insets are
+    measured while the button sits in the page, so any `.sbx-pin` styling that
+    changes its box (footage's padding) would push it off its own column — one
+    correction after it lands, never a second guess.
+  - Tests: `node scripts/test-footage-collapse.js` (the expanded clip — every
+    assertion a MEASUREMENT, since an opener that removes itself, one that
+    stays but sits six screens down, and one that collapses the card and
+    leaves her staring at the page below all look identical in the source;
+    verified failing 13 pre-fix) and `node scripts/test-sticky-box.js` (the real footage page headless —
     every assertion a MEASUREMENT, since a marked button that never pins, one
     pinned somewhere she cannot tap, and one that shrinks the box and leaves
     her staring at the page below all look identical in the source; the tap is

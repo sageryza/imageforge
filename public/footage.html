@@ -327,6 +327,10 @@
   .pwrap{position:relative}
   .p.clamp{max-height:calc(1.45em * 4);overflow:hidden}
   .moretxt{position:absolute;right:0;bottom:0;border:0;background:#fff;padding:0 0 0 8px;margin:0;font:inherit;color:#6f675e;text-decoration:underline;line-height:1.45}
+  /* PINNED it is floating over her words rather than riding the last line, so
+     it takes a shape for the shadow stickybox gives it to sit on — still the
+     same underlined word, no border and no fill of its own. */
+  .moretxt.sbx-pin{padding:3px 9px;border-radius:6px;background:#fff}
   .tags{font-size:11px;color:#9a8f7d;margin-top:5px;line-height:1.5;overflow-wrap:anywhere}
   /* THE SEED THIS CLIP CARRIED, with the one button that puts it back in the
      box. Its own row rather than a fourth tag: it is the only thing on the
@@ -1641,12 +1645,29 @@ function clampMore(p) {
   requestAnimationFrame(function () { decideClamp(p); });
 }
 function decideClamp(p) {
-  if (!p.classList.contains('clamp') || p.parentNode.querySelector('.moretxt')) return;
+  if (p.parentNode.querySelector('.moretxt')) return;
+  if (!p.classList.contains('clamp')) return;
   if (!p.clientHeight) { p.dataset.undecided = '1'; return; }
   delete p.dataset.undecided;
   if (p.scrollHeight <= p.clientHeight + 2) return;
-  var b = document.createElement('button'); b.type = 'button'; b.className = 'moretxt'; b.textContent = '… more';
-  b.addEventListener('click', function () { p.classList.remove('clamp'); b.remove(); });
+  // THE OPENER IS A TOGGLE AND IT STAYS (2026-09-11, Sophie: "add a floating
+  // collapse button for expanded list view videos in footage"). It used to
+  // REMOVE ITSELF on the tap that opened it, so an expanded clip had no way
+  // back at all — measured on one 70-line scene at 390x844: a 209px card
+  // becomes 4,690px, six screens of prose with no control anywhere in it.
+  // `data-stickybox` is what then keeps the way out where she is standing:
+  // the word pins itself to the bottom of the band while its own corner is
+  // out of reach, and collapsing from up there brings the card back with her.
+  var b = document.createElement('button'); b.type = 'button'; b.className = 'moretxt';
+  b.setAttribute('data-stickybox', '');
+  function paint() {
+    var open = !p.classList.contains('clamp');
+    b.textContent = open ? '… less' : '… more';
+    b.setAttribute('aria-label', open ? 'Show less of this prompt' : 'Show the whole prompt');
+    b.title = b.getAttribute('aria-label');
+  }
+  b.addEventListener('click', function () { p.classList.toggle('clamp'); paint(); });
+  paint();
   p.parentNode.insertBefore(b, p.nextSibling);
 }
 function resyncClamps() {
