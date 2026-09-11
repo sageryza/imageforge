@@ -8,12 +8,15 @@ of cases · besides manually switching, any way to easily group work".
 Written as the plan before anything was built. **Steps 1–4 and the backfill
 shipped the same day** (her "good plan … go ahead for now"): the picker, the
 field on every clip, the feed filter, the Dump album, the hand-off switch, the
-174 clips filed under the ward. Still open: the evidence rules (step 5 / the
-"?" chip) and a control for moving a clip after the fact (the route exists,
-`POST /api/footage/jobs/:id/project`; the control is hers to ask for). One
-change from the plan: the picker sits on the **Buttons** fold row, not the
-controls row — measured, the controls row cannot hold it at 390pt without a
-third line.
+174 clips filed under the ward — **which was wrong for a third of them** and
+was redone the same evening by reading every prompt on the log (369 clips,
+nine projects; the counts are in CLAUDE.md's Footage note). Also shipped that
+evening, both on her word: **the move drop-down on every card** (step 6) and
+**every chat's clips in the feed** (case 9 below is superseded — "if so,
+good"). Still open: the evidence rules (step 5 / the "?" chip). One change
+from the plan: the picker sits on the **Buttons** fold row, not the controls
+row — measured, the controls row cannot hold it at 390pt without a third
+line.
 
 ## What is already there (measured 2026-09-11)
 
@@ -139,9 +142,10 @@ day she works two projects on would be cut in half).
    inferring one from a chat slug that may fork (`<slug>-<sid6>`).
 8. **A clip drawn under the wrong picker.** The card's chip moves it (step
    6); the drawer and the feed repaint from the doc.
-9. **A chat's own clips** are tagged with the chat's slug, not `footage`, and
-   are out of this feed by design (the Playground rule). Whether a project
-   VIEW should one day gather a chat's clips beside hers is a separate ask.
+9. **A chat's own clips** are tagged with the chat's slug, not `footage`.
+   They WERE out of this feed by design (the Playground rule); since
+   2026-09-11 they ride it, sorted into the same projects, each card saying
+   `from <chat>` — her call ("are you adding them to footage? if so, good").
 10. **The old page on her phone** (the app keeps a tool's web view alive)
     sends no `project` — the server must treat a missing field as `''`, and
     the self-heal brings the new page on the next visibility change.
