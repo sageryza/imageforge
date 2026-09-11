@@ -46,10 +46,28 @@
 // model, seconds, resolution, the exact prompt and every reference, wait for
 // "go", THEN post. The 202 answer carries the exact body Atlas received.
 //
+// WAN 3.0 RIDES THE SAME DOOR (2026-09-11, Sophie: "can we do a test? make
+// sure it has all the right references"). Atlas carries Alibaba's
+// `alibaba/wan-3.0/reference-to-video` — one pass of 2-30 seconds, 10
+// pictures + 5 videos (15s together) + 5 audio (15s together), a script FILE
+// behind `enable_thinking`, 4¢/s at 480p on its sale, and not one sentence
+// about faces in its docs — on the same `POST /model/generateVideo` and the
+// same prediction poll, with a DIFFERENT body: one mixed `refers` array of
+// `{url, type}` (pictures first, then videos, then audio — the doors' slot
+// order, cast-line.js's own), `audio` for the sound flag, `ratio` with
+// `adaptive`, and none of Seedance's keys (`generate_audio`, `bitrate_mode`,
+// `watermark`, `return_last_frame` are not in Wan's schema and are not
+// sent). `buildRequest` branches on the model id and the LOG keeps one
+// vocabulary either way (`params` is still the APIFRAME-shaped record), so
+// `GET /api/apiframe/video-log` reads a Wan clip like any other. Alibaba's
+// own slot words are `Image 1` / `Video 1` / `Audio 1`, numbered per kind in
+// submission order — a Wan prompt names a reference that way; nothing here
+// rewrites her words. The Seedance branch is byte-for-byte what it was.
+//
 // Routes (mounted at /api/atlascloud by server.js; STUDIO_TOKEN-gated, only
 // GET /status open):
 //   GET  /status              config health, never key values
-//   POST /video               start a Seedance job
+//   POST /video               start a Seedance (or Wan 3.0) job
 //   GET  /video-job/:id       poll; mirrors the clip on completion
 
 const express = require('express');
@@ -70,6 +88,17 @@ const RESOLUTIONS = ['480p', '720p', '720p-SR', '1080p-SR', '1440p-SR'];
 const RATIOS = ['16:9', '4:3', '1:1', '3:4', '9:16', '21:9', 'adaptive'];
 const APIFRAME_ROUTE = 'POST /api/apiframe/video';
 const MAX_IMAGES = 9, MAX_VIDEOS = 3, MAX_AUDIOS = 3;
+// Wan 3.0 on this door — Atlas's own schema for the model (2026-09-11):
+// refers ≤ 20 (10 pictures, 5 videos, 5 audio), 2-30s or -1, its own
+// resolution and ratio lists. 480p stays THIS door's default (Atlas's own
+// default is 1080p, five times the money).
+const WAN_MODEL = 'alibaba/wan-3.0/reference-to-video';
+const WAN = {
+  MAX_IMAGES: 10, MAX_VIDEOS: 5, MAX_AUDIOS: 5, MAX_REFERS: 20, MIN_S: 2, MAX_S: 30,
+  RESOLUTIONS: ['480p', '720p', '1080p', '720p-esr', '1080p-esr', '1440p-esr', '4k-esr'],
+  RATIOS: ['adaptive', '16:9', '4:3', '1:1', '3:4', '9:16'],
+};
+function isWan(model) { return /^alibaba\/wan-3\.0(-prime)?\/reference-to-video$/.test(String(model || '')); }
 
 let proxyAgent = null;
 if (process.env.HTTPS_PROXY) {
@@ -97,9 +126,59 @@ function modelIdOf(m) {
   const s = String(m).trim().toLowerCase();
   if (MODELS.includes(s)) return s;
   if (/^bytedance\/seedance-[\w.-]+\/[\w-]+-to-video$/.test(s)) return s;
+  // Wan 3.0: its full Atlas id (plain or -prime) as given, and the short
+  // names `wan` / `wan-3.0` / `wan3` / `alibaba/wan-3.0` onto the plain id.
+  if (isWan(s)) return s;
+  if (/^(alibaba\/)?wan[-_ ]?3(\.0)?$/.test(s) || s === 'wan') return WAN_MODEL;
   const short = s.replace(/^bytedance\//, '').replace(/^seedance-?/, '').replace(/\/.*$/, '');
   if (short === '2.0-mini' || short === '2-mini' || short === 'mini') return DEFAULT_MODEL;
   return null;
+}
+
+// Wan 3.0's body — the same route fields in, Atlas's Wan schema out. Answers
+// { body, params, model } or { error }; never throws, never sends.
+function buildWanRequest(b, prompt, model) {
+  const imgs = (Array.isArray(b.referenceImageUrls) ? b.referenceImageUrls : []).map(String).filter(Boolean);
+  const vids = (Array.isArray(b.referenceVideoUrls) ? b.referenceVideoUrls : []).map(String).filter(Boolean);
+  const auds = (Array.isArray(b.referenceAudioUrls) ? b.referenceAudioUrls : []).map(String).filter(Boolean);
+  if (imgs.length > WAN.MAX_IMAGES) return { error: `Wan 3.0 takes at most ${WAN.MAX_IMAGES} reference images` };
+  if (vids.length > WAN.MAX_VIDEOS) return { error: `Wan 3.0 takes at most ${WAN.MAX_VIDEOS} reference videos (15 seconds together)` };
+  if (auds.length > WAN.MAX_AUDIOS) return { error: `Wan 3.0 takes at most ${WAN.MAX_AUDIOS} reference audios (15 seconds together)` };
+  if (imgs.length + vids.length + auds.length > WAN.MAX_REFERS) return { error: `Wan 3.0 takes at most ${WAN.MAX_REFERS} references together` };
+  const resolution = String(b.resolution || '480p');
+  if (!WAN.RESOLUTIONS.includes(resolution)) return { error: `Wan 3.0 resolution must be one of ${WAN.RESOLUTIONS.join(', ')}` };
+  const params = { resolution };
+  if (b.duration != null) {
+    const d = Number(b.duration);
+    if (!Number.isInteger(d) || (d !== -1 && (d < WAN.MIN_S || d > WAN.MAX_S))) return { error: `Wan 3.0 duration is ${WAN.MIN_S}-${WAN.MAX_S} seconds (or -1 to let the model choose)` };
+    params.duration = d;
+  }
+  if (b.aspectRatio) {
+    const r = String(b.aspectRatio);
+    if (!WAN.RATIOS.includes(r)) return { error: `Wan 3.0 aspectRatio must be one of ${WAN.RATIOS.join(', ')}` };
+    params.aspect_ratio = r;
+  }
+  params.generate_audio = b.generateAudio == null ? true : Boolean(b.generateAudio);
+  params.seed = videoSeed.seedFor(b.seed);
+  if (imgs.length) params.reference_image_urls = imgs;
+  if (vids.length) params.reference_video_urls = vids;
+  if (auds.length) params.reference_audio_urls = auds;
+  // A SCRIPT FILE rides as `file` and needs Atlas's thinking mode on; the
+  // log keeps its url beside the references.
+  const fileUrl = b.fileUrl ? String(b.fileUrl) : '';
+  if (fileUrl && !/^https?:\/\//.test(fileUrl)) return { error: 'fileUrl must be a public https url' };
+  if (fileUrl) params.file_url = fileUrl;
+  const body = { model, prompt, resolution: params.resolution, audio: params.generate_audio, seed: params.seed };
+  if (params.duration != null) body.duration = params.duration;
+  if (params.aspect_ratio) body.ratio = params.aspect_ratio;
+  const refers = [
+    ...imgs.map((url) => ({ url, type: 'image' })),
+    ...vids.map((url) => ({ url, type: 'video' })),
+    ...auds.map((url) => ({ url, type: 'audio' })),
+  ];
+  if (refers.length) body.refers = refers;
+  if (fileUrl) { body.file = fileUrl; body.enable_thinking = true; }
+  return { body, params, model };
 }
 
 // Build Atlas Cloud's body from the route's body (the APIFRAME route's field
@@ -113,7 +192,8 @@ function buildRequest(b) {
   const prompt = String(b.prompt == null ? '' : b.prompt);
   if (!prompt.trim()) return { error: 'prompt is required' };
   const model = modelIdOf(b.model);
-  if (!model) return { error: `unknown model "${b.model}" — Mini is the one id on file; pass a full bytedance/seedance-…/reference-to-video id for anything else` };
+  if (!model) return { error: `unknown model "${b.model}" — Mini is the one id on file; pass a full bytedance/seedance-…/reference-to-video id for anything else, or wan-3.0` };
+  if (isWan(model)) return buildWanRequest(b, prompt, model);
   const imgs = (Array.isArray(b.referenceImageUrls) ? b.referenceImageUrls : []).map(String).filter(Boolean);
   const vids = (Array.isArray(b.referenceVideoUrls) ? b.referenceVideoUrls : []).map(String).filter(Boolean);
   const auds = (Array.isArray(b.referenceAudioUrls) ? b.referenceAudioUrls : []).map(String).filter(Boolean);
@@ -273,6 +353,8 @@ router.use((req, res, next) => {
 router.get('/status', (req, res) => {
   res.json({ ok: true, configured: Boolean(KEY), firebase: Boolean(bucketOrNull()), models: MODELS, base: BASE,
     resolutions: RESOLUTIONS, ratios: RATIOS,
+    wan: { model: WAN_MODEL, seconds: [WAN.MIN_S, WAN.MAX_S], resolutions: WAN.RESOLUTIONS, ratios: WAN.RATIOS,
+      refs: { images: WAN.MAX_IMAGES, videos: WAN.MAX_VIDEOS, audios: WAN.MAX_AUDIOS } },
     note: 'nothing has been sent through this door yet — price, canvas and the face filter are unmeasured here',
     rule: `a reference with a person in it is expected to be refused (Atlas forwards to ByteDance) — that job goes through ${APIFRAME_ROUTE}` });
 });
@@ -393,7 +475,7 @@ router.get('/video-job/:id', async (req, res) => {
 module.exports = {
   router,
   configured: () => Boolean(KEY),
-  buildRequest, modelIdOf, apiframeStatus, refusalKind, splitOutputs,
+  buildRequest, buildWanRequest, isWan, modelIdOf, apiframeStatus, refusalKind, splitOutputs,
   api, startVideo, pollVideo, failedRecord,
-  MODELS, DEFAULT_MODEL, RESOLUTIONS, RATIOS, APIFRAME_ROUTE,
+  MODELS, DEFAULT_MODEL, RESOLUTIONS, RATIOS, APIFRAME_ROUTE, WAN_MODEL, WAN,
 };
