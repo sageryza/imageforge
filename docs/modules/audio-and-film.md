@@ -109,8 +109,38 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     The C2PA-signature idea from the same day (every Seedance output carries
     a signed `uuid` box that any ffmpeg trim or remux strips — measured on
     the dress clip: 18 `c2pa` markers whole, 0 after a stream-copy trim, 0
-    after a plain remux) explains APIFRAME's own trim refusals but NOT this:
-    the signed, untouched clips were refused here.
+    after a plain remux) does NOT explain this: the signed, untouched clips
+    were refused here.
+    - **"APIFRAME REFUSES TRIMMED VIDEOS" IS A MYTH AND IT STARTED IN THIS
+      SENTENCE (2026-09-11, Sophie: "every chat last week said apiframe
+      couldn't take trimmed videos · i'm so confused").** This clause used to
+      read "explains APIFRAME's own trim refusals", stated as established
+      fact with NO measurement, no job id and no refusal text behind it
+      anywhere in the repo — and every later chat inherited the sentence.
+      **Measured 2026-09-11 and it is false:** the ward film's Sophie
+      reference (`ward-refs/jazz-best4s-…mp4`) IS a trim — 4.06s cut out of
+      the 15.1s take, re-encoded, `strings | grep -c c2pa` = **0** — and
+      APIFRAME drew from it that morning (job
+      `2ac60876-4718-43b6-8208-3bfad391a882`, 2.0 · 15s, done), as did Atlas
+      on 2.5 (`d0ad22fd…`). Swept all 46 APIFRAME jobs on the video log:
+      **zero trim refusals** — they are real-person checks, output copyright,
+      an aspect ratio, a pixel count, a `ratio` read as a video extension.
+      **The nearest REAL finding underneath it is about the MODEL, not the
+      door** (2026-09-09, the mini-video-references chat: "2.5 refuses a
+      trimmed Seedance clip mini accepts"), and that one is itself
+      contradicted by her own 6:45am 2.5 clip drawing from the same trim. So
+      a trimmed reference is not a known blocker on any door; if one is ever
+      refused, file the job id and the refusal text here rather than the
+      conclusion. The C2PA measurement itself stands and is worth keeping —
+      a trim really does strip every marker.
+    - **THE 2.5 FACE CHECK IS STRICTER THAN 2.0's ON THE SAME DOOR
+      (measured 2026-09-11).** The identical three references — the
+      face-blocked pajamas still, the assistant's UNBLOCKED photoreal face,
+      the trimmed jazz clip — drew on APIFRAME 2.0 at 06:43 and were refused
+      by APIFRAME 2.5 at 07:31 in ten seconds, at validation, free:
+      `the input image 'content[2]' may contain real person`. Not the video,
+      the assistant's still. The eyes-blur / black-bar trick that already
+      rides the Sophie reference is the documented fix.
   - **AND THE LINE IS THE PERSON, NOT THE VIDEO (measured the same night on
     the cheapest Mini 4s jobs — a refusal is free, an accepted one ~5¢):** a
     PERSON-FREE reference video (the socks B-roll, a Seedance output,
