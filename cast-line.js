@@ -103,6 +103,24 @@
     return null;
   }
 
+  // THE ONE NUMBERING RULE — order the doors' way (images, then videos, then
+  // audio) and count within kind. `names` is parallel to `refs`, so a caller
+  // holding a POSITION (the strip's ✕, which indexes the row it drew) reads
+  // its slot off the same arithmetic the attach reads off the url map.
+  // The sort is stable, so two references of one kind keep the order she
+  // added them in.
+  function slotMap(list) {
+    var next = (list || []).slice();
+    next.sort(function (a, b) { return KIND_ORDER[a.kind] - KIND_ORDER[b.kind]; });
+    var n = { image: 0, video: 0, audio: 0 }, slots = {}, names = [];
+    next.forEach(function (r) {
+      n[r.kind] += 1;
+      var s = '[' + KIND_WORD[r.kind] + n[r.kind] + ']';
+      names.push(s); slots[r.url] = s;
+    });
+    return { refs: next, names: names, slots: slots };
+  }
+
   // The strip after the attach, in the doors' own order, and the slot each
   // url ends up with. `refs` is what is already there; `adding` is the look's.
   function stripAfter(refs, adding) {
@@ -112,10 +130,7 @@
       if (!c || seen[c.url]) return;
       seen[c.url] = 1; next.push(c);
     });
-    next.sort(function (a, b) { return KIND_ORDER[a.kind] - KIND_ORDER[b.kind]; });
-    var n = { image: 0, video: 0, audio: 0 }, slots = {};
-    next.forEach(function (r) { n[r.kind] += 1; slots[r.url] = '[' + KIND_WORD[r.kind] + n[r.kind] + ']'; });
-    return { refs: next, slots: slots };
+    return slotMap(next);
   }
 
   // `{1}` … `{n}` over the look's own reference list. A token pointing past
@@ -165,6 +180,79 @@
     };
   }
 
+  // ── TAKING A REFERENCE OFF ────────────────────────────────────────────────
+  // 2026-09-11, Sophie: "if i delete an image, it shud remove the tags
+  // associated w that image". The ✕ on the strip used to remove the reference
+  // and leave her prompt alone, which is the same bug the `{1}` templates
+  // above exist to stop, arriving from the other end: a slot is a POSITION,
+  // so taking the second of three images off leaves `[Image2]` pointing at
+  // nothing AND `[Image3]` pointing at a picture that is now `[Image2]` — the
+  // clip still draws, of the wrong reference. So the names are rewritten with
+  // the strip, in ONE pass.
+  //
+  // HER WORDS ARE NOT REWRITTEN — only the names. The slot names are the
+  // page's own vocabulary (she taps them in, she never types them), and the
+  // whitespace a name was standing in belongs to the name; everything else in
+  // the sentence is hers, dangling commas included. A prompt that reads a
+  // little wrong is hers to fix; a prompt that reads fine and names the wrong
+  // picture is not.
+  var SLOT_RE = /\[\s*(image|video|audio)\s*(\d+)\s*\]/gi;
+  var HOLE = '\u0000';
+  function canonSlot(word, num) { return '[' + KIND_WORD[String(word).toLowerCase()] + Number(num) + ']'; }
+
+  // ONE pass over the prompt, so a rename can never land on a token another
+  // rename is about to read — `[Image3]` → `[Image2]` beside `[Image2]` → gone
+  // is exactly the ordinary case, and two sequential passes would eat it.
+  // Matching is tolerant of her typing (`[image 1]`) and the replacement is
+  // canonical; a token nothing maps is left VERBATIM, so a name she typed
+  // that points past the end reads wrong rather than quietly changing.
+  function rewriteSlots(prompt, gone, map) {
+    var out = String(prompt == null ? '' : prompt).replace(SLOT_RE, function (m, w, d) {
+      var c = canonSlot(w, d);
+      if (gone && c === gone) return HOLE;
+      return map[c] || m;
+    });
+    return out.replace(new RegExp('[ \\t]*' + HOLE + '[ \\t]*', 'g'), function (m, at, str) {
+      var before = str.slice(0, at), after = str.slice(at + m.length);
+      // the name took its own space with it: none at the start of a line, none
+      // in front of punctuation, otherwise the one space between two words
+      if (!before || /[\n(]$/.test(before)) return '';
+      if (!after || /^[\n,.;:!?)]/.test(after)) return '';
+      return ' ';
+    });
+  }
+
+  // THE WHOLE ✕. Answers the strip that is left, her prompt with that
+  // reference's name out of it and the rest renumbered, and what moved — so
+  // the page can say so rather than changing her words silently.
+  //   dropPlan({ refs, index | url, prompt })
+  // BY POSITION when an index is given, because that is what the strip drew
+  // (a copy-back makes NEW objects at the same urls, so an identity filter
+  // removes nothing — footage.html's own finding).
+  function dropPlan(opts) {
+    opts = opts || {};
+    var prompt = String(opts.prompt == null ? '' : opts.prompt);
+    var m = slotMap((opts.refs || []).map(cleanRef).filter(Boolean));
+    var i = opts.index == null || opts.index === '' ? -1 : Number(opts.index);
+    if (!(i >= 0) && opts.url != null) {
+      for (var k = 0; k < m.refs.length; k++) if (m.refs[k].url === String(opts.url)) { i = k; break; }
+    }
+    if (!(i >= 0 && i < m.refs.length)) {
+      return { refs: m.refs, prompt: prompt, removed: '', slot: '', renamed: [], changed: false, ok: false };
+    }
+    var gone = m.names[i];
+    var kept = m.refs.filter(function (r, k) { return k !== i; });
+    var keptNames = m.names.filter(function (r, k) { return k !== i; });
+    var after = slotMap(kept);
+    var map = {}, renamed = [];
+    after.names.forEach(function (nw, k) {
+      if (keptNames[k] !== nw) { map[keptNames[k]] = nw; renamed.push({ from: keptNames[k], to: nw }); }
+    });
+    var out = rewriteSlots(prompt, gone, map);
+    return { refs: after.refs, slots: after.slots, prompt: out, removed: m.refs[i].url,
+      slot: gone, renamed: renamed, changed: out !== prompt, ok: true };
+  }
+
   // Putting the line at the TOP of the prompt (her word: "auto adds the line
   // at the top"), never at the caret. A line already there is not added
   // twice — she taps a character, types, taps it again to check, and the
@@ -178,6 +266,7 @@
   }
 
   return { slugify: slugify, kindOf: kindOf, cleanRef: cleanRef, lookRefs: lookRefs,
-    lookByKey: lookByKey, stripAfter: stripAfter, resolveLine: resolveLine,
-    defaultLine: defaultLine, plan: plan, withLine: withLine };
+    lookByKey: lookByKey, slotMap: slotMap, stripAfter: stripAfter, resolveLine: resolveLine,
+    defaultLine: defaultLine, plan: plan, withLine: withLine,
+    rewriteSlots: rewriteSlots, dropPlan: dropPlan };
 }));

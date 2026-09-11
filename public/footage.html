@@ -533,7 +533,7 @@
   <p><b>Sound is always on.</b></p>
   <p><b>The seed</b> is on every finished clip, with a button that puts it back in the box. Leave the box blank and each clip gets a fresh one. A seed repeats the <i>opening</i> of a short clip and then drifts &mdash; it does not survive a changed prompt or a different size, and at 15 seconds it does close to nothing.</p>
   <p><b>Tiles.</b> Each one carries two doors in the middle: <b>&#9654;</b> plays the clip, and the list mark beside it takes you to that clip&rsquo;s card &mdash; its words, its seed, its references and the button that puts them back. The first words of your own newest note on a clip sit along the top of its tile.</p>
-  <p><b>Characters.</b> The people icon opens this film&rsquo;s library. Tap a character &mdash; or one of their outfits &mdash; and their references go into the strip while the line that names them by slot goes to the top of the box. The line under each one is exactly what it will add, worked out against what you already have attached, so a second character gets <b>[Video2]</b> rather than the slot the library was written against. Each film is its own shelf. Taking a reference off afterwards does not rewrite your words &mdash; the slot names in the box are yours to fix.</p>
+  <p><b>Characters.</b> The people icon opens this film&rsquo;s library. Tap a character &mdash; or one of their outfits &mdash; and their references go into the strip while the line that names them by slot goes to the top of the box. The line under each one is exactly what it will add, worked out against what you already have attached, so a second character gets <b>[Video2]</b> rather than the slot the library was written against. Each film is its own shelf. Taking a reference off takes its slot name out of the box and renumbers the rest, so a name never points at the wrong picture. Only the names change &mdash; the words around them are yours.</p>
   <p><b>Notes.</b> The speech mark on a clip opens a note; playing one and tapping it pauses the film and notes the second you stopped on. Either way it lands in the one place chats read their notes, and a chat answers on the note itself.</p>
   <p>What is left on Atlas is on its own console &mdash; it has no balance to read from here.</p>
 </div>
@@ -976,9 +976,35 @@ function paintRefs() {
     // filter removes nothing: the ✕ did nothing at all after a copy-back.
     // `paintRefs` sets `refs` to exactly the list it renders, so the index a
     // row was drawn at is the slot it occupies.
-    d.querySelector('.x').addEventListener('click', function () { refs = refs.filter(function (x, k) { return k !== i; }); saveDraft(); paintControls(); });
+    d.querySelector('.x').addEventListener('click', function () { dropRef(i); });
     el.appendChild(d);
   });
+}
+// TAKING A REFERENCE OFF TAKES ITS NAME OUT OF THE BOX (2026-09-11, Sophie:
+// "if i delete an image, it shud remove the tags associated w that image").
+// A slot is a POSITION, so the ✕ on the second of three images used to leave
+// `[Image2]` naming nothing AND `[Image3]` naming a picture that is now
+// `[Image2]` — the clip still draws, of the wrong reference. The rewrite is
+// `cast-line.js`'s `dropPlan`, the same file that resolves a character's line
+// against the strip, so a slot means ONE thing on this page.
+//
+// HER WORDS ARE NOT REWRITTEN, only the names — and the toast says what moved,
+// because a change to her prompt that she cannot see is the hidden-ingredient
+// failure this page's price line exists to prevent.
+function dropRef(i) {
+  var CL = window.__castLine, box = $('prompt');
+  if (!CL || !CL.dropPlan) { refs = refs.filter(function (x, k) { return k !== i; }); saveDraft(); paintControls(); return; }
+  var p = CL.dropPlan({ refs: refs, index: i, prompt: box.value });
+  if (!p.ok) return;
+  refs = p.refs;
+  if (p.changed) {
+    box.value = p.prompt;
+    if (window.__fitBigPrompt) window.__fitBigPrompt();
+    toast(p.renamed.length
+      ? p.slot + ' came out of the box · ' + p.renamed.length + (p.renamed.length === 1 ? ' name' : ' names') + ' renumbered'
+      : p.slot + ' came out of the box');
+  }
+  saveDraft(); paintControls();
 }
 function insertAtCaret(text) {
   var box = $('prompt');
