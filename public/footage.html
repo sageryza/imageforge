@@ -603,7 +603,7 @@
   <p><b>Say what the clip is.</b> Add references &mdash; a picture, a clip, a sound &mdash; and name each one in the prompt by its slot: <b>[Image1]</b>, <b>[Video1]</b>, <b>[Audio1]</b>. Tap a slot name to drop it into the box. Never describe what a reference shows; the picture is the point.</p>
   <p><b>The star sends it.</b> One tap, and the line beside it says what that tap costs. With a reference video that figure is the closest the door will say up front; the real charge lands on the card when the clip finishes.</p>
   <p><b>Every clip says how long it took.</b> <i>drew in 2m 34s</i> on the card is the door's own figure, not how long you were watching — close the app and it keeps drawing, and the time it reports is still the real one. A clip drawn before this says nothing rather than guessing.</p>
-  <p><b>Whichever door is cheapest</b> &mdash; the line beside the star names it. Right now that is <b>Atlas Cloud</b> for Mini and Fast and <b>OpenRouter</b> for 2.0 and 2.5, but nothing here is written down: the three doors are priced for the exact clip you have set up and the cheapest one gets it. If a door refuses a reference &mdash; free, before anything draws &mdash; the job falls to the next cheapest door that is looser, so a person in a reference ends up somewhere that takes one without you doing anything. A famous face is the one thing all three refuse.</p>
+  <p><b>Whichever door is cheapest</b> &mdash; the line beside the star names it. Right now that is <b>Atlas Cloud</b> for Mini and Fast and <b>OpenRouter</b> for 2.0 and 2.5, but nothing here is written down: the three doors are priced for the exact clip you have set up and the cheapest one gets it. If that door refuses a reference &mdash; free, before anything draws &mdash; the job stops there and the card says why; it is never sent through another door on its own, and never drawn without its references. OpenRouter refuses any person in a reference, Atlas Cloud takes a person and refuses only a famous face.</p>
   <p><b>Four models.</b> <b>2.0 Mini</b> is the default and much the cheapest. <b>2.0 Fast</b>, <b>2.0</b> and <b>2.5</b> climb from there &mdash; the line beside the star says what the tap costs before you make it. Two things worth knowing: <b>Fast is the strict one</b> (a plain prompt with no reference at all has come back refused there with a copyright line, free and unbilled, where the same words drew on Mini), and <b>2.0 is the only one that does 1080p</b>.</p>
   <p><b>The last frame of a clip</b> &mdash; the small picture under its references, for chaining one shot into the next. Tap it to see it big and save it. It rides on Atlas Cloud only, so a clip that went out through another door has none and shows no picture.</p>
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
@@ -784,8 +784,9 @@ var CFG = null;                      // GET /status
 // cheapest for 2.0 or 2.5, so with those on the page the pin would be
 // spending her money to keep a rule that was only ever about price. `auto`
 // ranks the three doors by what this exact tap costs and sends to the
-// cheapest; a CONTENT refusal there is free and falls through to the next
-// LOOSER door (footage.js `doorFor`). There is still nothing here to pick and
+// cheapest; a CONTENT refusal there is free and is the card's answer — the
+// job is never re-sent through another door (footage.js `doorFor`, 2026-09-11
+// evening: "if a job refuses references it should just fail"). There is still nothing here to pick and
 // nothing to remember. Sound is always on, and sent explicitly rather than
 // left to the model's own default.
 var DOOR = 'auto';
@@ -1002,7 +1003,7 @@ $('ctlfold').addEventListener('click', function () { setFold('ctl', !foldShut('c
 // Mini and Fast, OpenRouter for 2.0 and 2.5 — and which door a tap goes to is
 // a fact about the clip, not only about the bill: the last frame rides on
 // Atlas alone, and OpenRouter refuses any person in a reference (free, before
-// drawing, then the job falls to a looser door). It came off on 2026-09-09
+// drawing — and the job stops there). It came off on 2026-09-09
 // only because there was one door left to name.
 var costSeq = 0;
 function updateCost() {
@@ -1575,12 +1576,9 @@ $('go').addEventListener('click', function () {
       // can try that job instead. On Atlas the refusal is a FAMOUS face (a
       // real photo of anyone else passes).
       if (d && d.why) msg = d.why + (d.error && d.error !== d.why ? ' (' + d.error + ')' : '');
-      // EVERY DOOR REFUSED IT, not just one: the server walks the cheapest
-      // door and then every looser one on a content refusal, so a content
-      // refusal that reaches her here has already been through APIFRAME,
-      // which takes every reference this film has. A famous face is the one
-      // thing all three refuse.
-      else if (d && d.refusal === 'content') msg += ' — a reference every door refused, which in practice means a famous face in it.';
+      // A REFUSAL IS THE ANSWER (2026-09-11): the job stops at the door it
+      // was sent to and is never sent through another one on its own.
+      else if (d && d.refusal === 'content') msg += ' — refused, nothing drawn or charged.';
       // THE DOOR ITSELF IS DOWN (2026-09-10): Atlas's job endpoint gave
       // nothing for two minutes. The server says so in her words (`hint`);
       // her words and references stay in the box for the next tap.
