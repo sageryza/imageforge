@@ -1,0 +1,35 @@
+[
+  {
+    "file": "3-ducks.txt",
+    "scene": "audition-3",
+    "title": "Thomas audition 3 — the ducks (all the signs)",
+    "id": "5709a10bf2174aaaaf7a93e1121d061b",
+    "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789093386046-g1cf9b.mp4",
+    "tokens": {
+      "completion": 151078,
+      "total": 151078
+    }
+  },
+  {
+    "file": "1-meeting.txt",
+    "scene": "audition-1",
+    "title": "Thomas audition 1 — the meeting (he gets mad)",
+    "id": "b843e32593c841a791a985665922b7a4",
+    "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789093403981-1cdh9c.mp4",
+    "tokens": {
+      "completion": 151078,
+      "total": 151078
+    }
+  },
+  {
+    "file": "2-winning-spot.txt",
+    "scene": "audition-2",
+    "title": "Thomas audition 2 — the Winning Spot (curled up, the $5)",
+    "id": "40e28ae4468a4f5880f615601bd5f1ee",
+    "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789093406399-r02j5h.mp4",
+    "tokens": {
+      "completion": 151078,
+      "total": 151078
+    }
+  }
+]
