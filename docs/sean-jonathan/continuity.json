@@ -88,7 +88,11 @@
     "sj-2"
    ],
    "line": "the table is the one in [SLOT].",
-   "at": null
+   "at": 10,
+   "still": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2880983b3746553a920eba1da11b86d8.jpg",
+   "dumpId": "9ACJpd1WLmafgsX5tEkj",
+   "from": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789091622432-uqdnue.mp4",
+   "grabbedAt": "2026-09-11T01:55:26.618Z"
   },
   {
    "key": "door",

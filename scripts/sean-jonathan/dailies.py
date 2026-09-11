@@ -38,6 +38,11 @@ JOBS = [
     ('sj-6', '0a68e157e54c4789a36ce657bda68771', 'silent'),
     ('sj-e', '4abab7f1fdd345fe9fdd79f406890332', ''),
 ]
+# THE LAST CARD went last because the dining table had to come out of the tea
+# party first — it is inserted in film order rather than appended.
+JOBS.insert(5, ('sj-2', '594ec76e2b9148088730d7b9a6fd2479', ''))
+_ = [
+]
 
 
 def jobs():
