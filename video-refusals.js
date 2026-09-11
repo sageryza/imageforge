@@ -57,11 +57,11 @@ const ROWS = [
     seen: 'APIFRAME ×1' },
   // ── content: an input gate, before anything draws ───────────────────
   { re: /InputVideoSensitiveContentDetected|input video .*may contain real person/i, kind: 'content', free: true,
-    line: 'A reference VIDEO has a person in it and this door refuses those — send it through Atlas or APIFRAME.',
+    line: 'A reference VIDEO has a person in it and this door refuses those — refused, nothing drawn or charged. Atlas Cloud takes a person; a chat can send it there.',
     lineFor: (door) => `A reference VIDEO has a person in it and ${doorName(door)} refuse${door ? 'd' : 's'} it — send it through ${elsewhere(door)}.`,
     seen: 'OpenRouter, APIFRAME ×1' },
   { re: /InputImageSensitiveContentDetected|input image .*may contain real person|PrivacyInformation/i, kind: 'content', free: true,
-    line: 'A reference PICTURE has a real face in it and this door refuses it — blur the eyes, or send it through Atlas or APIFRAME.',
+    line: 'A reference PICTURE has a real face in it and this door refuses it — refused, nothing drawn or charged. Atlas Cloud takes a real photo; a chat can send it there.',
     lineFor: (door) => `A reference PICTURE has a real face in it and ${doorName(door)} refuse${door ? 'd' : 's'} it${door === 'apiframe' ? ' after taking the job' : ''} — blur the eyes, or send it through ${elsewhere(door)}.`,
     seen: 'OpenRouter; APIFRAME ×2 on 2.5, 2026-09-11, on the POLL ~10s after the POST was accepted (Atlas drew the same three pictures)' },
   { re: /famous|public figure/i, kind: 'content', free: true,

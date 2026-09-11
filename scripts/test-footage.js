@@ -46,8 +46,12 @@ function report() {
 {
   const F = require('../footage');
   const both = { openrouter: true, apiframe: true };
-  ok('auto with no Atlas: a 2.x model goes OpenRouter first with APIFRAME as the fallback',
-    (() => { const d = F.doorFor({ model: 'mini', door: 'auto', resolution: '480p' }, both); return d.door === 'openrouter' && d.fallback === 'apiframe' && d.chain.join(',') === 'apiframe'; })());
+  // A REFUSED JOB FAILS — NO FALLBACK, NO CHAIN, EVER (2026-09-11 evening,
+  // Sophie: "if a job refuses references it should just fail"). The walk
+  // shipped that morning and put six jobs on APIFRAME, three of which drew
+  // without their references and reported success.
+  ok('auto with no Atlas: a 2.x model goes OpenRouter and NOTHING is behind it',
+    (() => { const d = F.doorFor({ model: 'mini', door: 'auto', resolution: '480p' }, both); return d.door === 'openrouter' && d.fallback === null && d.chain.length === 0; })());
   ok('1.5 Pro is APIFRAME only, whatever auto says', F.doorFor({ model: '1.5', door: 'auto', resolution: '480p' }, both).door === 'apiframe');
   ok('pinning OpenRouter on 1.5 Pro is refused with a reason', /only on APIFRAME/.test(F.doorFor({ model: '1.5', door: 'openrouter', resolution: '480p' }, both).error || ''));
   // THE APIFRAME DOOR STAYS IN THE MODULE — the page stopped offering it, a
@@ -76,11 +80,9 @@ function report() {
   // the chain outright; APIFRAME then refused the real face too, and the one
   // door measured to take those pictures was never tried. Doors whose
   // refusal is free on the POST come first, each group cheapest first.
-  ok('the chain holds every other door', autoMini.chain.length === 2 && new Set(autoMini.chain.concat([autoMini.door])).size === 3);
-  ok('a door whose refusal is free on the POST comes before one whose refusal lands on the poll',
-    autoMini.chain.join(',') === 'atlascloud,apiframe' && F.DOOR_REFUSAL_FREE.atlascloud === true && F.DOOR_REFUSAL_FREE.apiframe === false);
-  ok('2.5 with pictures walks OpenRouter → Atlas → APIFRAME, not APIFRAME first (the bug)',
-    F.doorFor({ model: '2.5', door: 'auto', resolution: '480p', ratio: '9:16', seconds: 4 }, three).chain.join(',') === 'atlascloud,apiframe');
+  ok('auto answers ONE door and an empty chain, on every model', ['mini', 'fast', '2.0', '2.5'].every((id) => {
+    const d = F.doorFor({ model: id, door: 'auto', resolution: '480p', ratio: '9:16', seconds: 4 }, three); return d.door && d.fallback === null && d.chain.length === 0; }));
+  ok('and there is no walk left in the module', typeof F.walkPlan === 'undefined' && typeof F.walkOn === 'undefined');
   ok('`avoid` takes the doors that already refused off the table',
     (() => { const d = F.doorFor({ model: '2.5', door: 'auto', resolution: '480p', avoid: ['openrouter', 'apiframe'] }, three); return d.door === 'atlascloud' && d.chain.length === 0; })());
   ok('and with every door refused it says so', /every door has refused/.test(F.doorFor({ model: '2.5', door: 'auto', resolution: '480p', avoid: ['openrouter', 'apiframe', 'atlascloud'] }, three).error || ''));
@@ -301,6 +303,16 @@ let jobs = [
     trims: [{ key: 't1', status: 'ready', start: 8.93, end: 12.06, seconds: 3.13, url: 'http://127.0.0.1:PORT/clip.mp4' }] } : {}),
 })));
 
+// THE PAGE UNDER TODAY — three clips from the day before, handed out ONLY
+// under a `before` cursor, two at a time, so the walk takes two taps and the
+// second one is the one that says there is nothing left.
+const older = [0, 1, 2].map((i) => ({
+  id: 'y' + i, prompt: 'yesterday\'s clip ' + i, model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', seconds: 4, resolution: '480p', ratio: '3:4',
+  sound: true, refs: [], status: 'done', video: 'http://127.0.0.1:PORT/clip.mp4', poster: 'http://127.0.0.1:PORT/ref.png',
+  cost: 4.4, estimate: 4.4, sentAt: '2026-09-08T1' + i + ':00:00.000Z', vote: '', hidden: false,
+}));
+const jobReads = [];
+
 const server = http.createServer((req, res) => {
   if (servePublic(req, res)) return;
   const u = new URL(req.url, 'http://x');
@@ -349,7 +361,17 @@ const server = http.createServer((req, res) => {
       const ranked = open.map(priceOn).filter((x) => !x.error).sort((a, b) => a.cents - b.cents);
       return json({ ok: true, ...ranked[0] });
     }
-    if (u.pathname === '/api/footage/jobs' && req.method === 'GET') return json({ ok: true, jobs });
+    if (u.pathname === '/api/footage/jobs' && req.method === 'GET') {
+      // THE FEED PAGES BACK — the stub is the real route's shape: `before`
+      // is a sentAt cursor, the answer is the page under it, and `more`
+      // says whether anything is left under THAT. The newest read hands
+      // out `jobs` and says there is more while the old pool is untouched.
+      const before = u.searchParams.get('before');
+      jobReads.push(before || '');
+      if (!before) return json({ ok: true, jobs, more: older.length > 0 });
+      const under = older.filter((j) => j.sentAt < before).sort((a, b) => b.sentAt.localeCompare(a.sentAt));
+      return json({ ok: true, jobs: under.slice(0, 2), more: under.length > 2 });
+    }
     if (u.pathname === '/api/footage/jobs' && req.method === 'POST') {
       const b = JSON.parse(body);
       posted.push(b);
@@ -470,38 +492,29 @@ async function pillSweep(pg, where) {
       F.cardOf('j1', { model: 'bytedance/seedance-2.0-mini', params: {}, video: 'v.mp4', lastFrame: 'f.png' }).lastFrame === 'f.png');
     ok('and a clip drawn before this carries none, honestly',
       F.cardOf('j2', { model: 'bytedance/seedance-2.0-mini', params: {}, video: 'v.mp4' }).lastFrame === '');
-    // THE POLL-TIME WALK (2026-09-11): APIFRAME ACCEPTS the job and refuses
-    // the real face ten seconds later, on the poll — the job goes on to the
-    // next door on its walk, once, with the same seed, and the new card says
-    // who refused. An OUTPUT gate, and a walk with nothing left, are left
-    // exactly as the poll found them.
+    // A REFUSAL ON THE POLL IS THE CARD'S ANSWER — NOTHING IS SENT AGAIN
+    // (2026-09-11 evening). The morning's walk re-sent it through the next
+    // door; that is what drew three clips without their references.
     {
       const REAL = "Generation failed: The request failed because the input image 'content[1]' may contain real person. Request id: x";
-      const doc = { door: 'apiframe', prompt: 'the ward corridor', model: 'seedance-2.5', params: { seed: 4242, duration: 4 }, status: 'sent',
-        walk: { req: { prompt: 'the ward corridor', model: '2.5', seconds: 4, resolution: '480p', ratio: '9:16', sound: true, refs: [] }, tried: ['openrouter', 'apiframe'], left: ['atlascloud'] } };
+      const doc = { door: 'apiframe', prompt: 'the ward corridor', model: 'seedance-2.5', params: { seed: 4242, duration: 4 }, status: 'sent' };
       const refusing = (text) => ({ ...door('apiframe'), pollVideo: async () => ({ id: 'x', status: 'FAILED', patch: { status: 'failed', error: text, doneAt: 'now' } }) });
       const settle = () => new Promise((r) => setTimeout(r, 300));
-      ok('walkPlan: a content refusal with a door left is sent again, same seed, avoiding both that refused',
-        (() => { const p = F.walkPlan(doc, { status: 'failed', error: REAL }); return p && p.req.seed === 4242 && p.req.door === 'auto' && p.tried.join(',') === 'openrouter,apiframe'; })());
-      ok('walkPlan: an output gate, a pinned door (no walk), nothing left, and a job already re-sent all answer null',
-        F.walkPlan(doc, { status: 'failed', error: 'output video may be related to copyright' }) === null
-        && F.walkPlan({ ...doc, walk: undefined }, { status: 'failed', error: REAL }) === null
-        && F.walkPlan({ ...doc, walk: { ...doc.walk, left: [] } }, { status: 'failed', error: REAL }) === null
-        && F.walkPlan({ ...doc, resentAs: 'other' }, { status: 'failed', error: REAL }) === null);
-      let before = seen.length;
+      const before = seen.length;
       F.init({ apiframe: refusing(REAL) });
-      await F.pollOne('walk-1', doc); await settle();
-      ok('a content refusal landing on the poll sends the job again through the next door',
-        seen.length === before + 1 && seen[before].name === 'atlas');
-      ok('with the SAME seed, and the note naming who refused and where it went',
-        seen.length === before + 1 && seen[before].req.seed === 4242 && /APIFRAME refused a reference \(a real face in a picture\) after taking the job — sent again through Atlas Cloud/.test(seen[before].req.note || ''));
-      before = seen.length;
-      F.init({ apiframe: refusing('Generation failed: the generated video may be related to copyright restrictions') });
-      await F.pollOne('walk-2', doc); await settle();
-      ok('an OUTPUT refusal on the poll is left as found — nothing sent', seen.length === before);
-      F.init({ apiframe: refusing(REAL) });
-      await F.pollOne('walk-3', { ...doc, walk: { ...doc.walk, left: [] } }); await settle();
-      ok('a walk with nothing left sends nothing', seen.length === before);
+      const r = await F.pollOne('walk-1', doc); await settle();
+      ok('a content refusal landing on the poll is answered as the failure it is', r && r.patch && r.patch.status === 'failed');
+      ok('…and NOTHING is sent through another door', seen.length === before);
+    }
+    // ── A REFUSAL ON THE POST THROWS — never a second send (2026-09-11) ──
+    {
+      const before = seen.length;
+      const refusingPost = { ...door('openrouter'), startVideo: async () => { const e = new Error('ByteDance refused a reference'); e.status = 400; e.refusal = 'content'; throw e; } };
+      F.init({ openrouter: refusingPost, atlascloud: door('atlas'), apiframe: door('apiframe') });
+      let threw = null;
+      try { await F.startJob({ prompt: 'her at the window', model: '2.0', seconds: 4, resolution: '480p', ratio: '9:16', door: 'openrouter' }); } catch (e) { threw = e; }
+      ok('a content refusal on the POST throws with the refusal on it', threw && threw.refusal === 'content' && threw.door === 'openrouter');
+      ok('…and no other door was sent the job', seen.length === before);
     }
     F.init({ atlascloud: require('../atlascloud'), apiframe: require('../apiframe'), openrouter: require('../openrouter') });
   }
@@ -561,9 +574,10 @@ async function pillSweep(pg, where) {
     ok('720p follows the same order, not a different one', pick('mini', '720p').door === 'atlascloud' && pick('2.0', '720p').door === 'openrouter');
     // 2.5 WITH A REFERENCE VIDEO IS THE ONE ROW WHERE ATLAS BEATS APIFRAME
     // (53.6¢ against 60¢ — APIFRAME charges its own dearer video rate), so
-    // the chain there is OpenRouter → Atlas → APIFRAME, all three, each
-    // looser than the last.
-    ok('the chain is priced too, not a fixed order', F.doorFor({ model: '2.5', door: 'auto', resolution: '480p', ratio: '16:9', seconds: 4, hasVideo: true }, three).chain.join(',') === 'atlascloud,apiframe');
+    // the ranking there is OpenRouter · Atlas · APIFRAME — and still ONE
+    // door goes out, nothing behind it.
+    ok('the ranking is priced too, not a fixed order — and the chain is still empty',
+      (() => { const d = F.doorFor({ model: '2.5', door: 'auto', resolution: '480p', ratio: '16:9', seconds: 4, hasVideo: true }, three); return d.ranked.map((x) => x.door).join(',') === 'openrouter,atlascloud,apiframe' && d.chain.length === 0; })());
     // A FAILED ATLAS READ MUST NOT MOVE THE DOOR. Falling back to the LIST
     // rate would quietly send every Mini job to OpenRouter at 3x the real
     // price for the ten minutes the cache holds.
@@ -590,6 +604,21 @@ async function pillSweep(pg, where) {
   await page.waitForFunction(() => /¢/.test(document.getElementById('cost').textContent));
   await page.waitForSelector('#job-old1');
   await page.waitForTimeout(1800);                 // let the pill's settling passes run
+
+  // ── THE FEED PAGES BACK — the walk, pure (2026-09-11, Sophie: "I can't go
+  // back farther than today in footage") ──────────────────────────────────
+  {
+    const all = Array.from({ length: 7 }, (_, i) => ({ id: 'j' + i, d: { sentAt: '2026-09-0' + (i + 1) + 'T00:00:00.000Z' } }));
+    const p1 = F.pageJobs(all, { limit: 3 });
+    ok('the first page is the newest three, newest first', p1.docs.map((x) => x.id).join() === 'j6,j5,j4');
+    ok('and it says there is more under it', p1.more === true);
+    const p2 = F.pageJobs(all, { limit: 3, before: p1.docs[2].d.sentAt });
+    ok('the page under a cursor is the three below it, none repeated', p2.docs.map((x) => x.id).join() === 'j3,j2,j1' && p2.more === true);
+    const p3 = F.pageJobs(all, { limit: 3, before: p2.docs[2].d.sentAt });
+    ok('the last page is short and says so', p3.docs.map((x) => x.id).join() === 'j0' && p3.more === false);
+    ok('no cursor and a big limit is everything, and more is false', F.pageJobs(all, { limit: 40 }).more === false && F.pageJobs(all, { limit: 40 }).docs.length === 7);
+    ok('the route answers `more` beside the jobs', /jobs: docs\.map\(\(x\) => cardOf\(x\.id, x\.d\)\), more \}/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
+  }
 
   // ── the page rules ──────────────────────────────────────────────────────
   ok('no page errors', errors.length === 0);
@@ -831,6 +860,41 @@ async function pillSweep(pg, where) {
   await page.waitForTimeout(200);
   ok('a repaint never rebuilds a card that did not change', await page.evaluate((h) => h === document.querySelector('#job-old1 .thumb img'), imgBefore));
 
+  // ── THE WAY BACK PAST TODAY (2026-09-11, Sophie: "I can't go back farther
+  // than today in footage") — every assertion a MEASUREMENT: an opener that
+  // is in the markup and never drawn, a walk that repeats a page, and a poll
+  // that puts the opener back after the last page all read fine in source.
+  ok('the "… older" opener is drawn under the feed while there is a page under it',
+    await page.$eval('#older', (e) => !e.hidden && e.getBoundingClientRect().height > 0 && /older/.test(e.textContent)));
+  ok('it is an underlined word, no box and no fill',
+    await page.$eval('#older', (e) => { const c = getComputedStyle(e); return c.textDecorationLine.includes('underline') && c.borderTopWidth === '0px' && c.backgroundColor === 'rgba(0, 0, 0, 0)'; }));
+  ok('no card from yesterday is on the page yet', await page.$$eval('#feed .job', (els) => !els.some((e) => /^job-y/.test(e.id))));
+  await page.click('#older');
+  await page.waitForSelector('#job-y2');
+  await page.waitForTimeout(150);
+  ok('the tap asked for the page under the OLDEST clip on screen, by its sentAt',
+    jobReads[jobReads.length - 1] === '2026-09-09T00:00:00.000Z');
+  ok('yesterday\'s two newest clips landed at the END of the feed, newest first — ' + await page.$$eval('#feed .job', (els) => els.map((e) => e.id).join(',')),
+    await page.$$eval('#feed .job', (els) => els.map((e) => e.id).slice(-2).join() === 'job-y2,job-y1' && !els.some((e) => e.id === 'job-y0')));
+  ok('the opener is still there — the server said there is one more page',
+    await page.$eval('#older', (e) => !e.hidden && !e.disabled));
+  await page.click('#older');
+  await page.waitForSelector('#job-y0');
+  await page.waitForTimeout(150);
+  ok('the second tap walked under the page it had just loaded, not under today again',
+    jobReads[jobReads.length - 1] === '2026-09-08T11:00:00.000Z');
+  ok('the last clip is at the very end and the opener is gone',
+    await page.$$eval('#feed .job', (els) => els[els.length - 1].id === 'job-y0') && await page.$eval('#older', (e) => e.hidden));
+  ok('nothing was loaded twice — one card per clip', await page.$$eval('#feed .job', (els) => new Set(els.map((e) => e.id)).size === els.length && els.length === 11));
+  // the newest-page poll again — it always says "more under the first 40",
+  // which must not bring the opener back nor take the walked pages away
+  await page.evaluate(() => fetch('/api/footage/jobs?limit=40').then((r) => r.json()));
+  await page.evaluate(() => window.dispatchEvent(new Event('pageshow')));
+  await page.waitForTimeout(400);
+  ok('a later poll of the newest page neither drops the older cards nor re-lights the opener',
+    await page.$$eval('#feed .job', (els) => els.length === 11) && await page.$eval('#older', (e) => e.hidden));
+  ok('the older clips are on the wall too', await page.evaluate(() => { document.getElementById('v-tiles').click(); const n = document.querySelectorAll('#tiles .cell[data-id^="y"]').length; document.getElementById('v-list').click(); return n === 3; }));
+
   // ── LIST · TILES · 3/4, and the number MEASURED off the real cells ───────
   const across = (s2) => page.evaluate((sel2) => {
     const cells = [...document.querySelectorAll(sel2)].filter((c) => !c.hidden && c.getBoundingClientRect().width);
@@ -850,7 +914,8 @@ async function pillSweep(pg, where) {
   await page.waitForFunction(() => document.querySelectorAll('#tiles .cell').length > 0);
   ok('TILES shows the clips as posters, and the list is put away',
     (await page.$eval('#feed', (e) => e.hidden)) && !(await page.$eval('#tiles', (e) => e.hidden))
-    && (await page.$$eval('#tiles .cell img', (i) => i.length)) === 8);
+    // 8 of today's plus the 3 the walk back brought in above
+    && (await page.$$eval('#tiles .cell img', (i) => i.length)) === 11);
   ok('the wall is three across', (await across('#tiles .cell')) === 3);
   await page.click('#v-cols');
   ok('and follows the same tap to four', (await across('#tiles .cell')) === 4);
@@ -981,11 +1046,11 @@ async function pillSweep(pg, where) {
   await page.click('#go');
   await page.waitForSelector('#err:not([hidden])');
   const err = await page.$eval('#err', (e) => e.textContent);
-  // A CONTENT REFUSAL THAT REACHES HER HAS ALREADY BEEN THROUGH EVERY DOOR —
-  // the server walks the cheapest, then every looser one — so the page no
-  // longer names a door to try next: there isn't one.
-  ok('a content refusal shows on the page with the page\'s own hint (every door refused it — a famous face): ' + err,
-    /refused/.test(err) && /famous face/.test(err) && /every door/.test(err));
+  // A REFUSAL IS THE ANSWER (2026-09-11 evening): the page says it was
+  // refused and that nothing was drawn or charged — it names no door to try
+  // next and the server sent it nowhere else.
+  ok('a content refusal shows on the page as refused, nothing drawn or charged: ' + err,
+    /refused/.test(err) && /nothing drawn or charged/.test(err) && !/every door/.test(err));
 
   // ── putting a prompt back brings its seed, and clearing means clearing ───
   await page.click('#job-old1 .copy');
@@ -1325,13 +1390,9 @@ async function pillSweep(pg, where) {
     // the tap: the PICTURE opens, in the one overlay, with no trim bar
     if (!tile) { report(); }
     await tile.click();
-    // the picture is DECODED before it is measured — `complete` is false for a
-    // frame or two after the src is set, and this assertion has flaked on the
-    // shape of the run rather than on anything about the page
-    await page.waitForFunction(() => {
-      const i = document.querySelector('#player .pstage img.pimg');
-      return i && i.complete && i.naturalWidth > 0;
-    }, null, { timeout: 5000 }).catch(() => {});
+    // the picture is fetched on the tap — wait for it to land rather than
+    // asking `complete` in the same tick (measured flaky on a longer feed)
+    await page.waitForFunction(() => { const a = document.querySelectorAll('#player .pstage img.pimg'); return a.length === 1 && a[0].complete && a[0].naturalWidth > 0; }, null, { timeout: 5000 }).catch(() => {});
     ok('tapping it opens the picture over the page, page locked',
       !(await page.$eval('#player', (e) => e.hidden))
       && (await page.$$eval('#player .pstage img.pimg', (a) => a.length === 1 && a[0].complete && a[0].naturalWidth > 0))

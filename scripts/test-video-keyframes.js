@@ -243,11 +243,7 @@ const base = { prompt: 'she walks out of the office, camera at eye level', durat
   ok('startJob: a first frame beside a reference goes to APIFRAME, with both',
     () => seen.length === 2 && seen[1].name === 'apiframe' && seen[1].req.firstFrameUrl === FIRST
     && seen[1].req.referenceImageUrls.join(',') === REF);
-  // THE WALK ON THE DOC CARRIES THE KEYFRAME, so a refusal that lands on the
-  // poll re-sends the SAME job through the next door rather than one with the
-  // first frame quietly missing.
-  ok('startJob: the walk carries the keyframe, so a re-send is the same job',
-    () => ((seen[1].extra || {}).walk || {}).req.firstFrameUrl === FIRST);
+  // (the poll-time door walk is gone since #2318 — one door, one send)
   ok('startJob: and the card\'s refs carry the role, so the tile says which end it is',
     () => (seen[1].extra.refs || []).some((r) => r.url === FIRST && r.role === 'first'));
   F.init({ atlascloud: require('../atlascloud'), apiframe: require('../apiframe'), openrouter: require('../openrouter') });
