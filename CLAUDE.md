@@ -5349,10 +5349,13 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     - `node scripts/test-asset-lightbox.js` carries the sweep: every surface
       that opens a feed hands over a nav hook, and a new picture surface joins
       it by linking the shared file.
-- **THE BOTTOM BAR'S THREE ARE PERMANENT — Story Room · Story Timeline ·
-  Playground (2026-08-26, Sophie: "right now the bottom real icons switch off
-  can you change it so they're permanent I want the story room, the story
-  timeline and the playground").** The three middle slots used to rotate by
+- **THE BOTTOM BAR'S SLOTS ARE PERMANENT — Story Room · Story Timeline ·
+  Playground · Footage (2026-08-26, Sophie: "right now the bottom real icons
+  switch off can you change it so they're permanent I want the story room, the
+  story timeline and the playground"; **Footage joined them 2026-09-11**, "make
+  footage rotate w the three bottom nav buttons" — a FOURTH slot, not a swap:
+  she named the other three herself, so nothing came off to make room).** The
+  middle slots used to rotate by
   most-recently-used, so the tools under her thumb moved every time she opened
   anything else from Home — a bar that can never be learned. `barTools` in
   `RootView.swift` is the whole list and the ONE place the order is written
@@ -5362,8 +5365,8 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   - **THE ALIVE SET IS NOT THE BAR ANY MORE, and that is the half that breaks
     if it is "tidied".** The ZStack used to keep exactly the bar's three tools
     alive, which only worked because opening a tool from Home promoted it INTO
-    that three; with the slots fixed, a tool opened from Home is in neither, so
-    `alive` = the three + the currently-open tool + the ONE most recent tool
+    that set; with the slots fixed, a tool opened from Home is in neither, so
+    `alive` = the bar's tools + the currently-open tool + the ONE most recent tool
     from outside the bar. Drop the first and a tool opened from Home renders as
     a blank screen; drop the second and Home → Playground → Home silently
     throws away her half-typed prompt.

@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit   // UIImage(systemName:) — the SF Symbol existence check in ToolGlyph
 
 /// Every tool in the app. The bottom bar shows five of them and they are all
-/// fixed: Home (the grid) and Gallery at the ends, and the three in `barTools`
+/// fixed: Home (the grid) and Gallery at the ends, and the tools in `barTools`
 /// between them. Everything else is reached from the home grid or a deep link.
 enum Tool: String, CaseIterable, Identifiable {
     case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, pausing, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, assembly, filmeditor, timeline, review, crop, shoebox, footage
@@ -460,7 +460,7 @@ extension EnvironmentValues {
     }
 }
 
-/// THE THREE MIDDLE BAR SLOTS ARE FIXED (2026-08-26, Sophie: "right now the
+/// THE MIDDLE BAR SLOTS ARE FIXED (2026-08-26, Sophie: "right now the
 /// bottom real icons switch off can you change it so they're permanent I want
 /// the story room, the story timeline and the playground"). They used to
 /// rotate by most-recently-used, so the three tools under her thumb changed
@@ -469,7 +469,11 @@ extension EnvironmentValues {
 ///
 /// Nothing else about `Recents` changed: it still tracks use order, because
 /// the HOME GRID ranks its cards by it. Only the bar stopped reading it.
-let barTools: [Tool] = [.story, .timeline, .playground]
+/// FOOTAGE JOINED THEM 2026-09-11 (Sophie: "make footage rotate w the three
+/// bottom nav buttons") — a FOURTH fixed slot, not a swap: she named the other
+/// three herself, so nothing comes off the bar to make room. The slots still
+/// never move; adding one is this line.
+let barTools: [Tool] = [.story, .timeline, .playground, .footage]
 
 /// Tracks most-recently-used tools — the HOME GRID's card order. The bottom
 /// bar no longer reads this (see `barTools` above).
@@ -645,8 +649,8 @@ struct RootView: View {
         screen = history.popLast() ?? .home
     }
 
-    // The tools kept ALIVE in the stack: the three permanent bar tools, plus
-    // whatever tool is open right now. The bar's three used to be the whole
+    // The tools kept ALIVE in the stack: the permanent bar tools, plus
+    // whatever tool is open right now. The bar's tools used to be the whole
     // list — which only worked because opening anything from Home promoted it
     // INTO that list. With the slots fixed (see `barTools`) a tool opened from
     // Home belongs to neither, so it has to be added here or its screen would
@@ -742,10 +746,10 @@ struct RootView: View {
     }
 }
 
-/// The custom bottom bar: 🏠 · Story Room · Story Timeline · Playground · 🖼️.
-/// The three middle slots are PERMANENT (see `barTools`) — they used to rotate
-/// by most-recent use, so the tools under her thumb moved every time she opened
-/// something else.
+/// The custom bottom bar: 🏠 · Story Room · Story Timeline · Playground ·
+/// Footage · 🖼️. The middle slots are PERMANENT (see `barTools`) — they used to
+/// rotate by most-recent use, so the tools under her thumb moved every time she
+/// opened something else.
 private struct BottomBar: View {
     @Binding var screen: Screen
 
@@ -755,7 +759,7 @@ private struct BottomBar: View {
                 Image(systemName: "house").font(.system(size: 21, weight: screen == .home ? .semibold : .regular))
             }
             ForEach(barTools) { t in
-                // Tapping a slot just switches to it — the three never move.
+                // Tapping a slot just switches to it — the slots never move.
                 slot(active: screen == .tool(t), { screen = .tool(t) }) {
                     ToolGlyph(tool: t, size: 21, weight: screen == .tool(t) ? .semibold : .regular)
                 }
