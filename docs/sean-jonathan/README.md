@@ -15,7 +15,68 @@ shape the belt hands over.
 | her typos, fixed on the way onto the page | `typos.json` |
 | what the model invents, and who has to match it | `continuity.json` |
 | the still grabber | `scripts/sean-jonathan/grab-still.js` |
-| the live page | `sean-jonathan-script` → Compare tab, *Sean & Jonathan — the draft belt v7* (`7nYSMm1CV0wH2Php1TpC`) |
+| the retaliation scene (MINE, a draft for her) | `retaliation.md` |
+| the live page | `sean-jonathan-script` → Compare tab, *Sean & Jonathan — the draft belt v11* (`Nr5qmODNwFohgneMPVzS`) |
+
+## THE FILM, AND THE TWO LINKS THAT ARE NOT THE SAME LINK
+
+The cut doc IS the film: **`9WyQ1XE8OvQXrNtnvfsD`**
+(`https://imageforge-q125.onrender.com/filmeditor?c=9WyQ1XE8OvQXrNtnvfsD`), built
+from the belt order by `scripts/sean-jonathan/build-cut.py` and rendered in the
+container (`node scripts/filmcut.js render 9WyQ1XE8OvQXrNtnvfsD`). Renders never
+overwrite: `filmeditor/<cut>/film-<n>.mp4`, newest wins. v3 is the pin.
+
+**The pin is how she WATCHES it; the Dump link is how she SAVES it.** They are
+different things and a reply gives whichever one the sentence is about (house
+rule 3d2 — a `/api/drop/file/<id>` link downloads, so it is never the way to
+watch something).
+
+### THE CLEAN EXPORT — 2026-09-11, *"how do i download it to send to my friend wesley"*
+
+House rule 3e, for every final video going out to a person. A stream copy with
+the metadata stripped, so the pixels are **byte-identical** and only the
+container's tags change:
+
+    ffmpeg -v error -i final.mp4 -map 0 -c copy -map_metadata -1 \
+      -movflags +faststart -fflags +bitexact -flags:v +bitexact -flags:a +bitexact \
+      "Sean and Jonathan.mp4" -y
+
+**Verified rather than assumed:** the decoded video stream hashes the same
+before and after (`MD5=6e01d56f206c7960bedd64cff24c1f90` both ways) and
+`ffmpeg -i` shows no encoder line. 44,216,711 → 44,216,683 bytes — 28 bytes of
+tags, and not one pixel.
+
+Filed into the Dump with a real filename:
+**`wIEEG22Zaw0GtrMBaEOS`** →
+`https://imageforge-q125.onrender.com/api/drop/file/wIEEG22Zaw0GtrMBaEOS`.
+**The Dump's filename slug drops an ampersand**, so it downloads as
+`Sean Jonathan.mp4` rather than `Sean & Jonathan.mp4` — cosmetic, and worth
+knowing before promising a filename in a reply.
+
+## WHAT MINI GOT WRONG, AND WHAT IS STILL WRONG IN v3
+
+2026-09-11, her notes watching it back, and each one is a line in `herLines`
+(`refs.json`) sitting on its card, waiting for a re-shoot she has not asked for:
+
+| what | card | on the card since |
+|---|---|---|
+| the teapot and cups drew as one fused object | `sj-1` | v2 |
+| the thrown cookies hang in midair | `sj-3` | v2 |
+| sean's tank top changes colour | all | v2 |
+| jonathan PULLS the curtain closed instead of the rod falling | `sj-4` | v3 |
+
+Her word on the film as it stands is **"it's good enough"** — so the three
+re-shoots (~50¢ at Atlas) are offered and NOT authorised. Don't send them
+without her.
+
+**WHY IT INVENTED SO MUCH DIALOGUE**, since it is the most useful thing this
+film taught us: *anything in the prompt the model cannot SHOW, it SAYS.* The
+who's-who block carries both men's heights, and a height is not a shot — so
+mini put it in their mouths, and the funniest lines in the film are ones she
+never wrote. The same mechanism is why the curtain would not fall: *the rod
+falls* is an event with no actor, so it reached for the commonest curtain
+action instead. Give an unshowable fact a body or it becomes a line; give an
+event a cause or it becomes the nearest thing that has one.
 
 ## THE RUNNING ORDER, AND WHY IT IS HERS
 
