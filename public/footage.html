@@ -3670,6 +3670,7 @@ var cmpA = null, cmpB = null;      // B is the clip she opened on (newer), A the
 var cmpPick = '';                  // the id a pick is waiting FOR, '' when none
 var cmpPool = {};                  // clips fetched for the panel that are not on the feed
 var cmpCast = {};                  // film slug → url → name (the cast library, read once per film)
+var cmpKin = {};                   // id → whether the server/page picked it as a near-twin
 var cmpSavedY = 0;
 function cmpAll() {
   var seen = {}, out = [];
@@ -3681,21 +3682,25 @@ function cmpAll() {
 function cmpSiblings(j) {
   return cmpAll().filter(function (o) { return (o.project || '') === (j.project || ''); });
 }
-// the clip before `j` — on hand, else one read off the server under its sentAt
+// THE CLIP BEFORE `j` IS ITS NEAREST OLDER TWIN, NOT THE ONE BEFORE IT IN
+// TIME (2026-09-11, her screenshot: a 15s 9:16 clip diffed against the 4s
+// failed 3:4 clip that merely came before it — "text looks wrong. It should
+// call out exactly what changed"). clip-diff's kinOf over what the page
+// holds first; when the twin is further back than the feed has loaded, the
+// server walks the whole project (`/jobs/:id/kin`). Either answers `kin`,
+// and false means "a different prompt" — the panel says so rather than
+// word-diffing two unrelated paragraphs.
 function cmpPrevious(j) {
-  var p = DF ? DF.previousOf(j, cmpAll()) : null;
-  if (p) return Promise.resolve(p);
-  if (!j.sentAt) return Promise.resolve(null);
-  var q = '/jobs?limit=1&before=' + encodeURIComponent(String(j.sentAt)) + (j.project ? '&project=' + encodeURIComponent(j.project) : '');
-  return api(q).then(function (d) {
-    var o = d && d.jobs && d.jobs[0];
-    if (!o) return null;
-    // a clip with no project asked with no filter can answer one FROM a
-    // project — that is not its sibling
-    if ((o.project || '') !== (j.project || '')) return null;
-    cmpPool[o.id] = o;
+  var k = DF ? DF.kinOf(j, cmpAll()) : null;
+  if (k && k.kin) { cmpKin[k.job.id] = true; return Promise.resolve(k.job); }
+  return api('/jobs/' + encodeURIComponent(j.id) + '/kin').then(function (d) {
+    var o = d && d.job;
+    if (!o) return k ? k.job : null;
+    if ((o.project || '') !== (j.project || '')) return k ? k.job : null;
+    if (!jobsById[o.id]) cmpPool[o.id] = o;
+    cmpKin[o.id] = Boolean(d.kin);
     return o;
-  }).catch(function () { return null; });
+  }).catch(function () { return k ? k.job : null; });
 }
 // names for the references off the cast library — "sophie · the blue
 // pajamas" beside the thumb, never a Storage id. Read once per film.
@@ -3789,7 +3794,13 @@ function paintCompare() {
     '<span class="cwhich">' + esc(cmpBackWord(sib, a, b)) + '</span></div>';
   h += '<p class="csum">' + esc(DF.summary(d)) + '</p>';
   h += '<h3>Prompt</h3>';
-  if (d.words) {
+  if (d.words && d.kin === false) {
+    // two unrelated prompts — a word diff of them is a hash of green and rose
+    // over words that never meant the same thing. Say so, show this clip's
+    // words plain, and leave the walk and the pick as the way to a real twin.
+    h += '<p class="cnone">A different prompt — nothing to line up word for word. Walk older, or pick a clip.</p>';
+    h += '<div class="cprompt">' + esc(b.prompt || '') + '</div>';
+  } else if (d.words) {
     h += '<div class="cprompt">' + d.prompt.map(function (t) {
       var x = esc(t.t);
       return t.op === 'same' ? x : t.op === 'add' ? '<span class="dadd">' + x + '</span>' : '<span class="ddel">' + x + '</span>';
@@ -3821,9 +3832,13 @@ function paintCompare() {
   var body = $('cmpbody');
   body.innerHTML = h;
   body.querySelector('#cmpolder').addEventListener('click', function () {
-    if (older) { cmpA = older; paintCompare(); return; }
-    // nothing older on hand — ask the server for the one under the current "before"
-    cmpPrevious(a).then(function (p) { if (p && !$('cmp').hidden) { cmpA = p; paintCompare(); } else toast('Nothing older'); });
+    // the next older TWIN of this clip, from behind the current other side;
+    // the plain next-older clip only when there is no twin further back
+    cmpPrevious(a).then(function (p) {
+      if (p && !$('cmp').hidden) { cmpA = p; paintCompare(); }
+      else if (older) { cmpA = older; paintCompare(); }
+      else toast('Nothing older');
+    });
   });
   body.querySelector('#cmpnewer').addEventListener('click', function () { if (newer) { cmpA = newer; paintCompare(); } });
   body.querySelector('#cmppick').addEventListener('click', function () {

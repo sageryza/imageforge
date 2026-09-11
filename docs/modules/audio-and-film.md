@@ -744,15 +744,46 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         reserves the 64px on its right like every other sheet here. The
         page is locked behind it and put back on close; `__navBack` closes it
         first, the way it closes the player.
+      - **LINES FIRST, WORDS SECOND — AND THE OTHER SIDE IS THE NEAREST
+        TWIN, NOT THE CLIP BEFORE IT IN TIME (2026-09-11, the same evening,
+        Sophie with a screenshot of the live panel: "text looks wrong. It
+        should call out exactly what changed").** The first cut ran one word
+        LCS over the WHOLE prompt and opened on the clip immediately older
+        in the project — so a 15s 9:16 Sophie clip was diffed against a 4s
+        failed 3:4 clip about something else, and every "the" and "a" the
+        two shared was lined up and the rest painted as a hash of green and
+        rose. Two changes, one rule each in `clip-diff.js`:
+        - **The prompt is diffed as LINES.** A line that is the same is
+          same; a line replaced by a near-twin (`LINE_TWIN`, half its
+          distinct words shared) is word-diffed against that twin so the
+          one changed word lights; anything else is a whole line struck or
+          a whole line in. The newline after a line belongs to the side
+          that has a line after it, which is what lets the diff still
+          re-join byte for byte to BOTH prompts (an added last paragraph
+          brings its own break in as an add).
+        - **`kinOf` picks the other side** — the nearest OLDER clip in the
+          project whose prompt shares `KIN` (0.4) of its distinct words, a
+          redo. The page runs it over the clips it holds and, when the twin
+          is further back than the feed has loaded, asks
+          `GET /api/footage/jobs/:id/kin`, which runs the same function over
+          the whole project. With no twin anywhere the plain previous clip
+          answers, marked `kin:false`, and the panel says **"A different
+          prompt — nothing to line up word for word"** and shows this clip's
+          words plain instead of a hash; the walk and the pick are the way
+          to a real twin. "‹ older" walks twin-first too.
       - Tests: `node scripts/test-clip-diff.js` (the rules pure — the diff
-        re-joins to either prompt byte for byte, a swapped slot is one row,
-        the names, the previous-in-project rule, a pasted scene past the size
-        cap — then the real page headless: the panel opened on the clip
-        before and NOT the other project's clip between them, the added word
-        MEASURED as a painted span, the settings row, the cast name on the
-        swapped reference, the walk, the server read for the clip under the
-        page with its cursor, the pick landing on the tapped card, ✕ and
-        `__navBack` closing it).
+        re-joins to either prompt byte for byte in both shapes, unrelated
+        prompts come out as one line out and one line in, a reworded twin
+        line lights only its word, kin skips an unrelated older clip and
+        answers `kin:false` with none, a swapped slot is one row, the names,
+        a pasted scene past the size cap — then the real page headless: the
+        panel opened on the nearest ward TWIN and NOT the unrelated ward clip
+        right before it nor the other project's, the added word MEASURED as
+        a painted span, the settings row, the cast name on the swapped
+        reference, the walk, the server's kin route asked for the clip under
+        the page, a no-twin clip saying "a different prompt" with no lit
+        span, the pick landing on the tapped card, ✕ and `__navBack` closing
+        it).
     - **SHE TRIMS A CLIP AS IT COMES OUT (2026-09-10, Sophie: "how hard
       would it be to make it possible to trim clips right as they come out of
       the footage module?").** A Mini clip is 4-15 seconds and the shot inside

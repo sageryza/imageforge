@@ -75,6 +75,7 @@ const videoRefusals = require('./video-refusals');
 // is served to the page too, so the client filter reads the same words)
 const grammar = require('./search-grammar');
 const { hayOf } = require('./footage-hay');
+const clipDiff = require('./clip-diff');
 
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 const CHAT = 'footage';
@@ -1381,6 +1382,27 @@ router.get('/jobs', async (req, res) => {
     }));
     res.set('Cache-Control', 'no-store');
     res.json({ ok: true, jobs: docs.map((x) => cardOf(x.id, x.d)), more, folders });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /jobs/:id/kin — THE CLIP BEFORE THIS ONE for the compare panel: the
+// nearest OLDER clip in the same project whose prompt is a near-twin of this
+// one (clip-diff.js's kinOf, the ONE rule the page runs over what it holds).
+// The page asks here when the twin is further back than the feed has loaded
+// — her screenshot (2026-09-11) compared a 15s 9:16 clip against the 4s
+// failed 3:4 clip that merely came before it. Answers the plain previous
+// clip with `kin:false` when the project holds no twin, and nothing when it
+// holds nothing older at all.
+router.get('/jobs/:id/kin', async (req, res) => {
+  try {
+    const id = String(req.params.id);
+    const snap = await coll().get();
+    const cards = snap.docs.map((d) => cardOf(d.id, d.data()));
+    const j = cards.find((c) => c.id === id);
+    if (!j) { res.status(404).json({ error: 'no such clip' }); return; }
+    const k = clipDiff.kinOf(j, cards);
+    res.set('Cache-Control', 'no-store');
+    res.json({ ok: true, job: k ? k.job : null, kin: k ? k.kin : false, back: k ? k.back : 0 });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
