@@ -71,6 +71,10 @@ const videoLog = require('./video-log');
 const videoSeed = require('./video-seed');
 const videoFloor = require('./video-floor');
 const videoRefusals = require('./video-refusals');
+// THE SEARCH — the house grammar over what a clip's card says (footage-hay.js
+// is served to the page too, so the client filter reads the same words)
+const grammar = require('./search-grammar');
+const { hayOf } = require('./footage-hay');
 
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 const CHAT = 'footage';
@@ -86,6 +90,24 @@ const CHAT = 'footage';
 // Plan: docs/footage-projects-plan.md.
 function projectSlug(s) {
   return String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+}
+// A SUB-FOLDER INSIDE A PROJECT (2026-09-11, Sophie: "can we do sub folders
+// ex the witch commercials"). One more field on the job doc, `folder`, the
+// same slug shape, meaningful only beside a `project` — a folder is a shelf
+// INSIDE a film, never a second vocabulary: the folders a project has are
+// DERIVED from the clips filed in it (`foldersOf`, answered on every /jobs
+// read), so there is nothing to keep in step and an emptied folder simply
+// stops being offered. Moving a clip to another project takes it out of its
+// folder, since the folder belonged to the project it left.
+const folderSlug = projectSlug;
+function foldersOf(rows) {
+  const out = {};
+  rows.forEach((x) => {
+    const p = projectSlug(x.d.project), f = folderSlug(x.d.folder);
+    if (!p || !f) return;
+    (out[p] = out[p] || new Set()).add(f);
+  });
+  return Object.fromEntries(Object.entries(out).map(([p, s]) => [p, Array.from(s).sort()]));
 }
 // A BELT HAND-OFF NAMES ITS CHAT, and the chat says which film it belongs to.
 // scene-index.js already writes `from: belt.chat` into `footage_handoff`; the
@@ -605,6 +627,9 @@ function buildJob(b) {
   // the project rides the body so every door files it on the log doc
   const project = projectSlug(b.project);
   if (project) body.project = project;
+  // and the sub-folder, only ever inside a project
+  const folder = project ? folderSlug(b.folder) : '';
+  if (folder) body.folder = folder;
   return { body, refs, m, res, ratio, seconds, audio, first: kfFirst, last: kfLast };
 }
 function titleOf(prompt) {
@@ -743,6 +768,8 @@ function cardOf(id, d) {
     // WHICH PROJECT — the cast library's film slug; '' for a clip drawn
     // before projects existed or sent under "All"
     project: projectSlug(d.project),
+    // WHICH SUB-FOLDER of that project; '' for none (and always '' with no project)
+    folder: projectSlug(d.project) ? folderSlug(d.folder) : '',
     // WHICH CHAT SENT IT — `footage` for this page's own; the card names any
     // other, since a chat's clip in her feed with nothing saying so reads as
     // one she drew and forgot
@@ -1205,6 +1232,7 @@ async function startJob(b) {
   const extra = { door: d.door, refs, estimate: est.cents != null ? est.cents : null, footage: true, aspect: ratio };
   if (floored.notes.length) extra.note = floored.notes.join(' ');
   if (body.project) extra.project = body.project;
+  if (body.folder) extra.folder = body.folder;
   const mod = getDoors()[d.door];
   // THE LAST FRAME RIDES ALONG ON ATLAS, AND ONLY THERE (2026-09-10,
   // Sophie: "on"). It is FREE — measured 2026-09-09, billed to the token
@@ -1297,8 +1325,8 @@ router.post('/jobs', async (req, res) => {
 // the oldest clip she holds; the answer is the page under it and `more` says
 // whether anything is left under THAT. Pure, so the walk has a test that
 // needs no Firestore.
-function pageJobs(all, { limit, before } = {}) {
-  const lim = Math.min(Number(limit) || 40, 200);
+function pageJobs(all, { limit, before, max } = {}) {
+  const lim = Math.min(Number(limit) || 40, max || 200);
   const sorted = all.slice().sort((a, b) => String(b.d.sentAt || '').localeCompare(String(a.d.sentAt || '')));
   const under = before ? sorted.filter((x) => String(x.d.sentAt || '') < String(before)) : sorted;
   const docs = under.slice(0, lim);
@@ -1323,8 +1351,26 @@ router.get('/jobs', async (req, res) => {
     // No `project` on the query is every clip, which is what a page cached
     // from before this sends.
     const project = projectSlug(req.query.project);
-    const all = snap.docs.map((d) => ({ id: d.id, d: d.data() })).filter((x) => !project || projectSlug(x.d.project) === project);
-    const { docs, more } = pageJobs(all, { limit: req.query.limit, before: req.query.before });
+    // and ONE FOLDER of it when asked — only ever beside a project
+    const folder = project ? folderSlug(req.query.folder) : '';
+    const rows = snap.docs.map((d) => ({ id: d.id, d: d.data() }));
+    let all = rows.filter((x) => (!project || projectSlug(x.d.project) === project) && (!folder || folderSlug(x.d.folder) === folder));
+    // every project's folders, off the whole read — the picker's and the
+    // card's rows, derived rather than stored
+    const folders = foldersOf(rows);
+    // A SEARCH READS THE WHOLE LOG, NOT THE PAGE SHE IS LOOKING AT (2026-09-11,
+    // Sophie: "add a search button and filter like playground") — the Assets
+    // tab's lesson: a box that only filters the loaded page answers "nothing
+    // matches" for everything behind the first 40. Filtered here over every
+    // clip the read holds, BEFORE the page is cut, with the same words the
+    // page's own filter reads (footage-hay.js) and the feed's own matcher
+    // (search-grammar.js). A search may ask for a bigger page.
+    const q = String(req.query.q || '').trim();
+    if (q) {
+      const groups = grammar.compileFeed(q);
+      all = all.filter((x) => grammar.feedMatches(hayOf(cardOf(x.id, x.d)), groups));
+    }
+    const { docs, more } = pageJobs(all, { limit: q ? Math.min(Number(req.query.limit) || 40, 300) : req.query.limit, before: req.query.before, max: q ? 300 : undefined });
     // ask the doors about the ones still drawing — throttled per job, so a
     // page polling every few seconds is one provider read per job per 12s
     await Promise.all(docs.map(async (x) => {
@@ -1334,7 +1380,7 @@ router.get('/jobs', async (req, res) => {
       if (r && r.patch) Object.assign(x.d, r.patch, r.video ? { video: r.video } : {});
     }));
     res.set('Cache-Control', 'no-store');
-    res.json({ ok: true, jobs: docs.map((x) => cardOf(x.id, x.d)), more });
+    res.json({ ok: true, jobs: docs.map((x) => cardOf(x.id, x.d)), more, folders });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1346,15 +1392,19 @@ router.post('/jobs/:id/vote', async (req, res) => {
     res.json({ ok: true, vote });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
-// POST /jobs/:id/project { project } — MOVE a clip to a project, or off one
-// with ''. One field, nothing else on the doc moves. The card's own project
-// drop-down calls it (2026-09-11, Sophie: "can you also add the move project
-// UI"), and so do the backfill's `--map` and a chat.
+// POST /jobs/:id/project { project, folder? } — MOVE a clip to a project, or
+// off one with ''; `folder` puts it in a sub-folder of that project (absent
+// or '' takes it out of any folder — a folder belongs to the project it is
+// in, so a move between projects always leaves the old one's folder behind).
+// Two fields, nothing else on the doc moves. The card's own drop-downs call
+// it (2026-09-11, Sophie: "can you also add the move project UI" · "can we
+// do sub folders"), and so do the backfill's `--map` and a chat.
 router.post('/jobs/:id/project', async (req, res) => {
   try {
     const project = projectSlug(req.body && req.body.project);
-    await coll().doc(String(req.params.id)).set({ project }, { merge: true });
-    res.json({ ok: true, project });
+    const folder = project ? folderSlug(req.body && req.body.folder) : '';
+    await coll().doc(String(req.params.id)).set({ project, folder }, { merge: true });
+    res.json({ ok: true, project, folder });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 router.post('/jobs/:id/hide', async (req, res) => {
@@ -1423,5 +1473,5 @@ module.exports = {
   modelOf, doorFor, doorTakes, shapeRefusal, estimate, priceOn, DOOR_LOOSENESS, DOOR_REFUSAL_FREE, DOOR_WORDS, pollOne, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, resFactor, secondsOk, framesOf, projectSlug, HANDOFF_PROJECTS,
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf, atlasCacheBust,
   startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf,
-  pageJobs, statusOf, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
+  pageJobs, hayOf, foldersOf, folderSlug, statusOf, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
 };

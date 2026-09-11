@@ -8,7 +8,7 @@
  *   node scripts/footage-project-backfill.js --project ward --go     # writes
  *   node scripts/footage-project-backfill.js --project ward --since 2026-09-09 --go
  *   node scripts/footage-project-backfill.js --project ward --ids a,b,c --go
- *   node scripts/footage-project-backfill.js --map sort.json --go          # {id: project}, EVERY chat, overwrites
+ *   node scripts/footage-project-backfill.js --map sort.json --go          # {id: project | 'project/folder'}, EVERY chat, overwrites
  *
  * DRY BY DEFAULT and `--project` only ever fills a BLANK: a clip already
  * filed under a project is left alone and counted, so re-running is safe.
@@ -20,8 +20,11 @@
  * Sean scenes, the witch commercials, the train and the house under the
  * same picker, and one word over a whole feed is a guess wearing a
  * measurement's clothes. A clip is sorted by its PROMPT, one at a time, and
- * the map is the record of that reading. Needs FIREBASE_SERVICE_ACCOUNT
- * (the Deck Factory one) in the environment.
+ * the map is the record of that reading. A value of `project/folder` files
+ * the clip in a SUB-FOLDER of that project (2026-09-11, "can we do sub
+ * folders ex the witch commercials"); a bare project takes it out of any
+ * folder. Needs FIREBASE_SERVICE_ACCOUNT (the Deck Factory one) in the
+ * environment.
  */
 const admin = require('firebase-admin');
 const videoLog = require('../video-log');
@@ -51,11 +54,14 @@ async function applyMap() {
   const todo = [];
   snap.docs.forEach((d) => {
     if (!(d.id in map)) { missing += 1; return; }
-    const want = slugOf(map[d.id]);
-    const have = slugOf(d.data().project);
-    counts[want || '(none)'] = (counts[want || '(none)'] || 0) + 1;
-    if (want === have) { same += 1; return; }
-    todo.push({ ref: d.ref, project: want });
+    const parts = String(map[d.id] || '').split('/');
+    const want = slugOf(parts[0]);
+    const wantF = want ? slugOf(parts[1] || '') : '';
+    const have = slugOf(d.data().project), haveF = have ? slugOf(d.data().folder) : '';
+    const key = (want || '(none)') + (wantF ? '/' + wantF : '');
+    counts[key] = (counts[key] || 0) + 1;
+    if (want === have && wantF === haveF) { same += 1; return; }
+    todo.push({ ref: d.ref, project: want, folder: wantF });
   });
   const unknown = Object.keys(map).filter((id) => !snap.docs.some((d) => d.id === id)).length;
   console.log(`${snap.size} clips on the log · ${Object.keys(map).length} in the map (${unknown} not on the log) · ${missing} on the log but not in the map, left alone · ${same} already right · ${todo.length} to write`);
@@ -64,7 +70,7 @@ async function applyMap() {
   let n = 0;
   while (todo.length) {
     const batch = db.batch();
-    todo.splice(0, 400).forEach((t) => { batch.set(t.ref, { project: t.project }, { merge: true }); n += 1; });
+    todo.splice(0, 400).forEach((t) => { batch.set(t.ref, { project: t.project, folder: t.folder }, { merge: true }); n += 1; });
     await batch.commit();
   }
   console.log(`wrote project on ${n} clips`);

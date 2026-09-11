@@ -181,9 +181,16 @@ function report() {
   ok('the project rides the body as the cast\'s own slug shape', F.buildJob({ prompt: 'x', project: 'The Ward!' }).body.project === 'the-ward');
   ok('no project sends no field at all (what an older page sends)', !('project' in F.buildJob({ prompt: 'x' }).body) && !('project' in F.buildJob({ prompt: 'x', project: '' }).body));
   ok('cardOf reads the project back, blank for a clip drawn before projects', F.cardOf('x', { prompt: 'p', project: 'ward', params: {} }).project === 'ward' && F.cardOf('x', { prompt: 'p', params: {} }).project === '');
+  // THE SUB-FOLDER (2026-09-11, Sophie: "can we do sub folders ex the witch
+  // commercials") — one more field, only ever inside a project
+  ok('the folder rides the body in the slug shape, and never without a project', F.buildJob({ prompt: 'x', project: 'witch', folder: 'The Commercials' }).body.folder === 'the-commercials' && !('folder' in F.buildJob({ prompt: 'x', folder: 'commercials' }).body));
+  ok('cardOf reads the folder back, and a folder with no project reads as none', F.cardOf('x', { prompt: 'p', project: 'witch', folder: 'commercials', params: {} }).folder === 'commercials' && F.cardOf('x', { prompt: 'p', folder: 'commercials', params: {} }).folder === '');
+  ok('foldersOf derives every project\'s folders off the log, sorted, skipping the folder-less', JSON.stringify(F.foldersOf([{ d: { project: 'witch', folder: 'commercials' } }, { d: { project: 'witch', folder: 'b-roll' } }, { d: { project: 'witch' } }, { d: { folder: 'x' } }, { d: { project: 'ward', folder: 'socks' } }])) === '{"witch":["b-roll","commercials"],"ward":["socks"]}');
+  ok('the log record keeps the folder too', require('../video-log').sentRecord({ jobId: 'j', prompt: 'p', model: 'm', params: {}, tag: { chat: 'footage', project: 'witch', folder: 'commercials' } }).folder === 'commercials');
+  ok('all three doors put the folder on the log tag', ['openrouter.js', 'atlascloud.js', 'apiframe.js'].every((f) => /project: b\.project, folder: b\.folder \}/.test(fs.readFileSync(path.join(ROOT, f), 'utf8'))));
   ok('every ward belt chat maps to the ward, Ticky Tack to its own', ['soap-pill-scene', 'hospital-severance-rough-cut', 'hospital-night-film', 'climax-dissociation-accounts', 'severance-api-multiple-frames'].every((c) => F.HANDOFF_PROJECTS[c] === 'ward') && F.HANDOFF_PROJECTS['ticky-tack-film-page-dupe'] === 'ticky-tack');
   ok('the log record keeps the project a door is handed', require('../video-log').sentRecord({ jobId: 'j', prompt: 'p', model: 'm', params: {}, tag: { chat: 'footage', project: 'ward' } }).project === 'ward');
-  ok('all three doors put the project on the log tag', ['openrouter.js', 'atlascloud.js', 'apiframe.js'].every((f) => /note: b\.note, project: b\.project \}/.test(fs.readFileSync(path.join(ROOT, f), 'utf8'))));
+  ok('all three doors put the project on the log tag', ['openrouter.js', 'atlascloud.js', 'apiframe.js'].every((f) => /note: b\.note, project: b\.project, folder: b\.folder \}/.test(fs.readFileSync(path.join(ROOT, f), 'utf8'))));
   ok('the feed route filters by project and the move route exists', /projectSlug\(req\.query\.project\)/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')) && /router\.post\('\/jobs\/:id\/project'/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
   // EVERY CHAT'S CLIPS RIDE THE FEED (2026-09-11, her "if so, good"): the
   // route reads the whole log, never `where('chat', '==', CHAT)`, and the
@@ -318,7 +325,10 @@ let jobs = [
   cost: 8.8, estimate: 8.8, sentAt: '2026-09-09T07:30:00.000Z', vote: '', hidden: false,
 }]).concat(Array.from({ length: 7 }, (_, i) => ({
   project: i < 3 ? 'ward' : '',
-  id: 'f' + i, prompt: 'the socks on the line ' + i, model: 'mini', modelLabel: '2.0 Mini', door: 'openrouter', seconds: 4, resolution: '480p', ratio: '3:4',
+  // THE SUB-FOLDER (2026-09-11): f0 alone sits in the ward's `socks` folder
+  folder: i === 0 ? 'socks' : '',
+  // f4 is the FAST clip — the one the model chip has to find alone
+  id: 'f' + i, prompt: 'the socks on the line ' + i, model: i === 4 ? 'fast' : 'mini', modelLabel: i === 4 ? '2.0 Fast' : '2.0 Mini', door: 'openrouter', seconds: 4, resolution: '480p', ratio: '3:4',
   sound: true, refs: [], status: 'done', video: 'http://127.0.0.1:PORT/clip.mp4', poster: 'http://127.0.0.1:PORT/ref.png',
   // f6 is the LONG one: the box opens at the model's minimum, so a clip that
   // is 4 seconds proves nothing about the seconds coming back with the words
@@ -334,11 +344,15 @@ let jobs = [
 // under a `before` cursor, two at a time, so the walk takes two taps and the
 // second one is the one that says there is nothing left.
 const older = [0, 1, 2].map((i) => ({
-  id: 'y' + i, prompt: 'yesterday\'s clip ' + i, model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', seconds: 4, resolution: '480p', ratio: '3:4',
+  // y2 says a word NO clip on the page says: the search has to reach the server
+  id: 'y' + i, prompt: i === 2 ? 'a heron at the window' : 'yesterday\'s clip ' + i, model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', seconds: 4, resolution: '480p', ratio: '3:4',
   sound: true, refs: [], status: 'done', video: 'http://127.0.0.1:PORT/clip.mp4', poster: 'http://127.0.0.1:PORT/ref.png',
   cost: 4.4, estimate: 4.4, sentAt: '2026-09-08T1' + i + ':00:00.000Z', vote: '', hidden: false,
 }));
 const jobReads = [];
+const qReads = [];       // every `q` the page asked the server with
+const grammar = require('../search-grammar');
+const { hayOf } = require('../footage-hay');
 const projReads = [];    // the `project` every feed read asked for
 const projMoves = [];    // every clip the page moved to a project, in order
 const castReads = [];    // the film every shelf read asked for
@@ -415,11 +429,25 @@ const server = http.createServer((req, res) => {
       // the real route filters by project over the WHOLE collection before
       // the page is cut; no `project` is every clip
       const proj = u.searchParams.get('project') || '';
-      projReads.push(proj);
-      const mine = proj ? jobs.filter((j) => (j.project || '') === proj) : jobs;
-      if (!before) return json({ ok: true, jobs: mine, more: older.length > 0 });
+      const fold = proj ? (u.searchParams.get('folder') || '') : '';
+      projReads.push(proj + (fold ? '/' + fold : ''));
+      let mine = jobs.filter((j) => (!proj || (j.project || '') === proj) && (!fold || (j.folder || '') === fold));
+      // every project's folders, derived off the whole pool — the real route's
+      // `foldersOf`, so a move shows up on the next read
+      const folders = {};
+      jobs.forEach((j) => { if (j.project && j.folder) { (folders[j.project] = folders[j.project] || []); if (!folders[j.project].includes(j.folder)) folders[j.project].push(j.folder); } });
+      // A SEARCH reads the WHOLE log — the older pool included — with the
+      // real haystack and the real grammar, which is what the route does
+      const q = u.searchParams.get('q') || '';
+      if (q) {
+        qReads.push(q);
+        const groups = grammar.compileFeed(q);
+        const pool = mine.concat(proj ? older.filter((j) => (j.project || '') === proj) : older);
+        return json({ ok: true, jobs: pool.filter((j) => grammar.feedMatches(hayOf(j), groups)), more: false });
+      }
+      if (!before) return json({ ok: true, jobs: mine, more: older.length > 0, folders });
       const under = older.filter((j) => j.sentAt < before).sort((a, b) => b.sentAt.localeCompare(a.sentAt));
-      return json({ ok: true, jobs: under.slice(0, 2), more: under.length > 2 });
+      return json({ ok: true, jobs: under.slice(0, 2), more: under.length > 2, folders });
     }
     if (u.pathname === '/api/footage/jobs' && req.method === 'POST') {
       const b = JSON.parse(body);
@@ -439,9 +467,9 @@ const server = http.createServer((req, res) => {
     if (/^\/api\/footage\/jobs\/[^/]+\/vote$/.test(u.pathname)) { posted.push({ vote: u.pathname, body: JSON.parse(body) }); return json({ ok: true }); }
     if (/^\/api\/footage\/jobs\/[^/]+\/project$/.test(u.pathname)) {
       const id = u.pathname.split('/')[4], b = JSON.parse(body);
-      projMoves.push({ id, project: b.project });
-      const jj = jobs.find((x) => x.id === id); if (jj) jj.project = b.project || '';
-      return json({ ok: true, project: b.project || '' });
+      projMoves.push({ id, project: b.project, folder: b.folder });
+      const jj = jobs.find((x) => x.id === id); if (jj) { jj.project = b.project || ''; jj.folder = b.project ? (b.folder || '') : ''; }
+      return json({ ok: true, project: b.project || '', folder: b.folder || '' });
     }
     // the HOUSE note thread, stubbed exactly as server.js answers it: the
     // whole thread comes back on a write, and the read is the one inbox
@@ -672,7 +700,7 @@ async function pillSweep(pg, where) {
     const p3 = F.pageJobs(all, { limit: 3, before: p2.docs[2].d.sentAt });
     ok('the last page is short and says so', p3.docs.map((x) => x.id).join() === 'j0' && p3.more === false);
     ok('no cursor and a big limit is everything, and more is false', F.pageJobs(all, { limit: 40 }).more === false && F.pageJobs(all, { limit: 40 }).docs.length === 7);
-    ok('the route answers `more` beside the jobs', /jobs: docs\.map\(\(x\) => cardOf\(x\.id, x\.d\)\), more \}/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
+    ok('the route answers `more` beside the jobs', /jobs: docs\.map\(\(x\) => cardOf\(x\.id, x\.d\)\), more, folders \}/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
   }
 
   // ── the page rules ──────────────────────────────────────────────────────
@@ -735,7 +763,8 @@ async function pillSweep(pg, where) {
     /var PAGE_MODELS = \['mini', 'fast', '2\.0', '2\.5'\]/.test(PAGE_SRC));
   ok('the resolution is a <select>', sel.rTag === 'SELECT');
   ok('the native chrome is off and the box is the house 6px', sel.appearance === 'none' && sel.radius === '6px');
-  ok('the four drop-downs (project, model, size, shape) each draw our own inline chevron', sel.chevs === 4);
+  // the project picker is a folder ICON since the folders landed (2026-09-11) and draws no chevron
+  ok('the three text drop-downs (model, size, shape) each draw our own inline chevron', sel.chevs === 3);
   ok('the resolution opens at Mini\'s minimum', sel.rvalue === '480p' && sel.reses.join(',') === '480p,720p');
   // PICKING FAST REALLY REACHES THE PRICE AND THE JOB — a select whose change
   // handler never fires looks identical to one that works
@@ -871,12 +900,16 @@ async function pillSweep(pg, where) {
   // THE SEED SITS WITH THE STAR — up to ten digits (video-seed.js mints
   // 1..2147483647), so a box narrow enough to fit beside the sizes clipped its
   // own number. It is an ingredient of THIS tap, not a size.
+  // THE THREE IT NAMES, not every child of the row: `clear`/`undo` share this
+  // row and WRAP under the price at 390pt by design (MEASURED — the three
+  // below leave 24px and a word is 25; her rule is "same row unless it bleeds
+  // over"). They are measured on their own in test-footage-clear.js.
   ok('the seed, the star and the price are one line',
     await page.evaluate(() => {
       const row = document.getElementById('go').closest('.row');
-      const mid = [...row.children].map((k) => { const b = k.getBoundingClientRect(); return b.top + b.height / 2; });
-      return document.getElementById('seedwrap').closest('.row') === row
-        && Math.max(...mid) - Math.min(...mid) < 8;
+      const three = ['seedwrap', 'go', 'cost'].map((id) => document.getElementById(id));
+      const mid = three.map((k) => { const b = k.getBoundingClientRect(); return b.top + b.height / 2; });
+      return three.every((k) => k.closest('.row') === row) && Math.max(...mid) - Math.min(...mid) < 8;
     }));
   ok('the seed box shows a whole ten-digit seed',
     await page.evaluate(() => {
@@ -983,6 +1016,123 @@ async function pillSweep(pg, where) {
   await page.click('#v-cols');
   await page.waitForSelector('#job-old1');
   ok('back in the list, and the count went with her', (await says()) === '3' && (await across('#job-old1 .usedrefs .ur')) === 3);
+
+  // ── THE SEARCH AND THE FILTER DRAWER (2026-09-11, Sophie: "add a search
+  // button and filter like playground" · "single magnifying glass button
+  // that expands" · "yea footage") ─────────────────────────────────────────
+  // Every assertion a MEASUREMENT of what is on screen or of what the server
+  // really received: a box that opens and filters nothing, a search that
+  // never reaches the server, and a filter that lights and hides nothing are
+  // all the same markup to any source assertion.
+  {
+    const hayHead = fs.readFileSync(path.join(ROOT, 'footage-hay.js'), 'utf8');
+    ok('the haystack is ONE served file, loaded by footage.js and by the page',
+      /require\('\.\/footage-hay'\)/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8'))
+      && /src="\/footage-hay\.js"/.test(fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8'))
+      && /sendFile\(__dirname \+ '\/footage-hay\.js'\)/.test(fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8'))
+      && /root\.FootageHay = factory\(\)/.test(hayHead));
+    ok('the route searches the whole log with the grammar BEFORE the page is cut',
+      /grammar\.feedMatches\(hayOf\(cardOf\(x\.id, x\.d\)\), groups\)/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
+    ok('the pure half: a card says its model, its seconds, its shape and its parts',
+      (() => { const h = F.hayOf({ prompt: 'a dog', modelLabel: '2.0 Mini', model: 'mini', seconds: 4, resolution: '480p', ratio: '3:4', trims: [{}], refs: [{ kind: 'video' }] });
+        return /a dog/.test(h) && /2\.0 Mini/.test(h) && /\b4s\b/.test(h) && /480p/.test(h) && /3:4/.test(h) && /trimmed/.test(h) && /video ref/.test(h); })());
+    const visible = () => page.evaluate(() => Array.from(document.querySelectorAll('#feed .job:not([hidden])')).map((e) => e.dataset.id).sort().join(','));
+    const boxState = () => page.evaluate(() => ({ hidden: document.getElementById('feedsearch').hidden, on: document.getElementById('v-search').classList.contains('on'),
+      focused: document.activeElement === document.getElementById('q'), value: document.getElementById('q').value,
+      glassW: Math.round(document.getElementById('v-search').getBoundingClientRect().width),
+      boxW: Math.round(document.getElementById('q').getBoundingClientRect().width) }));
+    const at0 = await boxState();
+    ok('the glass is on the bar and the box is shut at load', at0.hidden && !at0.on && at0.glassW > 30);
+    ok('the glass draws a glyph, not a word', await page.$eval('#v-search svg', (e) => !!e));
+    await page.click('#v-search');
+    const at1 = await boxState();
+    ok('a tap opens the box, lights the glass and puts the caret in it', !at1.hidden && at1.on && at1.focused && at1.boxW > 120);
+    // WHAT SHE TYPES NARROWS THE FEED AT ONCE, over the loaded clips
+    const nQ = qReads.length;
+    await page.type('#q', 'dog');
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 1);
+    ok('typing narrows the loaded feed at once to the clip that says it', (await visible()) === 'old1');
+    await page.waitForTimeout(600);
+    ok('and the server is asked with the words — ' + qReads.slice(nQ).join('|'), qReads.slice(nQ).indexOf('dog') >= 0);
+    ok('the ✕ inside the field shows once there are words', !(await page.$eval('#qclear', (e) => e.hidden)));
+    ok('and the older door is off while a search stands', await page.$eval('#older', (e) => e.hidden));
+    // A CLIP THE FEED NEVER PAGED IN — only the server can find it
+    await page.click('#qclear');
+    await page.type('#q', 'heron');
+    await page.waitForSelector('#job-y2:not([hidden])', { timeout: 4000 });
+    ok('a word only an older clip says lands that clip on the page, alone', (await visible()) === 'y2');
+    await page.click('#v-tiles');
+    await page.waitForFunction(() => document.querySelectorAll('#tiles .cell:not([hidden])').length === 1);
+    ok('the tile wall agrees', (await page.evaluate(() => Array.from(document.querySelectorAll('#tiles .cell:not([hidden])')).map((e) => e.dataset.id).join())) === 'y2');
+    await page.click('#v-list');
+    // THE GRAMMAR: a minus takes one out, quotes keep a phrase
+    await page.click('#qclear');
+    await page.type('#q', 'socks -"line 3"');
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 6);
+    ok('bare words AND a -"phrase" take one clip out — ' + (await visible()), (await visible()) === 'f0,f1,f2,f4,f5,f6');
+    // NOTHING MATCHES says so
+    await page.click('#qclear');
+    await page.type('#q', 'zebra');
+    await page.waitForFunction(() => !document.getElementById('feedempty').hidden);
+    ok('an emptied feed says the search emptied it', /matches/.test(await page.$eval('#feedempty', (e) => e.textContent)));
+    // THE ✕ WIPES THE WORDS AND KEEPS HER IN THE BOX
+    await page.click('#qclear');
+    const at2 = await boxState();
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length >= 8);
+    ok('the ✕ clears the words, keeps the box open and focused, and the feed is back', at2.value === '' && !at2.hidden && at2.focused && (await visible()).split(',').length >= 8);
+    // SHUTTING THE GLASS CLEARS THE QUERY — a query she cannot see never hides a clip
+    await page.type('#q', 'dog');
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 1);
+    await page.click('#v-search');
+    const at3 = await boxState();
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length >= 8);
+    ok('the glass shuts the box, unlights, and the words go with it', at3.hidden && !at3.on && at3.value === '' && (await visible()).split(',').length >= 8);
+    ok('the older door is back once the search is gone', !(await page.$eval('#older', (e) => e.hidden)));
+
+    // THE DRAWER — the shared shell, shut until she taps the funnel
+    const dr = await page.evaluate(() => {
+      const m = document.getElementById('feedfilters');
+      const chip = m.querySelector('.filtchip'), drawer = m.querySelector('.filtdrawer');
+      const cr = chip.getBoundingClientRect(), gr = document.getElementById('v-search').getBoundingClientRect();
+      return { chip: !!chip, shut: drawer.hidden, funnel: !!chip.querySelector('svg'), chipH: Math.round(cr.height), glassH: Math.round(gr.height),
+        sameRow: Math.abs((cr.top + cr.height / 2) - (gr.top + gr.height / 2)) < 4,
+        rows: Array.from(drawer.querySelectorAll('.filtrow')).map((r) => Array.from(r.querySelectorAll('.filtcbtn')).map((b) => b.textContent.trim()).join('·')) };
+    });
+    ok('the funnel chip is on the bar beside the glass, the drawer shut — ' + JSON.stringify(dr.rows), dr.chip && dr.shut && dr.funnel && dr.sameRow && dr.rows[0] === 'Mini·Fast·2.0·2.5' && dr.rows[1] === 'Today·This week·This month');
+    ok('the model chips are the models the page offers, pinned to PAGE_MODELS', /var PAGE_MODELS = \['mini', 'fast', '2\.0', '2\.5'\]/.test(fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8')));
+    await page.click('#feedfilters .filtchip');
+    ok('the tap opens the drawer', !(await page.$eval('#feedfilters .filtdrawer', (e) => e.hidden)));
+    await page.click('#feedfilters .filtcbtn[data-v="fast"]');
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 1);
+    ok('the Fast chip keeps only the Fast clip', (await visible()) === 'f4');
+    ok('and the chip is lit', await page.$eval('#feedfilters .filtcbtn[data-v="fast"]', (e) => e.classList.contains('on')));
+    await page.click('#feedfilters .filtcbtn[data-v="mini"]');
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length >= 8);
+    ok('Mini AND Fast together is both of them', (await visible()).split(',').length >= 8);
+    await page.click('#feedfilters .filtcbtn[data-v="fast"]');
+    await page.click('#feedfilters .filtcbtn[data-v="mini"]');
+    // WHEN — every clip on the page is dated 2026-09-09, so "today" empties
+    // the feed, and the note has to say WHICH filter did it (a shut drawer is
+    // exactly the thing she cannot see)
+    await page.click('#feedfilters .filtcbtn[data-v="today"]');
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 0 && !document.getElementById('feedempty').hidden);
+    ok('Today keeps only a clip sent today — none here — and the note names the filter', /recent/.test(await page.$eval('#feedempty', (e) => e.textContent)));
+    // the chip wears the count while the drawer is SHUT
+    await page.evaluate(() => document.body.click());
+    const worn = await page.evaluate(() => { const m = document.getElementById('feedfilters'); return { shut: m.querySelector('.filtdrawer').hidden, w: m.querySelector('.filtchipw').textContent.trim(), on: m.querySelector('.filtchip').classList.contains('on') }; });
+    ok('tapping out shuts the drawer and the chip wears the count', worn.shut && worn.w === '1' && worn.on);
+    // STICKY — a reload keeps the filter, like the ♥ and the ✕ beside it
+    await page.reload();
+    await page.waitForSelector('#job-old1', { state: 'attached' });
+    await page.waitForTimeout(600);
+    ok('a reload keeps the filter she set, and the chip still wears it', (await visible()) === '' && (await page.evaluate(() => localStorage.getItem('footage_filt_when'))) === 'today'
+      && (await page.evaluate(() => document.querySelector('#feedfilters .filtchipw').textContent.trim())) === '1');
+    await page.click('#feedfilters .filtchip');
+    await page.click('#feedfilters .filtcbtn[data-v="today"]');
+    await page.evaluate(() => document.body.click());
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length >= 8);
+    ok('tapping the lit chip clears it and everything is back', (await visible()).split(',').length >= 8);
+  }
 
   // ── nothing sits under the pill, at her inset ────────────────────────────
   await page.evaluate(() => window.scrollTo(0, 0));
@@ -1964,7 +2114,7 @@ async function pillSweep(pg, where) {
     wardTag: /The ward/.test(document.querySelector('#job-old1 .tags').textContent),
     noneTag: /The ward/.test(document.querySelector('#job-f4 .tags').textContent),
   }));
-  ok('the picker opens on All with the cast\'s films and a New row — ' + pick0.rows.join(' '), pick0.val === '' && pick0.rows[0] === '=All' && pick0.rows[1] === 'ward=The ward' && pick0.rows[pick0.rows.length - 1] === '__new=New…');
+  ok('the picker opens on All with the cast\'s films and a New row — ' + pick0.rows.join(' '), pick0.val === '' && pick0.rows[0] === '=All' && pick0.rows[1] === 'ward=The ward' && pick0.rows[pick0.rows.length - 1] === '__new=New project…');
   ok('on All every clip shows and a ward clip SAYS so on its card, a project-less one does not', pick0.cards === new Set(jobs.map((j) => j.id)).size && pick0.wardTag && !pick0.noneTag);
   ok('the feed read under All asked for no project', projReads.length > 0 && projReads.every((p) => p === ''));
   // pick the ward
@@ -2062,6 +2212,61 @@ async function pillSweep(pg, where) {
     ok('inside a project, taking a clip off it POSTs \'\' and the card leaves the view — ' + gone.toast, projMoves.length === 2 && projMoves[1].id === 'f4' && projMoves[1].project === '' && gone.n === 6 && /Taken off/.test(gone.toast));
     await pgP.selectOption('#project', '');
     await pgP.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 10);
+  }
+  // ── THE SUB-FOLDER (2026-09-11, Sophie: "can we do sub folders ex the
+  // witch commercials" · "make the drop down a folder icon · the name of the
+  // current folder replaces footage in the header"). ONE picker drawn as a
+  // folder icon, its rows the projects with their folders under them, the
+  // header carrying where she is; a folder view holds only its clips; the
+  // card's one drop-down moves a clip anywhere; a move to another project
+  // drops the folder. Every assertion a measurement or a reading of what the
+  // stub really received.
+  {
+    const all = await pgP.evaluate(() => {
+      const w = document.getElementById('projwrap'), r = w.getBoundingClientRect(), s = document.getElementById('project');
+      const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      return { on: w.classList.contains('on'), title: document.getElementById('title').textContent, w: Math.round(r.width), h: Math.round(r.height),
+        icon: !!w.querySelector('.ico svg'), textHidden: getComputedStyle(s).color === 'rgba(0, 0, 0, 0)', tappable: !!(hit && hit.closest('#projwrap')),
+        rows: Array.from(s.options).map((o) => o.value + '=' + o.textContent), f0: document.querySelector('#job-f0 .tags').textContent,
+        f0rows: Array.from(document.querySelector('#job-f0 .projsel select').options).map((o) => o.value), f0val: document.querySelector('#job-f0 .projsel select').value, f4rows: Array.from(document.querySelector('#job-f4 .projsel select').options).map((o) => o.value) };
+    });
+    ok('the picker is a 34px folder icon with its own text hidden, unlit on All, and takes its tap — ' + all.w + 'x' + all.h, all.w === 34 && all.h === 34 && all.icon && all.textHidden && !all.on && all.tappable);
+    ok('the header says Footage on All', all.title === 'Footage');
+    ok('its rows are the projects with their folders under them, New project… last and no New folder… on All — ' + all.rows.join(' '), all.rows.indexOf('ward/socks= › socks') === all.rows.indexOf('ward=The ward') + 1 && all.rows[all.rows.length - 1] === '__new=New project…' && !all.rows.some((r) => r.startsWith('__newfolder')));
+    ok('f0\'s card says its folder, its drop-down lists the folder rows with its own lit, and a project-less card offers no New folder… — ' + all.f0, /socks/.test(all.f0) && all.f0rows.includes('ward/socks') && all.f0rows.includes('__newfolder') && all.f0val === 'ward/socks' && !all.f4rows.includes('__newfolder'));
+    await pgP.selectOption('#project', 'ward');
+    await pgP.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 6);
+    const inWard = await pgP.evaluate(() => ({ on: document.getElementById('projwrap').classList.contains('on'), title: document.getElementById('title').textContent, last: document.getElementById('project').options[document.getElementById('project').options.length - 1].value, f1val: document.querySelector('#job-f1 .projsel select').value }));
+    ok('inside the ward the icon is lit, the header says The ward, and New folder… is the last row', inWard.on && inWard.title === 'The ward' && inWard.last === '__newfolder' && inWard.f1val === 'ward');
+    await pgP.selectOption('#project', 'ward/socks');
+    await pgP.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 1);
+    const inFold = await pgP.evaluate(() => ({ ids: Array.from(document.querySelectorAll('#feed .job:not([hidden])')).map((e) => e.dataset.id).join(','), tag: document.querySelector('#job-f0 .tags').textContent, saved: localStorage.getItem('footage_folder'), title: document.getElementById('title').textContent, val: document.getElementById('project').value }));
+    ok('the socks folder holds f0 alone, asked of the server as ward/socks, the header says The ward › socks, and the card stops repeating the folder', inFold.ids === 'f0' && projReads[projReads.length - 1] === 'ward/socks' && !/socks/.test(inFold.tag) && inFold.saved === 'socks' && inFold.title === 'The ward › socks' && inFold.val === 'ward/socks');
+    await pgP.selectOption('#project', 'ward');
+    await pgP.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 6);
+    // move f1 INTO socks off its card
+    const nMoves = projMoves.length;
+    await pgP.selectOption('#job-f1 .projsel select', 'ward/socks');
+    await pgP.waitForFunction(() => /socks/.test(document.querySelector('#job-f1 .tags').textContent));
+    const mvF = await pgP.evaluate(() => ({ toast: document.querySelector('#toast').textContent, val: document.querySelector('#job-f1 .projsel select').value }));
+    ok('moving f1 into socks POSTs project+folder and the card says so — ' + mvF.toast, projMoves.length === nMoves + 1 && projMoves[nMoves].id === 'f1' && projMoves[nMoves].project === 'ward' && projMoves[nMoves].folder === 'socks' && mvF.val === 'ward/socks' && /The ward › socks/.test(mvF.toast));
+    // a NEW folder typed on a card joins the picker at once
+    pgP.once('dialog', (dl) => dl.accept('B Roll'));
+    await pgP.selectOption('#job-f2 .projsel select', '__newfolder');
+    await pgP.waitForFunction(() => Array.from(document.querySelectorAll('#project option')).some((o) => o.value === 'ward/b-roll'));
+    const nf = await pgP.evaluate(() => ({ f2: document.querySelector('#job-f2 .projsel select').value, f0rows: Array.from(document.querySelector('#job-f0 .projsel select').options).map((o) => o.value) }));
+    ok('a folder named on a card is slugged, POSTed, and offered by the picker and every other card', projMoves[projMoves.length - 1].id === 'f2' && projMoves[projMoves.length - 1].folder === 'b-roll' && nf.f2 === 'ward/b-roll' && nf.f0rows.includes('ward/b-roll'));
+    // moving f1 to another project takes it out of its folder
+    await pgP.selectOption('#job-f1 .projsel select', '');
+    await pgP.waitForFunction(() => document.getElementById('job-f1').hidden);
+    ok('moving a clip off its project sends folder \'\' with it', projMoves[projMoves.length - 1].id === 'f1' && projMoves[projMoves.length - 1].project === '' && projMoves[projMoves.length - 1].folder === '');
+    await pgP.selectOption('#project', '');
+    await pgP.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 10);
+    const back = await pgP.evaluate(() => ({ on: document.getElementById('projwrap').classList.contains('on'), title: document.getElementById('title').textContent }));
+    ok('back on All the icon goes dark and the header says Footage again', !back.on && back.title === 'Footage');
+    // put the pool back the way the later blocks expect it
+    await pgP.selectOption('#job-f1 .projsel select', 'ward');
+    await pgP.waitForFunction(() => /The ward/.test(document.querySelector('#job-f1 .tags').textContent));
   }
   // A HAND-OFF SWITCHES THE PROJECT — written by a second page on the same
   // origin, the way a belt writes it; the map is on /status
