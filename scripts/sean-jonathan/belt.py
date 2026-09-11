@@ -71,7 +71,7 @@ SHEET = 'belt-seanjonathan'
 # A NEW VERSION IS A NEW PAGE and the title says which — the house rule for
 # anything posted, because a posted page is frozen and her Compare tab shows
 # them side by side. Bump this and supersede the one it replaces.
-VERSION = 10
+VERSION = 11
 TITLE = 'Sean & Jonathan — the draft belt v%d' % VERSION
 LIMIT = 8000
 

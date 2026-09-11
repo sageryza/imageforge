@@ -74,6 +74,13 @@
    "on": [
     "sj-3"
    ]
+  },
+  {
+   "line": "the curtain is never pulled closed. sean grabs it to steady himself and the whole rod tears out of the wall and comes down on both of them.",
+   "why": "2026-09-11, Sophie: \"curtain doesn't fall on them · jonathan pulls it closed · so it changes the story\". Her script says the rod FALLS, and a thing failing on its own is the hardest event for a model to render, so it reached for the commonest shower action instead. Giving the fall a CAUSE — he grabs it — is what makes it happen, and without it there is no tangle and so no kiss.",
+   "on": [
+    "sj-4"
+   ]
   }
  ]
 }
