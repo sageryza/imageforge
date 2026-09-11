@@ -645,7 +645,7 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
     await page.click('#job-tall1 .thumb');
     await page.waitForFunction(() => !document.getElementById('player').hidden);
     await page.waitForTimeout(300);
-    await page.evaluate(() => { const t = document.querySelector('#player .ptop'); if (t) t.click(); });
+    await page.evaluate(() => { const t = document.querySelector('#player .pbar'); if (t) t.click(); });
     await page.waitForTimeout(150);
     ok('a tap on the row beside the ✕ closes it too', await page.$eval('#player', (el) => el.hidden));
     jobs.pop();

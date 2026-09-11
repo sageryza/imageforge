@@ -265,7 +265,7 @@ let slow = 0;            // ms the next POST is held, so the one-tap guard is me
 // card's own picture row measurable at 3 and at 4 across.
 const REFS4 = [1, 2, 3, 4].map((n) => ({ url: 'http://127.0.0.1:PORT/ref.png', kind: 'image', slot: '[Image' + n + ']' }));
 let jobs = [
-  { id: 'old1', prompt: 'a dog on a beach, camera at eye level', model: 'mini', modelLabel: '2.0 Mini', door: 'openrouter', seconds: 4, resolution: '480p', ratio: '3:4',
+  { id: 'old1', prompt: 'a dog on a beach, camera at eye level', model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', seconds: 4, resolution: '480p', ratio: '3:4',
     sound: true, refs: REFS4, status: 'done', video: 'http://127.0.0.1:PORT/clip.mp4', poster: 'http://127.0.0.1:PORT/ref.png',
     // the seed the door minted for it — every clip drawn since 2026-09-09
     // carries one, and the `f*` clips below carry none (drawn before that)
@@ -273,6 +273,10 @@ let jobs = [
     // the DOOR's own draw time (Atlas's `latency_ms` for a real clip of hers);
     // the f* clips below carry none, which must draw no tag at all
     drewMs: 153626,
+    // ITS OWN LAST FRAME — Atlas is the only door that bakes one, so this
+    // clip is an Atlas one and the f* clips below are not: the tile has to be
+    // absent on those, not merely different.
+    lastFrame: 'http://127.0.0.1:PORT/frame.png',
     cost: 5.6, estimate: 6, sentAt: '2026-09-09T08:00:00.000Z', vote: '', hidden: false },
 ].concat(Array.from({ length: 7 }, (_, i) => ({
   id: 'f' + i, prompt: 'the socks on the line ' + i, model: 'mini', modelLabel: '2.0 Mini', door: 'openrouter', seconds: 4, resolution: '480p', ratio: '3:4',
@@ -281,6 +285,10 @@ let jobs = [
   // is 4 seconds proves nothing about the seconds coming back with the words
   seconds: i === 6 ? 15 : 4, resolution: i === 6 ? '720p' : '480p', ratio: i === 6 ? '9:16' : '3:4',
   cost: 5.6, estimate: 6, sentAt: '2026-09-09T0' + i + ':00:00.000Z', vote: '', hidden: false,
+  // f1 is TRIMMED and carries a last frame: the frame is the end of what the
+  // DOOR drew, never the end of the part she kept, and the tile has to say so
+  ...(i === 1 ? { door: 'atlascloud', lastFrame: 'http://127.0.0.1:PORT/frame.png',
+    trims: [{ key: 't1', status: 'ready', start: 8.93, end: 12.06, seconds: 3.13, url: 'http://127.0.0.1:PORT/clip.mp4' }] } : {}),
 })));
 
 const server = http.createServer((req, res) => {
@@ -295,6 +303,7 @@ const server = http.createServer((req, res) => {
       res.writeHead(200, { 'content-type': 'text/html' }); return res.end(html);
     }
     if (u.pathname === '/ref.png') { res.writeHead(200, { 'content-type': 'image/png' }); return res.end(PNG); }
+    if (u.pathname === '/frame.png') { res.writeHead(200, { 'content-type': 'image/png' }); return res.end(PNG); }
     if (u.pathname === '/clip.mp4') { res.writeHead(200, { 'content-type': 'video/mp4' }); return res.end(''); }
     if (u.pathname === '/api/footage/status') {
       statusCalls += 1;
@@ -1207,7 +1216,87 @@ async function pillSweep(pg, where) {
   ok('tapping the thumb opens the player over the page, page locked', !(await page.$eval('#player', (e) => e.hidden)) && (await page.evaluate(() => document.body.style.overflow)) === 'hidden');
   ok('__navBack closes the player first', await page.evaluate(() => window.__navBack()) === true && (await page.$eval('#player', (e) => e.hidden)));
   ok('the page unlocks on close', (await page.evaluate(() => document.body.style.overflow)) === '');
+  // THE WAY-OUT ROW PAINTS NOTHING — it is backdrop, and it must not wear the
+  // INJECTED pill's `.ptop` (its back-to-top button: cream, `border-radius:50%`,
+  // a shadow). On main it did, and the row rendered as a cream ellipse across
+  // the screen behind the ✕ on every clip she opened. Only a reading of what
+  // really renders can see that: every assertion about the row passed.
+  await page.click('#job-old1 .thumb');
+  ok('the player\'s top row paints nothing (it is backdrop, not the pill\'s button)',
+    await page.$$eval('#player .pbar', (a) => {
+      if (!a.length) return false;
+      const c = getComputedStyle(a[0]);
+      return /rgba\(0, 0, 0, 0\)|transparent/.test(c.backgroundColor) && c.borderRadius === '0px' && c.boxShadow === 'none';
+    }));
+  ok('and it is the full width of the screen, not a 38px button',
+    await page.$$eval('#player .pbar', (a) => a.length === 1 && Math.round(a[0].getBoundingClientRect().width) === 390));
+  await page.evaluate(() => window.__navBack());
   ok('still no page errors after the whole walk', errors.length === 0);
+
+  // ── THE LAST FRAME, ON ITS CLIP'S OWN CARD (2026-09-11, Sophie: "how do i
+  //    get these last frames") ──────────────────────────────────────────────
+  // Every assertion here is a MEASUREMENT or a reading of what the saver was
+  // really handed: a tile that renders and never decodes, one that opens the
+  // CLIP instead of the picture, and a save that posts the clip's url under a
+  // picture's tile all look identical in the source.
+  {
+    const tile = await page.$('#job-old1 .lfopen');
+    ok('an Atlas clip carries its last frame under its references', Boolean(tile));
+    ok('it rides in the SAME row as the references, not a row of its own', await page.$eval('#job-old1', (e) => {
+      const g = e.querySelectorAll('.usedrefs');
+      const cells = e.querySelectorAll('.usedrefs > *');
+      return g.length === 1 && cells.length === 5 && cells[4].classList.contains('lfcell');
+    }));
+    ok('the picture really decodes (a src alone says nothing)',
+      await page.$$eval('#job-old1 .lfcell img', (a) => a.length === 1 && a[0].complete && a[0].naturalWidth > 0));
+    ok('it is the same width as a reference tile', await page.$eval('#job-old1', (e) => {
+      const l = e.querySelector('.lfcell div'), r = e.querySelector('.ur:not(.lfcell) div');
+      if (!l || !r) return false;
+      return Math.abs(l.getBoundingClientRect().width - r.getBoundingClientRect().width) < 1.5;
+    }));
+    ok('and it wears no button plate of its own', await page.$$eval('#job-old1 .lfopen', (a) => {
+      if (!a.length) return false;
+      const c = getComputedStyle(a[0]);
+      return c.borderTopWidth === '0px' && /rgba\(0, 0, 0, 0\)|transparent/.test(c.backgroundColor);
+    }));
+    const tileWords = (id) => page.$$eval('#job-' + id + ' .lfopen', (a) => (a[0] ? a[0].textContent : '').trim());
+    ok('an untrimmed clip\'s tile just says "last frame"', /^last frame$/.test(await tileWords('old1')));
+    ok('a TRIMMED clip says the frame is the end of the WHOLE clip', /whole clip/.test(await tileWords('f1')));
+    ok('a clip that went out through another door has no tile at all', (await page.$('#job-f0 .lfcell')) === null);
+    // the tap: the PICTURE opens, in the one overlay, with no trim bar
+    if (!tile) { report(); }
+    await tile.click();
+    ok('tapping it opens the picture over the page, page locked',
+      !(await page.$eval('#player', (e) => e.hidden))
+      && (await page.$$eval('#player .pstage img.pimg', (a) => a.length === 1 && a[0].complete && a[0].naturalWidth > 0))
+      && (await page.evaluate(() => document.body.style.overflow)) === 'hidden');
+    ok('no video came with it, and no trim bar — there is nothing to mark',
+      (await page.$('#player .pstage video')) === null && (await page.$eval('#trimbar', (e) => e.hidden)));
+    ok('a tap ON the picture does not close it (the house rule)', await page.evaluate(() => {
+      document.querySelector('#player .pstage img.pimg').click();
+      return !document.getElementById('player').hidden;
+    }));
+    // SAVE: what the native bridge is really handed, never an href assertion
+    const saved = [];
+    await page.evaluate(() => { window.webkit = { messageHandlers: { forgeSave: { postMessage: (u) => window.__seenSave.push(u) } } }; window.__seenSave = []; });
+    await page.click('#psave');
+    // the save sits in the injected pill's own column — the player is z-index
+    // 80 over the pill's 9, so it really does take the tap, and only
+    // elementFromPoint can say so (a covered control passes every width test)
+    ok('the save and the ✕ each take their own tap, over the pill\'s column',
+      await page.evaluate(() => {
+        const at = (e) => { const r = e.getBoundingClientRect(); const h = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return h && h.closest ? h : null; };
+        const sv = at(document.getElementById('psave')), cl = at(document.querySelector('#player .pclose'));
+        return Boolean(sv && sv.closest('#psave')) && Boolean(cl && cl.closest('.pclose'));
+      }));
+    ok('save hands the bridge the FRAME\'s url, not the clip\'s',
+      (await page.evaluate(() => window.__seenSave)).join() === (await page.evaluate(() => document.querySelector('#job-old1 .lfcell img').src)));
+    await page.evaluate(() => { delete window.webkit; });
+    ok('the ✕ closes it and the page unlocks', await page.evaluate(() => { window.__navBack(); return document.getElementById('player').hidden; })
+      && (await page.evaluate(() => document.body.style.overflow)) === '');
+    ok('and the save goes away with it', await page.$eval('#psave', (e) => e.hidden));
+    void saved;
+  }
 
   // ── the sale is READ, and the card and the price line tell one story ─────
   ok('with no sale running the card says nothing about one', await page.$eval('#discline', (e) => e.hidden));

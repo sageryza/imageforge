@@ -441,10 +441,26 @@ line is the PERSON, not the video:
   the shot-to-shot chaining tool this film keeps needing. Mirrored to Storage
   and filed on the log as `lastFrame`. **ON FOR EVERY FOOTAGE JOB SINCE
   2026-09-10 (Sophie: "on")** — the page asks for it on the Atlas door alone
-  (OpenRouter's flag is a no-op and APIFRAME builds its own body), the card
-  carries it, and the RECENT drawer offers it as a picture right behind the
-  clip it came off, so chaining a shot is one tap. Off by default still for
-  any other caller: `returnLastFrame: true` is what asks. Full numbers:
+  (OpenRouter's flag is a no-op and APIFRAME builds its own body) and the card
+  carries it. **AND SINCE 2026-09-11 IT IS ON THE CLIP'S OWN CARD, WHICH IS THE
+  ONLY PLACE SHE CAN REACH ONE (Sophie: "how do i get these last frames").**
+  It was being baked and banked on every Atlas job and the page drew it
+  NOWHERE: the only door it ever had was the RECENT drawer, and she took the
+  outputs out of there the same day it shipped ("recents is recent UPLOADED"),
+  so for a day every clip carried a picture with no way to see it — the "?"
+  card still pointed at the drawer, which is how it stayed invisible. Now it is
+  a small tile in the card's own picture row, **beside the references rather
+  than under them** (her word: "next to the references" — one grid, so it takes
+  the next free column and the card is no taller); tapping it opens it big in
+  the clip's own player, with a **save** that goes to Photos through the same
+  three-path ladder the clip's does. Its label says **`last frame · whole
+  clip`** on a TRIMMED clip, because the frame is the end of what the DOOR drew
+  and not the end of the part she kept — the one thing worth knowing before
+  chaining off it. A clip that went out through another door has none and shows
+  no tile at all (the Assets tab's silence rule). **CHAINING FROM IT IS STILL
+  SAVE-AND-RE-ATTACH — there is no "use this as a reference" button, and that
+  is hers to ask for.** Off by default still for any other caller:
+  `returnLastFrame: true` is what asks. Full numbers:
   *`return_last_frame`* in `docs/modules/audio-and-film.md`; test
   `node scripts/test-atlas-lastframe.js`. **AND IT WAS THE FOOTAGE PAGE'S ONLY DOOR
   FROM THAT EVENING TO 2026-09-11 (Sophie: "make atlas the default and only
@@ -4685,6 +4701,18 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     never scrolls) and `.movie` while the Story Room is pushed inside it.
     **The fix ships with a TestFlight build, not a deploy** — until she
     installs one, the five above still show two.
+  - **`.ptop` IS THE PILL'S OWN CLASS AND IT IS GLOBAL AND UNSCOPED — A PAGE
+    THAT NAMES SOMETHING `.ptop` GETS A CREAM 38px CIRCLE (measured 2026-09-11
+    on `/footage`).** Its back-to-top button is styled as a bare `.ptop{}` rule
+    in `pill-inject.html`, so the Footage player's own top row — `.ptop`, a
+    full-width strip holding the ✕ — drew as a **cream ellipse across the
+    screen behind the ✕ on every clip she opened**. The page's own
+    `#player .ptop` rule out-specified the width and the display and said
+    nothing about the paint, so nothing on either side was wrong to look at:
+    only a reading of the COMPUTED background found it, and no assertion about
+    that row had ever looked. The row is `.pbar` now. **PHOTOGRAPH a page that
+    injects the pill, and don't name anything `.ptop`, `.float`, `.vseg` or
+    `#spd`.**
   - **The app's copy has no `id="ptop"` on purpose** — `chats.html`'s own pill
     owns that id and the sweep above counts exactly one per file; the viewer's
     button is `class="ptop"` only.
