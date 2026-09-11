@@ -38,8 +38,12 @@ const C = require('../cast');
 
 // ── the shelf the whole file is driven against ──────────────────────────────
 // Her ward library in miniature: Sophie with two outfits and a clip, the
-// pajamas as their own entry (head off by default, her three-still set named),
+// pajamas as their own entry (head off by default, a three-still set named),
 // Mayra as a STILL-ONLY character who wears the same pajamas, and a place.
+// THE THREE STILLS HERE ARE THE FIXTURE'S, NOT THE SHELF'S — since 2026-09-11
+// her real `sophie` wardrobe look carries ONE full-body still ("just the
+// full body pajama, no tape pocket or second"); three stay here because a
+// line counting several slots is what the renumbering below has to prove.
 const JAZZ = 'https://x/jazz.mp4', HEADLESS = 'https://x/pj-headless.png', POCKET = 'https://x/pj-pocket.png';
 const FACE = 'https://x/sophie-face.png';
 const PJA = 'https://x/pj-a.png', PJC = 'https://x/pj-c.png', MAYRA = 'https://x/mayra.png', ROOM = 'https://x/room.png';

@@ -3,7 +3,7 @@
  "scene": "md-31b",
  "title": "Wan 3.0 test — Climax 3 — the grin, the ghost, You can go now",
  "session": "01Mtjqs3mHZwW6U98TbyUu18",
- "note": "the first Wan 3.0 job on the ward cast; her md-31b words verbatim under the belt's three header lines, slot words in Alibaba's spelling (Image 1 / Video 1)",
+ "note": "the first Wan 3.0 job on the ward cast; her md-31b words verbatim under the belt's three header lines, slot words in Alibaba's spelling (Image 1 / Video 1). Sent on her go of 2026-09-11 with two changes: ONE full-body pajama still (no tape pocket, no second still) and the assistant unnamed but ruled out by a line",
  "model": "alibaba/wan-3.0/reference-to-video",
  "seconds": 15,
  "res": "480p",
@@ -11,8 +11,6 @@
  "audio": true,
  "images": [
   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png",
-  "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png",
-  "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png",
   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/7e4069ef6345be703f51b480f96edd90.png"
  ],
  "videos": [
@@ -22,16 +20,16 @@
  "audios": [],
  "promptFile": "climax3b-wan-v1.prompt.txt",
  "refNames": {
-  "Image 1": "A — Sophie alone (pajamas)",
-  "Image 2": "C — teacher cropped out (pajamas)",
-  "Image 3": "the tape pocket (pajamas)",
-  "Image 4": "the office — the doctor in his chair, the assistant at the door (the shelf's setting still, a frame of Video 2)",
+  "Image 1": "A — Sophie alone, the full-body pajama still (the ONE pajama still, her call 2026-09-11: 'just the full body pajama, no tape pocket or second')",
+  "Image 2": "the office — the doctor in his chair, the assistant at the door (the shelf's setting still, a frame of Video 2)",
   "Video 1": "the jazz, best 4s (4.06s)",
   "Video 2": "the doctor and the assistant — office, eye level (4.04s)"
  },
  "mine": [
-  "the three header lines, as the belt's md-31b card carried them, with [Video1]/[Image1] rewritten as Video 1 / Image 1 (Alibaba's slot words)",
-  "'and Image 4' on Dr. Grayson's line — the office still is a frame of his own clip, named so the man in it is not a stranger",
-  "the shelf's blurred doctor still (86064a…) is deliberately NOT sent: it carries a second person, a woman in a floral dress, and a still carries only the people to be copied"
+  "the three header lines, as the belt's md-31b card carried them, with [Video1]/[Image1] rewritten as Video 1 / Image 1 (Alibaba's slot words) and the pajama clause cut to the one still",
+  "'and Image 2' on Dr. Grayson's line — the office still is a frame of his own clip, named so the man in it is not a stranger",
+  "'the red haired assistant in Video 2 and Image 2 does NOT appear in this video.' — her ask ('just add a line like: the red haired assistant does NOT appear in the video or something'), with the two slots she is in named so the model knows who is meant",
+  "the shelf's blurred doctor still (86064a…) is deliberately NOT sent: it carries a second person, a woman in a floral dress, and a still carries only the people to be copied",
+  "dropped on her word, 2026-09-11: 'C — teacher cropped out' (12c136…) and 'the tape pocket' (418f17…) — the pajama reference is ONE full-body still from now on"
  ]
 }

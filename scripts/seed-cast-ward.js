@@ -106,7 +106,11 @@ const vid = (url, name) => ({ url, kind: 'video', name });
 // HER LINE, VERBATIM off the belt cards and the job files. The sentence the
 // ward film has opened on since 2026-09-08; the pajama slots are `{2} {3} {4}`
 // because the look WEARS the three-still pajama set.
-const SOPHIE_PJ = 'sophie is the woman in {1}.  she wears the blue hospital pajamas in {2}, {3} and {4}, NOT the dress in {1}';
+// ONE pajama still since 2026-09-11 (Sophie: "just the full body pajama, no
+// tape pocket or second, and note that everywhere") — the line counted three
+// ({2}, {3} and {4}) until then. The `sophie` wardrobe look below carries the
+// one still, so {2} is the full-body pajama picture and nothing follows it.
+const SOPHIE_PJ = 'sophie is the woman in {1}.  she wears the blue hospital pajamas in {2}, NOT the dress in {1}';
 
 const ENTRIES = [
   // ── the people ───────────────────────────────────────────────────────
@@ -218,12 +222,16 @@ const ENTRIES = [
 
   // ── the wardrobe, which floats across every patient ───────────────────
   { slug: 'blue-pajamas', name: 'the blue hospital pajamas', kind: 'wardrobe', order: 1,
-    note: 'head off by default — these float with any patient (Sophie, 2026-09-11)', looks: [
+    note: "head off by default — these float with any patient (Sophie, 2026-09-11). For SOPHIE it is ONE full-body still — no tape pocket, no second still (Sophie, 2026-09-11: 'just the full body pajama, no tape pocket or second, and note that everywhere')", looks: [
     { key: 'headless', name: 'head off', refs: [img(U.pjHeadless, 'the pajamas, no head'), img(U.pjPocket, 'the tape pocket')], mine: true,
       line: 'she wears the blue hospital pajamas in {1} and {2}.' },
-    { key: 'sophie', name: "Sophie's three", refs: [img(U.pjOptA, 'A — Sophie alone'), img(U.pjOptC, 'C — teacher cropped out'), img(U.pjPocket, 'the tape pocket')],
-      line: 'she wears the blue hospital pajamas in {1}, {2} and {3}.',
-      note: 'the three the ward line has always named — they have her face in them' },
+    // WAS "Sophie's three" — A, C (teacher cropped out) and the tape pocket, the
+    // three the ward line named on every Sophie clip through 2026-09-11. Her
+    // call that day, on the first Wan job: the full-body still ALONE. C
+    // (pjOptC) and the tape pocket are off this look and off her line.
+    { key: 'sophie', name: "Sophie's full-body still", refs: [img(U.pjOptA, 'A — Sophie alone, full body')],
+      line: 'she wears the blue hospital pajamas in {1}.',
+      note: "ONE still since 2026-09-11 (Sophie: 'just the full body pajama, no tape pocket or second, and note that everywhere') — C (teacher cropped out) and the tape pocket are OFF" },
     { key: 'whole', name: 'the whole outfit', refs: [img(U.pjWhole, 'the whole outfit')], mine: true,
       line: 'she wears the blue hospital pajamas in {1}.' },
   ] },
