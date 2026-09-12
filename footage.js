@@ -57,6 +57,9 @@
 //   POST /jobs/:id/hide      { hidden: true|false }
 //   POST /jobs/:id/trim      { start, end } | { clear: true } — keep a span
 //                            of a finished clip, or undo it. Free.
+//   POST /jobs/:id/frame     { at } — ONE frame out of a finished clip, at
+//                            its own size, as a public url for the
+//                            references strip. Free.
 // Test: node scripts/test-footage.js · node scripts/test-footage-trim.js
 
 const express = require('express');
@@ -1022,6 +1025,98 @@ async function bakeTrim(id, plan) {
   });
 }
 
+// ─── GRABBING ONE FRAME OUT OF A FINISHED CLIP ─────────────────────────
+// (2026-09-12, Sophie: "I need to cut one out. I said the last frame doesn't
+// have the curtains" · "it shouldn't file to the dump. It should give me a
+// way to use it immediately as a reference for my next film".) The last
+// frame Atlas hands back is the END of what the door drew, and the frame
+// that carries continuity is often somewhere in the middle. So the trimmer's
+// playhead is the pick: GRAB FRAME pulls that second out of the clip the
+// door drew, at the clip's own size, and answers a public url the page drops
+// straight into the references strip — no Dump, no save-and-re-attach.
+// The trim's own rules, again:
+//   · HER CLIP IS NEVER TOUCHED. The frame is a NEW object under
+//     footage/frames/, content-addressed by the source url and the second,
+//     so the same frame grabbed twice is a HEAD and no decode.
+//   · IT IS READ OUT OF THE SOURCE, never out of a trim — the player always
+//     opens the source, so the second she sees is the second she gets.
+//   · ONE DECODE AT A TIME — gateTrim, the same queue the trims stand in.
+//   · IT COSTS NOTHING — ffmpeg on our own box, no model call, no door.
+// PNG at full size: a continuity reference is judged by the model at
+// whatever it is, and a jpeg's ringing on a hairline is exactly what such a
+// frame must not carry. It answers SYNCHRONOUSLY — one download and one
+// decoded frame is a few seconds, and the url is what she is waiting for.
+const FRAME_FOLDER = 'footage/frames';
+const FRAME_END_PAD = 0.04;        // a playhead parked at the very end is the last frame, not a refusal
+
+// The frame to pull, or the reason it cannot be pulled — PURE.
+function framePlan(d, body) {
+  const source = String((d && d.video) || '');
+  if (statusOf(d) !== 'done' || !/^https?:\/\//.test(source)) {
+    return { error: 'a frame is grabbed once the clip has drawn' };
+  }
+  const at = Math.round(Number(body && body.at) * 1000) / 1000;
+  if (!Number.isFinite(at)) return { error: 'a frame needs a second, in seconds' };
+  if (at < 0) return { error: 'a frame is at 0 or later' };
+  if (at > TRIM_MAX_SECONDS) return { error: 'that is past any clip this page makes' };
+  return framePath(source, at);
+}
+function framePath(source, at) {
+  const key = crypto.createHash('sha1').update(`${source}|frame|${at}`).digest('hex');
+  return { source, at, key, path: `${FRAME_FOLDER}/${key}.png` };
+}
+
+// ONE frame out of one file, on disk — kept apart from the Storage
+// bookkeeping so the pull can be MEASURED with a real file
+// (`node scripts/test-footage-grab-frame.js`). `-ss` before `-i` seeks to
+// the keyframe and decodes forward to the exact second, so the frame is the
+// one under the playhead and not the nearest keyframe.
+async function pullFrame(src, out, at) {
+  await runBin(ffmpegBin(), ['-y', '-ss', String(at), '-i', src, '-frames:v', '1', out], 60000);
+  return out;
+}
+
+// The whole grab: the banked object if there is one, else download, probe,
+// clamp, pull, upload. THROWS with a sentence the card can show.
+async function grabFrame(plan) {
+  return gateTrim(async () => {
+    const bucket = bucketOrNull();
+    if (!bucket || !ffmpegBin()) throw new Error('ffmpeg or Storage is not configured here');
+    const pub = (p) => `https://storage.googleapis.com/${bucket.name}/${p}`;
+    try {
+      const [exists] = await bucket.file(plan.path).exists();
+      if (exists) return { url: pub(plan.path), at: plan.at, banked: true };
+    } catch { /* fall through and pull */ }
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-'));
+    const src = path.join(dir, 'src.mp4');
+    const out = path.join(dir, 'frame.png');
+    try {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), TRIM_FETCH_MS);
+      let r;
+      try { r = await fetch(plan.source, { agent: proxyAgent || undefined, signal: ctl.signal }); }
+      finally { clearTimeout(timer); }
+      if (!r || !r.ok) throw new Error('the clip could not be read back');
+      fs.writeFileSync(src, await r.buffer());
+      // THE FILE IS THE TRUTH ABOUT ITS OWN LENGTH: a playhead parked on the
+      // clip's end sits a hair past the last frame, so it is CLAMPED to the
+      // last frame rather than refused — and the object is addressed by the
+      // second that was really pulled.
+      const { total } = await probeMedia(src);
+      let at = plan.at;
+      if (total && at > total - FRAME_END_PAD) at = Math.max(0, Math.round((total - FRAME_END_PAD) * 1000) / 1000);
+      const p2 = at === plan.at ? plan : framePath(plan.source, at);
+      await pullFrame(src, out, at);
+      const f = bucket.file(p2.path);
+      await f.save(fs.readFileSync(out), { metadata: { contentType: 'image/png' } });
+      await f.makePublic();
+      return { url: pub(p2.path), at, banked: false };
+    } finally {
+      try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* temp */ }
+    }
+  });
+}
+
 // ─── A reference too small to send: bake an upscaled COPY ──────────────
 // Her first /footage job with a video reference was refused before anything
 // drew — 400 PixelCountTooSmall — because iOS had shrunk an iPhone clip to
@@ -1532,6 +1627,21 @@ router.post('/jobs/:id/trim', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// POST /jobs/:id/frame — one frame out of a finished clip, answered as a
+// url the moment it is on Storage. Nothing on the clip's doc changes: the
+// frame lives in the references strip she drops it into (and in her draft).
+router.post('/jobs/:id/frame', async (req, res) => {
+  try {
+    const id = String(req.params.id);
+    const snap = await coll().doc(id).get();
+    if (!snap.exists) return res.status(404).json({ error: 'no such clip' });
+    const plan = framePlan(snap.data(), req.body || {});
+    if (plan.error) return res.status(400).json({ error: plan.error });
+    const got = await grabFrame(plan);
+    res.json({ ok: true, url: got.url, at: got.at, banked: got.banked });
+  } catch (e) { res.status(500).json({ error: String((e && e.message) || e).slice(0, 200) }); }
+});
+
 module.exports = {
   router, init,
   MODELS, RATIOS, SIZES, CHAT, OR_FEE,
@@ -1539,4 +1649,5 @@ module.exports = {
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf, atlasCacheBust,
   startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf,
   pageJobs, hayOf, foldersOf, folderSlug, statusOf, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
+  framePlan, framePath, pullFrame, grabFrame, FRAME_FOLDER, FRAME_END_PAD,
 };

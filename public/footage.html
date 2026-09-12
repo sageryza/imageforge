@@ -1007,6 +1007,7 @@
       <button type="button" class="tstep" id="tback" aria-label="Back a tenth of a second" title="Back 0.1s">&lsaquo;</button>
       <button type="button" id="tin">Start here</button>
       <button type="button" id="tout">End here</button>
+      <button type="button" id="tgrab" title="Pull the frame under the playhead into the references">Grab frame</button>
       <button type="button" class="tstep" id="tfwd" aria-label="On a tenth of a second" title="On 0.1s">&rsaquo;</button>
     </div>
     <div class="tparts" id="tparts"></div>
@@ -3736,11 +3737,11 @@ $('psave').addEventListener('click', function () { if (shotUrl) saveMedia(shotUr
 // "reference" button beside it). NO save-and-re-attach: the frame is already
 // a public url on our own Storage, so nothing is uploaded and nothing is
 // downloaded — it is one entry in the strip.
-function useShot(asFirst) {
+function useShot(asFirst, name) {
   var url = shotUrl;
   if (!url) return;
   var was = slotRefs();
-  if (!refs.some(function (r) { return r.url === url; })) refs.push({ url: url, kind: 'image', poster: '', name: 'last frame' });
+  if (!refs.some(function (r) { return r.url === url; })) refs.push({ url: url, kind: 'image', poster: '', name: name || 'last frame' });
   if (asFirst) { firstUrl = url; if (lastUrl === url) lastUrl = ''; }
   else if (roleOfUrl(url)) { if (firstUrl === url) firstUrl = ''; if (lastUrl === url) lastUrl = ''; }
   reslotBlocks(was, slotRefs());
@@ -4189,6 +4190,31 @@ $('tparts').addEventListener('click', function (e) {
   if (drop) sendTrim({ remove: drop.dataset.drop }, 'That part is off — the whole clip is back');
 });
 $('tgo').addEventListener('click', doTrim);
+// GRAB FRAME — the frame under the playhead becomes a reference for the next
+// clip, on the spot (2026-09-12, Sophie: "the last frame doesn't have the
+// curtains" · "it shouldn't file to the dump. It should give me a way to use
+// it immediately as a reference for my next film"). The server pulls that
+// second out of the SOURCE at the clip's own size and answers a public url;
+// it lands in the strip the way the last-frame tile's `reference` does
+// (`useShot`) — one entry, no upload, no download, the draft carrying it.
+// Nothing on the clip changes and nothing is sent: the star is still her tap.
+$('tgrab').addEventListener('click', function () {
+  if (!TR || !TR.dur || !TR.j) return;
+  var j = TR.j, b = $('tgrab');
+  var at = r3(TR.v.currentTime);
+  try { TR.v.pause(); } catch (e) {}
+  b.disabled = true;
+  toast('Grabbing that frame\u2026');
+  api('/jobs/' + encodeURIComponent(j.id) + '/frame', { method: 'POST', body: JSON.stringify({ at: at }) }).then(function (d) {
+    b.disabled = false;
+    if (!d || d.error || !d.url) return toast((d && d.error) || 'That frame could not be grabbed');
+    shotUrl = d.url;
+    useShot(false, 'frame at ' + Number(d.at).toFixed(1) + 's');
+  }).catch(function () {
+    b.disabled = false;
+    toast('The server did not answer \u2014 nothing changed');
+  });
+});
 
 // The one write, whichever shape: add a part, replace one, take one off.
 // The original is never written over, so a removal restores nothing — it is

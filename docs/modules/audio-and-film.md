@@ -957,6 +957,43 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       the real page headless with a seekable VP8 fixture, every assertion a
       measurement of the rendered strip, the loop's own `currentTime`, or what
       the server really received).
+    - **GRAB FRAME — THE FRAME UNDER THE PLAYHEAD BECOMES A REFERENCE, ON THE
+      SPOT (2026-09-12, Sophie: "I need to cut one out. I said the last frame
+      doesn't have the curtains" · "it shouldn't file to the dump. It should
+      give me a way to use it immediately as a reference for my next film").**
+      The last frame Atlas hands back is the END of what the door drew, and
+      the frame that carries continuity is often somewhere in the middle. A
+      third word on the trimmer's row, beside Start here / End here: tap the
+      strip to put the playhead on the frame, tap **Grab frame**, and the
+      frame is `[ImageN]` in the references strip with the player closed and
+      the page at the top — the same landing the last-frame tile's
+      `reference` door makes (`useShot`). `POST /api/footage/jobs/:id/frame
+      { at }` answers `{ url, at }` synchronously — a download plus one
+      decoded frame is a few seconds and the url is what she is waiting for.
+      Four things not to undo:
+      - **HER CLIP IS NEVER TOUCHED and NOTHING GOES TO THE DUMP** (her
+        word). The frame is a new PNG under `footage/frames/`,
+        content-addressed by the source url and the second, so the same
+        frame grabbed twice is a HEAD and no decode; the clip's doc is not
+        written at all — the frame lives in the strip she dropped it into
+        and in her draft.
+      - **IT IS READ OUT OF THE SOURCE**, never a trim — the player always
+        opens the source, so the second she sees is the second she gets.
+        `-ss` before `-i` seeks to the keyframe and decodes forward to the
+        exact frame; the test pulls a frame 0.98s past a keyframe out of a
+        clip whose colour changes every second and reads the pixels back.
+      - **PNG AT THE CLIP'S OWN SIZE, never scaled** — a continuity reference
+        is judged by the model at whatever it is, and a jpeg's ringing on a
+        hairline is what such a frame must not carry.
+      - **ONE DECODE AT A TIME** — it stands in `gateTrim`, the trims' own
+        queue. A playhead parked on the clip's end is clamped to the last
+        frame rather than refused.
+      Nothing is sent: the star is still her tap. Test:
+      `node scripts/test-footage-grab-frame.js` (the rules pure, a REAL pull
+      measured with ffprobe and its pixels, and the real page headless — the
+      row measured as one line at 390pt with every word taking its own tap,
+      the second the stub really received against the playhead, the strip
+      and the draft afterwards, and zero Dump posts).
     - **THE PRICE IS EXACT (2026-09-09, measured off 113 OpenRouter jobs, 44
       APIFRAME jobs and ffprobe on the clips).** `tokens = w × h × (24·s + 1)
       / 1024`, × the SKU, × `(1 − the live discount)` — Mini renders on the

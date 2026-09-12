@@ -8556,6 +8556,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
     failing 5 pre-fix).
   Full note: *SHE TRIMS A CLIP AS IT COMES OUT* in
   `docs/modules/audio-and-film.md`; test `node scripts/test-footage-trim.js`.
+  **AND SHE GRABS A FRAME OUT OF THE MIDDLE — GRAB FRAME, THE THIRD WORD ON
+  THAT ROW (2026-09-12, Sophie: "the last frame doesn't have the curtains" ·
+  "it shouldn't file to the dump. It should give me a way to use it
+  immediately as a reference for my next film").** Playhead on the frame, tap
+  the word, and it is `[ImageN]` in the references strip — the last-frame
+  tile's `reference` landing, for any second of the clip. `POST
+  /api/footage/jobs/:id/frame {at}`: a PNG at the clip's own size out of the
+  SOURCE, content-addressed under `footage/frames/`, one decode at a time in
+  the trims' queue, the clip's doc untouched, NOTHING to the Dump (her word).
+  Full note: *GRAB FRAME* in `docs/modules/audio-and-film.md`; test
+  `node scripts/test-footage-grab-frame.js`.
   **THE FIRST FRAME OF THE NEXT CLIP IS THE LAST FRAME OF THIS ONE — WIRED ON
   ALL THREE DOORS (2026-09-11).** Every door takes the same two fields,
   `firstFrameUrl` / `lastFrameUrl`, and maps them onto its own shape: **Atlas
