@@ -7891,9 +7891,38 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `?days=7`, `?model=`, `?group=`, `?fresh=1`). The walk PAGES on `next_page`
   — a read that stops at `has_more` under-reports what she has spent — and the
   180-day range is refused HERE rather than at Atlas, free and in the rule's
-  own words. Money comes back as a fixed six-decimal STRING and the raw string
-  is kept beside the number, so nothing rounds her balance on the way past; a
-  429 hands its `Retry-After` on rather than being retried inside the reader.
+  own words; a 429 hands its `Retry-After` on rather than being retried inside
+  the reader.
+  **THE TWO SHAPES ARE MEASURED OFF HER OWN LIVE ANSWER, AND BOTH DIFFER
+  STRUCTURALLY FROM ATLAS'S PUBLISHED EXAMPLES (2026-09-12, read back the hour
+  the reader deployed).** Written from the docs alone it answered
+  `left:null` and `total:0, rows:1, priced:0` against two 200s — the prefix and
+  the key were right and every figure was a confident zero. Both are pinned by
+  fixtures lifted verbatim now:
+  - **MONEY IS A NESTED OBJECT IN NAMED POCKETS, not a top-level string.**
+    `/balance` answers `{available, cash, bonus, subscription_bonus, frozen,
+    credit_grant}`, each `{value:"23.555722", currency:"usd"}`. **`available`
+    is the pocket she can spend** — `cash` alone misses a bonus, and totalling
+    them all counts frozen money she cannot spend. `String({value})` is
+    `"[object Object]"`, which is exactly what the first wiring filed as her
+    balance.
+  - **A `/model-costs` ROW IS A DAY BUCKET, NOT A CHARGE.**
+    `{object:'model_cost.bucket', date, start_at, end_at, covered_until,
+    partial, results:[{model:{id,name,type}, amount:{value,currency}}]}` — so
+    a reader that priced the ROW found nothing, and the model's own NAME lives
+    one level in. One row can hold a whole day's models (hers held five).
+  - **TODAY IS `partial:true` WITH A `covered_until` A FEW MINUTES BEHIND
+    NOW**, so the figure is honest-but-behind while she is still drawing —
+    the "?" card says **"so far"** rather than a timestamp.
+  **WHAT ONE DAY REALLY COST, the first real read (2026-09-12): $20.12** —
+  Mini reference-to-video $13.83, 2.5 $4.02, 2.0 $1.35, Mini image-to-video
+  $0.60, Fast $0.33 — against $23.56 left. A money field is hunted across
+  `BAL_KEYS`/`COST_KEYS` and one level into a wrapper rather than trusting one
+  spelling, the whole `/balance` body rides back as `body`, and any row nobody
+  could price rides back as `unpriced`: a total of zero beside rows that really
+  came back is the one wrong answer this must never give quietly. **`money(null)`
+  is a finite ZERO** (`Number(null) === 0`), so an absent field is refused
+  before it is read as a real charge of nothing.
   On `/footage` the "?" card's top line is now **what is left on every door
   plus what today really cost** (`GET /api/footage/spend` — Atlas only, and it
   says so, because the other two publish a balance and no history), so the

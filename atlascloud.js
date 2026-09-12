@@ -449,7 +449,21 @@ const SPEND_CACHE_MS = 5 * 60 * 1000;
 let balCache = { at: 0, val: null };
 const spendCache = new Map();
 
-function money(v) { const n = Number(v); return Number.isFinite(n) ? n : null; }
+// MONEY IS AN OBJECT, NOT A STRING (measured 2026-09-12 off the live
+// answer). Atlas's published example shows `"value": "125.500000"` at the
+// top level; what it really sends is `{"value":"23.555722","currency":"usd"}`
+// nested under a named pocket. So a money reader has to unwrap `{value}`
+// before it reads a number — `String({value})` is "[object Object]", which
+// is exactly what the first wired version answered.
+function money(v) {
+  if (v && typeof v === 'object' && !Array.isArray(v) && v.value != null) v = v.value;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+function moneyStr(v) {
+  if (v && typeof v === 'object' && !Array.isArray(v) && v.value != null) v = v.value;
+  return v == null ? null : String(v);
+}
 
 // WHICH KEY HOLDS THE MONEY IS MEASURED, NEVER ASSUMED (2026-09-12). Atlas's
 // published example says `value`; the live answer to `/balance` carried no
@@ -457,8 +471,13 @@ function money(v) { const n = Number(v); return Number.isFinite(n) ? n : null; }
 // hunted by name across the object and one level into a `data`/`result`
 // wrapper, and the whole body rides back on the answer (`body`) so the real
 // shape is readable from a reply instead of from a guess.
-const BAL_KEYS = ['value', 'balance', 'credit', 'credits', 'amount', 'remaining', 'available', 'total'];
-const COST_KEYS = ['cost', 'total_cost', 'cost_usd', 'amount', 'value', 'spend', 'total', 'price', 'usd'];
+// `available` LEADS, and that is the whole of what she has to spend: the
+// live body carries `available` · `cash` · `bonus` · `subscription_bonus` ·
+// `frozen` · `credit_grant` as separate pockets, and `available` is the one
+// that answers "how much is left". Reading `cash` alone would miss a bonus;
+// totalling them all would count frozen money she cannot spend.
+const BAL_KEYS = ['available', 'cash', 'value', 'balance', 'credit', 'credits', 'remaining', 'amount', 'total'];
+const COST_KEYS = ['amount', 'cost', 'total_cost', 'cost_usd', 'value', 'spend', 'total', 'price', 'usd'];
 function unwrap(o) {
   if (!o || typeof o !== 'object') return [];
   const out = [o];
@@ -475,7 +494,7 @@ function pickIn(o, keys) {
 // `money(null)` is 0 — Number(null) is a finite zero — so an absent field
 // would total as a real charge of nothing rather than as "no cost here".
 function moneyIn(o, keys) { const v = pickIn(o, keys); return v == null ? null : money(v); }
-function rawIn(o, keys) { const v = pickIn(o, keys); return v == null ? null : String(v); }
+function rawIn(o, keys) { return moneyStr(pickIn(o, keys)); }
 function dayStr(d) { return new Date(d).toISOString().slice(0, 10); }
 function okDay(s) { return /^\d{4}-\d{2}-\d{2}$/.test(String(s || '')); }
 
@@ -570,6 +589,35 @@ async function billRows(path, opts = {}) {
 // total is never silently zero because a key was named something else.
 function costOf(row) { return moneyIn(row, COST_KEYS); }
 
+// A ROW IS A DAY BUCKET HOLDING `results[]` — NOT A CHARGE (measured
+// 2026-09-12). `/model-costs` answers one row per DAY:
+//   { object:'model_cost.bucket', date, start_at, end_at, covered_until,
+//     partial, results:[ { model:{id,name,type}, amount:{value,currency} } ] }
+// so a reader that priced the ROW found nothing at all and totalled zero
+// beside a row that really came back. Each RESULT is the charge, and the
+// model's own NAME lives one level in.
+function costLines(row) {
+  const out = [];
+  const day = String((row && (row.date || row.day || row.start_date)) || '');
+  const results = Array.isArray(row && row.results) ? row.results : null;
+  if (results) {
+    for (const one of results) {
+      const c = costOf(one);
+      if (c == null) continue;
+      const m = one.model;
+      out.push({ day, cost: c,
+        model: String((m && (m.name || m.id)) || one.model_name || one.model_id || 'unknown') });
+    }
+    return out;
+  }
+  // A FLAT ROW STILL READS. Nothing measured sends one, but a shape change
+  // that flattens these must not silently total to nothing.
+  const c = costOf(row);
+  if (c != null) out.push({ day, cost: c,
+    model: String((row.model && (row.model.name || row.model.id)) || row.model || row.model_id || row.model_name || 'unknown') });
+  return out;
+}
+
 async function spend(opts = {}) {
   const key = JSON.stringify(opts);
   const hit = spendCache.get(key);
@@ -577,18 +625,23 @@ async function spend(opts = {}) {
   const r = await billRows('/model-costs', opts);
   let total = 0, priced = 0;
   const byModel = new Map(), byDay = new Map();
+  // TODAY IS A PARTIAL BUCKET and says so. `covered_until` is how far the
+  // figure really reaches, so a total for today is honest-but-behind rather
+  // than final — worth carrying, since she reads it while still drawing.
+  let partial = false, coveredUntil = null;
   for (const row of r.rows) {
-    const c = costOf(row);
-    if (c == null) continue;
-    total += c; priced++;
-    const m = String(row.model || row.model_id || row.model_name || 'unknown');
-    const d = String(row.date || row.day || row.start_date || '');
-    byModel.set(m, (byModel.get(m) || 0) + c);
-    if (d) byDay.set(d, (byDay.get(d) || 0) + c);
+    if (row && row.partial) partial = true;
+    if (row && row.covered_until && (!coveredUntil || row.covered_until > coveredUntil)) coveredUntil = row.covered_until;
+    for (const line of costLines(row)) {
+      total += line.cost; priced++;
+      byModel.set(line.model, (byModel.get(line.model) || 0) + line.cost);
+      if (line.day) byDay.set(line.day, (byDay.get(line.day) || 0) + line.cost);
+    }
   }
   const val = {
     start: r.start, end: r.end, days: r.days, truncated: r.truncated,
     total: Math.round(total * 1000000) / 1000000, rows: r.rows.length, priced,
+    partial, coveredUntil,
     // A ROW NOBODY COULD PRICE RIDES BACK WHOLE. `priced: 0` beside rows that
     // really came back means the cost key is spelled something COST_KEYS does
     // not know, and a total of zero would otherwise read as "she spent

@@ -1149,7 +1149,7 @@ $('help').addEventListener('click', function (e) {
     // is a fact about the account, like the balance, not something the price
     // line needs. A door that cannot answer leaves the figure absent rather
     // than showing a zero she would read as "nothing spent".
-    api('/spend').then(function (d) { if (d && d.ok && d.total != null) { SPENT_TODAY = d.total; paintBal(); } }).catch(function () {});
+    api('/spend').then(function (d) { if (d && d.ok && d.total != null) { SPENT_TODAY = d.total; SPENT_PARTIAL = Boolean(d.partial); paintBal(); } }).catch(function () {});
   }
 });
 document.addEventListener('click', function () { if (!$('helpcard').hidden) $('helpcard').hidden = true; });
@@ -1157,6 +1157,7 @@ document.addEventListener('click', function () { if (!$('helpcard').hidden) $('h
 // ── State ─────────────────────────────────────────────────────────────────
 var CFG = null;                      // GET /status
 var SPENT_TODAY = null;              // GET /spend — dollars charged today
+var SPENT_PARTIAL = false;           // …and whether that day is still open
 // THE CHEAPEST DOOR, CHOSEN BY THE SERVER (2026-09-11, Sophie: "are they
 // cheapest through router, atlas or frame? choose cheapest"). It was pinned
 // to Atlas from 2026-09-09 ("make atlas the default and only route through
@@ -1897,7 +1898,12 @@ function paintBal() {
     if (bal.openrouter && bal.openrouter.left != null) parts.push('OpenRouter $' + Number(bal.openrouter.left).toFixed(2) + ' left');
     if (bal.apiframe && bal.apiframe.credits != null) parts.push('APIFRAME $' + (Number(bal.apiframe.credits) / 100).toFixed(2) + ' left');
   }
-  if (SPENT_TODAY != null) parts.push('$' + Number(SPENT_TODAY).toFixed(2) + ' spent today');
+  // TODAY IS A PARTIAL BUCKET AND SAYS SO — Atlas stamps `partial` with a
+  // `covered_until` a few minutes behind now (measured 2026-09-12), so the
+  // figure is honest-but-behind while she is still drawing. One word rather
+  // than a timestamp: the number is what she reads, "so far" is why it will
+  // go up.
+  if (SPENT_TODAY != null) parts.push('$' + Number(SPENT_TODAY).toFixed(2) + ' spent today' + (SPENT_PARTIAL ? ' so far' : ''));
   $('balline').textContent = parts.join(' · ');
   $('balline').hidden = !parts.length;
   // THE SALE IS READ, NEVER WRITTEN DOWN — the server asks Atlas what it is
