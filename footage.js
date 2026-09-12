@@ -512,7 +512,10 @@ function estimate({ model, resolution, ratio, seconds, hasVideo, door, discount,
   const d = doorFor({ model: m, door, hasVideo, resolution: res, ratio, seconds: s, hasFirstFrame, hasLastFrame, hasRefs }, cfg);
   if (d.error) return d;
   const p = priceOn(m, d.door, { res, ratio, seconds: s, hasVideo, discount });
-  return p.error ? p : { ...p, door: d.door };
+  // THE RESOLVED SHAPE rides back beside the price — the caller asked with
+  // whatever the controls said and these are what the tap will really be,
+  // which is what the draw-time read has to key off (2026-09-12).
+  return p.error ? p : { ...p, door: d.door, model: m.id, resolution: res, ratio: RATIOS.includes(ratio) ? ratio : '', seconds: s };
 }
 
 // The price ON ONE NAMED DOOR — no door choice in it, which is what lets
@@ -676,13 +679,18 @@ let balCache = { at: 0, val: null };
 async function balances() {
   if (Date.now() - balCache.at < BAL_CACHE_MS && balCache.val) return balCache.val;
   const c = cfg();
-  // Atlas Cloud publishes no balance endpoint here — configured is all it says
-  const out = { openrouter: { configured: c.openrouter, left: null }, apiframe: { configured: c.apiframe, credits: null }, atlascloud: { configured: c.atlascloud } };
+  // ATLAS HAS A BALANCE AFTER ALL (2026-09-12, Sophie: "I checked, and Atlas
+  // Cloud does have a proper Billing Public API. I was wrong in my previous
+  // answer") — `/public/v1/balance`, a different prefix from the generation
+  // api, read through atlascloud.js's own route. This line said "publishes no
+  // balance endpoint here" and was wrong.
+  const out = { openrouter: { configured: c.openrouter, left: null }, apiframe: { configured: c.apiframe, credits: null }, atlascloud: { configured: c.atlascloud, left: null } };
   const base = process.env.RENDER_EXTERNAL_URL || `http://127.0.0.1:${process.env.PORT || 3000}`;
   const h = STUDIO_TOKEN ? { 'x-studio-token': STUDIO_TOKEN } : {};
   await Promise.all([
     c.openrouter ? fetch(base + '/api/openrouter/credits', { headers: h, agent: proxyAgent || undefined }).then((r) => r.json()).then((j) => { if (j && j.left != null) out.openrouter.left = Number(j.left); }).catch(() => {}) : null,
     c.apiframe ? fetch(base + '/api/apiframe/me', { headers: h, agent: proxyAgent || undefined }).then((r) => r.json()).then((j) => { if (j && j.team && j.team.credits != null) out.apiframe.credits = Number(j.team.credits); }).catch(() => {}) : null,
+    c.atlascloud ? fetch(base + '/api/atlascloud/balance', { headers: h, agent: proxyAgent || undefined }).then((r) => r.json()).then((j) => { if (j && j.left != null) out.atlascloud.left = Number(j.left); }).catch(() => {}) : null,
   ]);
   balCache = { at: Date.now(), val: out };
   return out;
@@ -720,6 +728,105 @@ function trimCard(t) {
     seconds: Number(t.seconds) || Math.round(((Number(t.end) || 0) - (Number(t.start) || 0)) * 1000) / 1000,
     key: String(t.key || ''), status: String(t.status || ''), url: t.url || '', poster: t.poster || '', error: t.error || '',
   };
+}
+
+
+// ─── HOW LONG THIS SHAPE USUALLY TAKES TO DRAW ──────────────────────────
+// 2026-09-12, Sophie: "also make it say the average time it has taken for
+// things to draw at that exact size and length, etc." The figure has been on
+// every card since 2026-09-10 (`drewMs`, the DOOR's own latency, never
+// sentAt→doneAt — which is when the poll noticed) and existed nowhere she
+// could use it BEFORE a tap: a 15s 2.5 clip and a 4s Mini clip are minutes
+// apart and the price line said nothing about it.
+//
+// IT IS THE MEDIAN, NOT THE MEAN, and that is the one deviation from her
+// word worth naming: one clip that sat in a queue drags a mean minutes off
+// what the next tap will really do, where the median is what "usually"
+// means. The mean rides along on the answer, so nothing is hidden.
+//
+// THE LADDER IS EXACT FIRST, then loosened one fact at a time, and the
+// answer SAYS which rung it came off (`basis`) with the count beside it —
+// a number derived from one old clip of a different shape, presented as
+// this shape's time, is the card lying. Nothing is drawn at all when the
+// log has never done anything close (the Assets tab's silence rule).
+const DRAW_CACHE_MS = 5 * 60 * 1000;
+const DRAW_MAX = 1200;        // a bounded read of the newest clips
+const DRAW_ENOUGH = 3;        // below this a rung is used only as a last resort
+let drawCache = { at: 0, val: null };
+
+function drawKeyOf(d) {
+  // THE MODEL HAS TO BE THERE BEFORE IT IS MATCHED. A row on the table can
+  // lack an `or` / `af` / `atlas` id, so `x.or === d.model` on a doc with NO
+  // model matches undefined against undefined and buckets that clip under a
+  // model it was never drawn on. (`cardOf` runs the same find with the same
+  // shape; there a miss only mislabels one card, so it is left alone.)
+  if (!d || !d.model) return null;
+  const m = MODELS.find((x) => x.or === d.model || x.af === d.model || x.atlas === d.model) || null;
+  const p = d.params || {};
+  const door = d.door || d.provider || '';
+  const secs = p.duration != null ? Number(p.duration) : Number(d.seconds);
+  const res = p.resolution || d.resolution || '';
+  const ratio = p.aspect_ratio || d.ratio || d.aspect || '';
+  if (!m || !Number.isFinite(secs) || !res) return null;
+  return { door: String(door), model: m.id, res: String(res), ratio: String(ratio), seconds: secs };
+}
+
+function medianOf(list) {
+  if (!list.length) return null;
+  const a = list.slice().sort((x, y) => x - y);
+  const mid = a.length >> 1;
+  return a.length % 2 ? a[mid] : Math.round((a[mid - 1] + a[mid]) / 2);
+}
+
+// One read of the log, grouped every way the ladder asks about. Cached five
+// minutes — the shape of the answer barely moves clip to clip, and the price
+// line asks on every control change.
+async function drawStats(fresh) {
+  if (!fresh && drawCache.val && Date.now() - drawCache.at < DRAW_CACHE_MS) return drawCache.val;
+  const buckets = new Map();
+  const add = (k, ms) => { const cur = buckets.get(k); if (cur) cur.push(ms); else buckets.set(k, [ms]); };
+  try {
+    const snap = await coll().orderBy('sentAt', 'desc').limit(DRAW_MAX).get();
+    snap.forEach((doc) => {
+      const d = doc.data() || {};
+      const ms = Number(d.drewMs);
+      if (!Number.isFinite(ms) || ms <= 0) return;
+      const k = drawKeyOf(d);
+      if (!k) return;
+      add(`${k.door}|${k.model}|${k.res}|${k.ratio}|${k.seconds}`, ms);
+      add(`${k.door}|${k.model}|${k.res}||${k.seconds}`, ms);
+      add(`|${k.model}|${k.res}||${k.seconds}`, ms);
+      add(`|${k.model}|||${k.seconds}`, ms);
+    });
+  } catch (e) { /* a missing log answers "no idea", never an error */ }
+  const val = buckets;
+  drawCache = { at: Date.now(), val };
+  return val;
+}
+
+// The answer for one shape: { ms, mean, n, basis } or null.
+function drawTimeFrom(buckets, { door, model, res, ratio, seconds }) {
+  if (!buckets) return null;
+  const rungs = [
+    ['exact', `${door || ''}|${model}|${res}|${ratio}|${seconds}`],
+    ['ratio', `${door || ''}|${model}|${res}||${seconds}`],
+    ['door', `|${model}|${res}||${seconds}`],
+    ['size', `|${model}|||${seconds}`],
+  ];
+  let fallback = null;
+  for (const [basis, key] of rungs) {
+    const list = buckets.get(key);
+    if (!list || !list.length) continue;
+    const answer = { ms: medianOf(list), mean: Math.round(list.reduce((a, b) => a + b, 0) / list.length), n: list.length, basis };
+    if (list.length >= DRAW_ENOUGH) return answer;
+    if (!fallback) fallback = answer;
+  }
+  return fallback;
+}
+
+async function drawTimeFor(shape) {
+  const buckets = await drawStats().catch(() => null);
+  return drawTimeFrom(buckets, shape);
 }
 
 // The card the page draws, off the log doc.
@@ -1453,7 +1560,36 @@ router.get('/estimate', async (req, res) => {
     hasFirstFrame: q.first === '1', hasLastFrame: q.last === '1', hasRefs: q.refs === '1' }, cfg());
   res.set('Cache-Control', 'no-store');
   if (e.error) return res.status(400).json({ error: e.error });
-  res.json({ ok: true, ...e });
+  // HOW LONG THIS SHAPE USUALLY TAKES (2026-09-12, her ask) rides the same
+  // free read — the page asks on every control change, so the time and the
+  // price can never be about two different jobs. `drew` is absent when the
+  // log has never drawn anything close; the page says nothing then.
+  const drew = await drawTimeFor({ door: e.door, model: e.model || q.model, res: e.resolution || q.res,
+    ratio: e.ratio || q.ratio, seconds: Number(e.seconds != null ? e.seconds : q.seconds) }).catch(() => null);
+  res.json({ ok: true, ...e, drew: drew || null });
+});
+
+// GET /spend?days= — what the doors have really charged, in dollars. Atlas
+// Cloud is the only one with a spend api (2026-09-12, Sophie found it:
+// `/public/v1/model-costs`); OpenRouter and APIFRAME publish a BALANCE and no
+// history, so this answers Atlas's charges and says so. No argument answers
+// TODAY. Free and cached five minutes in atlascloud.js.
+//
+// A DAY TOTAL IS EXACT WHERE A CLIP'S IS NOT — Atlas stamps no job id on a
+// charge (measured 2026-09-11 off her exported history), so the page's
+// per-tap figure stays an estimate wearing a `~` while this number does not.
+router.get('/spend', async (req, res) => {
+  const q = req.query || {};
+  const base = process.env.RENDER_EXTERNAL_URL || `http://127.0.0.1:${process.env.PORT || 3000}`;
+  const h = STUDIO_TOKEN ? { 'x-studio-token': STUDIO_TOKEN } : {};
+  const qs = new URLSearchParams();
+  for (const k of ['days', 'start', 'end', 'model', 'type', 'group', 'fresh']) if (q[k]) qs.set(k, String(q[k]));
+  try {
+    const j = await fetch(base + '/api/atlascloud/spend' + (qs.toString() ? '?' + qs : ''), { headers: h, agent: proxyAgent || undefined }).then((r) => r.json());
+    res.set('Cache-Control', 'no-store');
+    if (!j || j.error) return res.status(502).json({ error: (j && j.error) || 'no answer', doors: ['atlascloud'] });
+    res.json({ ok: true, ...j, doors: ['atlascloud'], note: 'Atlas Cloud only — OpenRouter and APIFRAME publish a balance, not a history' });
+  } catch (e) { res.status(502).json({ error: e.message }); }
 });
 
 router.post('/jobs', async (req, res) => {
@@ -1664,6 +1800,7 @@ module.exports = {
   MODELS, RATIOS, SIZES, CHAT, OR_FEE,
   modelOf, doorFor, doorTakes, shapeRefusal, estimate, priceOn, DOOR_LOOSENESS, DOOR_REFUSAL_FREE, DOOR_WORDS, pollOne, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, resFactor, secondsOk, framesOf, projectSlug, HANDOFF_PROJECTS,
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf, atlasCacheBust,
+  drawStats, drawTimeFor, drawTimeFrom, drawKeyOf, medianOf,
   startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf,
   pageJobs, hayOf, foldersOf, folderSlug, statusOf, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
   framePlan, framePath, pullFrame, grabFrame, FRAME_FOLDER, FRAME_END_PAD,

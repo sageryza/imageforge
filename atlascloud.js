@@ -417,6 +417,169 @@ async function saveContentToFirebase(src, folder = 'atlascloud-video', kind = 'm
   } catch { return src; }
 }
 
+
+// ─── Billing (Atlas's PUBLIC api, a DIFFERENT prefix) ───────────────
+// 2026-09-12, Sophie: "I checked, and Atlas Cloud does have a proper Billing
+// Public API. I was wrong in my previous answer." She was right and this
+// file's header was wrong: Atlas publishes `/public/v1/balance`,
+// `/model-usage` and `/model-costs` — so the money it charges is READABLE,
+// where every note here said the console was the only read.
+//
+// THE PREFIX IS NOT `BASE`. Generation is `/api/v1`; billing is
+// `/public/v1`, same host, same `apikey-…` bearer. Two constants on purpose:
+// pointing one at the other 404s every read.
+//
+// WHAT IT CAN AND CANNOT ANSWER. `model-costs` buckets by DAY, by model and
+// by api key — so "what have I spent on Seedance today", "which model ate
+// it", and (if a project ever gets its own key) "what did this project
+// cost". It does NOT stamp a job id on a charge (measured 2026-09-11 off her
+// exported history), so a PER-CLIP cost still cannot be joined exactly and
+// the page's per-tap figure stays an estimate wearing a `~`. A DAY total is
+// exact; one clip is not.
+//
+// MONEY IS A FIXED SIX-DECIMAL STRING in Atlas's answers ("125.500000").
+// Kept as the string as well as a number, so nothing here rounds her balance
+// on the way past.
+const BILL_BASE = process.env.ATLASCLOUD_BILL_BASE || 'https://api.atlascloud.ai/public/v1';
+const BILL_MS = 20000;
+const MAX_DAYS = 180;        // Atlas's own cap on a range
+const MAX_PAGES = 20;        // a bounded walk — never read the whole account
+const BAL_CACHE_MS = 60 * 1000;
+const SPEND_CACHE_MS = 5 * 60 * 1000;
+let balCache = { at: 0, val: null };
+const spendCache = new Map();
+
+function money(v) { const n = Number(v); return Number.isFinite(n) ? n : null; }
+function dayStr(d) { return new Date(d).toISOString().slice(0, 10); }
+function okDay(s) { return /^\d{4}-\d{2}-\d{2}$/.test(String(s || '')); }
+
+async function billApi(path, query) {
+  if (!KEY) { const e = new Error('ATLASCLOUD_API_KEY not configured'); e.status = 503; throw e; }
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(query || {})) {
+    if (v == null || v === '') continue;
+    if (Array.isArray(v)) { for (const one of v) if (one != null && one !== '') qs.append(k + '[]', String(one)); }
+    else qs.append(k, String(v));
+  }
+  const url = BILL_BASE + path + (qs.toString() ? '?' + qs.toString() : '');
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), BILL_MS);
+  let res;
+  try {
+    res = await fetch(url, { headers: headers(), agent: proxyAgent || undefined, signal: ctl.signal });
+  } catch (e) {
+    clearTimeout(timer);
+    if (e && (e.name === 'AbortError' || e.type === 'aborted')) throw downError(`no answer in ${Math.round(BILL_MS / 1000)}s`, '');
+    throw e;
+  }
+  let text;
+  try { text = await res.text(); } finally { clearTimeout(timer); }
+  let json;
+  try { json = JSON.parse(text); } catch { json = { _raw: text }; }
+  if (!res.ok) {
+    const msg = (json && json.error && json.error.message) || text.slice(0, 400);
+    const e = new Error(`Atlas Cloud billing ${res.status}: ${msg}`);
+    e.status = res.status; e.body = text;
+    // 429 carries Retry-After — handed on rather than retried here, so a
+    // caller decides whether waiting is worth it.
+    const ra = res.headers && res.headers.get && res.headers.get('retry-after');
+    if (ra) e.retryAfter = Number(ra) || null;
+    throw e;
+  }
+  return json;
+}
+
+// GET /balance → { value: "125.500000", currency: "usd" }
+async function balance(fresh) {
+  if (!fresh && Date.now() - balCache.at < BAL_CACHE_MS && balCache.val) return balCache.val;
+  const j = await billApi('/balance');
+  const out = { left: money(j && j.value), raw: (j && j.value) || null, currency: (j && j.currency) || 'usd' };
+  balCache = { at: Date.now(), val: out };
+  return out;
+}
+
+// THE RANGE IS CHECKED HERE, not at Atlas — a refusal that costs no round
+// trip and names the rule reads better than a 400 in their words. `end` is
+// EXCLUSIVE in their API, so "today" is start=today, end=tomorrow; the
+// default below is exactly that.
+function rangePlan({ start, end, days } = {}) {
+  const now = Date.now();
+  let s = start, e = end;
+  if (!e) e = dayStr(now + 86400000);
+  if (!s) s = days ? dayStr(now - (Math.max(1, Number(days)) - 1) * 86400000) : dayStr(now);
+  if (!okDay(s) || !okDay(e)) return { error: 'start_date and end_date must be YYYY-MM-DD' };
+  const span = Math.round((Date.parse(e + 'T00:00:00Z') - Date.parse(s + 'T00:00:00Z')) / 86400000);
+  if (!Number.isFinite(span) || span <= 0) return { error: 'end_date must be after start_date (it is exclusive)' };
+  if (span > MAX_DAYS) return { error: `a range is at most ${MAX_DAYS} days (asked for ${span})` };
+  return { start: s, end: e, days: span };
+}
+
+// The paged walk, shared by costs and usage. Answers every row Atlas has for
+// the range, bounded — `truncated` says so rather than a short answer
+// pretending to be the whole thing.
+async function billRows(path, opts = {}) {
+  const r = rangePlan(opts);
+  if (r.error) { const e = new Error(r.error); e.status = 400; throw e; }
+  const q = { start_date: r.start, end_date: r.end, limit: 1000 };
+  if (opts.scope) q.scope = opts.scope;
+  if (opts.groupBy && opts.groupBy.length) q.group_by = opts.groupBy;
+  if (opts.modelTypes && opts.modelTypes.length) q.model_types = opts.modelTypes;
+  if (opts.modelIds && opts.modelIds.length) q.model_ids = opts.modelIds;
+  if (opts.apiKeyIds && opts.apiKeyIds.length) q.api_key_ids = opts.apiKeyIds;
+  const rows = [];
+  let page = null, truncated = false;
+  for (let i = 0; i < MAX_PAGES; i++) {
+    const j = await billApi(path, page ? { ...q, page } : q);
+    const got = Array.isArray(j && j.data) ? j.data : (Array.isArray(j) ? j : []);
+    for (const one of got) rows.push(one);
+    if (!j || !j.has_more || !j.next_page) { page = null; break; }
+    page = j.next_page;
+    if (i === MAX_PAGES - 1) truncated = true;
+  }
+  return { ...r, rows, truncated };
+}
+
+// WHAT A ROW COSTS is read from whichever field Atlas puts it in — its own
+// docs show `cost`, and a money string is as likely as a number — so the
+// total is never silently zero because a key was named something else.
+function costOf(row) {
+  for (const k of ['cost', 'total_cost', 'amount', 'value', 'spend']) {
+    if (row && row[k] != null) { const n = money(row[k]); if (n != null) return n; }
+  }
+  return null;
+}
+
+async function spend(opts = {}) {
+  const key = JSON.stringify(opts);
+  const hit = spendCache.get(key);
+  if (!opts.fresh && hit && Date.now() - hit.at < SPEND_CACHE_MS) return hit.val;
+  const r = await billRows('/model-costs', opts);
+  let total = 0, priced = 0;
+  const byModel = new Map(), byDay = new Map();
+  for (const row of r.rows) {
+    const c = costOf(row);
+    if (c == null) continue;
+    total += c; priced++;
+    const m = String(row.model || row.model_id || row.model_name || 'unknown');
+    const d = String(row.date || row.day || row.start_date || '');
+    byModel.set(m, (byModel.get(m) || 0) + c);
+    if (d) byDay.set(d, (byDay.get(d) || 0) + c);
+  }
+  const val = {
+    start: r.start, end: r.end, days: r.days, truncated: r.truncated,
+    total: Math.round(total * 1000000) / 1000000, rows: r.rows.length, priced,
+    byModel: [...byModel.entries()].map(([model, cost]) => ({ model, cost: Math.round(cost * 1000000) / 1000000 })).sort((a, b) => b.cost - a.cost),
+    byDay: [...byDay.entries()].map(([day, cost]) => ({ day, cost: Math.round(cost * 1000000) / 1000000 })).sort((a, b) => (a.day < b.day ? -1 : 1)),
+  };
+  spendCache.set(key, { at: Date.now(), val });
+  return val;
+}
+
+async function usage(opts = {}) {
+  const r = await billRows('/model-usage', opts);
+  return { start: r.start, end: r.end, days: r.days, truncated: r.truncated, rows: r.rows };
+}
+
 function logDoc(id) { return admin.firestore().collection(videoLog.COLL).doc(String(id)); }
 
 // ─── Router ─────────────────────────────────────────────────────────
@@ -435,6 +598,47 @@ router.get('/status', (req, res) => {
       refs: { images: WAN.MAX_IMAGES, videos: WAN.MAX_VIDEOS, audios: WAN.MAX_AUDIOS } },
     note: 'nothing has been sent through this door yet — price, canvas and the face filter are unmeasured here',
     rule: `a reference with a person in it is expected to be refused (Atlas forwards to ByteDance) — that job goes through ${APIFRAME_ROUTE}` });
+});
+
+// GET /balance — what is left, in dollars. Free (one small read, cached 60s);
+// `?fresh=1` goes past the cache.
+router.get('/balance', async (req, res) => {
+  try {
+    const b = await balance(req.query.fresh === '1');
+    res.set('Cache-Control', 'no-store');
+    res.json({ ok: true, ...b });
+  } catch (e) { res.status(e.status || 500).json({ error: e.message, retryAfter: e.retryAfter }); }
+});
+
+// GET /spend?start=&end=&days=&group=&type=&model=&key=&scope=
+// — what she has really been charged, by day and by model. No argument at
+// all answers TODAY (start = today, end = tomorrow, because Atlas's end_date
+// is exclusive); `days=7` walks back a week. Free, cached five minutes.
+router.get('/spend', async (req, res) => {
+  const q = req.query || {};
+  const list = (v) => (v == null || v === '' ? [] : String(v).split(',').map((x) => x.trim()).filter(Boolean));
+  try {
+    const out = await spend({ start: q.start, end: q.end, days: q.days, scope: q.scope,
+      groupBy: list(q.group).length ? list(q.group) : ['model'], modelTypes: list(q.type),
+      modelIds: list(q.model), apiKeyIds: list(q.key), fresh: q.fresh === '1' });
+    res.set('Cache-Control', 'no-store');
+    res.json({ ok: true, ...out });
+  } catch (e) { res.status(e.status || 500).json({ error: e.message, retryAfter: e.retryAfter }); }
+});
+
+// GET /usage — the same range and filters over `/model-usage` (tokens and
+// call counts rather than money). Rows are handed back as Atlas sends them:
+// nothing here has measured their shape, so nothing here reshapes them.
+router.get('/usage', async (req, res) => {
+  const q = req.query || {};
+  const list = (v) => (v == null || v === '' ? [] : String(v).split(',').map((x) => x.trim()).filter(Boolean));
+  try {
+    const out = await usage({ start: q.start, end: q.end, days: q.days, scope: q.scope,
+      groupBy: list(q.group).length ? list(q.group) : ['model'], modelTypes: list(q.type),
+      modelIds: list(q.model), apiKeyIds: list(q.key) });
+    res.set('Cache-Control', 'no-store');
+    res.json({ ok: true, ...out });
+  } catch (e) { res.status(e.status || 500).json({ error: e.message, retryAfter: e.retryAfter }); }
 });
 
 // The route's body, as a function — so footage.js can send through this door
@@ -556,5 +760,6 @@ module.exports = {
   buildRequest, buildWanRequest, isWan, modelIdOf, apiframeStatus, refusalKind, splitOutputs,
   imageToVideoOf, isImageToVideo, framesOf,
   api, startVideo, pollVideo, failedRecord,
+  billApi, balance, spend, usage, rangePlan, costOf, BILL_BASE, MAX_DAYS,
   MODELS, DEFAULT_MODEL, RESOLUTIONS, RATIOS, APIFRAME_ROUTE, WAN_MODEL, WAN,
 };

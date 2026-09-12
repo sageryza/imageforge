@@ -7884,10 +7884,56 @@ before working on that module. Nothing was deleted — the moved text is verbati
   days; optional `scope` self|account, `group_by[]` model_type|model|api_key,
   `model_types[]` text|image|video, `model_ids[]`, `api_key_ids[]`, `limit`
   1-1000 and a `page` cursor from `next_page`; 429 carries `Retry-After`).
-  **NOT BUILT YET** — what it buys is the thing the `~` exists for: a real
-  charge per day and per model instead of an estimate, `cost` filled in on
-  every Atlas job on `forge-video-jobs`, and cost per PROJECT if each project
-  gets its own API key. Hers to ask for.
+  **BUILT 2026-09-12 ON HER GO** — `atlascloud.js` carries the reader on its
+  own `BILL_BASE` (`/public/v1`, deliberately a SECOND constant: pointing it at
+  the generation prefix 404s every read and that is invisible in the source).
+  `GET /api/atlascloud/balance` (60s cache), `/spend` and `/usage` (5 min;
+  `?days=7`, `?model=`, `?group=`, `?fresh=1`). The walk PAGES on `next_page`
+  — a read that stops at `has_more` under-reports what she has spent — and the
+  180-day range is refused HERE rather than at Atlas, free and in the rule's
+  own words. Money comes back as a fixed six-decimal STRING and the raw string
+  is kept beside the number, so nothing rounds her balance on the way past; a
+  429 hands its `Retry-After` on rather than being retried inside the reader.
+  On `/footage` the "?" card's top line is now **what is left on every door
+  plus what today really cost** (`GET /api/footage/spend` — Atlas only, and it
+  says so, because the other two publish a balance and no history), so the
+  2026-09-09 note that "Atlas has no balance to read" is WRONG and is corrected
+  in the page, in `balances()` and in `test-footage.js`. **A DAY TOTAL IS EXACT
+  WHERE A CLIP'S IS NOT** — Atlas stamps no job id on a charge — so the
+  per-tap figure keeps its `~`. Still not built: `cost` filled in per job on
+  `forge-video-jobs` (it cannot be joined exactly), and cost per PROJECT, which
+  needs a key per project first. Test: `node scripts/test-atlas-billing.js`.
+  **AND THE PRICE LINE SAYS HOW LONG THIS SHAPE USUALLY TAKES (2026-09-12,
+  Sophie: "also make it say the average time it has taken for things to draw at
+  that exact size and length, etc.").** `drewMs` — the DOOR's own latency, on
+  every card since 2026-09-10 — existed nowhere she could use it BEFORE a tap,
+  and a 15s 2.5 clip and a 4s Mini clip are minutes apart. `GET /estimate`
+  answers `drew` beside the price (one read of the log, cached 5 min, grouped
+  by door · model · resolution · ratio · seconds) and the page draws *usually
+  ~1m 10s* on its own small line under the price — a block inside `#cost`, so
+  the row grows in HEIGHT and never in width (MEASURED at 390pt: a fifth thing
+  ON that line wraps `clear`/`undo` onto a line of their own). Four things not
+  to undo: it is the **MEDIAN, not the mean** — the one deviation from her
+  word, because one clip that sat in a queue drags a mean minutes off what the
+  next tap will do (the mean rides along on the answer and in the tooltip, so
+  nothing is hidden); the **ladder loosens one fact at a time and SAYS which
+  rung answered** (exact → ratio → door → size), a borrowed figure adding
+  "· similar clips" rather than claiming to be this shape's; **a rung with
+  fewer than three clips yields to a fuller one** and is used only as a last
+  resort, since one clip is not a "usually"; and **a shape nothing has drawn
+  says NOTHING at all** (the Assets tab's silence rule) rather than showing the
+  last shape's figure. `drawKeyOf` refuses a doc with no `model` — `x.or ===
+  d.model` on a doc with none matches undefined against undefined and buckets
+  that clip under a model it was never drawn on. Test:
+  `node scripts/test-footage-draw-time.js`.
+  **AND APIFRAME HAS NOTHING TO BUILD (checked the same day, her ask: "check if
+  API frame has something and build that if it does").** Its own docs publish
+  `GET /v2/me` and no billing, credits, usage or history endpoint at all — and
+  `/me` has been wired since 2026-08-27 as `GET /api/apiframe/me` (that
+  module's own comment: "every other billing read 404s, measured 2026-08-27").
+  So its balance is already on the "?" card and there is no spend history to
+  read. OpenRouter is the same shape: a balance
+  (`GET /api/openrouter/credits`), no history.
   **HER "~" STAYS, BUT THE ESTIMATE HAS NOW BEEN READ AGAINST REAL CHARGES
   AND IT IS RIGHT (2026-09-11, she exported her Atlas cost history).** 117
   charges over 40 hours, joined to `forge-video-jobs` by time, 106 of them
