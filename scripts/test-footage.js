@@ -453,7 +453,9 @@ const server = http.createServer((req, res) => {
       const b = JSON.parse(body);
       posted.push(b);
       const answer = () => {
-        if (refuse) { refuse = false; return json({ error: 'ByteDance refused a reference', refusal: 'content', hint: 'that job goes through /api/apiframe/video' }, 400); }
+        // the real route says WHICH door refused it, so the page can offer
+        // her the others without offering that one back
+        if (refuse) { refuse = false; return json({ error: 'ByteDance refused a reference', refusal: 'content', door: 'openrouter', hint: 'that job goes through /api/apiframe/video' }, 400); }
         // the door answers with the seed it really used — hers when she typed
         // one, else the one it minted (video-seed.js)
         const seed = b.seed != null ? Number(b.seed) : 999111;
@@ -1292,6 +1294,28 @@ async function pillSweep(pg, where) {
   // next and the server sent it nowhere else.
   ok('a content refusal shows on the page as refused, nothing drawn or charged: ' + err,
     /refused/.test(err) && /nothing drawn or charged/.test(err) && !/every door/.test(err));
+
+  // ── and the OTHER doors are one tap, priced (2026-09-12) ────────────────
+  // Sophie: "my job got refused. send it through atlas" — the refusal named
+  // the doors that would take it and the page had no way to DO that, so the
+  // only route through was retyping the scene somewhere else. MEASURED, not
+  // asserted from the source: a word that renders and sends `auto` anyway, a
+  // word for the door that just refused, and a word for a door that cannot
+  // take the shape all look identical in the markup.
+  const refusedBody = posted[posted.length - 1];
+  const doorRows = await page.$$eval('.doorgo', (els) => els.map((e) => e.textContent));
+  ok('a refusal offers the doors that can still take it, priced: ' + doorRows.join(' | '),
+    doorRows.length === 2 && doorRows.some((t) => /Atlas Cloud/.test(t)) && doorRows.some((t) => /APIFRAME/.test(t))
+    && doorRows.every((t) => /\$\d/.test(t)));
+  ok('the door that refused it is not offered back to her',
+    !doorRows.some((t) => /OpenRouter/.test(t)));
+  const nPosted = posted.length;
+  await page.$$eval('.doorgo', (els) => els.find((e) => /Atlas Cloud/.test(e.textContent)).click());
+  await page.waitForTimeout(400);
+  const resent = posted.slice(nPosted).filter((b) => b && b.prompt);
+  ok('tapping a door re-sends THIS job pinned to it — her words, her references, that door',
+    resent.length === 1 && resent[0].door === 'atlascloud' && resent[0].prompt === refusedBody.prompt
+    && JSON.stringify(resent[0].refs) === JSON.stringify(refusedBody.refs));
 
   // ── putting a prompt back brings its seed, and clearing means clearing ───
   await page.click('#job-old1 .copy');
