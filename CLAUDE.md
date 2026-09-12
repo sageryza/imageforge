@@ -8012,6 +8012,28 @@ before working on that module. Nothing was deleted — the moved text is verbati
   really POSTs — a clip's poster and a still reference are the same markup,
   and a lit thumb says nothing about what left the phone; verified failing 5
   against the page that listed them).
+  **A CHOSEN REFERENCE OPENS BIGGER — TAP ITS THUMB (2026-09-12, Sophie:
+  "make clicking on a chosen reference open it bigger").** A 72px tile is too
+  small to check that the picture riding as `[Image2]` is the one she meant,
+  and the strip was the one place on this page a picture could not be looked
+  at. It opens in the SAME overlay the clip and the last frame use — one
+  lightbox on this page, so the way out is the one she knows (the backdrop,
+  the ✕, the app's chevron). Four things not to undo: a PICTURE is the still
+  view with **save** and **no "use this frame" doors** (`openShot(url,
+  {use:false})` — "reference" would do nothing at all, since it already is
+  one, and "first frame" is the flag on its own tile); a VIDEO is the ordinary
+  player with **no trim bar** (`openPlayer(url, null)` — a reference is a file
+  she attached, not a clip this page drew, so there is nothing to cut); an
+  AUDIO tile stays a plain `<div>` with no control at all (nothing to open
+  bigger — the Assets tab's silence rule); and `.ref .im` needs `padding:0`
+  now that it is a `<button>`, or the page's base button rule (7/11) insets
+  the picture inside its own tile. The tap is wired BY POSITION like the ✕
+  beside it, so a copy-back that replaces every object in the strip cannot
+  strand it. Test: `node scripts/test-footage-ref-big.js` (every assertion a
+  MEASUREMENT — a tile carrying a handler that opens nothing, one that opens
+  the overlay still showing the 72px thumb, and one that opens the trim bar
+  over a reference all look identical in the source; verified failing 9
+  pre-fix).
   **DIVIDE HERE — ONE BLOCK IS ONE CLIP (2026-09-11, Sophie: "can u add the
   feature from story timeline that allows me to divide into two text blocks
   where my cursor · a button · says divide here · pinned or sticky in footage
