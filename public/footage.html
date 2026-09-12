@@ -721,6 +721,19 @@
   .trimbar .tpart.on .tpspan{color:#f0b6ac}
   .trimbar .tpart .tpst{color:#9a8f7d;flex:none}
   .trimbar .tpart .tpx{width:26px;height:26px;padding:0;font-size:15px;flex:none}
+  /* SAVING A PART, ALL OF THEM, OR THE WHOLE CLIP (2026-09-12, Sophie: "how do
+     I save individual trim clips or all of them at once or the whole clip?").
+     Until this the only save on a trimmed clip was the card's word, which
+     handed over the FIRST part and nothing else. A `save` on each part's row,
+     and a row of two words under the parts: `save all` (one share sheet
+     holding every part outside the app; one bridge call per part inside it)
+     and `save whole clip` (the ORIGINAL the door drew — `source` on the card,
+     never touched by a trim). Underlined words, never boxed buttons. */
+  .trimbar .tpart .tpsave{background:none;border:none;padding:0 2px;height:26px;font-size:12.5px;
+                          text-decoration:underline;color:#e7dfd2;flex:none}
+  .trimbar .tsaves{display:flex;gap:14px;justify-content:flex-end;min-height:20px}
+  .trimbar .tsaves button{background:none;border:none;padding:0 2px;height:auto;font-size:12.5px;
+                          text-decoration:underline;color:#e7dfd2}
   /* the card's own line: what is kept, and while it bakes, that it is baking */
   .trimtag{display:flex;align-items:center;gap:5px;font-size:12px;color:#8a7f70;margin-top:3px}
   .trimtag svg{width:13px;height:13px;flex:none}
@@ -1003,6 +1016,10 @@
       <button type="button" class="tstep" id="tfwd" aria-label="On a tenth of a second" title="On 0.1s">&rsaquo;</button>
     </div>
     <div class="tparts" id="tparts"></div>
+    <div class="tsaves" id="tsaves" hidden>
+      <button type="button" id="tsaveall" hidden>save all</button>
+      <button type="button" id="tsavewhole">save whole clip</button>
+    </div>
     <div class="trow2">
       <button type="button" class="treset" id="treset">Whole clip</button>
       <button type="button" class="treset" id="tall" hidden>Play it all</button>
@@ -3211,7 +3228,9 @@ function jobCard(j) {
     // SAVE GOES TO PHOTOS (2026-09-10, Sophie: "shud save directly to my
     // photos") — it was a link to the clip's own url, which on her phone
     // opens a player she then has to long-press out of. Now `saveMedia`.
-    (j.video ? '<button type="button" class="save">save</button>' : '') +
+    // on a clip cut into several parts the card's word hands over the FIRST
+    // one, so it says so; every part, and the whole clip, save from the trimmer
+    (j.video ? '<button type="button" class="save">' + (jobParts(j).filter(function (t) { return t.status === 'ready'; }).length > 1 ? 'save part 1' : 'save') + '</button>' : '') +
     // MOVE IT (2026-09-11, Sophie: "can you also add the move project UI").
     // A drop-down of the same films the picker lists, the clip's own project
     // lit, "No project" first: a clip drawn under the wrong picker — or sorted
@@ -4060,10 +4079,66 @@ function paintParts() {
       + (ps.length > 1 ? 'part ' + (i + 1) + ' · ' : '') + esc(fsec(t.start)) + '–' + esc(fsec(t.end)) + 's · '
       + esc(fsec(t.seconds)) + 's</button>'
       + (st ? '<span class="tpst">' + st + '</span>' : '')
+      // a part that really baked can be saved on its own — a drawing or failed
+      // one has no file to hand over, so no word (the silence rule)
+      + (t.status === 'ready' && t.url ? '<button type="button" class="tpsave" data-save="' + esc(t.url) + '">save</button>' : '')
       + '<button type="button" class="tpx" data-drop="' + esc(t.key || '') + '" aria-label="Take this part off" title="Take it off">&times;</button>'
       + '</div>';
   }).join('');
+  // the saves row exists only once there is a part — before that the card's
+  // own save word IS the whole clip, and a second one here would say it twice
+  var baked = ps.filter(function (t) { return t.status === 'ready' && t.url; });
+  $('tsaves').hidden = !ps.length;
+  $('tsaveall').hidden = baked.length < 2;
+  $('tsavewhole').hidden = !(TR && TR.j && (TR.j.source || TR.j.video));
 }
+// EVERY PART IN ONE GO. In the app the bridge takes one url per call, so it is
+// asked once per part; outside it the share sheet takes several files at once
+// ("Save 4 Videos"), which needs every blob already in hand — hence
+// `primeMany` on the pointerdown. A part whose bytes are not in yet is named
+// rather than silently left out of the sheet.
+var saveBlobs = {};
+function primeMany(urls) {
+  if (nativeSaver()) return;
+  urls.forEach(function (u) {
+    if (saveBlobs[u]) return;
+    saveBlobs[u] = fetch(u).then(function (r) { return r.blob(); }).catch(function () { return null; });
+  });
+}
+function saveMany(urls) {
+  var native = nativeSaver();
+  if (native) { urls.forEach(function (u) { native.postMessage(u); }); toast('Saving ' + urls.length + ' clips\u2026'); return; }
+  primeMany(urls);
+  Promise.all(urls.map(function (u) { return saveBlobs[u]; })).then(function (blobs) {
+    var files = [];
+    blobs.forEach(function (b, i) {
+      if (!b) return;
+      try { files.push(new File([b], saveName(urls[i]), { type: b.type || 'video/mp4' })); } catch (e) {}
+    });
+    if (files.length < urls.length) { toast('Still getting the clips \u2014 tap save all again in a moment'); return; }
+    if (navigator.canShare && navigator.canShare({ files: files })) {
+      navigator.share({ files: files })
+        .catch(function (err) { if (err && err.name !== 'AbortError') toast('Couldn\u2019t open the share sheet'); });
+      return;
+    }
+    files.forEach(function (f) {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(f); a.download = f.name;
+      document.body.appendChild(a); a.click(); a.remove();
+    });
+  });
+}
+function bakedUrls() {
+  return ((TR && TR.parts) || []).filter(function (t) { return t.status === 'ready' && t.url; }).map(function (t) { return t.url; });
+}
+$('tsaveall').addEventListener('pointerdown', function () { primeMany(bakedUrls()); });
+$('tsaveall').addEventListener('click', function () { var u = bakedUrls(); if (u.length) saveMany(u); });
+$('tsavewhole').addEventListener('pointerdown', function () { var u = TR && TR.j && (TR.j.source || TR.j.video); if (u) primeSave(u); });
+$('tsavewhole').addEventListener('click', function () { var u = TR && TR.j && (TR.j.source || TR.j.video); if (u) saveMedia(u); });
+$('tparts').addEventListener('pointerdown', function (e) {
+  var sv = e.target.closest && e.target.closest('[data-save]');
+  if (sv) primeSave(sv.dataset.save);
+});
 function paintTrim() {
   if (!TR) return;
   var d = TR.dur, whole = trimWhole(), n = (TR.parts || []).length;
@@ -4157,6 +4232,8 @@ $('tall').addEventListener('click', function () {
 // which is the undo, and the only one that can mean the right part when there
 // are several.
 $('tparts').addEventListener('click', function (e) {
+  var sv = e.target.closest && e.target.closest('[data-save]');
+  if (sv) return saveMedia(sv.dataset.save);
   var pick = e.target.closest && e.target.closest('[data-pick]');
   if (pick) {
     var t = (TR && TR.parts || []).filter(function (x) { return x.key === pick.dataset.pick; })[0];
