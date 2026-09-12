@@ -1519,8 +1519,11 @@ function loadBank() {
 function paintWipe() {
   var c = $('clearjob'), u = $('undojob');
   if (!c || !u) return;
-  c.hidden = jobEmpty(jobNow());
-  u.hidden = !bank;
+  // written only on a change — this runs on every keystroke (saveDraft), and a
+  // same-value attribute write is still a mutation on the row she types over
+  var ch = jobEmpty(jobNow()), uh = !bank;
+  if (c.hidden !== ch) c.hidden = ch;
+  if (u.hidden !== uh) u.hidden = uh;
   // AND THE GROUP GOES WITH THEM, so an empty page costs the row nothing.
   // MEASURED at 390pt: the star's row has 24px of slack left after the seed,
   // the star and the price, and a word is ~38 — so a drawn word WRAPS to a
@@ -1529,7 +1532,7 @@ function paintWipe() {
   // hidden is 0 wide and would not wrap, but hiding it outright is what
   // guarantees the row is the height it has always been while nothing is
   // offered.
-  $('wipes').hidden = c.hidden && u.hidden;
+  if ($('wipes').hidden !== (ch && uh)) $('wipes').hidden = ch && uh;
 }
 function clearJob() {
   var was = jobNow();
@@ -2353,16 +2356,47 @@ function setActive(w) {
 // (The same shape sat under every keystroke in a tall big box — caretkeep
 // pulled the caret back a frame later, which is why it read as a flicker
 // rather than a jump.)
-function fitBox(box) {
+// AN ORDINARY KEYSTROKE TOUCHES NO STYLE AT ALL (2026-09-12, Sophie: "every
+// other character moves textbox"). The `auto` pass above ran on EVERY input —
+// three style writes on the focused box and two on its wrap per character,
+// even when the words still fit the box she had — and iOS WebKit answers a
+// relayout of the focused textarea by revealing the caret again (a scroll of
+// the page or of the box), which the caret keeper then corrects a frame
+// later: the two of them settle into the every-other-keystroke tick-tock she
+// reported. Headless Chromium never shows it (measured: 437 keystrokes, the
+// box moved only where a line wrapped), which is why the churn was invisible
+// here. So a plain INSERTION — typing, dictation, Return — can only make the
+// words longer, and takes the GROW-ONLY road: the box grows when they no
+// longer fit and is otherwise not written to. The `auto` pass, which is the
+// one way a box can SHRINK, runs only where a shrink is possible: a
+// deletion, a cut, a paste or an undo, a keystroke that replaced a
+// selection (marked at `beforeinput`), a programmatic refit, and once on
+// blur so a rare composition that shortened a word cannot leave a box a line
+// too tall for the rest of the session.
+function fitBox(box, growOnly) {
+  var border = box.offsetHeight - box.clientHeight;
+  if (growOnly) {
+    var need = (box.scrollHeight + border) + 'px';
+    if (box.scrollHeight + border > box.offsetHeight && box.style.height !== need) box.style.height = need;
+    return;
+  }
   var w = box.parentNode, lock = !!(w && w.classList && w.classList.contains('promptwrap'));
   if (lock) w.style.minHeight = w.getBoundingClientRect().height + 'px';
   box.style.height = 'auto';
-  box.style.height = (box.scrollHeight + (box.offsetHeight - box.clientHeight)) + 'px';
+  var h = (box.scrollHeight + border) + 'px';
+  if (box.style.height !== h) box.style.height = h;
   if (lock) w.style.minHeight = '';
 }
 function fitAll() { blocks().forEach(function (w) { fitBox(w.querySelector('.pblock')); }); }
 function mountBlock(w) {
   var box = w.querySelector('.pblock'), big = w.querySelector('.bigger'), div = w.querySelector('.divide');
+  var full = false;   // the next input may need the box to SHRINK
+  box.addEventListener('beforeinput', function (e) {
+    var t = e.inputType || '';
+    full = t.indexOf('insert') !== 0 || t === 'insertFromPaste' || t === 'insertFromDrop'
+      || t === 'insertReplacementText' || box.selectionStart !== box.selectionEnd;
+  });
+  box.addEventListener('focusout', function () { full = false; fitBox(box); });
   function paint() {
     var on = box.classList.contains('big');
     big.innerHTML = on ? ICONS.minimize : ICONS.maximize;
@@ -2373,7 +2407,12 @@ function mountBlock(w) {
   big.addEventListener('click', function () { box.classList.toggle('big'); paint(); });
   div.innerHTML = ICONS.divide;
   div.addEventListener('click', function () { divideBlock(box); });
-  box.addEventListener('input', function () { fitBox(box); saveDraft(); });
+  box.addEventListener('input', function (e) {
+    // no beforeinput (an older engine, a synthetic event) → the safe road
+    var grow = !full && !!(e && e.inputType) && e.inputType.indexOf('insert') === 0;
+    full = false;
+    fitBox(box, grow); saveDraft();
+  });
   paint();
 }
 function addBlock(text, after) {
@@ -4366,10 +4405,29 @@ function fitPillGap() {
   // which put the controls 4px inside the pill's bottom — so they reserved
   // 49px, the reserve pushed the strip to two rows, and the controls ended up
   // 100px BELOW the pill still paying for a collision the reserve had removed.
+  // A ROW ALREADY WEARING THE RIGHT RESERVE IS NOT TOUCHED (2026-09-12, the
+  // "every other character" report). This walk runs on every resize of the
+  // document — every keystroke that wraps a line, the caret keeper borrowing
+  // room — and it used to zero every row's reserve and force a layout to
+  // measure it, which lays the FOCUSED prompt box out at full width (its
+  // words re-wrapped, its inner scroll re-clamped) and back again inside one
+  // task: a relayout of the box she is typing in, per keystroke, with
+  // nothing on screen changing. The reserve is a margin-right, so the row's
+  // unreserved right edge is arithmetic (`right + the margin it wears`), and
+  // a row whose answer is what it already wears is skipped without a write
+  // or a forced layout. Only a row whose answer moved takes the zero-and-
+  // measure road, which stays exact for the height a wider row would have.
   for (i = 0; i < kids.length; i++) {
     var el = kids[i];
-    setGap(el, '--pillgap', '0px');
+    var cur = parseFloat(el.style.getPropertyValue('--pillgap')) || 0;
     var r = el.getBoundingClientRect();
+    if (r.width && r.height) {
+      var top0 = r.top + y, bot0 = r.bottom + y, right0 = r.right + cur;
+      var want = (bot0 <= p.top || top0 >= p.bottom || right0 <= p.left) ? 0 : Math.max(0, Math.ceil(right0 - p.left) + 8);
+      if (want === cur) continue;
+    }
+    setGap(el, '--pillgap', '0px');
+    r = el.getBoundingClientRect();
     if (!r.width || !r.height) continue;            // a hidden row reserves nothing
     var top = r.top + y, bot = r.bottom + y;
     if (bot <= p.top || top >= p.bottom) continue;
