@@ -2859,6 +2859,29 @@ build of the request body, no clip was drawn and no money spent.
   own `imageUrl` / `endImageUrl`. It is the one door that takes a keyframe AND
   references on one job.
 
+**MEASURED 2026-09-12 (Sophie: "we're trying atlas"): ATLAS REFUSES A FIRST
+FRAME PLUS A REFERENCE, ON THE POLL, FREE.** A raw probe from a container —
+`…/seedance-2.0-mini/image-to-video` with `image` (her hooded still) AND
+`reference_images` (a mansion still), 4s · 480p · 9:16 — was ACCEPTED on the
+POST (`status:'processing'`, job `42bf07d7888b4e9885362198afc7dc87`) and came
+back `failed` on the first poll with Atlas's own line: *"First/last frame
+images cannot be combined with reference media (reference images, videos, or
+audio) in the same request."* No `price`, nothing drawn. So the schema
+reading above is the truth and the module's refusal at the door is right; the
+line is a row in `video-refusals.js` now. **The same shape on APIFRAME the
+same hour (job `1bbfdf17-271c-4555-9a80-7dbbf8958f6e`, `seedance-2-mini`,
+`start_image` + one `reference_image_urls`) failed as "The input or output was
+flagged as inappropriate"** — an AI-drawn hooded woman as the first frame and
+a mansion as the reference — so whether APIFRAME honours a frame AND a
+reference together is STILL unmeasured; its filter answered first. **A first
+frame ALONE on Atlas Mini drew and opened on the exact upload** (job
+`03d4d2afb6f5419b9c8b086b2d17ce89`, opening frame a 2.2/255 mean pixel
+difference from the still she marked, 88s, image-to-video id, last frame
+returned) — and, worth knowing, the identical still sent as a plain
+REFERENCE seven seconds earlier also opened near-verbatim on it (3.3/255),
+so on Mini a lone still reference already tends to start the clip; the flag
+is what guarantees it.
+
 **THE TWO SILENT DROPS ARE REFUSED AT THE DOOR, NEVER HALF-SENT.** A job
 carrying a first frame AND references is refused on Atlas (its image-to-video
 schema has no reference lists) and on OpenRouter (its own guide says the
