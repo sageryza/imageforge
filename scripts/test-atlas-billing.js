@@ -124,6 +124,56 @@ const atlas = require(path.join('..', 'atlascloud.js').replace('..', __dirname +
   eq('none of them priced', blind.priced, 0);
   ok('and the unpriced row is handed back whole', Array.isArray(blind.unpriced) && blind.unpriced.length === 1, JSON.stringify(blind.unpriced));
 
+  // 5d. THE REAL SHAPES, LIFTED FROM HER OWN LIVE ANSWER (2026-09-12). Both
+  //     differ STRUCTURALLY from Atlas's published examples, not just by a
+  //     key name, and each wrong reading answered a confident zero:
+  //       · a balance is nested money OBJECTS in named pockets
+  //       · a cost row is a DAY BUCKET holding results[], never a charge
+  //     These fixtures are her body verbatim, so a vendor reshape fails HERE
+  //     rather than on the page as "you spent nothing".
+  calls.length = 0;
+  answers = [{ body: {
+    object: 'balance', scope: 'account',
+    account: { id: '01a0882d-cdc2-7e20-86c2-471cde219f2f', name: '', type: 'personal' },
+    available: { value: '23.555722', currency: 'usd' },
+    cash: { value: '23.555722', currency: 'usd' },
+    bonus: { value: '0.000000', currency: 'usd' },
+    frozen: { value: '0.000000', currency: 'usd' },
+    credit_grant: { status: 'normal', granted: { value: '0.000000', currency: 'usd' } },
+  } }];
+  const live = await atlas.balance(true);
+  eq('the live balance reads AVAILABLE, the pocket she can spend', live.left, 23.555722);
+  eq('and keeps its six-decimal string', live.raw, '23.555722');
+  ok('never the object stringified', live.raw !== '[object Object]', String(live.raw));
+
+  eq('a money OBJECT reads as a number', atlas.costOf({ amount: { value: '13.825576', currency: 'usd' } }), 13.825576);
+
+  // A DAY BUCKET, exactly as /model-costs sends one — five models in one row.
+  calls.length = 0;
+  answers = [{ body: { data: [{
+    object: 'model_cost.bucket', date: '2026-09-12',
+    start_at: '2026-09-12T00:00:00Z', end_at: '2026-09-13T00:00:00Z',
+    covered_until: '2026-09-12T22:33:34Z', partial: true,
+    results: [
+      { model: { id: 'ms-336e5a4bb8d0', name: 'bytedance/seedance-2.0-mini/reference-to-video', type: 'video' }, amount: { value: '13.825576', currency: 'usd' } },
+      { model: { id: 'ms-5eed25000003', name: 'bytedance/seedance-2.5/reference-to-video', type: 'video' }, amount: { value: '4.020324', currency: 'usd' } },
+      { model: { id: 'ms-6350aeabcf37', name: 'bytedance/seedance-2.0/reference-to-video', type: 'video' }, amount: { value: '1.353659', currency: 'usd' } },
+      { model: { id: 'ms-336e5a4bb8d0', name: 'bytedance/seedance-2.0-mini/image-to-video', type: 'video' }, amount: { value: '0.595622', currency: 'usd' } },
+      { model: { id: 'ms-aaaa', name: 'bytedance/seedance-2.0-fast/reference-to-video', type: 'video' }, amount: { value: '0.325103', currency: 'usd' } },
+    ],
+  }], has_more: false } }];
+  const day = await atlas.spend({ fresh: true, start: '2026-09-12', end: '2026-09-13' });
+  eq('one bucket came back', day.rows, 1);
+  eq('but FIVE charges were priced out of it', day.priced, 5);
+  eq('the day totals her real spend', Math.round(day.total * 1000000) / 1000000, 20.120284);
+  eq('the dearest model leads', day.byModel[0].model, 'bytedance/seedance-2.0-mini/reference-to-video');
+  eq('and carries its own figure', day.byModel[0].cost, 13.825576);
+  eq('the day is one bucket', day.byDay.length, 1);
+  eq('and the whole day is under it', day.byDay[0].cost, 20.120284);
+  ok('a partial day says so', day.partial === true);
+  eq('and how far it really reaches', day.coveredUntil, '2026-09-12T22:33:34Z');
+  ok('nothing is left unpriced', !day.unpriced, JSON.stringify(day.unpriced));
+
   // 6. A 429 hands its Retry-After on rather than being retried here.
   calls.length = 0;
   answers = [{ ok: false, status: 429, headers: { 'retry-after': '30' }, body: { error: { message: 'slow down' } } }];
