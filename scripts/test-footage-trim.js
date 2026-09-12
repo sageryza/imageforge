@@ -333,6 +333,7 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
   await page.waitForTimeout(200);
 
   ok('opening a clip arms the trimmer', await shown('#trimbar'));
+  ok('with nothing cut yet there is no saves row — the card\'s own save is the whole clip', !(await shown('#tsaves')));
   ok('the SOURCE is what plays, never a trim',
     /\/clip\.webm$/.test(await page.$eval('#player .pstage video', (v) => v.currentSrc)));
   ok('the clip is really seekable (Range, not a plain 200)',
@@ -610,8 +611,10 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
       seconds: 4, resolution: '480p', ratio: '3:4', sound: true, status: 'done',
       video: '/tall.webm', source: '/tall.webm', poster: '/ref.png', refs: [],
       sentAt: '2026-09-10T09:00:00.000Z', cost: 4, estimate: 4, vote: '', hidden: false,
-      trims: [{ key: 'k0-1', start: 0, end: 1, seconds: 1, status: 'ready', url: '/tall.webm', error: '' },
-        { key: 'k1-2', start: 1, end: 2, seconds: 1, status: 'ready', url: '/tall.webm', error: '' }],
+      // the parts' own urls DIFFER from the source on purpose: a save that
+      // hands over the wrong file is invisible while every url is the same
+      trims: [{ key: 'k0-1', start: 0, end: 1, seconds: 1, status: 'ready', url: '/part1.webm', error: '' },
+        { key: 'k1-2', start: 1, end: 2, seconds: 1, status: 'ready', url: '/part2.webm', error: '' }],
     });
     await page.setViewportSize({ width: 390, height: 700 });
     await page.reload();
@@ -633,6 +636,43 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
     ok('the picture starts UNDER the ✕ row, never over it', out.videoTop >= out.closeBottom);
     ok('and still ends above the trim bar (the stage yields, the row does not)', out.videoBottom <= out.trimTop && out.h === 34);
     ok('both parts are on the bar — this is the screen she could not leave', out.parts === 2);
+
+    // ── SAVING A PART, ALL OF THEM, OR THE WHOLE CLIP (2026-09-12, Sophie:
+    // "how do I save individual trim clips or all of them at once or the
+    // whole clip?") — the honest question is what the native bridge really
+    // receives, since an underlined word that hands over nothing, or the
+    // wrong file, is the same markup as one that works.
+    {
+      await page.evaluate(() => {
+        window.__saved = [];
+        window.webkit = { messageHandlers: { forgeSave: { postMessage: (u) => window.__saved.push(u) } } };
+      });
+      const row = await page.evaluate(() => {
+        const hit = (el) => { if (!el) return false; const q = el.getBoundingClientRect();
+          const at = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2);
+          return !!(at && (at === el || el.contains(at))); };
+        return {
+          shown: !document.getElementById('tsaves').hidden,
+          perPart: document.querySelectorAll('.trimbar .tpart .tpsave').length,
+          all: hit(document.getElementById('tsaveall')),
+          whole: hit(document.getElementById('tsavewhole')),
+          part: hit(document.querySelector('.trimbar .tpart:last-child .tpsave')),
+          cardWord: (document.querySelector('#job-tall1 .acts .save') || {}).textContent || '',
+        };
+      });
+      ok('the saves row is drawn once there are parts', row.shown);
+      ok('every baked part carries its own save word', row.perPart === 2);
+      ok('and each of the three words really takes its tap', row.all && row.whole && row.part);
+      ok('the card says its own save is part 1 when there are several', row.cardWord.trim() === 'save part 1');
+      await page.evaluate(() => document.querySelector('.trimbar .tpart:last-child .tpsave').click());
+      await page.evaluate(() => document.getElementById('tsaveall').click());
+      await page.evaluate(() => document.getElementById('tsavewhole').click());
+      await page.waitForTimeout(150);
+      const saved = await page.evaluate(() => window.__saved);
+      ok('a part\'s save hands the bridge THAT part (' + saved[0] + ')', /\/part2\.webm$/.test(saved[0] || ''));
+      ok('save all hands it every baked part, one call each, in order', saved.length === 4 && /\/part1\.webm$/.test(saved[1]) && /\/part2\.webm$/.test(saved[2]));
+      ok('and save whole clip hands it the SOURCE', /\/tall\.webm$/.test(saved[3] || ''));
+    }
     // a REAL tap at the ✕'s own centre — playwright's element click refuses a
     // covered target with a timeout, which is a crash rather than a finding
     await page.mouse.click(out.x + out.w / 2, out.y + out.h / 2);
