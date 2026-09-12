@@ -183,10 +183,18 @@
   }
 
   function pin(e, p) {
-    e.pinned = true;
+    var wantR = p.wr.right + e.dx, wantB = p.limit;
+    // A BUTTON ALREADY PINNED WHERE IT WANTS TO BE IS NOT TOUCHED (2026-09-12).
+    // The input pass runs this on every keystroke, and it used to rewrite the
+    // class and every inline style each time — a mutation and a style recalc
+    // on a control inside the box she is typing in, per character, with
+    // nothing on screen changing (the every-other-character family). Only a
+    // pin that MOVED writes; a wrapped line moves the wrap's bottom and so
+    // still lands here.
+    if (e.pinned && e.pr === wantR && e.pb === wantB) return;
+    e.pinned = true; e.pr = wantR; e.pb = wantB;
     e.btn.classList.add('sbx-pin');
     var s = e.btn.style;
-    var wantR = p.wr.right + e.dx, wantB = p.limit;
     s.position = 'fixed';
     s.top = Math.round(wantB - e.h) + 'px';
     s.left = Math.round(wantR - e.w) + 'px';

@@ -2053,6 +2053,7 @@ $('file').addEventListener('change', function (e) {
   if (!files.length) return;
   e.target.value = '';
   var n = 0;
+  ftUploading += 1;                                 // the self-heal waits for it
   toast('Uploading ' + files.length + (files.length === 1 ? ' file…' : ' files…'));
   files.reduce(function (p, f) {
     return p.then(function () {
@@ -2070,7 +2071,7 @@ $('file').addEventListener('change', function (e) {
           saveDraft(); paintControls();
         }).catch(function () { toast('Could not upload ' + (f.name || 'that')); });
     });
-  }, Promise.resolve()).then(function () { if (n) toast(n === 1 ? 'Attached' : 'Attached ' + n); });
+  }, Promise.resolve()).then(function () { ftUploading -= 1; if (n) toast(n === 1 ? 'Attached' : 'Attached ' + n); });
 });
 // Recent — WHAT SHE HAS UPLOADED, NEVER WHAT THE DOOR DREW (2026-09-10,
 // Sophie: "take out trimmed clips from recents" → "recents is recent
@@ -4450,6 +4451,77 @@ window.__fitPillGap = fitPillGap;
   })(20);
   soon();
 })();
+
+// ── THE PAGE HEALS ITS OWN STALENESS (2026-09-12, Sophie, still seeing the
+// box flip narrow/full a day after that fix went live: "can you search for
+// more bugs so i don't have to find them · switch between narrow/full screen
+// for example"). ──
+// The app keeps a tool's web view alive for the whole app process, so this
+// page loads ONCE and no deploy can reach it — the Playground's and the
+// Chats app's finding, arriving at the page she is typing in most. A fix she
+// is told is live shows her the OLD bug until she force-quits the app, which
+// reads as the fix not working. So it asks the server for the served build
+// (`GET /api/footage/build`, the hash of this page plus the pill, stamped as
+// window.__forgeBuild by serveGated) on every return to the tool and every
+// five minutes, and reloads ONLY WHEN NOTHING WOULD BE LOST.
+//   What survives a reload by itself: her words and every block, the
+//   references and the two keyframe marks (footage_draft, on every
+//   keystroke), the shape, the project and folder, the filters, the view,
+//   the cleared job's bank. What does not, and so holds the reload: a field
+//   under her caret, a tap in the last 10s, a send or an upload in flight, a
+//   refusal on screen she has not read, the seed box (never sticky), the
+//   model/size/seconds moved off their defaults (deliberately unsticky — a
+//   reload would silently put Fast back to Mini), an open search, the
+//   trimmer, the character sheet, the Recent drawer, a note box, an
+//   expanded clip. The common stale case — the tool opened after a night in
+//   the background, nothing typed yet — heals on the spot.
+// READ LAZILY: the stamp is appended after the page, so a const here is empty
+// forever and the check is silently off (the Playground's own trap).
+function ftBuild() { return window.__forgeBuild || ''; }
+var ftTouchedAt = 0, ftUploading = 0;
+['pointerdown', 'keydown'].forEach(function (ev) {
+  document.addEventListener(ev, function () { ftTouchedAt = Date.now(); }, true);
+});
+function ftHolding() {                                       // the reason, or false
+  if (Date.now() - ftTouchedAt < 10000) return 'a tap in the last 10s';
+  var el = document.activeElement;
+  if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT' || el.tagName === 'SELECT')) return 'a field under her caret';
+  if ($('go').disabled) return 'a send in flight';
+  if (ftUploading > 0) return 'an upload in flight';
+  if (!$('err').hidden) return 'a refusal on screen';
+  if (seedVal()) return 'the seed box';
+  if (!$('player').hidden) return 'the trimmer';
+  if (castOpen) return 'the character sheet';
+  if (recentOpen) return 'the Recent drawer';
+  if (searchOpen() || $('q').value.trim()) return 'a search';
+  var list = models(), m = modelOf(S.model);
+  if (list.length && m) {
+    if (S.model !== list[0].id) return 'the model off its default';
+    if (S.res !== m.res[0]) return 'the size off its default';
+    if (S.seconds !== m.secs[0]) return 'the seconds off their default';
+  }
+  if (document.querySelector('.notebox')) return 'a note box';
+  var more = document.querySelectorAll('.moretxt');
+  for (var i = 0; i < more.length; i++) if (/less/.test(more[i].textContent)) return 'an expanded clip';
+  return false;
+}
+function ftBuildCheck() {
+  var mine = ftBuild();
+  if (!mine) return Promise.resolve(false);                 // older server, nothing to compare
+  return fetch('/api/footage/build', { cache: 'no-store', headers: hdr() })
+    .then(function (r) { return r.json(); })
+    .then(function (r) {
+      if (!r || !r.build || r.build === mine) return false;
+      if (ftHolding()) return false;
+      location.reload();
+      return true;
+    }).catch(function () { return false; });
+}
+window.__ftHeal = { check: ftBuildCheck, holding: ftHolding, reset: function () { ftTouchedAt = 0; } };
+setInterval(ftBuildCheck, 5 * 60 * 1000);
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'visible') ftBuildCheck();
+});
 
 loadCtl();
 S.project = projectSaved(); castFilm = S.project;   // the ONE memory of which project she is on

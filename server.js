@@ -7643,6 +7643,15 @@ app.get('/api/chatfeed/build', (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.json({ build: pageBuildId('chats.html', false) });
 });
+// AND FOOTAGE (2026-09-12, Sophie still seeing the prompt box flip narrow/full
+// a day after that fix was live): the page she types in most, kept alive by
+// the app like the other two, with no way for a fix to reach it. Served with
+// the pill, so the pill is in the hash. `ftBuildCheck` in footage.html is
+// the page's half and its guards decide when a reload loses nothing.
+app.get('/api/footage/build', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ build: pageBuildId('footage.html', true) });
+});
 
 // WHAT THIS PROCESS IS DRAWING AND CUTTING RIGHT NOW, and how much of the box
 // is left (2026-09-02). Exact — the two in-process sets, not a Firestore
