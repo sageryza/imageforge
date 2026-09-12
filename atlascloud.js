@@ -450,6 +450,32 @@ let balCache = { at: 0, val: null };
 const spendCache = new Map();
 
 function money(v) { const n = Number(v); return Number.isFinite(n) ? n : null; }
+
+// WHICH KEY HOLDS THE MONEY IS MEASURED, NEVER ASSUMED (2026-09-12). Atlas's
+// published example says `value`; the live answer to `/balance` carried no
+// `value` at all and the reader silently answered null. So a money field is
+// hunted by name across the object and one level into a `data`/`result`
+// wrapper, and the whole body rides back on the answer (`body`) so the real
+// shape is readable from a reply instead of from a guess.
+const BAL_KEYS = ['value', 'balance', 'credit', 'credits', 'amount', 'remaining', 'available', 'total'];
+const COST_KEYS = ['cost', 'total_cost', 'cost_usd', 'amount', 'value', 'spend', 'total', 'price', 'usd'];
+function unwrap(o) {
+  if (!o || typeof o !== 'object') return [];
+  const out = [o];
+  for (const k of ['data', 'result', 'balance', 'usage']) {
+    const v = o[k];
+    if (v && typeof v === 'object' && !Array.isArray(v)) out.push(v);
+  }
+  return out;
+}
+function pickIn(o, keys) {
+  for (const lvl of unwrap(o)) for (const k of keys) if (lvl[k] != null && lvl[k] !== '') return lvl[k];
+  return null;
+}
+// `money(null)` is 0 — Number(null) is a finite zero — so an absent field
+// would total as a real charge of nothing rather than as "no cost here".
+function moneyIn(o, keys) { const v = pickIn(o, keys); return v == null ? null : money(v); }
+function rawIn(o, keys) { const v = pickIn(o, keys); return v == null ? null : String(v); }
 function dayStr(d) { return new Date(d).toISOString().slice(0, 10); }
 function okDay(s) { return /^\d{4}-\d{2}-\d{2}$/.test(String(s || '')); }
 
@@ -493,7 +519,7 @@ async function billApi(path, query) {
 async function balance(fresh) {
   if (!fresh && Date.now() - balCache.at < BAL_CACHE_MS && balCache.val) return balCache.val;
   const j = await billApi('/balance');
-  const out = { left: money(j && j.value), raw: (j && j.value) || null, currency: (j && j.currency) || 'usd' };
+  const out = { left: moneyIn(j, BAL_KEYS), raw: rawIn(j, BAL_KEYS), currency: pickIn(j, ['currency']) || 'usd', body: j };
   balCache = { at: Date.now(), val: out };
   return out;
 }
@@ -542,12 +568,7 @@ async function billRows(path, opts = {}) {
 // WHAT A ROW COSTS is read from whichever field Atlas puts it in — its own
 // docs show `cost`, and a money string is as likely as a number — so the
 // total is never silently zero because a key was named something else.
-function costOf(row) {
-  for (const k of ['cost', 'total_cost', 'amount', 'value', 'spend']) {
-    if (row && row[k] != null) { const n = money(row[k]); if (n != null) return n; }
-  }
-  return null;
-}
+function costOf(row) { return moneyIn(row, COST_KEYS); }
 
 async function spend(opts = {}) {
   const key = JSON.stringify(opts);
@@ -568,6 +589,11 @@ async function spend(opts = {}) {
   const val = {
     start: r.start, end: r.end, days: r.days, truncated: r.truncated,
     total: Math.round(total * 1000000) / 1000000, rows: r.rows.length, priced,
+    // A ROW NOBODY COULD PRICE RIDES BACK WHOLE. `priced: 0` beside rows that
+    // really came back means the cost key is spelled something COST_KEYS does
+    // not know, and a total of zero would otherwise read as "she spent
+    // nothing" — the one wrong answer this must never give quietly.
+    ...(priced === 0 && r.rows.length ? { unpriced: r.rows.slice(0, 3) } : {}),
     byModel: [...byModel.entries()].map(([model, cost]) => ({ model, cost: Math.round(cost * 1000000) / 1000000 })).sort((a, b) => b.cost - a.cost),
     byDay: [...byDay.entries()].map(([day, cost]) => ({ day, cost: Math.round(cost * 1000000) / 1000000 })).sort((a, b) => (a.day < b.day ? -1 : 1)),
   };
