@@ -178,7 +178,15 @@
   #seedclear{position:absolute;right:5px;top:5px;width:24px;height:24px;padding:0;display:inline-flex;
         align-items:center;justify-content:center;border:0;background:none;color:#9a8f7d}
   #seedclear svg{width:13px;height:13px;display:block}
-  .cost{color:#6f675e;font-size:13px}
+  .cost{color:#6f675e;font-size:13px;line-height:1.3}
+  /* HOW LONG THIS SHAPE USUALLY TAKES (2026-09-12, Sophie: "also make it say
+     the average time it has taken for things to draw at that exact size and
+     length, etc."). Its OWN LINE under the price rather than another word on
+     it: at 390pt this row is already the seed, the star, the price and two
+     underlined words, and a fifth thing on it wraps the words onto a line of
+     their own (MEASURED). A block inside #cost grows the row's HEIGHT by one
+     small line and never its width, so nothing beside it moves. */
+  .drew{display:block;font-size:11.5px;color:#9a8f7d}
   /* CLEAR AND UNDO — the house inline opener's paint (`.moretxt`, `.olderbtn`):
      an underlined WORD, never a boxed button, so the one filled thing on this
      row stays the star. Hard right, so the star keeps its place whether one
@@ -874,6 +882,7 @@
   <p><b>Say what the clip is.</b> Add references &mdash; a picture, a clip, a sound &mdash; and name each one in the prompt by its slot: <b>[Image1]</b>, <b>[Video1]</b>, <b>[Audio1]</b>. Tap a slot name to drop it into the box. Never describe what a reference shows; the picture is the point.</p>
   <p><b>The star sends it.</b> One tap, and the line beside it says what that tap costs. With a reference video that figure is the closest the door will say up front; the real charge lands on the card when the clip finishes.</p>
   <p><b>Every clip says how long it took.</b> <i>drew in 2m 34s</i> on the card is the door's own figure, not how long you were watching — close the app and it keeps drawing, and the time it reports is still the real one. A clip drawn before this says nothing rather than guessing.</p>
+  <p><b>And the line under the star says how long this one will take.</b> <i>usually ~1m 10s</i> is the middle of what this exact model, size, shape and length has really taken on this door &mdash; the middle rather than the average, so one clip that sat in a queue cannot drag it. A shape nothing has drawn yet says nothing at all.</p>
   <p><b>Whichever door is cheapest</b> &mdash; the line beside the star names it. Right now that is <b>Atlas Cloud</b> for Mini and Fast and <b>OpenRouter</b> for 2.0 and 2.5, but nothing here is written down: the three doors are priced for the exact clip you have set up and the cheapest one gets it. If that door refuses a reference &mdash; free, before anything draws &mdash; the job stops there and the error says why, with the other doors that would still take it underneath it, priced. Tapping one sends that same job &mdash; your words, your references, that door. Nothing is ever sent through another door on its own, and never drawn without its references. OpenRouter refuses any person in a reference, Atlas Cloud takes a person and refuses only a famous face.</p>
   <p><b>Four models.</b> <b>2.0 Mini</b> is the default and much the cheapest. <b>2.0 Fast</b>, <b>2.0</b> and <b>2.5</b> climb from there &mdash; the line beside the star says what the tap costs before you make it. Two things worth knowing: <b>Fast is the strict one</b> (a plain prompt with no reference at all has come back refused there with a copyright line, free and unbilled, where the same words drew on Mini), and <b>2.0 is the only one that does 1080p</b>.</p>
   <p><b>The last frame of a clip</b> &mdash; the small picture under its references, for chaining one shot into the next. Tap it to see it big and save it. It rides on Atlas Cloud only, so a clip that went out through another door has none and shows no picture.</p>
@@ -887,7 +896,7 @@
   <p><b>Projects and folders.</b> The folder icon on the buttons row opens the projects &mdash; the same folders the character library keeps &mdash; and under each one its sub-folders (the witch commercials, say). Pick one and the header takes its name, the clips, the Recent drawer and the characters narrow to it, and every clip you send is filed there; <b>All</b> shows everything, with each clip saying where it belongs. <b>New project&hellip;</b> and, inside a project, <b>New folder&hellip;</b> make one; a folder is only the clips filed in it, so an emptied one goes away on its own. A scene sent from a belt page switches to its own project by itself. Every card has the same drop-down to move a clip &mdash; moving it to another project takes it out of its folder. Your words and the references already attached stay put when you switch &mdash; only what is offered narrows.</p>
   <p><b>Characters.</b> The people icon opens this film&rsquo;s library. Tap a character &mdash; or one of their outfits &mdash; and their references go into the strip while the line that names them by slot goes to the top of the box. The line under each one is exactly what it will add, worked out against what you already have attached, so a second character gets <b>[Video2]</b> rather than the slot the library was written against. Each film is its own shelf. Taking a reference off takes its slot name out of the box and renumbers the rest, so a name never points at the wrong picture. Only the names change &mdash; the words around them are yours.</p>
   <p><b>Notes.</b> The speech mark on a clip opens a note; playing one and tapping it pauses the film and notes the second you stopped on. Either way it lands in the one place chats read their notes, and a chat answers on the note itself.</p>
-  <p>What is left on Atlas is on its own console &mdash; it has no balance to read from here.</p>
+  <p><b>What is left, and what today cost,</b> are the line at the top of this card &mdash; read live off Atlas Cloud's billing api every time you open it. A day's total is exact; the figure under the star is an estimate, because Atlas stamps no job id on a charge.</p>
 </div>
 
 <div class="panel" id="panel">
@@ -1124,20 +1133,30 @@ function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function 
 // off the panel — it is a fact about the account, not a control, and it was
 // sitting where the price of the tap belongs). Read LIVE on the way open, so a
 // card opened an hour later is not quoting a stale number. Atlas Cloud has
-// no balance to read (its console is the only billing read), so the card
-// carries the sale line and the words, and no balance.
+// balance on a DIFFERENT prefix (`/public/v1`), read here with the other
+// doors' and with today's real charges beside it.
 $('help').addEventListener('click', function (e) {
   e.stopPropagation();
   var card = $('helpcard'), opening = card.hidden;
   card.hidden = !opening;
   // the whole status: the sale Atlas is passing on today is one of the facts
   // this card shows, and the price line under the star has to agree with it
-  if (opening) { paintBal(); api('/status').then(function (d) { if (d && d.models) { CFG = d; paintControls(); } paintBal(); }).catch(function () {}); }
+  if (opening) {
+    paintBal();
+    api('/status').then(function (d) { if (d && d.models) { CFG = d; paintControls(); } paintBal(); }).catch(function () {});
+    // TODAY'S REAL CHARGES, off Atlas's billing api (2026-09-12). Free and
+    // cached five minutes server-side, and asked only on the way open — it
+    // is a fact about the account, like the balance, not something the price
+    // line needs. A door that cannot answer leaves the figure absent rather
+    // than showing a zero she would read as "nothing spent".
+    api('/spend').then(function (d) { if (d && d.ok && d.total != null) { SPENT_TODAY = d.total; paintBal(); } }).catch(function () {});
+  }
 });
 document.addEventListener('click', function () { if (!$('helpcard').hidden) $('helpcard').hidden = true; });
 
 // ── State ─────────────────────────────────────────────────────────────────
 var CFG = null;                      // GET /status
+var SPENT_TODAY = null;              // GET /spend — dollars charged today
 // THE CHEAPEST DOOR, CHOSEN BY THE SERVER (2026-09-11, Sophie: "are they
 // cheapest through router, atlas or frame? choose cheapest"). It was pinned
 // to Atlas from 2026-09-09 ("make atlas the default and only route through
@@ -1810,7 +1829,25 @@ function updateCost() {
     // job and spent a line saying the same thing every time, where one
     // character costs nothing and still says the number is not a promise.
     // The flag stays on the element for anything that needs to know.
+    // THE PRICE, then HOW LONG IT USUALLY TAKES on its own small line. The
+    // time is the MEDIAN of what this exact shape has really taken on this
+    // door (`drewMs`, the door's own figure) — a mean is dragged minutes off
+    // by one clip that sat in a queue — and it wears a `~` for the same
+    // reason the price does: it is what usually happens, not a promise.
+    // `basis` says which rung of the ladder answered, so a figure borrowed
+    // from a looser match says so instead of claiming to be this shape's.
+    // Nothing is drawn when the log has never done anything close.
     $('cost').textContent = (d.about ? '~' : '') + cents(d.cents) + (d.door ? ' · ' + doorWord(d.door) : '');
+    if (d.drew && d.drew.ms) {
+      var dw = document.createElement('span');
+      dw.className = 'drew';
+      dw.textContent = 'usually ~' + dur(d.drew.ms) + (d.drew.basis && d.drew.basis !== 'exact' ? ' · similar clips' : '');
+      dw.title = d.drew.n + ' clip' + (d.drew.n === 1 ? '' : 's') + ' on file'
+        + (d.drew.basis === 'exact' ? ' at this exact size and length' : ' close to this size and length')
+        + ' · average ' + dur(d.drew.mean);
+      $('cost').appendChild(dw);
+    }
+    $('cost').dataset.drew = d.drew && d.drew.ms ? d.drew.ms : '';
     $('cost').dataset.cents = d.cents;
     $('cost').dataset.about = d.about ? '1' : '';
     $('cost').dataset.door = d.door || '';
@@ -1845,10 +1882,24 @@ function paintKfNote() {
   el.hidden = false;
 }
 function paintBal() {
-  // ATLAS HAS NO BALANCE TO READ (every billing endpoint answered 404,
-  // 2026-09-09) — the console is the only read, so no balance line is drawn.
-  $('balline').textContent = '';
-  $('balline').hidden = true;
+  // ATLAS HAS A BALANCE AFTER ALL (2026-09-12, Sophie: "I checked, and Atlas
+  // Cloud does have a proper Billing Public API. I was wrong in my previous
+  // answer"). It lives on a DIFFERENT prefix from the generation api
+  // (`/public/v1`), which is why every read tried on 2026-09-09 answered 404
+  // and this line said there was none. `/status` carries it now with the
+  // other two doors' balances, and TODAY'S SPEND rides beside it — the one
+  // number she asked the billing api for first ("How much have I spent on
+  // Seedance today?"). Both are DOLLARS, never credits (her rule).
+  var bal = (CFG && CFG.balances) || null;
+  var parts = [];
+  if (bal) {
+    if (bal.atlascloud && bal.atlascloud.left != null) parts.push('Atlas $' + Number(bal.atlascloud.left).toFixed(2) + ' left');
+    if (bal.openrouter && bal.openrouter.left != null) parts.push('OpenRouter $' + Number(bal.openrouter.left).toFixed(2) + ' left');
+    if (bal.apiframe && bal.apiframe.credits != null) parts.push('APIFRAME $' + (Number(bal.apiframe.credits) / 100).toFixed(2) + ' left');
+  }
+  if (SPENT_TODAY != null) parts.push('$' + Number(SPENT_TODAY).toFixed(2) + ' spent today');
+  $('balline').textContent = parts.join(' · ');
+  $('balline').hidden = !parts.length;
   // THE SALE IS READ, NEVER WRITTEN DOWN — the server asks Atlas what it is
   // charging today (`atlasPays`, the percent of list she pays) and says so
   // here only while there is a sale.

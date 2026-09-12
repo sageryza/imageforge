@@ -745,12 +745,17 @@ async function pillSweep(pg, where) {
   await page.waitForTimeout(300);
   ok('tapping ? opens the card', !(await page.$eval('#helpcard', (e) => e.hidden)));
   ok('opening it reads the status LIVE', statusCalls > before);
-  // NO BALANCE LINE — Atlas has none to read, and quoting OpenRouter's or
-  // APIFRAME's as if it were the one that matters would be worse than none.
-  // The card explains the RULE (cheapest door, free refusal, the walk) rather
-  // than naming one door as the page's.
-  ok('the card quotes no balance at all, and explains the cheapest-door rule',
-    (await page.$eval('#balline', (e) => e.hidden))
+  // THE BALANCE IS BACK, because Atlas has one after all (2026-09-12, Sophie:
+  // "I checked, and Atlas Cloud does have a proper Billing Public API. I was
+  // wrong in my previous answer") — it lives on a DIFFERENT prefix, which is
+  // why every read tried on 2026-09-09 answered 404. This assertion pinned
+  // the old "no balance to read" rule, which her correction retires; what it
+  // pins now is that the figure is DOLLARS (her rule) and that the card still
+  // explains the cheapest-door rule rather than naming one door as the page's.
+  ok('the card quotes what is left, in dollars, and explains the cheapest-door rule',
+    !(await page.$eval('#balline', (e) => e.hidden))
+    && /\$35\.72/.test(await page.$eval('#balline', (e) => e.textContent))
+    && !/credit/i.test(await page.$eval('#balline', (e) => e.textContent))
     && /Whichever door is cheapest/.test(await page.$eval('#helpcard', (e) => e.textContent))
     && /Four models/.test(await page.$eval('#helpcard', (e) => e.textContent)));
   ok('and it says where the last frame does and does not ride',
