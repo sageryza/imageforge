@@ -1230,6 +1230,31 @@ function repaintCards() {
 // "Footage" on All, the project's name, or "project › folder". A row's value
 // is `project` or `project/folder`; "New project…" is always offered and
 // "New folder…" only inside a project.
+// A PROJECT'S FOLDERS FOLD (2026-09-12, Sophie: "make the commercials
+// collapsible in the drop-down"). Six witch commercials plus the ward's and
+// everyone else's turns one drop-down into a list she has to read; shut, a
+// project is ONE row and says how many folders are behind it. The fold row
+// is its own option — a select has no other way to carry a control — and
+// picking it toggles and puts the value straight back, so folding never
+// moves the feed or a clip. Three things not to undo:
+//   · THE PROJECT SHE IS IN IS ALWAYS OPEN, whatever the memory says: its
+//     folder has to be an option or the select cannot show where she is.
+//     Same for a card: the clip's own project is open in its move menu.
+//   · IT IS REMEMBERED (`footage_open`), because this is a picker she opens
+//     all day and re-expanding the same project every time is the fold not
+//     working. The picker and every card's menu read the ONE set, so a
+//     project she opened in the picker is open where she moves a clip too.
+//   · SHUT COUNTS, OPEN DOES NOT — the rows are right there (the archive
+//     summary's don't-say-it-twice rule).
+var FOLD = '__fold:';
+var OPEN = {};
+function openSaved() {
+  try { var v = JSON.parse(localStorage.getItem('footage_open') || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+}
+function openSave() {
+  try { localStorage.setItem('footage_open', JSON.stringify(Object.keys(OPEN).filter(function (k) { return OPEN[k]; }))); } catch (e) {}
+}
+function openToggle(slug) { OPEN[slug] = !OPEN[slug]; openSave(); }
 function viewRows(cur, noneLabel) {
   var rows = [{ id: '', label: noneLabel }];
   var films = FILMS.slice();
@@ -1239,7 +1264,12 @@ function viewRows(cur, noneLabel) {
     rows.push({ id: f.slug, label: f.name || f.slug });
     var fl = foldersIn(f.slug).slice();
     if (curF && curP === f.slug && fl.indexOf(curF) < 0) fl.push(curF);
-    fl.forEach(function (x) { rows.push({ id: f.slug + '/' + x, label: '\u2003\u203a ' + x }); });
+    if (!fl.length) return;
+    var open = OPEN[f.slug] || curP === f.slug;
+    rows.push({ id: FOLD + f.slug,
+      label: '\u2003' + (open ? '\u25be folders' : '\u25b8 ' + fl.length + ' folder' + (fl.length === 1 ? '' : 's')) });
+    if (!open) return;
+    fl.forEach(function (x) { rows.push({ id: f.slug + '/' + x, label: '\u2003\u2003\u203a ' + x }); });
   });
   return rows;
 }
@@ -1341,6 +1371,7 @@ function newProject() {
 }
 $('project').addEventListener('change', function () {
   var v = $('project').value;
+  if (v.indexOf(FOLD) === 0) { openToggle(v.slice(FOLD.length)); paintProject(); repaintCards(); return; }
   if (v === NEW_PROJECT) { $('project').value = viewValue(); newProject(); return; }
   if (v === NEW_FOLDER) { $('project').value = viewValue(); newFolder(); return; }
   var p = v.split('/')[0], f = v.split('/')[1] || '';
@@ -3340,6 +3371,8 @@ function projOptions(j) {
 function moveTo(id, value) {
   var j = jobsById[id]; if (!j) return;
   var project, folder;
+  // the fold row is a control, not a place: it toggles and the clip stays put
+  if (String(value || '').indexOf(FOLD) === 0) { openToggle(String(value).slice(FOLD.length)); paintProject(); repaintCards(); return; }
   if (value === NEW_FOLDER) {
     if (!j.project) { jobCard(j); return; }
     var name = window.prompt('Name the folder');
@@ -4279,6 +4312,7 @@ window.__fitPillGap = fitPillGap;
 loadCtl();
 S.project = projectSaved(); castFilm = S.project;   // the ONE memory of which project she is on
 S.folder = S.project ? folderSaved() : '';
+openSaved().forEach(function (k) { OPEN[k] = true; });   // which projects she left open
 paintProject(); paintFolder();
 loadFilms();
 if (window.__fitBigPrompt) window.__fitBigPrompt();   // a restored draft fits its own box
