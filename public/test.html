@@ -283,6 +283,7 @@
       styles = [
         ...(models.replicate || []).map(m => ({ ...m, provider: 'replicate' })),
         ...(models.openai || []).map(m => ({ ...m, provider: 'openai' })),
+        ...(models.muapi || []).map(m => ({ ...m, provider: 'muapi' })),
         ...(models.house || []).map(m => ({ ...m, provider: 'house' })),
       ];
       renderTiles();
@@ -321,7 +322,7 @@
         tile.dataset.id = s.id;
         tile.innerHTML = `
           <img src="${sample}" alt="${escHtml(s.name)} sample">
-          <span class="tile-provider">${s.provider === 'openai' ? 'GPT' : s.provider === 'house' ? 'House' : s.provider === 'dalle' ? 'DALL·E' : 'LoRA'}</span>
+          <span class="tile-provider">${s.provider === 'muapi' ? 'MuAPI' : s.provider === 'openai' ? 'GPT' : s.provider === 'house' ? 'House' : s.provider === 'dalle' ? 'DALL·E' : 'LoRA'}</span>
           <span class="tile-check" title="Add to a multi-style run">${selected.has(s.id) ? '✓' : '◦'}</span>
           <span class="tile-run"><span>▶ run</span></span>
           <span class="tile-label">${escHtml(s.name)}</span>
@@ -404,6 +405,12 @@
         return safeFetchJson('/api/generate/gptimage', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: full, quality: style.quality || 'low' }),
+        });
+      }
+      if (style.provider === 'muapi') {
+        return safeFetchJson('/api/generate/muapi', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, model: style.id }),
         });
       }
       if (style.provider === 'replicate') {
