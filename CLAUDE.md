@@ -278,7 +278,22 @@ CHEAPEST MINI JOB (refusals are free, an accepted one ~5¢): a PERSON-FREE
 reference video — the socks B-roll, a Seedance output — PASSED and drew
 (6.5¢), and an AI-GENERATED face STILL (a frame of the Mini clip itself) was
 REFUSED (`InputImageSensitiveContentDetected.PrivacyInformation`).** So the
-line is the PERSON, not the video:
+line is the PERSON, not the video.
+**BUT THE FILTER IS PER MODEL, NOT PER DOOR, AND THAT RETIRES "BYTEPLUS DIRECT
+WOULD REFUSE THE SAME" ABOVE (measured 2026-09-12 on her own two jobs).** The
+SAME photoreal AI-made still — the priest-uniform Sophie png, a face, plainly
+photographic — was **refused on 2.0** (`InputImageSensitiveContentDetected.
+PrivacyInformation`, "may contain real person", free, before drawing) and
+**accepted and drawn on 2.5, twice**, through the identical OpenRouter door
+minutes apart. Across all 8 of her OpenRouter jobs carrying an image
+reference, **6 drew and 2 were refused**, and the split is the MODEL every
+time. So "OpenRouter refuses a photoreal face" is wrong as it was written
+here: 2.5's input gate is looser than 2.0's, and a doubtful face is worth one
+free 2.5 attempt before assuming a door is closed. What is NOT known is
+whether 2.5's gate is merely looser or genuinely probabilistic — ByteDance's
+own filters are documented as probabilistic rather than binary, so two
+acceptances are not a guarantee. The refusal is free either way, so try it.
+The older reading below stands for 2.0 and for reference VIDEOS:
 - **text, pictures, audio, and person-free videos → OpenRouter**: `POST
   /api/openrouter/video` (`openrouter.js`) takes the APIFRAME route's exact
   body (`prompt, model?, duration, resolution, aspectRatio, generateAudio,
@@ -7989,10 +8004,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
   44 APIFRAME jobs' `creditCost`, and ffprobe on the output clips).** Four
   things were wrong at once, and each hid the others:
   - **MINI RENDERS ON THE 2.5 CANVASES**, not the 2.0 ones — 480p 1:1 is
-    640x640, 480p 3:4 is 560x752, 720p 3:4 is 834x1112, on every clip. 2.0,
-    Fast and 2.5 have NEVER gone through OpenRouter, so their canvases are
-    unmeasured and keep the published table (`sizes` on a model row names the
-    canvas table it really renders on).
+    640x640, 480p 3:4 is 560x752, 720p 3:4 is 834x1112, on every clip
+    (`sizes` on a model row names the canvas table it really renders on).
+    **AND SO DOES 2.0 — measured 2026-09-12, and it was UNDER-QUOTING her.**
+    The one 2.0 job that has gone through OpenRouter (4s 480p 3:4) was quoted
+    **$0.2037** off the published 2.0 canvas and **BILLED $0.2792** — a factor
+    of 1.371, which is 560x752 / 480x640 = 1.3708, the 2.5 canvas to four
+    figures. So `sizes:'2.5'` is on the 2.0 row too; it stays `about`, since
+    one job at one shape fixes a canvas and does not pin every rung. The door
+    ranking is unchanged (OpenRouter still wins 2.0 on every shape).
+    **ONLY FAST HAS NEVER GONE THROUGH OPENROUTER NOW**, so only Fast keeps
+    the published table unverified — and that table has now been wrong TWICE,
+    which is why the bar is a real charge rather than a vendor page.
+  - **2.5's CANVAS IS MEASURED AND THE `~` IS OFF IT (2026-09-12).** Not by
+    ffprobe but by the better evidence: OpenRouter hands its REAL charge back
+    on every job, and across four distinct shapes the estimate and the charge
+    agree **to the cent** — 480p 9:16 30s $3.0883, 720p 9:16 15s $3.4764
+    (twice), 720p 9:16 30s $6.9432, 720p 3:4 4s $0.9400. A 2.5 job with a
+    reference VIDEO still answers `about`: that surcharge is measured on one
+    job and nothing else.
   - **A CLIP IS 24·s + 1 FRAMES**, not 24·s — the billed count fits 97 exactly
     on a 4s ask, and that +1 is what makes the formula land on the cent.
   - **THE 5% TOP-UP FEE IS NOT IN THE PRICE.** It is paid when credit is
@@ -8014,7 +8044,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
     prices at `list × (1 − discount)`, and **a failed read is 0 — full list,
     the safe direction — never a stale sale**. `GET /status` carries it per
     model and the "?" card says "2.0 Mini is 60% off right now" only while
-    there is one. The old hardcoded `sale: 0.72 / 0.75` are gone: wrong numbers
+    there is one. **RE-SWEPT 2026-09-12: no new sale on any door, and
+    nothing ended that day.** OpenRouter's `discount` reads 0 on all four
+    Seedance rows — checked against its own API rather than our cache, since
+    a failed read also answers 0 and the two look identical from inside;
+    Atlas's sale is live and unchanged (Mini 1.1¢/s = 80% off, Fast 2.7¢/s =
+    70%, 2.0 and 2.5 only 20%); APIFRAME has no sale mechanism at all. **The
+    cheap way to detect one is the REAL CHARGES, not a vendor page**: divide
+    each job's `usage.cost` by its own token count and a sale starting or
+    ending shows as a step. Over the whole log there is exactly one step —
+    Mini going 1.4e-6 → 3.5e-6 at 2026-09-09 18:09 UTC, this sale ending —
+    and 2.5 has billed a flat 1.07e-5 from 09-11 through today. The old hardcoded `sale: 0.72 / 0.75` are gone: wrong numbers
     that only looked right on 1:1, where the canvas was wrong too. (`orTok`
     stays the OpenRouter-LISTED figures, which is what it bills against — its
     Fast price is already ByteDance's discounted one; don't try to reconcile
