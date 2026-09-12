@@ -69,6 +69,7 @@ const LINKS = [
   ['/clips', 'chunking'],          // the alias the Chunking page also answers to
   ['/assembly', 'assembly'],
   ['/filmeditor', 'filmeditor'],
+  ['/stitch', 'stitch'],
   ['/dump', 'dump'],
   ['/blog', 'blog'],
   ['/studio', 'product'],

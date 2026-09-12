@@ -507,6 +507,7 @@ loadConfig().then(() => {
   // the arranging step between the Chunking shelf and a finished film. The
   // render is ffmpeg on our own box; nothing here spends money.
   app.use('/api/assembly', require('./assembly').router);
+  app.use('/api/stitch', require('./stitch').router);     // Stitch: pick Footage clips, order them, ffmpeg joins them (2026-09-12)
   // Film Editor: Sophie's tap-only phone editor (her Claude Design canvas,
   // docs/film-editor-design/) — the one surface that CUTS video: split, trim
   // in/out, reorder, one audio track. Render is ffmpeg on our own box; free.
@@ -940,6 +941,10 @@ app.get('/freeform', serveGated('freeform.html', { pill: true }));
 // Footage — Seedance clips by her own hand: describe it, attach references,
 // the star is the go (2026-09-09). footage.js is the module.
 app.get('/footage', serveGated('footage.html', { pill: true }));
+// Stitch — pick clips, put them in order, one button joins them (2026-09-12,
+// Sophie: "something very simple … it could be called stitch"). stitch.js is
+// the module; the render is the Film Editor's own recipe over one lane.
+app.get('/stitch', serveGated('stitch.html', { pill: true }));
 // Vector: describe drawings -> art that scales, and change its colours after
 // the fact for nothing. The front for /api/vector; see docs/vector-pipeline.md.
 app.get('/vector', serveGated('vector.html', { pill: true }));

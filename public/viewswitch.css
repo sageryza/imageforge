@@ -1,0 +1,14 @@
+/* THE LIST · TILES · 3/4 SWITCH — the one paint (2026-09-12). Behaviour is
+   /viewswitch.js; link both, never copy either. The box is a segmented
+   rounded rectangle at the house 6px (never a pill); the lit segment wears
+   the ink; the number segment says the number and never bars (at 16px two
+   bar counts are one grey smudge). Colour and size are the page's to move
+   with the three tokens below — the Playground and Footage both read the
+   defaults. */
+.viewtog{display:flex;flex:none;border:1px solid var(--vs-line,#d8cfc0);border-radius:6px;overflow:hidden;
+         background:var(--vs-paper,#fdfbf7)}
+.viewtog button{border:0;border-radius:0;background:none;font:inherit;font-size:12px;letter-spacing:.07em;
+         text-transform:uppercase;color:#6f675e;padding:7px 8px;margin:0;box-sizing:border-box}
+.viewtog button+button{border-left:1px solid var(--vs-line,#d8cfc0)}
+.viewtog button.on{background:var(--vs-ink,#2b2620);color:#f6f2ea;font-weight:600}
+.viewtog .colseg{font-weight:600;font-size:13px;letter-spacing:0;padding:7px 11px;min-width:34px}
