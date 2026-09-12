@@ -100,6 +100,30 @@ const atlas = require(path.join('..', 'atlascloud.js').replace('..', __dirname +
   eq('total_cost reads', atlas.costOf({ total_cost: '3.000000' }), 3);
   eq('a row with no cost at all is null, never 0', atlas.costOf({ model: 'x' }), null);
 
+  // 5b. THE LIVE ANSWER DID NOT USE THE DOCUMENTED KEY (measured 2026-09-12:
+  //     the deployed reader answered left:null against a 200). So the money
+  //     field is hunted by name, one level into a wrapper, and the whole body
+  //     rides back — a null balance must be readable rather than a shrug.
+  calls.length = 0;
+  answers = [{ body: { data: { credits: '12.340000', currency: 'usd' } } }];
+  const wrapped = await atlas.balance(true);
+  eq('a wrapped balance under another key still reads', wrapped.left, 12.34);
+  eq('and keeps its raw string', wrapped.raw, '12.340000');
+  ok('the whole body rides back so a new shape is readable', Boolean(wrapped.body), JSON.stringify(wrapped));
+
+  eq('a cost under cost_usd reads', atlas.costOf({ cost_usd: '0.600000' }), 0.6);
+  eq('a wrapped cost reads', atlas.costOf({ data: { amount: 2 } }), 2);
+
+  // 5c. ROWS NOBODY COULD PRICE RIDE BACK. A total of zero beside rows that
+  //     really came back would read as "she spent nothing" — the one wrong
+  //     answer this must never give quietly.
+  calls.length = 0;
+  answers = [{ body: { data: [{ date: '2026-09-12', model: 'x', mystery_field: '1.0' }], has_more: false } }];
+  const blind = await atlas.spend({ fresh: true, start: '2026-09-11', end: '2026-09-12' });
+  eq('rows came back', blind.rows, 1);
+  eq('none of them priced', blind.priced, 0);
+  ok('and the unpriced row is handed back whole', Array.isArray(blind.unpriced) && blind.unpriced.length === 1, JSON.stringify(blind.unpriced));
+
   // 6. A 429 hands its Retry-After on rather than being retried here.
   calls.length = 0;
   answers = [{ ok: false, status: 429, headers: { 'retry-after': '30' }, body: { error: { message: 'slow down' } } }];
