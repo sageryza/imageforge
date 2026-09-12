@@ -5039,6 +5039,22 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     a test of this**: playwright aims at an element's centre, which on a
     three-way toggle is the middle stop, so a cycling toggle and an aimed one
     look identical. Click a POSITION.
+- **LIST · TILES · 3/4 = THE ONE VIEW SWITCH, `/viewswitch.js` +
+  `/viewswitch.css` (2026-09-12, Sophie, on Stitch: "could you reuse the
+  shell so I can switch between tiles and list view?").** The Playground's
+  switch had been hand-copied onto Footage and Stitch would have been the
+  third copy — the tritoggle shape. ONE file now: `window.__viewSwitch({
+  mount, key, cols:[3,4], view, onView })` builds the box (or ADOPTS a
+  `.viewtog` the page already carries — the ids `#v-list` · `#v-tiles` ·
+  `#v-cols` are what two dozen headless tests tap, so they never moved),
+  keeps the view and the columns under the page's OWN key (`<key>_view` /
+  `<key>_cols`, byte-for-byte the old Playground and Footage keys), sets
+  `--cols` on the root, and calls the page back to swap its two surfaces.
+  The Playground and Footage read it (their `curView`/`curCols`/`setView`
+  are thin wrappers now); a new feed links both halves and never copies
+  either. Two stops on the number segment is not the cycle the house rule
+  forbids. Test: `node scripts/test-viewswitch.js` (nobody keeps a second
+  copy; the built and the adopted box measured in a browser).
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   **AND A CIRCLE IS NOT THE DEFAULT FOR AN ICON EITHER (2026-08-24, Sophie: "i
   prefer rounded squares for buttons, or plain icons, rather than circles").**
@@ -8816,6 +8832,63 @@ before working on that module. Nothing was deleted — the moved text is verbati
     the real page headless, measuring what is in the prompt box and what the
     strip really holds after a tap; verified failing against a sheet that does
     not re-resolve).
+- **Stitch** (`stitch.js`, `/api/stitch`, page at `/stitch`, iOS tile under the
+  FILM filter's shelf stage — 2026-09-12, Sophie, after saying Assembly "never
+  really worked" and the Film Editor "was the one that never worked": "i'm
+  thinking something very simple. We're just select clips and then move them
+  around and ffmpeg stitches them together … it could be called stitch" ·
+  "could you reuse the shell so I can switch between tiles and list view?").
+  **Pick clips, put them in order, one button joins them — and nothing else.**
+  Her Footage clips are the picker (every finished clip on the log, whichever
+  chat drew it, narrowed by the project/folder drop-down; a TRIMMED clip
+  offers each PART beside the whole — the chamomile skipping clip is two parts
+  she cut, and the parts are what go in the film); a tap puts a clip in the
+  ORDER at the top and the tile wears its number; a second tap takes it out.
+  Every picked clip is a row: a number she can TYPE, ↑ ↓ arrows, ✕ — the
+  Story Timeline's controls, nothing drags. **Stitch** is a background job on
+  the doc (poll, resume from `stitch_pending`); every render is kept, newest
+  first, as a LINE with a play button and a `save` that goes to Photos
+  through the three-path ladder. **It costs nothing** — the clips are
+  already drawn, a stitch is ffmpeg on our own box. No trim (that is on
+  Footage), no sound lane, no stills, no timeline.
+  - **THE RENDER IS THE FILM EDITOR'S OWN `renderCut`, not a fourth copy of
+    the recipe.** A stitch doc IS a cut with one lane (cut-model's `clips`
+    shape: key · kind · url · title · poster · seconds · in 0 · out), so
+    `filmeditor.renderCut({clips, sounds:[]})` bakes it — the same
+    one-canvas concat-copy join, the same PCM-then-AAC-once audio, and the
+    SAME segment bank in Storage (`filmeditor/seg-cache/`): a clip stitched
+    twice encodes once, and a clip the Film Editor banked is a hit here.
+    Renders land at `stitch/<id>/film-<n>.mp4` under the Film Editor's own
+    numbering (`nextRenderIndex`, never overwriting), capped 12; `stitch/`
+    is on clips.js's SKIP_PREFIXES. **Measured the day it shipped, in this
+    container over the real log: her first stitch — the nine doctor's-office
+    takes, 2:15 — rendered end to end and published onto the doc.**
+  - **THE PICKABLES ARE `footage.cardOf` READ THE WAY FOOTAGE READS THEM**
+    (`pickables`, pure): a drawing, failed or hidden clip is out, a part
+    still baking is out, the whole of a trimmed clip is the SOURCE (never
+    the first part), a part with no poster takes the clip's, newest first,
+    the title is the prompt's first words and never the url.
+  - **THE ORDER IS SAVED WHOLE** (`POST /:id/clips`, debounced 500ms,
+    flushed on pagehide) — order and membership change together, so a
+    partial write could never be right (Assembly's rule). The page keeps a
+    MIRROR of the order arithmetic (`window.__stitchRules`) so a tap answers
+    on the spot; the test drives the mirror and the module over the same
+    fixture so the two cannot drift.
+  - **TWO LEVELS** — the shelf of stitches and one open (`?s=<id>`), a
+    history state per level, `window.__navBack` shelf-ward before it
+    leaves; the player closes first. Nothing is deleted — `hidden` is the
+    verb (`POST /:id/hide`).
+  - **THE PILL'S BAND IS RESERVED ROW BY ROW** — Footage's `fitPillGap`
+    over `[data-pillrow]`, judged at the TOP of the page (Freeform's rule),
+    the title INPUT shortening by width rather than margin (an input at
+    100% overflows rather than shrinks — PHOTO'd).
+  - Tests: `node scripts/test-stitch.js` (the pickables, the order
+    arithmetic, cut-model's cleaner, the wiring pins, then the real page
+    headless — three across MEASURED, the shared switch, a pick numbering
+    its tile, the arrows and the typed number, ✕, the order the stub really
+    received, Stitch's POST and the render row off the poll, the player, a
+    control in the pill's band asked with `elementFromPoint`, both levels)
+    and `node scripts/test-viewswitch.js`.
 - **Movies** (`movies.js`, `/api/movies`, iOS Movies tab — no web page) — story ->
   ~8-12 self-contained scenes -> gpt-image-2 panels -> Replicate image-to-video ->
   ffmpeg stitch, ~$1.35 for a 12-scene film.

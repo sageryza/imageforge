@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Stitch</title>
+<!-- THE LIST · TILES · 3/4 SWITCH — the one shell (/viewswitch.js), linked, never copied -->
+<link rel="stylesheet" href="/viewswitch.css">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  [hidden]{display:none !important}
+  body{background:#f6f2ea;color:#2b2620;font:16px/1.45 -apple-system,BlinkMacSystemFont,Georgia,serif;
+       padding:14px 12px 40px;-webkit-text-size-adjust:100%}
+  /* THE PAGE OWNS ITS HEADER (Footage's row): one line, caps, the pill's
+     corner reserved; pagehead.js seats the chevron in it on the new build and
+     ?embed=1 hides it on the old one — never two titles. */
+  .app-header{display:flex;align-items:center;min-height:34px;padding-right:64px;margin:0 0 8px;gap:10px}
+  .app-header h1{font:400 11px/1 -apple-system,'Helvetica Neue',sans-serif;letter-spacing:.34em;
+                 text-transform:uppercase;color:#6f675e;margin:0;flex:1}
+  #help{width:26px;height:26px;border-radius:6px;border:1px solid #c9a96a;background:#fff;color:#a0803a;
+        font:600 14px -apple-system,sans-serif;padding:0;flex:none}
+  .helpcard{position:fixed;left:12px;right:12px;top:80px;z-index:60;background:#fff;border:1px solid #e0d8ca;
+            border-radius:6px;padding:14px;font-size:14px;line-height:1.5;box-shadow:0 8px 30px rgba(0,0,0,.12)}
+  .helpcard p{margin:0 0 8px}
+  .helpcard b{font-weight:600}
+  button{font:inherit;color:inherit;cursor:pointer}
+  /* A ROW THAT CAN SIT IN THE PILL'S BAND SHORTENS — measured against the
+     pill's real rect (Footage's fitPillGap), never a hardcoded column; a row
+     below the band keeps its whole width. */
+  [data-pillrow]{margin-right:var(--pillgap,0px)}
+  /* the house button: a rounded rectangle that hugs its words */
+  .btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border:1px solid #d8cfc0;border-radius:6px;
+       background:#fdfbf7;color:#2b2620;font-size:14px}
+  .btn.ink{background:#2b2620;border-color:#2b2620;color:#f6f2ea}
+  .btn:disabled{opacity:.45}
+  /* an icon control: a 34px rounded square, the glyph inside */
+  .ib{width:34px;height:34px;padding:0;border:1px solid #d8cfc0;border-radius:6px;background:#fdfbf7;color:#2b2620;
+      display:inline-flex;align-items:center;justify-content:center;flex:none}
+  .ib svg{width:17px;height:17px;display:block}
+  .ib.bare{border:0;background:none}
+  .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  /* an underlined word, never a boxed button (the house inline opener) */
+  .wd{border:0;background:none;padding:0;color:#2b2620;text-decoration:underline;text-underline-offset:2px;font-size:14px}
+  .quiet{font-size:13px;color:#8b8175}
+
+  /* ── the shelf ── */
+  #shelf .slist{margin-top:12px}
+  .srow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:8px;margin:0 0 8px;border:1px solid #e0d8ca;
+        border-radius:6px;background:#fff}
+  .srow .th{width:56px;height:56px;flex:none;border-radius:4px;background:#2b2620;object-fit:cover;display:block}
+  .srow .th.none{background:#e6dfd2}
+  .srow .tt{flex:1;min-width:0}
+  .srow .tt b{display:block;font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .srow .tt i{display:block;font-style:normal;font-size:12.5px;color:#8b8175}
+
+  /* ── one open stitch ── */
+  .panel{background:#fff;border:1px solid #e0d8ca;border-radius:6px;padding:12px;margin-bottom:14px}
+  /* the width, not a margin: an input at width:100% overflows its box rather than shrinking */
+  .ttl{width:calc(100% - var(--pillgap,0px));border:0;border-bottom:1px solid #e0d8ca;background:none;font:600 17px/1.3 inherit;padding:2px 0 6px;color:#2b2620}
+  .ttl:focus{outline:none;border-color:#a89a80}
+  /* THE ORDER: one row per picked clip. The number is typed (the Story
+     Timeline's), the arrows step one, ✕ takes it out. Nothing drags. */
+  #order{margin-top:10px}
+  .orow{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid #efe9de}
+  .orow:first-child{border-top:0}
+  .orow .num{width:40px;height:34px;flex:none;border:1px solid #d8cfc0;border-radius:6px;background:#fdfbf7;text-align:center;
+             font:600 15px -apple-system,sans-serif;color:#2b2620;-moz-appearance:textfield}
+  .orow .num::-webkit-outer-spin-button,.orow .num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .orow .th{width:48px;height:48px;flex:none;border-radius:4px;background:#2b2620;object-fit:cover;display:block}
+  .orow .tt{flex:1;min-width:0;font-size:14px;line-height:1.3}
+  .orow .tt span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .orow .tt i{font-style:normal;font-size:12px;color:#8b8175}
+  .orow .ib{width:30px;height:30px}
+  .orow .ib:disabled{opacity:.3}
+  .empty{font-size:13.5px;color:#8b8175;padding:8px 0}
+  .stitchrow{margin-top:12px}
+  .stitchrow .st{font-size:13px;color:#6f675e}
+  .stitchrow .st.bad{color:#a23b2e}
+  /* the renders: a LINE with a play button, never an embedded video */
+  #renders{margin-top:8px}
+  .rrow{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid #efe9de;font-size:14px}
+  .rrow .ib.play{background:#2b2620;border-color:#2b2620;color:#f6f2ea}
+  .rrow .ib.play svg{width:14px;height:14px;margin-left:2px}
+  .rrow .lab{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rrow .lab i{font-style:normal;color:#8b8175;font-size:12.5px}
+
+  /* ── the picker ── */
+  .feedbar{display:flex;align-items:center;gap:8px;margin:0 0 10px;flex-wrap:wrap}
+  .selwrap{position:relative;display:inline-flex;flex:none}
+  .selwrap select{-webkit-appearance:none;-moz-appearance:none;appearance:none;border:1px solid #d8cfc0;border-radius:6px;
+        background:#fdfbf7;color:#2b2620;font:14px -apple-system,Georgia,serif;height:32px;padding:0 26px 0 10px;margin:0;max-width:52vw}
+  .selwrap select:focus{outline:none;border-color:#a89a80}
+  .selwrap.on select{background:#2b2620;border-color:#2b2620;color:#f6f2ea}
+  .selwrap .chev{position:absolute;right:8px;top:0;height:32px;display:flex;align-items:center;pointer-events:none;color:#6f675e}
+  .selwrap.on .chev{color:#f6f2ea}
+  .selwrap .chev svg{width:13px;height:13px;display:block}
+  #feedbar .quiet{margin-left:auto}
+  /* `minmax(0,1fr)` is load-bearing (the Playground's wall): a bare 1fr lets
+     one 16:9 cell on a row of portraits blow its column out. */
+  #tiles{display:grid;grid-template-columns:repeat(var(--cols,3),minmax(0,1fr));align-items:start;gap:5px}
+  #tiles .cell{position:relative;border:1px solid #e0d8ca;border-radius:6px;overflow:hidden;background:#2b2620;color:#f6f2ea;
+        aspect-ratio:var(--ar,3/4);width:100%;padding:0;margin:0;display:block;text-align:left}
+  #tiles .cell img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+  #tiles .cell .face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+  #tiles .cell .face svg{width:22px;height:22px;opacity:.7}
+  /* THE NUMBER IS THE PICK — a picked tile wears its place in the order,
+     top-left, on the marks' flat plate (never a scrim: a gradient is out) */
+  .pn{position:absolute;left:4px;top:4px;min-width:24px;height:24px;padding:0 6px;border-radius:6px;background:#2b2620;color:#f6f2ea;
+      font:600 13px/24px -apple-system,sans-serif;text-align:center;display:none}
+  .picked .pn{display:block}
+  #tiles .cell.picked{outline:2px solid #2b2620;outline-offset:-2px}
+  .pl{position:absolute;right:4px;bottom:4px;padding:0 6px;border-radius:6px;background:rgba(43,38,32,.85);color:#f6f2ea;
+      font:11px/20px -apple-system,sans-serif}
+  /* list view: a box per clip */
+  .crow{position:relative;display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:8px;margin:0 0 8px;
+        border:1px solid #e0d8ca;border-radius:6px;background:#fff;color:#2b2620}
+  .crow.picked{border-color:#2b2620}
+  .crow .th{width:64px;height:64px;flex:none;border-radius:4px;background:#2b2620;object-fit:cover;display:block}
+  .crow .tt{flex:1;min-width:0;font-size:14px;line-height:1.35}
+  .crow .tt span{display:block;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .crow .tt i{display:block;font-style:normal;font-size:12px;color:#8b8175}
+  .crow .pn{position:static;flex:none}
+  .crow .pn.off{display:block;background:#fdfbf7;color:#8b8175;border:1px solid #d8cfc0;line-height:22px}
+  .olderbtn{margin:10px auto 0;display:block}
+  .emptynote{font-size:13px;color:#8a8177;padding:18px 0;text-align:center}
+
+  /* ── the player ── */
+  #player{position:fixed;inset:0;background:rgba(20,17,14,.94);z-index:80;display:flex;flex-direction:column;align-items:center;
+          justify-content:center;padding:max(14px,env(safe-area-inset-top)) 0 0}
+  #player .pbar{flex:none;width:100%;display:flex;align-items:center;gap:8px;padding:0 12px 8px}
+  #player .pbar .ib{background:#fff}
+  #player .pbar .psave{margin-left:auto;color:#f6f2ea;text-decoration:underline;text-underline-offset:2px;border:0;background:none;padding:0;font-size:14px}
+  #player .pstage{position:relative;flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}
+  #player .pstage video{max-width:100%;max-height:100%;display:block;background:#000}
+  /* A TOAST IS A MESSAGE, NEVER A CONTROL — pointer-events:none, or it swallows taps for the life of the page */
+  #toast{position:fixed;left:12px;bottom:calc(20px + env(safe-area-inset-bottom));max-width:80vw;z-index:90;background:#2b2620;color:#f6f2ea;
+         padding:8px 12px;border-radius:6px;font-size:13.5px;opacity:0;transition:opacity .2s;pointer-events:none}
+  #toast.on{opacity:1}
+  #player:not([hidden]) ~ #toast{bottom:auto;top:calc(60px + env(safe-area-inset-top))}
+</style>
+</head>
+<body>
+<header class="app-header"><h1 id="title">Stitch</h1><button id="help" type="button" aria-label="How this works" title="How this works">?</button></header>
+<div class="helpcard" id="helpcard" hidden>
+  <p><b>Pick clips.</b> Your Footage clips are below &mdash; tap one and it joins the order at the top. A clip you trimmed offers each part beside the whole. Tap it again to take it out.</p>
+  <p><b>Put them in order.</b> Every picked clip is a row: type its number, or tap the arrows to step it up or down. &times; takes it out. Nothing drags.</p>
+  <p><b>Stitch.</b> One button joins them in that order, in the background &mdash; leave the page and come back. Every stitch is kept, newest first; play it or save it to Photos.</p>
+  <p><b>It costs nothing.</b> The clips are already drawn; a stitch is ffmpeg on our own box, the same join the Film Editor bakes.</p>
+</div>
+
+<div id="shelf">
+  <div class="row" data-pillrow><button type="button" class="btn ink" id="newstitch">New stitch</button></div>
+  <div class="slist" id="slist"></div>
+  <div class="emptynote" id="shelfempty" hidden>Nothing stitched yet.</div>
+</div>
+
+<div id="open" hidden>
+  <div class="panel">
+    <input type="text" class="ttl" id="ttl" aria-label="Name" autocomplete="off" data-pillrow>
+    <div id="order"></div>
+    <div class="row stitchrow" data-pillrow>
+      <button type="button" class="btn ink" id="stitch">Stitch</button>
+      <span class="quiet" id="total"></span>
+      <span class="st" id="status"></span>
+    </div>
+    <div id="renders"></div>
+  </div>
+
+  <div class="feedbar" id="feedbar" data-pillrow>
+    <span class="selwrap" id="projwrap"><select id="project" aria-label="Project and folder" title="Project and folder"></select><span class="chev"></span></span>
+    <span class="quiet" id="pickcount"></span>
+  </div>
+  <div id="feed"></div>
+  <div id="tiles" hidden></div>
+  <div class="emptynote" id="feedempty" hidden>No finished clips here yet.</div>
+</div>
+
+<div id="player" hidden><div class="pbar"><button class="ib pclose" type="button" aria-label="Close"></button><button class="psave" type="button" hidden>save</button></div><div class="pstage"></div></div>
+<div id="toast" role="status"></div>
+
+<script src="/viewswitch.js"></script>
+<script>
+(function () {
+'use strict';
+var $ = function (id) { return document.getElementById(id); };
+var TOKEN = '__STUDIO_TOKEN__';
+function api(path, opts) {
+  opts = opts || {};
+  var h = { 'content-type': 'application/json' };
+  if (TOKEN && TOKEN.indexOf('__') !== 0) h['x-studio-token'] = TOKEN;
+  return fetch('/api/stitch' + path, { method: opts.method || 'GET', headers: h, body: opts.body ? JSON.stringify(opts.body) : undefined })
+    .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status)); return j; }); });
+}
+function castApi(path) {
+  var h = {};
+  if (TOKEN && TOKEN.indexOf('__') !== 0) h['x-studio-token'] = TOKEN;
+  return fetch('/api/cast' + path, { headers: h }).then(function (r) { return r.json(); });
+}
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function fsec(s) { s = Math.round(Number(s) || 0); var m = Math.floor(s / 60); return m + ':' + String(s % 60).padStart(2, '0'); }
+var ICONS = {
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+  play: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>',
+  film: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>',
+  up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>',
+  down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>',
+  chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
+};
+document.querySelector('#projwrap .chev').innerHTML = ICONS.chev;
+document.querySelector('#player .pclose').innerHTML = ICONS.x;
+
+var toastT = null;
+function toast(msg) { var t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove('on'); }, 2600); }
+
+// ── THE "?" ──────────────────────────────────────────────
+$('help').addEventListener('click', function (e) { e.stopPropagation(); $('helpcard').hidden = !$('helpcard').hidden; });
+document.addEventListener('click', function () { if (!$('helpcard').hidden) $('helpcard').hidden = true; });
+
+// ── THE ORDER ARITHMETIC — mirrors stitch.js (pinned by the test) ────────
+var MAX_CLIPS = 60;
+function moveBy(list, i, delta) {
+  var n = list.length, from = Math.floor(i);
+  if (from < 0 || from >= n) return list.slice();
+  var to = Math.max(0, Math.min(n - 1, from + delta));
+  if (to === from) return list.slice();
+  var out = list.slice(); var it = out.splice(from, 1)[0]; out.splice(to, 0, it); return out;
+}
+function moveTo(list, i, number) {
+  var to = Math.max(1, Math.min(list.length, Math.floor(Number(number) || 1))) - 1;
+  return moveBy(list, i, to - Math.floor(i));
+}
+function dropAt(list, i) { var f = Math.floor(i); if (f < 0 || f >= list.length) return list.slice(); return list.slice(0, f).concat(list.slice(f + 1)); }
+function clipOf(p) {
+  return { key: String(p.id).slice(0, 40), kind: 'video', url: p.url, title: p.title || '', poster: p.poster || null,
+    seconds: Number(p.seconds) > 0 ? Number(p.seconds) : null, in: 0, out: Number(p.seconds) > 0 ? Number(p.seconds) : 0 };
+}
+function addPick(list, p) {
+  if (!p || !p.id || list.some(function (c) { return c.key === p.id; }) || list.length >= MAX_CLIPS) return list.slice();
+  return list.concat([clipOf(p)]);
+}
+function totalSeconds(list) { return list.reduce(function (a, c) { return a + Math.max(0, (Number(c.out) || 0) - (Number(c.in) || 0)); }, 0); }
+window.__stitchRules = { moveBy: moveBy, moveTo: moveTo, dropAt: dropAt, addPick: addPick, clipOf: clipOf };
+
+// ── STATE ────────────────────────────────────────────────
+var S = { id: '', doc: null, clips: [] };
+var PICKS = [];                 // the pickables the picker is showing
+var FILMS = [];
+var pollT = null;
+
+// ── TWO LEVELS: the shelf, and one open stitch. The app's chevron asks
+// __navBack; a browser's back walks the same history states. ────────────
+function showShelf(push) {
+  S.id = ''; S.doc = null; S.clips = [];
+  clearTimeout(pollT);
+  $('open').hidden = true; $('shelf').hidden = false;
+  $('title').textContent = 'Stitch';
+  if (push) history.pushState({ level: 'shelf' }, '', location.pathname + keepQuery(''));
+  loadShelf();
+  fitPillGap();
+}
+function keepQuery(s) {
+  var q = new URLSearchParams(location.search); q.delete('s');
+  if (s) q.set('s', s);
+  var str = q.toString(); return str ? '?' + str : '';
+}
+function openStitch(id, push) {
+  S.id = id;
+  $('shelf').hidden = true; $('open').hidden = false;
+  if (push) history.pushState({ level: 'open', id: id }, '', location.pathname + keepQuery(id));
+  api('/' + encodeURIComponent(id)).then(function (d) {
+    S.doc = d; S.clips = (d.clips || []).slice();
+    $('ttl').value = d.title || '';
+    $('title').textContent = d.title || 'Stitch';
+    paintOrder(); paintRenders(d.renders || []); paintStatus(d.job);
+    if (d.job && d.job.status === 'running') poll();
+    paintPicks();
+    fitPillGap();
+  }).catch(function (e) { toast(e.message); showShelf(false); });
+}
+window.__navBack = function () { if (!$('open').hidden) { showShelf(true); return true; } return false; };
+window.addEventListener('popstate', function (e) {
+  var id = new URLSearchParams(location.search).get('s');
+  if (id) openStitch(id, false); else showShelf(false);
+});
+
+// ── THE SHELF ────────────────────────────────────────────
+function loadShelf() {
+  api('/').then(function (d) {
+    var el = $('slist'); el.innerHTML = '';
+    var list = d.stitches || [];
+    $('shelfempty').hidden = list.length > 0;
+    list.forEach(function (s) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'srow';
+      b.innerHTML = (s.poster ? '<img class="th" src="' + esc(s.poster) + '" alt="">' : '<span class="th none"></span>')
+        + '<span class="tt"><b>' + esc(s.title || 'Stitch') + '</b><i>' + s.clips + (s.clips === 1 ? ' clip' : ' clips')
+        + (s.seconds ? ' · ' + fsec(s.seconds) : '') + (s.renders ? ' · stitched ' + s.renders + (s.renders === 1 ? ' time' : ' times') : '')
+        + (s.job ? ' · stitching…' : '') + '</i></span>';
+      b.addEventListener('click', function () { openStitch(s.id, true); });
+      el.appendChild(b);
+    });
+  }).catch(function (e) { toast(e.message); });
+}
+$('newstitch').addEventListener('click', function () {
+  api('/', { method: 'POST', body: { project: projectSaved().split('/')[0] } })
+    .then(function (d) { openStitch(d.id, true); })
+    .catch(function (e) { toast(e.message); });
+});
+
+// ── THE ORDER ────────────────────────────────────────────
+var saveT = null;
+function saveOrder() {
+  clearTimeout(saveT);
+  saveT = setTimeout(flushOrder, 500);
+}
+function flushOrder() {
+  clearTimeout(saveT); saveT = null;
+  if (!S.id) return;
+  var id = S.id, clips = S.clips.slice();
+  api('/' + encodeURIComponent(id) + '/clips', { method: 'POST', body: { clips: clips } }).catch(function (e) { toast('Not saved — ' + e.message); });
+}
+window.addEventListener('pagehide', function () { if (saveT) flushOrder(); });
+function setClips(next) { S.clips = next; paintOrder(); paintPicks(); saveOrder(); }
+function paintOrder() {
+  var el = $('order'); el.innerHTML = '';
+  if (!S.clips.length) {
+    var e = document.createElement('div'); e.className = 'empty'; e.textContent = 'Tap clips below to add them.'; el.appendChild(e);
+  }
+  S.clips.forEach(function (c, i) {
+    var r = document.createElement('div'); r.className = 'orow'; r.setAttribute('data-pillrow', '');
+    var num = document.createElement('input'); num.type = 'number'; num.className = 'num'; num.value = String(i + 1);
+    num.min = '1'; num.max = String(S.clips.length); num.inputMode = 'numeric';
+    num.setAttribute('aria-label', 'Place in the order');
+    num.addEventListener('change', function () { setClips(moveTo(S.clips, i, num.value)); });
+    num.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); num.blur(); } });
+    r.appendChild(num);
+    var th = document.createElement(c.poster ? 'img' : 'span'); th.className = 'th';
+    if (c.poster) { th.src = c.poster; th.alt = ''; }
+    r.appendChild(th);
+    var tt = document.createElement('div'); tt.className = 'tt';
+    tt.innerHTML = '<span>' + esc(c.title || 'clip') + '</span><i>' + (c.out ? fsec(c.out) : '') + '</i>';
+    r.appendChild(tt);
+    [['up', -1, 'Earlier'], ['down', 1, 'Later']].forEach(function (a) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'ib bare';
+      b.innerHTML = ICONS[a[0]]; b.setAttribute('aria-label', a[2]); b.title = a[2];
+      b.disabled = (a[1] < 0 && i === 0) || (a[1] > 0 && i === S.clips.length - 1);
+      b.addEventListener('click', function () { setClips(moveBy(S.clips, i, a[1])); });
+      r.appendChild(b);
+    });
+    var x = document.createElement('button'); x.type = 'button'; x.className = 'ib bare';
+    x.innerHTML = ICONS.x; x.setAttribute('aria-label', 'Take it out'); x.title = 'Take it out';
+    x.addEventListener('click', function () { setClips(dropAt(S.clips, i)); });
+    r.appendChild(x);
+    el.appendChild(r);
+  });
+  var t = totalSeconds(S.clips);
+  $('total').textContent = S.clips.length ? S.clips.length + (S.clips.length === 1 ? ' clip' : ' clips') + ' · ' + fsec(t) : '';
+  $('stitch').disabled = !S.clips.length;
+  fitPillGap();
+}
+$('ttl').addEventListener('change', function () {
+  var t = $('ttl').value.trim(); if (!S.id || !t) return;
+  api('/' + encodeURIComponent(S.id) + '/title', { method: 'POST', body: { title: t } })
+    .then(function () { $('title').textContent = t; }).catch(function (e) { toast(e.message); });
+});
+
+// ── STITCH — a background job on the doc; the page polls and resumes ─────
+$('stitch').addEventListener('click', function () {
+  if (!S.id || !S.clips.length) return;
+  flushOrder();
+  api('/' + encodeURIComponent(S.id) + '/render', { method: 'POST' })
+    .then(function () { try { localStorage.setItem('stitch_pending', S.id); } catch (e) {} paintStatus({ status: 'running', label: 'starting' }); poll(); })
+    .catch(function (e) { toast(e.message); });
+});
+function poll() {
+  clearTimeout(pollT);
+  if (!S.id) return;
+  var id = S.id;
+  api('/' + encodeURIComponent(id) + '/job').then(function (d) {
+    if (id !== S.id) return;
+    paintStatus(d.job);
+    paintRenders(d.renders || []);
+    if (d.job && d.job.status === 'running') pollT = setTimeout(poll, 2000);
+    else { try { localStorage.removeItem('stitch_pending'); } catch (e) {} if (d.job && d.job.status === 'done') toast('Stitched'); }
+  }).catch(function () { pollT = setTimeout(poll, 4000); });
+}
+function paintStatus(job) {
+  var el = $('status'); el.className = 'st';
+  if (!job) { el.textContent = ''; return; }
+  if (job.status === 'running') { el.textContent = 'stitching… ' + (job.label || ''); $('stitch').disabled = true; return; }
+  $('stitch').disabled = !S.clips.length;
+  if (job.status === 'error') { el.className = 'st bad'; el.textContent = 'that did not stitch — ' + (job.error || ''); return; }
+  el.textContent = '';
+}
+function paintRenders(list) {
+  var el = $('renders');
+  var sig = list.map(function (r) { return r.url; }).join('|');
+  if (el.__sig === sig) return;
+  el.__sig = sig; el.innerHTML = '';
+  list.forEach(function (r, i) {
+    var row = document.createElement('div'); row.className = 'rrow';
+    var pb = document.createElement('button'); pb.type = 'button'; pb.className = 'ib play'; pb.innerHTML = ICONS.play;
+    pb.setAttribute('aria-label', 'Play'); pb.title = 'Play';
+    pb.addEventListener('click', function () { openPlayer(r.url); });
+    row.appendChild(pb);
+    var n = list.length - i;
+    var lab = document.createElement('span'); lab.className = 'lab';
+    lab.innerHTML = 'Stitch ' + n + ' <i>· ' + r.clips + (r.clips === 1 ? ' clip' : ' clips') + ' · ' + fsec(r.seconds) + '</i>';
+    row.appendChild(lab);
+    var sv = document.createElement('button'); sv.type = 'button'; sv.className = 'wd'; sv.textContent = 'save';
+    sv.addEventListener('pointerdown', function () { primeSave(r.url); });
+    sv.addEventListener('click', function () { saveMedia(r.url); });
+    row.appendChild(sv);
+    el.appendChild(row);
+  });
+}
+
+// ── THE PICKER: Footage's clips, narrowed by project, the shared view switch ─
+function projectSaved() { try { return localStorage.getItem('stitch_project') || ''; } catch (e) { return ''; } }
+function projectSave(p) { try { localStorage.setItem('stitch_project', p || ''); } catch (e) {} }
+var FOLDERS = {};
+function paintProject() {
+  var sel = $('project'), cur = projectSaved();
+  var rows = [{ id: '', label: 'All projects' }];
+  var films = FILMS.slice();
+  var curP = cur.split('/')[0];
+  if (curP && !films.some(function (f) { return f.slug === curP; })) films.push({ slug: curP, name: curP });
+  films.forEach(function (f) {
+    rows.push({ id: f.slug, label: f.name || f.slug });
+    (FOLDERS[f.slug] || []).forEach(function (fo) { rows.push({ id: f.slug + '/' + fo, label: ' ' + fo }); });
+  });
+  var sig = rows.map(function (r) { return r.id + ' ' + r.label; }).join('|');
+  if (sel.__sig !== sig) {
+    sel.__sig = sig; sel.innerHTML = '';
+    rows.forEach(function (r) { var o = document.createElement('option'); o.value = r.id; o.textContent = r.label; sel.appendChild(o); });
+  }
+  sel.value = rows.some(function (r) { return r.id === cur; }) ? cur : '';
+  $('projwrap').classList.toggle('on', Boolean(sel.value));
+}
+$('project').addEventListener('change', function () { projectSave($('project').value); paintProject(); loadPicks(); });
+function loadFilms() {
+  return castApi('/films').then(function (d) { if (d && d.ok && Array.isArray(d.films)) { FILMS = d.films; paintProject(); } }).catch(function () {});
+}
+function loadPicks() {
+  var cur = projectSaved(), p = cur.split('/')[0], f = cur.split('/')[1] || '';
+  var q = '?limit=300' + (p ? '&project=' + encodeURIComponent(p) + (f ? '&folder=' + encodeURIComponent(f) : '') : '');
+  return api('/clips' + q).then(function (d) {
+    PICKS = d.clips || [];
+    // the folders a project has, derived off what came back
+    FOLDERS = {};
+    PICKS.forEach(function (c) { if (c.project && c.folder) { (FOLDERS[c.project] = FOLDERS[c.project] || []); if (FOLDERS[c.project].indexOf(c.folder) < 0) FOLDERS[c.project].push(c.folder); } });
+    paintProject();
+    paintPicks(true);
+  }).catch(function (e) { toast(e.message); });
+}
+function pickIndex(id) { for (var i = 0; i < S.clips.length; i++) if (S.clips[i].key === id) return i + 1; return 0; }
+function togglePick(p) {
+  var at = pickIndex(p.id);
+  if (at) setClips(dropAt(S.clips, at - 1));
+  else { if (S.clips.length >= MAX_CLIPS) { toast('That is the most a stitch holds'); return; } setClips(addPick(S.clips, p)); }
+}
+function arOf(r) { var m = { '1:1': '1', '3:4': '3/4', '9:16': '9/16', '4:3': '4/3', '16:9': '16/9', '21:9': '21/9' }; return m[r] || '3/4'; }
+// A REPAINT NEVER REBUILDS WHAT DID NOT CHANGE: the wall and the list are
+// rebuilt only when the pickables changed; a pick toggles a class and a
+// number on the node it already has.
+function paintPicks(rebuild) {
+  var tiles = $('tiles'), feed = $('feed');
+  var sig = PICKS.map(function (p) { return p.id + ' ' + (p.poster || ''); }).join('|');
+  if (rebuild || tiles.__sig !== sig) {
+    tiles.__sig = sig; tiles.innerHTML = ''; feed.innerHTML = '';
+    PICKS.forEach(function (p) {
+      var c = document.createElement('button'); c.type = 'button'; c.className = 'cell'; c.dataset.id = p.id;
+      c.style.setProperty('--ar', arOf(p.ratio)); c.title = p.title || '';
+      c.setAttribute('aria-label', (p.title || 'clip') + ' — add to the order');
+      c.innerHTML = (p.poster ? '<img src="' + esc(p.poster) + '" alt="">' : '<span class="face">' + ICONS.film + '</span>')
+        + '<span class="pn"></span>' + (p.part ? '<span class="pl">part ' + p.part + '</span>' : (p.parts ? '<span class="pl">whole</span>' : ''));
+      c.addEventListener('click', function () { togglePick(p); });
+      tiles.appendChild(c);
+      var r = document.createElement('button'); r.type = 'button'; r.className = 'crow'; r.dataset.id = p.id;
+      r.innerHTML = (p.poster ? '<img class="th" src="' + esc(p.poster) + '" alt="">' : '<span class="th"></span>')
+        + '<span class="tt"><span>' + esc(p.prompt || p.title || 'clip') + '</span><i>' + (p.seconds ? fsec(p.seconds) + ' · ' : '')
+        + (p.part ? 'part ' + p.part + ' of ' + p.parts : (p.parts ? 'whole clip' : '')) + (p.chat && p.chat !== 'footage' ? ' · from ' + esc(p.chat) : '') + '</i></span>'
+        + '<span class="pn off">+</span>';
+      r.addEventListener('click', function () { togglePick(p); });
+      feed.appendChild(r);
+    });
+  }
+  var n = 0;
+  PICKS.forEach(function (p) {
+    var at = pickIndex(p.id); if (at) n++;
+    [tiles, feed].forEach(function (host) {
+      var node = host.querySelector('[data-id="' + p.id.replace(/"/g, '\\"') + '"]'); if (!node) return;
+      node.classList.toggle('picked', Boolean(at));
+      var pn = node.querySelector('.pn');
+      pn.textContent = at ? String(at) : '+';
+      pn.classList.toggle('off', !at);
+    });
+  });
+  $('feedempty').hidden = PICKS.length > 0;
+  $('pickcount').textContent = PICKS.length ? PICKS.length + ' clips' : '';
+}
+var VS = window.__viewSwitch({
+  mount: '#feedbar', key: 'stitch', cols: [3, 4], view: 'tiles',
+  onView: function (v) { var tiles = v === 'tiles'; $('feed').hidden = tiles; $('tiles').hidden = !tiles; },
+});
+
+// ── THE PLAYER, and the three-path save (Footage's ladder, lifted) ────────
+var savedY = 0;
+function openPlayer(url) {
+  var pl = $('player');
+  if (window.__scrollStop) window.__scrollStop();
+  savedY = window.scrollY || 0;
+  document.body.style.overflow = 'hidden';
+  var v = document.createElement('video');
+  v.src = url; v.controls = true; v.playsInline = true; v.autoplay = true; v.setAttribute('playsinline', '');
+  pl.querySelector('.pstage').appendChild(v);
+  var sv = pl.querySelector('.psave'); sv.hidden = false;
+  sv.onpointerdown = function () { primeSave(url); };
+  sv.onclick = function () { saveMedia(url); };
+  pl.hidden = false;
+  v.play().catch(function () {});
+}
+function closePlayer() {
+  var pl = $('player'); if (pl.hidden) return;
+  var v = pl.querySelector('video'); if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (e) {} v.remove(); }
+  pl.hidden = true;
+  document.body.style.overflow = '';
+  window.scrollTo(0, savedY);
+}
+$('player').querySelector('.pclose').addEventListener('click', closePlayer);
+$('player').addEventListener('click', function (e) { if (e.target === $('player')) closePlayer(); });
+var prevBack = window.__navBack;
+window.__navBack = function () { if (!$('player').hidden) { closePlayer(); return true; } return prevBack(); };
+
+var saveBlob = null;
+function nativeSaver() { try { return window.webkit.messageHandlers.forgeSave; } catch (e) { return null; } }
+window.__saveResult = function (ok, msg) { toast(msg || (ok ? 'Saved to Photos' : 'Couldn’t save that')); };
+function primeSave(url) {
+  if (nativeSaver()) return;
+  if (saveBlob && saveBlob.url === url) return;
+  saveBlob = null;
+  fetch(url).then(function (r) { return r.blob(); }).then(function (b) { saveBlob = { url: url, blob: b }; }).catch(function () {});
+}
+function saveName(url) { var n = String(url).split('?')[0].split('/').pop() || ''; return /\.\w{2,4}$/.test(n) ? n : 'stitch.mp4'; }
+function saveMedia(url) {
+  var native = nativeSaver();
+  if (native) { native.postMessage(url); toast('Saving…'); return; }
+  if (!(saveBlob && saveBlob.url === url)) { primeSave(url); toast('Getting the film — tap save again in a moment'); return; }
+  var blob = saveBlob.blob, name = saveName(url), file = null;
+  try { file = new File([blob], name, { type: blob.type || 'video/mp4' }); } catch (e) {}
+  if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({ files: [file] }).catch(function (err) { if (err && err.name !== 'AbortError') toast('Couldn’t open the share sheet'); });
+    return;
+  }
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+// ── THE PILL'S COLUMN, RESERVED ROW BY ROW (Footage's fitPillGap) ─────────
+function pillRect() {
+  var pill = document.querySelector('body > .float');
+  if (!pill) return null;
+  if (pill.getClientRects().length) return pill.getBoundingClientRect();
+  var d = pill.style.display, v = pill.style.visibility, r = null;
+  try { pill.style.visibility = 'hidden'; pill.style.display = ''; if (pill.getClientRects().length) r = pill.getBoundingClientRect(); } catch (_) {}
+  pill.style.display = d; pill.style.visibility = v;
+  return r;
+}
+function setGap(el, val) { if (el.style.getPropertyValue('--pillgap') !== val) el.style.setProperty('--pillgap', val); }
+function fitPillGap() {
+  var rows = document.querySelectorAll('[data-pillrow]');
+  var p = pillRect(), y = window.scrollY || 0, i;
+  if (!p) { for (i = 0; i < rows.length; i++) setGap(rows[i], '0px'); return; }
+  for (i = 0; i < rows.length; i++) {
+    var el = rows[i];
+    setGap(el, '0px');
+    var r = el.getBoundingClientRect();
+    if (!r.width || !r.height) continue;
+    // JUDGED AT THE TOP OF THE PAGE (Freeform's rule): a row is shortened
+    // only where it sits in the pill's band when the page is at rest, so a
+    // row passing under the rail as she scrolls never changes width under her
+    var top = r.top + y, bot = r.bottom + y;
+    if (bot <= p.top || top >= p.bottom) continue;
+    if (r.right <= p.left) continue;
+    setGap(el, Math.max(0, Math.ceil(r.right - p.left) + 8) + 'px');
+  }
+}
+window.__fitPillGap = fitPillGap;
+(function () {
+  var q = false;
+  function soon() { if (q) return; q = true; requestAnimationFrame(function () { q = false; fitPillGap(); }); }
+  window.addEventListener('resize', soon, { passive: true });
+  window.addEventListener('load', soon);
+  setTimeout(soon, 400); setTimeout(soon, 1500);
+  if (window.ResizeObserver) { var ro = new ResizeObserver(soon); ro.observe(document.documentElement); if (document.body) ro.observe(document.body); }
+  (function waitForPill(tries) {
+    var f = document.querySelector('body > .float');
+    if (f) { if (window.ResizeObserver) new ResizeObserver(soon).observe(f); soon(); return; }
+    if (tries > 0) setTimeout(function () { waitForPill(tries - 1); }, 120);
+  })(20);
+})();
+
+// ── BOOT ─────────────────────────────────────────────────
+loadFilms().then(loadPicks);
+(function () {
+  var id = new URLSearchParams(location.search).get('s');
+  var pending = null; try { pending = localStorage.getItem('stitch_pending'); } catch (e) {}
+  history.replaceState({ level: id ? 'open' : 'shelf', id: id || '' }, '', location.href);
+  if (id) openStitch(id, false);
+  else if (pending) openStitch(pending, true);
+  else showShelf(false);
+})();
+document.addEventListener('visibilitychange', function () { if (!document.hidden && S.id) poll(); });
+})();
+</script>
+</body>
+</html>

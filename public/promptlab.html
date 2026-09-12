@@ -2,6 +2,8 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Playground</title>
 <link rel="stylesheet" href="/tritoggle.css">
+<!-- THE LIST · TILES · 3/4 SWITCH — the one shell (/viewswitch.js), linked, never copied -->
+<link rel="stylesheet" href="/viewswitch.css">
 <!-- The toggle's BEHAVIOUR is shared too since 2026-08-24 — a tap lands on the
      stop under the thumb rather than cycling. See /tritoggle.js. -->
 <!-- THE CARET STAYS WHERE SHE CAN SEE IT (2026-09-08) — a box fitted to its
@@ -11,6 +13,7 @@
 <script src="/caretkeep.js"></script>
 <script src="/stickybox.js"></script>
 <script src="/tritoggle.js"></script>
+<script src="/viewswitch.js"></script>
 <!-- The feed's own shared pieces — the search grammar, liveInput/enterSubmits,
      the keyed reconcile, the derived display copy and the toast. ONE copy,
      so a second feed can never hand-copy them. -->
@@ -322,15 +325,13 @@
      she cut (2026-08-28, "I specifically asked for it to stay where it is") —
      at the width she reads on, the box has not moved. */
   .feedbar { display: flex; flex-wrap: wrap; padding: 8px 56px 8px 0; background: #faf7f2; }
-  .viewtog { display: flex; border: 1px solid #d8d0c4; border-radius: 6px; overflow: hidden; background: #fdfcf9; }
+  /* THE LIST · TILES · 3/4 SWITCH IS /viewswitch.css + /viewswitch.js — the
+     one shell since 2026-09-12, linked in the head, never copied here. */
   /* 8px side padding, and each cut was bought by a control the row gained:
      15 -> 11 when the columns segment landed (2026-08-25), 11 -> 8 when the
      SELECT chip did (2026-09-02). The search box's own placeholder is what
      pays for any slack here, and it is MEASURED at 390pt on both tabs — the
      PANELS tab carries a fourth chip and is the tight one. */
-  .viewtog button { border: 0; background: none; font: inherit; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: #6f675e; padding: 7px 8px; }
-  .viewtog button + button { border-left: 1px solid #d8d0c4; }
-  .viewtog button.on { background: #2b2622; color: #faf7f2; font-weight: 600; }
   /* THE TWO MARK FILTERS, one segmented box beside the view switch — neither
      is a third view: each rides on top of whichever view she is already in,
      and both are sticky, so a reload keeps them.
@@ -512,7 +513,6 @@
      bar-count picture is a grey smudge). Two states, so a tap is the only
      move there is — the house no-cycling rule is about a three-way toggle
      with stops to aim at; with two there is nowhere else a tap could mean. */
-  .viewtog .colseg { font-weight: 600; font-size: 13px; letter-spacing: 0; padding: 7px 12px; min-width: 34px; box-sizing: border-box; }
   .emptynote { font-size: 13px; color: #8a8177; padding: 18px 0; text-align: center; }
   #tiles .emptynote { grid-column: 1 / -1; }
   /* Tiles: THREE to a row by default (Aug 2026, her ask — four was too small
@@ -1192,26 +1192,32 @@
   // LIST (a box per run) or TILES (a wall of thumbnails). Sticky across loads.
   // Both buttons are always on screen and always labelled — the switch can
   // never strand her in a view she can't leave.
-  function curView() { return localStorage.getItem('promptlab_view') === 'tiles' ? 'tiles' : 'list'; }
-  function applyView() {
-    var tiles = curView() === 'tiles';
-    document.getElementById('v-list').classList.toggle('on', !tiles);
-    document.getElementById('v-tiles').classList.toggle('on', tiles);
-    document.getElementById('runs').hidden = tiles;
-    document.getElementById('tiles').hidden = !tiles;
-    // The drawing-runs box is a LIST-view thing: in tiles those runs hold
-    // their own squares at the front of the wall instead, so nothing is
-    // shown twice. (Cancelling a run therefore lives in list view.)
-    document.getElementById('pendings').hidden = tiles;
-    if (tiles) renderTiles();
-    // Coming back to the list: anything drawn while it was hidden measured 0/0
-    // and is still undecided, so measure it now that it has a box.
-    else resyncClamps();
-    if (selMode) paintSel();          // "All" means the view she is now in
-  }
-  function setView(v) { localStorage.setItem('promptlab_view', v); applyView(); }
-  document.getElementById('v-list').addEventListener('click', function () { setView('list'); });
-  document.getElementById('v-tiles').addEventListener('click', function () { setView('tiles'); });
+  // The switch itself is /viewswitch.js — the ONE implementation since
+  // 2026-09-12 (Sophie, on Stitch: "could you reuse the shell so I can switch
+  // between tiles and list view?"). This page owns the storage keys
+  // (promptlab_view / promptlab_cols, byte-for-byte what they were), what a
+  // view change does to its surfaces, and nothing else; the page's own names
+  // stay as thin wrappers so nothing below moved.
+  var VS = window.__viewSwitch({
+    mount: '.feedbar', key: 'promptlab', cols: [3, 4], view: 'list', apply: false,
+    onView: function (v) {
+      var tiles = v === 'tiles';
+      document.getElementById('runs').hidden = tiles;
+      document.getElementById('tiles').hidden = !tiles;
+      // The drawing-runs box is a LIST-view thing: in tiles those runs hold
+      // their own squares at the front of the wall instead, so nothing is
+      // shown twice. (Cancelling a run therefore lives in list view.)
+      document.getElementById('pendings').hidden = tiles;
+      if (tiles) renderTiles();
+      // Coming back to the list: anything drawn while it was hidden measured 0/0
+      // and is still undecided, so measure it now that it has a box.
+      else resyncClamps();
+      if (selMode) paintSel();          // "All" means the view she is now in
+    },
+  });
+  function curView() { return VS.view(); }
+  function applyView() { VS.applyView(); }
+  function setView(v) { VS.setView(v); }
 
   // ─── THE ADVANCED SEARCH DRAWER (2026-09-02, Sophie: "a toggle open
   // advanced search in all pages - reusable shell - playground meta assets
@@ -1511,32 +1517,10 @@
   // and the button is therefore never dead in either view. Sticky, like the
   // view and the two filters; three is the default, which is where the wall
   // already stood.
-  var COLS = [3, 4];
-  function curCols() {
-    var n = parseInt(localStorage.getItem('promptlab_cols'), 10);
-    return COLS.indexOf(n) >= 0 ? n : 3;
-  }
-  function applyCols() {
-    var n = curCols(), next = COLS[(COLS.indexOf(n) + 1) % COLS.length];
-    document.documentElement.style.setProperty('--cols', String(n));
-    var b = document.getElementById('v-cols');
-    b.textContent = String(n);
-    b.setAttribute('aria-label', n + ' pictures a row — tap for ' + next);
-    b.title = n + ' a row';
-  }
-  // IT LIVES IN THE VIEW SWITCH NOW — a third segment after Tiles (2026-08-25,
-  // Sophie: "the 3/4 switch button is in a weird place. It should not be in
-  // the auto scroll roll row"). The pill's rail was its previous home and she
-  // retired it: the fixed column floats over the prompt card on her phone, so
-  // the button read as detached from everything. How many across IS a view
-  // decision, so it sits in the List/Tiles box — which also deletes the whole
-  // measure-the-rail machinery (placeCols and its observers) that placing a
-  // fixed guest under the pill required.
-  document.getElementById('v-cols').addEventListener('click', function () {
-    var n = COLS[(COLS.indexOf(curCols()) + 1) % COLS.length];
-    try { localStorage.setItem('promptlab_cols', String(n)); } catch (e) { /* private mode */ }
-    applyCols();
-  });
+  // `--cols` is the switch's third segment, driven by /viewswitch.js (above);
+  // the page reads the number through these two names.
+  function curCols() { return VS.cols(); }
+  function applyCols() { VS.applyCols(); }
   applyCols();
 
   // ─── SEARCH (Aug 2026, Sophie: "can u add a little search bar that fits in

@@ -6,6 +6,8 @@
 <title>Footage</title>
 <!-- THE FILTER DRAWER'S PAINT — the one shell (/searchfilters.js), linked, never copied -->
 <link rel="stylesheet" href="/searchfilters.css">
+<!-- THE LIST · TILES · 3/4 SWITCH — the one shell (/viewswitch.js), linked, never copied -->
+<link rel="stylesheet" href="/viewswitch.css">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   [hidden]{display:none !important}
@@ -386,18 +388,8 @@
   #cast .none{font-size:13px;color:#8b8175;padding:6px 2px}
   /* Feed */
   .feedbar{display:flex;align-items:center;gap:8px;margin:0 0 10px;flex-wrap:wrap}
-  /* TWO WAYS TO READ THE FEED — the Playground's switch, ported (2026-09-09,
-     Sophie: "add tile/list/3/4 grid feature from playground"). LIST is a box
-     per clip, TILES is the posters `--cols` across, and the third segment is
-     the NUMBER — 3 or 4, never bars (at 16px two bar counts are one grey
-     smudge). Two states, so a tap has nowhere else it could mean. All three
-     choices are sticky under `footage_*` keys. */
-  .viewtog{display:flex;flex:none;border:1px solid #d8cfc0;border-radius:6px;overflow:hidden;background:#fdfbf7}
-  .viewtog button{border:0;border-radius:0;background:none;font:inherit;font-size:12px;letter-spacing:.07em;
-        text-transform:uppercase;color:#6f675e;padding:7px 8px}
-  .viewtog button+button{border-left:1px solid #d8cfc0}
-  .viewtog button.on{background:#2b2620;color:#f6f2ea}
-  .viewtog .colseg{font-size:13px;letter-spacing:0;padding:7px 11px;min-width:32px}
+  /* THE LIST · TILES · 3/4 SWITCH IS /viewswitch.css + /viewswitch.js — the
+     one shell, linked in the head, never copied here (2026-09-12). */
   /* `minmax(0,1fr)` is load-bearing: a bare `1fr` is `minmax(auto,1fr)`, and a
      cell's automatic minimum width is TRANSFERRED from the row's height
      through its own aspect-ratio — so one 16:9 clip on a row of portraits
@@ -1047,6 +1039,7 @@
 <script src="/feedkit.js"></script>
 <script src="/searchfilters.js"></script>
 <script src="/footage-hay.js"></script>
+<script src="/viewswitch.js"></script>
 <script>
 (function () {
 var TOKEN = '__STUDIO_TOKEN__';
@@ -2767,38 +2760,26 @@ function passesFilt(j) {
 // posters `--cols` across, and the third segment is the NUMBER — 3 or 4. ONE
 // variable on the root drives the wall AND a card's own reference row, so the
 // segment is never a dead control in either view. All three are sticky.
-var COLS = [3, 4];
-function curView() { try { return localStorage.getItem('footage_view') === 'tiles' ? 'tiles' : 'list'; } catch (e) { return 'list'; } }
-function curCols() {
-  var n = NaN;
-  try { n = parseInt(localStorage.getItem('footage_cols'), 10); } catch (e) {}
-  return COLS.indexOf(n) >= 0 ? n : 3;
-}
-function applyCols() {
-  var n = curCols(), next = COLS[(COLS.indexOf(n) + 1) % COLS.length];
-  document.documentElement.style.setProperty('--cols', String(n));
-  var b = $('v-cols');
-  b.textContent = String(n);                       // the NUMBER, never bars
-  b.setAttribute('aria-label', n + ' a row — tap for ' + next);
-  b.title = n + ' a row';
-}
-function applyView() {
-  var tiles = curView() === 'tiles';
-  $('v-list').classList.toggle('on', !tiles);
-  $('v-tiles').classList.toggle('on', tiles);
-  $('feed').hidden = tiles;
-  $('tiles').hidden = !tiles;
-  paintFeed();
-  if (!tiles) resyncClamps();
-}
-function setView(v) { try { localStorage.setItem('footage_view', v); } catch (e) {} applyView(); }
-$('v-list').addEventListener('click', function () { setView('list'); });
-$('v-tiles').addEventListener('click', function () { setView('tiles'); });
-$('v-cols').addEventListener('click', function () {
-  var n = COLS[(COLS.indexOf(curCols()) + 1) % COLS.length];
-  try { localStorage.setItem('footage_cols', String(n)); } catch (e) {}
-  applyCols();
+// The switch itself is /viewswitch.js — the ONE implementation since
+// 2026-09-12 (Sophie, on Stitch: "could you reuse the shell so I can switch
+// between tiles and list view?"). This page owns the storage key, what a view
+// change does to its two surfaces, and nothing else; `curView`/`curCols`/
+// `setView` stay as the page's names for it so nothing below moved.
+var VS = window.__viewSwitch({
+  mount: '#feedbar', key: 'footage', cols: [3, 4], view: 'list', apply: false,
+  onView: function (v) {
+    var tiles = v === 'tiles';
+    $('feed').hidden = tiles;
+    $('tiles').hidden = !tiles;
+    paintFeed();
+    if (!tiles) resyncClamps();
+  },
 });
+function curView() { return VS.view(); }
+function curCols() { return VS.cols(); }
+function applyCols() { VS.applyCols(); }
+function applyView() { VS.applyView(); }
+function setView(v) { VS.setView(v); }
 // A BATCH OF CARDS PAINTS THE FEED ONCE, NOT ONCE PER CARD. `loadJobs`
 // hands every clip to jobCard in turn, and the wall's signature changes on
 // each one — so a synchronous paint per card rebuilt the whole wall N times

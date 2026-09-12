@@ -49,6 +49,7 @@ enum ForgeLinks {
         "/clips": "chunking",
         "/assembly": "assembly",
         "/filmeditor": "filmeditor",
+        "/stitch": "stitch",
         "/dump": "dump",
         "/blog": "blog",
         "/studio": "product",
