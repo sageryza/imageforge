@@ -8531,8 +8531,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
   says which, a line under the strip says plainly what the doors will do
   BEFORE she taps, and a finished clip's **last-frame tile** opens big with
   **first frame** / **reference** beside `save` (no save-and-re-attach). A belt
-  hand-off may carry `firstFrame`/`lastFrame`. **Unmeasured and named:**
-  whether ByteDance honours a keyframe and references together on APIFRAME,
+  hand-off may carry `firstFrame`/`lastFrame`. **Measured 2026-09-12:** Atlas REFUSES a frame plus a reference on the
+  poll, free ("cannot be combined with reference media" — a row in
+  `video-refusals.js`); a frame ALONE on Atlas Mini drew and opened on the
+  exact still. **Unmeasured and named:**
+  whether ByteDance honours a keyframe and references together on APIFRAME
+  (the one try was refused by its content filter before drawing),
   which Seedance models take `frame_images` on OpenRouter, whether a last
   frame alone works there, and Atlas's image-to-video price against a real
   charge. Full note: *THE FIRST FRAME, ON ALL THREE DOORS* in
