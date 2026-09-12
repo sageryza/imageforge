@@ -113,4 +113,35 @@ function fromJob(job, tag) {
   return doc;
 }
 
-module.exports = { COLL, sentRecord, finishPatch, fromJob, drewMsOf };
+
+// A REFUSED JOB IS LOGGED TOO (2026-09-12, Sophie, after an OpenRouter
+// refusal cost her the whole prompt: "can you log refuse jobs?").
+//
+// Until this, a refusal was the ONE thing that left no trace: every door
+// throws inside `startVideo` BEFORE `forge-video-jobs` is written, so a
+// clip refused at validation existed nowhere but the box she typed it in —
+// which is why a chat could not re-send one for her, and why closing the
+// page lost a fifteen-second scene. The job is filed the same way an
+// accepted one is, with the same prompt and the same references, so the
+// 1080p redo reads it like any other and the page's own "Try again" puts
+// her words back.
+//
+// The status is `failed`, deliberately, NOT a new word: every reader —
+// the feed card's ✕, the error line, "Try again", the trims filter — already
+// knows that one, and a page cached on her phone from before today would
+// draw an unknown status as a clip that draws forever. What the refusal was
+// rides beside it (`refusal` 'content' | 'shape', and the `door` that said
+// no), which is what lets the card offer the other doors.
+function refusedRecord({ jobId, prompt, model, params, tag, door, refusal, error, why }) {
+  const doc = sentRecord({ jobId, prompt, model, params, tag });
+  doc.status = 'failed';
+  doc.refused = true;
+  doc.doneAt = doc.sentAt;
+  if (door) doc.door = String(door);
+  if (refusal) doc.refusal = String(refusal);
+  if (error) doc.error = String(error).slice(0, 500);
+  if (why) doc.why = String(why).slice(0, 500);
+  return doc;
+}
+
+module.exports = { COLL, sentRecord, refusedRecord, finishPatch, fromJob, drewMsOf };

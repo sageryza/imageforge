@@ -1208,6 +1208,38 @@ function refVideoTotalRefusal(seconds, door) {
 // Answers { jobId, door, sent, seed, estimate, note } or throws with
 // status/refusal/why/hint. ONE door, one send — a refusal throws and the
 // page shows it; nothing here sends the job anywhere else (see doorFor).
+// Write a refused job into `forge-video-jobs` exactly as an accepted one is
+// written — same prompt, same references, same tags — with `status:'failed'`
+// (never a new word: an older cached page draws an unknown status as a clip
+// that draws forever) and `refused`/`refusal`/`door` beside it. See
+// video-log.js's own note.
+async function logRefusal({ body, refs, m, res, ratio, seconds, first, last, door, err }) {
+  const params = {
+    duration: seconds, resolution: res, ratio,
+    generate_audio: body.generateAudio !== false,
+    reference_image_urls: (body.referenceImageUrls || []).slice(),
+    reference_video_urls: (body.referenceVideoUrls || []).slice(),
+    reference_audio_urls: (body.referenceAudioUrls || []).slice(),
+  };
+  if (body.seed != null) params.seed = body.seed;
+  if (first) params.start_image = first;
+  if (last) params.end_image = last;
+  const ex = videoRefusals.explain(String((err && err.message) || ''));
+  const doc = videoLog.refusedRecord({
+    jobId: crypto.randomUUID(), prompt: body.prompt, model: (m && m.label) || '', params,
+    tag: { chat: body.chat || CHAT, title: titleOf(body.prompt), project: body.project, folder: body.folder },
+    door, refusal: err && err.refusal, error: (err && err.message) || '',
+    why: (err && err.why) || (ex && ex.line) || '',
+  });
+  doc.refs = refs.map((r) => ({ url: r.url, kind: r.kind, slot: r.slot || '', role: r.role || '', name: r.name || '' }));
+  doc.modelLabel = (m && m.label) || '';
+  doc.seconds = seconds; doc.resolution = res; doc.ratio = ratio;
+  doc.sound = params.generate_audio;
+  doc.aspect = ratio;
+  doc.footage = true;
+  await coll().doc(doc.job).set(doc);
+}
+
 async function startJob(b) {
   await discounts().catch(() => {});
   await atlasPrices().catch(() => {});
@@ -1252,6 +1284,13 @@ async function startJob(b) {
   } catch (e) {
     // the door's refusal, as it came — the page's card and toast say why
     e.door = e.door || d.door;
+    // AND IT IS LOGGED (2026-09-12, Sophie: "can you log refuse jobs?").
+    // The door threw before it could file anything, so her prompt and her
+    // references would otherwise live only in the box she typed them in.
+    // Best-effort and never awaited into the refusal: a log that fails must
+    // still let the door's own words reach her, unchanged.
+    await logRefusal({ body, refs, m, res, ratio, seconds, first, last, door: d.door, err: e })
+      .catch(() => {});
     throw e;
   }
   // the seed the door really used — hers, or the one it minted — so the card
