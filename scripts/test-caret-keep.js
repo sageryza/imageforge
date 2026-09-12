@@ -218,6 +218,55 @@ const server = http.createServer((req, res) => {
   ok((await page.evaluate(() => window.scrollY)) === 300,
     'with nothing focused the page stays where she put it');
 
+  // ── 6b. A TAP FOCUSES THE BOX BEFORE IT PLACES THE CARET (2026-09-12,
+  //       Sophie: "putting the cursor down also scrolls"). At focusin the
+  //       selection is still the OLD caret — WebKit keeps it where she last
+  //       typed, the end of the scene a screen below — and a keep run right
+  //       there scrolled toward it, then back. The test restores WebKit's
+  //       shape (Chromium resets the caret to 0 on focus, which hides the
+  //       bug) by parking the old caret at the end again inside `focus`,
+  //       before the keeper's own focusin listener runs, and counts every
+  //       scroll the keeper asks for. ──
+  await page.evaluate(() => {
+    const el = document.getElementById('a');
+    const end = el.value.length;
+    el.setSelectionRange(end, end); el.blur();
+    window.__tapArm = () => {
+      const stale = () => el.setSelectionRange(end, end);
+      el.addEventListener('focus', stale, { once: true });
+    };
+    window.__scrolls = [];
+    const o = window.scrollTo.bind(window);
+    window.scrollTo = function (x, y) { window.__scrolls.push(Math.round(typeof x === 'object' ? x.top : y)); return o(x, y); };
+    window.scrollTo(0, 0);
+  });
+  await page.waitForTimeout(300);
+  const boxTop = await page.evaluate(() => document.getElementById('a').getBoundingClientRect().top);
+  const lineY = (n) => boxTop + 10 + (n - 0.5) * lines.lh;      // the middle of line n
+  await page.evaluate(() => { window.__tapArm(); window.__scrolls = []; });
+  await page.touchscreen.tap(120, lineY(3));                    // a line in plain view
+  await page.waitForTimeout(1100);
+  const tapIn = await page.evaluate(() => ({ scrolls: window.__scrolls, y: window.scrollY, sel: document.getElementById('a').selectionEnd, active: document.activeElement.id }));
+  ok(tapIn.active === 'a' && tapIn.sel > 0 && tapIn.sel < 80,
+    'the tap focused the box and put the caret on the line she tapped (index ' + tapIn.sel + ')');
+  ok(tapIn.scrolls.length === 0 && tapIn.y === 0,
+    'tapping a line already in view scrolls NOTHING — not toward the old caret at the end, not back (' + JSON.stringify(tapIn.scrolls) + ')');
+
+  // …and a line under the keyboard is still lifted, once the caret is really there
+  await page.evaluate(() => { const el = document.getElementById('a'); el.blur(); window.scrollTo(0, 0); });
+  await page.waitForTimeout(500);
+  await page.evaluate(() => { window.__tapArm(); window.__scrolls = []; });
+  await page.touchscreen.tap(120, lineY(24));                   // ~y 600, under a 430px band
+  await page.waitForTimeout(1100);
+  const tapUnder = await caret();
+  ok(tapUnder.y > 0 && tapUnder.bottom <= tapUnder.bBottom + 1 && tapUnder.top >= tapUnder.bTop - 1,
+    'a tap on a line under the keyboard still lifts it into the band (' + Math.round(tapUnder.top) + '–' + Math.round(tapUnder.bottom) + ', page at ' + tapUnder.y + ')');
+  const dir = await page.evaluate(() => window.__scrolls);
+  ok(dir.length > 0 && dir.every((y) => y > 0 && y < 600),
+    'and every scroll it asked for went to the tapped line, never past it toward the old caret (' + JSON.stringify(dir) + ')');
+  await page.evaluate(() => { document.getElementById('a').blur(); });
+  await page.waitForTimeout(500);
+
   // ── 7. a box inside a fixed sheet scrolls the SHEET, never the window ──
   const p2 = await ctx.newPage();
   p2.on('pageerror', (e) => ok(false, 'sheet page error: ' + e.message));
