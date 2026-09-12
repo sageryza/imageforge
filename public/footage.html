@@ -287,8 +287,18 @@
      cells still fit a row at 390pt either way. */
   .refs{display:flex;gap:8px 16px;flex-wrap:wrap}
   .ref{position:relative;width:72px}
+  /* THE THUMB OPENS IT BIGGER (2026-09-12, Sophie: "make clicking on a chosen
+     reference open it bigger"). A 72px tile is too small to check that the
+     picture riding as [Image2] is the one she meant, and the strip was the
+     one place on this page a picture could not be looked at. It is a <button>
+     on a PICTURE or a VIDEO and stays a plain <div> on an audio reference —
+     there is nothing to open bigger there, and a control that does nothing is
+     worse than none (the Assets tab's silence rule). `padding:0` is
+     load-bearing: the page's base button rule pads 7/11, which would inset
+     the picture inside its own tile. */
   .ref .im{width:72px;height:72px;border:1px solid #e0d8ca;border-radius:6px;overflow:hidden;background:#2b2620;
-           display:flex;align-items:center;justify-content:center;color:#f6f2ea}
+           display:flex;align-items:center;justify-content:center;color:#f6f2ea;padding:0}
+  .ref button.im{cursor:pointer}
   .ref .im img{width:100%;height:100%;object-fit:cover;display:block}
   .ref .im svg{width:26px;height:26px}
   .ref .slot{display:block;width:100%;margin-top:4px;padding:3px 0;font-size:11px;letter-spacing:.04em;background:#fdfbf7}
@@ -896,6 +906,21 @@
        two drop-downs are the model and the size, the stepper is the length. -->
   <button type="button" class="fold" id="ctlfold" aria-expanded="true" aria-controls="controls"><span class="chev"></span><span id="ctlfoldlab">Buttons</span></button>
   <div class="row" id="controls">
+    <!-- THE PROJECT AND ITS FOLDER (2026-09-11, Sophie: "group projects and
+         character references so when I switch between projects, I can only
+         see those references offered to me and only related files in the
+         tiles list view area", then "can we do sub folders"). The cast
+         library's films ARE the list; picking one narrows the feed, the
+         Recent drawer and the character sheet to it and stamps it on every
+         clip sent. "All" is a real stop. IT LEADS THE BUTTONS ROW (her
+         correction the same night: "folder in buttons not next to") — it
+         rode a fold row, beside the word "Buttons" and then beside "Prompt",
+         on a pre-build estimate that this row could not hold it; measured at
+         390pt after the move it is the same two lines it already was. The
+         cost is named rather than worked around: folding the buttons, or the
+         whole panel, takes the picker with them, and the HEADER is what
+         still says which project she is in. -->
+    <span class="selwrap iconsel" id="projwrap"><select id="project" aria-label="Project and folder" title="Project and folder"></select><span class="ico"></span></span>
     <button class="up ib" type="button" id="add" aria-label="Add a reference" title="Add a reference"><span id="addicon"></span><input type="file" accept="image/*,video/*,audio/*" multiple id="file"></button>
     <button id="rectog" type="button" aria-expanded="false" aria-label="Recent — clips you made and references you have used" title="Recent — clips you made and references you have used" hidden></button>
     <!-- THE CHARACTER LIBRARY (2026-09-11, Sophie: "add character icon to
@@ -1842,7 +1867,10 @@ function paintRefs() {
   list.forEach(function (r, i) {
     var role = marked[i].role;
     var d = document.createElement('div'); d.className = 'ref';
-    d.innerHTML = '<div class="im">' + thumbHtml(r) + '</div>' +
+    var big = r.kind !== 'audio';
+    d.innerHTML = (big
+      ? '<button type="button" class="im" aria-label="Open this reference bigger" title="Open it bigger">' + thumbHtml(r) + '</button>'
+      : '<div class="im">' + thumbHtml(r) + '</div>') +
       (role
         ? '<span class="slot kfslot">' + esc(roleWord(role)) + '</span>'
         : '<button type="button" class="slot" title="Put this name in the prompt">' + esc(slots[i]) + '</button>') +
@@ -1854,6 +1882,11 @@ function paintRefs() {
           + (role ? roleWord(role) : 'First frame') + '">' + ICONS.flag + '</button>'
         : '') +
       '<button type="button" class="x" aria-label="Take this reference off">✕</button>';
+    // BY POSITION, like the ✕ under it — `refs` is exactly the list painted
+    // here, so the row's index is the slot it occupies even after a copy-back
+    // has replaced every object in the strip.
+    var im = d.querySelector('button.im');
+    if (im) im.addEventListener('click', function () { openRef(i); });
     var sl = d.querySelector('button.slot');
     if (sl) sl.addEventListener('click', function () { insertAtCaret(slots[i]); });
     var kf = d.querySelector('.kf');
@@ -3596,7 +3629,7 @@ function r3(x) { return Math.round(Number(x) * 1000) / 1000; }
 // no second to note. A tap on the picture does NOT close (the house rule the
 // player already keeps); the backdrop and the ✕ do.
 var shotUrl = '';
-function openShot(url) {
+function openShot(url, opts) {
   var pl = $('player');
   if (window.__scrollStop) window.__scrollStop();
   savedY = window.scrollY || 0;
@@ -3609,8 +3642,11 @@ function openShot(url) {
   // CHAINING OFF THE FRAME SHE IS LOOKING AT — the two doors onto the next
   // clip, beside `save`, because this is the screen the frame is big on and a
   // second button inside a 3-across tile is far under any tap target.
-  $('pfirst').hidden = false;
-  $('pref').hidden = false;
+  // A REFERENCE ALREADY IN THE STRIP GETS NEITHER (`use:false`): "reference"
+  // would do nothing at all, and "first frame" is the flag on its own tile.
+  var use = !(opts && opts.use === false);
+  $('pfirst').hidden = !use;
+  $('pref').hidden = !use;
   $('trimbar').hidden = true;
   pl.hidden = false;
 }
@@ -3655,6 +3691,19 @@ function openPlayer(url, j) {
   // the STAGE is the host, not the whole player — see the `.pstage` note in
   // the stylesheet: filmnote anchors its controls to its wrap's bottom edge
   try { if (window.__filmNote) fnote = window.__filmNote({ wrap: pl.querySelector('.pstage'), video: v, chat: noteChat(), url: url }); } catch (e) {}
+}
+// A REFERENCE IN THE STRIP, BIG (2026-09-12, Sophie: "make clicking on a
+// chosen reference open it bigger"). The SAME overlay the clip and the last
+// frame open in — one lightbox on this page — so the way out is the way out
+// she already knows: the backdrop, the ✕, the app's own chevron.
+// A picture is the still view with save; a video is the ordinary player with
+// NO trim bar (`armTrim(null)` — there is nothing here to cut: a reference is
+// a file she attached, not a clip this page drew).
+function openRef(i) {
+  var r = refs[i];
+  if (!r || !r.url || r.kind === 'audio') return;
+  if (r.kind === 'video') openPlayer(r.url, null);
+  else openShot(r.url, { use: false });
 }
 // ── WHAT CHANGED — the compare panel (2026-09-11, Sophie: "is there an easy
 // way I can diff video clips like I can't remember what I changed for example
