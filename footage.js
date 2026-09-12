@@ -1314,7 +1314,11 @@ router.post('/jobs', async (req, res) => {
     // `why` is the table's line for the door's text — the card's own field,
     // so a refusal on the POST reads the same as one that lands on the poll
     const ex = e.why ? null : videoRefusals.explain(e.body || e.message, e.errorCode, e.door || '');
-    res.status(e.status || 500).json({ error: e.message, refusal: e.refusal, hint: e.hint, why: e.why || (ex && ex.line) || undefined });
+    // WHICH DOOR REFUSED IT rides back, because the page offers her the
+    // OTHERS (2026-09-12, Sophie: "send it through atlas") — and a list that
+    // included the door that just refused would be one tap of hers spent on
+    // the same refusal. The job is still never re-sent on its own.
+    res.status(e.status || 500).json({ error: e.message, refusal: e.refusal, hint: e.hint, door: e.door, why: e.why || (ex && ex.line) || undefined });
   }
 });
 
