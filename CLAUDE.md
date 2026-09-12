@@ -8581,6 +8581,21 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (the funnel is drawn only while the search is open). Its rows say "All" and
   "New…" rather than anything longer because a select is as wide as its
   longest row.
+  **AND A PROJECT'S FOLDERS FOLD (2026-09-12, Sophie: "make the commercials
+  collapsible in the drop-down").** Six witch commercials plus everyone
+  else's turns one drop-down into a list she has to read; shut, a project is
+  ONE row with a fold row under it saying how many folders are behind
+  (`▸ 6 folders`), and the folder rows are not in the list at all. **The fold
+  row is its own option** — a `<select>` has no other way to carry a control —
+  and picking it toggles and puts the value straight back, so folding never
+  moves the feed or a clip. Three things not to undo: **the project she is IN
+  is always open** whatever the memory says (its folder has to be an option or
+  the select cannot show where she is — same for a card, whose menu opens its
+  own clip's project); it is **REMEMBERED** (`footage_open`), because this is a
+  picker she opens all day and re-expanding the same project every time is the
+  fold not working, and the picker and every card's menu read the ONE set; and
+  **shut counts, open does not** (the archive summary's don't-say-it-twice
+  rule).
 
   **EVERY CHAT'S CLIPS RIDE THE FEED SINCE THE SAME EVENING (Sophie: "most
   of them made in chat. Are you adding them to footage? If so, good")** — the

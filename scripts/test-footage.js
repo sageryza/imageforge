@@ -2317,8 +2317,40 @@ async function pillSweep(pg, where) {
     });
     ok('the picker is a folder icon at the feed bar\'s own height, text hidden, unlit on All, and takes its tap — ' + all.w + 'x' + all.h, all.w === 34 && all.h === 32 && all.icon && all.textHidden && !all.on && all.tappable);
     ok('the header says Footage on All', all.title === 'Footage');
-    ok('its rows are the projects with their folders under them, New project… last and no New folder… on All — ' + all.rows.join(' '), all.rows.indexOf('ward/socks= › socks') === all.rows.indexOf('ward=The ward') + 1 && all.rows[all.rows.length - 1] === '__new=New project…' && !all.rows.some((r) => r.startsWith('__newfolder')));
-    ok('f0\'s card says its folder, its drop-down lists the folder rows with its own lit, and a project-less card offers no New folder… — ' + all.f0, /socks/.test(all.f0) && all.f0rows.includes('ward/socks') && all.f0rows.includes('__newfolder') && all.f0val === 'ward/socks' && !all.f4rows.includes('__newfolder'));
+    // A PROJECT'S FOLDERS ARE FOLDED SHUT (2026-09-12, "make the commercials
+    // collapsible in the drop-down"): on All the project is ONE row with a
+    // fold row under it counting what is behind, and the folder rows are not
+    // in the list at all.
+    ok('its rows are the projects with a fold row under them, the folders shut, New project… last and no New folder… on All — ' + all.rows.join(' '),
+      all.rows.indexOf('__fold:ward= ▸ 1 folder') === all.rows.indexOf('ward=The ward') + 1
+      && !all.rows.some((r) => r.startsWith('ward/socks'))
+      && all.rows[all.rows.length - 1] === '__new=New project…' && !all.rows.some((r) => r.startsWith('__newfolder')));
+    // ...and the CARD's menu opens its own clip's project, or the select could
+    // not show where the clip is.
+    ok('f0\'s card says its folder, its drop-down opens its own project with its row lit, and a project-less card offers no New folder… — ' + all.f0, /socks/.test(all.f0) && all.f0rows.includes('ward/socks') && all.f0rows.includes('__newfolder') && all.f0val === 'ward/socks' && !all.f4rows.includes('__newfolder'));
+    // TAPPING THE FOLD ROW OPENS IT, AND MOVES NOTHING — the feed is not
+    // re-asked and the value goes straight back, so folding is never a filter.
+    {
+      const before = await pgP.evaluate(() => ({ n: document.querySelectorAll('#feed .job:not([hidden])').length, v: document.getElementById('project').value }));
+      const nReads = projReads.length;
+      await pgP.selectOption('#project', '__fold:ward');
+      await pgP.waitForTimeout(250);
+      const open = await pgP.evaluate(() => ({
+        rows: Array.from(document.getElementById('project').options).map((o) => o.value + '=' + o.textContent),
+        v: document.getElementById('project').value,
+        n: document.querySelectorAll('#feed .job:not([hidden])').length,
+        stored: localStorage.getItem('footage_open'),
+        card: Array.from(document.querySelector('#job-f4 .projsel select').options).map((o) => o.value) }));
+      ok('the fold row opens the folders and stops counting while open — ' + open.rows.join(' '),
+        open.rows.includes('ward/socks=  › socks') && open.rows.includes('__fold:ward= ▾ folders'));
+      ok('it moved nothing — same value, same clips, no feed read', open.v === before.v && open.n === before.n && projReads.length === nReads);
+      ok('it is remembered — ' + open.stored, /ward/.test(open.stored || ''));
+      ok('and a CARD\'s menu opens with it, since both read the one set', open.card.includes('ward/socks'));
+      await pgP.selectOption('#project', '__fold:ward');
+      await pgP.waitForTimeout(250);
+      const shut = await pgP.evaluate(() => ({ rows: Array.from(document.getElementById('project').options).map((o) => o.value), stored: localStorage.getItem('footage_open') }));
+      ok('and tapping it again shuts it — ' + shut.rows.join(' '), !shut.rows.includes('ward/socks') && !/ward/.test(shut.stored || ''));
+    }
     await pgP.selectOption('#project', 'ward');
     await pgP.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 6);
     const inWard = await pgP.evaluate(() => ({ on: document.getElementById('projwrap').classList.contains('on'), title: document.getElementById('title').textContent, last: document.getElementById('project').options[document.getElementById('project').options.length - 1].value, f1val: document.querySelector('#job-f1 .projsel select').value }));
