@@ -203,6 +203,12 @@
      `.st` is the same thing one box in: `InputVideoSensitiveContentDetected.
      PrivacyInformation` is 52 unbroken characters in a 238px box. */
   .err{color:#a0402a;font-size:13px;margin-top:8px;overflow-wrap:anywhere}
+  /* The doors that would still take a refused job — underlined words, never
+     boxed buttons (the house rule for an inline opener), one per line so a
+     long door name and its price never wrap into each other. */
+  .doorrow{margin-top:8px;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+  .doorgo{border:0;background:none;padding:0;margin:0;font:inherit;color:#a0402a;
+    text-decoration:underline;cursor:pointer;text-align:left}
   /* THE PLAN BEFORE THE GO IS HISTORY (2026-09-09, Sophie the next day: "no
      plan button"). It shipped the day before at her own ask ("plan before
      go") and she retired it within the day: the star sends on its tap and the
@@ -863,7 +869,7 @@
   <p><b>Say what the clip is.</b> Add references &mdash; a picture, a clip, a sound &mdash; and name each one in the prompt by its slot: <b>[Image1]</b>, <b>[Video1]</b>, <b>[Audio1]</b>. Tap a slot name to drop it into the box. Never describe what a reference shows; the picture is the point.</p>
   <p><b>The star sends it.</b> One tap, and the line beside it says what that tap costs. With a reference video that figure is the closest the door will say up front; the real charge lands on the card when the clip finishes.</p>
   <p><b>Every clip says how long it took.</b> <i>drew in 2m 34s</i> on the card is the door's own figure, not how long you were watching — close the app and it keeps drawing, and the time it reports is still the real one. A clip drawn before this says nothing rather than guessing.</p>
-  <p><b>Whichever door is cheapest</b> &mdash; the line beside the star names it. Right now that is <b>Atlas Cloud</b> for Mini and Fast and <b>OpenRouter</b> for 2.0 and 2.5, but nothing here is written down: the three doors are priced for the exact clip you have set up and the cheapest one gets it. If that door refuses a reference &mdash; free, before anything draws &mdash; the job stops there and the card says why; it is never sent through another door on its own, and never drawn without its references. OpenRouter refuses any person in a reference, Atlas Cloud takes a person and refuses only a famous face.</p>
+  <p><b>Whichever door is cheapest</b> &mdash; the line beside the star names it. Right now that is <b>Atlas Cloud</b> for Mini and Fast and <b>OpenRouter</b> for 2.0 and 2.5, but nothing here is written down: the three doors are priced for the exact clip you have set up and the cheapest one gets it. If that door refuses a reference &mdash; free, before anything draws &mdash; the job stops there and the error says why, with the other doors that would still take it underneath it, priced. Tapping one sends that same job &mdash; your words, your references, that door. Nothing is ever sent through another door on its own, and never drawn without its references. OpenRouter refuses any person in a reference, Atlas Cloud takes a person and refuses only a famous face.</p>
   <p><b>Four models.</b> <b>2.0 Mini</b> is the default and much the cheapest. <b>2.0 Fast</b>, <b>2.0</b> and <b>2.5</b> climb from there &mdash; the line beside the star says what the tap costs before you make it. Two things worth knowing: <b>Fast is the strict one</b> (a plain prompt with no reference at all has come back refused there with a copyright line, free and unbilled, where the same words drew on Mini), and <b>2.0 is the only one that does 1080p</b>.</p>
   <p><b>The last frame of a clip</b> &mdash; the small picture under its references, for chaining one shot into the next. Tap it to see it big and save it. It rides on Atlas Cloud only, so a clip that went out through another door has none and shows no picture.</p>
   <p><b>The whole prompt area folds.</b> Tap <b>Prompt</b> at the top of the panel and the box, the references, the buttons and the star go away together &mdash; the clips come up to just under the header, which is the quickest way down to them. Shut, the row says the first words of what is in the box, and the project stays on it so you can still narrow what you are looking at. Nothing is lost: everything is still set the way you left it, and anything that puts words or a reference back opens it again.</p>
@@ -2448,14 +2454,29 @@ mountBlock(blocks()[0]);
 // it, and her words are in the box above it — so the read-back is on screen at
 // the moment of the tap rather than behind an extra one. Do NOT build the plan
 // card back.
-$('go').addEventListener('click', function () {
+// THE DOOR THAT REFUSED IT HANDS HER THE OTHERS (2026-09-12, Sophie, looking
+// at an OpenRouter refusal on a reference with a real face in it: "my job got
+// refused. send it through atlas"). The refusal already named the doors that
+// would take it and there was nothing on the page to DO that — the page pins
+// `auto` and nothing else, so the only way through was retyping a
+// fifteen-second scene somewhere else. Her words and her references are still
+// in the box, so the way through is one tap: the refusal line grows an
+// underlined door word per door that can still take this exact job, with what
+// that tap costs beside it.
+//
+// IT IS ALWAYS HER TAP, NEVER A WALK. Her 2026-09-11 rule stands word for
+// word — a refused job stops at its door, nothing is re-sent on its own, and
+// nothing is ever drawn without its references. This only puts the choice she
+// already has to make in front of her thumb instead of in another app.
+$('go').addEventListener('click', function () { sendJob(''); });
+function sendJob(pin) {
   var btn = $('go');
   if (btn.disabled) return;                       // one tap is one job
   var box = activeBox(), prompt = box.value;      // the block she is in
   $('err').hidden = true;
   if (!prompt.trim()) return toast('Say what the clip is first');
   var body = { prompt: prompt, model: S.model, seconds: S.seconds, resolution: S.res, ratio: S.ratio,
-    sound: true, door: doorNow(), refs: orderedRefs(), project: S.project, folder: S.project ? S.folder : '' };
+    sound: true, door: pin || doorNow(), refs: orderedRefs(), project: S.project, folder: S.project ? S.folder : '' };
   // THE TWO KEYFRAMES RIDE AS URLS — the server marks the matching reference
   // with its `role`, leaves it out of the reference lists and maps it onto
   // whatever the door calls it (`image` on Atlas, `frame_images` on
@@ -2483,6 +2504,13 @@ $('go').addEventListener('click', function () {
       else if (d && d.refusal === 'down') msg = d.hint || msg;
       else if (d && d.hint) msg += ' — ' + d.hint;
       $('err').textContent = msg; $('err').hidden = false;
+      // A CONTENT refusal is the one kind another door may take — a shape
+      // refusal is refused everywhere that shape is refused, and a door being
+      // down says nothing about this job. So the words are offered there and
+      // nowhere else.
+      // the door the server says refused it, else the one the price line
+      // named for this tap — an older page carries no `door` on the error
+      if (d && d.refusal === 'content') offerDoors(d.door || $('cost').dataset.door || '');
       return;
     }
     var m = modelOf(S.model);
@@ -2512,7 +2540,40 @@ $('go').addEventListener('click', function () {
     $('err').textContent = 'The server did not answer — nothing was sent or charged. Try again in a minute.';
     $('err').hidden = false;
   });
-});
+}
+
+// The doors that can still take THIS job, priced. `/estimate` is free and is
+// the one place that knows whether a door can take the job's shape at all —
+// asking it means a door is never offered that would only refuse her again,
+// and the price beside the word is the same figure the star's own line shows
+// (the house rule: what a tap costs sits beside the tap).
+function offerDoors(refused) {
+  var others = ['atlascloud', 'openrouter', 'apiframe'].filter(function (d) { return d !== refused; });
+  var q = '?model=' + encodeURIComponent(S.model) + '&res=' + encodeURIComponent(S.res)
+    + '&ratio=' + encodeURIComponent(S.ratio) + '&seconds=' + encodeURIComponent(S.seconds)
+    + (orderedRefs().some(function (r) { return r.kind === 'video' && !roleOfUrl(r.url); }) ? '&video=1' : '')
+    + (firstUrl ? '&first=1' : '') + (lastUrl ? '&last=1' : '')
+    + (orderedRefs().some(function (r) { return !roleOfUrl(r.url); }) ? '&refs=1' : '');
+  Promise.all(others.map(function (d) {
+    return api('/estimate' + q + '&door=' + d).then(function (e) {
+      return e && e.ok && e.cents != null ? { door: d, cents: e.cents, about: e.about } : null;
+    }).catch(function () { return null; });
+  })).then(function (rows) {
+    rows = rows.filter(Boolean);
+    if (!rows.length) return;
+    var row = document.createElement('div');
+    row.className = 'doorrow';
+    rows.forEach(function (r) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'doorgo';
+      b.textContent = 'Send it through ' + doorWord(r.door) + ' · ' + (r.about ? '~' : '') + '$' + (r.cents / 100).toFixed(2);
+      b.addEventListener('click', function () { $('err').hidden = true; sendJob(r.door); });
+      row.appendChild(b);
+    });
+    $('err').appendChild(row);
+  });
+}
 
 // ── The feed ──────────────────────────────────────────────────────────────
 function likedOnly() { try { return localStorage.getItem('footage_liked') === '1'; } catch (e) { return false; } }
