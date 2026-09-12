@@ -22,7 +22,10 @@
    - IT ONLY EVER CORRECTS. A caret comfortably inside the band moves nothing,
      so reading back over a scene while the keyboard is up is untouched. It
      never fires on a scroll event — that is her finger, and a keeper that
-     answered it would fight her for the page.
+     answered it would fight her for the page. And it never measures at the
+     moment of a TAP: a tap focuses the box on the press and places the caret
+     on the release, so the first keep waits one task for the caret she
+     actually put down (2026-09-12, "putting the cursor down also scrolls").
    - THE WINDOW, NEVER `scrollIntoView`. That walks every scrollable ancestor
      (the house rule the chapter bar already learned), and a belt card lives
      in a HORIZONTALLY snapping deck — one call would page her to another
@@ -202,15 +205,47 @@
     });
   }
 
+  // A TAP FOCUSES THE BOX BEFORE IT PLACES THE CARET (2026-09-12, Sophie:
+  // "putting the cursor down also scrolls"). `focus` fires on the press and
+  // the selection lands on the release, so at focusin `selectionEnd` is
+  // STALE — WebKit keeps the old caret (the end of the scene she last typed
+  // at, a screen or more below), Chromium resets it to 0. A keep run
+  // synchronously here measured that old caret and scrolled the page toward
+  // it, and the 90ms retry scrolled back: the lurch she saw on every tap.
+  // So a focus ARMS the keeper and the first keep waits for the tap's
+  // RELEASE — the CLICK that follows the focus, which is when the caret she
+  // put down is really there (measured: with the selection moved during
+  // focus, Chromium places the tap's caret at the click and not at mouseup,
+  // a task later) — with a short fallback for a focus no tap made (the
+  // pencil, a Tab). Until then nothing is measured, and a selection change
+  // in that window (the old caret being restored) is ignored; after it,
+  // `selectionchange` keeps the caret wherever a tap or a drag really puts it.
+  var pending = 0;
+  function arm(el) {
+    clearTimers();
+    clearTimeout(pending);
+    pending = setTimeout(function () { pending = 0; if (focused === el) burst(el); }, 150);
+  }
+  function released() {
+    if (!pending || !focused) return;
+    clearTimeout(pending); pending = 0;
+    var el = focused;
+    timers.push(setTimeout(function () { if (focused === el) burst(el); }, 0));
+  }
   document.addEventListener('focusin', function (e) {
     if (!boxy(e.target)) return;
     focused = e.target;
-    burst(focused);
+    arm(focused);
   }, true);
+  document.addEventListener('click', released, true);
+  document.addEventListener('selectionchange', function () {
+    if (focused && !pending && focused === document.activeElement) soon();
+  });
   document.addEventListener('focusout', function (e) {
     if (e.target !== focused) return;
     focused = null;
     clearTimers();
+    clearTimeout(pending); pending = 0;
     // the borrowed room goes back with the keyboard, after it has gone: a
     // page that shortens under her thumb mid-blur jumps the words she is
     // reading
@@ -232,7 +267,11 @@
   window.__caretKeep = {
     version: 1,
     keep: keep,
-    focus: function (el) { if (boxy(el)) { focused = el; burst(el); } },
+    // compare.js calls this on EVERY focusin (it is how the lazily loaded
+    // keeper learns about the box the fetch was started for), so it arms
+    // exactly as focusin does — a burst run here would measure the tap's
+    // stale caret, which is the scroll she reported
+    focus: function (el) { if (boxy(el)) { focused = el; arm(el); } },
     caretRect: caretRect,
     band: band,
     // the test's hands on a keyboard a headless browser has not got

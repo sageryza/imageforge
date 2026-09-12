@@ -4925,6 +4925,25 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     `node scripts/test-footage-typing.js` (style writes and off-width
     relayouts COUNTED per keystroke on the real page; verified failing 4
     pre-fix, 52 writes for 12 characters).
+  - **A TAP INTO A BOX MEASURES NOTHING UNTIL THE CARET IS DOWN — `caretkeep.js`
+    (2026-09-12, Sophie: "putting the cursor down also scrolls").** A tap
+    focuses the box on the PRESS and places the caret on the RELEASE, so at
+    `focusin` `selectionEnd` is the OLD caret — WebKit keeps it where she last
+    typed (the end of the scene, a screen or more below), Chromium resets it to
+    0 (which is why headless never showed it). The keeper ran its first `keep`
+    synchronously on focus, measured that old caret, scrolled the page toward
+    it, and the 90ms retry scrolled back: the lurch on every tap. **And
+    compare.js calls `__caretKeep.focus(t)` on EVERY focusin**, so every belt
+    page took the same road. A focus now ARMS the keeper and the first keep
+    waits for the tap's CLICK (with a 150ms fallback for a focus no tap made —
+    the pencil, a Tab); `focus()` arms the same way; `selectionchange` keeps
+    the caret wherever a tap or a drag really puts it, ignored only while a
+    focus is still armed. Measured: with the selection moved during `focus`,
+    Chromium places the tap's caret at the CLICK, a task after mouseup — so
+    the release is the click, never mouseup. Pinned by 6b of
+    `node scripts/test-caret-keep.js`, which restores WebKit's stale-caret shape
+    inside `focus` and counts every scroll the keeper asks for (verified
+    failing 2 pre-fix: `[1237, 167]` on a tap at a line in plain view).
   - **AND AN EXPANDED CLIP IN THE FOOTAGE FEED CARRIES ONE TOO (2026-09-11,
     Sophie: "add a floating collapse button for expanded list view videos in
     footage").** The house `.moretxt` opener REMOVED ITSELF on the tap that
