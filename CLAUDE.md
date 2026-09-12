@@ -4902,6 +4902,29 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     it the day one flickers. Test: `node scripts/test-footage-box-width.js`
     (every assertion a MEASUREMENT of the rendered box across the pill coming
     and going; verified failing 4 pre-fix).
+  - **AN ORDINARY KEYSTROKE IN THAT BOX TOUCHES NO STYLE (2026-09-12, Sophie:
+    "every other character moves textbox").** Two things ran on every
+    character with nothing on screen changing: `fitBox` rewrote the focused
+    box's height (`auto` → px) and its wrap's min-height on every input, and
+    `fitPillGap` — on every document resize, i.e. every wrapping keystroke
+    and the caret keeper borrowing room — zeroed every row's reserve and
+    forced a layout to measure it, laying the box she was typing in out at
+    full width and back inside one task. iOS WebKit answers a relayout of the
+    focused textarea by revealing the caret (a scroll), the caret keeper
+    corrects it a frame later, and the two settle into a jump on alternate
+    keystrokes. **Headless Chromium never shows the jump** (437 keystrokes
+    measured, the box moved only where a line wrapped), so the test pins the
+    CAUSE: a plain insertion takes a grow-only road and writes nothing while
+    the words still fit (the `auto` pass runs only where a shrink is possible
+    — a deletion, a paste, a keystroke over a selection marked at
+    `beforeinput`, a programmatic refit, and once on blur), and a row already
+    wearing the right reserve is skipped by arithmetic (`right + the margin
+    it wears`) with no write and no forced layout. Not measured on a phone —
+    the mechanism is the one the public iOS autogrow-textarea reports name,
+    and it is the churn every one of them removes. Test:
+    `node scripts/test-footage-typing.js` (style writes and off-width
+    relayouts COUNTED per keystroke on the real page; verified failing 4
+    pre-fix, 52 writes for 12 characters).
   - **AND AN EXPANDED CLIP IN THE FOOTAGE FEED CARRIES ONE TOO (2026-09-11,
     Sophie: "add a floating collapse button for expanded list view videos in
     footage").** The house `.moretxt` opener REMOVED ITSELF on the tap that
