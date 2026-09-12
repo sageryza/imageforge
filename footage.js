@@ -150,8 +150,25 @@ if (process.env.HTTPS_PROXY) {
 // (their `creditCost`), with ffprobe on the output clips:
 //   · MINI RENDERS ON THE 2.5 CANVASES, not the 2.0 ones — 480p 1:1 is
 //     640×640, 480p 3:4 is 560×752, 720p 3:4 is 834×1112 (ffprobe, every
-//     clip). 2.0, Fast and 2.5 have NEVER gone through OpenRouter, so their
-//     canvases are unmeasured and keep the published table.
+//     clip).
+//   · AND SO DOES 2.0 — measured 2026-09-12, which is the second half of the
+//     same finding and was quietly UNDER-QUOTING her. The one 2.0 job that
+//     has gone through OpenRouter (4s 480p 3:4) was quoted $0.2037 off the
+//     published 2.0 canvas (480×640) and BILLED $0.2792 — a factor of 1.371,
+//     which is 560×752 / 480×640 = 1.3708, i.e. the 2.5 canvas to four
+//     figures. So `sizes: '2.5'` is on the 2.0 row too. It stays `about`
+//     rather than `exact`: one job at one shape is enough to fix the canvas
+//     and not enough to pin every rung, where Mini's was ffprobed on every
+//     clip. Fast has still never gone through OpenRouter and keeps the
+//     published table.
+//   · 2.5's CANVAS IS MEASURED AND THE `~` IS OFF IT (2026-09-12). Not by
+//     ffprobe but by the better evidence — OpenRouter hands its REAL charge
+//     back on every job, and across four distinct shapes the estimate and
+//     the charge agree TO THE CENT: 480p 9:16 30s $3.0883, 720p 9:16 15s
+//     $3.4764 (twice), 720p 9:16 30s $6.9432, 720p 3:4 4s $0.9400. A price
+//     that lands on the cent on four shapes is not a guess, so
+//     `canvasMeasured: true`. A reference VIDEO still answers `about` —
+//     that surcharge is measured on one job and nothing else.
 //   · A CLIP IS 24·s + 1 FRAMES, not 24·s — the billed count fits 97 exactly
 //     on a 4s ask, and that +1 is what makes the formula land on the cent.
 //   · THE SALE IS READ LIVE, NEVER WRITTEN DOWN. Measured: Mini was billed
@@ -204,12 +221,12 @@ const MODELS = [
     afCents: { '480p': 7, '720p': 16 }, atlasCents: { '480p': 9, '720p': 9 } },
   { id: '2.0', label: '2.0', or: 'bytedance/seedance-2.0', af: 'seedance-2',
     atlas: 'bytedance/seedance-2.0/reference-to-video',
-    res: ['480p', '720p', '1080p'], secs: [4, 15], family: '2.0',
+    res: ['480p', '720p', '1080p'], secs: [4, 15], family: '2.0', sizes: '2.5',
     orTok: { '480p': 7e-6, '720p': 7e-6, '1080p': 7.7e-6 },
     afCents: { '480p': 8, '720p': 18, '1080p': null }, atlasCents: { '480p': 11.2, '720p': 11.2, '1080p': null } },
   { id: '2.5', label: '2.5', or: 'bytedance/seedance-2.5', af: 'seedance-2.5',
     atlas: 'bytedance/seedance-2.5/reference-to-video',
-    res: ['480p', '720p'], secs: [4, 30], family: '2.5',
+    res: ['480p', '720p'], secs: [4, 30], family: '2.5', canvasMeasured: true,
     orTok: { '480p': 1.07e-5, '720p': 1.07e-5 },
     afCents: { '480p': 13, '720p': 29 }, afVid: { '480p': 15 }, afExact: ['480p', '480p+video'],
     atlasCents: { '480p': 16.7, '720p': 16.7 } },

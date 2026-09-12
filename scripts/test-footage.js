@@ -104,17 +104,23 @@ function report() {
   ok('publicModels flags every 2.x row for Atlas', F.publicModels().filter((m) => m.atlascloud).map((m) => m.id).join(',') === 'mini,fast,2.0,2.5');
   ok('cardOf reads an Atlas job back onto its row', (() => { const c = F.cardOf('x', { prompt: 'p', model: 'bytedance/seedance-2.0-mini/reference-to-video', provider: 'atlascloud', params: { duration: 4 }, status: 'completed' }); return c.model === 'mini' && c.door === 'atlascloud'; })());
   // EXACT IS THE CANVAS, NOT ONLY THE FORMULA (2026-09-11). Mini's canvas is
-  // MEASURED onto the 2.5 table with ffprobe on every clip; 2.0, Fast and 2.5
-  // have never gone through OpenRouter, so theirs is the published table and
-  // unverified — and that table has been wrong once already, which is how
-  // Mini's was found. Their price answers "about".
-  ok('an OpenRouter price is exact only where the canvas is measured — Mini yes',
-    F.estimate({ model: 'mini', resolution: '480p', ratio: '3:4', seconds: 4, door: 'openrouter' }, both).exact === true);
-  ok('and 2.0, Fast and 2.5 answer "about" — their canvas is the published table, unmeasured',
-    ['fast', '2.0', '2.5'].every((id) => {
+  // MEASURED onto the 2.5 table with ffprobe on every clip, and 2.5's is
+  // measured a different way (2026-09-12): OpenRouter hands its REAL charge
+  // back, and across four distinct shapes the estimate lands on the cent. Only
+  // FAST has still never gone through OpenRouter, so only Fast's canvas is the
+  // published table and unverified — and that table has been wrong twice now,
+  // on Mini and on 2.0, which is why the bar is a measurement rather than a
+  // formula. 2.0's canvas IS fixed but it stays "about": one job at one shape.
+  ok('an OpenRouter price is exact only where the canvas is measured — Mini and 2.5 yes',
+    ['mini', '2.5'].every((id) =>
+      F.estimate({ model: id, resolution: '480p', ratio: '3:4', seconds: 4, door: 'openrouter' }, both).exact === true));
+  ok('and Fast and 2.0 answer "about" — one canvas unverified, one measured on a single shape',
+    ['fast', '2.0'].every((id) => {
       const e = F.estimate({ model: id, resolution: '480p', ratio: '3:4', seconds: 4, door: 'openrouter' }, both);
       return e.about === true && !e.exact;
     }));
+  ok('a 2.5 job with a reference VIDEO is still "about" — that surcharge is one job',
+    (() => { const e = F.estimate({ model: '2.5', resolution: '480p', ratio: '3:4', seconds: 4, door: 'openrouter', hasVideo: true }, both); return e.about === true && !e.exact; })());
   ok('a pinned OpenRouter door is still obeyed (a chat\'s door, not the page\'s any more)',
     (() => { const d = F.doorFor({ model: 'mini', door: 'openrouter', resolution: '480p' }, both); return d.door === 'openrouter' && d.fallback === null && d.chain.length === 0; })());
 
@@ -136,8 +142,21 @@ function report() {
     JSON.stringify(F.canvasOf(F.modelOf('mini'), '480p', '3:4')) === '[560,752]'
     && JSON.stringify(F.canvasOf(F.modelOf('mini'), '480p', '1:1')) === '[640,640]'
     && JSON.stringify(F.canvasOf(F.modelOf('mini'), '720p', '3:4')) === '[834,1112]');
-  ok('the models never measured on OpenRouter keep the published 2.0 canvases',
-    JSON.stringify(F.canvasOf(F.modelOf('2.0'), '480p', '3:4')) === '[480,640]' && JSON.stringify(F.canvasOf(F.modelOf('2.5'), '480p', '3:4')) === '[560,752]');
+  // AND SO DOES 2.0 (2026-09-12) — the second half of the same finding, and
+  // the half that was UNDER-QUOTING her. Its one OpenRouter job was quoted
+  // $0.2037 off the published 2.0 canvas and BILLED $0.2792; 560×752 /
+  // 480×640 = 1.3708 against a real 1.371. Only Fast still reads the 2.0
+  // table, and nothing has ever measured it.
+  ok('2.0 RENDERS ON THE 2.5 CANVASES TOO — measured against its real charge',
+    JSON.stringify(F.canvasOf(F.modelOf('2.0'), '480p', '3:4')) === '[560,752]'
+    && JSON.stringify(F.canvasOf(F.modelOf('2.5'), '480p', '3:4')) === '[560,752]');
+  ok('a 2.0 4s 480p 3:4 clip now quotes the 27.92¢ it really billed, not 20.37¢',
+    F.estimate({ model: '2.0', resolution: '480p', ratio: '3:4', seconds: 4, door: 'openrouter', discount: 0 }, both).cents === 27.92);
+  ok('every measured 2.5 shape quotes its real charge to the cent',
+    [['480p', '9:16', 30, 308.83], ['720p', '9:16', 15, 347.64], ['720p', '9:16', 30, 694.32], ['720p', '3:4', 4, 94]]
+      .every(([resolution, ratio, seconds, cents]) =>
+        F.estimate({ model: '2.5', resolution, ratio, seconds, door: 'openrouter', discount: 0 }, both).cents === cents));
+  ok('Fast alone still reads the published 2.0 table', JSON.stringify(F.canvasOf(F.modelOf('fast'), '480p', '3:4')) === '[480,640]');
   // THE SALE IS READ LIVE, NEVER HARDCODED — ByteDance's campaign is still
   // running (mini at 40% of list to 2026-10-07) but OpenRouter stopped passing
   // it on today, so the factor is `pricing.discount` off OpenRouter's own
