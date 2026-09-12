@@ -179,6 +179,32 @@ const READ = () => {
   ok('room borrowed and returned: the box is not re-laid out wide (' + s6.wide + ') and its reserve is untouched (' + s6.muts + ' writes)', s6.wide === 0 && s6.muts === 0);
   ok('and it still keeps the pill\'s column (' + s6.w + ')', s6.w < 330);
 
+  // ── 7. the pinned corner buttons are not rewritten per keystroke ────────
+  //       (stickybox's input pass re-pinned them every character — class and
+  //       every inline style — with nothing moving; 2026-09-12)
+  await page.evaluate(() => { document.getElementById('prompt').blur(); });
+  await page.click('#bigprompt');
+  await page.evaluate(() => {
+    const el = document.getElementById('prompt');
+    el.value = Array.from({ length: 40 }, (_, i) => 'line number ' + i + ' of the scene she is writing tonight').join('\n');
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.focus(); el.setSelectionRange(el.value.length, el.value.length);
+    window.__caretKeep.vv = { offsetTop: 0, height: 508 };
+    window.scrollTo(0, 400);
+  });
+  await page.waitForTimeout(800);
+  const pinned = await page.evaluate(() => Array.from(document.querySelectorAll('[data-stickybox].sbx-pin')).map((b) => b.id));
+  ok('the corner buttons are pinned for the long scene (' + pinned.join(',') + ')', pinned.length >= 1);
+  await page.evaluate(() => {
+    window.__bmuts = 0;
+    const mo = new MutationObserver((list) => { window.__bmuts += list.length; });
+    document.querySelectorAll('[data-stickybox]').forEach((b) => mo.observe(b, { attributes: true }));
+  });
+  for (const ch of ' and more') { await page.keyboard.type(ch); await page.waitForTimeout(60); }
+  await page.waitForTimeout(300);
+  const bmuts = await page.evaluate(() => window.__bmuts);
+  ok('nine keystrokes at the end of the big box rewrite the pinned buttons ZERO times (' + bmuts + ')', bmuts === 0);
+
   ok('no page errors', errors.length === 0);
   if (errors.length) console.log('  errors: ' + errors.join(' | '));
   await browser.close(); server.close();

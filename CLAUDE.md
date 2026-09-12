@@ -4925,6 +4925,32 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     `node scripts/test-footage-typing.js` (style writes and off-width
     relayouts COUNTED per keystroke on the real page; verified failing 4
     pre-fix, 52 writes for 12 characters).
+  - **FOOTAGE HEALS ITS OWN STALENESS — AND THAT IS WHY A FIX "STILL DIDN'T
+    WORK" (2026-09-12, Sophie, a day after the width fix above was LIVE:
+    "switch between narrow/full screen for example").** Measured before
+    touching anything: the served page carried the fix and headless Chromium
+    held the box at one width through every transition (keyboard, the pill
+    coming and going, the big box, the fold, a divide, a scroll). What she was
+    looking at was an OLD PAGE — the app keeps a tool's web view alive for
+    the whole app process, and footage had no self-heal, so no deploy could
+    reach it (the Playground's and the Chats app's finding, at the page she
+    types in most). `GET /api/footage/build` + `ftBuildCheck` in footage.html:
+    the Playground's block, with this page's own guards — a field under her
+    caret, a tap in 10s, a send or an upload in flight, a refusal on screen,
+    the seed box, the model/size/seconds off default (deliberately unsticky,
+    so a reload would put Fast back to Mini), a search, the trimmer, the
+    character sheet, Recent, a note box, an expanded clip. Her words and
+    references ride `footage_draft` and come back. **A page loaded BEFORE
+    this ships cannot heal itself** — the once-more force-quit is the one
+    cure, and after that every fix reaches her on the next return to the
+    tool. `ftHolding()` answers the REASON (`window.__ftHeal.holding()`), so
+    a held reload is never a silent one. Found on the way: `stickybox.js`
+    re-pinned the corner buttons on EVERY keystroke (class + every inline
+    style rewritten with nothing moving — 18 writes for nine characters); a
+    pin already where it wants to be writes nothing now. Tests:
+    `node scripts/test-footage-selfheal.js` (every guard driven both ways
+    on the real page, the reload judged by a new document) and section 7 of
+    `test-footage-typing.js` (verified failing 1 pre-fix).
   - **A TAP INTO A BOX MEASURES NOTHING UNTIL THE CARET IS DOWN — `caretkeep.js`
     (2026-09-12, Sophie: "putting the cursor down also scrolls").** A tap
     focuses the box on the PRESS and places the caret on the RELEASE, so at
