@@ -7686,9 +7686,26 @@ before working on that module. Nothing was deleted — the moved text is verbati
     the doors read off free `/estimate` calls so one is never offered that
     would only refuse her again, and the server returns which door refused it
     so that one is not offered back (an older cached page falls back to the
-    door the price line named). **A refused job is not logged at all** — the
-    door throws before `forge-video-jobs` is written — so a chat cannot
-    re-send one for her: her words live only in her own box.
+    door the price line named).
+  - **AND A REFUSED JOB IS LOGGED (2026-09-12, Sophie, after an OpenRouter
+    refusal cost her a fifteen-second scene: "can you log refuse jobs?").**
+    It was the one thing that left no trace anywhere: every door throws
+    inside `startVideo` BEFORE `forge-video-jobs` is written, so her prompt
+    and her references lived only in the box she typed them in — which is
+    why a chat could not re-send one for her, and why closing the page lost
+    the scene. `startJob`'s catch files it now through
+    `videoLog.refusedRecord` — the same prompt, the same references, the
+    same project and folder tags — so the 1080p redo reads it like any other
+    clip and the card's own **Try again** puts her words back. Three things
+    not to undo: the status is **`failed`, never a new word** (every reader
+    already knows that one, and a page cached on her phone draws an unknown
+    status as a clip that draws forever), `refused`/`refusal`/`door` ride
+    beside it so the card can tell a refusal from a failure and offer the
+    other doors, and the write is **best-effort and caught** — a log that
+    fails must still let the door's own words reach her, unchanged. Test:
+    `node scripts/test-footage-refusal-log.js` (every assertion a
+    MEASUREMENT of what really landed in the store; verified failing 14
+    pre-fix).
   - **A REFUSED JOB FAILS. IT IS NEVER SENT THROUGH ANOTHER DOOR, AND NEVER
     DRAWN WITHOUT ITS REFERENCES (2026-09-11 evening, Sophie, looking at three
     APIFRAME clips: "i think these r being sent without references" · "if a
@@ -7757,6 +7774,21 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **AND NOTHING ON ATLAS IS PINNED — the price wears a "~", at BOTH
   resolutions (2026-09-10, Sophie: "add ~ to both").** Atlas has no billing
   API (her console is the only read), so every Atlas figure answers `about`.
+  **THAT IS WRONG AS OF 2026-09-12 — ATLAS DOES PUBLISH A BILLING API, AND
+  SHE FOUND IT (Sophie: "I checked, and Atlas Cloud does have a proper
+  Billing Public API. I was wrong in my previous answer").** Read off its own
+  docs the same day: base `https://api.atlascloud.ai/public/v1`, the same
+  `Authorization: Bearer apikey-…` header, three reads — `GET /balance`
+  (`{value:"125.500000", currency:"usd"}`, money as fixed six-decimal
+  strings), `GET /model-usage` and `GET /model-costs` (daily buckets;
+  `start_date` inclusive and `end_date` exclusive, YYYY-MM-DD, up to 180
+  days; optional `scope` self|account, `group_by[]` model_type|model|api_key,
+  `model_types[]` text|image|video, `model_ids[]`, `api_key_ids[]`, `limit`
+  1-1000 and a `page` cursor from `next_page`; 429 carries `Retry-After`).
+  **NOT BUILT YET** — what it buys is the thing the `~` exists for: a real
+  charge per day and per model instead of an estimate, `cost` filled in on
+  every Atlas job on `forge-video-jobs`, and cost per PROJECT if each project
+  gets its own API key. Hers to ask for.
   **HER "~" STAYS, BUT THE ESTIMATE HAS NOW BEEN READ AGAINST REAL CHARGES
   AND IT IS RIGHT (2026-09-11, she exported her Atlas cost history).** 117
   charges over 40 hours, joined to `forge-video-jobs` by time, 106 of them
