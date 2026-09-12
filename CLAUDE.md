@@ -7673,6 +7673,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
   2.0 and 2.5. So the page sends `door:'auto'` and `doorFor` ranks the doors by
   what THIS tap costs — the shape, the resolution, the seconds and a reference
   video all move the answer, so nothing is written down.
+  - **AND THE OTHER DOORS ARE ONE TAP, PRICED (2026-09-12, Sophie, on an
+    OpenRouter refusal: "my job got refused. send it through atlas").** The
+    refusal named the doors that would take it and the page had no way to DO
+    that — it pins `auto` and nothing else — so the only route through was
+    retyping a fifteen-second scene somewhere else. The refusal line grows an
+    underlined door word per door that can still take THAT exact job, with
+    what the tap costs beside it; tapping one re-sends the same job pinned to
+    it. **Still always HER tap, never a walk** — the rule below stands word
+    for word. Offered on a CONTENT refusal only (a shape refusal is refused
+    wherever that shape is; a door being down says nothing about this job),
+    the doors read off free `/estimate` calls so one is never offered that
+    would only refuse her again, and the server returns which door refused it
+    so that one is not offered back (an older cached page falls back to the
+    door the price line named). **A refused job is not logged at all** — the
+    door throws before `forge-video-jobs` is written — so a chat cannot
+    re-send one for her: her words live only in her own box.
   - **A REFUSED JOB FAILS. IT IS NEVER SENT THROUGH ANOTHER DOOR, AND NEVER
     DRAWN WITHOUT ITS REFERENCES (2026-09-11 evening, Sophie, looking at three
     APIFRAME clips: "i think these r being sent without references" · "if a
