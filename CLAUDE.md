@@ -8522,7 +8522,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
   only related files in the tiles list view area" · "good plan … go ahead for
   now").** The cast library's FILMS are the projects — one vocabulary, never a
   second list — and `project` is ONE field on the job doc read everywhere: the
-  picker (one drop-down leading the **Buttons** row, remembered
+  picker (one drop-down on the **feed bar**, between the search and the funnel, remembered
   as `footage_project`, replacing the sheet's own `footage_castfilm`), the feed
   (`GET /jobs?project=`, filtered server-side over the whole collection before
   the page is cut, and `shown()` on the page for a card a poll lands), the
@@ -8538,21 +8538,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
   it, else its `from` chat is mapped through `HANDOFF_PROJECTS` in footage.js
   (served on `/status`; every ward belt → `ward`, Ticky Tack → `ticky-tack`),
   and a project the shelf lacks becomes a film on it (`POST /api/cast/films`).
-  **THE PICKER IS IN THE BUTTONS ROW, LEADING IT (2026-09-11, Sophie: "folder
-  in buttons not next to").** It shipped for an hour on the FOLD row beside
-  the word "Buttons", on a pre-build estimate that the controls row could not
-  hold it without a third line; measured on the real page at 390pt after the
-  move, the row is **still the two lines it already was** — the folder,
-  the picture, the recents, the characters, the model and the size on the
-  first, the shape and the stepper on the second — so that estimate was
-  wrong and the fold row is history, not a rule — including the PANEL's own
-  fold row, which it rode for an hour that night on the reasoning that a shut
-  panel should still carry the one control that narrows the feed. Its rows say
-  "All" and "New…" rather than anything longer because a select is as wide as
-  its longest row. **FOLDING THE BUTTONS, OR THE WHOLE PANEL, TAKES THE PICKER
-  WITH THEM — that cost is paid, not worked around**, and what makes it safe
-  is the HEADER: it names the project she is filtering by, so a shut panel is
-  never a filter she cannot see.
+  **THE PICKER IS ON THE FEED BAR, BETWEEN THE SEARCH AND THE FUNNEL
+  (2026-09-12, Sophie marked the spot on a screenshot: "folders should go in
+  red spot").** It rode three seats in a night before landing there — the
+  Buttons FOLD row beside the word, the PANEL's fold row beside "Prompt", and
+  the Buttons row itself — and the seat she picked is the one the control was
+  always looking for: **the picker is a FILTER over the feed before it is a
+  setting on a clip**, so it belongs with the feed's other filters, and unlike
+  every panel seat it cannot be folded away from the feed it is filtering.
+  Three things not to undo: it is its NEIGHBOURS' height there (34x32, the
+  heart and the glass's own box) because a 34-tall box makes that hairline row
+  2px taller than every other one on the page; its lit box is the LIST
+  segment's dark fill, so a narrowed feed says so on the row that narrowed it;
+  and it sits at flex `order:0` while the funnel chip is `order:2`, which is
+  what keeps it between the glass and the funnel whatever the markup order
+  (the funnel is drawn only while the search is open). Its rows say "All" and
+  "New…" rather than anything longer because a select is as wide as its
+  longest row.
 
   **EVERY CHAT'S CLIPS RIDE THE FEED SINCE THE SAME EVENING (Sophie: "most
   of them made in chat. Are you adding them to footage? If so, good")** — the
@@ -8600,8 +8602,13 @@ before working on that module. Nothing was deleted — the moved text is verbati
   remembered as `footage_folder` beside the project; a belt hand-off may
   carry `folder`. The three doors and `video-log.js` file it on the log tag;
   `footage-project-backfill.js --map` takes `project/folder` values — the 25
-  witch commercial clips (every prompt opening "a commercial for", the
-  voiceover ads, the pill commercial) are in `secretly-a-witch/commercials`.
+  witch commercial clips are **one folder EACH, never one `commercials` pile**
+  (2026-09-12, Sophie: "I want each of the witch commercials to be in a
+  separate folder. I thought that was clear"), read off their own prompts:
+  `travel-kit` 11 · `christmas` 4 · `its-sophie` 4 · `pill` 3 · `huge-kit` 2 ·
+  `not-always-a-witch` 1. **A folder is one PIECE OF WORK, not a genre** —
+  that is the rule the first pass missed, and it is what makes a folder worth
+  opening.
   Not built yet, deliberately: the evidence
   rules (a job's references on one film's shelf, chaining off another job's
   output) — they PROPOSE a project and belong to step 5 of

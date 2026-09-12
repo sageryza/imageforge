@@ -1202,16 +1202,17 @@ async function pillSweep(pg, where) {
   // and passes under the rail, like the star's row and like any other content
   // — that is the reserve rule, and the oscillation the 2026-09-11 rewrite of
   // `fitPillGap` exists to prevent). What this asks is the thing the project
-  // picker could have broken when it moved into the row on 2026-09-11: with
-  // eight controls on it, it is still the two lines it has always been, never
-  // the third line this row was cut down from.
+  // row's SHAPE: the seven controls are the two lines they have always been,
+  // never the third line this row was cut down from — and the project picker
+  // is NOT among them (it is on the feed bar since 2026-09-12, where she
+  // marked the spot).
   const ctlRow = await page.evaluate(() => {
     const row = document.getElementById('res').closest('.row');
     const kids = [...row.children].map((k) => { const r = k.getBoundingClientRect(); return { id: k.id || k.className, y: Math.round(r.y), h: Math.round(r.height) }; }).filter((k) => k.h);
-    return { lines: new Set(kids.map((k) => Math.round(k.y / 8))).size, n: kids.length, kids };
+    return { lines: new Set(kids.map((k) => Math.round(k.y / 8))).size, n: kids.length, picker: !!row.querySelector('#projwrap'), kids };
   });
-  ok('the controls row is two lines with the picker on it, never three — ' + JSON.stringify(ctlRow),
-    ctlRow.n === 8 && ctlRow.lines === 2);
+  ok('the controls row is two lines, never three, and carries no picker — ' + JSON.stringify(ctlRow),
+    ctlRow.lines === 2 && !ctlRow.picker);
 
   // ── a reference through the Dump door, and its slot into the prompt ──────
   await page.setInputFiles('#file', { name: 'mayra.png', mimeType: 'image/png', buffer: PNG });
@@ -2171,36 +2172,62 @@ async function pillSweep(pg, where) {
   // the picker sits on the PANEL's fold row (2026-09-11 — it moved up there
   // with the whole-panel fold, because that row is the one thing a shut panel
   // still draws and the picker narrows the feed as well as the clip), on one
-  // it LEADS the Buttons row (her "folder in buttons not next to"), level with
-  // the add button, clear of the pill, and really tappable
+  // IT IS ON THE FEED BAR, between the search and the funnel (2026-09-12, she
+  // marked the spot). Measured: in that row, its neighbours' height, clear of
+  // the pill, really tappable — and NOT in the panel, so folding the buttons
+  // or the whole panel can never take the filter off the feed it filters.
   const seat = await pgP.evaluate(() => {
-    const p = document.getElementById('project'), row = document.getElementById('controls'), add = document.getElementById('add');
-    const pr = p.getBoundingClientRect(), ar = add.getBoundingClientRect(), pill = document.querySelector('body > .float').getBoundingClientRect();
+    const p = document.getElementById('project'), bar = document.getElementById('feedbar');
+    const glass = document.getElementById('v-search'), funnel = document.getElementById('feedfilters');
+    const pr = p.getBoundingClientRect(), gr = glass.getBoundingClientRect();
+    const pill = document.querySelector('body > .float').getBoundingClientRect();
     const hit = document.elementFromPoint(pr.x + pr.width / 2, pr.y + pr.height / 2);
-    const ys = [...row.children].map((e) => Math.round(e.getBoundingClientRect().y));
-    return { inRow: p.closest('#controls') === row, first: row.firstElementChild === p.parentElement,
-      level: Math.abs((pr.y + pr.height / 2) - (ar.y + ar.height / 2)) < 4,
-      sameSize: Math.abs(pr.height - ar.height) < 2,
-      lines: new Set(ys.map((y) => Math.round(y / 8))).size,
-      onFold: !!p.closest('.foldrow'),
+    const kids = [...bar.children].map((e) => { const r = e.getBoundingClientRect(); return { id: e.id || e.className, y: Math.round(r.y), h: Math.round(r.height) }; }).filter((k) => k.h);
+    return { onBar: p.closest('.feedbar') === bar, inPanel: !!p.closest('.panel'),
+      afterGlass: pr.x > gr.x, beforeFunnel: bar.compareDocumentPosition(funnel) && (p.parentElement.compareDocumentPosition(funnel) & Node.DOCUMENT_POSITION_FOLLOWING) > 0,
+      sameHeight: Math.abs(pr.height - gr.height) < 2, level: Math.abs(pr.y - gr.y) < 3,
+      lines: new Set(kids.map((k) => Math.round(k.y / 8))).size,
       clear: pr.right <= pill.left, tappable: !!(hit && hit.closest('#project')), val: p.value };
   });
-  ok('the picker leads the Buttons row, level with the add button, clear of the pill and tappable — ' + JSON.stringify(seat),
-    seat.inRow && seat.first && seat.level && seat.sameSize && seat.clear && seat.tappable && seat.val === 'ward');
-  ok('it is on no fold row any more', !seat.onFold);
-  ok('and the row still costs the two lines it already did — ' + seat.lines, seat.lines === 2);
-  // folding the buttons away takes it with them — the header still says where she is
-  const folded = await pgP.evaluate(async () => {
-    document.getElementById('ctlfold').click();
-    await new Promise((r) => setTimeout(r, 140));
-    const gone = !document.getElementById('project').getBoundingClientRect().height;
-    const title = document.getElementById('title').textContent;
-    document.getElementById('ctlfold').click();
-    await new Promise((r) => setTimeout(r, 140));
-    return { gone, title, back: !!document.getElementById('project').getBoundingClientRect().height };
+  ok('the picker is on the feed bar, after the search and before the funnel — ' + JSON.stringify(seat),
+    seat.onBar && !seat.inPanel && seat.afterGlass && seat.beforeFunnel && seat.val === 'ward');
+  ok('it is its neighbours\' height and on their line, clear of the pill and tappable',
+    seat.sameHeight && seat.level && seat.clear && seat.tappable);
+  ok('and the feed bar is still one line — ' + seat.lines, seat.lines === 1);
+  // WITH THE SEARCH OPEN the funnel chip joins the row (it is hidden with the
+  // search field), so the row is measured in that state too — the picker must
+  // still be on it, whole, and reachable.
+  const barOpen = await pgP.evaluate(async () => {
+    document.getElementById('v-search').click();
+    await new Promise((r) => setTimeout(r, 200));
+    const p = document.getElementById('project'), pr = p.getBoundingClientRect();
+    const hit = document.elementFromPoint(pr.x + pr.width / 2, pr.y + pr.height / 2);
+    const pill = document.querySelector('body > .float').getBoundingClientRect();
+    const chip = document.querySelector('#feedfilters .filtchip');
+    const out = { w: Math.round(pr.width), h: Math.round(pr.height), tappable: !!(hit && hit.closest('#project')),
+      chip: chip ? Math.round(chip.getBoundingClientRect().x) : null, x: Math.round(pr.x), clear: pr.right <= pill.left };
+    document.getElementById('v-search').click();
+    await new Promise((r) => setTimeout(r, 200));
+    return out;
   });
-  ok('folded, the picker goes with the buttons and the header still names the project — ' + JSON.stringify(folded),
-    folded.gone && /ward/i.test(folded.title) && folded.back);
+  ok('with the search open the picker is still whole, before the funnel, and takes its tap — ' + JSON.stringify(barOpen),
+    barOpen.w === 34 && barOpen.h === 32 && barOpen.tappable && barOpen.clear && (barOpen.chip === null || barOpen.chip > barOpen.x));
+  // folding the buttons, or the whole panel, leaves the picker on screen
+  const folded = await pgP.evaluate(async () => {
+    const h = () => document.getElementById('project').getBoundingClientRect().height;
+    document.getElementById('ctlfold').click();
+    await new Promise((r) => setTimeout(r, 140));
+    const afterButtons = h();
+    document.getElementById('panelfold').click();
+    await new Promise((r) => setTimeout(r, 140));
+    const afterPanel = h();
+    document.getElementById('panelfold').click();
+    document.getElementById('ctlfold').click();
+    await new Promise((r) => setTimeout(r, 140));
+    return { afterButtons, afterPanel, back: h() };
+  });
+  ok('folding the buttons or the whole panel never takes it off the screen — ' + JSON.stringify(folded),
+    folded.afterButtons > 0 && folded.afterPanel > 0 && folded.back > 0);
   // the tiles narrow too
   await pgP.click('#v-tiles');
   await pgP.waitForTimeout(300);
@@ -2288,7 +2315,7 @@ async function pillSweep(pg, where) {
         rows: Array.from(s.options).map((o) => o.value + '=' + o.textContent), f0: document.querySelector('#job-f0 .tags').textContent,
         f0rows: Array.from(document.querySelector('#job-f0 .projsel select').options).map((o) => o.value), f0val: document.querySelector('#job-f0 .projsel select').value, f4rows: Array.from(document.querySelector('#job-f4 .projsel select').options).map((o) => o.value) };
     });
-    ok('the picker is a 34px folder icon with its own text hidden, unlit on All, and takes its tap — ' + all.w + 'x' + all.h, all.w === 34 && all.h === 34 && all.icon && all.textHidden && !all.on && all.tappable);
+    ok('the picker is a folder icon at the feed bar\'s own height, text hidden, unlit on All, and takes its tap — ' + all.w + 'x' + all.h, all.w === 34 && all.h === 32 && all.icon && all.textHidden && !all.on && all.tappable);
     ok('the header says Footage on All', all.title === 'Footage');
     ok('its rows are the projects with their folders under them, New project… last and no New folder… on All — ' + all.rows.join(' '), all.rows.indexOf('ward/socks= › socks') === all.rows.indexOf('ward=The ward') + 1 && all.rows[all.rows.length - 1] === '__new=New project…' && !all.rows.some((r) => r.startsWith('__newfolder')));
     ok('f0\'s card says its folder, its drop-down lists the folder rows with its own lit, and a project-less card offers no New folder… — ' + all.f0, /socks/.test(all.f0) && all.f0rows.includes('ward/socks') && all.f0rows.includes('__newfolder') && all.f0val === 'ward/socks' && !all.f4rows.includes('__newfolder'));

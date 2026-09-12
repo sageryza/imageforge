@@ -67,6 +67,11 @@
   .iconsel .ico svg{width:18px;height:18px;display:block}
   .iconsel.on select{background:#2b2620;border-color:#2b2620}
   .iconsel.on .ico{color:#f6f2ea}
+  /* ON THE FEED BAR IT IS ITS NEIGHBOURS' SIZE, MEASURED — the heart, the ✕
+     and the glass are 34x32 inside their own boxes, and a 34-tall picker
+     beside them makes the whole row 2px taller than every other hairline row
+     on the page. */
+  .feedbar > .iconsel select{height:32px}
   /* An icon button is a rounded SQUARE at the house 6px, never a circle. */
   .ib{width:34px;height:34px;padding:0;display:inline-flex;align-items:center;justify-content:center;
       background:#fdfbf7;color:#2b2620;flex:none}
@@ -891,21 +896,6 @@
        two drop-downs are the model and the size, the stepper is the length. -->
   <button type="button" class="fold" id="ctlfold" aria-expanded="true" aria-controls="controls"><span class="chev"></span><span id="ctlfoldlab">Buttons</span></button>
   <div class="row" id="controls">
-    <!-- THE PROJECT AND ITS FOLDER (2026-09-11, Sophie: "group projects and
-         character references so when I switch between projects, I can only
-         see those references offered to me and only related files in the
-         tiles list view area", then "can we do sub folders"). The cast
-         library's films ARE the list; picking one narrows the feed, the
-         Recent drawer and the character sheet to it and stamps it on every
-         clip sent. "All" is a real stop. IT LEADS THE BUTTONS ROW (her
-         correction the same night: "folder in buttons not next to") — it
-         rode a fold row, beside the word "Buttons" and then beside "Prompt",
-         on a pre-build estimate that this row could not hold it; measured at
-         390pt after the move it is the same two lines it already was. The
-         cost is named rather than worked around: folding the buttons, or the
-         whole panel, takes the picker with them, and the HEADER is what
-         still says which project she is in. -->
-    <span class="selwrap iconsel" id="projwrap"><select id="project" aria-label="Project and folder" title="Project and folder"></select><span class="ico"></span></span>
     <button class="up ib" type="button" id="add" aria-label="Add a reference" title="Add a reference"><span id="addicon"></span><input type="file" accept="image/*,video/*,audio/*" multiple id="file"></button>
     <button id="rectog" type="button" aria-expanded="false" aria-label="Recent — clips you made and references you have used" title="Recent — clips you made and references you have used" hidden></button>
     <!-- THE CHARACTER LIBRARY (2026-09-11, Sophie: "add character icon to
@@ -961,6 +951,21 @@
   <div class="filttog">
     <button type="button" class="likefilt qfilt" id="v-search" aria-label="Search the clips" title="Search" aria-expanded="false" aria-controls="feedsearch"></button>
   </div>
+  <!-- THE PROJECT AND ITS FOLDER (2026-09-11, Sophie: "group projects and
+       character references so when I switch between projects, I can only see
+       those references offered to me and only related files in the tiles list
+       view area", then "can we do sub folders"). The cast library's films ARE
+       the list; picking one narrows the feed, the Recent drawer and the
+       character sheet to it and stamps it on every clip sent. "All" is a real
+       stop. IT IS ON THE FEED BAR, between the search and the funnel — she
+       marked the spot (2026-09-12: "folders should go in red spot"), and it
+       is the seat the control has been looking for: the picker is a FILTER
+       over the feed before it is a setting on a clip, so it belongs with the
+       feed's other filters, and unlike the two panel seats it cannot be
+       folded away from the feed it is filtering. Its lit dark box is the
+       LIST segment's own fill, so a narrowed feed says so on the row that
+       narrowed it. -->
+  <span class="selwrap iconsel" id="projwrap"><select id="project" aria-label="Project and folder" title="Project and folder"></select><span class="ico"></span></span>
   <div id="feedfilters" hidden></div>
   <div class="feedsearch" id="feedsearch" hidden>
     <input id="q" type="search" placeholder="Search" aria-label="Search your clips"

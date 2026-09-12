@@ -18,9 +18,11 @@ witch commercials") — a `folder` field inside a project, derived rather than
 stored, one picker drawn as a folder icon with the header carrying the name,
 the card's drop-down moving a clip anywhere; full note in CLAUDE.md's Footage
 section. Still open: the evidence rules (step 5 / the "?" chip). The picker
-rode the **Buttons** fold row for an hour and is IN the buttons row, leading
-it, since her "folder in buttons not next to" — measured at 390pt, it costs
-that row no extra line.
+rode three seats in a night — the Buttons fold row, the panel's fold row, the
+Buttons row itself — and lives on the **feed bar**, between the search and the
+funnel, since she marked the spot ("folders should go in red spot"): it is a
+filter over the feed, so it sits with the feed's filters and cannot be folded
+away from what it filters.
 
 ## What is already there (measured 2026-09-11)
 
