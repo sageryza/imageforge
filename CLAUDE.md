@@ -8442,6 +8442,35 @@ before working on that module. Nothing was deleted — the moved text is verbati
   HERE* in `docs/modules/audio-and-film.md`; tests
   `node scripts/test-footage-divide.js` and
   `node scripts/test-footage-block-fold.js`.
+  **AND TWO PERMANENT BLOCKS SIT ABOVE THEM — CHARACTERS, THEN SETTING, SHUT
+  BY DEFAULT (2026-09-13, Sophie: "i envision two permanent default collapsed
+  blocks at the top of footage: characters, then setting").** Who is in the
+  scene and where it is do not change from shot to shot, so they are two
+  blocks of their own above the scene and **what is written in them rides at
+  the TOP of the prompt of every clip she sends** — the star's own block and
+  the appended All alike, in that order, blank line between. Six things not to
+  undo: **they are not `blocks()`** (a head is `.headwrap`/`.hblock`, never
+  `.promptwrap`/`.pblock`, so the numbering, the gold line, the join marks,
+  the ✕, the divide, `setBlocks`, the draft and every test are untouched by
+  construction rather than by remembering to skip two; the draft carries them
+  under their own names); **the gold line never moves to one** (`setActive` is
+  reached through `closest('.promptwrap')`, which a head is not, so tapping
+  into Characters leaves the star pointing where she left it — the star cannot
+  send a head on its own); **an empty head adds nothing**, and with both empty
+  the prompt is byte-for-byte the words in her box; **permanent means no ✕ and
+  no divide**, so emptying the box is how one stops riding; **`clear` does not
+  touch them** — it wipes the JOB and the cast and the room are the standing
+  thing above it, and a clear that retyped them would be "permanent" meaning
+  nothing; and **shut is where they START, every load** — the one place this
+  page folds by default, safe only because **shut, the heading says its
+  words** (a value riding every clip with nothing on screen saying so is the
+  hidden ingredient the price beside the star exists to prevent). Named
+  `paintHeadBlock` because the page header already has a `paintHead`, and a
+  duplicate function DECLARATION is not an error — the last one in the file
+  wins, silently, which is how the first cut folded correctly and painted
+  nothing at all. Full note: *CHARACTERS, THEN SETTING* in
+  `docs/modules/audio-and-film.md`; test
+  `node scripts/test-footage-heads.js`.
   **AND A STORY TIMELINE STORY COPIES OVER, ONE CONNECTED PART PER BLOCK
   (2026-09-13, Sophie: "how do i copy a story to footage · each connected part
   its own section · lines breaks back").** A **Send to Footage** link on an open
