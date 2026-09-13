@@ -1,5 +1,12 @@
 # Stitch — what is broken and what is missing
 
+> **ALL OF IT IS FIXED (2026-09-13, PR #2359, Sophie: "yes, please fix
+> everything, including the usability gaps").** This file stays as the record
+> of what was wrong and how each one was measured — not as a to-do list. The
+> fixes and the reasoning live in `stitch.js`, `public/stitch.html` and
+> `scripts/test-stitch.js` (57 → 112 assertions, every fixture id now
+> real-shaped). Read it for the shape of a mistake, not for work outstanding.
+
 An audit of the Stitch module (`stitch.js`, `public/stitch.html`, shipped
 2026-09-12) done 2026-09-13. **Nothing here is fixed** — this is the reading,
 with every number MEASURED against her live Footage log (511 jobs, 484
