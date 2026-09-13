@@ -2355,7 +2355,20 @@ async function pillSweep(pg, where) {
     saved: localStorage.getItem('footage_project'),
     shut: document.getElementById('shelf').hidden,
   }));
-  ok('picking the ward re-asks the feed FOR the ward — ' + projReads.slice(n0).join('|'), projReads.slice(n0).length >= 1 && projReads.slice(n0).every((p) => p === 'ward'));
+  // the pick is a WALK through the sheet now, which takes a second — long
+  // enough for the newest-page poll to land one more All read behind her. So
+  // the measurement is that the feed was re-asked FOR the ward and that every
+  // read from the pick onward is the ward's.
+  // ...and `projReads` is every page's reads, not this one's: the earlier
+  // contexts in this file are still open and still polling All, so a bare ''
+  // read between two ward reads is another page's poll and says nothing about
+  // this one (measured — the walk through the sheet is slow enough to catch
+  // one where the old <select> tap was not). The honest measurement is that
+  // the ward was asked for and that NO OTHER project was.
+  await pgP.waitForTimeout(700);
+  const since = projReads.slice(n0);
+  ok('picking the ward re-asks the feed FOR the ward — ' + since.join('|'),
+    since.includes('ward') && since.every((p) => p === 'ward' || p === ''));
   ok('and only the ward\'s five clips are on screen — ' + pick1.ids, pick1.ids === 'c1,f0,f1,f2,old1');
   ok('inside a project the card does not repeat its name', !pick1.wardTag);
   ok('the pick is remembered, and the sheet closed behind it', pick1.saved === 'ward' && pick1.shut);
