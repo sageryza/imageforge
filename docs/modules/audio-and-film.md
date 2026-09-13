@@ -744,6 +744,57 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         pinned divide — the head box's own top on the glass, since the head
         shrinks from the bottom and setting `.value` drops the caret to 0 —
         the slot renamed in the second block).
+    - **CHARACTERS, THEN SETTING — TWO PERMANENT BLOCKS AT THE TOP, SHUT BY
+      DEFAULT (2026-09-13, Sophie: "i envision two permanent default collapsed
+      blocks at the top of footage: characters, then setting").** Who is in
+      the scene and where it is do not change from shot to shot, and until
+      this they were retyped into every block or re-tapped off the cast shelf
+      per clip. So the panel opens with two blocks of its own above the scene,
+      and **what is written in them rides at the TOP of the prompt of every
+      clip she sends** — the star's own block and the appended All alike, in
+      that order, blank line between, exactly the shape the join mark and the
+      All star already give her words. Six things not to undo:
+      - **THEY ARE NOT `blocks()`.** A head is `.headwrap`/`.hblock`, never
+        `.promptwrap`/`.pblock`, so "the blocks" goes on meaning her SCENE
+        blocks in every reader there is: the numbering, the gold line, the
+        join marks, the ✕, the divide, `setBlocks`, the draft (`prompt` first,
+        `blocks` after it), the belt hand-off and every test are untouched by
+        construction rather than by remembering to skip two. The heads ride
+        the draft under their own names (`heads: {characters, setting}`),
+        written only when one of them holds something.
+      - **THE GOLD LINE NEVER MOVES TO ONE.** `setActive` is reached through
+        `closest('.promptwrap')`, which a head is not, so tapping into
+        Characters leaves the star pointing where she left it — right,
+        because the star cannot send a head on its own: it is a head, not a
+        shot. For the same reason the scene box, not a head, is what "say
+        what the clip is first" is about.
+      - **AN EMPTY HEAD ADDS NOTHING**, and with both empty the prompt is
+        byte-for-byte the words in her box. Emptying one is how it stops
+        riding: **permanent means no ✕ and no divide** — nothing takes one off
+        the page and nothing turns one into two.
+      - **`clear` DOES NOT TOUCH THEM.** It wipes the JOB — the blocks, the
+        references, the marks, the seed — and the cast and the room are the
+        standing thing above it, so the next shot of the same scene keeps
+        them. A clear that retyped them would be "permanent" meaning nothing.
+        A belt hand-off leaves them alone for the same reason.
+      - **SHUT IS WHERE THEY START, EVERY LOAD** — the one place this page
+        folds by default, and the opposite of a block's own fold (memory for
+        the life of the page, open on a reload). It is only safe because
+        **shut, the heading SAYS ITS WORDS**: a value riding every clip with
+        nothing on screen saying so is the hidden ingredient the price beside
+        the star exists to prevent.
+      - **`paintHeadBlock`, NOT `paintHead`** — the page header has a
+        `paintHead` of its own hundreds of lines down, and a duplicate
+        function DECLARATION is not an error: the last one in the file wins,
+        silently. The first cut of this folded correctly and painted nothing
+        at all, which is invisible in the source and is what the test caught.
+      Test: `node scripts/test-footage-heads.js` (every assertion a
+      MEASUREMENT of what really renders or a reading of what the stub server
+      really received — a head that never folds, one that quietly joins
+      `blocks()` and renumbers her scene, one that rides twice on an appended
+      send, one that rides at the BOTTOM, and one whose words never reach the
+      door all look identical in the source; it CRASHES against the pre-fix
+      page, where there are no head blocks at all).
     - **WHAT CHANGED — THE COMPARE PANEL (2026-09-11, Sophie: "is there an
       easy way I can diff video clips like I can't remember what I changed for
       example sometimes it's a single line or a reference for the model the

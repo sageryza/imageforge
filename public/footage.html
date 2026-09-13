@@ -106,8 +106,8 @@
      which 34 are the corner the expand button reserves: 2.3 readable lines
      ending in a clipped half-line, on the one surface she types a whole
      scene into. */
-  .pblock{max-height:30vh}
-  .pblock.big{min-height:24vh;max-height:none}
+  .pblock,.hblock{max-height:30vh}
+  .pblock.big,.hblock.big{min-height:24vh;max-height:none}
   /* THE CORNER CARRIES TWO BUTTONS, AND EVERY BLOCK CARRIES THE CORNER
      (2026-09-11, Sophie: "add the feature from story timeline that allows me
      to divide into two text blocks where my cursor · a button · pinned or
@@ -121,11 +121,11 @@
      and the seam is already where her eyes are — the follow-back that is
      right for a contract would walk the page away from it. A second block
      is the same `.promptwrap` again, so it gets the same corner. */
-  .promptwrap .boxbtn{position:absolute;bottom:6px;width:26px;height:26px;display:flex;
+  .promptwrap .boxbtn,.headwrap .boxbtn{position:absolute;bottom:6px;width:26px;height:26px;display:flex;
              align-items:center;justify-content:center;padding:0;margin:0;border:1px solid #d8cfc0;
              border-radius:6px;background:#fdfbf7;color:#6f675e}
-  .promptwrap .boxbtn svg{width:14px;height:14px}
-  .promptwrap .bigger{right:56px}
+  .promptwrap .boxbtn svg,.headwrap .boxbtn svg{width:14px;height:14px}
+  .promptwrap .bigger,.headwrap .bigger{right:56px}
   .promptwrap .divide{right:88px}
   /* AND A BLOCK CAN GO ON ITS OWN — THE ✕ AT right:120 (2026-09-13, Sophie:
      "clearing individual separated boxes"). Until this the only way to lose
@@ -178,6 +178,34 @@
      folded block's heading */
   .panel.many .promptwrap.shut .wipeb{display:none}
   .panel.many .promptwrap.active.shut .bfold{color:#b1914f}
+  /* TWO PERMANENT BLOCKS AT THE TOP — CHARACTERS, THEN SETTING (2026-09-13,
+     Sophie: "i envision two permanent default collapsed blocks at the top of
+     footage: characters, then setting"). Who is in the scene and where it is
+     are the same on every shot of it, and until this they were retyped into
+     every block or re-tapped off the cast shelf per clip. So they are two
+     blocks of their own above the scene, and what is written in them rides at
+     the TOP of the prompt of every clip she sends — the star's own block, and
+     the appended All.
+     They are NOT `.promptwrap` and that is the load-bearing half: `blocks()`
+     is her scene blocks and nothing else, so the numbering, the gold line,
+     the join marks, the ✕, the divide, the draft (`prompt` first, `blocks`
+     after it), the hand-off and every test go on reading exactly what they
+     read before. A head is `.headwrap` and its box is `.hblock`.
+     DEFAULT COLLAPSED, her word — and unlike a block's own fold (memory for
+     the life of the page, open on a reload) shut is where these START, so a
+     reload closes them again. SHUT, THE HEADING SAYS ITS WORDS, which is the
+     whole reason they can default to shut at all: a value that rides every
+     clip with nothing on screen saying so is the hidden ingredient the price
+     beside the star exists to prevent.
+     PERMANENT means no ✕ and no divide — nothing takes one off the page and
+     nothing turns one into two; emptying the box is how a head stops riding,
+     which is hers to type. And `clear` does not touch them: it wipes the JOB
+     (the blocks, the references, the marks, the seed) and the cast and the
+     room are the standing thing above it — a clear that retyped them would be
+     "permanent" meaning nothing. */
+  .headwrap{position:relative}
+  .headwrap .hfold{display:flex;width:100%;box-sizing:border-box;margin:0 0 4px;padding:6px 0 4px}
+  .headwrap.shut .hblock,.headwrap.shut .boxbtn{display:none}
   /* THE GAP BETWEEN TWO BLOCKS HOLDS THE JOIN — the timeline's mark in the
      gap, Lucide `fold-vertical`, the divide's opposite: the two halves pushed
      back onto one line. Its own row, a direct child of the panel, so the
@@ -973,6 +1001,7 @@
   <p><b>The whole prompt area folds.</b> Tap <b>Prompt</b> at the top of the panel and the box, the references, the buttons and the star go away together &mdash; the clips come up to just under the header, which is the quickest way down to them. Shut, the row says the first words of what is in the box, and the project stays on it so you can still narrow what you are looking at. Nothing is lost: everything is still set the way you left it, and anything that puts words or a reference back opens it again.</p>
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
+  <p><b>Characters, then setting.</b> The two blocks at the top are permanent and start folded away. What you write in them rides at the top of every clip you send &mdash; the cast on one line, the room on the other &mdash; so a scene is written once instead of into every shot. Folded, each heading says its own words, so you can see what is riding without opening it. Leave one empty and it adds nothing; <b>clear</b> never touches them.</p>
   <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. Every block has the same buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing. Each block gets its own heading, and <b>tapping the heading folds that block away</b> &mdash; shut it shows its first words, and it still sends them if it is the one the star is pointing at. Folds are for right now: a reload opens everything.</p>
   <p><b>All of them at once.</b> Once two blocks have words in them a second star appears beside the first, carrying what the whole batch costs. It sends every block that has words, one after another, and stops at the first refusal &mdash; the block it stopped on takes the gold line, so the refusal and the doors under it are about that one. Over $3 the first tap asks and the second sends.</p>
   <p><b>Taking one block off.</b> The &times; in a block&rsquo;s corner takes that block off; with only one block left there is no &times; and <b>clear</b> beside the star is what empties it. Either way <b>undo</b> puts it back.</p>
@@ -998,6 +1027,14 @@
   <div class="foldrow panelrow">
     <button type="button" class="fold" id="panelfold" aria-expanded="true" aria-controls="panel"><span class="chev"></span><span id="panelfoldlab">Prompt</span><span id="panelfoldwords" class="lw"></span></button>
   </div>
+  <!-- CHARACTERS, THEN SETTING — two permanent blocks, shut by default
+       (2026-09-13, Sophie: "i envision two permanent default collapsed blocks
+       at the top of footage: characters, then setting"). What is written in
+       them rides at the top of every clip this page sends; shut, each heading
+       says its own words, so nothing rides unseen. -->
+  <div class="headwrap shut" data-head="characters"><button type="button" class="fold hfold shut" aria-expanded="false"><span class="chev"></span><span class="bflab">Characters</span><span class="lw"></span></button><textarea class="hblock" aria-label="Characters — who is in every clip"></textarea><button type="button" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
+  <div class="headwrap shut" data-head="setting"><button type="button" class="fold hfold shut" aria-expanded="false"><span class="chev"></span><span class="bflab">Setting</span><span class="lw"></span></button><textarea class="hblock" aria-label="Setting — where every clip is"></textarea><button type="button" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
+
   <!-- ONE BLOCK IS ONE CLIP (2026-09-11). Divide here cuts the block at the
        cursor into two; the second half becomes a block of its own right under
        this one, with a join mark in the gap. The star sends the block she is
@@ -1571,6 +1608,17 @@ function loadCtl() {
     // the blocks after the first, in order, and which one she was in
     if (Array.isArray(d.blocks)) d.blocks.forEach(function (t) { if (typeof t === 'string') addBlock(t); });
     if (d.active > 0 && blocks()[d.active]) setActive(blocks()[d.active]);
+    // THE TWO HEADS COME BACK, BY NAME AND NOT BY POSITION — they are a
+    // standing part of the job and a reload that emptied them would send the
+    // next clip without the cast. They come back SHUT whatever she left
+    // them: shut is their default, and the heading says the words.
+    if (d.heads && typeof d.heads === 'object') {
+      heads().forEach(function (w) {
+        var v = d.heads[w.dataset.head];
+        if (typeof v === 'string') w.querySelector('.hblock').value = v;
+      });
+      paintHeadBlocks();
+    }
   } catch (e) {}
   // the job a clear put aside, so the undo survives a reload and a deploy
   loadBank();
@@ -1582,6 +1630,14 @@ function saveDraft() {
   try {
     var ws = blocks();
     var d = { prompt: ws[0].querySelector('.pblock').value, refs: refs };
+    // written only when one of them holds something, so a page that has never
+    // used them saves exactly the draft it always saved
+    var hw = {}, any = false;
+    heads().forEach(function (w) {
+      var v = w.querySelector('.hblock').value;
+      if (String(v || '').trim()) { hw[w.dataset.head] = v; any = true; }
+    });
+    if (any) d.heads = hw;
     if (firstUrl) d.first = firstUrl;
     if (lastUrl) d.last = lastUrl;
     if (ws.length > 1) {
@@ -2692,7 +2748,7 @@ function fitBox(box, growOnly) {
     if (box.scrollHeight + border > box.offsetHeight && box.style.height !== need) box.style.height = need;
     return;
   }
-  var w = box.parentNode, lock = !!(w && w.classList && w.classList.contains('promptwrap'));
+  var w = box.parentNode, lock = !!(w && w.classList && (w.classList.contains('promptwrap') || w.classList.contains('headwrap')));
   if (lock) w.style.minHeight = w.getBoundingClientRect().height + 'px';
   box.style.height = 'auto';
   var h = (box.scrollHeight + border) + 'px';
@@ -2701,6 +2757,9 @@ function fitBox(box, growOnly) {
 }
 function fitAll() {
   blocks().forEach(function (w) { fitBox(w.querySelector('.pblock')); });
+  // a SHUT head measures nothing and `fitBox` says so itself, so this is the
+  // open one and costs the common load nothing
+  heads().forEach(function (w) { fitBox(w.querySelector('.hblock')); });
   paintBlockHeads();
 }
 // ── A BLOCK FOLDS ON ITS OWN (2026-09-13, Sophie: "make each text block in
@@ -2947,6 +3006,125 @@ window.addEventListener('resize', fitAll);
 window.__fitBigPrompt = fitAll;
 mountBlock(blocks()[0]);
 
+// ── THE TWO PERMANENT BLOCKS: CHARACTERS, THEN SETTING (2026-09-13, Sophie:
+// "i envision two permanent default collapsed blocks at the top of footage:
+// characters, then setting") ──────────────────────────────────────────────
+// Who is in the scene and where it is do not change from shot to shot, and
+// until this they were retyped into every block. So they are two blocks of
+// their own above the scene, and what is in them rides at the TOP of the
+// prompt of every clip — the star's own block and the appended All alike, in
+// this order, blank line between, exactly the shape the join mark and the
+// All star already give her words. Five things not to undo:
+//   - THEY ARE NOT `blocks()`. A head is `.headwrap`/`.hblock`, never
+//     `.promptwrap`/`.pblock`, so "the blocks" goes on meaning her scene
+//     blocks in every reader there is: the numbering, the gold line, the join
+//     marks, the ✕, the divide, `setBlocks`, the draft (`prompt` first,
+//     `blocks` after it), the hand-off and every test are untouched by
+//     construction rather than by remembering to skip two.
+//   - THE GOLD LINE NEVER MOVES TO ONE. `setActive` is reached through
+//     `closest('.promptwrap')`, which a head is not, so tapping into
+//     Characters leaves the star pointing where she left it — which is right,
+//     because the star cannot send a head on its own: it is a head, not a
+//     shot.
+//   - AN EMPTY HEAD ADDS NOTHING, and with both empty the prompt is
+//     byte-for-byte the words in her box. Emptying one is how it stops
+//     riding; there is no ✕ and no divide on a head, because permanent means
+//     nothing takes one off the page.
+//   - `clear` DOES NOT TOUCH THEM. It wipes the JOB — the blocks, the
+//     references, the marks, the seed — and the cast and the room are the
+//     standing thing above it, so the next shot of the same scene keeps them.
+//     A clear that retyped them would be "permanent" meaning nothing.
+//   - SHUT IS WHERE THEY START, every load, which is the one place this page
+//     folds by default — and it is only safe because the shut heading SAYS
+//     ITS WORDS. A value riding every clip with nothing on screen saying so
+//     is the hidden ingredient the price beside the star exists to prevent.
+var HEADS = [
+  { id: 'characters', label: 'Characters', of: 'who is in the clip' },
+  { id: 'setting', label: 'Setting', of: 'where it is' },
+];
+function heads() {
+  var out = [], kids = panelEl().children;
+  for (var i = 0; i < kids.length; i++) if (kids[i].classList.contains('headwrap')) out.push(kids[i]);
+  return out;
+}
+function headOf(id) {
+  return heads().filter(function (w) { return w.dataset.head === id; })[0] || null;
+}
+function headBox(id) { var w = headOf(id); return w ? w.querySelector('.hblock') : null; }
+function headLabel(w) {
+  var id = w.dataset.head;
+  return HEADS.filter(function (h) { return h.id === id; })[0] || { label: id, of: '' };
+}
+// EVERY WRITTEN HEAD, IN THE ORDER THEY SIT ON THE PAGE — characters, then
+// setting, then the words she is sending. Blank line between, the join
+// mark's own shape, so a head and a joined block cannot read as two
+// different things.
+function headWords() {
+  return heads().map(function (w) { return w.querySelector('.hblock').value.trim(); })
+    .filter(function (t) { return t; });
+}
+// NOTHING WRITTEN → the words are handed back UNTOUCHED (not even trimmed),
+// so a page with both heads empty sends exactly what it always sent.
+function withHeads(words) {
+  var h = headWords();
+  return h.length ? h.concat([String(words).trim()]).join('\n\n') : words;
+}
+// NAMED `paintHeadBlock` AND NOT `paintHead` — the page header has a
+// `paintHead` of its own hundreds of lines down, and a duplicate function
+// DECLARATION is not an error: the last one in the file wins, silently, so
+// the first cut of this folded correctly and painted nothing at all
+// (caught by the test, invisible in the source).
+function paintHeadBlock(w) {
+  var b = w.querySelector('.hfold'), h = headLabel(w);
+  var shut = w.classList.contains('shut');
+  var txt = String(w.querySelector('.hblock').value || '').replace(/\s+/g, ' ').trim();
+  b.classList.toggle('shut', shut);
+  b.setAttribute('aria-expanded', shut ? 'false' : 'true');
+  setText(b.querySelector('.bflab'), h.label);
+  // SHUT, IT SAYS WHAT IS IN IT; open, the words are right there — the block
+  // fold's own rule, and here it is also the disclosure that lets these two
+  // default to shut
+  setText(b.querySelector('.lw'), shut && txt ? '\u00b7 ' + txt : '');
+  b.title = (shut ? 'Open ' : 'Fold away ') + h.label.toLowerCase() + ' \u2014 ' + h.of
+    + '. What is written here rides at the top of every clip you send.';
+}
+function paintHeadBlocks() { heads().forEach(paintHeadBlock); }
+function toggleHead(w) {
+  w.classList.toggle('shut');
+  if (!w.classList.contains('shut')) fitBox(w.querySelector('.hblock'));
+  paintHeadBlocks();
+  if (window.__fitPillGap) window.__fitPillGap();
+}
+function mountHead(w) {
+  var box = w.querySelector('.hblock'), big = w.querySelector('.bigger');
+  var head = w.querySelector('.hfold');
+  head.querySelector('.chev').innerHTML = ICONS.chev;
+  head.addEventListener('click', function () { toggleHead(w); });
+  var full = false;                     // the next input may need it to SHRINK
+  box.addEventListener('beforeinput', function (e) {
+    var t = e.inputType || '';
+    full = t.indexOf('insert') !== 0 || t === 'insertFromPaste' || t === 'insertFromDrop'
+      || t === 'insertReplacementText' || box.selectionStart !== box.selectionEnd;
+  });
+  box.addEventListener('focusout', function () { full = false; fitBox(box); });
+  function paint() {
+    var on = box.classList.contains('big');
+    big.innerHTML = on ? ICONS.minimize : ICONS.maximize;
+    big.setAttribute('aria-label', on ? 'Smaller box' : 'Bigger box');
+    big.title = big.getAttribute('aria-label');
+    fitBox(box);
+  }
+  big.addEventListener('click', function () { box.classList.toggle('big'); paint(); });
+  box.addEventListener('input', function (e) {
+    var grow = !full && !!(e && e.inputType) && e.inputType.indexOf('insert') === 0;
+    full = false;
+    fitBox(box, grow); saveDraft(); paintHeadBlocks();
+  });
+  paint();
+}
+heads().forEach(mountHead);
+paintHeadBlocks();
+
 // ── The star: it sends on its tap ────────────────────────────
 // THE PLAN STEP IS HISTORY (2026-09-09, Sophie: "no plan button"). It shipped
 // the day before at her own ask ("plan before go") and she retired it within
@@ -2982,9 +3160,17 @@ function sendJob(pin, box, text) {
   return postJob(pin, box || activeBox(), text).then(function (ok) { btn.disabled = false; return ok; });
 }
 function postJob(pin, box, text) {
-  var prompt = text == null ? box.value : text;   // the block she is in, or every block appended
+  var words = text == null ? box.value : text;    // the block she is in, or every block appended
   $('err').hidden = true;
-  if (!prompt.trim()) { toast('Say what the clip is first'); return Promise.resolve(false); }
+  // THE SCENE IS WHAT HAS TO BE THERE — characters and setting are the head
+  // of a clip, never the clip, so an empty box with a cast written in it is
+  // still nothing to draw.
+  if (!words.trim()) { toast('Say what the clip is first'); return Promise.resolve(false); }
+  // AND THE TWO PERMANENT BLOCKS RIDE AT THE TOP OF IT. One place, so the
+  // star, the All star and a refusal's door words all send the same shape —
+  // and the log, the card and the 1080p redo all carry the exact text that
+  // went, which is the exact-prompt rule.
+  var prompt = withHeads(words);
   var body = { prompt: prompt, model: S.model, seconds: S.seconds, resolution: S.res, ratio: S.ratio,
     sound: true, door: pin || doorNow(), refs: orderedRefs(), project: S.project, folder: S.project ? S.folder : '' };
   // THE TWO KEYFRAMES RIDE AS URLS — the server marks the matching reference
