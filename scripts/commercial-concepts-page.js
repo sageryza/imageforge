@@ -82,11 +82,10 @@ function build(resolved) {
   const secs = resolved.map((c) => {
     const blocks = c.blocks.map((b, i) => `      <div class="blk" data-k="b${i}" data-from="${attr(b.from)}"${b.link ? ` data-chat="${attr(b.link)}"` : ''}>
         <textarea class="p" data-key="${attr(c.id)}.b${i}" spellcheck="false">${esc(b.text)}</textarea>
-        <div class="row"><button class="cp">copy</button><button class="dv">divide here</button><button class="jn" hidden>join up</button><span class="sv"></span></div>
+        <div class="row"><button class="cp">copy</button><button class="dv">divide here</button><button class="jn" hidden>join up</button><button class="tr">trash</button><button class="q" aria-label="where this came from">?</button><span class="sv"></span></div>
+        <div class="src" hidden></div>
       </div>`).join('\n');
-    return `  <div class="card" data-item="${attr(c.id)}" data-cid="${attr(c.id)}">
-    <h2>${esc(c.title)}<button class="q" aria-label="where this came from">?</button></h2>
-    <div class="qcard" hidden>${c.also ? `<div class="also">${esc(c.also)}</div>` : ''}<div class="srcs"></div></div>
+    return `  <div class="sec" data-item="${attr(c.id)}" data-cid="${attr(c.id)}" data-title="${attr(c.title)}"${c.also ? ` data-also="${attr(c.also)}"` : ''}>
     <div class="blks">
 ${blocks}
     </div>
@@ -101,41 +100,54 @@ ${blocks}
 <title>${esc(TITLE)}</title>
 <link rel="stylesheet" href="/compare.css">
 <style>
-  /* THE PILL OWNS THE TOP-RIGHT CORNER, and compare.js hangs the "?" off the
-     end of the title — 64px, never 56 (measured: the pill's left edge is x=326
-     at 390pt, so a 56 reserve ends at 334 and the last 8px is dead). */
+  /* NOT TWO OF EACH HEADER (2026-09-13, Sophie, looking at the app: "two of
+     each header"). The chapter bar names the concept she is in and the app's
+     own bar names the page, so a heading of my own under each of them said
+     the same words twice. The concept's name lives in the bar and in its jump
+     list; the page's name lives in the app bar (and in the h1 in a plain
+     browser, which has no bar). */
   .wrap > h1{padding-right:64px}
+  body.embed .wrap > h1 > .t{display:none}
+  body.embed .wrap > h1{margin:0 0 2px;font-size:0}
+
+  /* AND NOT A BOX IN A BOX IN A BOX (same message: "why is it's box in a box
+     in a box"). compare.css's .card draws one, the chapter bar draws one and
+     the textarea draws one, nested. The text IS the page here, so the box is
+     the textarea's alone; a concept is separated by a rule, not by a frame. */
+  .sec{margin:0 0 26px}
+  .sec + .sec{border-top:1px solid var(--line);padding-top:26px}
   .blk{margin:0 0 14px}
-  /* WHERE A BLOCK CAME FROM IS BEHIND THE "?" (2026-09-13, Sophie: "u added
-     text at the top … put it behind a ?"). The words are the page; a line of
-     mine above every one of them is something to read first. */
-  h2 .q{margin-left:8px;width:22px;height:22px;padding:0;border-radius:6px;
-    border:1px solid var(--line);background:transparent;color:var(--ink2);
-    font:600 12px/1 inherit;text-transform:none;letter-spacing:0;cursor:pointer;vertical-align:middle}
-  .qcard{margin:0 0 12px;padding:10px 12px;border:1px solid var(--line);border-radius:6px}
-  .srcs{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);line-height:1.9}
-  .srcs a{color:var(--ink2)}
-  .qcard .also{margin:0 0 8px}
-  textarea.p{width:100%;box-sizing:border-box;display:block;background:var(--paper);color:var(--ink);
+  textarea.p{width:100%;box-sizing:border-box;display:block;background:var(--surface);color:var(--ink);
     border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-family:inherit;font-size:16px;line-height:1.55;
     resize:none;overflow:hidden;min-height:0}
-  .row{display:flex;gap:8px;align-items:center;margin:5px 0 0}
+  .row{display:flex;gap:8px;align-items:center;margin:5px 0 0;flex-wrap:wrap}
   .row button{font-size:12px;padding:4px 9px;border-radius:6px;border:1px solid var(--line);
     background:transparent;color:var(--ink);cursor:pointer}
+  .row .q{width:22px;padding:0;color:var(--ink2);font-weight:600}
   .row .sv{font-size:11px;color:var(--ink2)}
   .row .sv.bad{color:#b0342c}
-  .also{font-size:12px;color:var(--ink2);margin:0;line-height:1.5}
+  /* WHERE A BLOCK CAME FROM IS BEHIND ITS "?" (2026-09-13, Sophie: "u added
+     text at the top … put it behind a ?"). Her words are the page; a line of
+     mine over every one of them is something to read first. */
+  .src{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);
+    line-height:1.8;margin:6px 0 0}
+  .src a{color:var(--ink2)}
+  .src .also{letter-spacing:0;text-transform:none;font-size:12px;line-height:1.5;margin:0 0 6px}
+  /* NOTHING IS DESTROYED — the trashed block's text stays on the sheet, so
+     undo is putting the block back rather than retyping it. */
+  .undo{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--ink2);margin:0 0 14px}
+  .undo button{font-size:12px;padding:4px 9px;border-radius:6px;border:1px solid var(--line);
+    background:transparent;color:var(--ink);cursor:pointer}
   .leads{font-size:13px;color:var(--ink2);line-height:1.6}
   [hidden]{display:none !important}
 </style>
 
 <div class="wrap">
-  <h1>${esc(TITLE)}</h1>
+  <h1><span class="t">${esc(TITLE)}</span></h1>
 
 ${secs}
 
-  <div class="card" data-item="leads">
-    <h2>Leads — described somewhere other than a message</h2>
+  <div class="sec" data-item="leads" data-title="Leads — described somewhere other than a message">
     <ul class="leads">${leads}</ul>
   </div>
 </div>
@@ -144,6 +156,9 @@ ${secs}
 <script>
 (function () {
   var CHAT = ${JSON.stringify(SRC.chat)}, SHEET = ${JSON.stringify(SRC.sheet)}, LIMIT = 8000;
+
+  // The app draws its own bar with this page's name in it; a browser does not.
+  if (window.self !== window.top) document.body.classList.add('embed');
 
   function post(body){ return fetch('/api/chatfeed/verdict',{method:'POST',
     headers:{'content-type':'application/json'},body:JSON.stringify(body)}); }
@@ -173,31 +188,39 @@ ${secs}
   }
   function saveOrder(cid, keys){ return post({chat:CHAT,sheet:SHEET,item:'ord-'+cid,text:JSON.stringify(keys)}); }
 
-  function keysOf(card){ return [].map.call(card.querySelectorAll('.blk'), function(b){ return b.dataset.k; }); }
-  function nextKey(card){
-    var n=0; keysOf(card).forEach(function(k){ var m=/^b(\\d+)$/.exec(k); if(m) n=Math.max(n, +m[1]+1); });
+  function keysOf(sec){ return [].map.call(sec.querySelectorAll('.blk'), function(b){ return b.dataset.k; }); }
+  function nextKey(sec){
+    var n=0; keysOf(sec).forEach(function(k){ var m=/^b(\\d+)$/.exec(k); if(m) n=Math.max(n, +m[1]+1); });
     return 'b'+n;
   }
-  function paintJoin(card){
-    [].forEach.call(card.querySelectorAll('.blk'), function(b,i){ b.querySelector('.jn').hidden = (i===0); });
-  }
 
-  // The panel is DERIVED from the blocks as they stand, so a divide or a join
-  // renumbers it by itself and there is no second copy of the order to drift.
-  function paintSrcs(card){
-    var out=[].map.call(card.querySelectorAll('.blk'), function(b,i){
+  // The row and the source panels are DERIVED from the blocks as they stand,
+  // so a divide, a join or a trash renumbers them by itself and there is no
+  // second copy of the order to drift.
+  function paintRow(sec){
+    var bs=sec.querySelectorAll('.blk'), also=sec.dataset.also||'';
+    [].forEach.call(bs, function(b,i){
+      b.querySelector('.jn').hidden = (i===0);
+      b.querySelector('.tr').hidden = (bs.length<2);
       var from=b.dataset.from||'', chat=b.dataset.chat||'';
-      return '<div>'+(i+1)+' · '+from+(chat?' · <a href="/chats?chat='+encodeURIComponent(chat)+'">open the chat</a>':'')+'</div>';
-    }).join('');
-    card.querySelector('.srcs').innerHTML=out;
+      b.querySelector('.src').innerHTML =
+        (i===0 && also ? '<div class="also">'+also+'</div>' : '')
+        + '<div>'+(i+1)+' of '+bs.length+' · '+from
+        + (chat?' · <a href="/chats?chat='+encodeURIComponent(chat)+'">open the chat</a>':'')+'</div>';
+    });
   }
 
   function wire(blk){
-    var card=blk.closest('.card'), cid=card.dataset.cid;
+    var sec=blk.closest('.sec'), cid=sec.dataset.cid;
     var ta=blk.querySelector('textarea'), sv=blk.querySelector('.sv'), timer=null;
     fit(ta);
     ta.addEventListener('input',function(){ fit(ta); sv.textContent='…';
       clearTimeout(timer); timer=setTimeout(function(){ save(ta.dataset.key, ta.value, sv); },700); });
+
+    blk.querySelector('.q').addEventListener('click',function(e){
+      e.preventDefault(); e.stopPropagation();
+      var p=blk.querySelector('.src'); p.hidden=!p.hidden;
+    });
 
     blk.querySelector('.cp').addEventListener('click',function(e){
       e.preventDefault();
@@ -215,29 +238,52 @@ ${secs}
       var at=(ta.selectionStart==null?ta.value.length:ta.selectionStart);
       var head=ta.value.slice(0,at).replace(/\\s+$/,''), tail=ta.value.slice(at).replace(/^\\s+/,'');
       if(!tail){ bad(sv,'put the cursor where you want the split'); return; }
-      var k=nextKey(card);
+      var k=nextKey(sec);
       var nb=blk.cloneNode(true);
       nb.dataset.k=k;
       var nta=nb.querySelector('textarea'); nta.dataset.key=cid+'.'+k; nta.value=tail;
       nb.querySelector('.sv').textContent=''; nb.querySelector('.sv').classList.remove('bad');
+      nb.querySelector('.src').hidden=true;
       blk.parentNode.insertBefore(nb,blk.nextSibling);
-      ta.value=head; fit(ta); wire(nb); paintJoin(card); paintSrcs(card);
+      ta.value=head; fit(ta); wire(nb); paintRow(sec);
       save(ta.dataset.key,head,sv);
       save(nta.dataset.key,tail,nb.querySelector('.sv'));
-      saveOrder(cid,keysOf(card));
+      saveOrder(cid,keysOf(sec));
     });
 
     blk.querySelector('.jn').addEventListener('click',function(e){
       e.preventDefault();
       var prev=blk.previousElementSibling;
-      if(!prev || !prev.classList.contains('blk')) return;
+      while(prev && !prev.classList.contains('blk')) prev=prev.previousElementSibling;
+      if(!prev) return;
       var pta=prev.querySelector('textarea');
       pta.value=(pta.value.replace(/\\s+$/,'')+'\\n\\n'+ta.value.replace(/^\\s+/,''));
       fit(pta);
       save(ta.dataset.key,'',sv);
       blk.remove();
       save(pta.dataset.key,pta.value,prev.querySelector('.sv'));
-      saveOrder(cid,keysOf(card)); paintJoin(card); paintSrcs(card);
+      saveOrder(cid,keysOf(sec)); paintRow(sec);
+    });
+
+    // TRASH (2026-09-13, Sophie: "add a trash button to copy divide etc").
+    // It takes the block out of the ORDER and leaves its text on the sheet,
+    // so undo is putting the block back rather than typing it again — and a
+    // block she trashed last week is still recoverable from the sheet.
+    blk.querySelector('.tr').addEventListener('click',function(e){
+      e.preventDefault();
+      var host=blk.parentNode, mark=blk.nextSibling;
+      var u=document.createElement('div');
+      u.className='undo';
+      u.innerHTML='<span>block trashed</span><button type="button" class="ub">undo</button>';
+      host.insertBefore(u,mark);
+      blk.remove();
+      saveOrder(cid,keysOf(sec)); paintRow(sec);
+      var t=setTimeout(function(){ if(u.parentNode) u.remove(); },30000);
+      u.querySelector('.ub').addEventListener('click',function(ev){
+        ev.preventDefault(); clearTimeout(t);
+        host.insertBefore(blk,u); u.remove();
+        fit(ta); saveOrder(cid,keysOf(sec)); paintRow(sec);
+      });
     });
   }
 
@@ -246,19 +292,20 @@ ${secs}
   // this build put there.
   function restore(d){
     var texts=(d && d.texts) || {};
-    [].forEach.call(document.querySelectorAll('.card[data-cid]'), function(card){
-      var cid=card.dataset.cid, host=card.querySelector('.blks');
+    [].forEach.call(document.querySelectorAll('.sec[data-cid]'), function(sec){
+      var cid=sec.dataset.cid, host=sec.querySelector('.blks');
       var ord=null;
       try { var raw=texts['ord-'+cid]; if(raw) ord=JSON.parse(raw); } catch(_){}
       if(Array.isArray(ord) && ord.length){
-        var seeds={}; [].forEach.call(card.querySelectorAll('.blk'), function(b){ seeds[b.dataset.k]=b; });
-        var proto=card.querySelector('.blk');
+        var seeds={}; [].forEach.call(sec.querySelectorAll('.blk'), function(b){ seeds[b.dataset.k]=b; });
+        var proto=sec.querySelector('.blk');
         ord.forEach(function(k){
           var b=seeds[k];
           if(!b){
             b=proto.cloneNode(true); b.dataset.k=k;
             b.querySelector('textarea').dataset.key=cid+'.'+k;
             b.querySelector('.sv').textContent='';
+            b.querySelector('.src').hidden=true;
           }
           var t=texts[cid+'.'+k];
           if(typeof t==='string') b.querySelector('textarea').value=t;
@@ -267,37 +314,41 @@ ${secs}
         });
         Object.keys(seeds).forEach(function(k){ seeds[k].remove(); });
       } else {
-        [].forEach.call(card.querySelectorAll('.blk'), function(b){
+        [].forEach.call(sec.querySelectorAll('.blk'), function(b){
           var t=texts[cid+'.'+b.dataset.k];
           if(typeof t==='string' && t) b.querySelector('textarea').value=t;
         });
       }
-      [].forEach.call(card.querySelectorAll('.blk'), wire);
-      paintJoin(card); paintSrcs(card);
+      [].forEach.call(sec.querySelectorAll('.blk'), wire);
+      paintRow(sec);
     });
   }
 
-  document.addEventListener('click', function(e){
-    var q=e.target.closest && e.target.closest('h2 .q');
-    if(!q) return;
-    e.preventDefault(); e.stopPropagation();
-    var card=q.closest('.card'), panel=card.querySelector('.qcard');
-    panel.hidden=!panel.hidden;
-  });
-
   [].forEach.call(document.querySelectorAll('.blk'), function(b){ fit(b.querySelector('textarea')); });
-  [].forEach.call(document.querySelectorAll('.card[data-cid]'), paintSrcs);
+  [].forEach.call(document.querySelectorAll('.sec[data-cid]'), paintRow);
   sheet().then(restore, function(){ restore(null); });
 
   // A tap inside a box must not toggle the reading autoscroll.
   document.addEventListener('pointerdown', function(e){
-    if(e.target.closest('textarea, .row')) e.stopPropagation();
+    if(e.target.closest('textarea, .row, .undo')) e.stopPropagation();
   }, true);
+
+  // THE CHAPTER BAR IS THE CONCEPT'S HEADING — one name, in one place, and it
+  // is the one that stays on screen when the top of a concept has scrolled
+  // away. Its jump list is how 34 of them are reachable without scrolling
+  // past 33. (There are no <h2>s, so compare.js's own auto-mount stands down
+  // and this explicit call is the only one.)
+  window.__pagePlace({ chapters: function(){
+    return [].map.call(document.querySelectorAll('.sec[data-title]'), function(el){
+      return { el: el, label: el.dataset.title || '' };
+    });
+  } });
 
   window.__compareNotes({ chat: CHAT, sheet: SHEET });
   window.__compareHelp({ html:
     '<p>Every commercial or film idea you described, in your own words, pulled out of your messages and your voice memos.</p>'
-    + '<p><b>copy</b> puts that block on the clipboard. Type in a box to edit it \\u2014 it saves itself. <b>divide here</b> splits a block at the cursor into two; <b>join up</b> puts it back.</p>'
+    + '<p>The bar at the top names the one you are in \\u2014 tap it for the whole list.</p>'
+    + '<p><b>copy</b> puts that block on the clipboard. Type in a box to edit it \\u2014 it saves itself. <b>divide here</b> splits a block at the cursor into two; <b>join up</b> puts it back; <b>trash</b> takes one out and offers an undo. <b>?</b> says where those words came from.</p>'
     + '<p>The small + in a corner is a note to Claude, kept separately from the text.</p>' });
 })();
 </script>

@@ -91,26 +91,60 @@ const server = http.createServer((req, res) => {
   }), 'nothing to read above the title');
   ok(await p.evaluate(() => !!document.querySelector('.cmp-help, [class*=help]')), 'the "?" card is wired');
 
-  // NOTHING TO READ ABOVE HER WORDS — it is all behind the concept's "?"
-  ok(await p.evaluate(() => !document.querySelector('.blk .src')), 'no source line sits above a block');
-  ok(await p.evaluate(() => [].every.call(document.querySelectorAll('.qcard'), (c) => c.hidden)), 'every "?" panel starts shut');
+  // NOT TWO OF EACH HEADER (2026-09-13, Sophie: "two of each header"). The
+  // chapter bar names the concept; nothing under it says the same words.
+  ok(await p.evaluate(() => document.querySelectorAll('h2').length === 0), 'a concept has no heading of its own');
+  ok(await p.evaluate(() => !!document.querySelector('.pp')), 'the chapter bar mounted');
   ok(await p.evaluate(() => {
-    // MEASURED, not asserted in source: what really renders between the
-    // heading and the first box. A hidden panel occupies no height.
-    const card = document.querySelector('.card[data-cid]');
-    const h2 = card.querySelector('h2').getBoundingClientRect();
-    const ta = card.querySelector('textarea').getBoundingClientRect();
-    return ta.top - h2.bottom < 24;
-  }), 'her words start straight under the heading');
-  await p.evaluate(() => document.querySelector('h2 .q').click());
+    const t = (document.querySelector('.pp-t') || {}).textContent || '';
+    const first = document.querySelector('.sec[data-title]').dataset.title;
+    return t.trim() === first.trim();
+  }), 'the bar names the concept she is in');
+  ok(await p.evaluate(() => {
+    // MEASURED: the same words must not render twice. Count everything on
+    // the page whose own text IS the first concept's title.
+    const want = document.querySelector('.sec[data-title]').dataset.title.trim();
+    let n = 0;
+    document.querySelectorAll('body *').forEach((el) => {
+      if (el.children.length) return;
+      if (el.closest('.pp-list')) return;   // the jump list is a menu, shut
+      if ((el.textContent || '').trim() === want) n += 1;
+    });
+    return n;
+  }) === 1, 'that name renders exactly once on screen');
+  ok(await p.evaluate(() => document.querySelectorAll('.pp-it').length >= 30), 'the jump list holds every concept');
+
+  // AND NOT A BOX IN A BOX IN A BOX ("why is it's box in a box in a box")
+  ok(await p.evaluate(() => !document.querySelector('.wrap .card')), 'a concept is not wrapped in a card box');
+  ok(await p.evaluate(() => {
+    const ta = document.querySelector('textarea.p');
+    let n = 0, el = ta.parentElement;
+    while (el && el !== document.body) {
+      const s = getComputedStyle(el);
+      if (s.borderTopWidth !== '0px' && s.borderTopStyle !== 'none') n += 1;
+      el = el.parentElement;
+    }
+    return n;
+  }) === 0, 'and nothing bordered is nested around the box');
+
+  // NOTHING TO READ ABOVE HER WORDS — the source is behind each block's "?"
+  ok(await p.evaluate(() => [].every.call(document.querySelectorAll('.src'), (c) => c.hidden)), 'every "?" panel starts shut');
+  ok(await p.evaluate(() => {
+    // a hidden panel occupies no height: her words are the top of the page
+    const sec = document.querySelector('.sec[data-cid]');
+    const ta = sec.querySelector('textarea').getBoundingClientRect();
+    const bar = document.querySelector('.pp').getBoundingClientRect();
+    return ta.top - bar.bottom < 30;
+  }), 'her words start straight under the bar');
+  await p.evaluate(() => document.querySelector('.blk .q').click());
   await p.waitForTimeout(150);
   ok(await p.evaluate(() => {
-    const c = document.querySelector('.qcard');
+    const c = document.querySelector('.blk .src');
     return !c.hidden && /voice memo|thomas|2026/i.test(c.textContent);
-  }), 'the "?" opens and names where the words came from');
-  await p.evaluate(() => document.querySelector('h2 .q').click());
+  }), 'the "?" opens and names where those words came from');
+  await p.evaluate(() => document.querySelector('.blk .q').click());
   await p.waitForTimeout(150);
-  ok(await p.evaluate(() => document.querySelector('.qcard').hidden), 'and closes again');
+  ok(await p.evaluate(() => document.querySelector('.blk .src').hidden), 'and closes again');
 
   // A BOX IS FITTED TO ITS WORDS — a detached fit comes up one line tall
   const boxes = await p.evaluate(() => [].map.call(document.querySelectorAll('textarea.p'),
@@ -149,29 +183,31 @@ const server = http.createServer((req, res) => {
 
   // DIVIDE — the tail becomes a new block, both halves reach the sheet, and
   // the ORDER is saved (without it her split is gone on the next open)
-  const before = await p.evaluate(() => document.querySelectorAll('.card[data-cid] .blk').length);
+  const before = await p.evaluate(() => document.querySelectorAll('.sec[data-cid] .blk').length);
   const cid = await p.evaluate(() => {
     const b = document.querySelector('.blk');
     const ta = b.querySelector('textarea');
     ta.focus(); ta.setSelectionRange(20, 20);
     b.querySelector('.dv').click();
-    return b.closest('.card').dataset.cid;
+    return b.closest('.sec').dataset.cid;
   });
   await p.waitForTimeout(1200);
-  const after = await p.evaluate(() => document.querySelectorAll('.card[data-cid] .blk').length);
+  const after = await p.evaluate(() => document.querySelectorAll('.sec[data-cid] .blk').length);
   ok(after === before + 1, 'divide adds exactly one block');
   ok(await p.evaluate((c) => {
-    const card = document.querySelector(`.card[data-cid="${c}"]`);
-    return [].every.call(card.querySelectorAll('.blk'), (b) => b.parentNode === card.querySelector('.blks'));
-  }, cid), 'a new block lands inside the blocks container, never loose in the card');
+    const sec = document.querySelector(`.sec[data-cid="${c}"]`);
+    return [].every.call(sec.querySelectorAll('.blk'), (b) => b.parentNode === sec.querySelector('.blks'));
+  }, cid), 'a new block lands inside the blocks container, never loose in the section');
   ok(typeof store.texts['ord-' + cid] === 'string' && JSON.parse(store.texts['ord-' + cid]).length === 2,
     'the new order reached the sheet');
   const parts = JSON.parse(store.texts['ord-' + cid] || '[]').map((k) => store.texts[cid + '.' + k] || '');
   ok(parts.length === 2 && parts[0] && parts[1], 'both halves reached the sheet');
   ok(await p.evaluate((c) => {
-    const card = document.querySelector(`.card[data-cid="${c}"]`);
-    return card.querySelectorAll('.srcs > div').length === card.querySelectorAll('.blk').length;
-  }, cid), 'the "?" panel renumbers itself after a divide');
+    const sec = document.querySelector(`.sec[data-cid="${c}"]`);
+    return [].every.call(sec.querySelectorAll('.blk'), (b, i) =>
+      /^\s*(?:.*\n)?\s*/.test(b.querySelector('.src').textContent)
+      && b.querySelector('.src').textContent.indexOf((i + 1) + ' of ') >= 0);
+  }, cid), 'every "?" panel renumbers itself after a divide');
   ok(await p.evaluate(() => !document.querySelectorAll('.blk')[1].querySelector('.jn').hidden), 'the second block offers join up');
   ok(await p.evaluate(() => document.querySelectorAll('.blk')[0].querySelector('.jn').hidden), 'the first block does not');
   await p.screenshot({ path: path.join(SHOTS, '03-divided.png') });
@@ -179,16 +215,53 @@ const server = http.createServer((req, res) => {
   // HER SPLIT SURVIVES A REOPEN — this is the assertion a source check cannot make
   await ctx.close();
   ({ ctx, p } = await open());
-  const kept = await p.evaluate((c) => document.querySelector(`.card[data-cid="${c}"]`).querySelectorAll('.blk').length, cid);
+  const kept = await p.evaluate((c) => document.querySelector(`.sec[data-cid="${c}"]`).querySelectorAll('.blk').length, cid);
   ok(kept === 2, 'the divided concept reopens as two blocks');
-  const first = await p.evaluate((c) => document.querySelector(`.card[data-cid="${c}"] textarea`).value.length, cid);
+  const first = await p.evaluate((c) => document.querySelector(`.sec[data-cid="${c}"] textarea`).value.length, cid);
   ok(first > 0 && first < 40, 'the head block reopens holding the head');
 
   // JOIN PUTS IT BACK
-  await p.evaluate((c) => document.querySelector(`.card[data-cid="${c}"]`).querySelectorAll('.blk')[1].querySelector('.jn').click(), cid);
+  await p.evaluate((c) => document.querySelector(`.sec[data-cid="${c}"]`).querySelectorAll('.blk')[1].querySelector('.jn').click(), cid);
   await p.waitForTimeout(1200);
   ok(JSON.parse(store.texts['ord-' + cid]).length === 1, 'join up saves the order back to one block');
-  ok(await p.evaluate((c) => document.querySelector(`.card[data-cid="${c}"]`).querySelectorAll('.blk').length === 1, cid), 'and the page shows one');
+  ok(await p.evaluate((c) => document.querySelector(`.sec[data-cid="${c}"]`).querySelectorAll('.blk').length === 1, cid), 'and the page shows one');
+
+  // TRASH TAKES A BLOCK OUT AND THE UNDO PUTS IT BACK (2026-09-13, Sophie:
+  // "add a trash button to copy divide etc"). Measured as what the sheet
+  // really holds, since a trash that never reaches the order springs the
+  // block back on the next open.
+  await p.evaluate((c) => {
+    const sec = document.querySelector(`.sec[data-cid="${c}"]`);
+    const ta = sec.querySelector('textarea');
+    ta.focus(); ta.setSelectionRange(20, 20);
+    sec.querySelector('.dv').click();
+  }, cid);
+  await p.waitForTimeout(1200);
+  const twoK = JSON.parse(store.texts['ord-' + cid] || '[]');
+  ok(twoK.length === 2, 'divided again for the trash test');
+  const gone = twoK[1];
+  const keptText = store.texts[cid + '.' + gone];
+  await p.evaluate((c) => document.querySelector(`.sec[data-cid="${c}"]`).querySelectorAll('.blk')[1].querySelector('.tr').click(), cid);
+  await p.waitForTimeout(900);
+  ok(await p.evaluate((c) => document.querySelector(`.sec[data-cid="${c}"]`).querySelectorAll('.blk').length === 1, cid), 'trash takes the block off the page');
+  ok(JSON.parse(store.texts['ord-' + cid] || '[]').length === 1, 'and out of the order on the sheet');
+  ok(store.texts[cid + '.' + gone] === keptText, 'its words are LEFT on the sheet, so nothing is destroyed');
+  ok(await p.evaluate((c) => !!document.querySelector(`.sec[data-cid="${c}"] .undo`), cid), 'an undo is offered where it was');
+  await p.evaluate((c) => document.querySelector(`.sec[data-cid="${c}"] .undo .ub`).click(), cid);
+  await p.waitForTimeout(900);
+  ok(await p.evaluate((c) => document.querySelector(`.sec[data-cid="${c}"]`).querySelectorAll('.blk').length === 2, cid), 'undo puts it back');
+  ok(JSON.parse(store.texts['ord-' + cid] || '[]').length === 2, 'and back into the order');
+  ok(await p.evaluate((c) => !document.querySelector(`.sec[data-cid="${c}"] .undo`), cid), 'and the undo goes away');
+  ok(await p.evaluate((c) => {
+    const sec = document.querySelector(`.sec[data-cid="${c}"]`);
+    sec.querySelectorAll('.blk')[1].querySelector('.jn').click();
+    return true;
+  }, cid), 'rejoined for the next check');
+  await p.waitForTimeout(1000);
+  ok(await p.evaluate(() => {
+    const one = [].find.call(document.querySelectorAll('.sec[data-cid]'), (s) => s.querySelectorAll('.blk').length === 1);
+    return !one || one.querySelector('.tr').hidden;
+  }), 'the only block of a concept offers no trash');
 
   // BUTTONS HUG THEIR WORDS
   const wide = await p.evaluate(() => [].filter.call(document.querySelectorAll('.row button'),
@@ -211,6 +284,17 @@ const server = http.createServer((req, res) => {
   ok(String(covered).startsWith('0'), 'no control sits in the pill\'s corner (' + covered + ')');
 
   await p.screenshot({ path: path.join(SHOTS, '04-rejoined.png'), fullPage: false });
+
+  // IN THE APP THE BAR ALREADY SAYS THE PAGE'S NAME — so the h1 does not.
+  // Measured inside a real iframe, which is the only place the page can tell.
+  const emb = await ctx.newPage();
+  await emb.setContent('<iframe src="' + base + '/" style="width:390px;height:844px;border:0"></iframe>');
+  await emb.waitForTimeout(900);
+  const fr = emb.frames().find((f) => f !== emb.mainFrame());
+  ok(await fr.evaluate(() => document.body.classList.contains('embed')), 'the page knows it is embedded');
+  ok(await fr.evaluate(() => document.querySelector('h1 .t').getBoundingClientRect().height === 0), 'and the page title is not drawn twice');
+  ok(await fr.evaluate(() => !!document.querySelector('.cmp-help')), 'the help "?" is still reachable there');
+  await emb.close();
   await ctx.close();
   await browser.close();
   server.close();
