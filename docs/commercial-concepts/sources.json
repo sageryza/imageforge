@@ -1,0 +1,549 @@
+{
+  "_why": "A MANIFEST OF SOURCES, NEVER HER WORDS (2026-09-13). This repo is PUBLIC, so the page's text is resolved LIVE out of the chat feed and the memo archive at build time and only ever lands on the Compare page. Each block names where its words come from: a chat message by {chat, at} (the ISO prefix of its `created`) or a voice memo by {memo}. scripts/commercial-concepts-page.js builds and posts the page.",
+  "chat": "search-commercial-concepts",
+  "sheet": "concepts-v1",
+  "concepts": [
+    {
+      "id": "ants",
+      "title": "Ants in the glass container",
+      "blocks": [
+        {
+          "memo": "2026-08-30_2026_2026-08-31T03_26_11Z_541ded"
+        }
+      ],
+      "also": "A second, near-identical take is memo 2026-08-30_1946. Made as a film in transcribe-illustrate-scenes, sound redone in ant-movie-sound-redesign, recut in recent-ant-chat."
+    },
+    {
+      "id": "clay-world",
+      "title": "Clay world — looking is what renders it",
+      "blocks": [
+        {
+          "chat": "thomas-campbell-clip-movie",
+          "at": "2026-08-27T22:54"
+        },
+        {
+          "chat": "thomas-campbell-clip-movie",
+          "at": "2026-08-27T23:07"
+        },
+        {
+          "chat": "thomas-campbell-clip-movie",
+          "at": "2026-08-28T00:58"
+        },
+        {
+          "chat": "thomas-campbell-clip-movie",
+          "at": "2026-08-28T08:27"
+        },
+        {
+          "chat": "thomas-campbell-clip-movie",
+          "at": "2026-08-28T08:59"
+        }
+      ],
+      "also": "The original Opus chat was archived; this one took it over."
+    },
+    {
+      "id": "moon-milk",
+      "title": "Moon milk",
+      "blocks": [
+        {
+          "memo": "2026-07-02_0143_2026-07-02T08_43_46Z"
+        },
+        {
+          "chat": "deck-factory-movies",
+          "at": "2026-07-02T16:44"
+        },
+        {
+          "chat": "deck-factory-movies",
+          "at": "2026-07-04T03:56"
+        },
+        {
+          "chat": "deck-factory-movies",
+          "at": "2026-07-05T04:29"
+        }
+      ],
+      "also": "Stills exist; no finished film is in Storage (moon-milk-meta's own note says the cuts are on her phone)."
+    },
+    {
+      "id": "three-app-ads",
+      "title": "The three original app ads — bird costume · skip the small talk · the couple fight",
+      "blocks": [
+        {
+          "chat": "fictional-pill-commercial",
+          "at": "2026-08-16T05:21"
+        },
+        {
+          "chat": "fictional-pill-commercial",
+          "at": "2026-08-16T05:31"
+        }
+      ],
+      "also": "\"The two Xi ones\" are skip-the-small-talk and the couple fight. The street-interview ad and its two question candidates are in the second block. FIRST DATE BLUES is most likely the opening of skip-the-small-talk — black and white, a first date, \"what's your favorite color?\", dead eyes — but that exact phrase appears in no message; say which one you meant."
+    },
+    {
+      "id": "xi-moms-stories",
+      "title": "Xi — mom's stories (El Salvador · Susan, you're so warm)",
+      "blocks": [
+        {
+          "memo": "2026-08-27_2258_2026-08-28T05_58_40Z_8f8945"
+        }
+      ],
+      "also": "Recorded as Susan_commercial.m4a and sent to memos on 2026-08-28 with \"these ideas for xi commercials\"."
+    },
+    {
+      "id": "xi-polaroids",
+      "title": "Xi — the stories people always tell / Polaroid memories",
+      "blocks": [
+        {
+          "memo": "2026-08-27_2253_2026-08-28T05_53_13Z_92d55e"
+        },
+        {
+          "chat": "polaroid-memory-library",
+          "at": "2026-08-28T00:13"
+        }
+      ],
+      "also": "The dad-and-the-business-card story, the head-against-the-wall story, and Claude zooming around a board of pinned Polaroids."
+    },
+    {
+      "id": "dream-gym-bros",
+      "title": "Dream app — the boys' group chat, before and after",
+      "blocks": [
+        {
+          "chat": "dream-app-commercial",
+          "at": "2026-08-19T15:13"
+        },
+        {
+          "chat": "dream-app-commercial",
+          "at": "2026-08-19T15:54"
+        },
+        {
+          "chat": "dream-app-commercial",
+          "at": "2026-08-19T16:21"
+        },
+        {
+          "chat": "dream-app-commercial",
+          "at": "2026-08-20T05:35"
+        }
+      ]
+    },
+    {
+      "id": "dream-sad-piano",
+      "title": "Dream app — the sad piano one, and the beautiful-nonsense one",
+      "blocks": [
+        {
+          "chat": "fictional-pill-commercial",
+          "at": "2026-08-18T22:11"
+        },
+        {
+          "chat": "fictional-pill-commercial",
+          "at": "2026-08-18T22:22"
+        },
+        {
+          "chat": "fictional-pill-commercial",
+          "at": "2026-08-18T22:52"
+        },
+        {
+          "chat": "fictional-pill-commercial",
+          "at": "2026-08-18T23:15"
+        }
+      ]
+    },
+    {
+      "id": "dream-illustrated",
+      "title": "Dream app — one of her own recorded dreams, illustrated",
+      "blocks": [
+        {
+          "chat": "dream-app-commercial-01deg3",
+          "at": "2026-08-19T15:15"
+        }
+      ]
+    },
+    {
+      "id": "dream-song",
+      "title": "Dream app — the song one (\"you were in my dreams\")",
+      "blocks": [
+        {
+          "chat": "song-commercial-selection",
+          "at": "2026-08-19T17:58"
+        },
+        {
+          "chat": "song-commercial-selection",
+          "at": "2026-08-19T19:20"
+        },
+        {
+          "chat": "song-commercial-selection",
+          "at": "2026-08-20T08:21"
+        },
+        {
+          "chat": "song-commercial-selection",
+          "at": "2026-08-20T08:39"
+        }
+      ]
+    },
+    {
+      "id": "dream-feed-list",
+      "title": "Dream app — the feed campaign (SomniveX, and the ChatGPT list she pasted)",
+      "blocks": [
+        {
+          "chat": "dream-app-commercials",
+          "at": "2026-08-20T04:11"
+        }
+      ],
+      "also": "Everything after \"here's the ChatGPT thread\" is ChatGPT's, pasted by her. \"Your friends spent eight hours somewhere else last night\" is the line she singled out."
+    },
+    {
+      "id": "dream-evaporation",
+      "title": "Dream app — evaporation, the night gallery, the person who turns into someone else",
+      "blocks": [
+        {
+          "chat": "dream-feed-commercials",
+          "at": "2026-08-18T22:05"
+        }
+      ]
+    },
+    {
+      "id": "soul",
+      "title": "The soul leaves the body (dream app home-screen film)",
+      "blocks": [
+        {
+          "chat": "soul-movie-concept",
+          "at": "2026-07-20T22:13"
+        },
+        {
+          "chat": "soul-movie-concept",
+          "at": "2026-07-21T00:11",
+          "contains": "trap door"
+        }
+      ]
+    },
+    {
+      "id": "opinions",
+      "title": "Should I Make This — \"finally someone appreciates them\"",
+      "blocks": [
+        {
+          "chat": "opinions-app-commercial",
+          "at": "2026-08-18T20:47"
+        },
+        {
+          "chat": "opinions-app-commercial",
+          "at": "2026-08-18T21:05"
+        },
+        {
+          "chat": "opinions-app-commercial",
+          "at": "2026-08-18T21:22"
+        },
+        {
+          "chat": "opinions-app-commercial",
+          "at": "2026-08-18T21:33"
+        },
+        {
+          "chat": "opinions-app-commercial",
+          "at": "2026-08-18T21:35"
+        }
+      ]
+    },
+    {
+      "id": "vibrilify",
+      "title": "Vibrilify MAX",
+      "blocks": [
+        {
+          "chat": "vibrilify-max-commercial",
+          "at": "2026-08-20T08:34"
+        },
+        {
+          "chat": "vibrilify-max-commercial",
+          "at": "2026-08-20T19:28"
+        },
+        {
+          "chat": "vibrilify-max-commercial",
+          "at": "2026-08-20T20:07"
+        }
+      ]
+    },
+    {
+      "id": "fake-pills",
+      "title": "The fake pill spots",
+      "blocks": [
+        {
+          "chat": "fictional-pill-commercial",
+          "at": "2026-08-15T22:12"
+        },
+        {
+          "chat": "fictional-pill-commercial",
+          "at": "2026-08-15T22:16"
+        },
+        {
+          "chat": "fictional-pill-commercial",
+          "at": "2026-08-15T22:46"
+        },
+        {
+          "chat": "fictional-pill-commercial-01h7qx",
+          "at": "2026-08-19T05:12"
+        }
+      ],
+      "also": "Six were made: IDEATROL, DOOMSCROLLEX, REPLYVA, CANCELLIA, HOBBYSTATIN, TABZOLAM. Three more she picked and never shot: SOMNIVEX, PLACEBO REX, OBLIVANE. They live at /pills."
+    },
+    {
+      "id": "witch-app-ads",
+      "title": "Secretly a Witch — synchronicity day, book of shadows",
+      "blocks": [
+        {
+          "chat": "fictional-pill-commercial",
+          "at": "2026-08-16T05:43"
+        },
+        {
+          "chat": "fictional-pill-commercial",
+          "at": "2026-08-16T08:20",
+          "contains": "synchronicity day"
+        }
+      ],
+      "also": "She skipped the identity-quiz ad and the Witch School ad. The moon page is hidden and must never be shown."
+    },
+    {
+      "id": "its-sophie",
+      "title": "It's Sophie — \"step into your power\"",
+      "blocks": [
+        {
+          "chat": "job-refused-atlas",
+          "at": "2026-09-12T02:54"
+        }
+      ]
+    },
+    {
+      "id": "airport-witch",
+      "title": "The airport witchcraft commercial",
+      "blocks": [
+        {
+          "chat": "film-stitching-order",
+          "at": "2026-09-12T05:36"
+        },
+        {
+          "chat": "film-stitching-order",
+          "at": "2026-09-12T05:41"
+        },
+        {
+          "chat": "film-stitching-order",
+          "at": "2026-09-12T05:45"
+        }
+      ],
+      "also": "The beginning was written in that chat; she asked for seven more endings."
+    },
+    {
+      "id": "witch-sketches",
+      "title": "Witchcraft comedy sketches (8)",
+      "blocks": [
+        {
+          "chat": "witchcraft-comedy-sketches",
+          "at": "2026-09-03T02:40"
+        }
+      ],
+      "also": "Crystal performance reviews · a spell to make someone cancel the plans · Witchcraft OSHA · the magical object adoption agency · rose quartz · the witch infomercial · choose your familiar · advanced witchcraft."
+    },
+    {
+      "id": "similitude",
+      "title": "Similitude — dominoes for creative people",
+      "blocks": [
+        {
+          "chat": "similitude-commercial-design",
+          "at": "2026-09-02T20:45"
+        },
+        {
+          "chat": "similitude-commercial-design",
+          "at": "2026-09-02T21:11"
+        },
+        {
+          "chat": "similitude-commercial-design",
+          "at": "2026-09-03T00:04"
+        }
+      ]
+    },
+    {
+      "id": "wormsicles",
+      "title": "Wormsicles",
+      "blocks": [
+        {
+          "memo": "2026-07-03_1049_2026-07-03T17_49_24Z"
+        }
+      ]
+    },
+    {
+      "id": "controlling-destiny",
+      "title": "Controlling my own destiny (the witch discovering herself)",
+      "blocks": [
+        {
+          "chat": "films-pipeline-progressive-choices",
+          "at": "2026-07-21T00:36"
+        },
+        {
+          "chat": "films-pipeline-progressive-choices",
+          "at": "2026-07-21T00:53"
+        },
+        {
+          "chat": "films-pipeline-progressive-choices",
+          "at": "2026-07-21T03:13"
+        }
+      ]
+    },
+    {
+      "id": "wake-up-to",
+      "title": "What do you want to wake up to?",
+      "blocks": [
+        {
+          "chat": "deck-factory-story-room",
+          "at": "2026-07-29T",
+          "contains": "wake up to? It's a pun"
+        },
+        {
+          "chat": "deck-factory-story-room",
+          "at": "2026-07-29T",
+          "contains": "star studded"
+        }
+      ]
+    },
+    {
+      "id": "ex-boyfriends",
+      "title": "The ex-boyfriends fighting game",
+      "blocks": [
+        {
+          "chat": "ex-boyfriend-fighting-game",
+          "at": "2026-08-15T04:32"
+        },
+        {
+          "chat": "ex-boyfriend-fighting-game",
+          "at": "2026-08-15T05:14"
+        },
+        {
+          "chat": "ex-boyfriend-fighting-game",
+          "at": "2026-08-15T05:15",
+          "contains": "throw a pot"
+        },
+        {
+          "chat": "ex-boyfriend-fighting-game",
+          "at": "2026-08-15T05:15",
+          "contains": "each level"
+        },
+        {
+          "chat": "ex-boyfriend-fighting-game",
+          "at": "2026-08-15T05:24"
+        }
+      ]
+    },
+    {
+      "id": "play-place",
+      "title": "Child POV — the play place tunnels",
+      "blocks": [
+        {
+          "chat": "child-pov-play-place",
+          "at": "2026-08-16T05:05"
+        },
+        {
+          "chat": "child-pov-play-place",
+          "at": "2026-08-16T05:39"
+        }
+      ]
+    },
+    {
+      "id": "dating-reel",
+      "title": "The dating reel — the number climbing",
+      "blocks": [
+        {
+          "chat": "dating-reel-visuals",
+          "at": "2026-08-25T03:47"
+        }
+      ]
+    },
+    {
+      "id": "pwc-training-film",
+      "title": "People Watching Club — Training Film No. 001",
+      "blocks": [
+        {
+          "chat": "reel-ordering-countdown",
+          "at": "2026-08-25T05:30"
+        }
+      ],
+      "also": "Her second message adds: \"like those all weird CPA cut ones SEPIA old\"."
+    },
+    {
+      "id": "abundance",
+      "title": "Cardboard boxes vs the one good idea on velvet",
+      "blocks": [
+        {
+          "chat": "abundance-scarcity-watercolor",
+          "at": "2026-08-15T21:57"
+        },
+        {
+          "chat": "abundance-scarcity-watercolor",
+          "at": "2026-08-20T03:38"
+        }
+      ]
+    },
+    {
+      "id": "micro-learning",
+      "title": "Forget school — learn like the Matrix",
+      "blocks": [
+        {
+          "chat": "desk-clearing-video-prompt",
+          "at": "2026-09-04T22:14"
+        },
+        {
+          "chat": "desk-clearing-video-prompt",
+          "at": "2026-09-04T22:29"
+        },
+        {
+          "chat": "desk-clearing-video-prompt",
+          "at": "2026-09-05T02:38"
+        }
+      ]
+    },
+    {
+      "id": "psych-trailer",
+      "title": "Notes from the asylum — the trailer",
+      "blocks": [
+        {
+          "chat": "psychiatric-episode-trailer",
+          "at": "2026-09-10T19:31"
+        },
+        {
+          "chat": "psychiatric-episode-trailer",
+          "at": "2026-09-11T03:53"
+        }
+      ]
+    },
+    {
+      "id": "sean-jonathan",
+      "title": "Sean & Jonathan — the sequel, and the black-and-white French version",
+      "blocks": [
+        {
+          "chat": "film-stitching-order",
+          "at": "2026-09-12T04:10"
+        },
+        {
+          "chat": "film-stitching-order",
+          "at": "2026-09-12T06:45"
+        },
+        {
+          "chat": "film-stitching-order",
+          "at": "2026-09-12T20:49"
+        },
+        {
+          "chat": "film-stitching-order",
+          "at": "2026-09-12T21:09"
+        }
+      ]
+    },
+    {
+      "id": "witch-pipeline",
+      "title": "Mom's witch videos — the review pipeline",
+      "blocks": [
+        {
+          "chat": "witch-video-pipeline",
+          "at": "2026-08-21T03:20"
+        }
+      ]
+    }
+  ],
+  "leads": [
+    "christmas-pagan-commercial — she says \"i already wrote the commercial i just want the research\"; the script is not in the feed (written in ChatGPT).",
+    "witchcraft-reels-ideas / witchcraft-reels-scripts / witchcraft-reels-panels — a batch she asked for with \"unbiased eyes\", her own words are thin.",
+    "hate-game-memo-visuals, science-memo-animated-reel — reels cut from her memos; the concept lives in the memo, not in a message.",
+    "too-many-men-reel — made in CapCut, notes are about upload and AI tagging, not the concept.",
+    "50 first dates — a dating BOOK back cover, not a commercial (new-session-f8a642)."
+  ]
+}
