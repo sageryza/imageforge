@@ -2290,7 +2290,9 @@ async function pillSweep(pg, where) {
   const seat = await pgP.evaluate(() => {
     const p = document.getElementById('project'), bar = document.getElementById('feedbar');
     const glass = document.getElementById('v-search'), funnel = document.getElementById('feedfilters');
-    const pr = p.getBoundingClientRect(), gr = glass.getBoundingClientRect();
+    // the neighbour is the glass's whole BOX — its `.filttog` group, which
+    // carries the border she sees — never the button inside it (2026-09-13)
+    const pr = p.getBoundingClientRect(), gr = glass.closest('.filttog').getBoundingClientRect();
     const pill = document.querySelector('body > .float').getBoundingClientRect();
     const hit = document.elementFromPoint(pr.x + pr.width / 2, pr.y + pr.height / 2);
     const kids = [...bar.children].map((e) => { const r = e.getBoundingClientRect(); return { id: e.id || e.className, y: Math.round(r.y), h: Math.round(r.height) }; }).filter((k) => k.h);
@@ -2315,14 +2317,15 @@ async function pillSweep(pg, where) {
     const hit = document.elementFromPoint(pr.x + pr.width / 2, pr.y + pr.height / 2);
     const pill = document.querySelector('body > .float').getBoundingClientRect();
     const chip = document.querySelector('#feedfilters .filtchip');
-    const out = { w: Math.round(pr.width), h: Math.round(pr.height), tappable: !!(hit && hit.closest('#project')),
+    const g = document.getElementById('v-search').closest('.filttog').getBoundingClientRect();
+    const out = { w: Math.round(pr.width), h: Math.round(pr.height), gw: Math.round(g.width), gh: Math.round(g.height), tappable: !!(hit && hit.closest('#project')),
       chip: chip ? Math.round(chip.getBoundingClientRect().x) : null, x: Math.round(pr.x), clear: pr.right <= pill.left };
     document.getElementById('v-search').click();
     await new Promise((r) => setTimeout(r, 200));
     return out;
   });
   ok('with the search open the picker is still whole, before the funnel, and takes its tap — ' + JSON.stringify(barOpen),
-    barOpen.w === 34 && barOpen.h === 32 && barOpen.tappable && barOpen.clear && (barOpen.chip === null || barOpen.chip > barOpen.x));
+    barOpen.w === barOpen.gw && barOpen.h === barOpen.gh && barOpen.tappable && barOpen.clear && (barOpen.chip === null || barOpen.chip > barOpen.x));
   // folding the buttons, or the whole panel, leaves the picker on screen
   const folded = await pgP.evaluate(async () => {
     const h = () => document.getElementById('project').getBoundingClientRect().height;
@@ -2421,12 +2424,20 @@ async function pillSweep(pg, where) {
     const all = await pgP.evaluate(() => {
       const w = document.getElementById('projwrap'), r = w.getBoundingClientRect(), s = document.getElementById('project');
       const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      // the NEIGHBOUR is the glass's whole box — its `.filttog` group, which
+      // carries the border she sees — never the button inside it
+      const g = document.getElementById('v-search').closest('.filttog').getBoundingClientRect();
       return { on: w.classList.contains('on'), title: document.getElementById('title').textContent, w: Math.round(r.width), h: Math.round(r.height),
+        gw: Math.round(g.width), gh: Math.round(g.height),
         icon: !!w.querySelector('.ico svg'), textHidden: getComputedStyle(s).color === 'rgba(0, 0, 0, 0)', tappable: !!(hit && hit.closest('#projwrap')),
         rows: Array.from(s.options).map((o) => o.value + '=' + o.textContent), f0: document.querySelector('#job-f0 .tags').textContent,
         f0rows: Array.from(document.querySelector('#job-f0 .projsel select').options).map((o) => o.value), f0val: document.querySelector('#job-f0 .projsel select').value, f4rows: Array.from(document.querySelector('#job-f4 .projsel select').options).map((o) => o.value) };
     });
-    ok('the picker is a folder icon at the feed bar\'s own height, text hidden, unlit on All, and takes its tap — ' + all.w + 'x' + all.h, all.w === 34 && all.h === 32 && all.icon && all.textHidden && !all.on && all.tappable);
+    // ITS SIZE IS THE GLASS'S WHOLE BOX (2026-09-13, Sophie: "files button
+    // smaller than search button footage") — sized to the BUTTON inside that
+    // box it came out 2px smaller both ways and sat inset from the row's edges.
+    ok('the picker is exactly the glass\'s box — ' + all.w + 'x' + all.h + ' against ' + all.gw + 'x' + all.gh, all.w === all.gw && all.h === all.gh);
+    ok('and it is a folder icon, text hidden, unlit on All, and takes its tap', all.icon && all.textHidden && !all.on && all.tappable);
     ok('the header says Footage on All', all.title === 'Footage');
     // A PROJECT'S FOLDERS ARE FOLDED SHUT (2026-09-12, "make the commercials
     // collapsible in the drop-down"): on All the project is ONE row with a
