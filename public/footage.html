@@ -1709,11 +1709,12 @@ function paintWipe() {
   if (c.hidden !== ch) c.hidden = ch;
   if (u.hidden !== uh) u.hidden = uh;
   // AND THE GROUP GOES WITH THEM, so an empty page costs the row nothing.
-  // MEASURED at 390pt: the star's row has 24px of slack left after the seed,
-  // the star and the price, and a word is ~38 — so a drawn word WRAPS to a
-  // line of its own, hard right under the price (her own rule: "same row
-  // unless it bleeds over"). A `.wipes` left in the flow with both children
-  // hidden is 0 wide and would not wrap, but hiding it outright is what
+  // THE TWO WORDS SIT ON THE STAR'S OWN LINE since the seed moved up to the
+  // buttons row (2026-09-13): MEASURED at 390pt the seed (130) plus the star
+  // and the price left 24px against a 25px word, so a drawn word wrapped to a
+  // line of its own under the price; with the seed gone the four sit together,
+  // hard right either way. A `.wipes` left in the flow with both children
+  // hidden is 0 wide and costs nothing, but hiding it outright is what
   // guarantees the row is the height it has always been while nothing is
   // offered.
   if ($('wipes').hidden !== (ch && uh)) $('wipes').hidden = ch && uh;
