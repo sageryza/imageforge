@@ -80,17 +80,16 @@ function resolve(block, rows, mem) {
 // ---- the page ---------------------------------------------------------------
 function build(resolved) {
   const secs = resolved.map((c) => {
-    const blocks = c.blocks.map((b, i) => `      <div class="blk" data-k="b${i}">
-        <div class="src">${esc(b.from)}${b.link ? ` · <a href="/chats?chat=${attr(b.link)}">open the chat</a>` : ''}</div>
+    const blocks = c.blocks.map((b, i) => `      <div class="blk" data-k="b${i}" data-from="${attr(b.from)}"${b.link ? ` data-chat="${attr(b.link)}"` : ''}>
         <textarea class="p" data-key="${attr(c.id)}.b${i}" spellcheck="false">${esc(b.text)}</textarea>
         <div class="row"><button class="cp">copy</button><button class="dv">divide here</button><button class="jn" hidden>join up</button><span class="sv"></span></div>
       </div>`).join('\n');
     return `  <div class="card" data-item="${attr(c.id)}" data-cid="${attr(c.id)}">
-    <h2>${esc(c.title)}</h2>
+    <h2>${esc(c.title)}<button class="q" aria-label="where this came from">?</button></h2>
+    <div class="qcard" hidden>${c.also ? `<div class="also">${esc(c.also)}</div>` : ''}<div class="srcs"></div></div>
     <div class="blks">
 ${blocks}
     </div>
-${c.also ? `    <div class="also">${esc(c.also)}</div>` : ''}
   </div>`;
   }).join('\n\n');
 
@@ -107,8 +106,16 @@ ${c.also ? `    <div class="also">${esc(c.also)}</div>` : ''}
      at 390pt, so a 56 reserve ends at 334 and the last 8px is dead). */
   .wrap > h1{padding-right:64px}
   .blk{margin:0 0 14px}
-  .src{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin:0 0 4px}
-  .src a{color:var(--ink2)}
+  /* WHERE A BLOCK CAME FROM IS BEHIND THE "?" (2026-09-13, Sophie: "u added
+     text at the top … put it behind a ?"). The words are the page; a line of
+     mine above every one of them is something to read first. */
+  h2 .q{margin-left:8px;width:22px;height:22px;padding:0;border-radius:6px;
+    border:1px solid var(--line);background:transparent;color:var(--ink2);
+    font:600 12px/1 inherit;text-transform:none;letter-spacing:0;cursor:pointer;vertical-align:middle}
+  .qcard{margin:0 0 12px;padding:10px 12px;border:1px solid var(--line);border-radius:6px}
+  .srcs{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);line-height:1.9}
+  .srcs a{color:var(--ink2)}
+  .qcard .also{margin:0 0 8px}
   textarea.p{width:100%;box-sizing:border-box;display:block;background:var(--paper);color:var(--ink);
     border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-family:inherit;font-size:16px;line-height:1.55;
     resize:none;overflow:hidden;min-height:0}
@@ -117,7 +124,7 @@ ${c.also ? `    <div class="also">${esc(c.also)}</div>` : ''}
     background:transparent;color:var(--ink);cursor:pointer}
   .row .sv{font-size:11px;color:var(--ink2)}
   .row .sv.bad{color:#b0342c}
-  .also{font-size:12px;color:var(--ink2);margin:2px 0 0;line-height:1.5}
+  .also{font-size:12px;color:var(--ink2);margin:0;line-height:1.5}
   .leads{font-size:13px;color:var(--ink2);line-height:1.6}
   [hidden]{display:none !important}
 </style>
@@ -175,6 +182,16 @@ ${secs}
     [].forEach.call(card.querySelectorAll('.blk'), function(b,i){ b.querySelector('.jn').hidden = (i===0); });
   }
 
+  // The panel is DERIVED from the blocks as they stand, so a divide or a join
+  // renumbers it by itself and there is no second copy of the order to drift.
+  function paintSrcs(card){
+    var out=[].map.call(card.querySelectorAll('.blk'), function(b,i){
+      var from=b.dataset.from||'', chat=b.dataset.chat||'';
+      return '<div>'+(i+1)+' · '+from+(chat?' · <a href="/chats?chat='+encodeURIComponent(chat)+'">open the chat</a>':'')+'</div>';
+    }).join('');
+    card.querySelector('.srcs').innerHTML=out;
+  }
+
   function wire(blk){
     var card=blk.closest('.card'), cid=card.dataset.cid;
     var ta=blk.querySelector('textarea'), sv=blk.querySelector('.sv'), timer=null;
@@ -202,10 +219,9 @@ ${secs}
       var nb=blk.cloneNode(true);
       nb.dataset.k=k;
       var nta=nb.querySelector('textarea'); nta.dataset.key=cid+'.'+k; nta.value=tail;
-      nb.querySelector('.src').innerHTML=blk.querySelector('.src').innerHTML;
       nb.querySelector('.sv').textContent=''; nb.querySelector('.sv').classList.remove('bad');
       blk.parentNode.insertBefore(nb,blk.nextSibling);
-      ta.value=head; fit(ta); wire(nb); paintJoin(card);
+      ta.value=head; fit(ta); wire(nb); paintJoin(card); paintSrcs(card);
       save(ta.dataset.key,head,sv);
       save(nta.dataset.key,tail,nb.querySelector('.sv'));
       saveOrder(cid,keysOf(card));
@@ -221,7 +237,7 @@ ${secs}
       save(ta.dataset.key,'',sv);
       blk.remove();
       save(pta.dataset.key,pta.value,prev.querySelector('.sv'));
-      saveOrder(cid,keysOf(card)); paintJoin(card);
+      saveOrder(cid,keysOf(card)); paintJoin(card); paintSrcs(card);
     });
   }
 
@@ -257,11 +273,20 @@ ${secs}
         });
       }
       [].forEach.call(card.querySelectorAll('.blk'), wire);
-      paintJoin(card);
+      paintJoin(card); paintSrcs(card);
     });
   }
 
+  document.addEventListener('click', function(e){
+    var q=e.target.closest && e.target.closest('h2 .q');
+    if(!q) return;
+    e.preventDefault(); e.stopPropagation();
+    var card=q.closest('.card'), panel=card.querySelector('.qcard');
+    panel.hidden=!panel.hidden;
+  });
+
   [].forEach.call(document.querySelectorAll('.blk'), function(b){ fit(b.querySelector('textarea')); });
+  [].forEach.call(document.querySelectorAll('.card[data-cid]'), paintSrcs);
   sheet().then(restore, function(){ restore(null); });
 
   // A tap inside a box must not toggle the reading autoscroll.
