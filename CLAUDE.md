@@ -8945,6 +8945,35 @@ before working on that module. Nothing was deleted — the moved text is verbati
   bringing the rest back, and a hand-off from a second page switching it —
   every assertion a measurement) and the PROJECT line of
   `node scripts/test-scene-index.js`.
+  **AND A PROJECT CAN BE TUCKED AWAY — LEFT OUT OF ALL AND OUT OF NOTHING
+  ELSE (2026-09-13, Sophie: "can u hide the ward, the boyfriend one and the
+  pee wheel ones if i'm not in those folders").** Measured that morning: the
+  ward alone is **220 of her 506 clips**, so All was mostly one film and
+  everything else was scrolled past. One flag on the cast shelf's film
+  (`tucked`) — the same one vocabulary the picker is drawn from, so both
+  phones agree and there is no second list — filtered SERVER-side over the
+  whole log before the page is cut, and by `shown()` too so a card a poll
+  lands stays off both views. Five things not to undo: it hides the project
+  from **All alone** (picking it shows every clip in it, its folders are
+  untouched, the character shelf is untouched); a **SEARCH reaches it
+  whatever is tucked**, because a search is her asking for something by name
+  (the ALL tab's own carve-out for the bug-fix pile); the picker still lists
+  it wearing **`· hidden`**, so the list never lies about why All is short;
+  the control is a **row in the picker offered only inside a project** (the
+  fold row's own pattern — `Hide from All` / `Show in All`), and picking it
+  puts the value straight back, so tucking never moves the feed or a clip;
+  and `POST /api/cast/films` **merges** now, so a rename cannot untuck a film
+  and a tuck cannot forget its name. Tucked on her word: `ward` ·
+  `nautchaug` · `pee-wheel`. **THE PEE WHEEL HAD NO PROJECT AT ALL** — nine
+  clips of one scene (the dunce hat, the classroom, the wheel) filed nowhere,
+  which is exactly why they sat on the front screen; `node
+  scripts/footage-tuck.js` (dry by default) names them by ID, never by a
+  word, and only ever fills a blank. Tests: the tuck block of `node
+  scripts/test-footage.js` (every assertion a MEASUREMENT of what really
+  renders and of what the stub really received — a picker row saying "hidden"
+  over a feed that still holds the clips, a toggle that never reached the
+  server, and one that also hides the project from its own view all look
+  identical in the source) and `node scripts/test-cast.js`.
   **THE CHARACTER LIBRARY — ONE TAP PUTS A PERSON AND HER LINE IN THE PROMPT
   (`cast.js`, `/api/cast`, the people icon on the controls row; 2026-09-11,
   Sophie: "we need a version of 'characters' for footage so i can click a
