@@ -944,20 +944,30 @@ async function pillSweep(pg, where) {
   ok('the shape is a drop-down in the SAME row as the size — never a row of its own',
     await page.evaluate(() => document.getElementById('ratio').closest('.row') === document.getElementById('res').closest('.row')));
   const ctl = rows.filter((r) => r.kids > 2)[0];
-  ok('the controls are ' + (ctl && ctl.lines) + ' line(s), not the five-deep column the chips made', ctl && ctl.lines <= 2);
-  // THE SEED SITS WITH THE STAR — up to ten digits (video-seed.js mints
-  // 1..2147483647), so a box narrow enough to fit beside the sizes clipped its
-  // own number. It is an ingredient of THIS tap, not a size.
-  // THE THREE IT NAMES, not every child of the row: `clear`/`undo` share this
-  // row and WRAP under the price at 390pt by design (MEASURED — the three
-  // below leave 24px and a word is 25; her rule is "same row unless it bleeds
-  // over"). They are measured on their own in test-footage-clear.js.
-  ok('the seed, the star and the price are one line',
+  // THREE, not the five-deep column the chips made — the seed joined this row
+  // on 2026-09-13 ("seed textbox shud go on the same row as the other buttons
+  // above") and the star's row stopped wrapping in the same breath, so the
+  // panel is no taller than it was.
+  ok('the controls are ' + (ctl && ctl.lines) + ' line(s), not the five-deep column the chips made', ctl && ctl.lines <= 3);
+  // THE SEED IS ON THE BUTTONS ROW (2026-09-13, Sophie: "seed textbox shud go
+  // on the same row as the other buttons above"). It is a SETTING like the
+  // model and the size — it already folded away with the Buttons — and it is
+  // MEASURED here rather than read out of the source, since a seed box in that
+  // row's markup and one rendered somewhere else look identical to any source
+  // check. Up to ten digits (video-seed.js mints 1..2147483647), so the box
+  // has to show a whole one.
+  ok('the seed box is in the controls row, with the other buttons',
+    await page.evaluate(() => {
+      const seed = document.getElementById('seedwrap');
+      return seed.closest('.row') === document.getElementById('controls')
+        && seed.closest('.row') !== document.getElementById('go').closest('.row');
+    }));
+  ok('the star and the price are one line',
     await page.evaluate(() => {
       const row = document.getElementById('go').closest('.row');
-      const three = ['seedwrap', 'go', 'cost'].map((id) => document.getElementById(id));
-      const mid = three.map((k) => { const b = k.getBoundingClientRect(); return b.top + b.height / 2; });
-      return three.every((k) => k.closest('.row') === row) && Math.max(...mid) - Math.min(...mid) < 8;
+      const two = ['go', 'cost'].map((id) => document.getElementById(id));
+      const mid = two.map((k) => { const b = k.getBoundingClientRect(); return b.top + b.height / 2; });
+      return two.every((k) => k.closest('.row') === row) && Math.max(...mid) - Math.min(...mid) < 8;
     }));
   ok('the seed box shows a whole ten-digit seed',
     await page.evaluate(() => {
@@ -1217,8 +1227,19 @@ async function pillSweep(pg, where) {
   // Sophie: "shud be one row - not a column for pill scroll"). The panel used
   // to carry the reserve on its own margin, so 64px came off every row in it —
   // the controls included, which sit below the pill and never touch it.
+  // THE BAND IS THE PILL WITH ITS ARROWS (2026-09-13). The back-to-top and
+  // to-the-bottom arrows appear a screen into the scroll and leave at the
+  // ends, which grows the rail ~92px — so the page reserves for the band the
+  // pill WOULD fill at any scroll position, or a row near its edge takes the
+  // reserve only once she has scrolled and changes height under her. The test
+  // shows them itself and measures, rather than reading the page's own answer
+  // back: the same rule asked a second way.
   const gaps = await page.evaluate(() => {
-    const p = document.querySelector('body > .float').getBoundingClientRect();
+    const pill = document.querySelector('body > .float');
+    const arrows = [...pill.querySelectorAll('.ptop')], was = arrows.map((a) => a.style.display);
+    arrows.forEach((a) => { a.style.display = 'flex'; });
+    const p = pill.getBoundingClientRect();
+    arrows.forEach((a, i) => { a.style.display = was[i]; });
     return [...document.querySelectorAll('.panel > *')].map((el) => {
       const r = el.getBoundingClientRect();
       return { el: el.id || el.className, gap: el.style.getPropertyValue('--pillgap'),
@@ -1249,18 +1270,21 @@ async function pillSweep(pg, where) {
   // row that overlaps the pill (a row BELOW it keeps the panel's whole width
   // and passes under the rail, like the star's row and like any other content
   // — that is the reserve rule, and the oscillation the 2026-09-11 rewrite of
-  // `fitPillGap` exists to prevent). What this asks is the thing the project
-  // row's SHAPE: the seven controls are the two lines they have always been,
-  // never the third line this row was cut down from — and the project picker
-  // is NOT among them (it is on the feed bar since 2026-09-12, where she
-  // marked the spot).
+  // `fitPillGap` exists to prevent). What this asks is the row's SHAPE: the
+  // eight controls on THREE lines at most — the seed joined them 2026-09-13
+  // ("seed textbox shud go on the same row as the other buttons above") and
+  // MEASURED at 390pt inside the reserved column they cannot be two (563px of
+  // controls and their gaps against 291) — and the project picker is NOT among
+  // them (it is on the feed bar since 2026-09-12, where she marked the spot).
+  // The panel is no taller for it: the star's row lost the seed and with it
+  // the wrap that put `clear`/`undo` on a line of their own.
   const ctlRow = await page.evaluate(() => {
     const row = document.getElementById('res').closest('.row');
     const kids = [...row.children].map((k) => { const r = k.getBoundingClientRect(); return { id: k.id || k.className, y: Math.round(r.y), h: Math.round(r.height) }; }).filter((k) => k.h);
     return { lines: new Set(kids.map((k) => Math.round(k.y / 8))).size, n: kids.length, picker: !!row.querySelector('#projwrap'), kids };
   });
-  ok('the controls row is two lines, never three, and carries no picker — ' + JSON.stringify(ctlRow),
-    ctlRow.lines === 2 && !ctlRow.picker);
+  ok('the controls row is three lines at most, and carries no picker — ' + JSON.stringify(ctlRow),
+    ctlRow.lines <= 3 && ctlRow.n === 8 && !ctlRow.picker);
 
   // ── a reference through the Dump door, and its slot into the prompt ──────
   await page.setInputFiles('#file', { name: 'mayra.png', mimeType: 'image/png', buffer: PNG });

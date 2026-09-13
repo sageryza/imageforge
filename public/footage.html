@@ -999,13 +999,22 @@
     <span class="selwrap"><select id="res" aria-label="Resolution" title="Resolution"></select><span class="chev"></span></span>
     <span class="selwrap"><select id="ratio" aria-label="Shape" title="Shape"></select><span class="chev"></span></span>
     <div class="step"><button type="button" id="secdn" aria-label="Fewer seconds">&minus;</button><input type="number" id="secs" inputmode="numeric" step="1" aria-label="Seconds" title="Seconds"><button type="button" id="secup" aria-label="More seconds">+</button></div>
+    <!-- THE SEED IS ON THIS ROW (2026-09-13, Sophie: "seed textbox shud go on
+         the same row as the other buttons above"). It rode the STAR's row
+         while it read as an ingredient of that tap, and it is a SETTING like
+         the model and the size — it already folded away with the Buttons, so
+         it was the one control living apart from the fold that hides it. Its
+         own row is what "bleeds over" now: MEASURED at 390pt, the seed (130)
+         plus the star and the price left 24px and a word is 25, so clear and
+         undo wrapped under the price; with the seed up here all four sit on
+         the star's line. -->
+    <span class="seedwrap" id="seedwrap"><input type="text" id="seedbox" inputmode="numeric" autocomplete="off" placeholder="Seed" aria-label="Seed" title="Seed — leave it blank for a fresh one"><button type="button" id="seedclear" aria-label="Clear the seed" title="Clear the seed" hidden></button></span>
   </div>
   <div id="recent" hidden></div>
   <div id="cast" hidden></div>
   <!-- THE STAR IS THE ONE BUTTON AND IT SENDS ON ITS TAP (2026-09-09, Sophie:
        "no plan button"), with the price of that tap right beside it. -->
   <div class="row" style="margin-top:12px">
-    <span class="seedwrap" id="seedwrap"><input type="text" id="seedbox" inputmode="numeric" autocomplete="off" placeholder="Seed" aria-label="Seed" title="Seed — leave it blank for a fresh one"><button type="button" id="seedclear" aria-label="Clear the seed" title="Clear the seed" hidden></button></span>
     <button class="go" id="go" type="button"><span id="gostar"></span>Go</button>
     <!-- AND SHE CAN SEND THEM ALL (2026-09-13, Sophie: "sending two boxes at
          once"). The star sends the block she is in, which is right when the
@@ -1907,11 +1916,11 @@ function paintFolds() {
   $('reffold').classList.toggle('shut', rShut);
   $('reffold').setAttribute('aria-expanded', rShut ? 'false' : 'true');
   $('reffoldlab').textContent = rShut ? 'References · ' + refs.length : 'References';
+  // THE SEED IS ON THIS ROW AND FOLDS WITH IT (2026-09-13) — it used to sit in
+  // the STAR's row and be display-hidden by hand here, which is the same fold
+  // spelled twice. DISPLAY-hidden with the rest, so a folded Go still sends
+  // the seed the box holds.
   $('controls').style.display = cShut ? 'none' : '';
-  // THE SEED IS A CONTROL AND FOLDS WITH THEM, though it lives in the STAR's
-  // row — the star is the one button and never folds. DISPLAY-hidden like the
-  // rest, so a folded Go still sends the seed the box holds.
-  $('seedwrap').style.display = cShut ? 'none' : '';
   // AND THE TWO DRAWERS GO WITH THEIR BUTTONS. Both toggles are inside
   // `#controls` and hide with it; `#recent` and `#cast` are its SIBLINGS, so
   // until this they stayed on screen with no control left to close them.
@@ -3366,6 +3375,14 @@ function goToCard(id) {
   // under them. Measuring after both is what lands on the right one.
   requestAnimationFrame(function () {
     requestAnimationFrame(function () {
+      // AND THE PILL'S COLUMN IS RESERVED BEFORE THE MEASUREMENT (2026-09-13).
+      // The reserve is applied by an observer a frame or two behind a view
+      // change, and a row that takes it wraps — so a card measured before it
+      // lands is measured against a panel that is about to grow, and the
+      // window stops that much short of the card she tapped (MEASURED: 42px,
+      // one row of controls). `fitPillGap` is synchronous, so asking for it
+      // here settles the panel first.
+      if (window.__fitPillGap) window.__fitPillGap();
       var top = el.getBoundingClientRect().top + (window.scrollY || 0) - 12;
       window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
       el.classList.add('found');
@@ -4939,16 +4956,32 @@ function setGap(el, name, v) { if (el.style.getPropertyValue(name) === v) return
 // its width whether the pill is drawn this second or not. Still the pill's
 // REAL rect (its top rides the safe-area inset), never a hardcoded band; a
 // page served with no pill at all still reserves nothing.
+// AND THE BAND INCLUDES THE ARROWS WHETHER THEY ARE DRAWN OR NOT (2026-09-13).
+// The rule above is about the pill's own display; its HEIGHT moves too — the
+// back-to-top and to-the-bottom arrows appear a screen into the scroll and
+// leave at the ends, which grows the rail by ~92px. A row sitting near the
+// band's edge (MEASURED: the controls row at page y 276 against a band ending
+// at 273) therefore took the reserve only once she had scrolled, and a row
+// that wraps when it is reserved changed HEIGHT under her as she scrolled —
+// the "switches back and forth between narrow and full width" complaint, one
+// row down. So both arrows are shown for the same synchronous measurement,
+// invisible, put back before anything paints: the column is the same column
+// at every scroll position.
 function pillRect() {
   var pill = document.querySelector('body > .float');
   if (!pill) return null;
-  if (pill.getClientRects().length) return pill.getBoundingClientRect();
+  // only the ones that are not drawn right now are touched, so the common
+  // path (both arrows out) writes nothing and forces no layout of its own
+  var arrows = [], all = pill.querySelectorAll('.ptop'), was = [], k;
+  for (k = 0; k < all.length; k++) if (!all[k].getClientRects().length) arrows.push(all[k]);
+  for (k = 0; k < arrows.length; k++) { was.push(arrows[k].style.display); arrows[k].style.display = 'flex'; }
   var d = pill.style.display, v = pill.style.visibility, r = null;
   try {
-    pill.style.visibility = 'hidden'; pill.style.display = '';
+    if (!pill.getClientRects().length) { pill.style.visibility = 'hidden'; pill.style.display = ''; }
     if (pill.getClientRects().length) r = pill.getBoundingClientRect();
   } catch (_) {}
   pill.style.display = d; pill.style.visibility = v;
+  for (k = 0; k < arrows.length; k++) arrows[k].style.display = was[k];
   return r;
 }
 function fitPillGap() {

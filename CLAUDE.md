@@ -8495,13 +8495,13 @@ before working on that module. Nothing was deleted — the moved text is verbati
     top of a scene she was writing was the one silent loss left on this page —
     and the comment there claimed the opposite. The undo is exactly the
     mechanism for it.
-  **THE ROW WRAPS AT 390pt AND THAT IS HER OWN RULE** ("same row unless it
-  bleeds over"): MEASURED with the Buttons fold OPEN, the seed (130) + the star
-  (75) + the price (95) plus two 8px gaps leave 24px of a 340px row and a word
-  is 25, so a drawn word lands hard right on the line under the price — 40px →
-  69px. **Shut, the seed folds away with the buttons and both words sit on the
-  star's own line** (measured after #2326: go 25-100, cost 108-203, clear
-  302-327, undo 339-365, all level). With neither word drawn the GROUP is
+  **BOTH WORDS SIT ON THE STAR'S OWN LINE SINCE 2026-09-13 — THE SEED MOVED OFF
+  THIS ROW.** It used to wrap and her own rule said so ("same row unless it
+  bleeds over"): MEASURED with the Buttons fold open, the seed (130) + the star
+  (75) + the price (95) plus two 8px gaps left 24px of a 340px row against a
+  25px word, so a drawn word landed hard right on the line under the price
+  (40px → 69px). With the seed up in the BUTTONS row the four sit together and
+  the row costs no height at all. With neither word drawn the GROUP is
   hidden outright, so an empty page is byte-for-byte the row it always was. `paintWipe` is called from `saveDraft`, which is the ONE signal
   every path that changes the job already sends. Test:
   `node scripts/test-footage-clear.js` (the real page headless — every
@@ -8548,6 +8548,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   one. Now `#seedbox` sits at the end of the controls row (its own row when the
   row wraps), every finished clip's card carries a `seed <n>` line with a copy
   button, and the card's put-the-prompt-back button fills the box too.
+  **AND IT IS REALLY IN THAT ROW SINCE 2026-09-13 (Sophie: "seed textbox shud
+  go on the same row as the other buttons above").** It had been living in the
+  STAR's row and folding away with the Buttons by hand — the same fold spelled
+  twice — while it is a SETTING like the model and the size. Three things came
+  with the move: the row is THREE lines inside the pill's reserved column
+  (MEASURED at 390pt, 563px of controls and their gaps against 291 — two is
+  arithmetically impossible, and her "same row unless it bleeds over" is what
+  allows the wrap), the STAR's row stopped wrapping so `clear`/`undo` sit
+  beside the price and **the panel is no taller than it was**, and `pillRect`
+  now measures the band the pill WOULD fill WITH ITS ARROWS — the back-to-top
+  and to-the-bottom arrows appear a screen into the scroll and grow the rail
+  ~92px, and this row sits 3px off the short band's edge (page y 276 against a
+  band ending at 273), so without that the reserve arrived only once she had
+  scrolled and the row re-wrapped under her: the 2026-09-11 "switches back and
+  forth between narrow and full width" complaint, one row down. `goToCard` asks
+  for `fitPillGap` before it measures for the same reason — the reserve lands a
+  frame or two behind a view change, and a card measured against a panel that
+  is about to grow leaves the window 42px short of the card she tapped.
   - **BLANK MEANS A FRESH ONE, AND THAT IS WHY IT IS NOT STICKY** — nothing is
     stored across loads and `copyBack` CLEARS the box for a clip that carries
     no seed (an older clip, one drawn before the mint), the *only change what
