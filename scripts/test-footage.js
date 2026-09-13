@@ -200,10 +200,21 @@ function report() {
 
   // the body both doors take
   const b = F.buildJob({ prompt: 'a cat', model: 'mini', seconds: 4, resolution: '480p', ratio: '3:4', sound: true,
-    refs: [{ url: 'https://x/a.png', kind: 'image' }, { url: 'https://x/v.mp4', kind: 'video' }, { url: 'not a url' }] });
-  ok('buildJob maps refs into the three reference lists and drops a bad url',
+    refs: [{ url: 'https://x/a.png', kind: 'image' }, { url: 'https://x/v.mp4', kind: 'video' }] });
+  ok('buildJob maps refs into the three reference lists',
     !b.error && JSON.stringify(b.body.referenceImageUrls) === '["https://x/a.png"]' && JSON.stringify(b.body.referenceVideoUrls) === '["https://x/v.mp4"]'
     && b.body.referenceAudioUrls.length === 0 && b.refs.length === 2);
+  // A URL THE MODULE WILL NOT SEND REFUSES THE JOB — IT IS NEVER DROPPED
+  // (2026-09-13). This used to assert "drops a bad url", which is the bug: the
+  // filter ran before `slotsOf`, so the dropped reference renumbered every slot
+  // after it while her prompt went on naming the old numbers — the clip drew,
+  // of the wrong picture. A keyframe was worse: a url that failed the test
+  // simply stopped being a keyframe and rode as an ordinary slotted reference.
+  ok('a reference that is not a fetchable url refuses the job rather than renumbering around it',
+    /not a url the doors can fetch/.test(F.buildJob({ prompt: 'a cat',
+      refs: [{ url: 'https://x/a.png', kind: 'image' }, { url: 'not a url' }] }).error || ''));
+  ok('and so does a keyframe url the doors cannot fetch',
+    /keyframe is not a url/.test(F.buildJob({ prompt: 'a cat', firstFrameUrl: 'frame.png' }).error || ''));
   ok('the body carries chat=footage, the seconds, the shape and the sound the page always sends',
     b.body.chat === 'footage' && b.body.duration === 4 && b.body.aspectRatio === '3:4' && b.body.generateAudio === true && b.body.resolution === '480p');
   ok('a blank prompt is refused before anything is sent', Boolean(F.buildJob({ prompt: '  ' }).error));

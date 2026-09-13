@@ -2643,12 +2643,39 @@ function castBySlug() {
 // THE MARKED PICTURES ARE PUT BACK WHERE THEY WERE. `p.refs` is the strip the
 // planner was given plus whatever it attached, so handing it straight to
 // `refs` would DELETE every marked picture from the strip.
+// AND A LOOK THAT OWNS A MARKED PICTURE DOES NOT ATTACH IT TWICE (2026-09-13,
+// found auditing the page). The planner is fed `slotRefs()` — the marked
+// pictures excluded, which is what keeps the slot numbers right — so a look
+// whose own references include the still she has marked as the first frame got
+// that still appended as an ordinary `[ImageN]`, and then her marked copy was
+// spliced back in on top of it: two tiles for one picture, and the line the tap
+// wrote named a slot number that `slotsOf` gives to a DIFFERENT picture. The
+// clip drew, of the wrong reference. Her MARK wins — it is hers, and a keyframe
+// takes no slot — so the plan's copy is dropped.
 function withMarks(planRefs, before) {
-  var out = planRefs.slice();
+  var isMark = {};
+  before.forEach(function (r) { if (roleOfUrl(r.url)) isMark[r.url] = 1; });
+  var out = planRefs.filter(function (r) { return !isMark[r.url]; });
   before.forEach(function (r, i) {
     if (roleOfUrl(r.url)) out.splice(Math.min(i, out.length), 0, r);
   });
   return out;
+}
+// AND THE LINE IS RE-RESOLVED AGAINST THE STRIP THAT REALLY RIDES. A `{n}`
+// pointing at a picture she has marked as a keyframe cannot be a slot name, so
+// it names the END instead — "in the first frame" — which is both true and
+// readable, where `resolveLine` would otherwise leave the raw `{2}` in her
+// prompt. Everything else resolves exactly as the planner answered.
+function castLine(p, ent, look) {
+  if (!CL || !CL.resolveLine || !CL.lookRefs || !CL.slotMap || !p || !p.template) return p && p.line;
+  var mine = CL.lookRefs(ent, look || (ent.looks || [])[0] || {}, castBySlug());
+  var map = CL.slotMap(slotRefs()).slots, slots = {};
+  Object.keys(map).forEach(function (u) { slots[u] = map[u]; });
+  refs.forEach(function (r) {
+    var role = roleOfUrl(r.url);
+    if (role) slots[r.url] = 'the ' + roleWord(role);
+  });
+  return CL.resolveLine(p.template, mine, slots);
 }
 function castPlan(ent, look) {
   if (!CL) return null;
@@ -2663,7 +2690,7 @@ function castApply(ent, look) {
   var box = activeBox();
   openBlock(box);
   var before = box.value;
-  box.value = CL.withLine(before, p.line);
+  box.value = CL.withLine(before, castLine(p, ent, look));
   if (window.__fitBigPrompt) window.__fitBigPrompt();
   // A LINE LANDING IN THE BOX OPENS THE PANEL, whether or not a picture was
   // attached with it — the panel-fold rule is that anything putting words in
@@ -5078,9 +5105,16 @@ function paintCompare() {
   var sib = cmpSiblings(b);
   var idx = -1; sib.forEach(function (o, i) { if (o.id === a.id) idx = i; });
   // sib is newest first: "older" is a higher index
+  // AND `newer ›` NEVER STEPS PAST THE CLIP SHE OPENED THE PANEL ON
+  // (2026-09-13, found auditing the page). It was `sib[idx-1]`, and when that
+  // was `b` itself it took `sib[idx-2]` — which is NEWER than b, so the whole
+  // diff rendered backwards: her added words read as struck-out deletions, the
+  // settings rows read `12s → 8s` when she went the other way, and
+  // `cmpBackWord` blanked rather than saying anything was wrong. The "before"
+  // side has to stay older than "this clip", so the stop is b's own index.
   var older = idx >= 0 ? sib[idx + 1] || null : null;
-  var newer = idx > 0 ? sib[idx - 1] : null;
-  if (newer && newer.id === b.id) newer = idx > 1 ? sib[idx - 2] : null;
+  var ib = -1; sib.forEach(function (o, i) { if (o.id === b.id) ib = i; });
+  var newer = idx > 0 && idx - 1 > ib ? sib[idx - 1] : null;
   $('cmptitle').textContent = d.changed ? 'What changed' : 'Nothing changed';
   var h = '<div class="cpair">' + cmpClipHtml(a, 'before') + '<div class="carrow">→</div>' + cmpClipHtml(b, 'this clip') + '</div>';
   h += '<div class="cwalk">' +
@@ -5260,17 +5294,36 @@ function paintParts() {
 // `primeMany` on the pointerdown. A part whose bytes are not in yet is named
 // rather than silently left out of the sheet.
 var saveBlobs = {};
+// A FAILED FETCH IS RETRIED, NEVER CACHED (2026-09-13, found auditing the
+// page). This skipped any url already in `saveBlobs`, and a failed fetch left
+// a RESOLVED-NULL promise there — truthy — so it was never fetched again:
+// "save all" became a dead button for the life of the page while the toast
+// said "tap save all again in a moment", which is the opposite of true.
+// `primeSave` already clears its own slot on failure; this is its twin.
 function primeMany(urls) {
   if (nativeSaver()) return;
   urls.forEach(function (u) {
     if (saveBlobs[u]) return;
-    saveBlobs[u] = fetch(u).then(function (r) { return r.blob(); }).catch(function () { return null; });
+    saveBlobs[u] = fetch(u).then(function (r) { return r.blob(); })
+      .catch(function () { delete saveBlobs[u]; return null; });
   });
+}
+// `__done` on the promise is what "the bytes are in hand" means: a promise
+// that is still in flight and one that has resolved look identical.
+function markDone(u) {
+  var p = saveBlobs[u];
+  if (p && !p.__marked) { p.__marked = 1; p.then(function (b) { if (b) p.__done = 1; }); }
 }
 function saveMany(urls) {
   var native = nativeSaver();
   if (native) { urls.forEach(function (u) { native.postMessage(u); }); toast('Saving ' + urls.length + ' clips\u2026'); return; }
-  primeMany(urls);
+  // NOT READY IS ANSWERED BEFORE THE AWAIT (2026-09-13, found auditing the
+  // page). `navigator.share` was called after awaiting a multi-megabyte fetch,
+  // which spends the tap's transient activation — the trap `primeSave`'s own
+  // comment names, and the reason `saveMedia` refuses early instead. So the
+  // first tap outside the app failed every time and blamed the share sheet.
+  var ready = urls.every(function (u) { return saveBlobs[u] && saveBlobs[u].__done; });
+  if (!ready) { primeMany(urls); urls.forEach(markDone); toast('Getting the clips \u2014 tap save all again in a moment'); return; }
   Promise.all(urls.map(function (u) { return saveBlobs[u]; })).then(function (blobs) {
     var files = [];
     blobs.forEach(function (b, i) {
@@ -5293,7 +5346,9 @@ function saveMany(urls) {
 function bakedUrls() {
   return ((TR && TR.parts) || []).filter(function (t) { return t.status === 'ready' && t.url; }).map(function (t) { return t.url; });
 }
-$('tsaveall').addEventListener('pointerdown', function () { primeMany(bakedUrls()); });
+// HER FINGER GOING DOWN IS THE HEAD START, and the bytes are MARKED as they
+// land so the click can tell "in flight" from "in hand".
+$('tsaveall').addEventListener('pointerdown', function () { var u = bakedUrls(); primeMany(u); u.forEach(markDone); });
 $('tsaveall').addEventListener('click', function () { var u = bakedUrls(); if (u.length) saveMany(u); });
 $('tsavewhole').addEventListener('pointerdown', function () { var u = TR && TR.j && (TR.j.source || TR.j.video); if (u) primeSave(u); });
 $('tsavewhole').addEventListener('click', function () { var u = TR && TR.j && (TR.j.source || TR.j.video); if (u) saveMedia(u); });

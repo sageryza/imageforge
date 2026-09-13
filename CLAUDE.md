@@ -5078,6 +5078,103 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
       every landscape poster. `SHORT_TILE` is MEASURED rather than derived from
       the ratio and the column count, since the height falls out of the page's
       own width.
+    **AND THREE READ-ONLY AUDITS FOUND 36 MORE (2026-09-13, her "then find
+    more") — the server module, the page's player/trimmer/cast areas, and the
+    shared slot-name and search files. The ones that cost money or draw the
+    wrong clip are fixed; the rest are named at the end of this bullet.**
+    - **2.0 AT 1080p WAS PRICED OFF THE 480p CANVAS — a 5x under-quote that
+      read CHEAPER than 720p.** 2.0 moved onto the 2.5 canvas table on
+      2026-09-12 (a real charge measured 560x752), and that table has no
+      1080p row, so `canvasOf`'s `fam[res] || fam['480p']` fell through: a 4s
+      2.0 1080p 16:9 clip quoted **~30¢ against a real ~151¢**, and $1.11
+      against ~$5.67 at 15s. 2.0 is the one row that offers 1080p and only
+      OpenRouter takes it, which bills on the real canvas. A resolution its
+      own table lacks falls back to the FAMILY's now (`canvasFrom` says
+      which), and a borrowed canvas can never answer `exact`.
+    - **A REFERENCE THE MODULE WILL NOT SEND REFUSES THE JOB — it is never
+      dropped.** The http filter ran BEFORE `slotsOf`, so a url failing it
+      vanished and every slot after it renumbered while her prompt named the
+      old numbers: the clip drew, of the wrong picture. A keyframe was worse —
+      a url that failed the test simply stopped being a keyframe, so the
+      picture she marked as the first frame rode as an ordinary slotted
+      reference and the job went out references-only.
+    - **A REFUSED JOB SPOKE A SECOND VOCABULARY.** It was filed under the
+      model's LABEL and under `params.ratio` where every door writes its own
+      model id and `aspect_ratio` — so `cardOf` found no model row, and the
+      page gates its own "Try again" on `modelOf(j.model)`: **a refused Fast or
+      2.5 scene put back from its own card silently drew on MINI** (the model
+      is deliberately unsticky, so after any reload that is what is showing).
+      `cardOf` matches our own id as well as the doors' three spellings now.
+    - **A JOB THE DOOR NEVER ANSWERS FOR STOPS BEING "DRAWING".** Nothing aged
+      one out — `pollOne` swallows every error — so a job with an expired id or
+      an unmapped answer said "drawing… 4h" forever. That is not only a wrong
+      card: `/jobs` reads the WHOLE collection (~500 docs) and the page
+      re-arms every 7s while anything is drawing, so **one stuck clip cost ~70
+      document reads a second** for as long as the page was open. Two hours
+      with no answer reads as failed and the poll stops asking, `whyOf` says
+      so in her words, and **nothing is written** — the doc is left as the
+      door left it, so a job that lands later is still the record.
+    - **A PARTIAL ATLAS PRICE READ dropped that model to the table's LIST rate
+      for ten minutes** — the guard protected an EMPTY answer, not an
+      incomplete one — and since the door is chosen by price that is a door
+      change as well as a figure: every Mini tap billed ~3x (13.59¢ against
+      4.40¢), silently. Merged onto the last good map now.
+    - **EVERY TRIM WRITE IS PINNED TO THE READ IT WAS PLANNED FROM.** The route
+      read the doc, planned, and wrote the whole `trims` list, so a bake
+      landing its own `ready` in between put that part back to `baking` for
+      good: its mp4 and poster in Storage, the card saying "trimming…" for
+      ever, its save and play never appearing. One transaction per call.
+    - **AN OVERSIZE REFERENCE VIDEO WAS DIAGNOSED AS "TOO SMALL".** ByteDance
+      sends the SAME sentence for both ends of the range, and the one row said
+      "too small … the page upscales these by itself now; send it again" — so a
+      4K reference was told the fix was already in and re-sent forever
+      (nothing downscales, and `planUpscale` returns null above the floor by
+      design). Three rows now: the floor, the ceiling, and the bare range
+      sentence naming both ends.
+    - **THE REFUSAL TABLE'S `code` COLUMN WAS DEAD** — the reader asked for
+      `d.errorCode` and the doors' field is `error_code`, so an unmatched
+      wording showed raw door text with no line in her words. Either spelling.
+    - **A LOOK THAT OWNS A MARKED PICTURE ATTACHED IT TWICE.** The planner is
+      fed `slotRefs()` (marked pictures excluded, which is what keeps the slot
+      numbers right), so a look whose own references include the still she had
+      marked as the first frame got it appended as an ordinary `[ImageN]` and
+      her marked copy spliced back in on top: two tiles for one picture, and
+      the line named a slot `slotsOf` gives to a DIFFERENT one. Her mark wins,
+      and the line is re-resolved against the strip that really rides — a
+      `{n}` pointing at a keyframe names the END ("in the first frame")
+      rather than leaving a raw `{2}` in her prompt.
+    - **`newer ›` STEPPED PAST THE CLIP THE PANEL WAS OPENED ON**, so the whole
+      diff rendered backwards: her added words read as struck-out deletions
+      and the settings rows read `12s → 8s` when she went the other way. The
+      stop is b's own index.
+    - **SAVE-ALL WAS A DEAD BUTTON AFTER ONE FAILED FETCH** (a resolved-null
+      promise cached forever, while the toast said "tap again in a moment"),
+      and outside the app its first tap always failed and blamed the share
+      sheet — `navigator.share` was called after awaiting the bytes, which
+      spends the tap's transient activation, the trap `primeSave` was written
+      for. Not-ready is answered before the await now.
+    **NAMED AND NOT FIXED — hers to pick from** (the three reports in full are
+    in this chat): `/api/cast/plan` hands `cast-line.js` a RAW strip, so a
+    chat's line names the wrong slots when a keyframe is marked; a renamed
+    wardrobe look key makes the wardrobe silently not ride and ships a literal
+    `{2}`; the server's search does not fill `projectName`, so searching a
+    project's display name shows hits and then blanks them; `doorTakes` does
+    not model Atlas's own caps (>9 pictures, >3 videos, audio alone), so
+    `auto` sends a job to the one door that must refuse it and the page offers
+    no other; `… older` skips clips that share a `sentAt` to the millisecond;
+    the draw-time buckets double-count a clip with no ratio; a 40+ character
+    film slug can never be tucked (two truncation lengths); footage's own
+    shape refusals are the ones that leave no log; taking a part off resets
+    her trim marks; an armed "pick a clip" survives a project switch and
+    swallows the next tap; the trim marks are the only playhead controls that
+    do not pause; no `error` listener on the player leaves a whole dead trim
+    row; a note on a reference VIDEO is filed where no card shows it;
+    `viewswitch` is a dead control with localStorage blocked; `caretkeep`'s
+    blind-keyboard band can scroll a caret that is already visible;
+    `clip-diff`'s `tail()` blanks any readable filename over 20 characters;
+    Atlas's spend cache key includes `fresh`, so `?fresh=1` writes a key
+    nothing reads. Tests: `node scripts/test-footage-audit-3.js` (34 checks;
+    it CRASHES against the pre-fix module, where `canvasFrom` does not exist).
     Tests: `node scripts/test-footage-blocks-audit.js` (55 checks; it CRASHES
     against the pre-fix page, where `#goall` does not exist) and
     `node scripts/test-footage-audit-2.js` (71 checks for the seven — every
