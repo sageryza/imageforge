@@ -409,7 +409,11 @@ const readBlocks = () => {
   ok('an unfinished clip the page no longer holds is fetched by name',
     /function unresolvedOffPage/.test(src) && /api\('\/jobs\/' \+ encodeURIComponent\(id\)\)/.test(src));
   ok('the feed bar stays while anything narrows the feed', /var narrowed = !!\(S\.project \|\| qGroups\.length/.test(src));
-  ok('switching folder re-asks a standing search', /function setFolder[\s\S]{0,900}?if \(searchQ\) \{ qHits = null; runSearch\(\); \}/.test(src));
+  // and the SEARCH's own walk starts over with it (2026-09-13) — the old
+  // view's `more` and cursor would otherwise offer a page of another folder's
+  // matches
+  ok('switching folder re-asks a standing search, and resets its own walk',
+    /function setFolder[\s\S]{0,900}?if \(searchQ\) \{ qHits = null; qMore = false; qAt = ''; runSearch\(\); \}/.test(src));
   ok('unhiding cards re-decides their "… more"', /if \(!tiles\) resyncClamps\(\);\n  var n = Object\.keys\(jobsById\)/.test(src));
   ok('grab frame keeps the player and her marks', /useShot\(false, 'frame at ' \+ Number\(d\.at\)\.toFixed\(1\) \+ 's', true\)/.test(src));
   ok('the optimistic card is built from the body the tap sent',
