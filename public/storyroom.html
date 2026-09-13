@@ -140,6 +140,7 @@ textarea.field{min-height:80px; line-height:1.5;}
    them, and add to this line whenever a new host reaches something. */
 .float, .float *{box-sizing:content-box; line-height:normal; letter-spacing:normal; text-transform:none;}
 .float{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:flex; flex-direction:column; gap:8px; align-items:center; transform:translateZ(0); will-change:transform;}
+.float > *{transform:translateY(var(--vvtop, 0px));}  /* the rail follows the visual viewport — the CHILDREN move, so every page that reserves the pill's column off `.float`'s own rect is correct with no edit. Source: scripts/pill.py */
 /* THE FIVE TOKENS ARE READ FROM THE HOST, WITH A FALLBACK — never baked ON
    `.float` (Aug 2026). The injected copy used to carry its own palette plus a
    `prefers-color-scheme: dark` block, and an element's own custom property
@@ -1233,6 +1234,34 @@ var I={
 };
 function spd(){ return SPEEDS[si][1]; }
 function showSpd(){ document.getElementById('spd').textContent=SPEEDS[si][0]; }
+
+/* THE RAIL FOLLOWS THE VISUAL VIEWPORT (2026-09-13, Sophie, on /footage:
+   "auto scroll bug"). iOS shrinks the VISUAL viewport for the keyboard and
+   offsets it inside the LAYOUT one to reveal the caret; position:fixed pins
+   to the layout viewport, so the rail slides up out of the visible band by
+   visualViewport.offsetTop, top-first — measured ~115pt on her iPhone 13,
+   which left only the bottom button on screen. IT ONLY EVER CORRECTS: with
+   no offset reported the transform is left exactly as the CSS has it.
+   A BAKED COPY — the source is scripts/pill.py; change it there and here. */
+(function(){
+  var _vvOff=0, _f=null;
+  function railEl(){ if(_f && _f.isConnected) return _f; _f=document.querySelector('.float'); return _f; }
+  function placeRail(){
+    var el=railEl(); if(!el) return;
+    var vv=window.visualViewport;
+    var off=vv ? Math.max(0, Math.round(vv.offsetTop||0)) : 0;
+    if(off===_vvOff) return;
+    _vvOff=off;
+    if(off) el.style.setProperty('--vvtop', off+'px'); else el.style.removeProperty('--vvtop');
+  }
+  window.__pillOffset=function(){ return _vvOff; };
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', placeRail, {passive:true});
+    window.visualViewport.addEventListener('scroll', placeRail, {passive:true});
+  }
+  placeRail();
+  setTimeout(placeRail, 400);
+})();
 function paintPill(){
   if(playing){
     vtop.innerHTML=I.minus; vbot.innerHTML=I.plus; vmid.innerHTML=I.pause; vmid.classList.add('on');
