@@ -53,6 +53,17 @@ function report() {
   ok('auto with no Atlas: a 2.x model goes OpenRouter and NOTHING is behind it',
     (() => { const d = F.doorFor({ model: 'mini', door: 'auto', resolution: '480p' }, both); return d.door === 'openrouter' && d.fallback === null && d.chain.length === 0; })());
   ok('1.5 Pro is APIFRAME only, whatever auto says', F.doorFor({ model: '1.5', door: 'auto', resolution: '480p' }, both).door === 'apiframe');
+  // A TUCKED PROJECT IS LEFT OUT OF ALL (2026-09-13) — a SOURCE PIN, because
+  // the real /jobs route needs Firestore: the read asks the cast shelf for
+  // the tucked slugs, and only when nothing is asked for (a project of her
+  // own shows every clip in it, and a SEARCH reaches the whole log).
+  {
+    const src = fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8');
+    const line = (src.match(/const tucked = .*cast\.tuckedFilms\(\).*/) || [''])[0];
+    ok('the feed reads the tucked slugs off the cast shelf — ' + line, /cast\.tuckedFilms\(\)/.test(line));
+    ok('and only under All, never under a project or a search', /!project/.test(line) && /req\.query\.q/.test(line));
+    ok('and the filter really drops those clips', /tucked\.indexOf\(projectSlug\(x\.d\.project\)\) < 0/.test(src));
+  }
   ok('pinning OpenRouter on 1.5 Pro is refused with a reason', /only on APIFRAME/.test(F.doorFor({ model: '1.5', door: 'openrouter', resolution: '480p' }, both).error || ''));
   // THE APIFRAME DOOR STAYS IN THE MODULE — the page stopped offering it, a
   // chat did not stop using it (a person in a reference has nowhere else to go)
@@ -431,6 +442,13 @@ const server = http.createServer((req, res) => {
     if (u.pathname === '/api/cast/films' && req.method === 'POST') {
       const b = JSON.parse(body); filmsPosted.push(b);
       if (!films.some((f) => f.slug === b.slug)) films.push({ slug: b.slug, name: b.name || b.slug, order: 0, people: 0, wardrobe: 0, settings: 0 });
+      // A PATCH TOUCHES ONLY WHAT IT NAMES, the way the real route merges:
+      // tucking a film must not forget its name, renaming must not untuck it
+      const film = films.find((f) => f.slug === b.slug);
+      if (film) {
+        if (b.name != null) film.name = b.name;
+        if (b.tucked !== undefined) film.tucked = !!b.tucked;
+      }
       return json({ ok: true, films });
     }
     if (u.pathname === '/api/cast/' || u.pathname === '/api/cast') {
@@ -451,6 +469,10 @@ const server = http.createServer((req, res) => {
       const fold = proj ? (u.searchParams.get('folder') || '') : '';
       projReads.push(proj + (fold ? '/' + fold : ''));
       let mine = jobs.filter((j) => (!proj || (j.project || '') === proj) && (!fold || (j.folder || '') === fold));
+      // A TUCKED PROJECT IS LEFT OUT OF ALL (2026-09-13) — the real route's
+      // rule: only when nothing is asked for, and never under a search
+      const tucks = films.filter((f) => f.tucked).map((f) => f.slug);
+      if (!proj && !u.searchParams.get('q') && tucks.length) mine = mine.filter((j) => !tucks.includes(j.project || ''));
       // every project's folders, derived off the whole pool — the real route's
       // `foldersOf`, so a move shows up on the next read
       const folders = {};
@@ -2401,8 +2423,8 @@ async function pillSweep(pg, where) {
     }
     await pgP.selectOption('#project', 'ward');
     await pgP.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 6);
-    const inWard = await pgP.evaluate(() => ({ on: document.getElementById('projwrap').classList.contains('on'), title: document.getElementById('title').textContent, last: document.getElementById('project').options[document.getElementById('project').options.length - 1].value, f1val: document.querySelector('#job-f1 .projsel select').value }));
-    ok('inside the ward the icon is lit, the header says The ward, and New folder… is the last row', inWard.on && inWard.title === 'The ward' && inWard.last === '__newfolder' && inWard.f1val === 'ward');
+    const inWard = await pgP.evaluate(() => ({ on: document.getElementById('projwrap').classList.contains('on'), title: document.getElementById('title').textContent, tail: Array.from(document.getElementById('project').options).slice(-2).map((o) => o.value), f1val: document.querySelector('#job-f1 .projsel select').value }));
+    ok('inside the ward the icon is lit, the header says The ward, and New folder… + Hide from All end the rows', inWard.on && inWard.title === 'The ward' && inWard.tail.join(',') === '__newfolder,__tuck' && inWard.f1val === 'ward');
     await pgP.selectOption('#project', 'ward/socks');
     await pgP.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 1);
     const inFold = await pgP.evaluate(() => ({ ids: Array.from(document.querySelectorAll('#feed .job:not([hidden])')).map((e) => e.dataset.id).join(','), tag: document.querySelector('#job-f0 .tags').textContent, saved: localStorage.getItem('footage_folder'), title: document.getElementById('title').textContent, val: document.getElementById('project').value }));
@@ -2432,6 +2454,67 @@ async function pillSweep(pg, where) {
     // put the pool back the way the later blocks expect it
     await pgP.selectOption('#job-f1 .projsel select', 'ward');
     await pgP.waitForFunction(() => /The ward/.test(document.querySelector('#job-f1 .tags').textContent));
+
+    // ── TUCKED AWAY (2026-09-13, Sophie: "can u hide the ward, the boyfriend
+    // one and the pee wheel ones if i'm not in those folders") ────────────
+    // Ward alone was 220 of her 506 clips, so All was mostly one film. Every
+    // assertion here is a MEASUREMENT of what really renders and of what the
+    // stub really received: a picker row that says "hidden" over a feed that
+    // still holds the clips, a toggle that never reached the server, and one
+    // that also hides the project from ITS OWN view all look identical in the
+    // source.
+    {
+      await pgP.selectOption('#project', '');
+      await pgP.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 10);
+      const nPosts = filmsPosted.length, nReads = projReads.length;
+      await pgP.selectOption('#project', 'ward');
+      const WARD = ['old1', 'c1', 'f0', 'f1', 'f2'];
+      const wardShown = () => pgP.evaluate((ids) => ids.filter((id) => { const e = document.getElementById('job-' + id); return e && !e.hidden; }).length, WARD);
+      await pgP.waitForFunction((ids) => ids.every((id) => { const e = document.getElementById('job-' + id); return e && !e.hidden; }), WARD);
+      const inside = await wardShown();
+      const readsIn = projReads.length;
+      await pgP.selectOption('#project', '__tuck');
+      await pgP.waitForFunction(() => Array.from(document.querySelectorAll('#project option')).some((o) => /hidden/.test(o.textContent)));
+      const tuck = await pgP.evaluate(() => ({
+        v: document.getElementById('project').value,
+        n: document.querySelectorAll('#feed .job:not([hidden])').length,
+        row: Array.from(document.querySelectorAll('#project option')).filter((o) => o.value === 'ward').map((o) => o.textContent)[0],
+        last: Array.from(document.querySelectorAll('#project option')).slice(-1)[0].textContent,
+        toast: document.getElementById('toast').textContent }));
+      ok('the tuck POSTs the flag on the film and nothing else — ' + JSON.stringify(filmsPosted.slice(nPosts)),
+        filmsPosted.length === nPosts + 1 && filmsPosted[nPosts].slug === 'ward' && filmsPosted[nPosts].tucked === true && filmsPosted[nPosts].name === undefined);
+      ok('it moved nothing — the value goes straight back and the ward still shows every clip from inside it',
+        tuck.v === 'ward' && tuck.n === 6 && inside === 5 && projReads.length === readsIn);
+      ok('the picker row says the ward is hidden and the toggle flips to Show in All — ' + tuck.row + ' / ' + tuck.last,
+        /hidden/.test(tuck.row) && /Show in All/.test(tuck.last));
+      ok('and the toast says so — ' + tuck.toast, /hidden from All/i.test(tuck.toast));
+      await pgP.selectOption('#project', '');
+      await pgP.waitForFunction((ids) => ids.every((id) => { const e = document.getElementById('job-' + id); return !e || e.hidden; }), WARD);
+      const onAll = await pgP.evaluate(() => ({
+        ids: Array.from(document.querySelectorAll('#feed .job:not([hidden])')).map((e) => e.dataset.id).sort().join(','),
+        tiles: Array.from(document.querySelectorAll('#tiles .cell:not([hidden])')).map((e) => e.dataset.id).sort().join(',') }));
+      ok('on All the ward\'s clips are gone from the list and the wall, and the rest are there — ' + onAll.ids + ' / ' + onAll.tiles,
+        !/old1|c1|f0|f1|f2/.test(onAll.ids) && !/old1|c1|f0|f1|f2/.test(onAll.tiles) && /f3/.test(onAll.ids) && /f6/.test(onAll.ids));
+      ok('the server was asked for All, not for a project — ' + projReads[projReads.length - 1], projReads[projReads.length - 1] === '');
+      // A SEARCH REACHES A TUCKED PROJECT — she asked for it by name
+      await pgP.click('#v-search');
+      await pgP.type('#q', 'mother');
+      await pgP.waitForFunction(() => Array.from(document.querySelectorAll('#feed .job:not([hidden])')).some((e) => e.dataset.id === 'c1'));
+      const found = await pgP.evaluate(() => Array.from(document.querySelectorAll('#feed .job:not([hidden])')).map((e) => e.dataset.id).join(','));
+      ok('a search still reaches a tucked project — ' + found, /c1/.test(found));
+      await pgP.click('#v-search');
+      await pgP.waitForFunction((ids) => ids.every((id) => { const e = document.getElementById('job-' + id); return !e || e.hidden; }), WARD);
+      // its OWN view is untouched — a tucked project is hidden from All alone
+      await pgP.selectOption('#project', 'ward');
+      await pgP.waitForFunction((ids) => ids.every((id) => { const e = document.getElementById('job-' + id); return e && !e.hidden; }), WARD);
+      ok('a tucked project still shows every clip from inside it', (await wardShown()) === 5);
+      await pgP.selectOption('#project', '__tuck');
+      await pgP.waitForFunction(() => !Array.from(document.querySelectorAll('#project option')).some((o) => /hidden/.test(o.textContent)));
+      ok('untucking POSTs the flag off', filmsPosted[filmsPosted.length - 1].slug === 'ward' && filmsPosted[filmsPosted.length - 1].tucked === false);
+      await pgP.selectOption('#project', '');
+      await pgP.waitForFunction((ids) => ids.every((id) => { const e = document.getElementById('job-' + id); return e && !e.hidden; }), WARD);
+      ok('and All holds every clip again', (await wardShown()) === 5 && projReads.length > nReads);
+    }
   }
   // A HAND-OFF SWITCHES THE PROJECT — written by a second page on the same
   // origin, the way a belt writes it; the map is on /status

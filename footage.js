@@ -79,6 +79,7 @@ const videoRefusals = require('./video-refusals');
 const grammar = require('./search-grammar');
 const { hayOf } = require('./footage-hay');
 const clipDiff = require('./clip-diff');
+const cast = require('./cast');          // the films ARE the projects — one vocabulary
 
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 const CHAT = 'footage';
@@ -1647,6 +1648,17 @@ router.get('/jobs', async (req, res) => {
     const folder = project ? folderSlug(req.query.folder) : '';
     const rows = snap.docs.map((d) => ({ id: d.id, d: d.data() }));
     let all = rows.filter((x) => (!project || projectSlug(x.d.project) === project) && (!folder || folderSlug(x.d.folder) === folder));
+    // A TUCKED PROJECT IS LEFT OUT OF ALL (2026-09-13, Sophie: "can u hide
+    // the ward, the boyfriend one and the pee wheel ones if i'm not in those
+    // folders"). Measured that morning: ward alone is 220 of her 506 clips,
+    // so All was mostly one film and everything else was scrolled past. The
+    // flag lives on the cast shelf's films doc — ONE vocabulary, the same one
+    // the picker draws — and it narrows NOTHING but this view: asking for
+    // that project shows every clip in it, and a SEARCH reaches the whole log
+    // whatever is tucked (a search is her asking for something by name — the
+    // ALL tab's own carve-out for the bug-fix pile).
+    const tucked = (!project && !String(req.query.q || '').trim()) ? await cast.tuckedFilms() : [];
+    if (tucked.length) all = all.filter((x) => tucked.indexOf(projectSlug(x.d.project)) < 0);
     // every project's folders, off the whole read — the picker's and the
     // card's rows, derived rather than stored
     const folders = foldersOf(rows);

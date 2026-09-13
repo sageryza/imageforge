@@ -220,6 +220,22 @@ const BY = { sophie, 'blue-pajamas': pj, mayra, 'her-room': place };
   ok('the counts are per kind', (function () { const w = films.find((f) => f.slug === 'ward'); return w.people === 1 && w.wardrobe === 1 && w.settings === 1; })());
   ok('a hidden entry is counted nowhere', C.filmsOf([C.cardOf('a__b', { film: 'a', slug: 'b', kind: 'person', hidden: true, looks: [] })], {})[0].people === 0);
 
+  // A FILM CAN BE TUCKED AWAY (2026-09-13, Sophie: "can u hide the ward, the
+  // boyfriend one and the pee wheel ones if i'm not in those folders") — one
+  // flag on the names doc, read by the Footage feed's All view and by
+  // nothing else. A film nobody has tucked answers false rather than absent,
+  // so the picker can draw the row without asking twice.
+  {
+    const names = { films: { ward: { name: 'The ward', tucked: true }, ticky: { name: 'Ticky Tack' } } };
+    const fs2 = C.filmsOf(rows, names);
+    ok('a tucked film says so and an untucked one says false',
+      fs2.find((f) => f.slug === 'ward').tucked === true && fs2.find((f) => f.slug === 'ticky').tucked === false);
+    ok('the tucked slugs are read off the one names doc', C.tuckedOf(names).join(',') === 'ward');
+    ok('nothing tucked is an empty list, never a missing one', Array.isArray(C.tuckedOf({})) && C.tuckedOf({}).length === 0);
+    ok('a film declared on the names doc with no entries yet carries its flag too',
+      C.filmsOf([], { films: { 'pee-wheel': { name: 'The pee wheel', tucked: true } } })[0].tucked === true);
+  }
+
   // A STILLS-ONLY CHARACTER IS A NORMAL ENTRY, and the row has to say so
   const m = C.cardOf('ward__mayra', { film: 'ward', slug: 'mayra', name: 'Mayra', kind: 'person', looks: mayra.looks });
   ok('a stills-only character counts its stills and no clips', m.stills === 1 && m.clips === 0);

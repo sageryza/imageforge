@@ -1236,6 +1236,32 @@ function projectName(slug) {
   var f = FILMS.filter(function (x) { return x.slug === slug; })[0];
   return f ? (f.name || f.slug) : (slug || '');
 }
+// ── TUCKED AWAY (2026-09-13, Sophie: "can u hide the ward, the boyfriend one
+// and the pee wheel ones if i'm not in those folders") ────────────────────
+// A project can be left OUT OF ALL and nowhere else: picking it shows every
+// clip in it, a search still reaches it, and its row stays in the picker
+// wearing "· hidden" so the list never lies about why All is short. The flag
+// lives on the cast shelf's film (`tucked`), the same one vocabulary the
+// picker is drawn from, so both phones agree and there is no second list.
+// The control is a ROW IN THE PICKER, offered only inside a project — the
+// fold row's own pattern, and the one place a project is already the subject.
+var TUCK = '__tuck';
+function tucked(slug) {
+  if (!slug) return false;
+  var f = FILMS.filter(function (x) { return x.slug === slug; })[0];
+  return !!(f && f.tucked);
+}
+function setTucked(slug, on) {
+  if (!slug) return;
+  FILMS.forEach(function (f) { if (f.slug === slug) f.tucked = !!on; });   // optimistic
+  // applyFilt, never repaintCards — a mark must not rebuild the wall and
+  // re-decode every poster (the wall's own rule)
+  paintProject(); applyFilt();
+  castApi('/films', { method: 'POST', body: JSON.stringify({ slug: slug, tucked: !!on }) })
+    .then(function (d) { if (d && d.ok && Array.isArray(d.films)) { FILMS = d.films; paintProject(); } })
+    .catch(function () {});
+  toast(on ? projectName(slug) + ' is hidden from All' : projectName(slug) + ' shows in All');
+}
 function loadFilms() {
   return castApi('/films').then(function (d) {
     if (!(d && d.ok && Array.isArray(d.films))) return;
@@ -1292,7 +1318,7 @@ function viewRows(cur, noneLabel) {
   var curP = String(cur || '').split('/')[0], curF = String(cur || '').split('/')[1] || '';
   if (curP && !films.some(function (f) { return f.slug === curP; })) films.push({ slug: curP, name: curP });
   films.forEach(function (f) {
-    rows.push({ id: f.slug, label: f.name || f.slug });
+    rows.push({ id: f.slug, label: (f.name || f.slug) + (f.tucked ? ' · hidden' : '') });
     var fl = foldersIn(f.slug).slice();
     if (curF && curP === f.slug && fl.indexOf(curF) < 0) fl.push(curF);
     if (!fl.length) return;
@@ -1310,6 +1336,7 @@ function paintProject() {
   var rows = viewRows(viewValue(), 'All');
   rows.push({ id: NEW_PROJECT, label: 'New project\u2026' });
   if (S.project) rows.push({ id: NEW_FOLDER, label: 'New folder\u2026' });
+  if (S.project) rows.push({ id: TUCK, label: tucked(S.project) ? 'Show in All' : 'Hide from All' });
   fillSel(el, rows, viewValue());
   $('projwrap').classList.toggle('on', !!S.project);
   // the header says where she is
@@ -1405,6 +1432,8 @@ $('project').addEventListener('change', function () {
   if (v.indexOf(FOLD) === 0) { openToggle(v.slice(FOLD.length)); paintProject(); repaintCards(); return; }
   if (v === NEW_PROJECT) { $('project').value = viewValue(); newProject(); return; }
   if (v === NEW_FOLDER) { $('project').value = viewValue(); newFolder(); return; }
+  // tucking never moves the feed or a clip — the value goes straight back
+  if (v === TUCK) { $('project').value = viewValue(); setTucked(S.project, !tucked(S.project)); return; }
   var p = v.split('/')[0], f = v.split('/')[1] || '';
   if (p !== S.project) setProject(p, { folder: f });
   else setFolder(f);
@@ -2703,6 +2732,9 @@ function paintFilt() {
 // list can never disagree about what a filter means.
 function shown(j) {
   return !j.hidden && !(likedOnly() && j.vote !== 'like') && !(hideX() && j.vote === 'dislike')
+    // a TUCKED project is left out of All — the server already filters the
+    // read, and this keeps a card a poll lands off both views too
+    && !(!S.project && !searchQ && tucked(j.project || ''))
     && !(S.project && (j.project || '') !== S.project)
     && !(S.project && S.folder && (j.folder || '') !== S.folder)
     && passesSearch(j) && passesFilt(j);

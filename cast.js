@@ -40,7 +40,7 @@
 // Routes (mounted at /api/cast by server.js; STUDIO_TOKEN-gated):
 //   GET  /films                       the folders, with counts
 //   GET  /?film=                      the shelf, in order
-//   POST /films                       { slug, name, order } — name a folder
+//   POST /films                       { slug, name?, order?, tucked? } — name a folder / tuck it away
 //   POST /entry                       upsert { film, slug?, name, kind, note, order }
 //   POST /entry/:id/look              upsert { key?, name, line, refs, wear, note }
 //   POST /entry/:id/look/:key/remove  take a look off
@@ -134,21 +134,37 @@ async function filmsDoc() {
 // THE FOLDERS ARE DERIVED FROM THE ENTRIES, with the names doc only ever
 // SUPPLYING a display name and an order — so a film cannot go missing
 // because nobody remembered to declare it, and naming one is optional.
+//
+// A FILM CAN BE TUCKED AWAY (2026-09-13, Sophie: "can u hide the ward, the
+// boyfriend one and the pee wheel ones if i'm not in those folders"). One
+// more field on the names doc, `tucked`, and the ONE thing it means: the
+// Footage feed's All view leaves that project's clips out, so All is what is
+// left over rather than 43% one film. It hides nothing else — the picker
+// still lists the project (marked), its own view shows every clip, a search
+// still reaches it, and the character shelf is untouched.
 function filmsOf(rows, names) {
   const n = (names && names.films) || {};
   const by = {};
+  const blank = (slug) => ({ slug, name: (n[slug] && n[slug].name) || slug, order: Number(n[slug] && n[slug].order) || 0, tucked: !!(n[slug] && n[slug].tucked), people: 0, wardrobe: 0, settings: 0 });
   rows.forEach((r) => {
     if (!r.film) return;
-    const f = by[r.film] || (by[r.film] = { slug: r.film, name: (n[r.film] && n[r.film].name) || r.film, order: Number(n[r.film] && n[r.film].order) || 0, people: 0, wardrobe: 0, settings: 0 });
+    const f = by[r.film] || (by[r.film] = blank(r.film));
     if (r.hidden) return;
     if (r.kind === 'wardrobe') f.wardrobe += 1;
     else if (r.kind === 'setting') f.settings += 1;
     else f.people += 1;
   });
-  Object.keys(n).forEach((slug) => {
-    if (!by[slug]) by[slug] = { slug, name: n[slug].name || slug, order: Number(n[slug].order) || 0, people: 0, wardrobe: 0, settings: 0 };
-  });
+  Object.keys(n).forEach((slug) => { if (!by[slug]) by[slug] = blank(slug); });
   return Object.values(by).sort((a, b) => (a.order - b.order) || a.slug.localeCompare(b.slug));
+}
+// The slugs the Footage feed leaves out of All — read off the names doc, so
+// there is ONE place a project is tucked and no second list to keep in step.
+function tuckedOf(names) {
+  const n = (names && names.films) || {};
+  return Object.keys(n).filter((slug) => n[slug] && n[slug].tucked);
+}
+async function tuckedFilms() {
+  try { return tuckedOf(await filmsDoc()); } catch { return []; }
 }
 
 // The shelf in reading order: people first (that is who a clip is about),
@@ -272,7 +288,15 @@ router.post('/films', async (req, res) => {
     if (!slug) return res.status(400).json({ error: 'name the film' });
     const cur = await filmsDoc();
     const films = { ...(cur.films || {}) };
-    films[slug] = { name: String(b.name || slug).slice(0, 60), order: Number(b.order) || 0 };
+    // A PATCH TOUCHES ONLY WHAT IT NAMES (the bookmark route's rule): a
+    // rename must not untuck a film, and tucking one must not forget its
+    // name or its order. Absent keys keep what the entry already says.
+    const was = films[slug] || {};
+    films[slug] = {
+      name: String((b.name != null ? b.name : was.name) || slug).slice(0, 60),
+      order: Number(b.order != null ? b.order : was.order) || 0,
+      tucked: b.tucked === undefined ? !!was.tucked : !!b.tucked,
+    };
     await coll().doc(FILMS_DOC).set({ films }, { merge: true });
     bust();
     const rows = await allRows(true);
@@ -320,5 +344,5 @@ router.post('/plan', async (req, res) => {
 module.exports = {
   router, COLL, FILMS_DOC, KINDS, MAX_LOOKS, MAX_REFS,
   slugify, docId, kindOk, cleanRefs, cleanLook, cardOf, faceOf,
-  filmsOf, shelfOrder, upsertEntry, upsertLook, removeLook, planFor, allRows, bust,
+  filmsOf, tuckedOf, tuckedFilms, shelfOrder, upsertEntry, upsertLook, removeLook, planFor, allRows, bust,
 };
