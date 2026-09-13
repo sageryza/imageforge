@@ -91,6 +91,27 @@ const server = http.createServer((req, res) => {
   }), 'nothing to read above the title');
   ok(await p.evaluate(() => !!document.querySelector('.cmp-help, [class*=help]')), 'the "?" card is wired');
 
+  // NOTHING TO READ ABOVE HER WORDS — it is all behind the concept's "?"
+  ok(await p.evaluate(() => !document.querySelector('.blk .src')), 'no source line sits above a block');
+  ok(await p.evaluate(() => [].every.call(document.querySelectorAll('.qcard'), (c) => c.hidden)), 'every "?" panel starts shut');
+  ok(await p.evaluate(() => {
+    // MEASURED, not asserted in source: what really renders between the
+    // heading and the first box. A hidden panel occupies no height.
+    const card = document.querySelector('.card[data-cid]');
+    const h2 = card.querySelector('h2').getBoundingClientRect();
+    const ta = card.querySelector('textarea').getBoundingClientRect();
+    return ta.top - h2.bottom < 24;
+  }), 'her words start straight under the heading');
+  await p.evaluate(() => document.querySelector('h2 .q').click());
+  await p.waitForTimeout(150);
+  ok(await p.evaluate(() => {
+    const c = document.querySelector('.qcard');
+    return !c.hidden && /voice memo|thomas|2026/i.test(c.textContent);
+  }), 'the "?" opens and names where the words came from');
+  await p.evaluate(() => document.querySelector('h2 .q').click());
+  await p.waitForTimeout(150);
+  ok(await p.evaluate(() => document.querySelector('.qcard').hidden), 'and closes again');
+
   // A BOX IS FITTED TO ITS WORDS — a detached fit comes up one line tall
   const boxes = await p.evaluate(() => [].map.call(document.querySelectorAll('textarea.p'),
     (t) => ({ h: t.getBoundingClientRect().height, sh: t.scrollHeight, len: t.value.length })));
@@ -139,11 +160,18 @@ const server = http.createServer((req, res) => {
   await p.waitForTimeout(1200);
   const after = await p.evaluate(() => document.querySelectorAll('.card[data-cid] .blk').length);
   ok(after === before + 1, 'divide adds exactly one block');
-  ok(await p.evaluate((c) => { const card=document.querySelector(`.card[data-cid="${c}"]`); const also=card.querySelector('.also'); if(!also) return true; const blks=[].slice.call(card.querySelectorAll('.blk')); return blks.every((b)=> b.compareDocumentPosition(also) & Node.DOCUMENT_POSITION_FOLLOWING); }, cid), 'a new block lands above the notes line, never after it');
+  ok(await p.evaluate((c) => {
+    const card = document.querySelector(`.card[data-cid="${c}"]`);
+    return [].every.call(card.querySelectorAll('.blk'), (b) => b.parentNode === card.querySelector('.blks'));
+  }, cid), 'a new block lands inside the blocks container, never loose in the card');
   ok(typeof store.texts['ord-' + cid] === 'string' && JSON.parse(store.texts['ord-' + cid]).length === 2,
     'the new order reached the sheet');
   const parts = JSON.parse(store.texts['ord-' + cid] || '[]').map((k) => store.texts[cid + '.' + k] || '');
   ok(parts.length === 2 && parts[0] && parts[1], 'both halves reached the sheet');
+  ok(await p.evaluate((c) => {
+    const card = document.querySelector(`.card[data-cid="${c}"]`);
+    return card.querySelectorAll('.srcs > div').length === card.querySelectorAll('.blk').length;
+  }, cid), 'the "?" panel renumbers itself after a divide');
   ok(await p.evaluate(() => !document.querySelectorAll('.blk')[1].querySelector('.jn').hidden), 'the second block offers join up');
   ok(await p.evaluate(() => document.querySelectorAll('.blk')[0].querySelector('.jn').hidden), 'the first block does not');
   await p.screenshot({ path: path.join(SHOTS, '03-divided.png') });
