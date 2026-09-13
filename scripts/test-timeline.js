@@ -239,8 +239,10 @@ const DRIVE = `<script>
   var realFetch = window.fetch.bind(window);
   window.fetch = function (u, o) {
     if (o && o.method === 'PUT') { try { PUTS.push(JSON.parse(o.body)); } catch (e) {} }
+    if (o && o.method === 'POST') { try { POSTS.push(JSON.parse(o.body)); } catch (e) {} }
     return realFetch(u, o);
   };
+  var POSTS = [];
   var ORDER = ${JSON.stringify(ORDER)};
 
   setTimeout(function () {
@@ -371,7 +373,50 @@ const DRIVE = `<script>
                'and the words with it', last && Object.keys(last.moments || {}).length);
             ok(!!last && last.units.every(function (u) { return u.length; }),
                'no empty unit is ever sent', '');
-            realFetch('/result?r=' + encodeURIComponent(L.join(' | ')));
+            // ---- HER OWN NEW STORY (2026-09-13). Every assertion here is a
+            // MEASUREMENT of what is on screen or of what the server really
+            // received: a Create that opens the box and posts nothing, and one
+            // that posts her title with the moments box dropped, look
+            // identical in the source.
+            var nb = document.getElementById('newbox'), nbtn = document.getElementById('newb');
+            document.getElementById('back').click();
+            setTimeout(function () {
+              ok(!document.getElementById('lvShelf').hidden, 'back returns to the shelf', '');
+              ok(!!nb && !!nbtn && nb.hidden && !nbtn.hidden,
+                 'the shelf offers New story, box shut', '');
+              if (!nb || !nbtn) return realFetch('/result?r=' + encodeURIComponent(L.join(' | ')));
+              nbtn.click();
+              ok(!nb.hidden && nbtn.hidden, 'New story opens the box', '');
+              ok(document.getElementById('ntitle').value === ''
+                 && document.getElementById('ntext').value === '',
+                 'both boxes ship EMPTY — no pre-written text', '');
+              document.getElementById('ncancel').click();
+              ok(nb.hidden && !nbtn.hidden, 'Cancel puts it away', '');
+
+              nbtn.click();
+              document.getElementById('ntitle').value = 'A new one';
+              document.getElementById('ntext').value = 'first thing' + String.fromCharCode(10) + 'second thing';
+              var before = POSTS.length;
+              document.getElementById('ncreate').click();
+              setTimeout(function () {
+                var p = POSTS[POSTS.length - 1];
+                ok(POSTS.length === before + 1 && p && p.title === 'A new one',
+                   'Create posts her name to the server', JSON.stringify(p || null));
+                ok(!!p && String(p.text).indexOf('first thing') >= 0
+                   && String(p.text).indexOf('second thing') >= 0,
+                   'and her whole dictation with it, unparsed by the page',
+                   JSON.stringify((p || {}).text || ''));
+                ok(!document.getElementById('lvStory').hidden
+                   && document.getElementById('title').value === 'A new one',
+                   'and it opens the story it just made', '');
+                ok(document.querySelectorAll('#tl .mcard').length === 0
+                   && !!document.querySelector('#tl .addb'),
+                   'an empty new story still has the + to write the first moment', '');
+                ok(nb.hidden && !nbtn.hidden,
+                   'the box is put away behind it, empty for next time', '');
+                realFetch('/result?r=' + encodeURIComponent(L.join(' | ')));
+              }, 500);
+            }, 400);
           }, 900);
         }, 260);
       }, 260);
@@ -383,6 +428,7 @@ const DRIVE = `<script>
 const page = fs.readFileSync(path.join(ROOT, 'public/timeline.html'), 'utf8') + DRIVE;
 const toolcss = fs.readFileSync(path.join(ROOT, 'public/tool.css'), 'utf8');
 
+const NEW = { title: 'Untitled' };
 let finish = null;
 const server = http.createServer((req, res) => {
   const [route, qs] = req.url.split('?');
@@ -394,8 +440,24 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/css' }); return res.end(toolcss);
   }
   if (route === '/api/timeline/stories') {
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      return req.on('end', () => {
+        let b = {}; try { b = JSON.parse(body || '{}'); } catch (_) {}
+        NEW.title = String(b.title || 'Untitled');
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ id: 'new1', title: NEW.title, moments: {}, units: [] }));
+      });
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ stories: [{ id: 'story1', title: 'A story', moments: 10, units: 6 }] }));
+  }
+  if (route === '/api/timeline/stories/new1') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    // deliberately EMPTY: the stub is not the parser, and the empty story is
+    // the case with nothing on screen but the gap's +
+    return res.end(JSON.stringify({ id: 'new1', title: NEW.title, moments: {}, units: [] }));
   }
   if (route.indexOf('/api/timeline/stories/') === 0) {
     res.writeHead(200, { 'Content-Type': 'application/json' });

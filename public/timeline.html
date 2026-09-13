@@ -10,11 +10,15 @@
                                        reachable from inside the open editor
        a long unit FOLDS               first and last whole, the middles one
                                        line each; tap one to open it
-     TWO LEVELS, one page: the shelf of stories, and one story open. The
-     shelf is READ-ONLY on purpose (Sophie: "it's for chats to fill
-     themselves… I just wanna see a list of stories and I can click on one"):
-     a chat POSTs the dictation to /api/timeline/stories and the story
-     appears here; nothing on this page creates one.
+     TWO LEVELS, one page: the shelf of stories, and one story open. CHATS
+     STILL FILL THE SHELF (Sophie: "it's for chats to fill themselves… I just
+     wanna see a list of stories and I can click on one") — a chat POSTs the
+     dictation to /api/timeline/stories and the story appears here — AND SINCE
+     2026-09-13 she can start one herself: "make it possible to add my own new
+     story". New story takes a name and, if she has one, a dictation pasted or
+     dictated straight in (the SAME parseStory the chats' route runs, so one
+     code path); with the box empty it just opens an empty story and the + in
+     the gap is how the moments go in.
      window.__navBack takes the native chevron back to the shelf.
      Nothing here spends money — there is no model call in this tool. -->
 <meta charset="utf-8">
@@ -35,6 +39,17 @@
   .srow .st { flex:1; font-size:15px; font-weight:600; min-width:0;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .srow .sn { font-size:12px; color:var(--dim); flex:0 0 auto; }
+
+  /* ---- her own new story ---- */
+  .newbox { margin-top:12px; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--r); padding:12px; }
+  .nlab { display:block; font:700 9px/1 -apple-system,'Helvetica Neue',sans-serif;
+    letter-spacing:1.6px; text-transform:uppercase; color:var(--dim); padding:0 0 5px; }
+  .nlab + input, .nlab + textarea { width:100%; display:block; margin:0 0 12px;
+    font:16px/1.42 inherit;   /* 16 or iOS zooms the page on a tap */
+    color:var(--ink); background:var(--bg);
+    border:1px solid var(--border); border-radius:var(--r); padding:8px 9px; resize:vertical; }
+  .nlab + input:focus, .nlab + textarea:focus { outline:none; border-color:var(--accent); }
 
   /* ---- one story ---- */
   .tl { list-style:none; margin:2px 0 0; padding:0; }
@@ -118,8 +133,10 @@
   <button id="help" aria-label="what this does">?</button>
 </header>
 <div class="helpcard" id="helpcard" hidden>
-  <b>Chats fill this shelf.</b> Dictate a story's moments to any chat and it
-  files them here; you put them in order.
+  <b>Chats fill this shelf</b> — dictate a story's moments to any chat and it
+  files them here — and <b>New story</b> starts one yourself: a name, and your
+  moments one to a line if you have them already. Either way you put them in
+  order here.
   <br><br>
   <b>Type a number</b> to send a moment to that place. Single arrows move it one
   step, double ones send it all the way. In the gap between two moments: join
@@ -139,8 +156,26 @@
        the paste screen shipped first and Sophie cut it ("it's for chats to
        fill themselves… I just wanna see a list of stories"). -->
   <section id="lvShelf">
+    <div class="row" style="margin-top:2px">
+      <button class="btn" id="newb" type="button">New story</button>
+    </div>
+    <!-- HER OWN NEW STORY. Boxes ship EMPTY (the house rule) — the two labels
+         above them are what say what goes in. The moments box is optional:
+         empty makes an empty story and the + in the gap adds the first
+         moment. -->
+    <div class="newbox" id="newbox" hidden>
+      <label class="nlab" for="ntitle">NAME</label>
+      <input type="text" id="ntitle">
+      <label class="nlab" for="ntext">MOMENTS &middot; ONE TO A LINE</label>
+      <textarea id="ntext" rows="6"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="ncreate" type="button">Create</button>
+        <button class="btn ghost" id="ncancel" type="button">Cancel</button>
+        <span class="saved" id="nsaid"></span>
+      </div>
+    </div>
     <div class="shelf" id="shelf"></div>
-    <div class="note" id="shelfNote" hidden>Nothing here yet — a chat fills this from a story you dictate to it.</div>
+    <div class="note" id="shelfNote" hidden>Nothing here yet — tap New story, or dictate one to a chat.</div>
   </section>
 
   <!-- LEVEL 2 — one story -->
@@ -208,6 +243,36 @@
       $('shelfNote').hidden = (d.stories || []).length > 0;
     }).catch(function (e) { $('shelfNote').hidden = false; $('shelfNote').textContent = String(e.message || e); });
   }
+
+  /* ---- HER OWN NEW STORY. It goes through the same POST /stories a chat
+     uses, so her paste is parsed by the one parser (an ALL-CAPS line opens a
+     sequence) and nothing new can drift from it. An empty box is a normal
+     answer: the story opens with just the gap's + in it. ---- */
+  function showNew(on) {
+    $('newbox').hidden = !on;
+    $('newb').hidden = on;
+    $('nsaid').textContent = '';
+    if (on) { $('ntitle').value = ''; $('ntext').value = ''; $('ntitle').focus(); }
+  }
+  $('newb').onclick = function () { showNew(true); };
+  $('ncancel').onclick = function () { showNew(false); };
+  $('ncreate').onclick = function () {
+    var b = $('ncreate');
+    if (b.disabled) return;                       // one tap is one story
+    b.disabled = true;
+    $('nsaid').textContent = 'making it…';
+    api('/stories', {
+      method: 'POST',
+      body: JSON.stringify({ title: $('ntitle').value, text: $('ntext').value }),
+    }).then(function (s) {
+      b.disabled = false;
+      showNew(false);
+      open(s.id);
+    }).catch(function (e) {
+      b.disabled = false;                          // her words stay in the box
+      $('nsaid').textContent = String(e.message || e);
+    });
+  };
 
   /* ------------------------------------------------------------ one story */
   var ID = null, MOM = {}, UNITS = [], NODES = {}, opened = {}, LONG = 3;   // a unit of this many or more folds (Sophie, 2026-08-25: was 5)
@@ -311,6 +376,14 @@
     var rows = [];
     UNITS.forEach(function (g, i) { rows.push(gapRow(i, i > 0)); rows.push(shell(g, i, UNITS.length)); });
     rows.push(gapRow(UNITS.length, false));
+    // A story she just started has nothing but the gap's + in it, which is a
+    // 15px mark on an empty screen — so it gets one line saying what to tap.
+    if (!UNITS.length) {
+      var e = document.createElement('li');
+      e.className = 'note'; e.style.margin = '8px 0 0';
+      e.textContent = 'Empty — tap + to write the first moment.';
+      rows.push(e);
+    }
     var tl = $('tl');
     tl.replaceChildren.apply(tl, rows);
   }
