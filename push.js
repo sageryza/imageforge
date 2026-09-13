@@ -183,10 +183,11 @@ async function sendAll(title, body, data) {
       aps: {
         alert: { title, body },
         sound: 'default',
-        'thread-id': (data && data.chat) || 'forge',
+        'thread-id': (data && (data.chat || data.thread)) || 'forge',
       },
       ...data,
-    }, (data && data.chat) ? { 'apns-collapse-id': String(data.chat).slice(0, 60) } : {});
+    }, (data && (data.chat || data.thread))
+      ? { 'apns-collapse-id': String(data.chat || data.thread).slice(0, 60) } : {});
     if (!r.ok && (r.status === 410 || DEAD.test(r.reason))) {
       await db().collection(DEVICES).doc(d.id).delete().catch(() => {});
       r.removed = true;
@@ -377,4 +378,72 @@ router.post('/test', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-module.exports = { router, notifyChat, queueChat, flushChat, _internals: { providerJwt, apnsKey, apnsSend, sendAll, jwtCache, pending, PENDING_MS, wire } };
+// ---- THE ONE PUSH THAT IS NOT A CHAT: A DEPLOY -----------------------------
+// (2026-09-13, Sophie: "can i get a notification when deploy starts and ends
+// so i know when to stop making clips and start again".)
+//
+// A deploy swaps the instance out, and a footage SEND in flight is a request
+// the old instance dies holding — so the minute around a deploy is the one
+// minute she should not tap the star. The two moments are already known
+// exactly, and neither of them is a guess:
+//   START — `scripts/deploy-guard.js` is Render's pre-deploy command. It runs
+//     after the build and BEFORE the swap, holds until nothing is drawing,
+//     pauses new draws, reads once more, and only then lets the deploy go.
+//     That last moment is the honest "it is going now", so the guard re-affirms
+//     its pause carrying `deploy:true` and the pause route calls this. A guard
+//     that gives up, or lifts the pause because a draw started, never gets
+//     there — so a held deploy never buzzes her.
+//   DONE — the NEW instance booting. Nothing else knows the swap finished, and
+//     a boot is exactly "you can send again".
+//
+// THE MARKER IS WHAT KEEPS A CRASH RESTART QUIET. A boot pushes "back up" only
+// when a START was recorded and is recent — so an OOM kill or a Render recycle
+// at 3am says nothing, and a deploy whose start push never landed does not get
+// a dangling "back up" a week later either. It is cleared on the way past, so
+// one deploy is one pair.
+//
+// NO `chat` KEY, deliberately: PushDelegate opens the chat a push names, and
+// there is no chat here — with none it lands on the Update tab, which is the
+// right room and needs no new build. `thread` gives it its own collapse id so
+// "back up" replaces "starting" in her shade instead of stacking.
+const DEPLOY_DOC = 'forge-push-devices/__deploy';
+const DEPLOY_THREAD = 'forge-deploy';
+const DEPLOY_STALE_MS = 30 * 60 * 1000;
+const DEPLOY_WORDS = {
+  start: ['Server update starting', 'Give it a minute before you send a clip.'],
+  done: ['Back up', 'Send clips again.'],
+};
+
+function deployRef() { return db().doc(DEPLOY_DOC); }
+
+/** Push one of the two deploy moments. Fire-and-forget by contract — it is
+ *  called from inside a route and from boot, and neither may wait on APNs. */
+function notifyDeploy(phase, opts) {
+  const words = DEPLOY_WORDS[phase];
+  if (!words) return;
+  if (configured()) {
+    sendAll(words[0], words[1], { thread: DEPLOY_THREAD, deploy: phase })
+      .then((r) => console.log(`push: deploy ${phase} -> ${r.length} device(s)`))
+      .catch((e) => console.log('push: deploy notify failed — ' + e.message));
+  }
+  if (phase === 'start' && !(opts && opts.noMark) && admin.apps.length) {
+    deployRef().set({ startedAt: Date.now() }, { merge: true })
+      .catch((e) => console.log('push: deploy mark failed — ' + e.message));
+  }
+}
+
+/** Called once on boot. Pushes "back up" only if a start was marked and is
+ *  recent, and clears the mark either way so it can never fire twice. */
+async function deployBootCheck() {
+  if (!admin.apps.length) return { pushed: false, why: 'no-firestore' };
+  let snap;
+  try { snap = await deployRef().get(); } catch (e) { return { pushed: false, why: e.message }; }
+  const at = snap.exists && Number(snap.get('startedAt'));
+  if (!at) return { pushed: false, why: 'no-mark' };
+  await deployRef().set({ startedAt: 0, doneAt: Date.now() }, { merge: true }).catch(() => {});
+  if (Date.now() - at > DEPLOY_STALE_MS) return { pushed: false, why: 'stale' };
+  notifyDeploy('done');
+  return { pushed: true };
+}
+
+module.exports = { router, notifyChat, queueChat, flushChat, notifyDeploy, deployBootCheck, _internals: { providerJwt, apnsKey, apnsSend, sendAll, jwtCache, pending, PENDING_MS, wire } };

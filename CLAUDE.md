@@ -13111,6 +13111,44 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **LIVE since Aug 2026 (measured 2026-08-27: `GET /api/push/status` answers
   `configured:true, devices:1`)** — the APNs key is in Render's secret files.
   This line used to say "dormant until the key exists"; that is history.
+  **A DEPLOY BUZZES HER PHONE, START AND END (2026-09-13, Sophie: "can i get a
+  notification when deploy starts and ends so i know when to stop making clips
+  and start again").** A deploy swaps the instance out and a footage SEND in
+  flight is a request the old instance dies holding, so the minute around a
+  deploy is the one minute not to tap the star. Both moments were already known
+  exactly and neither is a guess:
+  - **START is the deploy guard's LAST word, not its first.** `deploy-guard.js`
+    (Render's pre-deploy command) holds until nothing is drawing, pauses new
+    draws, reads once more, and only then lets the swap through — so it
+    re-affirms its pause carrying `deploy:true`, and `POST /api/promptlab/pause`
+    calls `push.notifyDeploy('start')` on that flag alone. A guard still
+    holding, one that lifted its pause because a draw snuck in, or one that
+    gives up at the cap never gets there, so a held deploy never buzzes her.
+  - **DONE is the new instance BOOTING** — nothing else knows the swap
+    finished, and a boot is exactly "you can send again".
+  - **THE MARKER IS WHAT KEEPS A CRASH RESTART QUIET.** `push.notifyDeploy
+    ('start')` writes `startedAt` on one doc; `push.deployBootCheck()` pushes
+    "back up" only if that mark exists and is under 30 minutes old, and clears
+    it on the way past — so an OOM kill or a Render recycle at 3am says
+    nothing, one deploy is one pair, and a mark nobody consumed goes stale
+    instead of buzzing her a week later. Gated on `RENDER_EXTERNAL_URL`, or a
+    dev container booting server.js eats her notification.
+  - **IT NAMES NO CHAT, deliberately** — `PushDelegate` opens the chat a push
+    names and there is no chat here; with none it lands on the Update tab,
+    which is the right room and needs no TestFlight build. It carries its own
+    `thread` instead (a new `sendAll` case), so "Back up" replaces "Server
+    update starting" in her shade rather than stacking.
+  - **STILL OPEN, and hers to ask for: the guard does not wait for a footage
+    SEND.** `/inflight` is `drawingNow`/`cuttingNow`, which are the Playground's
+    runs only — `footage.js` touches neither — so a clip's POST to the door is
+    not something the deploy waits out. The window is seconds (once the door
+    has answered and the log is written the poll resumes from any phone), but
+    a send caught inside it is drawn, paid for and unrecorded.
+  - Tests: `node scripts/test-deploy-notify.js` (the marker's whole decision
+    table against a fake Firestore — the half that can silently be wrong — plus
+    the wirings by source) and `node scripts/test-deploy-guard.js` (that only
+    the FINAL pause carries the flag, and that a refused or called-off deploy
+    carries none).
   **THE HOME-SCREEN WIDGET IS FOUR DECKS TO SWIPE (2026-09-02, Sophie: "the
   widget / make it 4 icons / decks to swipe / currently / the dream factory
   deck / the wallpapers")** — the top four decks still waiting in the Review

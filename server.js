@@ -6259,6 +6259,21 @@ async function startQueuedRuns() {
 }
 setTimeout(startQueuedRuns, 8 * 1000);
 setInterval(startQueuedRuns, 45 * 1000);
+// AND THE NEW INSTANCE BOOTING IS "you can send again" (2026-09-13, the other
+// half of her ask). Only ever a pair: push.deployBootCheck() pushes nothing
+// unless a START was marked and is recent, and clears the mark on the way
+// past, so an OOM kill or a Render recycle is silent and one deploy is one
+// pair. Gated on RENDER_EXTERNAL_URL like the chat-icons tick — a dev
+// container booting this file must not eat her notification.
+if (process.env.RENDER_EXTERNAL_URL) {
+  setTimeout(() => {
+    try {
+      require('./push').deployBootCheck()
+        .then((r) => { if (r && r.pushed) console.log('push: deploy done'); })
+        .catch((e) => console.log('deploy push:', e.message));
+    } catch (e) { console.log('deploy push:', e.message); }
+  }, 4 * 1000);
+}
 async function sweepStuckPromptlabRuns() {
   try {
     if (!admin.apps.length) return;
@@ -7675,6 +7690,14 @@ app.post('/api/promptlab/pause', (req, res) => {
     drawPause.until = Date.now() + secs * 1000;
     drawPause.note = String(req.body.note || '').slice(0, 200) || PAUSE_NOTE;
     console.log(`promptlab: draws paused ${secs}s — ${drawPause.note}`);
+    // THE ONE MOMENT A DEPLOY IS REALLY GOING (2026-09-13, Sophie: "can i get
+    // a notification when deploy starts and ends so i know when to stop making
+    // clips and start again"). The guard pauses, reads once more, and only
+    // re-affirms the pause with `deploy:true` once it has decided to let the
+    // swap through — so a guard still holding, or one that lifted its pause
+    // because a draw started, never buzzes her. Fire-and-forget: a push must
+    // never delay the answer the guard is waiting on.
+    if (req.body.deploy) { try { require('./push').notifyDeploy('start'); } catch (e) { console.log('deploy push:', e.message); } }
   } else {
     drawPause.until = 0; drawPause.note = '';
     console.log('promptlab: draw pause lifted');
