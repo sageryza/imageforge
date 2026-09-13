@@ -69,11 +69,15 @@
   .iconsel .ico svg{width:18px;height:18px;display:block}
   .iconsel.on select{background:#2b2620;border-color:#2b2620}
   .iconsel.on .ico{color:#f6f2ea}
-  /* ON THE FEED BAR IT IS ITS NEIGHBOURS' SIZE, MEASURED — the heart, the ✕
-     and the glass are 34x32 inside their own boxes, and a 34-tall picker
-     beside them makes the whole row 2px taller than every other hairline row
-     on the page. */
-  .feedbar > .iconsel select{height:32px}
+  /* ON THE FEED BAR IT IS ITS NEIGHBOURS' SIZE, MEASURED — and the neighbour
+     is the GROUP, not the button inside it (2026-09-13, Sophie: "files button
+     smaller than search button footage"). The heart, the ✕ and the glass are
+     34x32 buttons inside a `.filttog` that carries its own 1px border, so the
+     box she sees beside the picker is 36x34; sized to the buttons the picker
+     came out 2px smaller both ways and sat inset from the row's own edges.
+     34 tall is still shorter than the view switch (34.8), so the row does not
+     grow. */
+  .feedbar > .iconsel select{width:36px;height:34px}
   /* An icon button is a rounded SQUARE at the house 6px, never a circle. */
   .ib{width:34px;height:34px;padding:0;display:inline-flex;align-items:center;justify-content:center;
       background:#fdfbf7;color:#2b2620;flex:none}
