@@ -4939,13 +4939,27 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
       (her rule — an undo instead of a confirm). Taking the FIRST block off
       moves the words below UP into `#prompt`, because every reader expects
       that node to stay the first block.
-    - **A SECOND STAR SENDS EVERY BLOCK WITH WORDS IN IT**, one after another,
-      stopping at the first refusal — the refused block takes the gold line so
-      the refusal and its door words are about that one. The whole batch's
-      price is ON the button, which is the strongest form of her "approve the
-      prompt and references" rule; **over $3 the first tap ASKS and the second
-      sends** (the house rule, as a second tap rather than a dialog), and any
-      change to the job disarms it.
+    - **A SECOND STAR APPENDS EVERY WRITTEN BLOCK INTO ONE CLIP — NOT N JOBS
+      (her note on the card the same hour: "u misunderstood. not separate
+      jobs. i want them to append to each other").** One job whose prompt is
+      every written block joined, blank line between them — the join mark's
+      own shape, without destroying her blocks, which keep their words and
+      their structure through the send. **It shipped for an hour as N
+      sequential jobs** (N scenes, N times the price, stopping at the first
+      refusal, the refused block taking the gold line); that is HISTORY, and
+      the walk, its tally toast and the `batch` flag are gone with it. Three
+      things not to undo: **CHAINING IS NOT THIS BUTTON** — a clip that
+      continues another one is still separate jobs, which is the half she
+      ruled out, and it is the keyframe marks' job; **the price is ONE clip's**
+      (`allCents`, never × the count) and is ON the button, her "approve the
+      prompt and references" rule answered at the tap, with **over $3 the
+      first tap ASKS and the second sends** and any change disarming it; and
+      **the gold line is left exactly where she put it**, since with one job
+      there is no "which block was refused" and moving her active block would
+      be the page deciding where she types next. A refusal's **door words
+      carry the job's own text** (`offerDoors(door, box, text)`) — without it
+      "those words re-send THAT exact job" breaks the moment the prompt is a
+      joined one, and only the active block would go (pinned, verified failing).
     - **THE PROMPT ROW IS STICKY**, so a long scene folds away from wherever
       she is standing. MEASURED at 390pt on a 40-line scene: at scrollY 600
       the row sat **521px above the viewport** with 1,836px of box below it
@@ -5016,7 +5030,7 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     re-collapses on a card rebuild; the note box survives a rebuild but loses
     its focus and its Cancel leaves the mark lit; and `mark → unmark` renumbers
     the others back but never re-names the returning picture. Tests:
-    `node scripts/test-footage-blocks-audit.js` (51 checks; it CRASHES against
+    `node scripts/test-footage-blocks-audit.js` (55 checks; it CRASHES against
     the pre-fix page, where `#goall` does not exist).
     **AND `test-footage.js` IS FLAKY — MEASURED, so do not read one red run as
     a regression (2026-09-13).** Run on clean main it failed one assertion
@@ -8413,9 +8427,21 @@ before working on that module. Nothing was deleted — the moved text is verbati
   scene and collapses to one block (**since 2026-09-13 one naming them lands
   as several — see the next paragraph**); the draft keeps `prompt` as the first block for an
   older page and the rest under `blocks`; a block is a direct child of the
-  panel or the pill-gap fitter would shorten them all. Full note: *DIVIDE
-  HERE* in `docs/modules/audio-and-film.md`; test
-  `node scripts/test-footage-divide.js`.
+  panel or the pill-gap fitter would shorten them all.
+  **AND EACH BLOCK FOLDS ON ITS OWN (2026-09-13, Sophie: "make each text block
+  in footage collapsible")** — a heading row per block, drawn only with two or
+  more, and THE HEADING IS THE FOLD (the chats part-fold's rule). Shut it says
+  that block's first words and its box is DISPLAY-hidden, so a folded block
+  still sends its words and still renames its slots; the gold line moves to
+  the heading when the block she is in is folded away; anything that puts
+  words in a block OPENS it; and it is MEMORY, never localStorage — a reload
+  opens everything. A box is never fitted while it is folded (`scrollHeight`
+  on a `display:none` box is 0, so it would come back one line tall), and the
+  first divide gives back the height its own heading adds above the seam.
+  Full note: *DIVIDE
+  HERE* in `docs/modules/audio-and-film.md`; tests
+  `node scripts/test-footage-divide.js` and
+  `node scripts/test-footage-block-fold.js`.
   **AND A STORY TIMELINE STORY COPIES OVER, ONE CONNECTED PART PER BLOCK
   (2026-09-13, Sophie: "how do i copy a story to footage · each connected part
   its own section · lines breaks back").** A **Send to Footage** link on an open

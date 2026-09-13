@@ -244,7 +244,8 @@ const setCaret = ({ sel, at }) => {
   await page.waitForTimeout(250);
   const stood = await page.evaluate(() => {
     const el = document.getElementById('prompt');
-    return { y: window.scrollY, caret: window.__caretKeep.caretRect(el).top, pinned: window.__stickyBox.pinned(document.getElementById('divide')) };
+    return { y: window.scrollY, caret: window.__caretKeep.caretRect(el).top, top: el.getBoundingClientRect().top,
+      pinned: window.__stickyBox.pinned(document.getElementById('divide')) };
   });
   ok('standing mid-scene the divide is pinned (caret line at ' + Math.round(stood.caret) + ')', stood.pinned && stood.caret > 200 && stood.caret < 400);
   await page.evaluate((c) => { document.getElementById('prompt').setSelectionRange(c, c); }, deepCut);
@@ -252,7 +253,18 @@ const setCaret = ({ sel, at }) => {
   await page.waitForTimeout(700);
   s = await page.evaluate(read);
   ok('two blocks, the tail starting at line 40', s.n === 2 && /^line 40/.test(s.values[1]) && /line 39 — the ward corridor at night$/.test(s.values[0]));
-  ok('the page did not move under her (scrollY ' + stood.y + ' → ' + s.y + ')', Math.abs(s.y - stood.y) <= 2);
+  // THE SEAM, NOT scrollY (2026-09-13, when each block grew its own fold). A
+  // first divide turns the panel `.many` and draws this block's heading above
+  // the box, so holding scrollY still would slide the words she is looking at
+  // 27px down the screen — the divide gives that height back, and the honest
+  // question is where her caret's line ends up on the glass.
+  // the head keeps every line above the seam and shrinks from the bottom, so
+  // its own TOP is the anchor: hold that on the glass and the words she is
+  // reading have not moved. (The caret itself is no proxy — setting `.value`
+  // drops the selection to 0.)
+  const after = await page.evaluate(() => ({ y: window.scrollY, top: document.getElementById('prompt').getBoundingClientRect().top }));
+  ok('the seam stayed where her eyes are (box top ' + Math.round(stood.top) + ' → ' + Math.round(after.top)
+    + ' on screen; scrollY ' + stood.y + ' → ' + after.y + ')', Math.abs(after.top - stood.top) <= 3);
   ok('the seam sits just under where the caret line was (first block ends at ' + Math.round(s.bottoms[0]) + ' against caret ' + Math.round(stood.caret) + ')',
     s.bottoms[0] - stood.caret > 0 && s.bottoms[0] - stood.caret < 80);
   ok('and the second block starts on screen right under it (' + Math.round(s.tops[1]) + ' of ' + s.vh + ')',
