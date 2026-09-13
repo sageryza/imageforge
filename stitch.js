@@ -29,15 +29,48 @@
 // clip (the chamomile skipping clip is two parts she cut, and the parts are
 // what go in the film). `pickables` is the one rule, pure.
 //
+// ── WHAT THE 2026-09-13 AUDIT FIXED (docs/stitch-gaps.md) ─────────────────
+//
+// **THE KEY IS THE WHOLE PICKABLE ID.** `cut-model.cleanPiece` capped a key
+// at 40 characters and a part's id is `<job id>:<40-char sha1 trim key>` —
+// 61-77 — so the stored key was a stump, every `addPick`/`pickIndex` compare
+// against the full id missed, and each tap on a trimmed part appended
+// ANOTHER copy while the tile never lit. All 34 parts on her log were over
+// it. `keyOf` / `pickIdOf` are the one derivation now, the cap is 120, and
+// the same mechanism buys a shot riding TWICE (`<id>#2`, the duplicate
+// button on the row).
+//
+// **THE FILE IS THE TRUTH ABOUT ITS OWN LENGTH.** The log's `seconds` is the
+// duration she ASKED the door for, and a Seedance clip is `24·s + 1` frames
+// — so trusting it cut a frame off the tail of every shot — while a job that
+// never recorded one (9 live) gave `out: 0`, which `cleanPieces` drops
+// SILENTLY: the page showed "1 clip · 0:00" and the server kept none.
+// `fillLengths` probes the source by Range (filmeditor's `probeUrl`, cached
+// per url) before anything is saved or rendered, and a save answers
+// `dropped` naming whatever still has no readable length rather than losing
+// it quietly.
+//
+// **A DEAD JOB SAYS SO.** `jobView` marks a `running` job older than
+// STALE_MS stale, so the page re-enables the button instead of showing
+// "stitching…" for good after a deploy killed the render mid-way.
+//
+// **THE PICKER IS FOOTAGE'S, REUSED, NOT REBUILT** — its search
+// (`search-grammar` + `footage-hay` over the whole log, before the page is
+// cut), its `foldersOf`, its `pageJobs`-shaped paging, its tucked films and
+// its ♥/✕. Every one of those is imported from `footage.js`; nothing here
+// keeps a second copy of a rule that already exists debugged.
+//
 // NOTHING IS DELETED — `hidden` is the verb; renders never overwrite
 // (`stitch/<id>/film-<n>.mp4`, the Film Editor's own numbering), the newest
 // first on the doc, capped; `stitch/` is on clips.js's SKIP_PREFIXES so a
 // film made OF clips is never harvested back onto the shelf as one.
 //
 // Routes (mounted at /api/stitch by server.js, STUDIO_TOKEN gate, /status open):
-//   GET    /status            → { ok, firebase, ffmpeg, stitches }
+//   GET    /status            → { ok, firebase, ffmpeg, stitches, chat }
+//   GET    /build             → { build } — the self-heal's stamp
 //   GET    /                  → { stitches } — newest touched first, hidden out
-//   GET    /clips?project=&folder=&limit=  → { clips } — the pickables, newest first
+//   GET    /clips?project=&folder=&q=&offset=&limit=
+//                             → { clips, more, total, folders } — the pickables
 //   POST   /                  → { title?, project? } → { id, title }
 //   GET    /:id               → the doc
 //   POST   /:id/clips         → { clips:[…] } — the WHOLE order (order and
@@ -57,9 +90,12 @@ const os = require('os');
 const path = require('path');
 
 const editor = require('./editor');           // uploadPublic
-const filmeditor = require('./filmeditor');   // renderCut — the ONE recipe, and its segment bank
-const footage = require('./footage');         // cardOf / trimsOf / statusOf — the log's own readers
+const filmeditor = require('./filmeditor');   // renderCut — the ONE recipe, its segment bank, probeUrl
+const footage = require('./footage');         // cardOf / foldersOf / hayOf / projectSlug — the log's own readers
+const cast = require('./cast');               // tuckedFilms — one vocabulary with the picker
+const grammar = require('./search-grammar');  // the feed's matcher, shared with Footage
 const videoLog = require('./video-log');      // COLL — the Footage log
+const pageBuild = require('./page-build');    // the self-heal's stamp
 const CutModel = require('./cut-model');
 
 // ffmpeg is resolved the way every sibling resolves it (assembly.js): the
@@ -78,9 +114,13 @@ const FFMPEG = process.env.FFMPEG_PATH || usable(tryRequire('ffmpeg-static')) ||
 
 const COL = process.env.STITCH_COLLECTION || 'forge-stitches';
 const STORAGE_FOLDER = 'stitch';
+const CHAT = 'stitch';              // where a note on a stitch lands
 const MAX_CLIPS = 60;
 const MAX_RENDERS = 12;
-const PICK_LIMIT = 300;
+const PICK_LIMIT = 60;              // one page of the wall
+const PICK_MAX = 300;
+const KEY_MAX = 120;                // cut-model's cap; a part's id is 61-77
+const STALE_MS = 20 * 60 * 1000;    // a `running` job older than this is dead
 
 function db() { return admin.apps.length ? admin.firestore() : null; }
 function fail(res, err) { console.warn('stitch:', err.message); res.status(500).json({ error: err.message }); }
@@ -96,44 +136,103 @@ function titleOf(prompt, n) {
   return cut + (words.length > (n || 7) ? '…' : '');
 }
 
+// WHICH TAKE IS THIS — the line under a row's title, and the only thing that
+// tells two takes of one scene apart (2026-09-13: 372 of her 484 pickables
+// wear a title another one also wears, 53 of them reading identically, so
+// nine rows of the doctor's office were nine identical lines). Seconds, the
+// model's own label, and the day it was drawn, in her Pacific.
+const PT = { timeZone: 'America/Los_Angeles' };
+function whenOf(sentAt) {
+  const t = Date.parse(String(sentAt || ''));
+  if (!Number.isFinite(t)) return '';
+  return new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...PT });
+}
+function markOf(p) {
+  return [
+    Number(p && p.seconds) > 0 ? (Math.round(Number(p.seconds) * 10) / 10) + 's' : '',
+    (p && p.modelLabel) || '',
+    whenOf(p && p.sentAt),
+  ].filter(Boolean).join(' · ');
+}
+
 // THE PICKABLES: a finished clip is one, and every BAKED part she cut out of
 // it is one more beside it. Takes the cards `footage.cardOf` answers (so the
 // project, the folder, the vote and the parts are read the way Footage reads
 // them) and returns what the page tiles, newest first. A drawing or failed
 // clip, a hidden one, one with no url, and a part still baking are all out.
+//
+// `hay` rides along: the words Footage's own search reads (footage-hay.js)
+// plus this pickable's own, so the instant client filter and the server's
+// search over the whole log read the IDENTICAL text — one haystack, the
+// Playground's own rule.
 function pickables(cards) {
   const out = [];
   (Array.isArray(cards) ? cards : []).forEach((c) => {
     if (!c || c.status !== 'done' || c.hidden) return;
     const whole = c.source || c.video;
     if (!/^https:\/\//.test(String(whole || ''))) return;
+    let hay = '';
+    try { hay = footage.hayOf(c) || ''; } catch { hay = c.prompt || ''; }
     const base = {
       job: c.id, prompt: c.prompt || '', title: titleOf(c.prompt),
       project: c.project || '', folder: c.folder || '', sentAt: c.sentAt || '',
       vote: c.vote || '', chat: c.chat || '', ratio: c.ratio || '',
+      model: c.model || '', modelLabel: c.modelLabel || '', resolution: c.resolution || '',
     };
     const parts = (c.trims || []).filter((t) => t && t.status === 'ready' && /^https:\/\//.test(String(t.url || '')));
     parts.forEach((t, i) => {
+      const seconds = Number(t.seconds) || Math.max(0, (Number(t.end) || 0) - (Number(t.start) || 0));
       out.push({
         ...base,
         id: c.id + ':' + t.key, url: t.url, poster: t.poster || c.poster || '',
-        seconds: Number(t.seconds) || Math.max(0, (Number(t.end) || 0) - (Number(t.start) || 0)),
+        seconds,
         part: i + 1, parts: parts.length, title: base.title + ' · part ' + (i + 1),
+        hay: hay + '  trimmed part ' + (i + 1),
+        mark: markOf({ seconds, modelLabel: base.modelLabel, sentAt: base.sentAt }) + ' · part ' + (i + 1),
       });
     });
+    const seconds = Number(c.seconds) || 0;
     out.push({
       ...base,
       id: c.id, url: whole, poster: c.poster || '',
-      seconds: Number(c.seconds) || 0,
+      seconds,
       part: 0, parts: parts.length, title: parts.length ? base.title + ' · whole' : base.title,
+      hay: hay + (parts.length ? '  whole clip' : ''),
+      mark: markOf({ seconds, modelLabel: base.modelLabel, sentAt: base.sentAt }) + (parts.length ? ' · whole' : ''),
     });
   });
   return out.sort((a, b) => String(b.sentAt).localeCompare(String(a.sentAt)));
 }
 
+// ── THE KEY: THE WHOLE PICKABLE ID, AND `#n` FOR A SHOT THAT RIDES AGAIN ──
+// One derivation, so `addPick`, the tile's own number and the page's mirror
+// can never disagree about which piece is which pickable. Truncating this to
+// cut-model's old 40 is what made every trimmed part unpickable.
+function keyOf(pickId, n) { return Number(n) > 1 ? `${pickId}#${Math.floor(n)}` : String(pickId); }
+function pickIdOf(key) {
+  const s = String(key || '');
+  const i = s.lastIndexOf('#');
+  return i > 0 && /^\d+$/.test(s.slice(i + 1)) ? s.slice(0, i) : s;
+}
+function nextInstance(list, pickId) {
+  const keys = new Set((list || []).map((c) => c.key));
+  let n = 1;
+  while (keys.has(keyOf(pickId, n))) n++;
+  return n;
+}
+// pickable id → the 1-based places it sits in the order. A tile shows them
+// all ("2, 5"), so a shot used twice reads as used twice.
+function placesOf(list) {
+  const out = {};
+  (list || []).forEach((c, i) => {
+    const p = pickIdOf(c.key);
+    (out[p] = out[p] || []).push(i + 1);
+  });
+  return out;
+}
+
 // ORDER ARITHMETIC — the page's whole interaction, kept here so the test
-// pins it. Pure; every one returns a new list and never a longer or shorter
-// one.
+// pins it. Pure; every one returns a new list.
 function moveBy(list, i, delta) {
   const n = list.length, from = Math.floor(i);
   if (from < 0 || from >= n) return list.slice();
@@ -154,20 +253,39 @@ function dropAt(list, i) {
   if (from < 0 || from >= list.length) return list.slice();
   return list.slice(0, from).concat(list.slice(from + 1));
 }
-// Adding a pickable: appended, ONE entry per pickable id (a second tap on a
-// tile is a no-op — the tile shows its number instead of adding a twin).
-function addPick(list, pick) {
-  if (!pick || !pick.id || list.some((c) => c.key === pick.id)) return list.slice();
-  if (list.length >= MAX_CLIPS) return list.slice();
-  return list.concat([clipOf(pick)]);
+// USE THIS SHOT AGAIN — a copy of the piece at `i`, right after itself, with
+// its own instance key. The one way a cutaway rides twice; the tile stays a
+// plain toggle.
+function dupAt(list, i) {
+  const from = Math.floor(i);
+  if (from < 0 || from >= list.length || list.length >= MAX_CLIPS) return list.slice();
+  const src = list[from];
+  const copy = { ...src, key: keyOf(pickIdOf(src.key), nextInstance(list, pickIdOf(src.key))) };
+  return list.slice(0, from + 1).concat([copy], list.slice(from + 1));
 }
-// A pickable → a cut-model piece: whole clip, in 0, out its length.
-function clipOf(p) {
+// Adding a pickable: appended. A pickable already in the order is a no-op —
+// the tile shows its place instead — and `again` is the duplicate path.
+function addPick(list, pick, opts) {
+  if (!pick || !pick.id) return list.slice();
+  if (list.length >= MAX_CLIPS) return list.slice();
+  const id = String(pick.id);
+  const again = Boolean(opts && opts.again);
+  if (!again && list.some((c) => pickIdOf(c.key) === id)) return list.slice();
+  return list.concat([clipOf(pick, nextInstance(list, id))]);
+}
+// The tile's second tap: every instance of that pickable comes out.
+function dropPick(list, pickId) {
+  const id = String(pickId);
+  return (list || []).filter((c) => pickIdOf(c.key) !== id);
+}
+// A pickable → a cut-model piece: the whole clip, in 0, out its length.
+function clipOf(p, n) {
+  const sec = Number(p.seconds) > 0 ? Number(p.seconds) : null;
   return {
-    key: String(p.id).slice(0, 40), kind: 'video', url: String(p.url).slice(0, 500),
+    key: String(keyOf(p.id, n || 1)).slice(0, KEY_MAX), kind: 'video', url: String(p.url).slice(0, 500),
     title: String(p.title || '').slice(0, 200), poster: p.poster ? String(p.poster).slice(0, 500) : null,
-    seconds: Number(p.seconds) > 0 ? Number(p.seconds) : null,
-    in: 0, out: Number(p.seconds) > 0 ? Number(p.seconds) : 0,
+    seconds: sec,
+    in: 0, out: sec || 0,
   };
 }
 // The saved order: cut-model's own cleaner over the picture lane, capped.
@@ -176,13 +294,61 @@ function cleanClips(list) {
 }
 const totalSeconds = (clips) => CutModel.totalSeconds(clips || []);
 
+// ── THE FILE IS THE TRUTH ABOUT ITS OWN LENGTH ────────────────────────────
+// `footage.cardOf` answers the duration she ASKED the door for, and a clip
+// is `24·s + 1` frames — so a "4s" clip is 4.042s and rendering it to `out:4`
+// loses its last frame. A job that recorded no duration at all (9 live) gives
+// `out: 0`, which `cleanPieces` drops silently: the page showed the row and
+// the server kept nothing. Both are the same answer — probe the source.
+//
+// ffprobe reads an mp4's moov by Range (filmeditor's `probeUrl`), so this is
+// a few KB per clip, and the cache means a url is read once per boot.
+const lenCache = new Map();
+async function realSeconds(url) {
+  const u = String(url || '');
+  if (lenCache.has(u)) return lenCache.get(u);
+  let s = 0;
+  try {
+    const p = await filmeditor.probeUrl(u);
+    if (p && Number(p.seconds) > 0) s = Math.round(Number(p.seconds) * 1000) / 1000;
+  } catch (err) { console.warn('stitch: probe failed —', err.message); }
+  lenCache.set(u, s);
+  return s;
+}
+// `only:'unknown'` fills just the ones `cleanPieces` would drop (rare, so a
+// save stays a save); the render fills every one, off the same cache.
+async function fillLengths(list, opts) {
+  const only = (opts || {}).only;
+  const rows = Array.isArray(list) ? list : [];
+  const want = rows.map((c) => only === 'unknown' ? !(Number(c.seconds) > 0 && Number(c.out) > 0) : true);
+  const urls = Array.from(new Set(rows.filter((c, i) => want[i]).map((c) => String(c.url || ''))));
+  const found = new Map();
+  await Promise.all(urls.map(async (u) => { found.set(u, await realSeconds(u)); }));
+  return rows.map((c, i) => {
+    if (!want[i]) return c;
+    const s = found.get(String(c.url || '')) || 0;
+    return s > 0 ? { ...c, seconds: s, in: 0, out: s } : c;
+  });
+}
+
+// A `running` job nothing is running any more — the instance that held it was
+// swapped out by a deploy. The page reads this and re-enables Stitch rather
+// than showing "stitching…" for good (the Film Editor's own 2026-09-05
+// complaint, which had no answer here).
+function jobView(job) {
+  if (!job || job.status !== 'running') return job || null;
+  const age = Date.now() - new Date(job.startedAt || 0).getTime();
+  return age > STALE_MS ? { ...job, status: 'error', stale: true, error: 'that render was interrupted — stitch it again' } : job;
+}
+
 const trimmed = (s) => ({
   id: s.id, title: s.title || '', project: s.project || '',
   clips: (s.clips || []).length, seconds: Math.round(totalSeconds(s.clips) * 10) / 10,
   renders: (s.renders || []).length,
   poster: ((s.clips || [])[0] || {}).poster || null,
   newest: ((s.renders || [])[0] || {}).url || null,
-  job: s.job && s.job.status === 'running' ? { kind: s.job.kind, label: s.job.label } : null,
+  newestAt: ((s.renders || [])[0] || {}).at || 0,
+  job: jobView(s.job) && jobView(s.job).status === 'running' ? { kind: s.job.kind, label: s.job.label } : null,
   hidden: Boolean(s.hidden),
   updatedAt: s.updatedAt || 0,
 });
@@ -214,7 +380,7 @@ async function startJob(id, kind, fn) {
   if (!doc) throw new Error('no such stitch');
   if (doc.job && doc.job.status === 'running') {
     const age = Date.now() - new Date(doc.job.startedAt || 0).getTime();
-    if (age < 20 * 60 * 1000) throw new Error('already stitching');
+    if (age < STALE_MS) throw new Error('already stitching');
   }
   const job = { kind, status: 'running', done: 0, total: 0, label: 'starting', error: null, startedAt: nowIso() };
   await patchDoc(id, { job });
@@ -242,7 +408,10 @@ async function startJob(id, kind, fn) {
 async function runRender(id, progress) {
   const doc = await loadDoc(id);
   if (!doc) throw new Error('no such stitch');
-  const clips = cleanClips(doc.clips || []);
+  // EVERY piece measured against its own file first, so nothing renders a
+  // frame short and nothing silently falls out of the cut.
+  await progress(0, 1, 'reading the clips');
+  const clips = cleanClips(await fillLengths(doc.clips || []));
   if (!clips.length) throw new Error('nothing picked yet');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'stitch-'));
   try {
@@ -256,6 +425,9 @@ async function runRender(id, progress) {
       cut: { clips: r.clips },
     };
     await txField(id, 'renders', (cur) => [render].concat(Array.isArray(cur) ? cur : []).slice(0, MAX_RENDERS));
+    // the measured lengths go back on the doc, so the order's total stops
+    // being the number she asked the door for
+    await patchDoc(id, { clips }).catch(() => {});
     return render;
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
@@ -267,7 +439,7 @@ const router = express.Router();
 router.use((req, res, next) => {
   const token = process.env.STUDIO_TOKEN || '';
   if (!token) return next();
-  if (req.method === 'GET' && req.path === '/status') return next();
+  if (req.method === 'GET' && (req.path === '/status' || req.path === '/build')) return next();
   if (req.get('x-studio-token') === token || req.query.token === token) return next();
   return res.status(401).json({ error: 'unauthorized' });
 });
@@ -276,7 +448,17 @@ router.use(express.json({ limit: '1mb' }));
 router.get('/status', async (req, res) => {
   let stitches = null;
   try { stitches = (await db().collection(COL).count().get()).data().count; } catch { /* unconfigured */ }
-  res.json({ ok: true, firebase: admin.apps.length > 0, ffmpeg: Boolean(FFMPEG), stitches });
+  res.json({ ok: true, firebase: admin.apps.length > 0, ffmpeg: Boolean(FFMPEG), stitches, chat: CHAT });
+});
+
+// THE SELF-HEAL'S STAMP — the content hash of exactly what serveGated sends,
+// the pill folded in. The app keeps a tool's web view alive for the whole app
+// process, so without this no deploy can reach this page (Footage's own
+// 2026-09-12 finding, the day before Stitch shipped). Registered ABOVE
+// GET /:id or Express reads "build" as a stitch id.
+router.get('/build', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ build: pageBuild.pageBuildId('stitch.html', true) });
 });
 
 router.get('/', async (req, res) => {
@@ -290,19 +472,36 @@ router.get('/', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
-// THE PICKABLES — the Footage log read the way Footage reads it (one read,
-// filtered by project/folder before the cut, newest first). MUST stay above
-// GET /:id or Express reads "clips" as a stitch id.
+// THE PICKABLES — the Footage log read the way Footage reads it: one read,
+// the project/folder and the SEARCH applied over the whole collection BEFORE
+// the page is cut (filtering a truncated page is the Assets tab's own
+// lesson), the folders derived off everything, a tucked film left out of All
+// and never out of a search. MUST stay above GET /:id or Express reads
+// "clips" as a stitch id.
 router.get('/clips', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
     const snap = await db().collection(videoLog.COLL).get();
-    const project = String(req.query.project || '').trim();
-    const folder = project ? String(req.query.folder || '').trim() : '';
-    const cards = snap.docs.map((d) => footage.cardOf(d.id, d.data()))
-      .filter((c) => (!project || c.project === project) && (!folder || c.folder === folder));
-    const lim = Math.min(Number(req.query.limit) || PICK_LIMIT, PICK_LIMIT);
-    res.json({ ok: true, clips: pickables(cards).slice(0, lim) });
+    const rows = snap.docs.map((d) => ({ id: d.id, d: d.data() }));
+    const folders = footage.foldersOf(rows);
+    const project = footage.projectSlug(req.query.project);
+    const folder = project ? footage.folderSlug(req.query.folder) : '';
+    const q = String(req.query.q || '').trim();
+    let cards = rows.map((x) => footage.cardOf(x.id, x.d));
+    if (project) cards = cards.filter((c) => c.project === project && (!folder || c.folder === folder));
+    else if (!q) {
+      const tucked = await cast.tuckedFilms().catch(() => []);
+      if (tucked.length) cards = cards.filter((c) => tucked.indexOf(c.project) < 0);
+    }
+    if (q) {
+      const groups = grammar.compileFeed(q);
+      cards = cards.filter((c) => grammar.feedMatches(footage.hayOf(c), groups));
+    }
+    const all = pickables(cards);
+    const lim = Math.max(1, Math.min(Number(req.query.limit) || PICK_LIMIT, PICK_MAX));
+    const offset = Math.max(0, Math.floor(Number(req.query.offset) || 0));
+    const clips = all.slice(offset, offset + lim);
+    res.json({ ok: true, clips, offset, more: all.length > offset + clips.length, total: all.length, folders });
   } catch (err) { fail(res, err); }
 });
 
@@ -311,7 +510,6 @@ router.post('/', async (req, res) => {
     const d = db();
     if (!d) throw new Error('Firebase unavailable');
     const ref = d.collection(COL).doc();
-    const PT = { timeZone: 'America/Los_Angeles' };
     const title = String((req.body || {}).title || '').trim().slice(0, 120)
       || 'Stitch · ' + new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...PT })
       + ' · ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', ...PT }).toLowerCase();
@@ -329,7 +527,7 @@ router.get('/:id', async (req, res) => {
     res.set('Cache-Control', 'no-store');
     const doc = await loadDoc(req.params.id);
     if (!doc) return res.status(404).json({ error: 'no such stitch' });
-    res.json(doc);
+    res.json({ ...doc, job: jobView(doc.job) });
   } catch (err) { fail(res, err); }
 });
 
@@ -338,7 +536,7 @@ router.get('/:id/job', async (req, res) => {
     res.set('Cache-Control', 'no-store');
     const doc = await loadDoc(req.params.id);
     if (!doc) return res.status(404).json({ error: 'no such stitch' });
-    res.json({ job: doc.job || null, renders: doc.renders || [] });
+    res.json({ job: jobView(doc.job), renders: doc.renders || [] });
   } catch (err) { fail(res, err); }
 });
 
@@ -347,9 +545,15 @@ router.post('/:id/clips', async (req, res) => {
     const doc = await loadDoc(req.params.id);
     if (!doc) return res.status(404).json({ error: 'no such stitch' });
     if (!('clips' in (req.body || {}))) return res.status(400).json({ error: 'nothing to save' });
-    const clips = cleanClips(req.body.clips);
+    const asked = (Array.isArray(req.body.clips) ? req.body.clips : []).slice(0, MAX_CLIPS);
+    const clips = cleanClips(await fillLengths(asked, { only: 'unknown' }));
+    // NOTHING VANISHES QUIETLY: anything cleanPieces refused is named back,
+    // so the page can say so instead of showing a row the server never kept.
+    const kept = new Set(clips.map((c) => c.key));
+    const dropped = asked.filter((c) => c && c.key && !kept.has(String(c.key).slice(0, KEY_MAX)))
+      .map((c) => String(c.title || 'a clip'));
     await patchDoc(req.params.id, { clips });
-    res.json({ ok: true, clips: clips.length, seconds: totalSeconds(clips) });
+    res.json({ ok: true, clips: clips.length, seconds: totalSeconds(clips), dropped, saved: clips });
   } catch (err) { fail(res, err); }
 });
 
@@ -376,14 +580,17 @@ router.post('/:id/render', async (req, res) => {
   try {
     const doc = await loadDoc(req.params.id);
     if (!doc) return res.status(404).json({ error: 'no such stitch' });
-    if (!cleanClips(doc.clips || []).length) return res.status(400).json({ error: 'nothing picked yet' });
+    if (!(doc.clips || []).length) return res.status(400).json({ error: 'nothing picked yet' });
     await startJob(req.params.id, 'render', (progress) => runRender(req.params.id, progress));
     res.json({ ok: true, status: 'stitching' });
   } catch (err) { fail(res, err); }
 });
 
 module.exports = {
-  router, COL, STORAGE_FOLDER,
-  pickables, titleOf, moveBy, moveTo, dropAt, addPick, clipOf, cleanClips, totalSeconds, trimmed,
-  MAX_CLIPS, MAX_RENDERS,
+  router, COL, STORAGE_FOLDER, CHAT,
+  pickables, titleOf, markOf, whenOf,
+  keyOf, pickIdOf, nextInstance, placesOf,
+  moveBy, moveTo, dropAt, dupAt, addPick, dropPick, clipOf, cleanClips, totalSeconds, trimmed,
+  fillLengths, realSeconds, jobView,
+  MAX_CLIPS, MAX_RENDERS, KEY_MAX, STALE_MS, PICK_LIMIT, PICK_MAX,
 };
