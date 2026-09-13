@@ -5047,8 +5047,17 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     construction, and a clip must never show in another project's feed. And it
     is **SAID, not done quietly** — the toast adds "shown here though it is
     outside your search", since a card in a feed her own search says nothing
-    matches would otherwise read as the filter broken. Test:
-    `node scripts/test-footage-just-sent.js` (verified failing 4 pre-fix).
+    matches would otherwise read as the filter broken.
+    **AND TWO MORE FROM THE SAME PASS.** The All star stayed at FULL STRENGTH
+    while a send was in flight and did nothing on a tap — `#go` is the gate and
+    greys itself (`button[disabled]{opacity:.45}`), and a live-looking button
+    that answers nothing is the shape of every "it didn't work" report; both
+    stars go down together now. And an armed **"send all · $x?"** survived a
+    FOLDER switch, so the second tap would have filed the clip in the folder
+    she left — `setFolder` disarms (`setProject` needs no line: it repaints the
+    controls and `paintWipe` disarms from there). Test:
+    `node scripts/test-footage-just-sent.js` (verified failing 4, then 2, on
+    the pre-fix page).
     **AND `test-footage.js` IS FLAKY — MEASURED, so do not read one red run as
     a regression (2026-09-13).** Run on clean main it failed one assertion
     twice and passed twice, and the failing assertion DIFFERED between runs

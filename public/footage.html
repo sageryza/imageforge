@@ -1498,11 +1498,18 @@ function takeFolders(d) {
   paintFolder();
   repaintCards();
 }
+// AN ARMED "SEND ALL · $x?" GOES DOWN WHEN THE FOLDER MOVES (2026-09-13, found
+// auditing the page). The arm promises that the second tap sends the job she
+// was looking at, and the folder rides the body — so an arm left standing
+// across a switch files the clip in a folder she was not in when she armed it.
+// `setProject` needs no line of its own: it repaints the controls, and
+// `paintWipe` disarms from there. This one does not repaint them.
 function setFolder(f, opts) {
   opts = opts || {};
   f = String(f || '');
   if (f === S.folder && !opts.force) return;
   S.folder = f; folderSave(f);
+  disarm();   // an armed "send all · $x?" would file the clip in the folder she LEFT
   jobsById = {}; olderAt = null; feedMore = false;
   $('feed').innerHTML = ''; $('tiles').innerHTML = '';
   paintFolder(); paintRecent();
@@ -3001,10 +3008,20 @@ $('go').addEventListener('click', function () { sendJob(''); });
 // button's appended scene). `box` still says where a refusal's gold line
 // belongs, so the two are separate arguments on purpose.
 function sendJob(pin, box, text) {
-  var btn = $('go');
+  var btn = $('go'), all = $('goall');
   if (btn.disabled) return Promise.resolve(false);
+  // BOTH STARS GO DOWN TOGETHER (2026-09-13, found auditing the page). `#go`
+  // is the gate and greys itself (`button[disabled]{opacity:.45}`), and the
+  // All star sat beside it at full strength doing NOTHING on a tap — a live-
+  // looking button that answers nothing is the shape of every "it didn't
+  // work" report. It is the same one send either way, so they read the same.
   btn.disabled = true;
-  return postJob(pin, box || activeBox(), text).then(function (ok) { btn.disabled = false; return ok; });
+  if (all) all.disabled = true;
+  return postJob(pin, box || activeBox(), text).then(function (ok) {
+    btn.disabled = false;
+    if (all) all.disabled = false;
+    return ok;
+  });
 }
 function postJob(pin, box, text) {
   var prompt = text == null ? box.value : text;   // the block she is in, or every block appended

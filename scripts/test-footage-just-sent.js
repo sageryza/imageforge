@@ -56,7 +56,8 @@ const PILL = fs.readFileSync(path.join(PUB, 'pill-inject.html'), 'utf8');
 const posted = [];
 const notes = [];
 let cents = 4.4;
-let refuse = false;                  // the next send comes back a content refusal
+let refuse = false;
+let slow = 0;                        // ms to hold a send open, so the page can be looked at mid-flight                  // the next send comes back a content refusal
 const jobs = [];
 
 const server = http.createServer((req, res) => {
@@ -83,7 +84,7 @@ const server = http.createServer((req, res) => {
       // about a clip sent after it answered
       const q = (u.searchParams.get('q') || '').trim().toLowerCase();
       const out = q ? jobs.filter((j) => String(j.prompt || '').toLowerCase().includes(q)) : jobs;
-      return json({ ok: true, jobs: out, more: false, folders: {} });
+      return json({ ok: true, jobs: out, more: false, folders: { ward: ['commercials'] } });
     }
     if (u.pathname === '/api/footage/jobs' && req.method === 'POST') {
       const b = JSON.parse(body);
@@ -97,7 +98,9 @@ const server = http.createServer((req, res) => {
         resolution: b.resolution, ratio: b.ratio, sound: true, refs: b.refs || [], status: 'drawing', seed: 7,
         project: b.project || '', folder: b.folder || '',
         sentAt: new Date().toISOString(), estimate: cents, vote: '' });
-      return json({ ok: true, jobId: id, door: 'atlascloud', estimate: cents, seed: 7 }, 202);
+      const send = () => json({ ok: true, jobId: id, door: 'atlascloud', estimate: cents, seed: 7 }, 202);
+      if (slow) return setTimeout(send, slow);
+      return send();
     }
     if (u.pathname === '/api/gallery/assets/note' && req.method === 'POST') {
       const b = JSON.parse(body);
@@ -106,7 +109,7 @@ const server = http.createServer((req, res) => {
     }
     if (u.pathname === '/api/gallery/assets/notes') return json({ ok: true, chat: 'footage', notes: [] });
     if (u.pathname === '/api/cast/shelf') return json({ ok: true, entries: [] });
-    if (u.pathname === '/api/cast/films') return json({ ok: true, films: [] });
+    if (u.pathname === '/api/cast/films') return json({ ok: true, films: [{ slug: 'ward', name: 'The ward' }] });
     if (u.pathname === '/ref.png') { res.writeHead(200, { 'content-type': 'image/png' }); return res.end(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64')); }
     res.writeHead(404); res.end('nope');
   });
@@ -183,6 +186,60 @@ const search = (t) => { const q = document.getElementById('q'); q.value = t; q.d
   await page.click('#v-liked');
   await page.waitForTimeout(250);
   ok('and turning the filter off shows every clip', (await page.evaluate(shownIds)).length === 3);
+
+  // ── BOTH STARS GO DOWN TOGETHER WHILE A SEND IS IN FLIGHT ──────────────
+  // A live-looking button that answers nothing is the shape of every "it
+  // didn't work" report, so this is MEASURED against the send's own gate
+  // rather than read out of the source.
+  await page.evaluate(type, 'shot one');
+  await page.evaluate(() => { const b = document.getElementById('prompt'); b.focus(); b.setSelectionRange(4, 4); });
+  await page.click('#divide');
+  await page.waitForTimeout(200);
+  await page.evaluate(() => {
+    const ws = [...document.querySelectorAll('.pblock')];
+    ws[1].value = 'shot two'; ws[1].dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.waitForTimeout(200);
+  slow = 400;                                      // hold the send open long enough to look
+  const during = await page.evaluate(async () => {
+    document.getElementById('go').click();
+    await new Promise((r) => setTimeout(r, 120));
+    const go = document.getElementById('go'), all = document.getElementById('goall');
+    return { go: go.disabled, all: all.disabled, dim: parseFloat(getComputedStyle(all).opacity) };
+  });
+  ok('while a send is in flight the All star is down too ' + JSON.stringify(during),
+    during.go && during.all && during.dim < 0.6);
+  await page.waitForTimeout(700);
+  const afterSend = await page.evaluate(() => ({ go: document.getElementById('go').disabled, all: document.getElementById('goall').disabled }));
+  ok('and both come back up when it lands ' + JSON.stringify(afterSend), !afterSend.go && !afterSend.all);
+  slow = 0;
+
+  // ── AN ARMED "SEND ALL · $x?" GOES DOWN WHEN THE PROJECT MOVES ─────────
+  // The arm is a promise that the second tap sends the job she was looking
+  // at, and the project rides the body — so an arm left standing across a
+  // switch files the clip somewhere she was not when she armed it. MEASURED
+  // off the button's own state and off what the server really received.
+  cents = 420;                                     // over the $3 ask line
+  await page.click('#secup');                      // any control change re-asks /estimate
+  await page.waitForFunction(() => /\$4\.20/.test(document.getElementById('goalllab').textContent), null, { timeout: 4000 });
+  const nPosted = posted.length;
+  await page.click('#goall');
+  await page.waitForTimeout(200);
+  ok('the first tap arms rather than sending',
+    (await page.evaluate(() => document.getElementById('goall').classList.contains('armed'))) && posted.length === nPosted);
+  // the FOLDER is the one that needed a line of its own — `setProject`
+  // repaints the controls and `paintWipe` disarms, where `setFolder` does not
+  await page.selectOption('#project', 'ward');
+  await page.waitForTimeout(500);
+  await page.click('#goall');                      // arm again inside the project
+  await page.waitForTimeout(200);
+  ok('armed inside the project', await page.evaluate(() => document.getElementById('goall').classList.contains('armed')));
+  await page.selectOption('#project', 'ward/commercials');
+  await page.waitForTimeout(400);
+  ok('switching folder disarms it — nothing is one tap from sending',
+    !(await page.evaluate(() => document.getElementById('goall').classList.contains('armed'))));
+  ok('and still nothing went', posted.length === nPosted);
+  cents = 4.4;
 
   ok('no page errors', errors.length === 0);
   await browser.close(); server.close();
