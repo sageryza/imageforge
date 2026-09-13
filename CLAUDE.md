@@ -5200,6 +5200,16 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     is **SAID, not done quietly** — the toast adds "shown here though it is
     outside your search", since a card in a feed her own search says nothing
     matches would otherwise read as the filter broken.
+    **AND HER OWN MARK ON A CLIP ENDS ITS SHIELD (2026-09-13, Sophie: "exed
+    clips in list view don't disappear when no x is selected").** The shield is
+    for while she WAITS; a ✕ is her deciding. Only a search or a filter tap
+    dropped it, so with "hide the ✕'d" lit she crossed out the clip she had
+    just sent and it stayed on screen — in BOTH views, for the rest of the
+    session (MEASURED). `castVote` drops that clip's shield, so the mark and
+    the filter agree at once; **every other clip she just sent still rides**,
+    since the shield is per clip. A ♥ ends it too — un-marking a clip is her
+    deciding as deliberately as marking one. Pinned by
+    `node scripts/test-footage-just-sent.js` (verified failing 2 pre-fix).
     **AND TWO MORE FROM THE SAME PASS.** The All star stayed at FULL STRENGTH
     while a send was in flight and did nothing on a tap — `#go` is the gate and
     greys itself (`button[disabled]{opacity:.45}`), and a live-looking button
