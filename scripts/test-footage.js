@@ -200,10 +200,21 @@ function report() {
 
   // the body both doors take
   const b = F.buildJob({ prompt: 'a cat', model: 'mini', seconds: 4, resolution: '480p', ratio: '3:4', sound: true,
-    refs: [{ url: 'https://x/a.png', kind: 'image' }, { url: 'https://x/v.mp4', kind: 'video' }, { url: 'not a url' }] });
-  ok('buildJob maps refs into the three reference lists and drops a bad url',
+    refs: [{ url: 'https://x/a.png', kind: 'image' }, { url: 'https://x/v.mp4', kind: 'video' }] });
+  ok('buildJob maps refs into the three reference lists',
     !b.error && JSON.stringify(b.body.referenceImageUrls) === '["https://x/a.png"]' && JSON.stringify(b.body.referenceVideoUrls) === '["https://x/v.mp4"]'
     && b.body.referenceAudioUrls.length === 0 && b.refs.length === 2);
+  // A URL THE MODULE WILL NOT SEND REFUSES THE JOB — IT IS NEVER DROPPED
+  // (2026-09-13). This used to assert "drops a bad url", which is the bug: the
+  // filter ran before `slotsOf`, so the dropped reference renumbered every slot
+  // after it while her prompt went on naming the old numbers — the clip drew,
+  // of the wrong picture. A keyframe was worse: a url that failed the test
+  // simply stopped being a keyframe and rode as an ordinary slotted reference.
+  ok('a reference that is not a fetchable url refuses the job rather than renumbering around it',
+    /not a url the doors can fetch/.test(F.buildJob({ prompt: 'a cat',
+      refs: [{ url: 'https://x/a.png', kind: 'image' }, { url: 'not a url' }] }).error || ''));
+  ok('and so does a keyframe url the doors cannot fetch',
+    /keyframe is not a url/.test(F.buildJob({ prompt: 'a cat', firstFrameUrl: 'frame.png' }).error || ''));
   ok('the body carries chat=footage, the seconds, the shape and the sound the page always sends',
     b.body.chat === 'footage' && b.body.duration === 4 && b.body.aspectRatio === '3:4' && b.body.generateAudio === true && b.body.resolution === '480p');
   ok('a blank prompt is refused before anything is sent', Boolean(F.buildJob({ prompt: '  ' }).error));
@@ -1078,7 +1089,7 @@ async function pillSweep(pg, where) {
   await page.click('#older');
   await page.waitForSelector('#job-y2');
   await page.waitForTimeout(150);
-  ok('the tap asked for the page under the OLDEST clip on screen, by its sentAt',
+  ok('the tap asked for the page under the OLDEST clip on screen, by its sentAt — asked ' + jobReads[jobReads.length - 1],
     jobReads[jobReads.length - 1] === '2026-09-09T00:00:00.000Z');
   ok('yesterday\'s two newest clips landed at the END of the feed, newest first — ' + await page.$$eval('#feed .job', (els) => els.map((e) => e.id).join(',')),
     await page.$$eval('#feed .job', (els) => els.map((e) => e.id).slice(-2).join() === 'job-y2,job-y1' && !els.some((e) => e.id === 'job-y0')));
@@ -2190,7 +2201,13 @@ async function pillSweep(pg, where) {
     await pk.evaluate(() => document.querySelector('#refs .kf.on').click());
     await pk.waitForFunction(() => document.querySelectorAll('#refs .kf.on').length === 0);
     const back = await pk.$eval('#prompt', (e) => e.value);
-    ok('unmarking it renumbers the rest back up: ' + back, back === 'a in [Image1], b in, c in [Image3]');
+    // AND HER NAME COMES BACK WITH IT (2026-09-13). This assertion used to pin
+    // `b in` — the name gone for good, which is what the page really did and
+    // is the one bug here that could send a job she did not mean: the picture
+    // rejoined the list, the others renumbered, and nothing named the one that
+    // came back. The words are banked at the mark and restored on the unmark.
+    ok('unmarking it renumbers the rest back up AND gives the name back: ' + back,
+      back === 'a in [Image1], b in [Image2], c in [Image3]');
     // the cycle's middle stop
     await pk.evaluate(() => document.querySelectorAll('#refs .kf')[1].click());
     await pk.evaluate(() => document.querySelectorAll('#refs .kf')[1].click());
@@ -2352,7 +2369,9 @@ async function pillSweep(pg, where) {
   const seat = await pgP.evaluate(() => {
     const p = document.getElementById('projwrap'), bar = document.getElementById('feedbar');
     const glass = document.getElementById('v-search'), funnel = document.getElementById('feedfilters');
-    const pr = p.getBoundingClientRect(), gr = glass.getBoundingClientRect();
+    // the neighbour is the glass's whole BOX — its `.filttog` group, which
+    // carries the border she sees — never the button inside it (2026-09-13)
+    const pr = p.getBoundingClientRect(), gr = glass.closest('.filttog').getBoundingClientRect();
     const pill = document.querySelector('body > .float').getBoundingClientRect();
     const hit = document.elementFromPoint(pr.x + pr.width / 2, pr.y + pr.height / 2);
     const kids = [...bar.children].map((e) => { const r = e.getBoundingClientRect(); return { id: e.id || e.className, y: Math.round(r.y), h: Math.round(r.height) }; }).filter((k) => k.h);
@@ -2377,14 +2396,15 @@ async function pillSweep(pg, where) {
     const hit = document.elementFromPoint(pr.x + pr.width / 2, pr.y + pr.height / 2);
     const pill = document.querySelector('body > .float').getBoundingClientRect();
     const chip = document.querySelector('#feedfilters .filtchip');
-    const out = { w: Math.round(pr.width), h: Math.round(pr.height), tappable: !!(hit && hit.closest('#projwrap')),
+    const g = document.getElementById('v-search').closest('.filttog').getBoundingClientRect();
+    const out = { w: Math.round(pr.width), h: Math.round(pr.height), gw: Math.round(g.width), gh: Math.round(g.height), tappable: !!(hit && hit.closest('#projwrap')),
       chip: chip ? Math.round(chip.getBoundingClientRect().x) : null, x: Math.round(pr.x), clear: pr.right <= pill.left };
     document.getElementById('v-search').click();
     await new Promise((r) => setTimeout(r, 200));
     return out;
   });
   ok('with the search open the picker is still whole, before the funnel, and takes its tap — ' + JSON.stringify(barOpen),
-    barOpen.w === 34 && barOpen.h === 32 && barOpen.tappable && barOpen.clear && (barOpen.chip === null || barOpen.chip > barOpen.x));
+    barOpen.w === barOpen.gw && barOpen.h === barOpen.gh && barOpen.tappable && barOpen.clear && (barOpen.chip === null || barOpen.chip > barOpen.x));
   // folding the buttons, or the whole panel, leaves the picker on screen
   const folded = await pgP.evaluate(async () => {
     const h = () => document.getElementById('projwrap').getBoundingClientRect().height;
@@ -2483,12 +2503,20 @@ async function pillSweep(pg, where) {
     const all = await pgP.evaluate(() => {
       const w = document.getElementById('projwrap'), r = w.getBoundingClientRect();
       const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      // the NEIGHBOUR is the glass's whole box — its `.filttog` group, which
+      // carries the border she sees — never the button inside it
+      const g = document.getElementById('v-search').closest('.filttog').getBoundingClientRect();
       return { on: w.classList.contains('on'), title: document.getElementById('title').textContent, w: Math.round(r.width), h: Math.round(r.height),
+        gw: Math.round(g.width), gh: Math.round(g.height),
         icon: !!w.querySelector('.ico svg'), tappable: !!(hit && hit.closest('#projwrap')),
         f0: document.querySelector('#job-f0 .tags').textContent,
         f0rows: Array.from(document.querySelector('#job-f0 .projsel select').options).map((o) => o.value), f0val: document.querySelector('#job-f0 .projsel select').value, f4rows: Array.from(document.querySelector('#job-f4 .projsel select').options).map((o) => o.value) };
     });
-    ok('the picker is a folder icon at the feed bar\'s own height, unlit on All, and takes its tap — ' + all.w + 'x' + all.h, all.w === 34 && all.h === 32 && all.icon && !all.on && all.tappable);
+    // ITS SIZE IS THE GLASS'S WHOLE BOX (2026-09-13, Sophie: "files button
+    // smaller than search button footage") — sized to the BUTTON inside that
+    // box it came out 2px smaller both ways and sat inset from the row's edges.
+    ok('the picker is exactly the glass\'s box — ' + all.w + 'x' + all.h + ' against ' + all.gw + 'x' + all.gh, all.w === all.gw && all.h === all.gh);
+    ok('and it is a folder icon, unlit on All, and takes its tap', all.icon && !all.on && all.tappable);
     ok('the header says Footage on All', all.title === 'Footage');
     // THE SHEET IS TWO LEVELS (2026-09-13): the films, then one film's
     // folders. On level 1 a project's folders are not on screen at all — its

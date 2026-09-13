@@ -204,6 +204,36 @@ async function pickProject(pg, v) {
   await page.waitForTimeout(250);
   ok('and turning the filter off shows every clip', (await page.evaluate(shownIds)).length === 3);
 
+  // ── HER MARK ON A CLIP ENDS ITS SHIELD (2026-09-13, Sophie: "exed clips in
+  // list view don't disappear when no x is selected") ─────────────────────
+  // The shield is for while she WAITS; a ✕ is her deciding, and it used to
+  // ride out the whole session on both views. MEASURED off what really
+  // renders — a clip still in `jobsById` and one on screen look the same in
+  // the source — and on BOTH views, since one predicate draws them.
+  await page.click('#v-hidex');
+  await page.waitForTimeout(250);
+  await page.evaluate(type, 'the one she crosses out');
+  await page.click('#go');
+  await page.waitForTimeout(600);
+  const sent = (await page.evaluate(shownIds))[0];
+  ok('a clip sent under hide-the-✕\'d shows while she waits', sent === 'j4');
+  await page.evaluate((id) => { document.getElementById('job-' + id).querySelector('[data-vote="dislike"]').click(); }, sent);
+  await page.waitForTimeout(300);
+  ok('crossing it out takes it off the list (' + (await page.evaluate(shownIds)).join() + ')',
+    (await page.evaluate(shownIds)).indexOf(sent) < 0);
+  await page.click('#v-tiles');
+  await page.waitForTimeout(250);
+  ok('and off the wall too', (await page.evaluate(tileIds)).indexOf(sent) < 0);
+  await page.click('#v-list');
+  await page.waitForTimeout(200);
+  // the OTHER clips she just sent still ride — the shield is per clip
+  await page.evaluate(type, 'another one, unmarked');
+  await page.click('#go');
+  await page.waitForTimeout(600);
+  ok('another just-sent clip still rides the filter', (await page.evaluate(shownIds))[0] === 'j5');
+  await page.click('#v-hidex');
+  await page.waitForTimeout(250);
+
   // ── BOTH STARS GO DOWN TOGETHER WHILE A SEND IS IN FLIGHT ──────────────
   // A live-looking button that answers nothing is the shape of every "it
   // didn't work" report, so this is MEASURED against the send's own gate

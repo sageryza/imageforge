@@ -36,11 +36,17 @@ const TICK_MS = 10 * 1000;
 const PAUSE_S = 240;   // outlasts the new instance's boot + Render's 60s swap
 const NOTE = 'Paused for a server update — this will draw on its own in about a minute.';
 
-async function setPause(fetchFn, on) {
+// `deploy:true` is the server's cue to buzz her phone (2026-09-13, Sophie:
+// "can i get a notification when deploy starts and ends so i know when to stop
+// making clips and start again"). It rides ONLY the re-affirming pause below,
+// sent once this has decided to let the swap through — the first pause is
+// still provisional, and a guard that lifts it because a draw started, or
+// gives up at the cap, must never have buzzed her.
+async function setPause(fetchFn, on, deploy) {
   try {
     const r = await fetchFn(`${BASE}/api/promptlab/pause`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(on ? { on: true, seconds: PAUSE_S, note: NOTE } : { on: false }),
+      body: JSON.stringify(on ? { on: true, seconds: PAUSE_S, note: NOTE, deploy: !!deploy } : { on: false }),
     });
     return r.ok;
   } catch (e) { return false; }
@@ -94,8 +100,12 @@ async function waitForClear(o) {
         await wait(o.tickMs || TICK_MS);
         continue;
       }
+      // the swap is going: re-affirm the pause carrying the deploy flag, which
+      // is what buzzes her phone. Best-effort — a push that cannot be sent
+      // must never hold a deploy that is otherwise clear.
+      const buzzed = await setPause(fetchFn, true, true);
       log(`deploy-guard: nothing drawing or cutting${mem}${paused ? ' · new draws paused with the note' : ' · (pause route unavailable)'} — clear to deploy`);
-      return { ok: true, waited: now() - t0, reason: 'clear', paused };
+      return { ok: true, waited: now() - t0, reason: 'clear', paused, buzzed };
     }
     const waited = now() - t0;
     if (waited >= cap) {

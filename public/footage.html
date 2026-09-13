@@ -65,10 +65,14 @@
      silent. The card's own move menu is STILL a <select> (`viewRows` /
      `fillSel`), deliberately: moving one clip is a one-tap decision, not a
      shelf to look at.
-     ON THE FEED BAR IT IS ITS NEIGHBOURS' SIZE, MEASURED — the heart, the ✕
-     and the glass are 34x32 inside their own boxes, and a 34-tall picker
-     beside them makes the whole row 2px taller than every other hairline row
-     on the page. */
+     ON THE FEED BAR IT IS ITS NEIGHBOURS' SIZE, MEASURED — and the neighbour
+     is the GROUP, not the button inside it (2026-09-13, Sophie: "files button
+     smaller than search button footage"). The heart, the ✕ and the glass are
+     34x32 buttons inside a `.filttog` that carries its own 1px border, so the
+     box she sees beside the picker is 36x34; sized to the buttons the picker
+     came out 2px smaller both ways and sat inset from the row's own edges.
+     34 tall is still shorter than the view switch (34.8), so the row does not
+     grow. */
   .iconbtn{position:relative;width:34px;height:34px;padding:0;margin:0;flex:none;
         border:1px solid #d8cfc0;border-radius:6px;background:#fdfbf7;color:#2b2620;
         display:inline-flex;align-items:center;justify-content:center}
@@ -76,7 +80,7 @@
   .iconbtn .ico svg{width:18px;height:18px;display:block}
   .iconbtn.on{background:#2b2620;border-color:#2b2620}
   .iconbtn.on .ico{color:#f6f2ea}
-  .feedbar > .iconbtn{height:32px}
+  .feedbar > .iconbtn{width:36px;height:34px}
   /* An icon button is a rounded SQUARE at the house 6px, never a circle. */
   .ib{width:34px;height:34px;padding:0;display:inline-flex;align-items:center;justify-content:center;
       background:#fdfbf7;color:#2b2620;flex:none}
@@ -523,8 +527,14 @@
      and the ✕ are its SIBLINGS (2026-09-10, Sophie: "heart and x from tile
      view"). A button nested in a button is invalid markup and the mark's tap
      would bubble straight into the face's own. */
+  /* AND A FLOOR UNDER THE HEIGHT, for the one ratio no geometry fits
+     (2026-09-13). At four across a tile is ~86px wide, so a 21:9 clip is 37px
+     tall — under two bands of controls however small they are made. 52px is
+     the floor; `object-fit:cover` crops ~15% off each side of a 21:9 poster
+     there and nothing else on the wall moves, since every other ratio at
+     every other column count is already taller than it. */
   #tiles .cell{position:relative;border:1px solid #e0d8ca;border-radius:6px;overflow:hidden;
-        background:#2b2620;color:#f6f2ea;aspect-ratio:var(--ar,3/4)}
+        background:#2b2620;color:#f6f2ea;aspect-ratio:var(--ar,3/4);min-height:52px}
   #tiles .cell .face{position:absolute;inset:0;width:100%;height:100%;padding:0;margin:0;border:0;
         border-radius:0;background:none;color:inherit;display:flex;align-items:center;justify-content:center}
   #tiles .cell img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -593,6 +603,31 @@
         display:inline-flex;align-items:center;justify-content:center;color:#fff;
         background:rgba(20,17,14,.5);border:1px solid rgba(255,255,255,.28)}
   #tiles .tdoor svg{width:15px;height:15px;display:block}
+  /* A SHORT TILE PUTS ITS CONTROLS IN TWO BANDS (2026-09-13, the four-across
+     overlap). MEASURED at 390pt: four across is ~86px wide, so a 16:9 clip is
+     48px tall — and the 26px marks at `bottom:4` ran y 18-44 while the 28px
+     doors sat centred at y 10-38, so the ♥ covered 71% of the ▶ both ways and
+     a tap on either was a coin toss. Four controls cannot share one row (4×20
+     plus air is wider than the tile) so the doors take the TOP band and the
+     marks keep the bottom, both at 22px: doors y 1-23, marks y 25-47, two
+     pixels apart, and every one of the four takes its own tap.
+     THE NOTE'S WORDS GO on a short tile — they would sit under the doors, and
+     at 86px wide the strip showed about eight characters anyway; the whole
+     note is on the card, one tap away. THE SCISSORS STAYS, because "even in
+     the tile view" is her own ask by name (2026-09-10): the strip moves to the
+     BOTTOM band and centres, into the 38px between the two marks, which is the
+     one gap left on a tile this short. The alternatives were shrinking every
+     control under the tap floor, or a min-height that crops a third off every
+     landscape poster — this crops nothing and keeps every control real. */
+  #tiles .cell.short .ttop{top:auto;bottom:1px;left:26px;right:26px;justify-content:center;padding:0}
+  #tiles .cell.short .tnote{display:none}
+  #tiles .cell.short .tdoors{top:1px;transform:none;gap:8px}
+  #tiles .cell.short .tdoor{width:22px;height:22px}
+  #tiles .cell.short .tdoor svg{width:13px;height:13px}
+  #tiles .cell.short .tmark{width:22px;height:22px;bottom:1px}
+  #tiles .cell.short .tmark svg{width:11px;height:11px}
+  #tiles .cell.short .tmark.heart{left:2px}
+  #tiles .cell.short .tmark.nope{right:2px}
   .filttog{display:flex;flex:none;border:1px solid #d8cfc0;border-radius:6px;overflow:hidden;background:#fdfbf7}
   .likefilt{display:flex;align-items:center;justify-content:center;width:34px;height:32px;
             border:0;border-radius:0;background:none;color:#6f675e;padding:0}
@@ -1564,13 +1599,13 @@ function setProject(p, opts) {
   S.project = p; projectSave(p);
   // a folder belongs to the project she is leaving
   S.folder = String(opts.folder || ''); folderSave(S.folder);
-  jobsById = {}; olderAt = null; feedMore = false;
+  jobsById = {}; olderAt = null; walkAt = ''; feedMore = false;
   $('feed').innerHTML = ''; $('tiles').innerHTML = '';
   castFilm = p; castFilmSave(p); castEnt = ''; CAST = null;
   paintProject(); paintFolder(); paintControls(); paintCast(); paintRecent();
   if (castOpen) loadCast();
   loadJobs();
-  if (searchQ) { qHits = null; runSearch(); }     // the answer was the old project's
+  if (searchQ) { qHits = null; qMore = false; qAt = ''; runSearch(); }     // the answer was the old project's
 }
 // ── THE SUB-FOLDER (2026-09-11, Sophie: "can we do sub folders ex the witch
 // commercials") ─────────────────────────────────────────────────────────
@@ -1618,7 +1653,7 @@ function setFolder(f, opts) {
   if (f === S.folder && !opts.force) return;
   S.folder = f; folderSave(f);
   disarm();   // an armed "send all · $x?" would file the clip in the folder she LEFT
-  jobsById = {}; olderAt = null; feedMore = false;
+  jobsById = {}; olderAt = null; walkAt = ''; feedMore = false;
   $('feed').innerHTML = ''; $('tiles').innerHTML = '';
   paintFolder(); paintRecent();
   loadJobs();
@@ -1628,7 +1663,7 @@ function setFolder(f, opts) {
   // folder's clips and then hid every one of them against the previous
   // folder's `qHits` — the page said "Nothing matches that." when matches
   // were right there, and stayed wrong until she typed another character.
-  if (searchQ) { qHits = null; runSearch(); }
+  if (searchQ) { qHits = null; qMore = false; qAt = ''; runSearch(); }
 }
 // A NEW FOLDER IS A NAME AND NOTHING ELSE — it exists the moment a clip lands
 // in it, so until then the picker simply offers the name she typed.
@@ -1825,7 +1860,15 @@ var jobsById = {};
 var justSent = {};
 function forgetSent() { justSent = {}; }
 // the feed's walk back past its first page — see loadOlder
-var feedMore = false, olderAt = null, loadingOlder = false;
+// `walkAt` IS THE BOTTOM OF THE CONTIGUOUS WALK, and it is NOT the oldest
+// thing in memory (2026-09-13). `… older` took its cursor from the oldest
+// clip on the page — and a search ADDS up to 300 hits from anywhere on the
+// log, so after searching and clearing, the oldest clip in memory could be
+// three months old and the next `… older` asked for the page under THAT,
+// skipping every page in between with nothing on screen saying so. The walk
+// is tracked on its own: the newest read sets it while she has not paged,
+// each `… older` answer moves it down, and a search never touches it.
+var feedMore = false, olderAt = null, walkAt = '', loadingOlder = false;
 var pollT = null;
 function loadCtl() {
   try {
@@ -2567,18 +2610,75 @@ function dropRef(i) {
 //
 // ONE PICTURE PER END, AND NEVER BOTH ENDS ON ONE PICTURE: marking a second
 // picture as the first frame simply frees the one that had it.
+//
+// UNMARKING PUTS HER NAME BACK — BANKED WORDS, NEVER AN INVENTED INSERTION
+// (2026-09-13). A keyframe leaves the reference list, so the mark deletes its
+// `[ImageN]` out of her words and the POSITION of that name goes with it.
+// Unmarking brought the picture back and renumbered the others and left
+// NOTHING naming the returning one, so the clip drew a reference short with
+// the thumb still on screen — the only bug on this page that could send a job
+// she did not mean.
+// Inserting the name at the end of the box would be writing words where she
+// did not put them, so the words are BANKED at the mark instead (the
+// Playground prompt-extra box's rule): the text before the rewrite, the text
+// after it, and the strip as it stood. The restore fires only while the block
+// is byte-for-byte what the rewrite produced — anything she has typed since
+// wins outright, and the bank is spent either way, so a stale one can never
+// fire later.
+var kfBank = {};
+function blockTexts() {
+  return blocks().map(function (w) { return w.querySelector('.pblock').value; });
+}
+// The banked words renumbered from the strip as it stood at the mark to the
+// strip as it stands now — `reslotBlocks`'s own arithmetic, so a reference
+// added or dropped in between cannot put a stale name back in her prompt.
+function restoreKf(url, pre, now) {
+  var b = kfBank[url];
+  delete kfBank[url];
+  var CL = window.__castLine;
+  if (!b || !CL || !CL.slotMap || !CL.rewriteSlots) return 0;
+  var a = CL.slotMap(b.refs), c = CL.slotMap(now);
+  var map = {}, gones = [];
+  b.refs.forEach(function (x) {
+    var o = a.slots[x.url], n = c.slots[x.url];
+    if (!n) { if (o) gones.push(o); return; }
+    if (o && o !== n) map[o] = n;
+  });
+  var out = 0;
+  blocks().forEach(function (w, k) {
+    var box = w.querySelector('.pblock');
+    // `pre` is the reading from BEFORE `reslotBlocks` ran on this unmark, so
+    // it is the honest comparison — `box.value` has already been renumbered
+    if (b.after[k] == null || pre[k] !== b.after[k]) return;
+    var want = b.was[k];
+    gones.forEach(function (g) { want = CL.rewriteSlots(want, g, {}); });
+    want = CL.rewriteSlots(want, '', map);
+    if (want !== box.value) { box.value = want; out += 1; }
+  });
+  if (out && window.__fitBigPrompt) window.__fitBigPrompt();
+  return out;
+}
 function markRef(i) {
   var r = refs[i];
   if (!r || r.kind !== 'image') return;
   var was = slotRefs();
-  var next = roleOfUrl(r.url) === '' ? 'first' : (roleOfUrl(r.url) === 'first' ? 'last' : '');
+  var role = roleOfUrl(r.url);
+  var next = role === '' ? 'first' : (role === 'first' ? 'last' : '');
+  var pre = blockTexts();
   if (firstUrl === r.url) firstUrl = '';
   if (lastUrl === r.url) lastUrl = '';
   if (next === 'first') firstUrl = r.url;
   if (next === 'last') lastUrl = r.url;
-  var out = reslotBlocks(was, slotRefs());
+  var now = slotRefs();
+  var out = reslotBlocks(was, now);
+  // leaving the list: bank her words as they stood and as the rewrite left
+  // them. Coming back: put them back, if they are still the rewrite's.
+  var back = 0;
+  if (role === '' && next) kfBank[r.url] = { was: pre, after: blockTexts(), refs: was };
+  else if (next === '') back = restoreKf(r.url, pre, now);
   var said = next ? 'That is the ' + roleWord(next) : 'Back to an ordinary reference';
-  if (out.gone) said += ' · ' + out.gone + ' came out of the box';
+  if (back) said += ' · its name is back in the box';
+  else if (out.gone) said += ' · ' + out.gone + ' came out of the box';
   else if (out.renamed) said += ' · ' + out.renamed + (out.renamed === 1 ? ' name' : ' names') + ' renumbered';
   toast(said);
   saveDraft(); paintControls();
@@ -2659,6 +2759,24 @@ $('file').addEventListener('change', function (e) {
 // stored.
 var recentOpen = false;
 $('rectog').addEventListener('click', function () { recentOpen = !recentOpen; paintRecent(); });
+// AND TYPING CLOSES IT (2026-09-13, Sophie: "recent references closes when i
+// start typing" → "it shud close"). She opens the drawer to attach a
+// reference; the moment she is writing the scene instead, it is a row of
+// thumbnails between her words and the buttons — and on a phone it is already
+// under the keyboard, so it costs a scroll to reach and a scroll to put away.
+// So the first character in a prompt block shuts it, exactly as her own tap
+// would. Three things not to undo: it is TYPING, never focus — tapping into
+// the box to put the caret somewhere is not writing, and a drawer that
+// vanished on a stray tap would be a control she cannot keep open; it hangs
+// off the block's own `input` rather than `saveDraft`, which is the ONE signal
+// every path that changes the job sends, so ATTACHING from the drawer (which
+// saves a draft) leaves it open for the second reference; and it closes only
+// what is open, so an ordinary keystroke costs no repaint.
+function typedInBlock() {
+  if (!recentOpen) return;
+  recentOpen = false;
+  paintRecent();
+}
 function recentItems() {
   var seen = {}, out = [];
   var add = function (it) { if (it.url && !seen[it.url]) { seen[it.url] = 1; out.push(it); } };
@@ -2757,12 +2875,39 @@ function castBySlug() {
 // THE MARKED PICTURES ARE PUT BACK WHERE THEY WERE. `p.refs` is the strip the
 // planner was given plus whatever it attached, so handing it straight to
 // `refs` would DELETE every marked picture from the strip.
+// AND A LOOK THAT OWNS A MARKED PICTURE DOES NOT ATTACH IT TWICE (2026-09-13,
+// found auditing the page). The planner is fed `slotRefs()` — the marked
+// pictures excluded, which is what keeps the slot numbers right — so a look
+// whose own references include the still she has marked as the first frame got
+// that still appended as an ordinary `[ImageN]`, and then her marked copy was
+// spliced back in on top of it: two tiles for one picture, and the line the tap
+// wrote named a slot number that `slotsOf` gives to a DIFFERENT picture. The
+// clip drew, of the wrong reference. Her MARK wins — it is hers, and a keyframe
+// takes no slot — so the plan's copy is dropped.
 function withMarks(planRefs, before) {
-  var out = planRefs.slice();
+  var isMark = {};
+  before.forEach(function (r) { if (roleOfUrl(r.url)) isMark[r.url] = 1; });
+  var out = planRefs.filter(function (r) { return !isMark[r.url]; });
   before.forEach(function (r, i) {
     if (roleOfUrl(r.url)) out.splice(Math.min(i, out.length), 0, r);
   });
   return out;
+}
+// AND THE LINE IS RE-RESOLVED AGAINST THE STRIP THAT REALLY RIDES. A `{n}`
+// pointing at a picture she has marked as a keyframe cannot be a slot name, so
+// it names the END instead — "in the first frame" — which is both true and
+// readable, where `resolveLine` would otherwise leave the raw `{2}` in her
+// prompt. Everything else resolves exactly as the planner answered.
+function castLine(p, ent, look) {
+  if (!CL || !CL.resolveLine || !CL.lookRefs || !CL.slotMap || !p || !p.template) return p && p.line;
+  var mine = CL.lookRefs(ent, look || (ent.looks || [])[0] || {}, castBySlug());
+  var map = CL.slotMap(slotRefs()).slots, slots = {};
+  Object.keys(map).forEach(function (u) { slots[u] = map[u]; });
+  refs.forEach(function (r) {
+    var role = roleOfUrl(r.url);
+    if (role) slots[r.url] = 'the ' + roleWord(role);
+  });
+  return CL.resolveLine(p.template, mine, slots);
 }
 function castPlan(ent, look) {
   if (!CL) return null;
@@ -2777,7 +2922,7 @@ function castApply(ent, look) {
   var box = activeBox();
   openBlock(box);
   var before = box.value;
-  box.value = CL.withLine(before, p.line);
+  box.value = CL.withLine(before, castLine(p, ent, look));
   if (window.__fitBigPrompt) window.__fitBigPrompt();
   // A LINE LANDING IN THE BOX OPENS THE PANEL, whether or not a picture was
   // attached with it — the panel-fold rule is that anything putting words in
@@ -3080,7 +3225,7 @@ function mountBlock(w) {
     // no beforeinput (an older engine, a synthetic event) → the safe road
     var grow = !full && !!(e && e.inputType) && e.inputType.indexOf('insert') === 0;
     full = false;
-    fitBox(box, grow); saveDraft();
+    fitBox(box, grow); saveDraft(); typedInBlock();
   });
   paint();
 }
@@ -3629,6 +3774,7 @@ function applyFilt() {
     }
     if (s && tiles) any = true;
   });
+  if (tiles) paintShortTiles();
   // A CARD FIRST DRAWN WHILE A FILTER HID IT HAS NO "… more" UNTIL SOMETHING
   // RE-ASKS (2026-09-13, found auditing the page — the Playground's own
   // `resyncClamps` lesson, arriving through a filter rather than a view). The
@@ -3670,6 +3816,19 @@ function applyFilt() {
     : fw ? 'Nothing that recent.'
     : hideX() ? 'Everything here is crossed out.' : 'Nothing to show here.';
 }
+// SHORT IS MEASURED, NEVER DERIVED FROM THE RATIO AND THE COLUMN COUNT: the
+// height falls out of the page's own width, which her phone and her desk do
+// not agree about. Every height is READ in one pass and every class written
+// in a second, so the walk costs one layout rather than one per cell.
+var SHORT_TILE = 64;
+function paintShortTiles() {
+  var cells = document.querySelectorAll('#tiles .cell'), hs = [];
+  Array.prototype.forEach.call(cells, function (el) { hs.push(el.offsetHeight); });
+  Array.prototype.forEach.call(cells, function (el, i) {
+    el.classList.toggle('short', hs[i] > 0 && hs[i] < SHORT_TILE);
+  });
+}
+window.addEventListener('resize', function () { if (curView() === 'tiles') paintShortTiles(); }, { passive: true });
 $('v-liked').addEventListener('click', function () { try { localStorage.setItem('footage_liked', likedOnly() ? '' : '1'); } catch (e) {} forgetSent(); paintFilt(); applyFilt(); });
 $('v-hidex').addEventListener('click', function () { try { localStorage.setItem('footage_hidex', hideX() ? '' : '1'); } catch (e) {} forgetSent(); paintFilt(); applyFilt(); });
 
@@ -3692,7 +3851,7 @@ $('v-hidex').addEventListener('click', function () { try { localStorage.setItem(
 // the words and keeps her in it.
 var qparse = window.FeedKit ? window.FeedKit.qparse : function () { return []; };
 var qmatch = window.FeedKit ? window.FeedKit.qmatch : function () { return true; };
-var searchQ = '', qGroups = [], qHits = null, qSeq = 0, qTimer = null;
+var searchQ = '', qGroups = [], qHits = null, qSeq = 0, qTimer = null, qMore = false, qAt = '';
 function hayOf(j) { return window.FootageHay ? window.FootageHay.hayOf(j) : ''; }
 // WHICH CLIPS A SEARCH KEEPS: the server's answer once it has landed, the
 // same words matched over the loaded feed until then. A SEARCH DECIDES
@@ -3706,21 +3865,33 @@ function passesSearch(j) {
   // it, and only this side does
   return qmatch(hayOf(j.project ? Object.assign({}, j, { projectName: projectName(j.project) }) : j), qGroups);
 }
-function runSearch() {
+// AND A SEARCH PAST THE CAP IS PAGEABLE, NOT TRUNCATED (2026-09-13). The
+// read asks for 300 and the server caps it there, so a common word answered
+// with 300 of her matches, silently dropped the rest and HID the `… older`
+// door on the reasoning that "a search already read the whole log" — true
+// only while the answer fits. The route has always answered `more`, so the
+// door stays and says `… more matches`: the same walk, with the oldest hit's
+// own sentAt as the cursor (`qAt`), unioned into `qHits` rather than
+// replacing it, so nothing she has already been shown leaves the screen.
+function runSearch(before) {
   var seq = ++qSeq, want = searchQ;
-  if (!want) { qHits = null; return; }
+  if (!want) { qHits = null; qMore = false; qAt = ''; return Promise.resolve(); }
   // the FOLDER as well as the project — `projQ()` sends both, so a folder
   // switch mid-flight could land folder A's answer on folder B's screen
   var asked = viewKey();
-  api('/jobs?limit=300&q=' + encodeURIComponent(want) + projQ()).then(function (d) {
+  return api('/jobs?limit=300&q=' + encodeURIComponent(want)
+      + (before ? '&before=' + encodeURIComponent(before) : '') + projQ()).then(function (d) {
     if (seq !== qSeq || asked !== viewKey()) return;      // she typed on, or moved
     var jobs = (d && d.jobs) || [];
     // a hit may be a clip the feed itself has never paged in — it lands as
     // a card like any other, so its own doors, notes and trims all work
     batching = true;
     try { jobs.slice().reverse().forEach(jobCard); } finally { batching = false; }
-    qHits = {};
+    if (!before || !qHits) qHits = {};
     jobs.forEach(function (j) { qHits[j.id] = true; });
+    qMore = !!(d && d.more);
+    var qLow = minSentAt(jobs);
+    if (qLow) qAt = qLow;
     paintFeed(); paintOlder();
   }).catch(function () { /* the client-filtered view stands */ });
 }
@@ -3732,6 +3903,7 @@ function readSearch() {
   $('qclear').hidden = !searchQ;
   box.classList.toggle('hasq', !!box.value);            // the ✕'s padding, only while it shows
   qHits = null;                                          // the loaded feed answers meanwhile
+  qMore = false; qAt = '';                               // and its own walk starts over
   clearTimeout(qTimer);
   if (searchQ) qTimer = setTimeout(runSearch, 350);
   else qSeq++;                                           // and any answer still coming is dropped
@@ -3825,6 +3997,9 @@ var VS = window.__viewSwitch({
     paintFeed();
     if (!tiles) resyncClamps();
   },
+  // THREE ACROSS AND FOUR ARE DIFFERENT TILE HEIGHTS, so the short rule is
+  // re-measured on the tap — `applyFilt` is not called by a column change
+  onCols: function () { if (curView() === 'tiles') paintShortTiles(); },
 });
 function curView() { return VS.view(); }
 function curCols() { return VS.cols(); }
@@ -3852,13 +4027,37 @@ function feedOrder() {
 // A REPAINT NEVER REBUILDS WHAT DID NOT CHANGE — the vote is deliberately out
 // of the signature (it is a class, toggled in applyFilt), so hearting a clip
 // does not re-decode a wall of posters.
+// AND THE SIGNATURE IS PER CELL, NOT PER WALL (2026-09-13). It was one string
+// for the whole list, so ONE clip finishing — a new poster, a status, a ratio
+// — wiped the wall and re-decoded every other poster with it: on a hundred
+// clips, a hundred pictures read off the network for the sake of the one that
+// changed. Each cell carries its own signature now, so a cell whose three
+// facts are unchanged is REUSED, and putting it back in order MOVES the node,
+// which never re-decodes the picture inside it. The list signature stays as
+// the fast path, so a repaint that changed nothing is still one compare.
+function tileSig(j) { return [j.poster || '', j.status, j.ratio || ''].join('\u0000'); }
 function renderTiles() {
   var el = $('tiles'), list = feedOrder();
-  var sig = list.map(function (j) { return [j.id, j.poster || '', j.status, j.ratio || ''].join('\u0000'); }).join('|');
+  var sig = list.map(function (j) { return j.id + '\u0000' + tileSig(j); }).join('|');
   if (el.__sig === sig) return;
   el.__sig = sig;
-  el.innerHTML = '';
+  var old = {};
+  Array.prototype.forEach.call(el.children, function (c) { if (c.dataset.id) old[c.dataset.id] = c; });
+  var want = [];
   list.forEach(function (j) {
+    var cs = tileSig(j), c = old[j.id];
+    if (c && c.__sig === cs) delete old[j.id];
+    else {
+      if (c) { el.removeChild(c); delete old[j.id]; }
+      c = tileCell(j); c.__sig = cs;
+    }
+    want.push(c);
+  });
+  Object.keys(old).forEach(function (k) { el.removeChild(old[k]); });
+  want.forEach(function (c, i) { if (el.children[i] !== c) el.insertBefore(c, el.children[i] || null); });
+}
+function tileCell(j) {
+  {
     var c = document.createElement('div'); c.className = 'cell' + (j.status === 'drawing' ? ' drawing' : '');
     c.dataset.id = j.id;
     c.style.setProperty('--ar', arOf(j.ratio));
@@ -3913,8 +4112,8 @@ function renderTiles() {
       b.addEventListener('click', function (e) { e.stopPropagation(); castVote(j.id, m[1]); });
       c.appendChild(b);
     });
-    el.appendChild(c);
-  });
+    return c;
+  }
 }
 
 // ── A TILE GOES TO ITS CARD (2026-09-10, Sophie: "clicking on a tile in
@@ -4070,21 +4269,29 @@ function repaintNotes() {
 // The box ships EMPTY and opens on her tap; tapping the mark again puts it
 // away. Cancel is the deliberate discard — closing the box is the only thing
 // that drops what she typed, and nothing else on the page removes it.
+// THE MARK IS ASKED FOR WHEN IT IS NEEDED, NEVER CAPTURED (2026-09-13). A
+// rebuild replaces the card's html, so the `.acts .note` captured when the box
+// opened is a detached node minutes later: Cancel put `on` out on a mark
+// nobody can see and the LIVE one stayed lit over a box that was gone.
+function noteMark(el) { return el.querySelector('.acts .note'); }
 function toggleNoteBox(el, j) {
   var host = el.querySelector('[data-notes]');
-  var mark = el.querySelector('.acts .note');
   var open = host.querySelector('.notebox');
-  if (open) { open.remove(); if (mark) mark.classList.remove('on'); return; }
+  if (open) { open.remove(); var m0 = noteMark(el); if (m0) m0.classList.remove('on'); return; }
   var box = document.createElement('div');
   box.className = 'notebox';
   box.innerHTML = '<textarea placeholder="Note" aria-label="Note on this clip"></textarea>'
     + '<div class="nfoot"><button type="button" class="nsend">Send</button>'
     + '<button type="button" class="ncancel">Cancel</button><span class="nerr"></span></div>';
   host.appendChild(box);
+  var mark = noteMark(el);
   if (mark) mark.classList.add('on');
   var ta = box.querySelector('textarea');
   ta.focus();
-  box.querySelector('.ncancel').addEventListener('click', function () { box.remove(); if (mark) mark.classList.remove('on'); });
+  box.querySelector('.ncancel').addEventListener('click', function () {
+    box.remove();
+    var m = noteMark(el); if (m) m.classList.remove('on');
+  });
   box.querySelector('.nsend').addEventListener('click', function () { sendNote(j, box); });
 }
 // HER WORDS ARE NEVER LOST TO A REFUSAL — the box is emptied only once the
@@ -4320,13 +4527,24 @@ function jobCard(j) {
     // coming back from the server is the ordinary one) rewrites it whole, and
     // the box goes with it mid-sentence. The node is lifted out and put back,
     // so its own Send and Cancel keep working: nothing is re-wired.
+    // AND SO DOES HER CARET (2026-09-13): removing a node blurs whatever was
+    // focused inside it, so a rebuild mid-sentence left the box on screen with
+    // the keyboard gone and the caret at the top — she went on typing into
+    // nothing. The focus and the selection are carried across with the node.
     var keepBox = el.querySelector('.notebox');
+    var keepTa = keepBox && keepBox.querySelector('textarea');
+    var hadFocus = !!(keepTa && document.activeElement === keepTa);
+    var selA = keepTa ? keepTa.selectionStart : 0, selB = keepTa ? keepTa.selectionEnd : 0;
     if (keepBox) keepBox.remove();
     el.__sig = sig;
     el.innerHTML = html;
     if (keepBox) {
       var back = el.querySelector('[data-notes]');
-      if (back) { back.appendChild(keepBox); var km = el.querySelector('.acts .note'); if (km) km.classList.add('on'); }
+      if (back) {
+        back.appendChild(keepBox);
+        var km = el.querySelector('.acts .note'); if (km) km.classList.add('on');
+        if (hadFocus && keepTa) { keepTa.focus(); try { keepTa.setSelectionRange(selA, selB); } catch (e) {} }
+      }
     }
     var p = el.querySelector('.p'); p.textContent = j.prompt || '';
     clampMore(p);
@@ -4402,10 +4620,24 @@ function decideClamp(p) {
     b.setAttribute('aria-label', open ? 'Show less of this prompt' : 'Show the whole prompt');
     b.title = b.getAttribute('aria-label');
   }
-  b.addEventListener('click', function () { p.classList.toggle('clamp'); paint(); });
+  // AND AN EXPANDED PROMPT SURVIVES A REBUILD (2026-09-13). The card is
+  // rewritten whole whenever anything it prints changes — a vote coming back
+  // from the server is the ordinary one — and the html always says
+  // `class="p clamp"`, so a scene she had opened sprang shut under her, mid
+  // read, several screens tall. The fold lives in MEMORY keyed by the clip's
+  // own id (the chats part-fold's rule: a fold living on the node alone is
+  // gone the next time the node is), and it is never localStorage — a reload
+  // collapses everything, which is the safe direction.
+  var id = p.closest('.job') ? p.closest('.job').dataset.id : '';
+  if (id && openPrompt[id]) p.classList.remove('clamp');
+  b.addEventListener('click', function () {
+    p.classList.toggle('clamp'); paint();
+    if (id) { if (p.classList.contains('clamp')) delete openPrompt[id]; else openPrompt[id] = 1; }
+  });
   paint();
   p.parentNode.insertBefore(b, p.nextSibling);
 }
+var openPrompt = {};
 function resyncClamps() {
   requestAnimationFrame(function () {
     document.querySelectorAll('#feed .p[data-undecided]').forEach(decideClamp);
@@ -4414,6 +4646,17 @@ function resyncClamps() {
 function castVote(id, kind) {
   var j = jobsById[id]; if (!j) return;
   j.vote = j.vote === kind ? '' : kind;
+  // HER MARK ON A CLIP ENDS ITS JUST-SENT SHIELD (2026-09-13, Sophie: "exed
+  // clips in list view don't disappear when no x is selected"). A clip THIS
+  // PAGE sent rides through the search, the marks and the funnel until she
+  // next MOVES the view — which is right while she is waiting for it to draw,
+  // and wrong the moment she decides about it: with "hide the ✕'d" lit she
+  // crossed out the clip she had just sent and it sat there, on both views,
+  // for the rest of the session (MEASURED — the shield is only ever dropped
+  // by a search or a filter tap, and neither is what she had just done).
+  // Casting a mark on a clip IS her re-deciding about THAT clip, so the
+  // shield goes with it; every other clip she just sent still rides.
+  delete justSent[id];
   jobCard(j);                       // ends in paintFeed → applyFilt, which paints the wall's marks
   paintRecent();                    // the drawer is drawn off the feed, so it repaints with it
   api('/jobs/' + encodeURIComponent(id) + '/vote', { method: 'POST', body: JSON.stringify({ vote: j.vote }) }).catch(function () {});
@@ -4731,7 +4974,10 @@ function loadJobs() {
     // the first 40", which is true and says nothing about the pages she
     // already holds. Once she has paged, the last older read's answer is
     // the one that knows.
-    if (olderAt === null) feedMore = !!(d && d.more);
+    if (olderAt === null) {
+      feedMore = !!(d && d.more);
+      walkAt = minSentAt(jobs);
+    }
     paintFeed();
     paintOlder();
     paintRecent();
@@ -4751,20 +4997,39 @@ function loadJobs() {
 // (its sentAt is the cursor, never a count — a clip landing while she reads
 // would shift a count and repeat a page). The poll's newest-40 read only
 // ever ADDS to `jobsById`, so a page she walked back to stays put under it.
+// THE OLDEST IN AN ANSWER IS THE SMALLEST sentAt IN IT, never its last
+// element: the server sorts newest-first and a page that did not would move
+// the cursor to the middle of the log and skip everything under it.
+function minSentAt(jobs) {
+  var out = '';
+  (jobs || []).forEach(function (j) {
+    var at = String((j && j.sentAt) || '');
+    if (at && (!out || at < out)) out = at;
+  });
+  return out;
+}
 function oldestSentAt() {
   var l = feedOrder();
   return l.length ? String(l[l.length - 1].sentAt || '') : '';
 }
 function paintOlder() {
   var b = $('older');
-  // a search already read the whole log — there is no page under it
-  b.hidden = !feedMore || !!qGroups.length;
+  // a search walks its OWN pages — the whole log filtered, cut at 300 a time
+  var searching = !!qGroups.length;
+  b.hidden = searching ? !qMore : !feedMore;
   b.disabled = loadingOlder;
-  b.textContent = loadingOlder ? '\u2026 loading older' : '\u2026 older';
+  b.textContent = loadingOlder ? '\u2026 loading' : (searching ? '\u2026 more matches' : '\u2026 older');
 }
 function loadOlder() {
   if (loadingOlder) return Promise.resolve();
-  var at = oldestSentAt();
+  // while a search stands, the door walks the SEARCH's pages
+  if (qGroups.length) {
+    if (!qMore || !qAt) return Promise.resolve();
+    loadingOlder = true; paintOlder();
+    return Promise.resolve(runSearch(qAt)).catch(function () {})
+      .then(function () { loadingOlder = false; paintOlder(); });
+  }
+  var at = walkAt || oldestSentAt();
   if (!at) return Promise.resolve();
   loadingOlder = true; paintOlder();
   var asked = viewKey();
@@ -4773,6 +5038,7 @@ function loadOlder() {
     takeFolders(d);
     var jobs = (d && d.jobs) || [];
     olderAt = at;
+    walkAt = minSentAt(jobs) || at;
     feedMore = !!(d && d.more);
     batching = true;
     try { jobs.slice().reverse().forEach(jobCard); } finally { batching = false; }
@@ -5082,9 +5348,16 @@ function paintCompare() {
   var sib = cmpSiblings(b);
   var idx = -1; sib.forEach(function (o, i) { if (o.id === a.id) idx = i; });
   // sib is newest first: "older" is a higher index
+  // AND `newer ›` NEVER STEPS PAST THE CLIP SHE OPENED THE PANEL ON
+  // (2026-09-13, found auditing the page). It was `sib[idx-1]`, and when that
+  // was `b` itself it took `sib[idx-2]` — which is NEWER than b, so the whole
+  // diff rendered backwards: her added words read as struck-out deletions, the
+  // settings rows read `12s → 8s` when she went the other way, and
+  // `cmpBackWord` blanked rather than saying anything was wrong. The "before"
+  // side has to stay older than "this clip", so the stop is b's own index.
   var older = idx >= 0 ? sib[idx + 1] || null : null;
-  var newer = idx > 0 ? sib[idx - 1] : null;
-  if (newer && newer.id === b.id) newer = idx > 1 ? sib[idx - 2] : null;
+  var ib = -1; sib.forEach(function (o, i) { if (o.id === b.id) ib = i; });
+  var newer = idx > 0 && idx - 1 > ib ? sib[idx - 1] : null;
   $('cmptitle').textContent = d.changed ? 'What changed' : 'Nothing changed';
   var h = '<div class="cpair">' + cmpClipHtml(a, 'before') + '<div class="carrow">→</div>' + cmpClipHtml(b, 'this clip') + '</div>';
   h += '<div class="cwalk">' +
@@ -5264,17 +5537,36 @@ function paintParts() {
 // `primeMany` on the pointerdown. A part whose bytes are not in yet is named
 // rather than silently left out of the sheet.
 var saveBlobs = {};
+// A FAILED FETCH IS RETRIED, NEVER CACHED (2026-09-13, found auditing the
+// page). This skipped any url already in `saveBlobs`, and a failed fetch left
+// a RESOLVED-NULL promise there — truthy — so it was never fetched again:
+// "save all" became a dead button for the life of the page while the toast
+// said "tap save all again in a moment", which is the opposite of true.
+// `primeSave` already clears its own slot on failure; this is its twin.
 function primeMany(urls) {
   if (nativeSaver()) return;
   urls.forEach(function (u) {
     if (saveBlobs[u]) return;
-    saveBlobs[u] = fetch(u).then(function (r) { return r.blob(); }).catch(function () { return null; });
+    saveBlobs[u] = fetch(u).then(function (r) { return r.blob(); })
+      .catch(function () { delete saveBlobs[u]; return null; });
   });
+}
+// `__done` on the promise is what "the bytes are in hand" means: a promise
+// that is still in flight and one that has resolved look identical.
+function markDone(u) {
+  var p = saveBlobs[u];
+  if (p && !p.__marked) { p.__marked = 1; p.then(function (b) { if (b) p.__done = 1; }); }
 }
 function saveMany(urls) {
   var native = nativeSaver();
   if (native) { urls.forEach(function (u) { native.postMessage(u); }); toast('Saving ' + urls.length + ' clips\u2026'); return; }
-  primeMany(urls);
+  // NOT READY IS ANSWERED BEFORE THE AWAIT (2026-09-13, found auditing the
+  // page). `navigator.share` was called after awaiting a multi-megabyte fetch,
+  // which spends the tap's transient activation — the trap `primeSave`'s own
+  // comment names, and the reason `saveMedia` refuses early instead. So the
+  // first tap outside the app failed every time and blamed the share sheet.
+  var ready = urls.every(function (u) { return saveBlobs[u] && saveBlobs[u].__done; });
+  if (!ready) { primeMany(urls); urls.forEach(markDone); toast('Getting the clips \u2014 tap save all again in a moment'); return; }
   Promise.all(urls.map(function (u) { return saveBlobs[u]; })).then(function (blobs) {
     var files = [];
     blobs.forEach(function (b, i) {
@@ -5297,7 +5589,9 @@ function saveMany(urls) {
 function bakedUrls() {
   return ((TR && TR.parts) || []).filter(function (t) { return t.status === 'ready' && t.url; }).map(function (t) { return t.url; });
 }
-$('tsaveall').addEventListener('pointerdown', function () { primeMany(bakedUrls()); });
+// HER FINGER GOING DOWN IS THE HEAD START, and the bytes are MARKED as they
+// land so the click can tell "in flight" from "in hand".
+$('tsaveall').addEventListener('pointerdown', function () { var u = bakedUrls(); primeMany(u); u.forEach(markDone); });
 $('tsaveall').addEventListener('click', function () { var u = bakedUrls(); if (u.length) saveMany(u); });
 $('tsavewhole').addEventListener('pointerdown', function () { var u = TR && TR.j && (TR.j.source || TR.j.video); if (u) primeSave(u); });
 $('tsavewhole').addEventListener('click', function () { var u = TR && TR.j && (TR.j.source || TR.j.video); if (u) saveMedia(u); });

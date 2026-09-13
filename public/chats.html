@@ -1986,6 +1986,7 @@ body.selecting .ckbtn,body.selecting .hidebtn,body.selecting .pinrow{display:non
 
 
 .float{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:flex; flex-direction:column; gap:8px; align-items:center; transform:translateZ(0); will-change:transform;}
+.float > *{transform:translateY(var(--vvtop, 0px));}  /* the rail follows the visual viewport — the CHILDREN move, so every page that reserves the pill's column off `.float`'s own rect is correct with no edit. Source: scripts/pill.py */
 .vseg{display:flex; flex-direction:column; width:48px; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09);}
 .vseg button{border:none; background:transparent; color:var(--ink); width:48px; height:52px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
 .vseg button + button{border-top:1.5px solid var(--ink);}
@@ -2762,6 +2763,34 @@ var I={
 };
 function spd(){ return SPEEDS[si][1]; }
 function showSpd(){ document.getElementById('spd').textContent=SPEEDS[si][0]; }
+
+/* THE RAIL FOLLOWS THE VISUAL VIEWPORT (2026-09-13, Sophie, on /footage:
+   "auto scroll bug"). iOS shrinks the VISUAL viewport for the keyboard and
+   offsets it inside the LAYOUT one to reveal the caret; position:fixed pins
+   to the layout viewport, so the rail slides up out of the visible band by
+   visualViewport.offsetTop, top-first — measured ~115pt on her iPhone 13,
+   which left only the bottom button on screen. IT ONLY EVER CORRECTS: with
+   no offset reported the transform is left exactly as the CSS has it.
+   A BAKED COPY — the source is scripts/pill.py; change it there and here. */
+(function(){
+  var _vvOff=0, _f=null;
+  function railEl(){ if(_f && _f.isConnected) return _f; _f=document.querySelector('.float'); return _f; }
+  function placeRail(){
+    var el=railEl(); if(!el) return;
+    var vv=window.visualViewport;
+    var off=vv ? Math.max(0, Math.round(vv.offsetTop||0)) : 0;
+    if(off===_vvOff) return;
+    _vvOff=off;
+    if(off) el.style.setProperty('--vvtop', off+'px'); else el.style.removeProperty('--vvtop');
+  }
+  window.__pillOffset=function(){ return _vvOff; };
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', placeRail, {passive:true});
+    window.visualViewport.addEventListener('scroll', placeRail, {passive:true});
+  }
+  placeRail();
+  setTimeout(placeRail, 400);
+})();
 function paintPill(){
   if(playing){
     vtop.innerHTML=I.minus; vbot.innerHTML=I.plus; vmid.innerHTML=I.pause; vmid.classList.add('on');
@@ -10077,6 +10106,30 @@ function mkPagePill(getWin){
       pb.classList.toggle('on', t.full() - (t.top()+t.view()) > 150 && can);
     }catch(_){ pt.classList.remove('on'); pb.classList.remove('on'); } }
   paint(); syncTop(); pill._stop=stop;
+  // THE RAIL FOLLOWS THE VISUAL VIEWPORT (2026-09-13) — this parent-page copy
+  // drifts with the keyboard exactly as the injected pill does, so it takes
+  // the same correction; the listener takes itself off once the pill is
+  // detached, or opening pages would leave one behind per open.
+  var _vvOff=0;
+  function placeRail(){
+    if(!pill.isConnected){
+      if(window.visualViewport){
+        window.visualViewport.removeEventListener('resize', placeRail);
+        window.visualViewport.removeEventListener('scroll', placeRail);
+      }
+      return;
+    }
+    var vv=window.visualViewport;
+    var off=vv ? Math.max(0, Math.round(vv.offsetTop||0)) : 0;
+    if(off===_vvOff) return;
+    _vvOff=off;
+    if(off) pill.style.setProperty('--vvtop', off+'px'); else pill.style.removeProperty('--vvtop');
+  }
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', placeRail, {passive:true});
+    window.visualViewport.addEventListener('scroll', placeRail, {passive:true});
+  }
+  placeRail();
   pill._playing=function(){ return playing; };
   pill._topSync=syncTop;                                 // openPage wires the iframe's scroll to it
   pill._tap=function(){ playing? stop() : start(1); };   // tap the page to toggle

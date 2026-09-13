@@ -5019,19 +5019,171 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     tally counting uploads rather than attachments, `ftUploading` having no
     `finally` (a throw there would have disabled the self-heal for the life of
     the page), and the folder being unsearchable.
-    **NOT FIXED, and named rather than half-done:** the tile wall's signature
-    is per-WALL, so one clip changing `poster`/`status`/`ratio` re-decodes
-    every poster (it wants a per-cell signature); at FOUR across a 16:9 or
-    21:9 tile is ~49px tall and the ♥ overlaps ~45% of the ▶ (arithmetic off
-    the stylesheet — measure before moving anything); `… older` after a search
-    takes its cursor from the oldest thing in memory rather than the bottom of
-    the contiguous walk, so it skips the pages between; a search past 300
-    matches is truncated with the `… older` button hidden; an expanded prompt
-    re-collapses on a card rebuild; the note box survives a rebuild but loses
-    its focus and its Cancel leaves the mark lit; and `mark → unmark` renumbers
-    the others back but never re-names the returning picture. Tests:
-    `node scripts/test-footage-blocks-audit.js` (55 checks; it CRASHES against
-    the pre-fix page, where `#goall` does not exist).
+    **AND THE SEVEN THAT WERE NAMED AND LEFT ARE FIXED TOO (2026-09-13,
+    Sophie: "good. real bugs. can u fix them all? use agents if u want / then
+    find more").** Worst first:
+    - **`mark → unmark` NEVER PUT THE RETURNING PICTURE'S NAME BACK** — the
+      only one that could send a job she did not mean. A keyframe leaves the
+      reference list, so the mark deletes its `[ImageN]` out of her words and
+      the POSITION of that name goes with it; unmarking renumbered the others
+      and left nothing naming the one that came back, so the clip drew a
+      reference short with its thumb still on screen. Inserting the name at
+      the end of the box would be writing words where she did not put them, so
+      **the words are BANKED at the mark** (the Playground prompt-extra box's
+      rule): the text before the rewrite, the text after it, and the strip as
+      it stood, renumbered back through `reslotBlocks`'s own arithmetic. The
+      restore fires only while the block is **byte-for-byte what the rewrite
+      produced** — anything she typed since wins outright — and the bank is
+      spent either way, so a stale one can never fire later.
+    - **THE WALL'S SIGNATURE IS PER CELL** (`tileSig`). It was one string for
+      the whole list, so one clip finishing re-decoded every other poster; a
+      cell whose poster, status and ratio are unchanged is REUSED now, and
+      putting it back in order MOVES the node, which never re-decodes the
+      picture in it. The list signature stays as the fast path.
+    - **`… older` HAS ITS OWN CURSOR, `walkAt`** — the bottom of the contiguous
+      walk, never the oldest thing in memory. A search ADDS up to 300 hits
+      from anywhere on the log, so after searching and clearing, the cursor
+      was a clip from months back and the next tap skipped every page between.
+      And the cursor is the **smallest sentAt in an answer** (`minSentAt`),
+      never its last element.
+    - **A SEARCH PAST THE CAP IS PAGEABLE** — the door stays and says `… more
+      matches`, walking the search's own pages off the oldest hit's sentAt
+      (`qAt`), unioned into `qHits` so nothing already shown leaves. The route
+      has always answered `more`; the page hid the door on the reasoning that
+      "a search already read the whole log", true only while it fits.
+    - **AN EXPANDED PROMPT SURVIVES A REBUILD** — `openPrompt`, in memory,
+      keyed by the clip's own id (the chats part-fold's rule) and never
+      localStorage, so a reload collapses everything.
+    - **AND SO DOES HER CARET** — removing a node blurs what was focused in it,
+      so a rebuild mid-sentence left the box on screen with the keyboard gone;
+      the focus and the selection are carried across with the node. And
+      **Cancel clears the mark she can SEE** (`noteMark(el)` asked when it is
+      needed, never captured — the captured one is detached after a rebuild,
+      so Cancel put `on` out on a dead node and the live mark stayed lit).
+    - **FOUR ACROSS: THE ♥ AND THE ▶ ARE OFF EACH OTHER.** MEASURED at 390pt:
+      four across is ~86px wide, so a 16:9 clip is 50px tall and the 26px
+      marks at `bottom:4` ran y 18-44 while the 28px doors sat centred at y
+      10-38 — 71% overlap both ways, and a tap on either was a coin toss
+      (`elementFromPoint` answered `tmark heart` at the ▶'s own centre). Four
+      controls cannot share one row at that width, so **a measured `.short`
+      class (under 64px) puts the doors in the TOP band and keeps the marks in
+      the bottom**, both at 22px: doors y 1-23, marks y 25-47. **The note's
+      WORDS give up their band** — they would sit under the doors, and at 86px
+      the strip showed about eight characters; the whole note is on the card.
+      **The scissors stays**, because "even in the tile view" is her own ask by
+      name: the strip moves to the bottom and centres, into the 38px between
+      the two marks. **And 21:9 gets a 52px FLOOR** (measured 38px),
+      because no geometry fits two bands in 38. The alternatives were shrinking
+      every control under the tap floor, or a min-height that crops a third off
+      every landscape poster. `SHORT_TILE` is MEASURED rather than derived from
+      the ratio and the column count, since the height falls out of the page's
+      own width.
+    **AND THREE READ-ONLY AUDITS FOUND 36 MORE (2026-09-13, her "then find
+    more") — the server module, the page's player/trimmer/cast areas, and the
+    shared slot-name and search files. The ones that cost money or draw the
+    wrong clip are fixed; the rest are named at the end of this bullet.**
+    - **2.0 AT 1080p WAS PRICED OFF THE 480p CANVAS — a 5x under-quote that
+      read CHEAPER than 720p.** 2.0 moved onto the 2.5 canvas table on
+      2026-09-12 (a real charge measured 560x752), and that table has no
+      1080p row, so `canvasOf`'s `fam[res] || fam['480p']` fell through: a 4s
+      2.0 1080p 16:9 clip quoted **~30¢ against a real ~151¢**, and $1.11
+      against ~$5.67 at 15s. 2.0 is the one row that offers 1080p and only
+      OpenRouter takes it, which bills on the real canvas. A resolution its
+      own table lacks falls back to the FAMILY's now (`canvasFrom` says
+      which), and a borrowed canvas can never answer `exact`.
+    - **A REFERENCE THE MODULE WILL NOT SEND REFUSES THE JOB — it is never
+      dropped.** The http filter ran BEFORE `slotsOf`, so a url failing it
+      vanished and every slot after it renumbered while her prompt named the
+      old numbers: the clip drew, of the wrong picture. A keyframe was worse —
+      a url that failed the test simply stopped being a keyframe, so the
+      picture she marked as the first frame rode as an ordinary slotted
+      reference and the job went out references-only.
+    - **A REFUSED JOB SPOKE A SECOND VOCABULARY.** It was filed under the
+      model's LABEL and under `params.ratio` where every door writes its own
+      model id and `aspect_ratio` — so `cardOf` found no model row, and the
+      page gates its own "Try again" on `modelOf(j.model)`: **a refused Fast or
+      2.5 scene put back from its own card silently drew on MINI** (the model
+      is deliberately unsticky, so after any reload that is what is showing).
+      `cardOf` matches our own id as well as the doors' three spellings now.
+    - **A JOB THE DOOR NEVER ANSWERS FOR STOPS BEING "DRAWING".** Nothing aged
+      one out — `pollOne` swallows every error — so a job with an expired id or
+      an unmapped answer said "drawing… 4h" forever. That is not only a wrong
+      card: `/jobs` reads the WHOLE collection (~500 docs) and the page
+      re-arms every 7s while anything is drawing, so **one stuck clip cost ~70
+      document reads a second** for as long as the page was open. Two hours
+      with no answer reads as failed and the poll stops asking, `whyOf` says
+      so in her words, and **nothing is written** — the doc is left as the
+      door left it, so a job that lands later is still the record.
+    - **A PARTIAL ATLAS PRICE READ dropped that model to the table's LIST rate
+      for ten minutes** — the guard protected an EMPTY answer, not an
+      incomplete one — and since the door is chosen by price that is a door
+      change as well as a figure: every Mini tap billed ~3x (13.59¢ against
+      4.40¢), silently. Merged onto the last good map now.
+    - **EVERY TRIM WRITE IS PINNED TO THE READ IT WAS PLANNED FROM.** The route
+      read the doc, planned, and wrote the whole `trims` list, so a bake
+      landing its own `ready` in between put that part back to `baking` for
+      good: its mp4 and poster in Storage, the card saying "trimming…" for
+      ever, its save and play never appearing. One transaction per call.
+    - **AN OVERSIZE REFERENCE VIDEO WAS DIAGNOSED AS "TOO SMALL".** ByteDance
+      sends the SAME sentence for both ends of the range, and the one row said
+      "too small … the page upscales these by itself now; send it again" — so a
+      4K reference was told the fix was already in and re-sent forever
+      (nothing downscales, and `planUpscale` returns null above the floor by
+      design). Three rows now: the floor, the ceiling, and the bare range
+      sentence naming both ends.
+    - **THE REFUSAL TABLE'S `code` COLUMN WAS DEAD** — the reader asked for
+      `d.errorCode` and the doors' field is `error_code`, so an unmatched
+      wording showed raw door text with no line in her words. Either spelling.
+    - **A LOOK THAT OWNS A MARKED PICTURE ATTACHED IT TWICE.** The planner is
+      fed `slotRefs()` (marked pictures excluded, which is what keeps the slot
+      numbers right), so a look whose own references include the still she had
+      marked as the first frame got it appended as an ordinary `[ImageN]` and
+      her marked copy spliced back in on top: two tiles for one picture, and
+      the line named a slot `slotsOf` gives to a DIFFERENT one. Her mark wins,
+      and the line is re-resolved against the strip that really rides — a
+      `{n}` pointing at a keyframe names the END ("in the first frame")
+      rather than leaving a raw `{2}` in her prompt.
+    - **`newer ›` STEPPED PAST THE CLIP THE PANEL WAS OPENED ON**, so the whole
+      diff rendered backwards: her added words read as struck-out deletions
+      and the settings rows read `12s → 8s` when she went the other way. The
+      stop is b's own index.
+    - **SAVE-ALL WAS A DEAD BUTTON AFTER ONE FAILED FETCH** (a resolved-null
+      promise cached forever, while the toast said "tap again in a moment"),
+      and outside the app its first tap always failed and blamed the share
+      sheet — `navigator.share` was called after awaiting the bytes, which
+      spends the tap's transient activation, the trap `primeSave` was written
+      for. Not-ready is answered before the await now.
+    **NAMED AND NOT FIXED — hers to pick from** (the three reports in full are
+    in this chat): `/api/cast/plan` hands `cast-line.js` a RAW strip, so a
+    chat's line names the wrong slots when a keyframe is marked; a renamed
+    wardrobe look key makes the wardrobe silently not ride and ships a literal
+    `{2}`; the server's search does not fill `projectName`, so searching a
+    project's display name shows hits and then blanks them; `doorTakes` does
+    not model Atlas's own caps (>9 pictures, >3 videos, audio alone), so
+    `auto` sends a job to the one door that must refuse it and the page offers
+    no other; `… older` skips clips that share a `sentAt` to the millisecond;
+    the draw-time buckets double-count a clip with no ratio; a 40+ character
+    film slug can never be tucked (two truncation lengths); footage's own
+    shape refusals are the ones that leave no log; taking a part off resets
+    her trim marks; an armed "pick a clip" survives a project switch and
+    swallows the next tap; the trim marks are the only playhead controls that
+    do not pause; no `error` listener on the player leaves a whole dead trim
+    row; a note on a reference VIDEO is filed where no card shows it;
+    `viewswitch` is a dead control with localStorage blocked; `caretkeep`'s
+    blind-keyboard band can scroll a caret that is already visible;
+    `clip-diff`'s `tail()` blanks any readable filename over 20 characters;
+    Atlas's spend cache key includes `fresh`, so `?fresh=1` writes a key
+    nothing reads. Tests: `node scripts/test-footage-audit-3.js` (34 checks;
+    it CRASHES against the pre-fix module, where `canvasFrom` does not exist).
+    Tests: `node scripts/test-footage-blocks-audit.js` (55 checks; it CRASHES
+    against the pre-fix page, where `#goall` does not exist) and
+    `node scripts/test-footage-audit-2.js` (71 checks for the seven — every
+    assertion a MEASUREMENT or a reading of what the stub really received,
+    since an unmark that renumbers the others and names nothing, a wall that
+    re-decodes every poster, a cursor taken from memory, a capped answer, a
+    prompt springing shut, a box with its keyboard gone and two controls
+    sitting on each other all look identical in the source; verified failing
+    30 pre-fix).
     **AND A CLIP SHE JUST SENT IS NEVER FILTERED AWAY (2026-09-13, found on her
     "check for more bugs").** The search's `qHits` is a set of ids the SERVER
     answered with, so a clip that did not exist when it answered can never be
@@ -5048,6 +5200,16 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     is **SAID, not done quietly** — the toast adds "shown here though it is
     outside your search", since a card in a feed her own search says nothing
     matches would otherwise read as the filter broken.
+    **AND HER OWN MARK ON A CLIP ENDS ITS SHIELD (2026-09-13, Sophie: "exed
+    clips in list view don't disappear when no x is selected").** The shield is
+    for while she WAITS; a ✕ is her deciding. Only a search or a filter tap
+    dropped it, so with "hide the ✕'d" lit she crossed out the clip she had
+    just sent and it stayed on screen — in BOTH views, for the rest of the
+    session (MEASURED). `castVote` drops that clip's shield, so the mark and
+    the filter agree at once; **every other clip she just sent still rides**,
+    since the shield is per clip. A ♥ ends it too — un-marking a clip is her
+    deciding as deliberately as marking one. Pinned by
+    `node scripts/test-footage-just-sent.js` (verified failing 2 pre-fix).
     **AND TWO MORE FROM THE SAME PASS.** The All star stayed at FULL STRENGTH
     while a send was in flight and did nothing on a tap — `#go` is the gate and
     greys itself (`button[disabled]{opacity:.45}`), and a live-looking button
@@ -5063,8 +5225,12 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     twice and passed twice, and the failing assertion DIFFERED between runs
     ("picking the ward re-asks the feed FOR the ward", "bare words AND a
     -\"phrase\" take one clip out"). Re-run before diagnosing anything, and
-    check whether the same assertion fails twice. Which of its 424 is timing-
-    dependent is unfound. **The MECHANISM is found (2026-09-13), even if the
+    check whether the same assertion fails twice. Which of its 425 is timing-
+    dependent is unfound; re-measured 2026-09-13 the rotating one is any of
+    three, all in the project/search area ("bare words AND a -\"phrase\" take
+    one clip out", "picking the ward re-asks the feed FOR the ward", "on All
+    the ward's clips are gone from the list and the wall"), which is what
+    makes the same-assertion-twice check the honest test. **The MECHANISM is found (2026-09-13), even if the
     exact set is not: the search and project assertions wait with
     `waitForFunction` on a COUNT of visible cards, which is true for a moment
     of the CLIENT-filtered view — and the server's own answer over the whole
@@ -8397,6 +8563,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (one with none already draws the film glyph, so it needs no mark); and the
   drawer is DERIVED from the feed, so it repaints with it and nothing is
   stored.
+  **AND TYPING SHUTS IT (2026-09-13, Sophie: "recent references closes when i
+  start typing" → "it shud close").** The drawer is open to ATTACH; the moment
+  she is writing the scene it is a row of thumbnails between her words and the
+  buttons — and on a phone it is already under the keyboard, so it costs a
+  scroll to reach and a scroll to put away (MEASURED at 390pt: an empty box
+  puts it at y=362, a scene at y=480, under a keyboard starting at ~430). So
+  the first character in a prompt block closes it, exactly as her tap would.
+  Three things not to undo: it is **TYPING, never focus** — a tap to place the
+  caret is not writing; it hangs off the block's own `input` and **not
+  `saveDraft`**, which is the one signal every path that changes the job sends,
+  so **attaching leaves it open for the second reference**; and the character
+  sheet beside it is untouched (she named the Recent drawer).
   **THE CLIPS AND THEIR LAST FRAMES ARE HISTORY, NOT A RULE — DON'T PUT THEM
   BACK.** For a few hours that morning the box also listed a job's own
   FINISHED CLIP ahead of its references, at her ask ("make the recent box
@@ -12933,6 +13111,44 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **LIVE since Aug 2026 (measured 2026-08-27: `GET /api/push/status` answers
   `configured:true, devices:1`)** — the APNs key is in Render's secret files.
   This line used to say "dormant until the key exists"; that is history.
+  **A DEPLOY BUZZES HER PHONE, START AND END (2026-09-13, Sophie: "can i get a
+  notification when deploy starts and ends so i know when to stop making clips
+  and start again").** A deploy swaps the instance out and a footage SEND in
+  flight is a request the old instance dies holding, so the minute around a
+  deploy is the one minute not to tap the star. Both moments were already known
+  exactly and neither is a guess:
+  - **START is the deploy guard's LAST word, not its first.** `deploy-guard.js`
+    (Render's pre-deploy command) holds until nothing is drawing, pauses new
+    draws, reads once more, and only then lets the swap through — so it
+    re-affirms its pause carrying `deploy:true`, and `POST /api/promptlab/pause`
+    calls `push.notifyDeploy('start')` on that flag alone. A guard still
+    holding, one that lifted its pause because a draw snuck in, or one that
+    gives up at the cap never gets there, so a held deploy never buzzes her.
+  - **DONE is the new instance BOOTING** — nothing else knows the swap
+    finished, and a boot is exactly "you can send again".
+  - **THE MARKER IS WHAT KEEPS A CRASH RESTART QUIET.** `push.notifyDeploy
+    ('start')` writes `startedAt` on one doc; `push.deployBootCheck()` pushes
+    "back up" only if that mark exists and is under 30 minutes old, and clears
+    it on the way past — so an OOM kill or a Render recycle at 3am says
+    nothing, one deploy is one pair, and a mark nobody consumed goes stale
+    instead of buzzing her a week later. Gated on `RENDER_EXTERNAL_URL`, or a
+    dev container booting server.js eats her notification.
+  - **IT NAMES NO CHAT, deliberately** — `PushDelegate` opens the chat a push
+    names and there is no chat here; with none it lands on the Update tab,
+    which is the right room and needs no TestFlight build. It carries its own
+    `thread` instead (a new `sendAll` case), so "Back up" replaces "Server
+    update starting" in her shade rather than stacking.
+  - **STILL OPEN, and hers to ask for: the guard does not wait for a footage
+    SEND.** `/inflight` is `drawingNow`/`cuttingNow`, which are the Playground's
+    runs only — `footage.js` touches neither — so a clip's POST to the door is
+    not something the deploy waits out. The window is seconds (once the door
+    has answered and the log is written the poll resumes from any phone), but
+    a send caught inside it is drawn, paid for and unrecorded.
+  - Tests: `node scripts/test-deploy-notify.js` (the marker's whole decision
+    table against a fake Firestore — the half that can silently be wrong — plus
+    the wirings by source) and `node scripts/test-deploy-guard.js` (that only
+    the FINAL pause carries the flag, and that a refused or called-off deploy
+    carries none).
   **THE HOME-SCREEN WIDGET IS FOUR DECKS TO SWIPE (2026-09-02, Sophie: "the
   widget / make it 4 icons / decks to swipe / currently / the dream factory
   deck / the wallpapers")** — the top four decks still waiting in the Review

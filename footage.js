@@ -309,7 +309,14 @@ async function atlasPrices() {
   // every Mini job to OpenRouter at 3x the real Atlas price (13.59¢ against
   // 4.40¢ on a 4s 480p 16:9 clip) for the ten minutes the cache holds. The
   // list rate is still the floor when nothing has ever been read.
-  atlasCache = { at: Date.now(), val: Object.keys(out).length ? out : atlasCache.val };
+  // AND A PARTIAL READ KEEPS THE ROWS IT DID NOT ANSWER FOR (2026-09-13,
+  // found auditing the module). The guard was `keys.length ? out : last`,
+  // which protects an EMPTY answer and not an incomplete one — one row
+  // missing from `GET /models`, or a `base_price` of 0, dropped that model to
+  // the table's LIST rate for ten minutes, which since the door is chosen by
+  // price is a door change as well as a figure: every Mini tap billed ~3x
+  // (13.59c against 4.40c), silently. Merged onto the last good map instead.
+  atlasCache = { at: Date.now(), val: Object.keys(out).length ? { ...atlasCache.val, ...out } : atlasCache.val };
   return atlasCache.val;
 }
 // For a test that needs a second live read inside the cache window — nothing
@@ -337,9 +344,27 @@ function secondsOk(m, s) {
   return s >= m.secs[0] && s <= m.secs[1] && Number.isInteger(s);
 }
 function minSeconds(m) { return m.secs[0]; }
+// A RESOLUTION ITS OWN TABLE LACKS FALLS BACK TO THE FAMILY'S, NEVER TO 480p
+// (2026-09-13, found auditing the module). 2.0 offers 1080p and was moved onto
+// the 2.5 canvas table on 2026-09-12 (a real charge measured 560x752 rather
+// than 480x640) — and the 2.5 table has NO 1080p row, so `fam[res] ||
+// fam['480p']` priced every 1080p clip off the 480p canvas: a 4s 2.0 1080p
+// 16:9 clip quoted ~30c against a real ~151c, and read CHEAPER than the same
+// clip at 720p. 2.0 is the one row that offers 1080p and only OpenRouter can
+// take it, which bills on the real canvas. The family table has the row, so
+// that is the fallback; `canvasFrom` says where the answer came from, and a
+// price built on a borrowed canvas can never answer `exact`.
+function canvasFrom(m, res) {
+  const own = SIZES[m.sizes || m.family];
+  if (own && own[res]) return 'own';
+  const fam = SIZES[m.family];
+  if (fam && fam[res]) return 'family';
+  return 'floor';
+}
 function canvasOf(m, res, ratio) {
-  const fam = SIZES[m.sizes || m.family] || SIZES['2.0'];
-  const byRes = fam[res] || fam['480p'];
+  const own = SIZES[m.sizes || m.family] || SIZES['2.0'];
+  const fam = SIZES[m.family] || SIZES['2.0'];
+  const byRes = own[res] || fam[res] || own['480p'] || fam['480p'];
   return byRes[ratio] || byRes['1:1'];
 }
 // How much dearer a resolution is than 480p ON THIS SHAPE — the pixel ratio
@@ -537,7 +562,9 @@ function priceOn(m, door, { res: resIn, ratio, seconds, hasVideo, discount }) {
     // clip). 2.0, Fast and 2.5 have never gone through OpenRouter, so their
     // canvases are the published table and unverified, and their price
     // answers "about" until a real charge is read against one.
-    const pinned = m.canvasMeasured && !hasVideo;
+    // AND A BORROWED CANVAS IS NEVER PINNED — the row came out of another
+    // table, so the shape is a reading rather than a measurement.
+    const pinned = m.canvasMeasured && !hasVideo && canvasFrom(m, res) === 'own';
     return { cents: Math.round(usd * 10000) / 100, door: 'openrouter', ...(pinned ? { exact: true } : { about: true }) };
   }
   if (door === 'atlascloud') {
@@ -624,11 +651,24 @@ function buildJob(b) {
   // still honoured (a chat sending a frame straight through). A picture
   // marked as a keyframe carries a `role` and leaves the reference lists: it
   // is the frame the clip starts or ends on, not something the prompt names.
-  const kfFirst = b.firstFrameUrl && /^https?:\/\//.test(String(b.firstFrameUrl)) ? String(b.firstFrameUrl) : '';
-  const kfLast = b.lastFrameUrl && /^https?:\/\//.test(String(b.lastFrameUrl)) ? String(b.lastFrameUrl) : '';
+  // A URL THIS MODULE WILL NOT SEND REFUSES THE JOB — IT IS NEVER DROPPED
+  // (2026-09-13, found auditing the module). The reference filter below ran
+  // BEFORE `slotsOf`, so a url failing the http test vanished and every slot
+  // after it renumbered while her prompt went on naming the old numbers: the
+  // clip drew, of the wrong picture. A keyframe was worse — a url that failed
+  // the test simply stopped being a keyframe, so `roleOf` never matched it,
+  // the picture she marked as the first frame rode as an ordinary slotted
+  // reference, and the job went out references-only and drew something else
+  // instead of being refused. Either way it is a shape refusal now.
+  const badUrl = (u) => !!String(u || '') && !/^https?:\/\//.test(String(u));
+  if (badUrl(b.firstFrameUrl) || badUrl(b.lastFrameUrl)) return { error: 'that keyframe is not a url the doors can fetch' };
+  const bad = (Array.isArray(b.refs) ? b.refs : []).filter((r) => !r || badUrl(r.url) || !String((r && r.url) || ''));
+  if (bad.length) return { error: bad.length === 1 ? 'one reference is not a url the doors can fetch' : `${bad.length} references are not urls the doors can fetch` };
+  const kfFirst = b.firstFrameUrl ? String(b.firstFrameUrl) : '';
+  const kfLast = b.lastFrameUrl ? String(b.lastFrameUrl) : '';
   if (kfFirst && kfLast && kfFirst === kfLast) return { error: 'one picture cannot be both the first frame and the last' };
   const roleOf = (u) => (u === kfFirst ? 'first' : u === kfLast ? 'last' : '');
-  const refs = slotsOf((Array.isArray(b.refs) ? b.refs : []).filter((r) => r && /^https?:\/\//.test(String(r.url || '')))
+  const refs = slotsOf((Array.isArray(b.refs) ? b.refs : [])
     .map((r) => ({ ...r, role: roleOf(String(r.url)) })))
     .map((r) => ({ url: String(r.url), kind: r.kind, slot: r.slot, poster: r.poster ? String(r.poster) : '', name: r.name ? String(r.name).slice(0, 80) : '',
       ...(r.role ? { role: r.role } : {}) }));
@@ -705,10 +745,31 @@ function bucketOrNull() { try { return admin.apps.length ? admin.storage().bucke
 // ONE reader of a doc's status — cardOf draws by it and trimPlan refuses by
 // it, and two copies of that expression would let the card call a clip
 // finished while the trim route called it unfinished.
+// A JOB THE DOOR NEVER ANSWERS FOR STOPS BEING "DRAWING" (2026-09-13, found
+// auditing the module). Nothing aged a job out: `pollOne` swallows every
+// error, so a job whose poll always throws — an expired job id, a door
+// outage at the wrong moment, an answer shape nothing maps — kept
+// `status:'sent'`, which reads as `drawing` forever. That is not only a card
+// saying "drawing… 4h 12m": `/jobs` reads the WHOLE collection (~500 docs)
+// and the page re-arms every 7s while anything is drawing, so ONE stuck clip
+// costs ~70 document reads a second for as long as the page is open — real
+// money, for a clip that is already dead.
+//
+// It is DERIVED, never written: the doc is left exactly as the door left it,
+// so a job that does land later is still the record the 1080p redo reads,
+// and this only decides what the card says and whether the poll asks again.
+const STALE_MS = 2 * 60 * 60 * 1000;      // two hours; the longest clip drew in ~4m
+function staleJob(d) {
+  const st = String((d && d.status) || 'sent').toLowerCase();
+  if (st === 'completed' || st === 'failed' || st === 'cancelled' || st === 'expired') return false;
+  const at = Date.parse((d && (d.sentAt || d.createdAt)) || '');
+  return Number.isFinite(at) && Date.now() - at > STALE_MS;
+}
 function statusOf(d) {
   const st = String((d && d.status) || 'sent').toLowerCase();
   if (st === 'completed') return 'done';
   if (st === 'failed' || st === 'cancelled' || st === 'expired') return 'failed';
+  if (staleJob(d)) return 'failed';
   return 'drawing';
 }
 
@@ -832,12 +893,26 @@ async function drawTimeFor(shape) {
 
 // The card the page draws, off the log doc.
 function whyOf(d) {
-  if (!d || String(d.status || '').toLowerCase() !== 'failed' || !d.error) return '';
-  const e = videoRefusals.explain(d.error, d.errorCode, d.door || d.provider || '');
+  if (!d) return '';
+  // TWO HOURS WITH NO ANSWER IS A REASON TOO, and it is the one the card had
+  // no words for: the clip said "drawing… 4h" and she could only guess.
+  if (staleJob(d)) return 'The door never answered — nothing came back, so nothing drew. Your prompt and references are on the log; put them back and send it again.';
+  if (String(d.status || '').toLowerCase() !== 'failed' || !d.error) return '';
+  // THE CODE UNDER EITHER SPELLING (2026-09-13): the table carries a `code`
+  // column and the reader asked only for `errorCode`, which nothing writes —
+  // the doors' own field is `error_code`, so every code row was dead and an
+  // unmatched wording showed raw door text with no line in her words.
+  const e = videoRefusals.explain(d.error, d.errorCode != null ? d.errorCode : d.error_code, d.door || d.provider || '');
   return e && e.line ? e.line : '';
 }
 function cardOf(id, d) {
-  const m = MODELS.find((x) => x.or === d.model || x.af === d.model || x.atlas === d.model) || null;
+  // BY OUR OWN ID AS WELL AS THE DOORS' (2026-09-13). Each door writes its
+  // own model id, which is what the three spellings match — and a refusal
+  // footage files itself has no door, so it writes OURS. Without this row a
+  // refused clip came back with `model` left as a raw string, and the page
+  // gates its own "Try again" on `modelOf(j.model)`: a refused Fast or 2.5
+  // scene put back from its own card silently drew on Mini.
+  const m = MODELS.find((x) => x.id === d.model || x.or === d.model || x.af === d.model || x.atlas === d.model) || null;
   const p = d.params || {};
   // THE PARTS RIDE BESIDE THE CLIP, NEVER OVER IT: `video` is what she
   // plays, saves and hands on (the first baked part once there is one),
@@ -1435,7 +1510,12 @@ function refVideoTotalRefusal(seconds, door) {
 // video-log.js's own note.
 async function logRefusal({ body, refs, m, res, ratio, seconds, first, last, door, err }) {
   const params = {
-    duration: seconds, resolution: res, ratio,
+    // THE DOORS' OWN FIELD NAMES, NOT A SECOND SPELLING (2026-09-13, found
+    // auditing the module). This wrote `ratio` where every door writes
+    // `aspect_ratio`, so a refused clip came back from `cardOf` with NO ratio:
+    // unsearchable by shape, and `clip-diff` reported `shape: '' -> 16:9`, a
+    // change that never happened.
+    duration: seconds, resolution: res, aspect_ratio: ratio,
     generate_audio: body.generateAudio !== false,
     reference_image_urls: (body.referenceImageUrls || []).slice(),
     reference_video_urls: (body.referenceVideoUrls || []).slice(),
@@ -1446,7 +1526,12 @@ async function logRefusal({ body, refs, m, res, ratio, seconds, first, last, doo
   if (last) params.end_image = last;
   const ex = videoRefusals.explain(String((err && err.message) || ''));
   const doc = videoLog.refusedRecord({
-    jobId: crypto.randomUUID(), prompt: body.prompt, model: (m && m.label) || '', params,
+    // AND THE MODEL ID, NEVER ITS LABEL. Every door writes its model id, so a
+    // refusal filed as "2.0 Fast" missed `cardOf`'s `MODELS.find` — and the
+    // page gates its own "Try again" on `modelOf(j.model)`, so a refused Fast
+    // or 2.5 scene put back from its own card silently drew on MINI (the model
+    // is deliberately not sticky, so after any reload that is what is showing).
+    jobId: crypto.randomUUID(), prompt: body.prompt, model: (m && m.id) || '', params,
     tag: { chat: body.chat || CHAT, title: titleOf(body.prompt), project: body.project, folder: body.folder },
     door, refusal: err && err.refusal, error: (err && err.message) || '',
     why: (err && err.why) || (ex && ex.line) || '',
@@ -1680,6 +1765,8 @@ router.get('/jobs', async (req, res) => {
     await Promise.all(docs.map(async (x) => {
       const st = String(x.d.status || 'sent').toLowerCase();
       if (st !== 'sent' && st !== 'processing' && st !== 'pending' && st !== 'queued' && st !== 'starting') return;
+      if (staleJob(x.d)) return;          // two hours with no answer: stop asking
+
       const r = await pollOne(x.id, x.d);
       if (r && r.patch) Object.assign(x.d, r.patch, r.video ? { video: r.video } : {});
     }));
@@ -1818,6 +1905,22 @@ router.post('/jobs/:id/hide', async (req, res) => {
 //   { clear: true }           takes them all off
 // Free every way — ffmpeg on our own box, no model call, no door.
 const TRIM_MAX_PARTS = 12;
+// EVERY WRITE HERE IS PINNED TO THE READ IT WAS PLANNED FROM (2026-09-13,
+// found auditing the module). The route read the doc, planned, and wrote the
+// WHOLE `trims` list — so a bake landing its own `status:'ready'` between the
+// two put that part back to `baking` for good: its mp4 and poster sit in
+// Storage, the card says "trimming…" forever, and its save and play never
+// appear, because `bakeTrim` has already returned and nothing will correct it.
+// Two overlapping POSTs (two tabs, her phone and a chat) lost a part outright.
+// One transaction per call, so the plan and the write see the same list.
+const trimTx = (id, work) => db().runTransaction(async (tx) => {
+  const ref = coll().doc(id);
+  const snap = await tx.get(ref);
+  if (!snap.exists) return { code: 404, error: 'no such clip' };
+  const out = work(snap.data());
+  if (out && out.write) tx.set(ref, out.write, { merge: true });
+  return out;
+});
 router.post('/jobs/:id/trim', async (req, res) => {
   try {
     const id = String(req.params.id);
@@ -1835,9 +1938,14 @@ router.post('/jobs/:id/trim', async (req, res) => {
     }
     if (body.remove) {
       const gone = String(body.remove);
-      const next = parts.filter((t) => t.key !== gone);
-      await drop(next);
-      return res.json({ ok: true, removed: parts.length !== next.length, job: cardOf(id, { ...d, trims: next, trim: null }) });
+      const r = await trimTx(id, (now) => {
+        const live = trimsOf(now);
+        const next = live.filter((t) => t.key !== gone);
+        return { write: { trims: next, trim: admin.firestore.FieldValue.delete() },
+          removed: live.length !== next.length, next, now };
+      });
+      if (r.code) return res.status(r.code).json({ error: r.error });
+      return res.json({ ok: true, removed: r.removed, job: cardOf(id, { ...r.now, trims: r.next, trim: null }) });
     }
     const plan = trimPlan(d, body);
     if (plan.error) return res.status(400).json({ error: plan.error });
@@ -1853,12 +1961,22 @@ router.post('/jobs/:id/trim', async (req, res) => {
       source: plan.source, at: new Date().toISOString(), status: 'baking', url: '', poster: '', error: '' };
     // REPLACING KEEPS ITS PLACE IN THE ORDER — the parts are the order she
     // cut them and a nudged mark is the same part, not a new last one.
-    const next = replacing && parts.some((t) => t.key === replacing)
-      ? parts.map((t) => (t.key === replacing ? part : t))
-      : kept.concat([part]);
-    await coll().doc(id).set({ trims: next, trim: admin.firestore.FieldValue.delete() }, { merge: true });
+    // the list is RE-DERIVED inside the transaction, so a part that baked (or
+    // was taken off) while this one was being planned is not written back over
+    const r = await trimTx(id, (now) => {
+      const live = trimsOf(now);
+      const kept2 = replacing ? live.filter((t) => t.key !== replacing) : live;
+      if (kept2.find((t) => t.key === plan.key)) return { already: true, next: kept2, now };
+      if (kept2.length >= TRIM_MAX_PARTS) return { code: 400, error: `that is ${TRIM_MAX_PARTS} parts already — take one off first` };
+      const next2 = replacing && live.some((t) => t.key === replacing)
+        ? live.map((t) => (t.key === replacing ? part : t))
+        : kept2.concat([part]);
+      return { write: { trims: next2, trim: admin.firestore.FieldValue.delete() }, next: next2, now };
+    });
+    if (r.code) return res.status(r.code).json({ error: r.error });
+    if (r.already) return res.json({ ok: true, job: cardOf(id, { ...r.now, trims: r.next, trim: null }) });
     bakeTrim(id, plan).catch(() => {});
-    res.status(202).json({ ok: true, job: cardOf(id, { ...d, trims: next, trim: null }) });
+    res.status(202).json({ ok: true, job: cardOf(id, { ...r.now, trims: r.next, trim: null }) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1884,6 +2002,6 @@ module.exports = {
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf, atlasCacheBust,
   drawStats, drawTimeFor, drawTimeFrom, drawKeyOf, medianOf,
   startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf,
-  pageJobs, hayOf, foldersOf, shelfOf, folderSlug, statusOf, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
+  canvasFrom, pageJobs, hayOf, foldersOf, shelfOf, folderSlug, statusOf, staleJob, STALE_MS, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
   framePlan, framePath, pullFrame, grabFrame, FRAME_FOLDER, FRAME_END_PAD,
 };

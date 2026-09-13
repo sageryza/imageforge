@@ -190,6 +190,31 @@ const server = http.createServer((req, res) => {
   await page.$$eval('#recent .rc', (els, i) => els[i].click(), vidIdx);
   await page.waitForSelector('#refs .ref');
   ok('attaching a video reference names it as a VIDEO slot', (await page.$eval('#refs .slot', (e) => e.textContent)) === '[Video1]');
+
+  // ATTACHING LEAVES IT OPEN, TYPING SHUTS IT (2026-09-13, Sophie: "it shud
+  // close"). Both are MEASURED off the rendered drawer, since an attach that
+  // shuts it and a keystroke that does not look identical in the source — and
+  // the attach above went through `saveDraft`, which is where a close would
+  // wrongly live.
+  const shown = () => page.evaluate(() => {
+    const el = document.getElementById('recent');
+    return !el.hidden && el.getBoundingClientRect().height > 0;
+  });
+  ok('attaching one reference leaves the drawer open for the next', await shown());
+  await page.click('#prompt');
+  ok('and putting the caret in the box is not writing — it stays open', await shown());
+  await page.keyboard.type('a');
+  await page.waitForTimeout(120);
+  ok('the first character she types shuts it', !(await shown()));
+  ok('the icon says shut too', await page.$eval('#rectog', (e) => !e.classList.contains('on') && e.getAttribute('aria-expanded') === 'false'));
+  await page.click('#rectog');
+  await page.waitForTimeout(120);
+  ok('and her tap opens it again', await shown());
+  await page.keyboard.type('b');
+  await page.waitForTimeout(120);
+  ok('typing outside a block leaves it alone', await shown());
+  await page.click('#rectog');
+
   await page.fill('#prompt', 'the same room, one shot later');
   await page.click('#go');
   await page.waitForTimeout(300);
