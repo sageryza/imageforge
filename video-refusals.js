@@ -46,9 +46,23 @@ const ROWS = [
   { re: /First\/last frame images cannot be combined with reference media/i, kind: 'shape', free: true,
     line: 'Atlas takes a first or last frame ALONE — no reference pictures, videos or audio beside it. Take the references off, or take the frame off (APIFRAME is the one door that takes both).',
     seen: 'Atlas 2026-09-12 (measured on the poll: accepted the POST, refused before drawing, free)' },
-  { re: /PixelCountTooSmall|Pixel count must be between/i, kind: 'shape', free: true,
+  // TWO ENDS, ONE MESSAGE — ByteDance sends the SAME sentence for a reference
+  // under the floor and one over the ceiling (2026-09-13, found auditing the
+  // shared modules). The line said "too small … the page upscales these by
+  // itself now; send it again", so a 4K reference was diagnosed as too small,
+  // told the fix was already in, and re-sent forever: nothing downscales, and
+  // `planUpscale` returns null above the floor by design. TooSmall is named
+  // explicitly by the error CODE word; the bare range sentence names both ends
+  // and says which way to go for each.
+  { re: /PixelCountTooSmall/i, kind: 'shape', free: true,
     line: 'A reference video is too small — under ByteDance\'s pixel floor (an iPhone export shrunk on its way out of Photos). The page upscales these by itself now; send it again.',
     seen: 'OpenRouter 2026-09-10 (the floor)' },
+  { re: /PixelCountTooLarge/i, kind: 'shape', free: true,
+    line: 'A reference video is too BIG for the door — over ByteDance\'s ceiling of about 8.3 megapixels a frame. Nothing here shrinks one, so use a smaller export (1080p is well inside it).',
+    seen: 'the ceiling half of the same range' },
+  { re: /Pixel count must be between/i, kind: 'shape', free: true,
+    line: 'A reference video is outside what the door takes — between about 0.4 and 8.3 megapixels a frame. A small one (an iPhone export shrunk on its way out of Photos) is upscaled here by itself, so send it again; a big one needs a smaller export, since nothing here shrinks one.',
+    seen: 'OpenRouter 2026-09-10 — the same sentence carries BOTH ends' },
   { re: /Duration must be between/i, kind: 'shape', free: true,
     line: 'That length is outside what this model draws — Mini and the 2.x family take 4 to 15 seconds.',
     seen: 'OpenRouter 2026-09-04' },
