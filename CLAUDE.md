@@ -4612,7 +4612,15 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   `docs/design-rules.md`, pinned by `node scripts/test-back-to-top.js`.
   **Its twin, TO THE BOTTOM, sits under it since 2026-09-03** (Sophie: "add a
   scroll to bottom arrow playground") — `#pbot`, lit while there is page
-  below, injected pill only; `node scripts/test-scroll-to-bottom.js`.
+  below; `node scripts/test-scroll-to-bottom.js`. **It was the INJECTED pill's
+  alone until 2026-09-13 (Sophie, on a Compare page in the app: "why is there
+  no scroll to bottom arrow")** — a page opened in the app runs in an IFRAME
+  and the pill she taps there is `mkPagePill`'s, the parent's copy, which had
+  grown the back-to-top in Aug 2026 and never this one. So the jump existed on
+  every page except inside the app, which is where she reads them. It is
+  `.pbot` there (class only — chats.html's own pill owns the ids), the scroller
+  learned an `end()` beside its `home()`, and one `syncTop` lights both off the
+  same 150. Pinned by `node scripts/test-page-viewer-pill.js`.
   - **"IT'S NOT THERE" CAN MEAN THE PAGE IS OLD, NOT THAT THE ARROW IS
     MISSING (2026-08-27, Sophie about the Playground, twice).** Measured that
     hour before changing anything: the bytes Render answers with carry the

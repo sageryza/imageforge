@@ -9992,12 +9992,15 @@ function mkPagePill(getWin){
                    by:function(n){ b.scrollTop+=n; },
                    view:function(){ return b.clientHeight; },
                    full:function(){ return b.scrollHeight; },
-                   home:function(){ try{ b.scrollTo({top:0,behavior:'smooth'}); }catch(_){ b.scrollTop=0; } } };
+                   home:function(){ try{ b.scrollTo({top:0,behavior:'smooth'}); }catch(_){ b.scrollTop=0; } },
+                   end:function(){ var y=b.scrollHeight; try{ b.scrollTo({top:y,behavior:'smooth'}); }catch(_){ b.scrollTop=y; } } };
     return { top:function(){ return w.scrollY; },
              by:function(n){ try{ w.scrollBy(0,n); }catch(_){} },
              view:function(){ return w.innerHeight; },
              full:function(){ try{ return d.documentElement.scrollHeight; }catch(_){ return 0; } },
-             home:function(){ try{ w.scrollTo({top:0,behavior:'smooth'}); }catch(_){ try{ w.scrollTo(0,0); }catch(__){} } } };
+             home:function(){ try{ w.scrollTo({top:0,behavior:'smooth'}); }catch(_){ try{ w.scrollTo(0,0); }catch(__){} } },
+             end:function(){ var y=0; try{ y=d.documentElement.scrollHeight; }catch(_){}
+               try{ w.scrollTo({top:y,behavior:'smooth'}); }catch(_){ try{ w.scrollTo(0,y); }catch(__){} } } };
   }
   var I={
     up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
@@ -10017,9 +10020,17 @@ function mkPagePill(getWin){
   pill.innerHTML='<div class="vseg"><button class="ppt"></button><button class="ppm"></button><button class="ppb"></button></div><span class="pps"></span>'+
     '<button class="ptop" aria-label="Back to the top" title="Back to the top">'+
     '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+
-    '<path d="M5 4h14"/><path d="m18 14-6-6-6 6"/><path d="M12 8v12"/></svg></button>';
+    '<path d="M5 4h14"/><path d="m18 14-6-6-6 6"/><path d="M12 8v12"/></svg></button>'+
+    // AND TO THE BOTTOM (2026-09-13, Sophie, on a Compare page in the app:
+    // "why is there no scroll to bottom arrow"). pill.py grew `#pbot` on
+    // 2026-09-03 and this parent copy — the pill she taps on every Compare
+    // page inside the app — never did, so the jump existed everywhere except
+    // in the app. Class only, no id: chats.html's own pill owns `#pbot`.
+    '<button class="ptop pbot" aria-label="To the bottom" title="To the bottom">'+
+    '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+
+    '<path d="M12 4v12"/><path d="m6 10 6 6 6-6"/><path d="M5 20h14"/></svg></button>';
   var vt=pill.querySelector('.ppt'), vm=pill.querySelector('.ppm'), vb=pill.querySelector('.ppb'), sp=pill.querySelector('.pps');
-  var pt=pill.querySelector('.ptop');
+  var pt=pill.querySelector('.ptop'), pb=pill.querySelector('.pbot');
   function paint(){
     if(playing){ vt.innerHTML=I.minus; vb.innerHTML=I.plus; vm.innerHTML=I.pause; vm.classList.add('on');
       vt.classList.toggle('dim',si===0); vb.classList.toggle('dim',si===SPEEDS.length-1);
@@ -10058,10 +10069,13 @@ function mkPagePill(getWin){
   // the jump home: stop first, or the running scroll walks the page back down
   // under the animation (the shared pill's own rule)
   pt.onclick=function(){ stop(); var t=tgt(); if(t) t.home(); };
+  pb.onclick=function(){ stop(); var t=tgt(); if(t) t.end(); };
   // PTOP_AT is 150 here as in pill.py — pinned by test-back-to-top.js.
-  function syncTop(){ var t=tgt(); if(!t){ pt.classList.remove('on'); return; }
-    try{ pt.classList.toggle('on', t.top() > 150 && t.full() > t.view()+4);
-    }catch(_){ pt.classList.remove('on'); } }
+  function syncTop(){ var t=tgt(); if(!t){ pt.classList.remove('on'); pb.classList.remove('on'); return; }
+    try{ var can=t.full() > t.view()+4;
+      pt.classList.toggle('on', t.top() > 150 && can);
+      pb.classList.toggle('on', t.full() - (t.top()+t.view()) > 150 && can);
+    }catch(_){ pt.classList.remove('on'); pb.classList.remove('on'); } }
   paint(); syncTop(); pill._stop=stop;
   pill._playing=function(){ return playing; };
   pill._topSync=syncTop;                                 // openPage wires the iframe's scroll to it
