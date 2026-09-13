@@ -44,6 +44,12 @@ const STYLE_REF = path.join(ROOT, 'refs/sage-sandy-mirror.png');
 // may have left a note on it, and silently swapping the bytes underneath it
 // makes her note describe a picture that no longer exists.
 const TAG = (process.argv.indexOf('--tag') !== -1 && process.argv[process.argv.indexOf('--tag') + 1]) || 'v2';
+// --sheet-key names the state entry holding the card to draw with, when it is
+// not this round's own. Sophie picked sheet 1 (marlaSheetV2) after the v3e
+// round had already run, so its pages have to be drawn from an OLDER sheet
+// while still writing under their own tag — without that split, --tag s1
+// would find no sheet on file and quietly draw a NEW one.
+const SHEET_KEY = (process.argv.indexOf('--sheet-key') !== -1 && process.argv[process.argv.indexOf('--sheet-key') + 1]) || `marlaSheet_${TAG}`;
 const SHEET = path.join(os.tmpdir(), `marla-sheet-${TAG}.png`);
 
 const QUALITY = 'medium', MODEL = 'gpt-image-2', SIZE = '1024x1536', W = 1024, H = 1536;
@@ -57,7 +63,24 @@ const plan = JSON.parse(fs.readFileSync(PLAN, 'utf8'));
 const rev = JSON.parse(fs.readFileSync(REV, 'utf8'));
 const state = JSON.parse(fs.readFileSync(STATE, 'utf8'));
 if (!state.v2) state.v2 = {};
-const saveState = () => fs.writeFileSync(STATE, JSON.stringify(state, null, 2) + '\n');
+// MERGE ON WRITE, never stamp the whole file. Two of these scripts running at
+// once each read state at startup and wrote their whole in-memory copy back,
+// so the last writer silently dropped the other's entries — the pictures were
+// safe in Storage and in the Assets tab, but the bookkeeping lost them. A
+// deep-ish merge (one level per bucket) is enough: every writer only ever adds
+// leaves, never removes one.
+function mergeInto(target, src) {
+  for (const [k, v] of Object.entries(src)) {
+    if (v && typeof v === 'object' && !Array.isArray(v) && target[k] && typeof target[k] === 'object' && !Array.isArray(target[k])) {
+      Object.assign(target[k], v);
+    } else target[k] = v;
+  }
+  return target;
+}
+const saveState = () => {
+  const disk = fs.existsSync(STATE) ? JSON.parse(fs.readFileSync(STATE, 'utf8')) : {};
+  fs.writeFileSync(STATE, JSON.stringify(mergeInto(disk, state), null, 2) + '\n');
+};
 
 const NO_TEXT = 'Do not put any text, words, letters, numbers, captions or watermarks anywhere in the image.';
 const CALM = 'Keep the lower third of the picture calm and uncluttered.';
@@ -78,6 +101,12 @@ function buildPrompt(n, cards) {
   if (who.includes('marla')) {
     notes.unshift(rev.character.line + (rev.beachPages.includes(n) ? ' ' + rev.beachHat : ''));
   }
+  // ONE blanket across the whole book (her ask) — a beach page kept inventing
+  // a different one, so it rides on every beach page rather than depending on
+  // whoever writes the next scene remembering. The MOTHER is fixed at her
+  // source instead: plan.continuity.mother said 'a good grey dress', which is
+  // exactly why her black dress drifted.
+  if (rev.blanket && rev.beachPages.includes(n)) notes.push(rev.blanket);
   return [
     cards.length ? STYLE_MANY : STYLE_ONE,
     cardLines.join(' '),
@@ -175,8 +204,8 @@ async function buildSheet() {
 
 async function ensureSheet() {
   if (fs.existsSync(SHEET)) return SHEET;
-  if (state[`marlaSheet_${TAG}`]?.url) {
-    const r = await fetch(state[`marlaSheet_${TAG}`].url);
+  if (state[SHEET_KEY]?.url) {
+    const r = await fetch(state[SHEET_KEY].url);
     fs.writeFileSync(SHEET, Buffer.from(await r.arrayBuffer()));
     return SHEET;
   }
@@ -225,6 +254,13 @@ async function main() {
       const pageUrl = await upload(await captionPage(art, page.words), `storybook/marla/pages/p${stamp}-${TAG}.webp`, 'image/webp');
       bucket()[n] = { n, prompt, scene: sceneFor(n), artUrl, pageUrl, cards: names, at: Date.now() };
       saveState();
+      // FILE IT THE MOMENT IT EXISTS — never inside repoint(). Filing used to
+      // live in repoint() only, so `--sample` ("draw, don't touch the book")
+      // silently also meant "don't show her the pictures": 18 of 22 sampled
+      // pages never reached the Assets tab and she reported them missing. A
+      // sample is precisely the thing she needs to SEE, and the caption sweep
+      // cannot catch this — it only inspects images already in the tab.
+      await fileAsset(n, bucket()[n]);
       console.log(`   ✓ ${pageUrl}`);
     } catch (e) {
       console.log(`   FAILED: ${e.message}${e.refusal ? ' (safety refusal — not retried)' : ''}`);
@@ -232,6 +268,32 @@ async function main() {
   }
   if (sample) { console.log('\n--sample: the book is untouched.'); return; }
   await repoint(only);
+}
+
+// Label + caption + exact prompt for one drawn page, in the Assets tab.
+// Called from the draw loop so a --sample run is just as visible as a real one.
+async function fileAsset(n, v) {
+  const page = plan.pages.find((p) => p.n === n);
+  const w = (page?.words || '').replace(/\s+/g, ' ').trim();
+  const short = w.length > 56 ? w.slice(0, 56).replace(/[\s,;:.—-]+\S*$/, '') + '…' : w;
+  const style = v.prompt.replace(`Draw: ${v.scene}`, 'Draw: [content]')
+    + '\n\nAttached: refs/sage-sandy-mirror.png as the style reference'
+    + (v.cards.length ? `, then the ${v.cards.join(' and ')} character card${v.cards.length > 1 ? 's' : ''} (Marla is the ${TAG} three-view sheet)` : '')
+    + '. gpt-image-2 edits, size 1024x1536, quality medium.';
+  try {
+    await fetch(`${BASE}/api/gallery`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assetsOnly: true, chat: CHAT, url: v.pageUrl,
+        description: `Page ${n} — ${short}`, prompt: 'gpt-image-2 · medium' }),
+    });
+    await fetch(`${BASE}/api/gallery/assets/prompt`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat: CHAT, url: v.pageUrl, style, content: v.scene }),
+    });
+  } catch (e) {
+    // A filing failure must be LOUD — an unfiled picture is one she never sees.
+    console.log(`   ! page ${n} drew but did not file: ${e.message}`);
+  }
 }
 
 // Repoint each page's EXISTING creation doc at the v2 image, so the book stays
@@ -258,22 +320,9 @@ async function repoint(nums) {
       body: JSON.stringify({ assetsOnly: true, chat: CHAT, url: v1Url,
         description: `Page ${n} v1 — superseded`, prompt: 'gpt-image-2 · medium' }),
     });
-    const page = plan.pages.find((p) => p.n === n);
-    const w = page.words.replace(/\s+/g, ' ').trim();
-    const short = w.length > 56 ? w.slice(0, 56).replace(/[\s,;:.—-]+\S*$/, '') + '…' : w;
-    await fetch(`${BASE}/api/gallery`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ assetsOnly: true, chat: CHAT, url: v2.pageUrl,
-        description: `Page ${n} ${TAG} — ${short}`, prompt: 'gpt-image-2 · medium' }),
-    });
-    const style = v2.prompt.replace(`Draw: ${v2.scene}`, 'Draw: [content]')
-      + '\n\nAttached: refs/sage-sandy-mirror.png as the style reference'
-      + (v2.cards.length ? `, then the ${v2.cards.join(' and ')} character card${v2.cards.length > 1 ? 's' : ''} (Marla is the ${TAG} three-view sheet)` : '')
-      + '. gpt-image-2 edits, size 1024x1536, quality medium.';
-    await fetch(`${BASE}/api/gallery/assets/prompt`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat: CHAT, url: v2.pageUrl, style, content: v2.scene }),
-    });
+    // Idempotent — the draw loop already filed it; this covers a repoint of
+    // pages drawn by an older run.
+    await fileAsset(n, v2);
     moved++;
   }
   console.log(`\nrepointed ${moved} page(s); the book is still ${snap.size} pages.`);
