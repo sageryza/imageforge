@@ -61,6 +61,53 @@ The house rules that only bite when you are actually building a page, an iOS scr
     from the page behind it. Adopting one lifts the pill to that box's
     z-index + 1 and releasing restores its own. Test:
     `node scripts/test-pill-sheet.js`.
+  - **BUT IT DOES NOT FOLLOW THE VISUAL VIEWPORT, SO THE KEYBOARD PUSHES IT
+    OFF THE TOP OF THE SCREEN — OPEN, MEASURED 2026-09-13 (Sophie, on
+    /footage: "auto scroll bug").** iOS does not resize the LAYOUT viewport
+    when the keyboard opens — it shrinks the VISUAL one and, to reveal the
+    caret, offsets it inside the layout viewport. `position:fixed` pins to the
+    layout viewport, so the whole rail slides up out of the visible band by
+    `visualViewport.offsetTop`, top-first.
+    - **Measured off her screenshot (iPhone 13, 1170x2532, the app's
+      full-screen web view, keyboard up, a block textarea focused):** the rail
+      is intact and in its own geometry — capsule bottom edge at **92.2pt**,
+      the speed label, the back-to-top circle 123.0-160.7pt, to-the-bottom
+      169.0-206.7pt, 8pt gaps, every number the pill's own. The capsule is
+      160pt tall, so its top sits at **-67.8pt**, against the `top:max(14px,
+      env(safe-area-inset-top))` = 47pt it should have: the fixed layer is
+      **~115pt above what she can see**.
+    - **At that offset only `#vbot` is reachable** — reproduced in headless
+      Chromium at the same displacement: `#vtop` 0 of 52pt inside the band,
+      `#vmid` 3 of 52, `#vbot` 52 of 52. So ▲ and play/pause are gone and the
+      one button left is ▼, which while playing means FASTER — and her speed
+      label reads **Fastest**, the top of the ladder. Tapping the only
+      reachable button is what puts it there.
+    - **Ruled out by measurement, not by reading:** it is not page scroll and
+      not a transformed ancestor (on /footage the pill's only ancestors are
+      BODY and HTML, both `transform:none`, and its client top is 14 at
+      scrollY 0 and 14 at scrollY 600 — truly viewport-fixed); nothing hides a
+      SEGMENT (`syncPill` only ever hides the whole `.float`); it is not the
+      typing or caret work (`test-footage-typing.js` 13 passed,
+      `test-caret-keep.js` green on main); and footage wires no
+      `__scrollTap`/`__scrollToggle` at all, so no stray tap can start a
+      scroll there — its only three calls are `__scrollStop` when the player,
+      the still or the compare panel opens.
+    - **IT IS HOUSE-WIDE, NOT FOOTAGE'S.** All six pill copies carry ZERO
+      `visualViewport` handling — `pill-inject.html` (the 35 injected pages)
+      and the five baked (chats, gallery, storyroom, wall, writing), plus
+      `mkPagePill`. Every other fixed thing here that has to survive the
+      keyboard already reads `visualViewport.offsetTop`: `caretkeep.js`,
+      `stickybox.js`, `filmnote.js`, `judge.js`, `witchvideo.html`. Footage is
+      only where it bites, because it is the page where she types a long scene
+      with the keyboard up and the page scrolled.
+    - **NOT FIXED — hers to ask for.** The shape: translate `.float` by
+      `visualViewport.offsetTop`, re-applied on that viewport's `resize` and
+      `scroll`, zero wherever no offset is reported (every desktop browser,
+      and the web views that never report one), so nothing moves anywhere
+      else. `.float` already carries `transform:translateZ(0)`, so the
+      translate composes on the compositor. Seven files by the house rule
+      (`pill.py` -> regenerate -> the five baked copies -> `mkPagePill`) and a
+      test that measures the capsule against the band.
   - **NEVER hand-roll a second one.** `/chunking` carried its own circle at
     the bottom-right from before this existed — two back-to-tops, two corners,
     one job, and a round plate the icon rule has since retired.
