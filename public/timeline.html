@@ -41,6 +41,9 @@
   .srow .sn { font-size:12px; color:var(--dim); flex:0 0 auto; }
 
   /* ---- her own new story ---- */
+  /* the hand-off door is a REAL link (on her phone it opens the app on that
+     tool), so it needs the underline off to read as the button it wears */
+  a.btn { text-decoration:none; }
   .newbox { margin-top:12px; background:var(--surface); border:1px solid var(--border);
     border-radius:var(--r); padding:12px; }
   .nlab { display:block; font:700 9px/1 -apple-system,'Helvetica Neue',sans-serif;
@@ -184,6 +187,9 @@
       <button class="btn ghost" id="back">Stories</button>
       <input type="text" id="title" style="flex:1;min-width:0;margin:0">
       <span class="saved" id="saved"></span>
+    </div>
+    <div class="row" style="margin-top:2px">
+      <a class="btn ghost" id="tofoot" href="/footage" hidden>Send to Footage</a>
     </div>
     <ol class="tl" id="tl"></ol>
   </section>
@@ -386,7 +392,52 @@
     }
     var tl = $('tl');
     tl.replaceChildren.apply(tl, rows);
+    paintFoot();
   }
+
+  /* ---- SEND TO FOOTAGE: one connected part is one block (2026-09-13, Sophie:
+     "how do i copy a story to footage · each connected part its own section ·
+     lines breaks back") ----
+     The Footage page is served from this same origin, so the hand-off needs no
+     route and no doc: it is ONE localStorage key, `footage_handoff`, which that
+     page CONSUMES — reads it, applies it, removes it — and the link is a real
+     link, so on her phone it opens the app on that tool.
+
+     A UNIT IS A BLOCK. A unit is what she joined together here, so it is the
+     part that belongs in one clip; its moments ride inside it ONE TO A LINE
+     ("lines breaks back"), never run together into a paragraph. NOTHING IS
+     SENT — the star on the Footage page is still her tap, and this only fills
+     the box, so a story that needs editing over there is edited over there.
+     The button is drawn only once the story has something to send. */
+  function footBlocks() {
+    return UNITS.map(function (g) {
+      return g.map(function (id) { return ((MOM[id] || {}).text || '').trim(); })
+        .filter(Boolean).join('\n');
+    }).filter(Boolean);
+  }
+  function paintFoot() {
+    var b = $('tofoot');
+    if (!b) return;
+    b.hidden = !footBlocks().length;
+  }
+  (function () {
+    var b = $('tofoot');
+    if (!b) return;
+    b.addEventListener('click', function () {
+      var bl = footBlocks();
+      if (!bl.length) return;
+      try {
+        localStorage.setItem('footage_handoff', JSON.stringify({
+          prompt: bl[0],            // one scene is what an older Footage page reads
+          blocks: bl,
+          from: 'timeline',
+          title: $('title').value || 'A story',
+          at: Date.now(),
+        }));
+      } catch (e) {}
+      // the link goes by itself
+    });
+  })();
 
   /* ---- saving: one debounced PUT of what she owns ---- */
   var saveT = null;
