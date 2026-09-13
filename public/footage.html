@@ -147,6 +147,37 @@
      that starts at 25, so nothing was made taller and no words were pushed. */
   .promptwrap .wipeb{right:120px;display:none}
   .panel.many .promptwrap .wipeb{display:flex}
+  /* AND EACH BLOCK FOLDS ON ITS OWN — ITS OWN HEADING ROW (2026-09-13,
+     Sophie: "make each text block in footage collapsible"). Four blocks of a
+     15-second scene is four screens of prose with no way to put any of them
+     away, on the surface she writes the most in: the panel fold is
+     all-or-nothing, so reading block 4 against block 1 meant scrolling past
+     two she had already settled. THE HEADING IS THE FOLD — the whole row, not
+     a caret to hit (the chats app's part fold and judge.js's piles before it)
+     — so it is the page's own `.fold` row, chevron and all, sitting INSIDE
+     the wrap: the wrap stays the panel's direct child, which is what keeps
+     the pill-gap fitter judging one rect per block.
+     Four things not to undo. It is drawn ONLY with two or more blocks (the
+     same `.many` class the ✕ and the gold line already ride), so a one-block
+     page is byte-for-byte what it was. SHUT, THE ROW SAYS THE FIRST WORDS of
+     that block — a column of rows reading "Block 2" is a scene she has to
+     reopen to identify, and it is the same line the panel fold leads with.
+     What it hides is DISPLAY-hidden and stays in the DOM, so a folded block
+     still sends its words, still renames its slots, and reserves nothing for
+     the pill. And the gold line moves to the HEADING when the block she is in
+     is folded away, because the box that wears it is not on screen — the star
+     must never be pointing at a block with nothing on screen saying so. */
+  .promptwrap .bfold{display:none;width:100%;box-sizing:border-box;margin:0 0 4px;padding:6px 0 4px}
+  .panel.many .promptwrap .bfold{display:flex}
+  /* a BUTTON is inline-level and shrinks to fit, so the row has to be told to
+     take the block's width or the words run off the right of the phone
+     instead of ellipsizing (PHOTOGRAPHED at 390pt) */
+  .promptwrap.shut .pblock,.promptwrap.shut .boxbtn{display:none}
+  /* and the ✕'s own rule carries one class more than that one, so it needs
+     saying again at its weight — PHOTOGRAPHED as an ✕ floating alone over a
+     folded block's heading */
+  .panel.many .promptwrap.shut .wipeb{display:none}
+  .panel.many .promptwrap.active.shut .bfold{color:#b1914f}
   /* THE GAP BETWEEN TWO BLOCKS HOLDS THE JOIN — the timeline's mark in the
      gap, Lucide `fold-vertical`, the divide's opposite: the two halves pushed
      back onto one line. Its own row, a direct child of the panel, so the
@@ -942,7 +973,7 @@
   <p><b>The whole prompt area folds.</b> Tap <b>Prompt</b> at the top of the panel and the box, the references, the buttons and the star go away together &mdash; the clips come up to just under the header, which is the quickest way down to them. Shut, the row says the first words of what is in the box, and the project stays on it so you can still narrow what you are looking at. Nothing is lost: everything is still set the way you left it, and anything that puts words or a reference back opens it again.</p>
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
-  <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. Every block has the same buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing.</p>
+  <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. Every block has the same buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing. Each block gets its own heading, and <b>tapping the heading folds that block away</b> &mdash; shut it shows its first words, and it still sends them if it is the one the star is pointing at. Folds are for right now: a reload opens everything.</p>
   <p><b>All of them at once.</b> Once two blocks have words in them a second star appears beside the first, carrying what the whole batch costs. It sends every block that has words, one after another, and stops at the first refusal &mdash; the block it stopped on takes the gold line, so the refusal and the doors under it are about that one. Over $3 the first tap asks and the second sends.</p>
   <p><b>Taking one block off.</b> The &times; in a block&rsquo;s corner takes that block off; with only one block left there is no &times; and <b>clear</b> beside the star is what empties it. Either way <b>undo</b> puts it back.</p>
   <p><b>Folding the prompt.</b> The PROMPT row stays at the top of the screen while you are writing, so a long scene folds away from wherever you are rather than from the top.</p>
@@ -971,7 +1002,7 @@
        cursor into two; the second half becomes a block of its own right under
        this one, with a join mark in the gap. The star sends the block she is
        in — the one with the gold line — once there is more than one. -->
-  <div class="promptwrap active"><textarea id="prompt" class="pblock"></textarea><button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this block off" title="Take this block off — undo puts it back"></button><button type="button" id="divide" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block"></button><button type="button" id="bigprompt" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
+  <div class="promptwrap active"><button type="button" class="fold bfold" aria-expanded="true"><span class="chev"></span><span class="bflab">Block 1</span><span class="lw"></span></button><textarea id="prompt" class="pblock"></textarea><button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this block off" title="Take this block off — undo puts it back"></button><button type="button" id="divide" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block"></button><button type="button" id="bigprompt" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
 
   <button type="button" class="fold" id="reffold" aria-expanded="true" aria-controls="refs" hidden><span class="chev"></span><span id="reffoldlab">References</span></button>
   <div class="refs" id="refs"></div>
@@ -2239,6 +2270,7 @@ function markRef(i) {
 }
 function insertAtCaret(text) {
   var box = activeBox();
+  openBlock(box);
   // `||` read a caret at position 0 as "no caret" and dropped the slot at
   // the END of the box — the one place she was not looking
   var s = box.selectionStart != null ? box.selectionStart : box.value.length;
@@ -2428,6 +2460,7 @@ function castApply(ent, look) {
   if (p.empty && !p.line) { toast('Nothing on ' + (ent.name || ent.slug) + ' yet'); return; }
   refs = withMarks(p.refs, wasRefs);
   var box = activeBox();
+  openBlock(box);
   var before = box.value;
   box.value = CL.withLine(before, p.line);
   if (window.__fitBigPrompt) window.__fitBigPrompt();
@@ -2630,6 +2663,12 @@ function setActive(w) {
 // blur so a rare composition that shortened a word cannot leave a box a line
 // too tall for the rest of the session.
 function fitBox(box, growOnly) {
+  // A BOX MEASURED WHILE ITS BLOCK IS FOLDED REPORTS NOTHING — `scrollHeight`
+  // on a display:none box is 0, so a fit here would write the border's two
+  // pixels as the height and the block would come back one line tall. Every
+  // path that reopens one refits it.
+  var wrap0 = box.parentNode;
+  if (wrap0 && wrap0.classList && wrap0.classList.contains('shut')) return;
   var border = box.offsetHeight - box.clientHeight;
   if (growOnly) {
     var need = (box.scrollHeight + border) + 'px';
@@ -2643,10 +2682,64 @@ function fitBox(box, growOnly) {
   if (box.style.height !== h) box.style.height = h;
   if (lock) w.style.minHeight = '';
 }
-function fitAll() { blocks().forEach(function (w) { fitBox(w.querySelector('.pblock')); }); }
+function fitAll() {
+  blocks().forEach(function (w) { fitBox(w.querySelector('.pblock')); });
+  paintBlockHeads();
+}
+// ── A BLOCK FOLDS ON ITS OWN (2026-09-13, Sophie: "make each text block in
+// footage collapsible") ───────────────────────────────────────────────────
+// The heading row of every block IS its fold, and the state is a class on the
+// wrap — MEMORY ONLY, never localStorage: a reload opens everything, which is
+// the safe direction, and this is how she is reading the panel right now
+// rather than a setting. It survives a repaint because `paintBlocks` rebuilds
+// the rows BETWEEN the blocks and never the blocks themselves.
+function setText(el, t) { if (el && el.textContent !== t) el.textContent = t; }
+function paintBlockHead(w, n, of) {
+  var b = w.querySelector('.bfold');
+  if (!b) return;
+  var shut = w.classList.contains('shut');
+  var txt = String(w.querySelector('.pblock').value || '').replace(/\s+/g, ' ').trim();
+  b.classList.toggle('shut', shut);
+  b.setAttribute('aria-expanded', shut ? 'false' : 'true');
+  setText(b.querySelector('.bflab'), 'Block ' + n);
+  // SHUT, IT SAYS WHAT IS IN THE BLOCK; open, the words are right there —
+  // the archive summary's don't-say-it-twice rule, and the panel fold's own
+  setText(b.querySelector('.lw'), shut && txt ? '\u00b7 ' + txt : '');
+  b.title = (shut ? 'Open block ' : 'Fold away block ') + n + ' of ' + of;
+}
+function paintBlockHeads() {
+  var ws = blocks();
+  ws.forEach(function (w, i) { paintBlockHead(w, i + 1, ws.length); });
+}
+function toggleBlock(w) {
+  w.classList.toggle('shut');
+  if (!w.classList.contains('shut')) fitBox(w.querySelector('.pblock'));
+  paintBlockHeads();
+  if (window.__fitPillGap) window.__fitPillGap();
+}
+// ANYTHING THAT PUTS WORDS IN A BLOCK OPENS IT — the panel fold's own rule,
+// one block in: a slot tap, a character's line and a put-back all write into
+// the block she is standing in and then FOCUS it, and focusing a box that is
+// not on screen does nothing at all. (A slot RENAME inside words she already
+// wrote is not this, exactly as it is not on the panel fold: the toast names
+// what moved and `undo` has the whole job.)
+function openBlock(box) {
+  var w = box && box.closest ? box.closest('.promptwrap') : null;
+  if (!w || !w.classList.contains('shut')) return;
+  w.classList.remove('shut');
+  fitBox(w.querySelector('.pblock'));
+  paintBlockHeads();
+  if (window.__fitPillGap) window.__fitPillGap();
+}
 function mountBlock(w) {
   var box = w.querySelector('.pblock'), big = w.querySelector('.bigger'), div = w.querySelector('.divide');
-  var off = w.querySelector('.wipeb');
+  var off = w.querySelector('.wipeb'), head = w.querySelector('.bfold');
+  if (head) {
+    // the page fills every `.fold .chev` once at load; a block made after
+    // that fills its own
+    head.querySelector('.chev').innerHTML = ICONS.chev;
+    head.addEventListener('click', function () { toggleBlock(w); });
+  }
   var full = false;   // the next input may need the box to SHRINK
   box.addEventListener('beforeinput', function (e) {
     var t = e.inputType || '';
@@ -2676,7 +2769,8 @@ function mountBlock(w) {
 function addBlock(text, after) {
   var w = document.createElement('div');
   w.className = 'promptwrap';
-  w.innerHTML = '<textarea class="pblock" aria-label="Another block"></textarea>'
+  w.innerHTML = '<button type="button" class="fold bfold" aria-expanded="true"><span class="chev"></span><span class="bflab">Block</span><span class="lw"></span></button>'
+    + '<textarea class="pblock" aria-label="Another block"></textarea>'
     + '<button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this block off" title="Take this block off — undo puts it back"></button>'
     + '<button type="button" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block"></button>'
     + '<button type="button" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button>';
@@ -2704,6 +2798,7 @@ function paintBlocks() {
   }
   panel.classList.toggle('many', ws.length > 1);
   if (!panel.querySelector('.promptwrap.active')) setActive(ws[0]);
+  paintBlockHeads();   // the numbering moves with every divide, join and removal
   // the block COUNT is what decides whether the second star is drawn, and
   // this is the one place it changes (a divide, a join, a removal, a hand-off,
   // a draft coming back) — `paintWipe` covers the words changing under it
@@ -2722,10 +2817,21 @@ function divideBlock(box) {
   var head = all.slice(0, cut).replace(/\s+$/, ''), tail = all.slice(cut).replace(/^\s+/, '');
   if (!head || !tail) { toast('Put the cursor where the second block should start'); return false; }
   var w = box.closest('.promptwrap'), first = blocks().length === 1;
+  // THE SEAM STAYS WHERE HER EYES ARE, AND THE FIRST DIVIDE NOW COSTS HEIGHT
+  // ABOVE IT (2026-09-13). The head shrinks from the bottom, so its TOP is the
+  // anchor — and going from one block to two turns the panel `.many`, which
+  // draws this block's own heading row above the box: 27px of content that
+  // was not there, which slides the seam down the screen. Measured before and
+  // after and given back, so the words she is looking at do not move. (The
+  // caret keeper was papering over it a frame later, close enough to read as
+  // still and never exact.)
+  var top0 = box.getBoundingClientRect().top;
   box.value = head;
   addBlock(tail, w);
   setActive(w);
   fitAll(); saveDraft();
+  var top1 = box.getBoundingClientRect().top;
+  if (Math.abs(top1 - top0) > 1) window.scrollBy(0, top1 - top0);
   if (first) toast('Two blocks — the star sends the one with the gold line');
   return true;
 }
@@ -2758,6 +2864,10 @@ function dropBlock(box) {
   var moved = w.classList.contains('active'), gone;
   if (i === 0) {
     box.value = ws[1].querySelector('.pblock').value;
+    // HER WORDS MOVE INTO THIS NODE, so the fold they were under moves with
+    // them — otherwise taking off a folded first block hands her block 2's
+    // words wearing block 1's open state, or hides them under its fold
+    w.classList.toggle('shut', ws[1].classList.contains('shut'));
     gone = ws[1];
     if (gone.classList.contains('active')) moved = true;   // her words are in this node now
   } else {
@@ -2781,6 +2891,8 @@ function joinAt(row) {
   // star's target to block 1 — the star then sends a block she is not in,
   // which is the one thing the gold line exists to say.
   var mine = above === activeWrap() || below === activeWrap();
+  // words from a block she could see landing in one she folded away → open it
+  if (!below.classList.contains('shut')) above.classList.remove('shut');
   below.remove(); row.remove();
   if (mine) setActive(above);
   paintBlocks(); fitAll(); saveDraft();
@@ -2794,6 +2906,9 @@ function joinAt(row) {
 // go on reading it.
 function setBlocks(list) {
   blocks().slice(1).forEach(function (w) { w.remove(); });
+  // the first block is the SAME node every time, so a fold left on it would
+  // hide the first scene of a hand-off, a put-back or a restored draft
+  blocks()[0].classList.remove('shut');
   $('prompt').value = list[0] || '';
   for (var i = 1; i < list.length; i++) addBlock(list[i]);
   setActive(blocks()[0]);
