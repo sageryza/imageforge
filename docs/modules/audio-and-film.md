@@ -680,11 +680,59 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         sat under every keystroke in a tall big box, where caretkeep pulled
         the caret back a frame later, so it read as a flicker.
       - **NOTHING IS SENT BY DIVIDING, NOTHING IS LOST BY JOINING** (the join
-        is the two texts with a blank line between), and there is no ✕ on a
-        block on purpose — emptying it and joining is the way to lose one.
-        A caret at either end divides nothing and says so. A belt hand-off is
+        is the two texts with a blank line between). A block DOES have a ✕ of
+        its own since 2026-09-13 (the audit), so the line that used to sit
+        here saying it never would is history. A caret at either end divides
+        nothing and says so. A belt hand-off is
         one scene, so it is one block again. The draft keeps `prompt` as the
         first block for an older cached page and the rest under `blocks`.
+      - **AND EACH BLOCK FOLDS ON ITS OWN — ITS OWN HEADING ROW (2026-09-13,
+        Sophie: "make each text block in footage collapsible").** Four blocks
+        of a 15-second scene is four screens of prose with no way to put any
+        of them away, and the panel fold is all-or-nothing — so reading block
+        4 against block 1 meant scrolling past two she had already settled.
+        **THE HEADING IS THE FOLD** — the whole row, not a caret to hit (the
+        chats app's part fold and judge.js's piles before it) — so it is the
+        page's own `.fold` row, chevron and all, sitting INSIDE the wrap: the
+        wrap stays the panel's direct child, which is what keeps the pill-gap
+        fitter judging one rect per block. Seven things not to undo:
+        it is drawn **only with two or more blocks** (the same `.many` class
+        the ✕ and the gold line already ride), so a one-block page is
+        byte-for-byte what it was; **shut, the row says that block's first
+        words** (a column of rows reading "Block 2" is a scene she has to
+        reopen to identify — the panel fold's own line) and open it says
+        nothing, since the words are right there; what it hides is
+        **DISPLAY-hidden and stays in the DOM**, so a folded block still
+        sends its words, still renames its slots and reserves nothing for the
+        pill; the **gold line moves to the heading** when the block she is in
+        is folded away, because the box that wears it is not on screen and the
+        star must never point at a block with nothing on screen saying so;
+        **anything that puts words in a block OPENS it** (a slot tap, a
+        character's line, a put-back, a hand-off — each writes into the block
+        and then FOCUSES it, and focusing a box that is not on screen does
+        nothing at all; a slot RENAME inside words she already wrote is not
+        this, exactly as it is not on the panel fold); it is **MEMORY, never
+        localStorage** — a reload opens everything, the safe direction, and
+        this is how she is reading the panel right now rather than a setting;
+        and **a box is never fitted while it is folded** (`scrollHeight` on a
+        `display:none` box is 0, so it would come back one line tall — every
+        path that reopens one refits it). **THE FIRST DIVIDE NOW COSTS HEIGHT
+        ABOVE THE SEAM** — it turns the panel `.many` and draws that block's
+        heading above the box — so `divideBlock` measures the head box's top
+        before and after and gives the difference back, which is what keeps
+        the seam exactly where her eyes are (the caret keeper was papering
+        over it a frame later, close enough to read as still and never
+        exact). PHOTOGRAPHED, and it caught both real bugs: a `<button>` is
+        inline-level and shrinks to fit, so the shut row ran off the right of
+        the phone instead of ellipsizing, and the ✕'s own rule carries one
+        class more than the blanket hide, so it floated alone over a folded
+        block's heading. Test:
+        `node scripts/test-footage-block-fold.js` (every assertion a
+        MEASUREMENT — a heading that folds nothing, a fold whose CSS never
+        landed, a block that comes back one line tall, a folded block whose
+        words silently stop being sent, and a heading drawn on a one-block
+        page all look identical in the source; it CRASHES against the pre-fix
+        page, where there is no heading at all).
       - **A BLOCK IS A DIRECT CHILD OF THE PANEL**, never inside a wrapper,
         or the pill-gap fitter would shorten every block for a pill only the
         first one touches. `#prompt` / `#bigprompt` stay on the first block,
@@ -692,8 +740,10 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         always did. Test: `node scripts/test-footage-divide.js` (every
         assertion a MEASUREMENT — the icon with no words, the two buttons
         pinned side by side and both tappable, the ring's real colour, what
-        the stub really received from the star, the page NOT moving on a
-        pinned divide, the slot renamed in the second block).
+        the stub really received from the star, the SEAM not moving on a
+        pinned divide — the head box's own top on the glass, since the head
+        shrinks from the bottom and setting `.value` drops the caret to 0 —
+        the slot renamed in the second block).
     - **WHAT CHANGED — THE COMPARE PANEL (2026-09-11, Sophie: "is there an
       easy way I can diff video clips like I can't remember what I changed for
       example sometimes it's a single line or a reference for the model the

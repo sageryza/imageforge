@@ -8413,9 +8413,21 @@ before working on that module. Nothing was deleted — the moved text is verbati
   scene and collapses to one block (**since 2026-09-13 one naming them lands
   as several — see the next paragraph**); the draft keeps `prompt` as the first block for an
   older page and the rest under `blocks`; a block is a direct child of the
-  panel or the pill-gap fitter would shorten them all. Full note: *DIVIDE
-  HERE* in `docs/modules/audio-and-film.md`; test
-  `node scripts/test-footage-divide.js`.
+  panel or the pill-gap fitter would shorten them all.
+  **AND EACH BLOCK FOLDS ON ITS OWN (2026-09-13, Sophie: "make each text block
+  in footage collapsible")** — a heading row per block, drawn only with two or
+  more, and THE HEADING IS THE FOLD (the chats part-fold's rule). Shut it says
+  that block's first words and its box is DISPLAY-hidden, so a folded block
+  still sends its words and still renames its slots; the gold line moves to
+  the heading when the block she is in is folded away; anything that puts
+  words in a block OPENS it; and it is MEMORY, never localStorage — a reload
+  opens everything. A box is never fitted while it is folded (`scrollHeight`
+  on a `display:none` box is 0, so it would come back one line tall), and the
+  first divide gives back the height its own heading adds above the seam.
+  Full note: *DIVIDE
+  HERE* in `docs/modules/audio-and-film.md`; tests
+  `node scripts/test-footage-divide.js` and
+  `node scripts/test-footage-block-fold.js`.
   **AND A STORY TIMELINE STORY COPIES OVER, ONE CONNECTED PART PER BLOCK
   (2026-09-13, Sophie: "how do i copy a story to footage · each connected part
   its own section · lines breaks back").** A **Send to Footage** link on an open
