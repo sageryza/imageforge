@@ -41,8 +41,16 @@ const answer = (drawing, cutting) => ({ ok: true, json: async () => ({ drawing, 
   t = 0; posts.length = 0;
   r = await waitForClear({ fetch: rec(() => false), wait, now, log: quiet });
   is(r.ok && r.paused === true, true, 'a clean box is paused before the deploy goes on');
-  is(posts.length === 1 && posts[0].on === true && posts[0].seconds > 60, true, 'one pause POST, on, long enough for the swap');
+  is(posts.length === 2 && posts.every((p) => p.on === true && p.seconds > 60), true, 'two pause POSTs, both on, long enough for the swap');
   is(typeof posts[0].note === 'string' && posts[0].note.length > 10, true, 'the pause carries an explanatory note');
+  // THE DEPLOY FLAG IS THE PUSH, AND IT RIDES THE SECOND ONE ONLY (2026-09-13,
+  // Sophie: "can i get a notification when deploy starts and ends"). The first
+  // pause is provisional — the re-read after it can still send the guard back
+  // to waiting — so buzzing her there would buzz her for a deploy that has not
+  // gone. Only the re-affirm, after the box has proved clean twice, carries it.
+  is(posts[0].deploy === false, true, 'the provisional pause does NOT buzz her');
+  is(posts[1].deploy === true, true, 'the re-affirm once the swap is going does');
+  is(r.buzzed === true, true, 'and the guard reports that it buzzed');
   // a tap lands between the read and the pause: lifted, and the wait resumes
   t = 0; posts.length = 0; let reads = 0;
   r = await waitForClear({ fetch: async (url, opts) => {
@@ -52,11 +60,14 @@ const answer = (drawing, cutting) => ({ ok: true, json: async () => ({ drawing, 
     return answer(reads === 2 ? ['sneaky'] : [], []);
   }, wait, now, tickMs: 1000, log: quiet });
   is(r.ok, true, 'a draw that snuck in is waited out');
-  is(posts.map((p) => p.on).join(','), 'true,false,true', 'pause → lifted for the sneak → paused again before letting go');
+  is(posts.map((p) => p.on).join(','), 'true,false,true,true', 'pause → lifted for the sneak → paused → re-affirmed before letting go');
+  // the run that was called off must not have buzzed her
+  is(posts.filter((p) => p.deploy).length === 1, true, 'a sneak-in deploy buzzes her ONCE, at the end');
   // refused at the cap: the pause is lifted
   t = 0; posts.length = 0;
   r = await waitForClear({ fetch: rec(() => true), wait, now, tickMs: 10000, capMs: 60000, log: quiet });
   is(r.ok === false && posts.length === 1 && posts[0].on === false, true, 'a refused deploy lifts any pause');
+  is(posts.some((p) => p.deploy), false, 'and a refused deploy never buzzes her');
   // the pause route missing (old server): the deploy still goes on, honestly marked
   t = 0;
   r = await waitForClear({ fetch: async (url) => (/\/pause$/.test(url) ? { ok: false, status: 404 } : answer([], [])), wait, now, log: quiet });
