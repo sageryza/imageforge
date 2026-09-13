@@ -1555,6 +1555,21 @@ $('project').addEventListener('change', function () {
   else setFolder(f);
 });
 var jobsById = {};
+// A CLIP SHE JUST SENT IS NEVER FILTERED AWAY (2026-09-13, found auditing the
+// page). The search's `qHits` is a set of ids the SERVER answered with, so a
+// clip that did not exist when it answered can never be in it — send one with
+// a search standing and the card was posted, charged and drawn while the feed
+// showed only the old hits: nothing on screen said a job had started, which is
+// how a clip gets paid for twice. The mark filters and the funnel do it too (a
+// brand-new clip has no ♥, and its model may not be the one she is filtering
+// on). So a clip THIS PAGE sent rides through them until she next moves the
+// view — any change to the search or a filter is her re-deciding what the list
+// is, and from then on it obeys like everything else. The PROJECT and the
+// folder still apply: the card carries the ones it was sent under, so it
+// passes them by construction, and a clip must never appear in another
+// project's feed.
+var justSent = {};
+function forgetSent() { justSent = {}; }
 // the feed's walk back past its first page — see loadOlder
 var feedMore = false, olderAt = null, loadingOlder = false;
 var pollT = null;
@@ -3061,8 +3076,17 @@ function postJob(pin, box, text) {
       sentAt: new Date().toISOString(), note: d.note || '', video: '', poster: '', vote: '' });
     // AN APPENDED SEND SAYS SO — "block 1" over a clip carrying all three
     // would be the toast lying about which words went.
-    toast(text != null ? 'Drawing all ' + wordyBlocks().length + ' blocks as one clip…'
-      : (blocks().length > 1 ? 'Drawing block ' + (blocks().indexOf(box.closest('.promptwrap')) + 1) + '…' : 'Drawing…'));
+    // and it is never filtered away while she waits for it (`justSent`), which
+    // is SAID rather than done quietly: a card sitting in a feed her own
+    // search says nothing matches would otherwise read as the filter broken
+    var card = jobsById[d.jobId] || {};
+    var hid = !(passesSearch(card) && passesFilt(card))
+      || (likedOnly() && card.vote !== 'like') || (hideX() && card.vote === 'dislike');
+    justSent[d.jobId] = 1;
+    applyFilt();
+    toast((text != null ? 'Drawing all ' + wordyBlocks().length + ' blocks as one clip…'
+      : (blocks().length > 1 ? 'Drawing block ' + (blocks().indexOf(box.closest('.promptwrap')) + 1) + '…' : 'Drawing…'))
+      + (hid ? ' · shown here though it is outside your search' : ''));
     // her words STAY in the box after a send (a re-roll is one tap), and so
     // does the draft — it used to be wiped here while the box still showed
     // the words, so a reload right after a send opened on an empty box
@@ -3152,13 +3176,14 @@ function paintFilt() {
 // WHICH CLIPS SHOW — one predicate, read by both views, so the wall and the
 // list can never disagree about what a filter means.
 function shown(j) {
-  return !j.hidden && !(likedOnly() && j.vote !== 'like') && !(hideX() && j.vote === 'dislike')
+  var mine = !!justSent[j.id];          // sent from this page since she last moved the view
+  return !j.hidden && (mine || (!(likedOnly() && j.vote !== 'like') && !(hideX() && j.vote === 'dislike')))
     // a TUCKED project is left out of All — the server already filters the
     // read, and this keeps a card a poll lands off both views too
     && !(!S.project && !searchQ && tucked(j.project || ''))
     && !(S.project && (j.project || '') !== S.project)
     && !(S.project && S.folder && (j.folder || '') !== S.folder)
-    && passesSearch(j) && passesFilt(j);
+    && (mine || (passesSearch(j) && passesFilt(j)));
 }
 function applyFilt() {
   var tiles = curView() === 'tiles', any = false;
@@ -3231,8 +3256,8 @@ function applyFilt() {
     : fw ? 'Nothing that recent.'
     : hideX() ? 'Everything here is crossed out.' : 'Nothing to show here.';
 }
-$('v-liked').addEventListener('click', function () { try { localStorage.setItem('footage_liked', likedOnly() ? '' : '1'); } catch (e) {} paintFilt(); applyFilt(); });
-$('v-hidex').addEventListener('click', function () { try { localStorage.setItem('footage_hidex', hideX() ? '' : '1'); } catch (e) {} paintFilt(); applyFilt(); });
+$('v-liked').addEventListener('click', function () { try { localStorage.setItem('footage_liked', likedOnly() ? '' : '1'); } catch (e) {} forgetSent(); paintFilt(); applyFilt(); });
+$('v-hidex').addEventListener('click', function () { try { localStorage.setItem('footage_hidex', hideX() ? '' : '1'); } catch (e) {} forgetSent(); paintFilt(); applyFilt(); });
 
 // ── THE SEARCH (2026-09-11, Sophie: "add a search button and filter like
 // playground" · "single magnifying glass button that expands" · "yea
@@ -3289,6 +3314,7 @@ function readSearch() {
   var box = $('q');
   searchQ = (box.value || '').trim();
   qGroups = qparse(searchQ);
+  forgetSent();                                          // she is re-deciding what the list is
   $('qclear').hidden = !searchQ;
   box.classList.toggle('hasq', !!box.value);            // the ✕'s padding, only while it shows
   qHits = null;                                          // the loaded feed answers meanwhile
@@ -3354,7 +3380,7 @@ var FILT = SF ? SF.build($('feedfilters'), [
   { key: 'when', kind: 'chips', label: SF.WHEN.label, vals: SF.WHEN.vals, words: SF.WHEN.words,
     get: function () { try { return localStorage.getItem('footage_filt_when') || ''; } catch (e) { return ''; } },
     set: function (v) { try { localStorage.setItem('footage_filt_when', v || ''); } catch (e) {} } },
-], function () { paintFeed(); paintSearchBtn(); }, { label: 'Filters' }) : null;
+], function () { forgetSent(); paintFeed(); paintSearchBtn(); }, { label: 'Filters' }) : null;
 paintSearchBtn();
 function passesFilt(j) {
   if (!FILT) return true;

@@ -5032,13 +5032,37 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     the others back but never re-names the returning picture. Tests:
     `node scripts/test-footage-blocks-audit.js` (55 checks; it CRASHES against
     the pre-fix page, where `#goall` does not exist).
+    **AND A CLIP SHE JUST SENT IS NEVER FILTERED AWAY (2026-09-13, found on her
+    "check for more bugs").** The search's `qHits` is a set of ids the SERVER
+    answered with, so a clip that did not exist when it answered can never be
+    in it: with a search standing, a send was posted, charged and drawn while
+    the feed went on showing only the old hits — **nothing on screen said a job
+    had started**, which is how a clip gets paid for twice. The ♥/✕ marks and
+    the funnel do it too (a brand-new clip has no vote, and its model may not be
+    the one she is filtering on). A clip THIS PAGE sent now rides through the
+    search, the marks and the funnel until she next MOVES the view — any change
+    to the search or a filter is her re-deciding what the list is, and from then
+    on it obeys like everything else. The PROJECT and the folder still apply:
+    the card carries the ones it was sent under, so it passes them by
+    construction, and a clip must never show in another project's feed. And it
+    is **SAID, not done quietly** — the toast adds "shown here though it is
+    outside your search", since a card in a feed her own search says nothing
+    matches would otherwise read as the filter broken. Test:
+    `node scripts/test-footage-just-sent.js` (verified failing 4 pre-fix).
     **AND `test-footage.js` IS FLAKY — MEASURED, so do not read one red run as
     a regression (2026-09-13).** Run on clean main it failed one assertion
     twice and passed twice, and the failing assertion DIFFERED between runs
     ("picking the ward re-asks the feed FOR the ward", "bare words AND a
     -\"phrase\" take one clip out"). Re-run before diagnosing anything, and
     check whether the same assertion fails twice. Which of its 424 is timing-
-    dependent is unfound.
+    dependent is unfound. **The MECHANISM is found (2026-09-13), even if the
+    exact set is not: the search and project assertions wait with
+    `waitForFunction` on a COUNT of visible cards, which is true for a moment
+    of the CLIENT-filtered view — and the server's own answer over the whole
+    log (the older pool included) lands a beat later and can change the set, so
+    the read after the wait catches whichever state it finds. A wait that
+    settles on the server's answer rather than on a transient count is the
+    fix; not done here.**
   - **AN ORDINARY KEYSTROKE IN THAT BOX TOUCHES NO STYLE (2026-09-12, Sophie:
     "every other character moves textbox").** Two things ran on every
     character with nothing on screen changing: `fitBox` rewrote the focused
