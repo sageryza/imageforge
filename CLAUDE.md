@@ -10645,11 +10645,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
   can put in order. It started as one Compare page for one story (Aug 2026) and
   became a tool when she asked for it "for other stories". **It costs nothing —
   no model call, no background job**, so opening it and saving are both free.
-  **CHATS FILL THE SHELF — the page only lists and arranges (Aug 2026 v2,
-  Sophie: "it's for chats to fill themselves… I just wanna see a list of
-  stories and I can click on one and the chats will fill the stories").** The
-  page shipped first with a name box + paste box and she cut them: nothing on
-  `/timeline` creates a story. **When Sophie dictates a story's moments to
+  **CHATS FILL THE SHELF — AND SINCE 2026-09-13 SHE CAN START ONE HERSELF
+  (Sophie: "make it possible to add my own new story to story timeline").** The
+  shelf leads with a **New story** button: a name, and her moments one to a
+  line if she already has them. Three things not to undo: it goes through the
+  SAME `POST /stories` a chat uses, so her paste runs through the one parser
+  (`parseStory` — an ALL-CAPS line opens a sequence) and nothing new can drift
+  from it; **both boxes ship EMPTY** (the house rule) with the two labels above
+  them saying what goes in; and **the moments box is optional** — empty makes
+  an empty story, which opens saying "Empty — tap + to write the first moment",
+  since the gap's `+` is a 15px mark on an otherwise blank screen. Her 2026-08
+  word still stands for everything else — "it's for chats to fill themselves… I
+  just wanna see a list of stories and I can click on one and the chats will
+  fill the stories" — so the shelf is still a list, and a chat filing a
+  dictation for her is still the main door. **When Sophie dictates a story's moments to
   YOU, filing it is YOUR job**: `POST /api/timeline/stories { title, text }`
   (text = her dictation, one moment per line — the parser strips her numbers,
   takes wrapping quotes off, and turns her ALL-CAPS headers into sequences;
