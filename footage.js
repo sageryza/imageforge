@@ -1688,6 +1688,58 @@ router.get('/jobs', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── THE POSTER SHEET'S FACES (2026-09-13, Sophie: "i like poster" · "more per
+// row so all fit") ────────────────────────────────────────────────────────
+// The picker is a sheet of poster TILES now, so every project and every
+// folder needs a face and a count — and the page can derive neither: its feed
+// is narrowed to the one project she is standing in, so it holds no clip from
+// anywhere else. `shelfOf` is one pass over the same collection the /jobs read
+// already walks, answered on its own route and asked when the SHEET OPENS
+// rather than on the feed poll (17 urls on every poll is payload for nothing).
+// Four rules, each about the tile not lying:
+//   · THE FACE IS THE NEWEST CLIP THAT REALLY DREW — a poster exists only on a
+//     finished one — so a folder's tile is the last thing she made in it.
+//   · A HIDDEN CLIP FACES NOTHING AND IS COUNTED BY NOBODY: `hidden` is this
+//     page's delete, and a tile wearing a clip she put away is the sheet
+//     showing her something the feed will not.
+//   · A PROJECT COUNTS EVERY CLIP IN IT, its folders included — the tile is
+//     the door to the whole project, which is what picking it does.
+//   · A FOLDER WITH NO FINISHED CLIP still gets a tile and a count, with no
+//     face: the Assets tab's silence rule — an empty square says "nothing has
+//     drawn in here yet", where another folder's picture would be a lie.
+function shelfOf(rows) {
+  const out = {};
+  const bump = (k, d) => {
+    const e = out[k] || (out[k] = { n: 0, poster: '', at: '' });
+    e.n += 1;
+    const at = String(d.sentAt || ''), poster = String(d.poster || '');
+    if (poster && at >= e.at) { e.at = at; e.poster = poster; }
+  };
+  rows.forEach(({ d }) => {
+    if (d.hidden) return;
+    const p = projectSlug(d.project);
+    if (!p) return;
+    bump(p, d);
+    const f = folderSlug(d.folder);
+    if (f) bump(p + '/' + f, d);
+  });
+  Object.values(out).forEach((e) => { delete e.at; });
+  return out;
+}
+const SHELF_MS = 60 * 1000;
+let shelfCache = { at: 0, out: null };
+router.get('/shelf', async (req, res) => {
+  try {
+    if (!shelfCache.out || Date.now() - shelfCache.at > SHELF_MS || req.query.fresh) {
+      const snap = await coll().get();
+      const rows = snap.docs.map((d) => ({ id: d.id, d: d.data() }));
+      shelfCache = { at: Date.now(), out: { shelf: shelfOf(rows), folders: foldersOf(rows) } };
+    }
+    res.set('Cache-Control', 'no-store');
+    res.json({ ok: true, ...shelfCache.out });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // GET /jobs/:id/kin — THE CLIP BEFORE THIS ONE for the compare panel: the
 // nearest OLDER clip in the same project whose prompt is a near-twin of this
 // one (clip-diff.js's kinOf, the ONE rule the page runs over what it holds).
@@ -1832,6 +1884,6 @@ module.exports = {
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf, atlasCacheBust,
   drawStats, drawTimeFor, drawTimeFrom, drawKeyOf, medianOf,
   startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf,
-  pageJobs, hayOf, foldersOf, folderSlug, statusOf, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
+  pageJobs, hayOf, foldersOf, shelfOf, folderSlug, statusOf, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
   framePlan, framePath, pullFrame, grabFrame, FRAME_FOLDER, FRAME_END_PAD,
 };

@@ -57,23 +57,26 @@
   .selwrap .chev svg{width:13px;height:13px;display:block}
   /* THE PROJECT PICKER IS A FOLDER ICON (2026-09-11, Sophie: "make the drop
      down a folder icon · the name of the current folder replaces footage in
-     the header"). Still a real <select> — the native picker is the right
-     control on her phone — drawn as a 34px rounded square with the folder
-     glyph over it and its own text hidden; the header carries the name. Lit
-     (ink) while a project is picked, so a narrowed feed is never silent. The
-     list itself keeps its ink: `option` does not inherit a transparent color
-     on the desktop list. */
-  .iconsel select{width:34px;padding:0;color:transparent;text-shadow:none}
-  .iconsel select option{color:#2b2620}
-  .iconsel .ico{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:#2b2620}
-  .iconsel .ico svg{width:18px;height:18px;display:block}
-  .iconsel.on select{background:#2b2620;border-color:#2b2620}
-  .iconsel.on .ico{color:#f6f2ea}
-  /* ON THE FEED BAR IT IS ITS NEIGHBOURS' SIZE, MEASURED — the heart, the ✕
+     the header"), and since 2026-09-13 it OPENS THE POSTER SHEET rather than
+     a native <select> ("i like poster"): every folder here already has a
+     picture — the last clip drawn in it — and a list threw that away. The
+     button keeps the box it always had: a rounded square with the folder
+     glyph, lit (ink) while a project is picked so a narrowed feed is never
+     silent. The card's own move menu is STILL a <select> (`viewRows` /
+     `fillSel`), deliberately: moving one clip is a one-tap decision, not a
+     shelf to look at.
+     ON THE FEED BAR IT IS ITS NEIGHBOURS' SIZE, MEASURED — the heart, the ✕
      and the glass are 34x32 inside their own boxes, and a 34-tall picker
      beside them makes the whole row 2px taller than every other hairline row
      on the page. */
-  .feedbar > .iconsel select{height:32px}
+  .iconbtn{position:relative;width:34px;height:34px;padding:0;margin:0;flex:none;
+        border:1px solid #d8cfc0;border-radius:6px;background:#fdfbf7;color:#2b2620;
+        display:inline-flex;align-items:center;justify-content:center}
+  .iconbtn .ico{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:#2b2620}
+  .iconbtn .ico svg{width:18px;height:18px;display:block}
+  .iconbtn.on{background:#2b2620;border-color:#2b2620}
+  .iconbtn.on .ico{color:#f6f2ea}
+  .feedbar > .iconbtn{height:32px}
   /* An icon button is a rounded SQUARE at the house 6px, never a circle. */
   .ib{width:34px;height:34px;padding:0;display:inline-flex;align-items:center;justify-content:center;
       background:#fdfbf7;color:#2b2620;flex:none}
@@ -776,6 +779,56 @@
      picture and never over it. The stage yields (flex:1, min-height:0) and the
      bar keeps its height, so a tall clip shrinks rather than pushing the
      controls off the bottom of the screen. */
+  /* ── THE FOLDER SHEET (2026-09-13, Sophie: "i like poster" · "more per row
+     so all fit") ───────────────────────────────────────────────────────────
+     The picker was a <select> drawn as a folder icon, and its rows were a
+     LIST — which is the one thing a shelf of films should not be, since every
+     folder here already has a picture: the last clip drawn in it. Now the
+     icon opens a sheet of poster tiles.
+       · FIVE ACROSS is her pick, and it is the FLOOR, not the number: the
+         sheet WIDENS itself (6, 7, 8) when five would push a row off the
+         bottom, so "all fit" stays true as folders pile up and this never
+         needs choosing again. Measured at 390x844 before the widening: five
+         across holds 34 folders, six 41.
+       · IT NEVER NARROWS below five — a two-folder project would otherwise
+         draw two enormous tiles and the sheet would look like a different
+         screen every time she opened it.
+       · TWO LEVELS: the films, then one film's folders. A project with
+         folders DESCENDS on a tap (its own "Everything" tile at level 2 is
+         how the whole project is picked); one without simply picks.
+       · The grid scrolls if it ever has to — the widening is a preference,
+         not a cage, and a sheet that hid a folder to keep one screen would
+         be the picker lying about what exists. */
+  #shelf{position:fixed;inset:0;z-index:80;background:#f6f2ea;display:flex;flex-direction:column}
+  #shelf .shhead{flex:0 0 auto;display:flex;align-items:center;gap:8px;
+    padding:calc(env(safe-area-inset-top,0px) + 10px) 12px 10px;border-bottom:1px solid #e6ded0}
+  #shelf .shhead b{font-size:13.5px;letter-spacing:.01em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #shelf .shhead .sp{flex:1}
+  #shelf .shbtn{width:30px;height:30px;border:1px solid #ded5c5;border-radius:6px;background:#fdfbf7;
+    color:#2b2620;display:flex;align-items:center;justify-content:center;padding:0;flex:none}
+  #shelf .shbtn svg{width:15px;height:15px;display:block}
+  /* the tuck control is a WORD, never a boxed button: it is a state of the
+     film she is inside, not an action on the sheet (the house inline-opener
+     paint) */
+  #shelf .shtuck{border:0;background:none;padding:0;color:#6b6152;font-size:11.5px;
+    text-decoration:underline;text-underline-offset:2px;flex:none}
+  #shelf .shgrid{flex:1;min-height:0;overflow-y:auto;display:grid;
+    grid-template-columns:repeat(var(--c,5),minmax(0,1fr));gap:10px 7px;align-content:start;
+    padding:11px 11px calc(env(safe-area-inset-bottom,0px) + 16px)}
+  #shelf .shtile{margin:0;padding:0;border:0;background:none;position:relative;text-align:center;color:#2b2620}
+  #shelf .shface{display:block;width:100%;aspect-ratio:1/1;border-radius:6px;overflow:hidden;background:#e6ded0}
+  #shelf .shface img{display:block;width:100%;height:100%;object-fit:cover}
+  #shelf .shtile i{display:block;font-style:normal;font-size:9.5px;line-height:1.2;margin-top:3px;
+    overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  #shelf .shtile b{position:absolute;top:3px;right:3px;z-index:2;background:rgba(38,34,28,.78);
+    color:#f6f2ea;font-size:9px;font-weight:600;line-height:1;padding:2.5px 4px;border-radius:5px}
+  /* a folder nothing has finished drawing in shows an EMPTY square, never
+     another folder's picture (the Assets tab's silence rule) */
+  #shelf .shtile.dash .shface{background:none;border:1px dashed #c9bfad;display:flex;
+    align-items:center;justify-content:center;color:#8a8071;font-size:11px}
+  #shelf .shtile.dash .shface svg{width:16px;height:16px}
+  #shelf .shtile.on .shface{outline:2px solid #2b2620;outline-offset:1px}
+  #shelf .shtile.on i{font-weight:600}
   #player{position:fixed;inset:0;background:rgba(20,17,14,.94);z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center}
   /* THE PICTURE SITS ON THE MARKS (measured 2026-09-10, PHOTOgraphed at
      390x844): centred in the stage it left ~270px of dead dimmed page between
@@ -1140,7 +1193,7 @@
        folded away from the feed it is filtering. Its lit dark box is the
        LIST segment's own fill, so a narrowed feed says so on the row that
        narrowed it. -->
-  <span class="selwrap iconsel" id="projwrap"><select id="project" aria-label="Project and folder" title="Project and folder"></select><span class="ico"></span></span>
+  <button type="button" class="iconbtn" id="projwrap" aria-label="Projects and folders" title="Projects and folders" aria-haspopup="dialog"><span class="ico"></span></button>
   <div id="feedfilters" hidden></div>
   <div class="feedsearch" id="feedsearch" hidden>
     <input id="q" type="search" placeholder="Search" aria-label="Search your clips"
@@ -1157,6 +1210,16 @@
 <button type="button" class="olderbtn" id="older" hidden>&hellip; older</button>
 <div class="emptynote" id="feedempty" hidden>Nothing made here yet.</div>
 
+<div id="shelf" hidden role="dialog" aria-label="Projects and folders">
+  <div class="shhead">
+    <button type="button" class="shbtn shback" id="shback" hidden aria-label="Back"></button>
+    <b id="shtitle">Footage</b>
+    <span class="sp"></span>
+    <button type="button" class="shtuck" id="shtuck" hidden></button>
+    <button type="button" class="shbtn" id="shclose" aria-label="Close"></button>
+  </div>
+  <div class="shgrid" id="shgrid"></div>
+</div>
 <div id="player" hidden><div class="pbar"><button class="pclose" type="button" aria-label="Close"></button><button class="pfirst" id="pfirst" type="button" hidden>first frame</button><button class="pref" id="pref" type="button" hidden>reference</button><button class="psave" id="psave" type="button" hidden>save</button></div>
   <div class="pstage"></div>
   <div class="trimbar" id="trimbar" hidden>
@@ -1234,6 +1297,8 @@ var ICONS = {
   note: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
   // Lucide `users` — the library of who is in this film
   users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>',
   chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
   // Lucide `folder` — the project picker's face
   folder: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>',
@@ -1255,7 +1320,9 @@ $('gostar').innerHTML = ICONS.star;
 $('goallstar').innerHTML = ICONS.star;
 $('addicon').innerHTML = ICONS.image;
 document.querySelectorAll('.selwrap .chev').forEach(function (c) { c.innerHTML = ICONS.chev; });
-document.querySelectorAll('.iconsel .ico').forEach(function (c) { c.innerHTML = ICONS.folder; });
+document.querySelectorAll('.iconbtn .ico').forEach(function (c) { c.innerHTML = ICONS.folder; });
+$('shback').innerHTML = ICONS.back;
+$('shclose').innerHTML = ICONS.x;
 $('v-liked').innerHTML = ICONS.heart; $('v-hidex').innerHTML = ICONS.x;
 $('v-search').innerHTML = ICONS.search + '<span class="qcount" hidden></span>';
 $('seedclear').innerHTML = ICONS.x;
@@ -1472,23 +1539,18 @@ function viewRows(cur, noneLabel) {
     rows.push({ id: FOLD + f.slug,
       label: '\u2003' + (open ? '\u25be folders' : '\u25b8 ' + fl.length + ' folder' + (fl.length === 1 ? '' : 's')) });
     if (!open) return;
-    fl.forEach(function (x) { rows.push({ id: f.slug + '/' + x, label: '\u2003\u2003\u203a ' + x }); });
+    fl.forEach(function (x) { rows.push({ id: f.slug + '/' + x, label: '\u2003\u2003\u203a ' + folderName(x) }); });
   });
   return rows;
 }
 function viewValue() { return S.project ? (S.folder ? S.project + '/' + S.folder : S.project) : ''; }
 function paintProject() {
-  var el = $('project');
-  var rows = viewRows(viewValue(), 'All');
-  rows.push({ id: NEW_PROJECT, label: 'New project\u2026' });
-  if (S.project) rows.push({ id: NEW_FOLDER, label: 'New folder\u2026' });
-  if (S.project) rows.push({ id: TUCK, label: tucked(S.project) ? 'Show in All' : 'Hide from All' });
-  fillSel(el, rows, viewValue());
   $('projwrap').classList.toggle('on', !!S.project);
   // the header says where she is
   var t = $('title');
-  var name = S.project ? projectName(S.project) + (S.folder ? ' \u203a ' + S.folder : '') : 'Footage';
+  var name = S.project ? projectName(S.project) + (S.folder ? ' \u203a ' + folderName(S.folder) : '') : 'Footage';
   if (t.textContent !== name) t.textContent = name;
+  if (!$('shelf').hidden) paintShelf();
 }
 function paintFolder() { paintProject(); }
 // SWITCHING EMPTIES THE FEED AND RE-ASKS — a card of another project must not
@@ -1525,6 +1587,15 @@ function folderSaved() { try { return localStorage.getItem('footage_folder') || 
 function folderSave(f) { try { localStorage.setItem('footage_folder', f || ''); } catch (e) {} }
 function folderSlug(name) { return String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40); }
 function foldersIn(project) { return project && FOLDERS[project] ? FOLDERS[project] : []; }
+// A FOLDER HAS NO NAME OF ITS OWN — it IS its slug, derived from the clips
+// filed in it — so the one thing to do for a tile under a poster is read it
+// back as words: hyphens out, first letter up. Display only, in the sheet,
+// the header and the card's rows alike, so a folder is spelled one way
+// wherever she meets it; `folderSlug` is still the only thing that writes.
+function folderName(f) {
+  f = String(f || '').replace(/-+/g, ' ').trim();
+  return f ? f.charAt(0).toUpperCase() + f.slice(1) : '';
+}
 // the folders landed with a feed read — the picker's rows and every card's
 // move drop-down read them, so both repaint when they really changed
 function takeFolders(d) {
@@ -1567,7 +1638,7 @@ function newFolder() {
   var slug = folderSlug(name);
   if (!slug) { paintFolder(); return; }
   setFolder(slug, { force: true });
-  toast('Folder: ' + slug);
+  toast('Folder: ' + folderName(slug));
 }
 // A NEW PROJECT IS A NEW FILM ON THE CAST SHELF — one name, free, and the
 // character sheet grows the folder the same moment. The box ships empty.
@@ -1587,17 +1658,156 @@ function newProject() {
       toast('Project: ' + name);
     });
 }
-$('project').addEventListener('change', function () {
-  var v = $('project').value;
+// ── THE POSTER SHEET (2026-09-13, Sophie: "i like poster" · "more per row so
+// all fit") ───────────────────────────────────────────────────────────────
+// The folder icon opens a sheet of poster TILES instead of a native list.
+// Every folder here already has a picture — the last clip drawn in it — and a
+// row of words threw that away; she picked the poster sheet off the four
+// mocked options and asked for five across.
+//   · FIVE IS THE FLOOR, NOT THE NUMBER. `fitShelf` widens to 6, 7 or 8 when
+//     five would push a row off the bottom, so "all fit" stays true as folders
+//     pile up and the density never needs choosing again. It never NARROWS: a
+//     two-folder project would otherwise draw two enormous tiles and the sheet
+//     would look like a different screen every time she opened it.
+//   · TWO LEVELS — the films, then one film's folders. A project WITH folders
+//     descends on a tap and its level-2 "Everything" tile is how the whole
+//     project is picked; one without folders simply picks.
+//   · THE FACES COME FROM THE SERVER, and they have to: this page's feed is
+//     narrowed to the project she is standing in, so it holds no clip from
+//     anywhere else to draw a face from. `GET /shelf` is one pass over the log
+//     (cached 60s), asked when the SHEET OPENS and never on the feed poll.
+//   · THE TILES PAINT FROM WHAT WE HAVE AND REPAINT WHEN THE FACES LAND, with
+//     a signature skip — a rebuilt <img> decodes async and the whole sheet
+//     strobes blank (the house repaint rule).
+//   · THE PICK IS `shelfPick`, the old <select>'s own handler body, so the
+//     fold rows, New project…, New folder… and the tuck go on meaning exactly
+//     what they meant: nothing about setProject/setFolder moved.
+var SHELF = {};                      // {'<project>'|'<project>/<folder>': {n, poster}}
+var SHELF_AT = 0, SHELF_MS = 20000;
+var shelfAt = '';                    // '' = the films, else the project she is inside
+function shelfCount(k) { return (SHELF[k] && SHELF[k].n) || 0; }
+function shelfFace(k) { return (SHELF[k] && SHELF[k].poster) || ''; }
+function loadShelf(force) {
+  if (!force && Date.now() - SHELF_AT < SHELF_MS) return;
+  SHELF_AT = Date.now();
+  api('/shelf').then(function (d) {
+    if (!(d && d.ok && d.shelf)) return;
+    SHELF = d.shelf;
+    if (d.folders) takeFolders(d);
+    if (!$('shelf').hidden) paintShelf();
+  }).catch(function () {});
+}
+function openShelf() {
+  shelfAt = S.project || '';
+  $('shelf').hidden = false;
+  paintShelf();
+  loadShelf();
+}
+function closeShelf() { $('shelf').hidden = true; }
+function shelfTiles() {
+  var out = [];
+  if (!shelfAt) {
+    out.push({ id: '', label: 'All', dash: 'everything' });
+    var films = FILMS.slice();
+    if (S.project && !films.some(function (f) { return f.slug === S.project; })) films.push({ slug: S.project, name: S.project });
+    films.forEach(function (f) {
+      out.push({ id: f.slug, label: (f.name || f.slug) + (f.tucked ? ' \u00b7 hidden' : ''),
+                 key: f.slug, into: foldersIn(f.slug).length > 0 });
+    });
+    out.push({ id: NEW_PROJECT, label: 'New project', dash: 'plus' });
+  } else {
+    out.push({ id: shelfAt, label: 'Everything', key: shelfAt });
+    var fl = foldersIn(shelfAt).slice();
+    if (S.project === shelfAt && S.folder && fl.indexOf(S.folder) < 0) fl.push(S.folder);
+    fl.forEach(function (x) { out.push({ id: shelfAt + '/' + x, label: folderName(x), key: shelfAt + '/' + x }); });
+    out.push({ id: NEW_FOLDER, label: 'New folder', dash: 'plus' });
+  }
+  return out;
+}
+function paintShelf() {
+  var head = $('shtitle'), grid = $('shgrid');
+  $('shback').hidden = !shelfAt;
+  head.textContent = shelfAt ? projectName(shelfAt) : 'Footage';
+  var tk = $('shtuck');
+  tk.hidden = !shelfAt;
+  if (shelfAt) tk.textContent = tucked(shelfAt) ? 'Show in All' : 'Hide from All';
+  var items = shelfTiles(), cur = viewValue();
+  var sig = items.map(function (i) {
+    return i.id + '\u0000' + i.label + '\u0000' + (i.dash || '') + '\u0000' + (i.key ? shelfFace(i.key) + '\u0000' + shelfCount(i.key) : '');
+  }).join('|');
+  if (grid.__sig !== sig) {
+    grid.__sig = sig;
+    grid.innerHTML = '';
+    items.forEach(function (i) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'shtile' + (i.dash ? ' dash' : '');
+      b.setAttribute('data-go', i.id);
+      if (i.into) b.setAttribute('data-into', i.id);
+      var face = document.createElement('span'); face.className = 'shface';
+      var url = i.key ? shelfFace(i.key) : '';
+      if (url) {
+        var im = document.createElement('img');
+        im.loading = 'lazy'; im.alt = '';
+        im.src = '/api/story/thumb?w=240&url=' + encodeURIComponent(url);
+        face.appendChild(im);
+      } else if (i.dash === 'plus') { face.innerHTML = ICONS.plus || '+'; }
+      else if (i.dash === 'everything') { face.textContent = 'All'; }
+      b.appendChild(face);
+      var n = i.key ? shelfCount(i.key) : 0;
+      if (n) { var c = document.createElement('b'); c.textContent = n; b.appendChild(c); }
+      var lab = document.createElement('i'); lab.textContent = i.label; b.appendChild(lab);
+      grid.appendChild(b);
+    });
+  }
+  Array.prototype.forEach.call(grid.children, function (b) {
+    b.classList.toggle('on', b.getAttribute('data-go') === cur);
+  });
+  fitShelf();
+}
+// FIVE ACROSS, WIDENING ONLY — measured against the grid's own box, so it is
+// the real sheet on the real phone that decides, never arithmetic about it.
+function fitShelf() {
+  var grid = $('shgrid');
+  if ($('shelf').hidden) return;
+  for (var c = 5; c <= 8; c++) {
+    grid.style.setProperty('--c', c);
+    if (grid.scrollHeight <= grid.clientHeight + 1) return;
+  }
+}
+function shelfPick(v) {
   if (v.indexOf(FOLD) === 0) { openToggle(v.slice(FOLD.length)); paintProject(); repaintCards(); return; }
-  if (v === NEW_PROJECT) { $('project').value = viewValue(); newProject(); return; }
-  if (v === NEW_FOLDER) { $('project').value = viewValue(); newFolder(); return; }
-  // tucking never moves the feed or a clip — the value goes straight back
-  if (v === TUCK) { $('project').value = viewValue(); setTucked(S.project, !tucked(S.project)); return; }
+  if (v === NEW_PROJECT) { closeShelf(); newProject(); return; }
+  if (v === NEW_FOLDER) { closeShelf(); newFolder(); return; }
+  // tucking never moves the feed or a clip — the sheet stays where it is
+  if (v === TUCK) { setTucked(S.project, !tucked(S.project)); return; }
   var p = v.split('/')[0], f = v.split('/')[1] || '';
+  closeShelf();
   if (p !== S.project) setProject(p, { folder: f });
   else setFolder(f);
+}
+$('projwrap').addEventListener('click', function () { if ($('shelf').hidden) openShelf(); else closeShelf(); });
+$('shclose').addEventListener('click', closeShelf);
+$('shback').addEventListener('click', function () { shelfAt = ''; paintShelf(); });
+$('shtuck').addEventListener('click', function () {
+  if (!shelfAt) return;
+  // the tuck belongs to the film she is INSIDE, which need not be the one the
+  // feed is on — setTucked reads S.project, so it is asked about this one
+  var on = !tucked(shelfAt), slug = shelfAt;
+  FILMS.forEach(function (f) { if (f.slug === slug) f.tucked = on; });
+  paintShelf(); applyFilt();
+  castApi('/films', { method: 'POST', body: JSON.stringify({ slug: slug, tucked: on }) })
+    .then(function (d) { if (d && d.ok && Array.isArray(d.films)) { FILMS = d.films; paintShelf(); paintProject(); } })
+    .catch(function () {});
+  toast(on ? projectName(slug) + ' is hidden from All' : projectName(slug) + ' shows in All');
 });
+$('shgrid').addEventListener('click', function (e) {
+  var b = e.target.closest ? e.target.closest('.shtile') : null;
+  if (!b) return;
+  var into = b.getAttribute('data-into');
+  if (into) { shelfAt = into; paintShelf(); return; }
+  shelfPick(b.getAttribute('data-go') || '');
+});
+window.addEventListener('resize', function () { if (!$('shelf').hidden) fitShelf(); });
 var jobsById = {};
 // A CLIP SHE JUST SENT IS NEVER FILTERED AWAY (2026-09-13, found auditing the
 // page). The search's `qHits` is a set of ids the SERVER answered with, so a
@@ -4257,7 +4467,7 @@ function moveTo(id, value) {
   if (folder && foldersIn(project).indexOf(folder) < 0) { FOLDERS[project] = foldersIn(project).concat([folder]).sort(); paintProject(); repaintCards(); }
   else jobCard(j);
   paintRecent();
-  toast(project ? 'Moved to ' + projectName(project) + (folder ? ' › ' + folder : '') : 'Taken off its project');
+  toast(project ? 'Moved to ' + projectName(project) + (folder ? ' › ' + folderName(folder) : '') : 'Taken off its project');
   api('/jobs/' + encodeURIComponent(id) + '/project', { method: 'POST', body: JSON.stringify({ project: project, folder: folder }) }).catch(function () {});
 }
 function moveProject(id, project) { moveTo(id, project); }
@@ -4963,7 +5173,7 @@ $('player').addEventListener('click', function (e) {
   if (e.target === $('player') || e.target.classList.contains('pstage') || e.target.classList.contains('pbar')
     || (e.target.closest && e.target.closest('.pclose'))) closePlayer();
 });
-window.__navBack = function () { if (!$('player').hidden) { closePlayer(); return true; } if (!$('cmp').hidden) { closeCompare(); return true; } return false; };
+window.__navBack = function () { if (!$('shelf').hidden) { closeShelf(); return true; } if (!$('player').hidden) { closePlayer(); return true; } if (!$('cmp').hidden) { closeCompare(); return true; } return false; };
 
 function armTrim(j, v) {
   $('trimbar').hidden = !j;
@@ -5462,6 +5672,7 @@ function ftHolding() {                                       // the reason, or f
   if (ftUploading > 0) return 'an upload in flight';
   if (!$('err').hidden) return 'a refusal on screen';
   if (seedVal()) return 'the seed box';
+  if (!$('shelf').hidden) return 'the folder sheet';
   if (!$('player').hidden) return 'the trimmer';
   if (castOpen) return 'the character sheet';
   if (recentOpen) return 'the Recent drawer';
