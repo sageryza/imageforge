@@ -118,6 +118,7 @@ const readState = () => ({
   ratio: (document.getElementById('ratio') || {}).value || '',
   marks: [...document.querySelectorAll('#refs .kf.on')].length,
   kfslot: [...document.querySelectorAll('#refs .kfslot')].map((n) => n.textContent),
+  blocks: [...document.querySelectorAll('#prompt, .pblock')].filter((b, i, a) => a.indexOf(b) === i).map((b) => b.value),
   key: localStorage.getItem('footage_handoff'),
   draft: localStorage.getItem('footage_draft'),
   toast: (document.getElementById('toast').classList.contains('show') ? document.getElementById('toast').textContent : ''),
@@ -265,6 +266,30 @@ const readState = () => ({
   ok('a keyframe url that is not among the references it handed over is IGNORED, never attached invisibly',
     s8.marks === 0 && s8.refs === 3);
   await eight.ctx.close();
+
+  // ── 7. ONE CONNECTED PART IS ONE BLOCK (2026-09-13, Sophie, of a Story
+  // Timeline story: "each connected part its own section · lines breaks
+  // back"). A sender naming `blocks` lands as several; the line breaks inside
+  // one survive; a blank entry never becomes an empty block the star could
+  // send; and a sender naming NONE is still one scene in one block.
+  const nine = await scene('blocks', handoff(port, { title: 'A story',
+    prompt: 'first part',
+    blocks: ['first part' + String.fromCharCode(10) + 'and its second line', '  ', 'second part'] }));
+  const s9 = await nine.page.evaluate(readState);
+  ok('a hand-off naming blocks lands as several blocks — ' + s9.blocks.length, s9.blocks.length === 2);
+  ok('the first block is #prompt, so the draft and every older reader still see it',
+    s9.blocks[0] === 'first part' + String.fromCharCode(10) + 'and its second line');
+  ok('the line breaks inside a part survive', /\n/.test(s9.blocks[0]));
+  ok('a blank entry is dropped, never an empty block the star could send — ' + JSON.stringify(s9.blocks[1]),
+    s9.blocks[1] === 'second part');
+  ok('the draft carries the extra blocks', /"blocks"\s*:/.test(s9.draft || ''));
+  await nine.ctx.close();
+
+  const ten = await scene('one-block', handoff(port, { title: 'Scene 9' }));
+  const s10 = await ten.page.evaluate(readState);
+  ok('a hand-off naming no blocks is still ONE block, exactly as every belt page sends — ' + s10.blocks.length,
+    s10.blocks.length === 1 && /the ward corridor/.test(s10.blocks[0]));
+  await ten.ctx.close();
 
   ok('no page errors anywhere — ' + JSON.stringify(errors), errors.length === 0);
   ok('nothing was ever sent', posted.length === 0);

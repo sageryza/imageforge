@@ -8301,12 +8301,31 @@ before working on that module. Nothing was deleted — the moved text is verbati
   browser clamps a deep scroll to the shorter page (measured: scrollY 654 →
   0 on a pinned divide at line 40; the same shape flickered under every
   keystroke in a tall big box). Nothing is sent by dividing, nothing is lost
-  by joining, no ✕ on a block on purpose; a hand-off is one scene and
-  collapses to one block; the draft keeps `prompt` as the first block for an
+  by joining, no ✕ on a block on purpose; a hand-off naming no `blocks` is one
+  scene and collapses to one block (**since 2026-09-13 one naming them lands
+  as several — see the next paragraph**); the draft keeps `prompt` as the first block for an
   older page and the rest under `blocks`; a block is a direct child of the
   panel or the pill-gap fitter would shorten them all. Full note: *DIVIDE
   HERE* in `docs/modules/audio-and-film.md`; test
   `node scripts/test-footage-divide.js`.
+  **AND A STORY TIMELINE STORY COPIES OVER, ONE CONNECTED PART PER BLOCK
+  (2026-09-13, Sophie: "how do i copy a story to footage · each connected part
+  its own section · lines breaks back").** A **Send to Footage** link on an open
+  story writes the ordinary `footage_handoff` key — same origin, no route, no
+  doc — with one entry in a new `blocks` array **per UNIT**, since a unit is
+  what she joined together there and so is the part that belongs in one clip,
+  and the moments inside a unit joined by a **newline each** (her "lines breaks
+  back" — never run together into a paragraph). Four things not to undo: the
+  link is a **REAL link** to `/footage` (on her phone that opens the app on the
+  tool — the scene-index keys' own pattern) and **NOTHING IS SENT**, the star is
+  still her tap; `blocks[0]` also rides as `prompt`, so a Footage page cached
+  from before this reads the first part as it always did; **a blank entry is
+  dropped** rather than becoming an empty block the star could send; and
+  `setBlocks(list)` is the ONE writer on the Footage side — `collapseBlocks` is
+  a call to it with one string, so a belt scene's hand-off is byte-for-byte what
+  it was. The button is drawn only once the story has something to send. Tests:
+  `node scripts/test-timeline.js` and `node scripts/test-footage-handoff.js`
+  (verified failing 5 pre-fix).
   **WHAT CHANGED BETWEEN TWO CLIPS — THE COMPARE MARK ON EVERY CARD
   (2026-09-11, Sophie: "is there an easy way I can diff video clips like I
   can't remember what I changed … sometimes it's a single line or a reference
@@ -10667,6 +10686,10 @@ before working on that module. Nothing was deleted — the moved text is verbati
   the retired per-story Compare pages (`scripts/gen-story-timeline.js` and the
   `docs/story-timeline/timeline-v*.html` files are that history; her original
   story was migrated in by `scripts/seed-story-timeline.js`).
+  **SEND TO FOOTAGE — one connected part is one block (2026-09-13).** A link
+  on an open story hands the whole story to `/footage`: one block per UNIT, the
+  moments inside one joined by a newline each. Full rules under *DIVIDE HERE* in
+  the Footage bullet; nothing is sent, the star is still her tap.
   **HER WORDS GO ON THE TIMELINE EXACTLY AS SHE SENT THEM — NEVER ADD, DELETE,
   SPLIT, REGROUP OR REORDER A LINE (2026-09-06, Sophie: "did u add delete or
   change my words" · "if so undo" · "add to docs never do this").** The chat

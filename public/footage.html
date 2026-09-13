@@ -2534,13 +2534,22 @@ function joinAt(row) {
   setActive(above);
   paintBlocks(); fitAll(); saveDraft();
 }
-// back to ONE block holding these words — a hand-off replaces the draft
-function collapseBlocks(text) {
+// THE BLOCKS BECOME EXACTLY THIS LIST — a hand-off replaces the draft, so the
+// blocks she had divided go with it. ONE writer for both shapes: a hand-off
+// carrying one scene collapses to one block exactly as it always did, and one
+// carrying several (a Story Timeline story, one block per sequence) lands as
+// several. The FIRST block is always `#prompt`, never a fresh node, so a
+// cached page, the draft (`prompt` first, `blocks` after it) and every test
+// go on reading it.
+function setBlocks(list) {
   blocks().slice(1).forEach(function (w) { w.remove(); });
-  $('prompt').value = text;
+  $('prompt').value = list[0] || '';
+  for (var i = 1; i < list.length; i++) addBlock(list[i]);
   setActive(blocks()[0]);
   paintBlocks();
 }
+// back to ONE block holding these words
+function collapseBlocks(text) { setBlocks([text]); }
 // tapping into a block, or any button on it, is what makes it the one the
 // star sends — focusin for the keyboard and dictation, click for the corner
 document.addEventListener('focusin', function (e) {
@@ -3533,7 +3542,9 @@ function copyBack(j) {
 // it. Shape:
 //   { prompt, refs:[{url, kind:'image'|'video'|'audio', poster?, name?}],
 //     model?, seconds?, res?, ratio?, seed?, from?, title?, at: Date.now(),
-//     firstFrame?, lastFrame? }   — each a url that is also in `refs`
+//     firstFrame?, lastFrame?,     — each a url that is also in `refs`
+//     blocks?: [string] }          — one block per connected part; `prompt`
+//                                    alone is one block, as it always was
 // NOTHING IS EVER SENT. The star is still her tap — the hand-off only fills
 // the box, which is the whole of what she asked for ("so I can edit it or
 // press go myself").
@@ -3588,7 +3599,15 @@ function takeHandoff() {
   // it, so the job it replaces is banked and `undo` puts it back.
   var was = jobNow();
   if (!jobEmpty(was)) { bank = was; saveBank(); }
-  collapseBlocks(h.prompt);
+  // A HAND-OFF MAY BE SEVERAL BLOCKS — one block per connected part (2026-09-13,
+  // Sophie, of a Story Timeline story: "each connected part its own section ·
+  // lines breaks back"). A sender that names none is one scene and lands as one
+  // block, exactly as every belt page's does; a blank entry is dropped rather
+  // than becoming an empty block the star could send.
+  var bl = Array.isArray(h.blocks)
+    ? h.blocks.filter(function (t) { return typeof t === 'string' && t.trim(); })
+    : null;
+  setBlocks(bl && bl.length ? bl : [h.prompt]);
   if (Array.isArray(h.refs)) {
     var seen = {};
     refs = [];

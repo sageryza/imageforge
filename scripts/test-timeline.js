@@ -351,6 +351,36 @@ const DRIVE = `<script>
 
           ok(nums() === run(), 'the numbers are still 1..N after all of it', nums());
 
+          // ---- SEND TO FOOTAGE (2026-09-13): one connected part is one
+          // block, its moments one to a line. Every assertion is a
+          // MEASUREMENT of what really landed in localStorage — a button that
+          // writes nothing, one that runs a sequence together into a
+          // paragraph, and one that writes one block for the whole story all
+          // look identical in the source.
+          var fb = document.getElementById('tofoot');
+          ok(!!fb && !fb.hidden, 'a story offers Send to Footage', '');
+          ok(!!fb && fb.tagName === 'A' && fb.getAttribute('href') === '/footage',
+             'and it is a real link to the tool', fb && fb.getAttribute('href'));
+          try { localStorage.removeItem('footage_handoff'); } catch (e) {}
+          // the link is a REAL link, so hold the navigation — the question is
+          // what the tap wrote, not where the browser went
+          fb.addEventListener('click', function (ev) { ev.preventDefault(); });
+          fb.click();
+          var H = null;
+          try { H = JSON.parse(localStorage.getItem('footage_handoff') || 'null'); } catch (e) {}
+          ok(!!H && Array.isArray(H.blocks) && H.blocks.length,
+             'the tap writes a hand-off carrying blocks', H && H.blocks && H.blocks.length);
+          ok(!!H && H.blocks.length === units().length,
+             'one block per connected part', (H && H.blocks.length) + ' vs ' + units().length + ' units');
+          ok(!!H && H.prompt === H.blocks[0],
+             'the first block rides as prompt for an older Footage page', '');
+          ok(!!H && H.blocks.some(function (t) { return t.indexOf(String.fromCharCode(10)) >= 0; }),
+             'a sequence keeps its line breaks', '');
+          ok(!!H && H.blocks.every(function (t) { return typeof t === 'string' && t.trim(); }),
+             'no empty block is ever handed over', '');
+          ok(!!H && H.from === 'timeline' && typeof H.at === 'number',
+             'and it names where it came from, stamped', H && H.from);
+
           // embedded under the native bar, the header band goes compact
           // (Sophie: "a lot of space at the top") — static, unbordered, and
           // no taller than the ? needs. NOT floated: a floated ? landed on
