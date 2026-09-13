@@ -419,6 +419,33 @@
   function mint() { return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
   /* ---- the editor ---- */
+  // THE CARD IS PUT ABOVE THE KEYBOARD BEFORE THE KEYBOARD EXISTS (2026-09-13,
+  // Sophie: "the keyboard popping up when i click the bottom moments makes it
+  // impossible to write in them"). A moment at the BOTTOM of the story has
+  // nothing under it, so once the keyboard is up there is no page left to
+  // scroll it clear — the editor opens under the keyboard and stays there.
+  // caretkeep.js corrects a caret AFTER focus by borrowing room, and in
+  // headless Chromium that lifts this very card; on her phone it did not. So
+  // the page does not depend on it: before the box takes focus (which is what
+  // brings the keyboard), the card is scrolled to the top of the screen and
+  // the list borrows the room that scroll needs. A card already sitting in
+  // the top part of the screen is left exactly where it is.
+  var KB_GUESS = Math.min(360, Math.round(window.innerHeight * 0.46));   // caretkeep's own figure
+  function lift(c) {
+    var r = c.getBoundingClientRect();
+    var head = document.querySelector('.head');
+    var top = (head ? head.getBoundingClientRect().bottom : 0) + 8;
+    var safe = window.innerHeight - KB_GUESS - 26;
+    if (r.top >= top && r.bottom <= safe) return;
+    var want = Math.max(0, window.scrollY + r.top - top);
+    var tl = $('tl');
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    if (want > max) tl.style.paddingBottom = (parseFloat(tl.style.paddingBottom) || 0) + (want - max) + 'px';
+    window.scrollTo(0, want);                   // the window only, never scrollIntoView
+  }
+  function giveRoomBack() {
+    if (!$('tl').querySelector('.mcard.editing')) $('tl').style.paddingBottom = '';
+  }
   function openEditor(c) {
     if (c.querySelector('.edit')) return;
     var wrap = document.createElement('div');
@@ -431,6 +458,7 @@
     c.appendChild(wrap);
     c.classList.add('editing');
     box.style.height = Math.max(56, box.scrollHeight + 4) + 'px';
+    lift(c);
     box.focus();
     box.setSelectionRange(box.value.length, box.value.length);
   }
@@ -448,6 +476,9 @@
     }
     c.classList.remove('editing');
     wrap.remove();
+    // the borrowed room goes back once the keyboard has gone — shortening the
+    // page under her thumb mid-blur jumps the words she is reading
+    setTimeout(giveRoomBack, 400);
   }
   function closeAll(except) {
     Array.prototype.forEach.call($('tl').querySelectorAll('.mcard.editing'), function (c) {
@@ -460,8 +491,11 @@
     MOM[id] = { text: '' };
     UNITS.splice(at, 0, [id]);
     paint(); save();
+    // openEditor lifts the card itself; a scrollIntoView({block:'center'})
+    // here used to put a new bottom moment at the middle of the screen —
+    // which is exactly where the keyboard's top edge lands
     var c = NODES[id];
-    if (c) { openEditor(c); c.scrollIntoView({ block: 'center' }); }
+    if (c) openEditor(c);
   }
 
   function divide(c) {
