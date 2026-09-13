@@ -126,6 +126,9 @@ const read = () => {
     wrapH: wraps.map((w) => w.getBoundingClientRect().height),
     panelH: panel.getBoundingClientRect().height,
     feedTop: document.getElementById('feed').getBoundingClientRect().top,
+    joins: Array.from(panel.children).filter((c) => c.classList.contains('joinrow'))
+      .map((r) => { const b = r.getBoundingClientRect(); const cs = getComputedStyle(r);
+        return { h: b.height, display: cs.display }; }),
     draft: JSON.parse(localStorage.getItem('footage_draft') || '{}'),
   };
 };
@@ -229,6 +232,27 @@ const write = (text) => {
   ok('fitted to its own words, not one line (' + Math.round(s.box[1].h) + 'px, was ' + Math.round(openBoxH[1]) + ')',
     Math.abs(s.box[1].h - openBoxH[1]) < 3 && s.box[1].h > 40);
   ok('and open it says nothing beside its number again', s.lw[1] === '');
+
+  // ── 5b. THE JOIN MARK GOES AWAY WHILE EITHER BLOCK IS FOLDED ────────────
+  // (2026-09-13, Sophie: "connect shud buttons go away when collapsed").
+  // MEASURED off the rendered row: a mark that is drawn but says the wrong
+  // thing, and one that is really out of the layout, are the same markup.
+  s = await page.evaluate(read);
+  ok('both blocks open — the mark between them is drawn (' + Math.round(s.joins[0].h) + 'px)',
+    s.joins.length === 1 && s.joins[0].display !== 'none' && s.joins[0].h > 0);
+  await page.evaluate(tapHead, 1);
+  await page.waitForTimeout(200);
+  s = await page.evaluate(read);
+  ok('folding block 2 takes the mark out of the layout', s.shut[1] && s.joins[0].h === 0);
+  await page.evaluate(tapHead, 1);
+  await page.evaluate(tapHead, 0);
+  await page.waitForTimeout(200);
+  s = await page.evaluate(read);
+  ok('and folding the block ABOVE it takes it too', s.shut[0] && !s.shut[1] && s.joins[0].h === 0);
+  await page.evaluate(tapHead, 0);
+  await page.waitForTimeout(200);
+  s = await page.evaluate(read);
+  ok('opening it again brings the mark back', !s.shut[0] && s.joins[0].h > 0);
 
   // ── 6. WORDS LANDING IN A FOLDED BLOCK OPEN IT ──────────────────────────
   // a slot tap writes into the block she is in and then focuses it, and

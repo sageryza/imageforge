@@ -211,6 +211,12 @@
      back onto one line. Its own row, a direct child of the panel, so the
      pill-gap fitter judges it on its own rect like every other row. */
   .joinrow{display:flex;justify-content:center;padding:4px 0 6px}
+  /* A JOIN MARK GOES AWAY WHEN EITHER OF ITS TWO BLOCKS IS FOLDED
+     (2026-09-13, Sophie: "connect shud buttons go away when collapsed").
+     Joining pours one block's words into the other, and a folded block is
+     one she cannot see — so the mark is only offered between two blocks
+     whose words are both on screen. Opening either one brings it back. */
+  .joinrow.hid{display:none}
   .joinrow .joinb{width:26px;height:26px;padding:0;display:inline-flex;align-items:center;
              justify-content:center;background:#fdfbf7;color:#6f675e}
   .joinrow .joinb svg{width:14px;height:14px;display:block}
@@ -1033,7 +1039,7 @@
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
   <p><b>Characters, then setting.</b> The two blocks at the top are permanent and start folded away. What you write in them rides at the top of every clip you send &mdash; the cast on one line, the room on the other &mdash; so a scene is written once instead of into every shot. Folded, each heading says its own words, so you can see what is riding without opening it. Leave one empty and it adds nothing; <b>clear</b> never touches them.</p>
-  <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. Every block has the same buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing. Each block gets its own heading, and <b>tapping the heading folds that block away</b> &mdash; shut it shows its first words, and it still sends them if it is the one the star is pointing at. Folds are for right now: a reload opens everything.</p>
+  <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. Every block has the same buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing. The join mark goes away while either of its two blocks is folded. Each block gets its own heading, and <b>tapping the heading folds that block away</b> &mdash; shut it shows its first words, and it still sends them if it is the one the star is pointing at. Folds are for right now: a reload opens everything.</p>
   <p><b>All of them at once.</b> Once two blocks have words in them a second star appears beside the first, carrying what the whole batch costs. It sends every block that has words, one after another, and stops at the first refusal &mdash; the block it stopped on takes the gold line, so the refusal and the doors under it are about that one. Over $3 the first tap asks and the second sends.</p>
   <p><b>Taking one block off.</b> The &times; in a block&rsquo;s corner takes that block off; with only one block left there is no &times; and <b>clear</b> beside the star is what empties it. Either way <b>undo</b> puts it back.</p>
   <p><b>Folding the prompt.</b> The PROMPT row stays at the top of the screen while you are writing, so a long scene folds away from wherever you are rather than from the top.</p>
@@ -2914,6 +2920,21 @@ function paintBlockHead(w, n, of) {
 function paintBlockHeads() {
   var ws = blocks();
   ws.forEach(function (w, i) { paintBlockHead(w, i + 1, ws.length); });
+  paintJoinRows();
+}
+// The mark in a gap is drawn only while BOTH of its blocks are open — see the
+// `.joinrow.hid` note in the stylesheet. It rides here rather than in
+// `paintBlocks` because a fold changes nothing about which rows exist, and
+// this is the one function every fold, open, divide, join and removal reaches.
+function paintJoinRows() {
+  var panel = panelEl(), kids = panel.children, i;
+  for (i = 0; i < kids.length; i++) {
+    var r = kids[i];
+    if (!r.classList.contains('joinrow')) continue;
+    var a = r.previousElementSibling, b = r.nextElementSibling;
+    var shut = (a && a.classList.contains('shut')) || (b && b.classList.contains('shut'));
+    r.classList.toggle('hid', !!shut);
+  }
 }
 function toggleBlock(w) {
   w.classList.toggle('shut');
