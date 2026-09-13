@@ -57,6 +57,7 @@ const PILL = fs.readFileSync(path.join(PUB, 'pill-inject.html'), 'utf8');
 const posted = [];
 const notes = [];
 let cents = 4.4;
+let refuse = false;                  // the next send comes back a content refusal
 const jobs = [];
 
 const server = http.createServer((req, res) => {
@@ -81,6 +82,10 @@ const server = http.createServer((req, res) => {
     if (u.pathname === '/api/footage/jobs' && req.method === 'POST') {
       const b = JSON.parse(body);
       posted.push(b);
+      if (refuse) {
+        refuse = false;
+        return json({ ok: false, error: 'refused', refusal: 'content', door: 'atlascloud' }, 400);
+      }
       const id = 'j' + posted.length;
       jobs.unshift({ id, prompt: b.prompt, model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', seconds: b.seconds,
         resolution: b.resolution, ratio: b.ratio, sound: true, refs: b.refs || [], status: 'drawing', seed: 7,
@@ -217,16 +222,39 @@ const readBlocks = () => {
   ok('it wears the house generate star', all.star);
   ok('it sits after the first star, on its line or under it (' + all.text + ')', all.after && !all.overlaps);
   ok('and it really takes its own tap (' + all.reach + ')', all.reach === 'goall');
-  ok('it names the count and the whole batch\'s price (' + all.text + ')',
-    /All 2/.test(all.text) && /8\.8¢/.test(all.text));
+  // ONE clip, so ONE clip's price — never a multiple of it (her note: "not
+  // separate jobs. i want them to append to each other").
+  ok('it names the count and ONE clip\'s price (' + all.text + ')',
+    /All 2/.test(all.text) && /4\.4¢/.test(all.text) && !/8\.8¢/.test(all.text));
 
-  // ── 6. it sends EVERY block with words, once each ───────────────────────
+  // ── 6. it sends ONE job, every block APPENDED ───────────────────────────
   posted.length = 0;
   await page.click('#goall');
   await page.waitForTimeout(900);
-  ok('two jobs went, one per block (' + posted.map((p) => p.prompt).join(' | ') + ')',
-    posted.length === 2 && posted[0].prompt === 'shot two' && posted[1].prompt === 'shot three');
+  ok('exactly ONE job went (' + posted.length + ')', posted.length === 1);
+  ok('its prompt is both blocks appended, blank line between (' + JSON.stringify(posted[0] && posted[0].prompt) + ')',
+    posted.length === 1 && posted[0].prompt === 'shot two\n\nshot three');
   ok('and every block still has its words after the send', (await page.evaluate(readBlocks)).every((b) => b.text));
+
+  // ── 6b. A DOOR WORD AFTER AN APPENDED SEND RE-SENDS THE APPENDED SCENE ──
+  // "those words re-send THAT exact job" — and a joined prompt is exactly
+  // what can break it, since `sendJob` with no text re-reads the ACTIVE box.
+  // The gold line is left where she put it, so this must not depend on it.
+  posted.length = 0;
+  refuse = true;
+  await page.click('#goall');
+  await page.waitForTimeout(900);
+  const doorText = await page.evaluate(() => {
+    const b = document.querySelector('#err .doorgo');
+    return b ? b.textContent.trim() : '';
+  });
+  ok('a refusal offers another door (' + doorText + ')', /Send it through/.test(doorText));
+  await page.click('#err .doorgo');
+  await page.waitForTimeout(900);
+  ok('the door word re-sent the SAME appended scene (' + JSON.stringify(posted.length > 1 ? posted[posted.length - 1].prompt : null) + ')',
+    posted.length === 2 && posted[1].prompt === 'shot two\n\nshot three');
+  ok('and it pinned the door she tapped (' + (posted[1] && posted[1].door) + ')',
+    posted.length === 2 && posted[1].door && posted[1].door !== 'atlascloud');
 
   // ── 7. a blank block is not sent and does not count ─────────────────────
   posted.length = 0;
@@ -240,7 +268,9 @@ const readBlocks = () => {
     await page.evaluate(() => document.getElementById('goall').hidden === true));
 
   // ── 8. over $3 the first tap ASKS and sends nothing ─────────────────────
-  cents = 160;                       // two blocks ⇒ $3.20
+  // ONE clip's price is the figure now, so the fixture prices ONE clip over
+  // the line (a 30s 2.5 clip really is) rather than relying on × the count.
+  cents = 320;                       // one appended clip ⇒ $3.20
   await page.evaluate(() => {
     const ws = Array.from(document.getElementById('prompt').closest('.panel').children).filter((k) => k.classList.contains('promptwrap'));
     const b = ws[1].querySelector('.pblock');
@@ -259,14 +289,15 @@ const readBlocks = () => {
   ok('it armed and says the total (' + armed.text + ')', armed.armed && /\$3\.20/.test(armed.text));
   await page.click('#goall');
   await page.waitForTimeout(900);
-  ok('the second tap sent both (' + posted.length + ')', posted.length === 2);
+  ok('the second tap sent the one appended clip (' + posted.length + ')',
+    posted.length === 1 && /shot two\n\nshot three again/.test(posted[0].prompt));
   cents = 4.4;
 
   // ── 9. a keystroke disarms it ───────────────────────────────────────────
   await page.evaluate(() => { document.getElementById('model').dispatchEvent(new Event('change', { bubbles: true })); });
   await page.waitForTimeout(500);
   await page.evaluate(() => { window.__forgeTestArm = true; });
-  cents = 160;
+  cents = 320;                       // one appended clip over the $3 line
   await page.evaluate(() => { document.getElementById('model').dispatchEvent(new Event('change', { bubbles: true })); });
   await page.waitForTimeout(600);
   await page.click('#goall');
