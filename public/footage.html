@@ -127,6 +127,26 @@
   .promptwrap .boxbtn svg{width:14px;height:14px}
   .promptwrap .bigger{right:56px}
   .promptwrap .divide{right:88px}
+  /* AND A BLOCK CAN GO ON ITS OWN — THE ✕ AT right:120 (2026-09-13, Sophie:
+     "clearing individual separated boxes"). Until this the only way to lose
+     one block of three was to empty it by hand and join it away, and the
+     `clear` word beside the star wipes the whole job — so a middle shot she
+     had changed her mind about cost more typing than writing it did. The
+     2026-09-11 note said there was no ✕ on a block ON PURPOSE; her ask
+     retires that reasoning, so it is history rather than a rule.
+     It is drawn ONLY with two or more blocks — CSS off the same `.many` class
+     the gold line already rides, never a JS sweep, because blocks are made
+     and joined as she types. With one block left the whole-job `clear` IS
+     this control, so the corner goes back to the two buttons it has always
+     had and a one-block page is byte-for-byte what it was.
+     It asks NOTHING: her rule is an undo instead of a confirm (a confirm is a
+     tap on every removal, an undo is a tap only on the ones she regrets), so
+     the removal banks the job exactly as `clear` does and the `undo` word
+     beside the star puts it back. MEASURED at 390pt: the band is the 34px the
+     corner already reserves and the three buttons run 170→260 inside a box
+     that starts at 25, so nothing was made taller and no words were pushed. */
+  .promptwrap .wipeb{right:120px;display:none}
+  .panel.many .promptwrap .wipeb{display:flex}
   /* THE GAP BETWEEN TWO BLOCKS HOLDS THE JOIN — the timeline's mark in the
      gap, Lucide `fold-vertical`, the divide's opposite: the two halves pushed
      back onto one line. Its own row, a direct child of the panel, so the
@@ -201,6 +221,14 @@
   .go{display:inline-flex;align-items:center;gap:8px;background:#2b2620;color:#f6f2ea;border-color:#2b2620;
       padding:9px 14px 9px 11px;font-size:16px}
   .go svg{width:20px;height:20px;display:block}
+  /* THE SECOND STAR — SEND EVERY BLOCK (2026-09-13). It is the star's own
+     class, so the two read as the same kind of tap; only the label differs,
+     and the label carries the whole batch's price. ARMED (over $3, waiting
+     for the second tap) it takes the gold ring the active block already
+     wears — the one accent on this page that means "this is the one" —
+     rather than a colour nothing else here uses. */
+  #goall{white-space:nowrap}
+  #goall.armed{box-shadow:0 0 0 2px #c9a96a}
   /* NOTHING A DOOR SAYS MAY WIDEN THE PAGE (2026-09-10, Sophie: "bug where
      screen sometimes zooms extra or gets v wide ?"). A refusal arrives as the
      door's own words — Atlas hands back up to 600 characters of raw body, and
@@ -296,6 +324,31 @@
   .panel.shut > *{display:none}
   .panel.shut > .panelrow{display:flex}
   .panel.shut{padding-bottom:6px}
+  /* AND IT FOLDS FROM WHEREVER SHE IS STANDING (2026-09-13, Sophie:
+     "collapsing the prompt from partway down"). The fold row is the panel's
+     FIRST child, so on a long scene the one control that puts the panel away
+     is above the screen and folding meant scrolling the whole scene back up
+     first — MEASURED at 390pt on a 40-line scene in the big box: at scrollY
+     600 the row sits 521px ABOVE the viewport with 1,836px of box below it,
+     and `elementFromPoint` at its middle answers nothing at all. It is the
+     same complaint `stickybox.js` answers for the corner buttons, one
+     direction round: those pin to the BOTTOM of the band because the way out
+     of a box is below her, and this pins to the TOP because the way out of
+     the panel is above her — which is plain `position:sticky` and needs no
+     script at all.
+     Four things. The background is the PANEL's white, never the page's cream,
+     or the scene scrolls through the row; the 10px that was a MARGIN is
+     padding now, since a sticky element holds its margin edge at `top` and
+     her words would show through that transparent band. Its z-index is under
+     the pinned corner buttons' 8 and the pill's 9, and they never meet anyway
+     — one rides the top of the band and the others the bottom. It already
+     wears the pill's reserve (MEASURED: 49px, right edge 316 against the
+     pill's 324), so nothing about that column moved. And it lets go with the
+     panel: sticky only holds while the containing block is in view, so once
+     she is down in the feed the row is gone rather than floating over clips
+     it no longer belongs to. */
+  .panelrow{position:sticky;top:var(--headtop,4px);z-index:6;background:#fff;
+            margin-top:0;padding-top:10px}
   /* THE COLUMN GAP IS 16, NOT 8, SINCE THE KEYFRAME MARK LANDED — MEASURED.
      The ✕ hangs 6px off a cell's RIGHT corner and the flag hangs 6px off the
      next cell's LEFT, so at an 8px gap the two overlap by 4px and the flag
@@ -889,7 +942,10 @@
   <p><b>The whole prompt area folds.</b> Tap <b>Prompt</b> at the top of the panel and the box, the references, the buttons and the star go away together &mdash; the clips come up to just under the header, which is the quickest way down to them. Shut, the row says the first words of what is in the box, and the project stays on it so you can still narrow what you are looking at. Nothing is lost: everything is still set the way you left it, and anything that puts words or a reference back opens it again.</p>
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
-  <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. Every block has the same two buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing.</p>
+  <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. Every block has the same buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing.</p>
+  <p><b>All of them at once.</b> Once two blocks have words in them a second star appears beside the first, carrying what the whole batch costs. It sends every block that has words, one after another, and stops at the first refusal &mdash; the block it stopped on takes the gold line, so the refusal and the doors under it are about that one. Over $3 the first tap asks and the second sends.</p>
+  <p><b>Taking one block off.</b> The &times; in a block&rsquo;s corner takes that block off; with only one block left there is no &times; and <b>clear</b> beside the star is what empties it. Either way <b>undo</b> puts it back.</p>
+  <p><b>Folding the prompt.</b> The PROMPT row stays at the top of the screen while you are writing, so a long scene folds away from wherever you are rather than from the top.</p>
   <p><b>Clear</b> beside the star wipes the job &mdash; every block, the references, the marks and the seed &mdash; and leaves the model, the size, the shape and the project where you set them. It asks nothing, because <b>undo</b> appears next to it and puts the whole thing back, even after a reload: the cleared job is saved the moment you clear it. Tap undo again and you are back where you were. Your words are saved as you type them either way.</p>
   <p><b>The seed</b> is on every finished clip, with a button that puts it back in the box. Leave the box blank and each clip gets a fresh one. A seed repeats the <i>opening</i> of a short clip and then drifts &mdash; it does not survive a changed prompt or a different size, and at 15 seconds it does close to nothing.</p>
   <p><b>Tiles.</b> Each one carries two doors in the middle: <b>&#9654;</b> plays the clip, and the list mark beside it takes you to that clip&rsquo;s card &mdash; its words, its seed, its references and the button that puts them back. The first words of your own newest note on a clip sit along the top of its tile.</p>
@@ -915,7 +971,7 @@
        cursor into two; the second half becomes a block of its own right under
        this one, with a join mark in the gap. The star sends the block she is
        in — the one with the gold line — once there is more than one. -->
-  <div class="promptwrap active"><textarea id="prompt" class="pblock"></textarea><button type="button" id="divide" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block"></button><button type="button" id="bigprompt" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
+  <div class="promptwrap active"><textarea id="prompt" class="pblock"></textarea><button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this block off" title="Take this block off — undo puts it back"></button><button type="button" id="divide" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block"></button><button type="button" id="bigprompt" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
 
   <button type="button" class="fold" id="reffold" aria-expanded="true" aria-controls="refs" hidden><span class="chev"></span><span id="reffoldlab">References</span></button>
   <div class="refs" id="refs"></div>
@@ -951,6 +1007,18 @@
   <div class="row" style="margin-top:12px">
     <span class="seedwrap" id="seedwrap"><input type="text" id="seedbox" inputmode="numeric" autocomplete="off" placeholder="Seed" aria-label="Seed" title="Seed — leave it blank for a fresh one"><button type="button" id="seedclear" aria-label="Clear the seed" title="Clear the seed" hidden></button></span>
     <button class="go" id="go" type="button"><span id="gostar"></span>Go</button>
+    <!-- AND SHE CAN SEND THEM ALL (2026-09-13, Sophie: "sending two boxes at
+         once"). The star sends the block she is in, which is right when the
+         blocks are two takes of one shot and wrong when they are shot one and
+         shot two of a scene she has just divided — there the second tap meant
+         waiting for the first clip, tapping into the next block and reading
+         the price again. So a second star beside it, drawn only once two or
+         more blocks have words in them, with the WHOLE batch's price on the
+         button itself: the read-back is on the tap, which is the strongest
+         form of her "have me approve the prompt and references" rule. Over $3
+         it ARMS instead of sending and says the total — her ask-above-$3 line,
+         in this page's idiom (a second tap, never a dialog). -->
+    <button class="go" id="goall" type="button" hidden><span id="goallstar"></span><span id="goalllab">All</span></button>
     <span class="cost" id="cost"></span>
     <!-- CLEAR, AND AN UNDO BESIDE IT (2026-09-11, Sophie: "add a clear button
          to footage · with an undo · make a draft save automatically"). It
@@ -1107,6 +1175,7 @@ var ICONS = {
 };
 var $ = function (id) { return document.getElementById(id); };
 $('gostar').innerHTML = ICONS.star;
+$('goallstar').innerHTML = ICONS.star;
 $('addicon').innerHTML = ICONS.image;
 document.querySelectorAll('.selwrap .chev').forEach(function (c) { c.innerHTML = ICONS.chev; });
 document.querySelectorAll('.iconsel .ico').forEach(function (c) { c.innerHTML = ICONS.folder; });
@@ -1398,6 +1467,13 @@ function setFolder(f, opts) {
   $('feed').innerHTML = ''; $('tiles').innerHTML = '';
   paintFolder(); paintRecent();
   loadJobs();
+  // THE STANDING SEARCH ANSWER WAS THE OLD FOLDER'S (2026-09-13, found
+  // auditing the page). `setProject` re-asks and this copy of it did not, so
+  // switching folder with a query up wiped the feed, refilled it with the new
+  // folder's clips and then hid every one of them against the previous
+  // folder's `qHits` — the page said "Nothing matches that." when matches
+  // were right there, and stayed wrong until she typed another character.
+  if (searchQ) { qHits = null; runSearch(); }
 }
 // A NEW FOLDER IS A NAME AND NOTHING ELSE — it exists the moment a clip lands
 // in it, so until then the picker simply offers the name she typed.
@@ -1568,6 +1644,10 @@ function loadBank() {
 function paintWipe() {
   var c = $('clearjob'), u = $('undojob');
   if (!c || !u) return;
+  // ANY CHANGE TO THE JOB DISARMS THE BATCH — this is the one signal every
+  // path that changes it already sends, so an armed "send all 4 · $18?" can
+  // never be sitting there for a scene she has edited since.
+  disarm();
   // written only on a change — this runs on every keystroke (saveDraft), and a
   // same-value attribute write is still a mutation on the row she types over
   var ch = jobEmpty(jobNow()), uh = !bank;
@@ -1582,6 +1662,49 @@ function paintWipe() {
   // guarantees the row is the height it has always been while nothing is
   // offered.
   if ($('wipes').hidden !== (ch && uh)) $('wipes').hidden = ch && uh;
+  paintGoAll();
+}
+// ── SEND THEM ALL (2026-09-13, Sophie: "sending two boxes at once") ────────
+// The blocks she has words in, each as its own job, on one tap. Everything
+// except the words IS the job and is shared — the references, the model, the
+// seconds, the size, the seed — so a batch is N of the same job with N
+// different scenes, and N times the price. Which is why the total is on the
+// button: her "never run without asking · have me approve the prompt and
+// references" rule is answered by the read-back being at the tap rather than
+// behind one.
+// AND OVER $3 IT ASKS, which is a house rule and not this page's idea. The
+// first tap ARMS and names the total, the second sends; anything that changes
+// the job disarms it, and so does eight seconds, so an armed button can never
+// be sitting there tomorrow spending money on a job she has since edited.
+var ARM_MS = 8000, ASK_CENTS = 300;
+var armed = 0;
+function wordyBlocks() {
+  return blocks().filter(function (w) { return w.querySelector('.pblock').value.trim(); });
+}
+// null while there is no figure yet — the button says the count and no price
+// rather than a number the server has not answered (`updateCost` repaints it).
+function batchCents() {
+  var c = parseFloat($('cost').dataset.cents);
+  if (!isFinite(c)) return null;
+  return c * wordyBlocks().length;
+}
+function disarm() { if (armed) { armed = 0; paintGoAll(); } }
+function paintGoAll() {
+  var b = $('goall');
+  if (!b) return;
+  var n = wordyBlocks().length;
+  var hide = n < 2;
+  if (armed && Date.now() - armed > ARM_MS) armed = 0;
+  if (b.hidden !== hide) b.hidden = hide;
+  if (hide) { armed = 0; return; }
+  var total = batchCents();
+  var lab = armed ? 'Send all ' + n + ' · ' + cents(total) + '?'
+    : 'All ' + n + (total == null ? '' : ' · ' + ($('cost').dataset.about ? '~' : '') + cents(total));
+  var el = $('goalllab');
+  if (el.textContent !== lab) el.textContent = lab;
+  var t = armed ? 'Tap again to send all ' + n + ' — ' + cents(total) : 'Send every block that has words in it';
+  if (b.title !== t) b.title = t;
+  if (b.classList.contains('armed') !== !!armed) b.classList.toggle('armed', !!armed);
 }
 function clearJob() {
   var was = jobNow();
@@ -1882,6 +2005,7 @@ function updateCost() {
     $('cost').dataset.about = d.about ? '1' : '';
     $('cost').dataset.door = d.door || '';
     paintKfNote();
+    paintGoAll();                   // the batch's total is N × this figure
   }).catch(function () {});
 }
 // WHAT THE DOORS WILL DO WITH A KEYFRAME, BEFORE SHE TAPS — nothing hidden.
@@ -2051,7 +2175,11 @@ function paintRefs() {
 // HER WORDS ARE NOT REWRITTEN, only the names, and EVERY BLOCK is rewritten:
 // the strip is shared across the blocks, so a name that moved has moved for
 // all of them.
-function reslotBlocks(was, now) {
+// `skip` is a box whose words must be left alone — only `copyBack` passes one:
+// the block it just filled holds the CARD's own prompt, which already names
+// the card's references, so renaming its slots off the OLD strip's positions
+// would break the one block that was right.
+function reslotBlocks(was, now, skip) {
   var CL = window.__castLine;
   if (!CL || !CL.slotMap || !CL.rewriteSlots) return { changed: 0, renamed: 0, gone: '' };
   var a = CL.slotMap(was), b = CL.slotMap(now);
@@ -2065,6 +2193,7 @@ function reslotBlocks(was, now) {
   var changed = 0;
   blocks().forEach(function (w) {
     var box = w.querySelector('.pblock');
+    if (skip && box === skip) return;
     var out = CL.rewriteSlots(box.value, gone, map);
     if (out !== box.value) { box.value = out; changed += 1; }
   });
@@ -2138,7 +2267,7 @@ $('file').addEventListener('change', function (e) {
   var files = Array.prototype.slice.call(e.target.files || []);
   if (!files.length) return;
   e.target.value = '';
-  var n = 0;
+  var n = 0, dup = 0;
   ftUploading += 1;                                 // the self-heal waits for it
   toast('Uploading ' + files.length + (files.length === 1 ? ' file…' : ' files…'));
   files.reduce(function (p, f) {
@@ -2151,13 +2280,24 @@ $('file').addEventListener('change', function (e) {
         .then(function (j) {
           var it = j && j.item;
           if (!it || !it.url) { toast('Could not upload ' + (f.name || 'that')); return; }
-          if (!refs.some(function (r) { return r.url === it.url; })) refs.push({ url: it.url, kind: kindOfFile(f), poster: it.posterUrl || '', name: f.name || '' });
+          // THE COUNT IS WHAT REALLY ATTACHED, NOT WHAT UPLOADED (2026-09-13,
+          // found auditing the page). The Dump is md5-deduped, so picking a
+          // photo that is already in the strip hands back the same url,
+          // nothing is pushed — and the tally still said "Attached 2".
+          if (refs.some(function (r) { return r.url === it.url; })) { dup += 1; return; }
+          refs.push({ url: it.url, kind: kindOfFile(f), poster: it.posterUrl || '', name: f.name || '' });
           n++;
           openFold('panel'); openFold('refs');
           saveDraft(); paintControls();
         }).catch(function () { toast('Could not upload ' + (f.name || 'that')); });
     });
-  }, Promise.resolve()).then(function () { ftUploading -= 1; if (n) toast(n === 1 ? 'Attached' : 'Attached ' + n); });
+  }, Promise.resolve()).then(function () {
+    if (n) toast(n === 1 ? 'Attached' : 'Attached ' + n);
+    else if (dup) toast(dup === 1 ? 'That one is already attached' : 'Those are already attached');
+  // THE COUNTER IS PUT DOWN WHATEVER HAPPENS. It gates the self-heal's
+  // reload, so a throw anywhere in the chain would leave the page saying "an
+  // upload in flight" for its whole life and no fix could ever reach it.
+  }).catch(function () {}).then(function () { ftUploading -= 1; });
 });
 // Recent — WHAT SHE HAS UPLOADED, NEVER WHAT THE DOOR DREW (2026-09-10,
 // Sophie: "take out trimmed clips from recents" → "recents is recent
@@ -2254,20 +2394,49 @@ function castBySlug() {
 }
 // The plan for one look, against the strip AS IT STANDS — so the line under a
 // look updates the moment she attaches something else.
+// A KEYFRAME TAKES NO SLOT, SO THE PLANNER IS NEVER SHOWN ONE (2026-09-13,
+// found auditing the page). `cast-line.js` numbers every reference it is
+// given, where `slotsOf` and the server both SKIP a marked one — so from the
+// moment she marked a first frame, the character's line named `[Image2]` for
+// the picture the door calls `[Image1]` and `[Image4]` for nothing at all,
+// and the clip still drew, of the wrong reference. That is precisely the
+// failure `cast-line.js`'s templates exist to prevent, arriving through the
+// keyframe; the sheet's own preview was reading the same wrong numbering, so
+// the disclosure agreed with the bug.
+// AND IT IS WHY THE LINE COULD BE INSERTED TWICE: `withLine` dedupes on the
+// resolved sentence, so once the numbers were wrong the sentence already in
+// her box stopped matching and a second copy was prepended — one naming the
+// right picture and one naming nothing.
+// THE MARKED PICTURES ARE PUT BACK WHERE THEY WERE. `p.refs` is the strip the
+// planner was given plus whatever it attached, so handing it straight to
+// `refs` would DELETE every marked picture from the strip.
+function withMarks(planRefs, before) {
+  var out = planRefs.slice();
+  before.forEach(function (r, i) {
+    if (roleOfUrl(r.url)) out.splice(Math.min(i, out.length), 0, r);
+  });
+  return out;
+}
 function castPlan(ent, look) {
   if (!CL) return null;
-  return CL.plan({ refs: refs, entry: ent, look: look, byslug: castBySlug() });
+  return CL.plan({ refs: slotRefs(), entry: ent, look: look, byslug: castBySlug() });
 }
 function castApply(ent, look) {
+  var wasRefs = refs.slice();
   var p = castPlan(ent, look);
   if (!p) { toast('Characters are not loaded yet'); return; }
   if (p.empty && !p.line) { toast('Nothing on ' + (ent.name || ent.slug) + ' yet'); return; }
-  refs = p.refs;
+  refs = withMarks(p.refs, wasRefs);
   var box = activeBox();
   var before = box.value;
   box.value = CL.withLine(before, p.line);
   if (window.__fitBigPrompt) window.__fitBigPrompt();
-  if (p.added) { openFold('panel'); openFold('refs'); }
+  // A LINE LANDING IN THE BOX OPENS THE PANEL, whether or not a picture was
+  // attached with it — the panel-fold rule is that anything putting words in
+  // opens it, and re-tapping a character whose references are all attached
+  // used to write a sentence into a box she could not see.
+  openFold('panel');
+  if (p.added) openFold('refs');
   saveDraft(); paintControls();
   // EVERY OTHER LOOK ON SCREEN IS NOW STALE — the previews are resolved
   // against the strip, so the slot a look would land on moved the instant
@@ -2477,6 +2646,7 @@ function fitBox(box, growOnly) {
 function fitAll() { blocks().forEach(function (w) { fitBox(w.querySelector('.pblock')); }); }
 function mountBlock(w) {
   var box = w.querySelector('.pblock'), big = w.querySelector('.bigger'), div = w.querySelector('.divide');
+  var off = w.querySelector('.wipeb');
   var full = false;   // the next input may need the box to SHRINK
   box.addEventListener('beforeinput', function (e) {
     var t = e.inputType || '';
@@ -2494,6 +2664,7 @@ function mountBlock(w) {
   big.addEventListener('click', function () { box.classList.toggle('big'); paint(); });
   div.innerHTML = ICONS.divide;
   div.addEventListener('click', function () { divideBlock(box); });
+  if (off) { off.innerHTML = ICONS.x; off.addEventListener('click', function () { dropBlock(box); }); }
   box.addEventListener('input', function (e) {
     // no beforeinput (an older engine, a synthetic event) → the safe road
     var grow = !full && !!(e && e.inputType) && e.inputType.indexOf('insert') === 0;
@@ -2506,6 +2677,7 @@ function addBlock(text, after) {
   var w = document.createElement('div');
   w.className = 'promptwrap';
   w.innerHTML = '<textarea class="pblock" aria-label="Another block"></textarea>'
+    + '<button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this block off" title="Take this block off — undo puts it back"></button>'
     + '<button type="button" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block"></button>'
     + '<button type="button" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button>';
   w.querySelector('.pblock').value = text || '';
@@ -2532,6 +2704,10 @@ function paintBlocks() {
   }
   panel.classList.toggle('many', ws.length > 1);
   if (!panel.querySelector('.promptwrap.active')) setActive(ws[0]);
+  // the block COUNT is what decides whether the second star is drawn, and
+  // this is the one place it changes (a divide, a join, a removal, a hand-off,
+  // a draft coming back) — `paintWipe` covers the words changing under it
+  if (typeof paintGoAll === 'function') paintGoAll();
   if (window.__fitPillGap) window.__fitPillGap();
 }
 // THE CUT IS THE TIMELINE'S: the words before the caret stay, the words after
@@ -2553,14 +2729,60 @@ function divideBlock(box) {
   if (first) toast('Two blocks — the star sends the one with the gold line');
   return true;
 }
+// A BLOCK COMES OFF ON ITS OWN, AND THE UNDO IS THE WHOLE-JOB BANK
+// (2026-09-13, Sophie: "clearing individual separated boxes"). Three things
+// worth not undoing:
+//   - THE FIRST BLOCK IS ALWAYS `#prompt` AND MUST STAY THAT NODE — a cached
+//     page, the belt's hand-off, the draft (`prompt` first, `blocks` after it)
+//     and every test read it by id. So taking the FIRST block off is the words
+//     below moving UP into it and the node below going instead; the net list
+//     is the same and nothing has to learn a new first block.
+//   - IT BANKS THE JOB, NOT THE BLOCK. `undo` already means "put back what
+//     the last wipe took", and one mechanism she has used beats a second kind
+//     of undo that only knows about blocks. So this is `clear`'s own bank, and
+//     `undo` puts the whole job back exactly as it does after a clear.
+//   - THE ACTIVE BLOCK ONLY MOVES IF IT WAS THE ONE THAT WENT. Taking off a
+//     block she is not standing in must not move the gold line — and when it
+//     IS hers, the block that has closed up into that position is the one she
+//     lands on (the Assets tab's own "her place is the fallback" rule).
+function dropBlock(box) {
+  var ws = blocks();
+  if (ws.length < 2) return;                     // the last block is what `clear` is for
+  var w = box.closest('.promptwrap'), i = ws.indexOf(w);
+  if (i < 0) return;
+  // an EMPTY job is not worth offering back, and banking one would draw an
+  // `undo` that restores nothing (and that `loadBank` discards on reload) —
+  // the same guard `takeHandoff` keeps
+  var wasJob = jobNow();
+  if (!jobEmpty(wasJob)) { bank = wasJob; saveBank(); }
+  var moved = w.classList.contains('active'), gone;
+  if (i === 0) {
+    box.value = ws[1].querySelector('.pblock').value;
+    gone = ws[1];
+    if (gone.classList.contains('active')) moved = true;   // her words are in this node now
+  } else {
+    gone = w;
+  }
+  gone.remove();
+  var left = blocks();
+  if (moved || !panelEl().querySelector('.promptwrap.active')) setActive(left[Math.min(i, left.length - 1)] || left[0]);
+  paintBlocks(); fitAll(); saveDraft(); paintControls(true);
+  toast('That block is off' + (bank === wasJob ? ' — tap undo to put it back' : ''));
+}
 function joinAt(row) {
   var above = row.previousElementSibling, below = row.nextElementSibling;
   if (!above || !below || !above.classList.contains('promptwrap') || !below.classList.contains('promptwrap')) return;
   var a = above.querySelector('.pblock'), b = below.querySelector('.pblock');
   var av = a.value.replace(/\s+$/, ''), bv = b.value.replace(/^\s+/, '');
   a.value = av && bv ? av + '\n\n' + bv : (av || bv);
+  // THE GOLD LINE ONLY MOVES IF ONE OF THE TWO JOINED BLOCKS HAD IT
+  // (2026-09-13, found auditing the page). This used to set it unconditionally,
+  // so joining blocks 1 and 2 while she was standing in block 3 moved the
+  // star's target to block 1 — the star then sends a block she is not in,
+  // which is the one thing the gold line exists to say.
+  var mine = above === activeWrap() || below === activeWrap();
   below.remove(); row.remove();
-  setActive(above);
+  if (mine) setActive(above);
   paintBlocks(); fitAll(); saveDraft();
 }
 // THE BLOCKS BECOME EXACTLY THIS LIST — a hand-off replaces the draft, so the
@@ -2615,12 +2837,21 @@ mountBlock(blocks()[0]);
 // nothing is ever drawn without its references. This only puts the choice she
 // already has to make in front of her thumb instead of in another app.
 $('go').addEventListener('click', function () { sendJob(''); });
-function sendJob(pin) {
+// ONE TAP IS ONE JOB, and `#go`'s own disabled flag is that gate — the star,
+// the refusal's door words and a batch all come through here, and the
+// self-heal reads the same flag as "a send in flight". `postJob` below is the
+// send itself and carries no gate, so a batch can hold the gate once and walk
+// its blocks inside it.
+function sendJob(pin, box) {
   var btn = $('go');
-  if (btn.disabled) return;                       // one tap is one job
-  var box = activeBox(), prompt = box.value;      // the block she is in
+  if (btn.disabled) return Promise.resolve(false);
+  btn.disabled = true;
+  return postJob(pin, box || activeBox(), false).then(function (ok) { btn.disabled = false; return ok; });
+}
+function postJob(pin, box, batch) {
+  var prompt = box.value;                         // the block she is in
   $('err').hidden = true;
-  if (!prompt.trim()) return toast('Say what the clip is first');
+  if (!prompt.trim()) { toast('Say what the clip is first'); return Promise.resolve(false); }
   var body = { prompt: prompt, model: S.model, seconds: S.seconds, resolution: S.res, ratio: S.ratio,
     sound: true, door: pin || doorNow(), refs: orderedRefs(), project: S.project, folder: S.project ? S.folder : '' };
   // THE TWO KEYFRAMES RIDE AS URLS — the server marks the matching reference
@@ -2631,10 +2862,13 @@ function sendJob(pin) {
   if (lastUrl) body.lastFrameUrl = lastUrl;
   // blank means nothing is sent, and the door mints one — never a remembered seed
   if (seedVal()) body.seed = Number(seedVal());
-  btn.disabled = true;
-  api('/jobs', { method: 'POST', body: JSON.stringify(body) }).then(function (d) {
-    btn.disabled = false;
+  return api('/jobs', { method: 'POST', body: JSON.stringify(body) }).then(function (d) {
     if (!d || !d.jobId) {
+      // IN A BATCH THE REFUSED BLOCK BECOMES THE ACTIVE ONE, so the refusal
+      // she reads and the door words under it are about the block wearing the
+      // gold line — those words re-send THAT exact job, and a refusal sitting
+      // over somebody else's block would send the wrong scene.
+      if (batch) setActive(box.closest('.promptwrap'));
       var msg = (d && d.error) || 'Could not start';
       // A CONTENT REFUSAL IS FREE AND COMES BACK BEFORE ANYTHING DRAWS, and
       // this page has only the one door — so it says, in her own terms, who
@@ -2657,36 +2891,92 @@ function sendJob(pin) {
       // the door the server says refused it, else the one the price line
       // named for this tap — an older page carries no `door` on the error
       if (d && d.refusal === 'content') offerDoors(d.door || $('cost').dataset.door || '');
-      return;
+      return false;
     }
-    var m = modelOf(S.model);
-    jobCard({ id: d.jobId, prompt: prompt, model: S.model, modelLabel: m ? m.label : S.model, door: d.door, seconds: S.seconds,
-      resolution: S.res, ratio: S.ratio, sound: true,
+    // THE CARD IS THE JOB THAT WENT, NEVER WHAT THE PAGE SAYS NOW (2026-09-13,
+    // found auditing the page). Every field here used to be re-read off the
+    // live `S` and the live marks one round trip after the tap — so switching
+    // the project while a send was in flight (or during a batch, which holds
+    // the flight open across several) filed the clip under the project she had
+    // just switched TO: `setProject` wipes the feed, the card lands claiming
+    // the new project, and because polling is project-scoped its record is
+    // never fetched — it sits on "drawing…" forever while the project it
+    // really belongs to shows nothing. `body` is the snapshot the tap took,
+    // so the card is built from that and cannot disagree with what was sent.
+    var m = modelOf(body.model);
+    jobCard({ id: d.jobId, prompt: prompt, model: body.model, modelLabel: m ? m.label : body.model, door: d.door, seconds: body.seconds,
+      resolution: body.resolution, ratio: body.ratio, sound: true,
       // the optimistic card carries the ROLES, or the clip she just sent
       // would show its first frame as an ordinary reference until the first
-      // poll lands the server's own record
-      refs: body.refs.map(function (r) { var role = roleOfUrl(r.url); return role ? { url: r.url, kind: r.kind, poster: r.poster, name: r.name, role: role } : r; }),
+      // poll lands the server's own record — off the BODY's own keyframes, so
+      // a mark moved during the flight cannot relabel the wrong picture
+      refs: body.refs.map(function (r) {
+        var role = r.url && r.url === body.firstFrameUrl ? 'first' : (r.url && r.url === body.lastFrameUrl ? 'last' : '');
+        return role ? { url: r.url, kind: r.kind, poster: r.poster, name: r.name, role: role } : r;
+      }),
       status: 'drawing', estimate: d.estimate,
       // the door answers with the seed it really used — hers, or the one it
       // minted — so the card carries it without waiting for the first poll
-      seed: d.seed != null ? d.seed : null, project: S.project, folder: S.project ? S.folder : '',
+      seed: d.seed != null ? d.seed : null, project: body.project, folder: body.folder,
       sentAt: new Date().toISOString(), note: d.note || '', video: '', poster: '', vote: '' });
-    toast(blocks().length > 1 ? 'Drawing block ' + (blocks().indexOf(box.closest('.promptwrap')) + 1) + '…' : 'Drawing…');
+    // a batch reports its own tally at the end — one toast per job would be
+    // three toasts stepping on each other
+    if (!batch) toast(blocks().length > 1 ? 'Drawing block ' + (blocks().indexOf(box.closest('.promptwrap')) + 1) + '…' : 'Drawing…');
     // her words STAY in the box after a send (a re-roll is one tap), and so
     // does the draft — it used to be wiped here while the box still showed
     // the words, so a reload right after a send opened on an empty box
     schedulePoll(true);
     loadStatus();
+    return true;
   }).catch(function () {
     // a non-JSON answer — a gateway page, a dropped connection — is the
     // server not answering, and a toast that vanishes in three seconds is
     // not a place to read that. It goes on the error line, and her words
     // stay in the box.
-    btn.disabled = false;
+    if (batch) setActive(box.closest('.promptwrap'));
     $('err').textContent = 'The server did not answer — nothing was sent or charged. Try again in a minute.';
     $('err').hidden = false;
+    return false;
   });
 }
+// EVERY BLOCK THAT HAS WORDS, ONE AFTER ANOTHER, AND IT STOPS AT THE FIRST
+// REFUSAL (2026-09-13, Sophie: "sending two boxes at once"). Sequential
+// rather than all at once for one reason: a refusal is about the references,
+// which every block shares, so once a door has refused one block it will
+// refuse the rest — and the refusal line and its door words can only be
+// about ONE job. Stopping leaves that block lit under its own refusal, and
+// the toast says exactly how many went out and how many did not.
+// A refusal is free either way, so this is about noise rather than money.
+function sendAll() {
+  var btn = $('go');
+  if (btn.disabled) return;
+  var ws = wordyBlocks();
+  if (ws.length < 2) return sendJob('');
+  var total = batchCents();
+  // OVER $3 IT ASKS — the house rule, as a second tap rather than a dialog
+  if (!armed && total != null && total >= ASK_CENTS) {
+    armed = Date.now(); paintGoAll();
+    setTimeout(function () { if (armed) disarm(); }, ARM_MS + 50);
+    return toast('That is ' + cents(total) + ' for ' + ws.length + ' clips — tap it again to send');
+  }
+  armed = 0; paintGoAll();
+  btn.disabled = true;
+  var sent = 0, stopped = false;
+  ws.reduce(function (p, w) {
+    return p.then(function () {
+      if (stopped) return;
+      return postJob('', w.querySelector('.pblock'), true).then(function (ok) {
+        if (ok) sent += 1; else stopped = true;
+      });
+    });
+  }, Promise.resolve()).then(function () {
+    btn.disabled = false;
+    var left = ws.length - sent;
+    if (!sent) return;                            // the refusal line says it all
+    toast(sent + ' drawing' + (left ? ' · ' + left + ' not sent' : '') + '…');
+  });
+}
+$('goall').addEventListener('click', sendAll);
 
 // The doors that can still take THIS job, priced. `/estimate` is free and is
 // the one place that knows whether a door can take the job's shape at all —
@@ -2769,16 +3059,46 @@ function applyFilt() {
     }
     if (s && tiles) any = true;
   });
+  // A CARD FIRST DRAWN WHILE A FILTER HID IT HAS NO "… more" UNTIL SOMETHING
+  // RE-ASKS (2026-09-13, found auditing the page — the Playground's own
+  // `resyncClamps` lesson, arriving through a filter rather than a view). The
+  // clamp is decided by MEASUREMENT, which is the honest test, and a hidden
+  // card measures 0 — so with the ♥ or the ✕ or a sticky funnel chip on at
+  // load, every card it hid was marked undecided, and turning the filter off
+  // only unhid them: her prompt sat cut mid-word at four lines with no opener
+  // at all until she switched the view or reloaded. Unhiding is exactly when
+  // to ask again.
+  if (!tiles) resyncClamps();
   var n = Object.keys(jobsById).length;
-  $('feedbar').hidden = !n;
+  // THE BAR STAYS WHILE ANYTHING NARROWS THE FEED — IT IS THE ONLY WAY OUT
+  // (2026-09-13, found auditing the page). `#feedbar` carries the project and
+  // folder picker as well as the search and the view switch, and it was
+  // hidden outright on an empty feed — so naming a NEW project (or moving the
+  // last clip out of the one she was in, or making a new folder) left
+  // "Nothing made here yet." with no control on screen to get back to All.
+  // A reload did not help: the project is remembered, so it reopened the same
+  // empty one, and the only escapes were sending a clip into it or clearing
+  // her localStorage. It hides only on a page that has nothing to filter and
+  // no filter on.
+  var narrowed = !!(S.project || qGroups.length || likedOnly() || hideX()
+    || (FILT && ((FILT.get('model') || []).length || FILT.get('when'))));
+  $('feedbar').hidden = !n && !narrowed;
   $('feedempty').hidden = !!any;
   // AN EMPTIED FEED SAYS WHICH FILTER EMPTIED IT — a shut drawer is exactly
   // the thing she cannot see, so "nothing here" would read as a lost history.
-  $('feedempty').textContent = !n ? 'Nothing made here yet.'
+  // AND IT NAMES THE RIGHT ONE. The ladder used to end on "Everything here is
+  // crossed out" for a feed that simply held nothing shown — moving the last
+  // clip out of a project reported a crossed-out feed with nothing crossed
+  // out — and it checked a query before the ♥, so hearting an unhearted set
+  // blamed the search. Every rung now has to be a filter that is really on,
+  // and a feed with clips but nothing passing says so plainly.
+  var fm = FILT && (FILT.get('model') || []).length, fw = FILT && FILT.get('when');
+  $('feedempty').textContent = !n ? (S.project ? 'Nothing in here yet.' : 'Nothing made here yet.')
+    : likedOnly() ? 'Nothing hearted yet.'
     : qGroups.length ? 'Nothing matches that.'
-    : (FILT && (FILT.get('model') || []).length) ? 'Nothing on that model.'
-    : (FILT && FILT.get('when')) ? 'Nothing that recent.'
-    : likedOnly() ? 'Nothing hearted yet.' : 'Everything here is crossed out.';
+    : fm ? 'Nothing on that model.'
+    : fw ? 'Nothing that recent.'
+    : hideX() ? 'Everything here is crossed out.' : 'Nothing to show here.';
 }
 $('v-liked').addEventListener('click', function () { try { localStorage.setItem('footage_liked', likedOnly() ? '' : '1'); } catch (e) {} paintFilt(); applyFilt(); });
 $('v-hidex').addEventListener('click', function () { try { localStorage.setItem('footage_hidex', hideX() ? '' : '1'); } catch (e) {} paintFilt(); applyFilt(); });
@@ -2811,14 +3131,19 @@ function hayOf(j) { return window.FootageHay ? window.FootageHay.hayOf(j) : ''; 
 function passesSearch(j) {
   if (!qGroups.length) return true;
   if (qHits) return !!qHits[j.id];
-  return qmatch(hayOf(j), qGroups);
+  // the project's NAME is the word she reads on the card ("The ward"), where
+  // the record carries only its slug — the hay takes it when the caller knows
+  // it, and only this side does
+  return qmatch(hayOf(j.project ? Object.assign({}, j, { projectName: projectName(j.project) }) : j), qGroups);
 }
 function runSearch() {
   var seq = ++qSeq, want = searchQ;
   if (!want) { qHits = null; return; }
-  var asked = S.project;
+  // the FOLDER as well as the project — `projQ()` sends both, so a folder
+  // switch mid-flight could land folder A's answer on folder B's screen
+  var asked = viewKey();
   api('/jobs?limit=300&q=' + encodeURIComponent(want) + projQ()).then(function (d) {
-    if (seq !== qSeq || asked !== S.project) return;      // she typed on, or moved
+    if (seq !== qSeq || asked !== viewKey()) return;      // she typed on, or moved
     var jobs = (d && d.jobs) || [];
     // a hit may be a clip the feed itself has never paged in — it lands as
     // a card like any other, so its own doors, notes and trims all work
@@ -3089,7 +3414,29 @@ function loadNotes() {
       repaintNotes();
     }).catch(function () { /* the clips still play */ });
 }
-function threadFor(j) { return (j && j.video && notesByUrl[j.video]) || []; }
+// A NOTE BELONGS TO THE CLIP, NOT TO WHICHEVER PART IS PLAYING (2026-09-13,
+// found auditing the page). `cardOf` repoints `video` at the first baked part
+// the moment a trim lands, and both note doors keyed off `video` — so a note
+// she wrote on a clip VANISHED off the card and off the tile the second she
+// trimmed it, and taking the part off brought it back, which reads as data
+// loss. Worse, the two doors then wrote different threads: the player hands
+// filmnote `source || video` (the whole clip) while the card's box posted
+// `video` (part one), against a comment claiming a note written either way is
+// one thread on one clip.
+// `source` is the clip the door drew and never moves, so it is the key — and
+// a thread already written against a part's url is READ ALONGSIDE it rather
+// than orphaned, since she wrote every one of them about the same clip.
+function noteUrl(j) { return (j && (j.source || j.video)) || ''; }
+function threadFor(j) {
+  if (!j) return [];
+  var key = noteUrl(j), out = (key && notesByUrl[key]) || [];
+  if (j.video && j.video !== key && notesByUrl[j.video]) {
+    out = out.concat(notesByUrl[j.video]).slice().sort(function (a, b) {
+      return String(a.at || '').localeCompare(String(b.at || ''));
+    });
+  }
+  return out;
+}
 // THE THREAD IS PAINTED OUTSIDE THE CARD'S SIGNATURE — its own box with its
 // own signature, so a note landing repaints the words and never rebuilds the
 // card (which would re-decode its poster, the wall's own rule one card in).
@@ -3169,7 +3516,9 @@ function sendNote(j, box) {
   var t = String(ta.value || '').trim();
   var err = box.querySelector('.nerr');
   if (!t) { ta.focus(); return; }
-  var url = j.video;
+  // the CLIP's own url, never the part that happens to be playing — the same
+  // key the player's tap-to-note uses, so one clip is one thread
+  var url = noteUrl(jobsById[j.id] || j);
   if (!url) { err.textContent = 'That clip has nothing to note on yet.'; return; }
   var btn = box.querySelector('.nsend');
   btn.disabled = true; err.textContent = '';
@@ -3507,22 +3856,34 @@ function projOptions(j) {
 // move to another project drops the folder (it belonged to the project the
 // clip left); a folder the page has never seen joins FOLDERS at once so the
 // picker and every other card offer it.
+// THE CARD'S MOVE ROW IS PUT BACK BY HAND (2026-09-13, found auditing the
+// page). `jobCard` leaves the DOM alone when nothing about the clip changed —
+// its signature matches — so a cancelled "New folder…" left the select stuck
+// on that row, reading as a move she had not made. The page's own picker
+// resets itself explicitly for the same reason; this rebuilds the options,
+// which re-marks the one really selected.
+function resetMoveSel(j) {
+  var el = document.getElementById('job-' + j.id);
+  var sel = el && el.querySelector('.projsel select');
+  if (sel) sel.innerHTML = projOptions(j);
+  jobCard(j);
+}
 function moveTo(id, value) {
   var j = jobsById[id]; if (!j) return;
   var project, folder;
   // the fold row is a control, not a place: it toggles and the clip stays put
   if (String(value || '').indexOf(FOLD) === 0) { openToggle(String(value).slice(FOLD.length)); paintProject(); repaintCards(); return; }
   if (value === NEW_FOLDER) {
-    if (!j.project) { jobCard(j); return; }
+    if (!j.project) { resetMoveSel(j); return; }
     var name = window.prompt('Name the folder');
     folder = name == null ? '' : folderSlug(name);
-    if (!folder) { jobCard(j); return; }
+    if (!folder) { resetMoveSel(j); return; }
     project = j.project;
   } else {
     project = String(value || '').split('/')[0];
     folder = project ? (String(value || '').split('/')[1] || '') : '';
   }
-  if (project === (j.project || '') && folder === (j.folder || '')) { jobCard(j); return; }
+  if (project === (j.project || '') && folder === (j.folder || '')) { resetMoveSel(j); return; }
   j.project = project; j.folder = folder;
   if (folder && foldersIn(project).indexOf(folder) < 0) { FOLDERS[project] = foldersIn(project).concat([folder]).sort(); paintProject(); repaintCards(); }
   else jobCard(j);
@@ -3533,8 +3894,29 @@ function moveTo(id, value) {
 function moveProject(id, project) { moveTo(id, project); }
 // PUTTING A PROMPT BACK PUTS ITS REFERENCES AND ITS SETTINGS BACK — only
 // what the record knows: a card with no references clears the strip.
+// A PUT-BACK IS A WIPE, SO IT BANKS THE JOB — AND IT RENUMBERS THE OTHER
+// BLOCKS (2026-09-13, found auditing the page). Two losses, both silent, both
+// through the one door the hand-off was fixed for on 2026-09-11 and this one
+// was not:
+//   - HER WORDS WENT WITH NO UNDO. `activeBox().value = j.prompt` overwrote
+//     whatever she was writing and `saveDraft()` two lines down overwrote the
+//     draft behind it, so a scene she had been typing was gone for good — and
+//     worse, an `undo` left on the row from an earlier `clear` restored THAT
+//     job instead, which is the one visible control lying about what it does.
+//     So it banks `jobNow()` first, exactly as `takeHandoff` does, and skips
+//     the bank on an empty page so an earlier one is not thrown away.
+//   - THE OTHER BLOCKS' SLOT NAMES POINTED AT A DIFFERENT STRIP. A slot is a
+//     POSITION, so replacing the whole strip renames every picture — the rule
+//     `dropRef`, `markRef` and `useShot` all run `reslotBlocks` for. This
+//     replaced it and rewrote only the ACTIVE block's words, so with two
+//     blocks divided, block 2's `[Image1]` went on naming a picture that was
+//     no longer there and the clip still drew, of the wrong reference. The
+//     rewrite runs here now and the toast says how many names moved.
 function copyBack(j) {
-  activeBox().value = j.prompt || '';
+  var wasJob = jobNow();
+  if (!jobEmpty(wasJob)) { bank = wasJob; saveBank(); }
+  var wasRefs = slotRefs(), into = activeBox();
+  into.value = j.prompt || '';
   refs = (j.refs || []).map(function (r) { return { url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' }; });
   // ONLY WHAT THE RECORD KNOWS, the marks included: a clip drawn off a first
   // frame comes back with that picture still marked, and one drawn with no
@@ -3557,11 +3939,18 @@ function copyBack(j) {
   // her ask: copying the words back brings the seed with them (and a clip with
   // no seed on file clears the box rather than leaving another clip's in it)
   setSeed(j.seed);
+  // EVERY OTHER BLOCK'S NAMES FOLLOW THE NEW STRIP — the active block's words
+  // are the card's own and already name its references, so the rewrite is
+  // about the blocks she did NOT put this back into.
+  var moved = reslotBlocks(wasRefs, slotRefs(), into);
   openFold('panel'); openFold('refs'); openFold('ctl');
   saveCtl(); saveDraft(); paintControls(true);
   if (window.__fitBigPrompt) window.__fitBigPrompt();
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  toast(refs.length ? 'Prompt and its references are back' : 'Prompt is back in the box');
+  var said = refs.length ? 'Prompt and its references are back' : 'Prompt is back in the box';
+  if (!jobEmpty(wasJob)) said += ' — tap undo for what was here';
+  if (moved.changed) said += ' · ' + moved.changed + (moved.changed === 1 ? ' block renumbered' : ' blocks renumbered');
+  toast(said);
 }
 
 // ── THE BELT'S HAND-OFF DOOR ──────────────────────────────────────────────
@@ -3671,7 +4060,14 @@ function takeHandoff() {
   refs.forEach(function (r) { inStrip[r.url] = 1; });
   if (typeof h.firstFrame === 'string' && inStrip[h.firstFrame]) firstUrl = h.firstFrame;
   if (typeof h.lastFrame === 'string' && inStrip[h.lastFrame] && h.lastFrame !== firstUrl) lastUrl = h.lastFrame;
-  if (h.seed != null) setSeed(h.seed);
+  // THE SEED IS THE HAND-OFF'S OR NOTHING (2026-09-13, found auditing the
+  // page). The marks beside it were already reset unconditionally and this
+  // was not, so a seed she had copied off a finished clip stayed in the box
+  // and PINNED the belt's new scene to it — every re-roll of a different
+  // shot coming out the same, with nothing on screen having asked for it.
+  // That is the one thing the "never a remembered seed" rule is about, and
+  // every sibling door (a clear, a put-back) already clears it.
+  setSeed(h.seed != null ? h.seed : '');
   openFold('panel'); openFold('refs'); openFold('ctl');
   saveCtl(); saveDraft(); paintControls(true); paintRefs();
   if (window.__fitBigPrompt) window.__fitBigPrompt();
@@ -3718,14 +4114,39 @@ function loadStatus() {
 // project's cards on the new one's screen
 function projQ() { return (S.project ? '&project=' + encodeURIComponent(S.project) : '') + (S.project && S.folder ? '&folder=' + encodeURIComponent(S.folder) : ''); }
 function viewKey() { return S.project + '/' + (S.project ? S.folder : ''); }
+// A CLIP THE NEWEST PAGE NO LONGER HOLDS IS ASKED FOR BY NAME (2026-09-13,
+// found auditing the page). The poll reads the newest 40 of the view she is
+// on, so trimming a clip she reached through `… older` or the search left its
+// part on `baking` forever: the card said "trimming…" with no end, the
+// part's `save` never appeared, and `anyDrawing()` never went false — so the
+// page re-read the whole collection every 7 seconds for the rest of its life.
+// The unfinished clips that the page read did NOT contain are fetched one by
+// one after it, which is a handful of small reads at worst and nothing at all
+// on an ordinary poll.
+function unresolvedOffPage(seen) {
+  return Object.keys(jobsById).filter(function (id) {
+    return !seen[id] && waitingOn(jobsById[id]);
+  }).slice(0, 8);
+}
 function loadJobs() {
   var asked = viewKey();
   return api('/jobs?limit=40' + projQ()).then(function (d) {
     if (asked !== viewKey()) return;
     takeFolders(d);
     var jobs = (d && d.jobs) || [];
+    var seen = {};
+    jobs.forEach(function (j) { if (j && j.id) seen[j.id] = 1; });
     batching = true;
     try { jobs.slice().reverse().forEach(jobCard); } finally { batching = false; }
+    // the ones still working that this page did not carry
+    var off = unresolvedOffPage(seen);
+    if (off.length) {
+      Promise.all(off.map(function (id) {
+        return api('/jobs/' + encodeURIComponent(id)).then(function (r) {
+          if (r && r.job && asked === viewKey()) jobCard(r.job);
+        }).catch(function () {});
+      })).then(function () { paintFeed(); paintRecent(); });
+    }
     // THE NEWEST PAGE'S `more` ONLY SPEAKS UNTIL SHE HAS WALKED PAST IT —
     // this read runs on every poll and always says "there is a page under
     // the first 40", which is true and says nothing about the pages she
@@ -3735,8 +4156,13 @@ function loadJobs() {
     paintFeed();
     paintOlder();
     paintRecent();
-    schedulePoll(false);
-  }).catch(function () {});
+  // THE POLL IS RE-ARMED WHATEVER THE READ DID (2026-09-13, found auditing
+  // the page). `schedulePoll` sat inside the `then`, so one failed read — a
+  // tunnel, a 500, a gateway page (`api` does `r.json()`) — skipped it and the
+  // timer that had just fired was gone: the clip went on drawing on the
+  // server and the page never asked again, while the 1s clock kept the card
+  // counting up so it looked alive. `loadOlder` already had this right.
+  }).catch(function () {}).then(function () { if (asked === viewKey()) schedulePoll(false); });
 }
 // ── THE WAY BACK PAST TODAY (2026-09-11, Sophie: "I can't go back farther
 // than today in footage") ────────────────────────────────────────────────
@@ -3778,11 +4204,14 @@ $('older').addEventListener('click', function () { loadOlder(); });
 // A BAKING TRIM KEEPS THE POLL ALIVE TOO — without this the card sits on
 // "trimming…" until she leaves the page and comes back, and a trim that
 // landed in four seconds reads as one that never landed.
+// ONE definition of "this clip is still working" — the poll's own question,
+// and the one `unresolvedOffPage` asks to decide what to fetch by name.
+function waitingOn(j) {
+  if (!j) return false;
+  return j.status === 'drawing' || jobParts(j).some(function (t) { return t.status === 'baking'; });
+}
 function anyDrawing() {
-  return Object.keys(jobsById).some(function (k) {
-    var j = jobsById[k];
-    return j.status === 'drawing' || jobParts(j).some(function (t) { return t.status === 'baking'; });
-  });
+  return Object.keys(jobsById).some(function (k) { return waitingOn(jobsById[k]); });
 }
 function schedulePoll(soon) {
   clearTimeout(pollT);
@@ -3885,7 +4314,15 @@ $('psave').addEventListener('click', function () { if (shotUrl) saveMedia(shotUr
 // "reference" button beside it). NO save-and-re-attach: the frame is already
 // a public url on our own Storage, so nothing is uploaded and nothing is
 // downloaded — it is one entry in the strip.
-function useShot(asFirst, name) {
+// `stay` keeps the player open — GRAB FRAME is taken ON THE SPOT and must not
+// cost her the marks (2026-09-13, found auditing the page). It shared this
+// tail with the last-frame lightbox, where closing is right; from the trimmer
+// it shut the player, scrolled to the top and `closePlayer`'s `TR = null`
+// threw away the in and out marks she had just placed — so grabbing a frame
+// mid-cut meant finding the clip again and re-marking both ends, against the
+// trimmer's own rule that the player stays open across a cut and this
+// button's own promise that nothing on the clip changes.
+function useShot(asFirst, name, stay) {
   var url = shotUrl;
   if (!url) return;
   var was = slotRefs();
@@ -3895,8 +4332,10 @@ function useShot(asFirst, name) {
   reslotBlocks(was, slotRefs());
   openFold('panel'); openFold('refs');
   saveDraft(); paintControls(true);
-  closePlayer();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (!stay) {
+    closePlayer();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
   toast(asFirst ? 'That frame is the first frame of the next clip' : 'That frame is a reference now');
 }
 $('pfirst').addEventListener('click', function () { useShot(true); });
@@ -4319,7 +4758,11 @@ function paintTrim() {
   // OFF is its own row's ✕ — with several parts, one "undo" could only ever
   // mean the wrong one.
   go.hidden = whole;
-  go.disabled = false;
+  // A TRIM IN FLIGHT KEEPS THE BUTTON DOWN (2026-09-13, found auditing the
+  // page). This re-enabled it unconditionally, and `jobCard` calls `paintTrim`
+  // for the open clip — so the 4s poll landing mid-flight put the button back
+  // and a second tap queued a second identical encode.
+  go.disabled = !!trimSending;
   go.textContent = TR.editing ? 'Replace' : (n ? 'Add part' : 'Trim');
   paintParts();
   paintHead();
@@ -4342,7 +4785,10 @@ function stepHead(by) {
   TR.all = false;
   try { TR.v.pause(); } catch (e) {}
   try { TR.v.currentTime = Math.min(Math.max((TR.v.currentTime || 0) + by, 0), TR.dur); } catch (e) {}
-  paintHead();
+  // THE WHOLE TRIMMER, or `#tall` goes on reading "Back to the part" after a
+  // step has already turned that mode off (2026-09-13) — and tapping it then
+  // starts another whole-clip run. `setMark` and the strip tap both do this.
+  paintTrim();
 }
 // TAP THE STRIP AND THE PLAYHEAD GOES THERE (her ask). Measured off the BAR's
 // own rect, never the button's, so the band around it can grow without moving
@@ -4393,7 +4839,13 @@ $('tparts').addEventListener('click', function (e) {
     return paintTrim();
   }
   var drop = e.target.closest && e.target.closest('[data-drop]');
-  if (drop) sendTrim({ remove: drop.dataset.drop }, 'That part is off — the whole clip is back');
+  // THE TOAST CANNOT PROMISE THE WHOLE CLIP IS BACK WHEN OTHER PARTS REMAIN
+  // (2026-09-13) — removing part 2 of 3 leaves two parts, and the original was
+  // never written over in the first place.
+  if (drop) {
+    var rest = (TR && TR.parts || []).filter(function (x) { return x.key !== drop.dataset.drop; }).length;
+    sendTrim({ remove: drop.dataset.drop }, rest ? 'That part is off' : 'That part is off \u2014 the whole clip is back');
+  }
 });
 $('tgo').addEventListener('click', doTrim);
 // GRAB FRAME — the frame under the playhead becomes a reference for the next
@@ -4415,7 +4867,7 @@ $('tgrab').addEventListener('click', function () {
     b.disabled = false;
     if (!d || d.error || !d.url) return toast((d && d.error) || 'That frame could not be grabbed');
     shotUrl = d.url;
-    useShot(false, 'frame at ' + Number(d.at).toFixed(1) + 's');
+    useShot(false, 'frame at ' + Number(d.at).toFixed(1) + 's', true);   // her marks stay
   }).catch(function () {
     b.disabled = false;
     toast('The server did not answer \u2014 nothing changed');
@@ -4429,12 +4881,13 @@ $('tgrab').addEventListener('click', function () {
 // AND THE PLAYER STAYS OPEN (2026-09-10) — she is cutting a SECOND part out
 // of the same clip, so closing on every cut would mean finding the clip and
 // re-opening it between every one.
+var trimSending = false;
 function sendTrim(body, said) {
   if (!TR) return;
   var j = TR.j, go = $('tgo');
-  go.disabled = true;
+  trimSending = true; go.disabled = true;
   api('/jobs/' + encodeURIComponent(j.id) + '/trim', { method: 'POST', body: JSON.stringify(body) }).then(function (d) {
-    go.disabled = false;
+    trimSending = false; go.disabled = false;
     if (!d || d.error) return toast((d && d.error) || 'That trim was refused');
     if (d.job) {
       jobCard(d.job); paintRecent();
@@ -4448,7 +4901,7 @@ function sendTrim(body, said) {
     toast(said);
     schedulePoll(true);
   }).catch(function () {
-    go.disabled = false;
+    trimSending = false; go.disabled = false;
     toast('The server did not answer — the clip is untouched');
   });
 }
@@ -4526,20 +4979,46 @@ function fitPillGap() {
   // a row whose answer is what it already wears is skipped without a write
   // or a forced layout. Only a row whose answer moved takes the zero-and-
   // measure road, which stays exact for the height a wider row would have.
+  // A STICKY ROW IS JUDGED WHERE IT REALLY SITS (2026-09-13). The walk
+  // normalises every rect into PAGE coordinates so a row does not change
+  // width as it scrolls past the rail — which is right for a row in the flow
+  // and exactly wrong for the sticky fold row, whose viewport position is
+  // where it always is: at scrollY 700 its page coordinate is 710, far below
+  // the pill's band, so the reserve was REMOVED at the one moment the row was
+  // sitting inside the pill's corner. A sticky row is compared against the
+  // pill's own viewport rect instead, with no `y` added either side.
+  // A STICKY ROW ALWAYS RESERVES THE COLUMN (2026-09-13). The walk normalises
+  // every rect into PAGE coordinates so a row does not change width as it
+  // scrolls past the rail — right for a row in the flow, and meaningless for
+  // the sticky fold row, whose page coordinate is wherever she happens to be
+  // scrolled: at scrollY 700 that put it far BELOW the pill's band and
+  // removed the reserve at the one moment the row was sitting inside the
+  // pill's corner. Judging it at its STUCK top instead swapped the bug for
+  // its mirror (at rest the row is lower than the stuck band, so an unset
+  // `--headtop` dropped the reserve it needs standing still). A row pinned to
+  // the top of the viewport is inside a rail fixed to the top of the viewport
+  // for every scroll position that matters, so the band test does not apply
+  // to it at all: it reserves whenever it reaches into that column.
+  var sticky = {};
+  for (i = 0; i < kids.length; i++) sticky[i] = window.getComputedStyle(kids[i]).position === 'sticky';
   for (i = 0; i < kids.length; i++) {
     var el = kids[i];
+    var st = sticky[i];
     var cur = parseFloat(el.style.getPropertyValue('--pillgap')) || 0;
     var r = el.getBoundingClientRect();
     if (r.width && r.height) {
       var top0 = r.top + y, bot0 = r.bottom + y, right0 = r.right + cur;
-      var want = (bot0 <= p.top || top0 >= p.bottom || right0 <= p.left) ? 0 : Math.max(0, Math.ceil(right0 - p.left) + 8);
+      var off = st ? right0 <= p.left : (bot0 <= p.top || top0 >= p.bottom || right0 <= p.left);
+      var want = off ? 0 : Math.max(0, Math.ceil(right0 - p.left) + 8);
       if (want === cur) continue;
     }
     setGap(el, '--pillgap', '0px');
     r = el.getBoundingClientRect();
     if (!r.width || !r.height) continue;            // a hidden row reserves nothing
-    var top = r.top + y, bot = r.bottom + y;
-    if (bot <= p.top || top >= p.bottom) continue;
+    if (!st) {
+      var top = r.top + y, bot = r.bottom + y;
+      if (bot <= p.top || top >= p.bottom) continue;
+    }
     if (r.right <= p.left) continue;                // it ends before the column
     setGap(el, '--pillgap', Math.max(0, Math.ceil(r.right - p.left) + 8) + 'px');
   }
@@ -4643,6 +5122,17 @@ paintFilt();
 applyCols();
 applyView();
 paintCast();      // the button is on the row from the first paint; the shelf is read on the way open
+// WHAT IS HERS PAINTS BEFORE /status IS ASKED (2026-09-13, found auditing the
+// page). `paintControls` was restructured so the strip, the folds, the seed
+// and the clear/undo words all paint AHEAD of its own `CFG` guard — and the
+// boot never called it, so the only caller was inside `/status`'s success
+// branch. With `/status` slow, refused or answering a gateway page, a
+// restored draft's references were attached and INVISIBLE (a Go would have
+// sent them), a banked job's `undo` was hidden so it read as lost, and a
+// panel she had left shut opened anyway. On a healthy load the same gap
+// lasted the round trip. It is safe to call with no table: every branch that
+// needs one sits behind the guard.
+paintControls();
 // the notes read waits for /status, which is what says which chat they file
 // under — and for the jobs, so there are cards for the threads to land on
 loadStatus().then(loadJobs).then(loadNotes);

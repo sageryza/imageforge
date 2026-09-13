@@ -38,7 +38,13 @@
       c.prompt, c.title, c.note,
       c.modelLabel, c.model, c.door,
       c.seconds != null ? c.seconds + 's' : '', c.resolution, c.ratio,
-      c.project,
+      // THE PROJECT AND ITS FOLDER — the card prints both, and this is meant
+      // to be the words on screen (2026-09-13: the folder was unsearchable,
+      // so the one thing that says WHICH commercial a clip belongs to could
+      // not be typed into the box that says it searches what she can read).
+      // The project rides as its slug AND, where the caller knows it, its
+      // name — she reads "The ward", not `ward`.
+      c.project, c.projectName, c.folder,
       c.seed != null ? 'seed ' + c.seed : '',
       c.status, c.status === 'failed' ? 'refused' : '',
       c.why, c.error,

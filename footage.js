@@ -1709,6 +1709,24 @@ router.get('/jobs/:id/kin', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET /jobs/:id — ONE CLIP, so the page can resolve something its own page
+// no longer holds (2026-09-13, found auditing the page). The poll reads the
+// newest 40 of the view she is on, so a clip she reached through `… older` or
+// the search — and then trimmed — had its part stuck on `baking` for the life
+// of the page: the card said "trimming…" with no end, the part's `save` never
+// appeared, and the page went on re-reading the whole collection every seven
+// seconds because it could never see that nothing was working any more. One
+// doc, one read.
+router.get('/jobs/:id', async (req, res) => {
+  try {
+    const id = String(req.params.id);
+    const doc = await coll().doc(id).get();
+    if (!doc.exists) { res.status(404).json({ error: 'no such clip' }); return; }
+    res.set('Cache-Control', 'no-store');
+    res.json({ ok: true, job: cardOf(doc.id, doc.data()) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 router.post('/jobs/:id/vote', async (req, res) => {
   try {
     const v = String((req.body && req.body.vote) || '');

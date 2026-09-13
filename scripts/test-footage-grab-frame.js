@@ -243,13 +243,28 @@ if (FF) {
   await page.screenshot({ path: path.join(process.env.SHOT_DIR || tmp, 'grab-frame.png') }).catch(() => {});
 
   // ── the grab ───────────────────────────────────────────────────────────
+  // HER MARKS FIRST, so the grab can be measured against them: this is the
+  // whole of what closing the player used to cost her.
+  await seek(1.2); await page.click('#tin');
+  await seek(3.6); await page.click('#tout');
+  await page.waitForTimeout(150);
+  const spanWas = (await page.textContent('#tspan')).trim();
+  ok('marks placed before the grab (' + spanWas + ')', /^1\.2s – 3\.6s/.test(spanWas));
   await seek(2.5);
   await page.click('#tgrab');
-  await page.waitForFunction(() => document.getElementById('player').hidden, null, { timeout: 5000 }).catch(() => {});
+  await page.waitForFunction(() => !document.getElementById('tgrab').disabled, null, { timeout: 5000 }).catch(() => {});
   await page.waitForTimeout(250);
   ok('the server was asked ONCE', got.length === 1);
   ok('for the second under the playhead', got.length === 1 && near(got[0].at, 2.5, 0.2));
-  ok('the player closes with the frame in hand', await page.$eval('#player', (el) => el.hidden));
+  // THE PLAYER STAYS OPEN AND HER MARKS STAY WITH IT (2026-09-13, found
+  // auditing the page). It used to close, scroll to the top of the composer
+  // and drop `TR` — so grabbing a frame mid-cut threw away the in and out
+  // marks she had just placed, against the trimmer's own rule that the player
+  // stays open across a cut and this button's promise that it takes the frame
+  // ON THE SPOT with nothing on the clip changing.
+  ok('the player STAYS open — the frame is taken on the spot', await page.$eval('#player', (el) => el.hidden === false));
+  const spanNow = (await page.textContent('#tspan')).trim();
+  ok('and her marks are exactly where she put them (' + spanNow + ')', spanNow === spanWas);
   const strip = await page.$$eval('#refs .ref', (els) => els.map((el) => ({
     src: (el.querySelector('img') || {}).src || '', slot: (el.querySelector('.slot') || {}).textContent || '',
   })));
@@ -260,13 +275,11 @@ if (FF) {
   const draft = await page.evaluate(() => { try { return JSON.parse(localStorage.getItem('footage_draft') || '{}'); } catch (e) { return {}; } });
   ok('the draft carries it, so a reload keeps it', Array.isArray(draft.refs) && draft.refs.some((r) => /\/frame\.png$/.test(r.url)));
 
-  // a second grab of the same second is the same reference, not a twin
-  await page.click('#job-clip1 .thumb');
-  await page.waitForSelector('#player .pstage video');
-  await page.waitForFunction(() => { const v = document.querySelector('#player .pstage video'); return v && isFinite(v.duration) && v.duration > 0; }, null, { timeout: 8000 });
+  // a second grab of the same second is the same reference, not a twin —
+  // straight from the player, which is still open (no re-opening needed now)
   await seek(2.5);
   await page.click('#tgrab');
-  await page.waitForFunction(() => document.getElementById('player').hidden, null, { timeout: 5000 }).catch(() => {});
+  await page.waitForFunction(() => !document.getElementById('tgrab').disabled, null, { timeout: 5000 }).catch(() => {});
   await page.waitForTimeout(250);
   ok('the same frame twice is ONE reference', (await page.$$eval('#refs .ref', (els) => els.length)) === refsBefore + 1);
   ok('no page errors at the end', errors.length === 0);

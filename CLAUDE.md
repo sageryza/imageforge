@@ -4925,6 +4925,106 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     it the day one flickers. Test: `node scripts/test-footage-box-width.js`
     (every assertion a MEASUREMENT of the rendered box across the pill coming
     and going; verified failing 4 pre-fix).
+  - **THE AUDIT SHE ASKED FOR — HER THREE GAPS AND FOURTEEN BUGS (2026-09-13,
+    Sophie: "did u or could u do a good clean audit - any other bugs you find,
+    or features that shud exist but dont now · ex, clearing individual
+    separated boxes, sending two boxes at once, collapsing the prompt from
+    partway down").** Three parallel read-only audits over the page, then the
+    fixes. Her three:
+    - **A ✕ IN EVERY BLOCK'S CORNER takes that block off** (`right:120`, drawn
+      only with two or more — CSS off the same `.many` class the gold line
+      rides). **This RETIRES the 2026-09-11 "there is no ✕ on a block on
+      purpose" line**, which is history now, not a rule. It asks nothing: it
+      banks the job exactly as `clear` does and the `undo` word puts it back
+      (her rule — an undo instead of a confirm). Taking the FIRST block off
+      moves the words below UP into `#prompt`, because every reader expects
+      that node to stay the first block.
+    - **A SECOND STAR SENDS EVERY BLOCK WITH WORDS IN IT**, one after another,
+      stopping at the first refusal — the refused block takes the gold line so
+      the refusal and its door words are about that one. The whole batch's
+      price is ON the button, which is the strongest form of her "approve the
+      prompt and references" rule; **over $3 the first tap ASKS and the second
+      sends** (the house rule, as a second tap rather than a dialog), and any
+      change to the job disarms it.
+    - **THE PROMPT ROW IS STICKY**, so a long scene folds away from wherever
+      she is standing. MEASURED at 390pt on a 40-line scene: at scrollY 600
+      the row sat **521px above the viewport** with 1,836px of box below it
+      and `elementFromPoint` answered nothing. It is `stickybox.js`'s
+      complaint one direction round — those pin to the bottom of the band
+      because the way out of a box is below her; this pins to the top because
+      the way out of the panel is above her — which is plain `position:sticky`.
+      **AND `fitPillGap` NOW JUDGES A STICKY ROW AT ITS STUCK POSITION**: the
+      walk normalises rects into PAGE coordinates so a row does not change
+      width as it scrolls past the rail, which for a sticky row put it at
+      scrollY+10 — far below the pill's band — and REMOVED the reserve at the
+      one moment the row was sitting in the pill's corner (caught by the test,
+      not by reading). Judging it at its stuck top instead swapped the bug for
+      its mirror — at rest the row is lower than that band, so the reserve was
+      dropped standing still (caught by `test-footage.js`) — so **the band
+      test does not apply to a sticky row at all**: a row pinned to the top of
+      the viewport is inside a rail fixed to the top of the viewport for every
+      scroll position that matters, and it reserves whenever it reaches into
+      that column.
+    The bugs, worst first — each one a state that really desyncs or words that
+    really go: **a card's PUT-BACK overwrote her scene with no bank** (and an
+    `undo` left from an earlier clear then restored a different job — the one
+    visible control lying about what it does) **and replaced the whole strip
+    without renumbering the other blocks' slot names**, so block 2's
+    `[Image1]` named a picture that was no longer there and the clip still
+    drew, of the wrong reference; **a TRIM orphaned every note on that clip**
+    (`cardOf` repoints `video` at the first baked part, and both note doors
+    keyed off it — her thread vanished off the card and the player and the
+    card then wrote two different threads, against a comment claiming they
+    were one); **the OPTIMISTIC CARD read the live `S` a round trip after the
+    tap**, so switching project mid-send filed the clip under the new one,
+    where a project-scoped poll could never fetch it — "drawing…" forever;
+    **a TRIM on a clip reached through `… older` or the search never resolved**
+    (the poll reads the newest 40 of the view, so the part stayed `baking`,
+    its `save` never appeared, and the page re-read the whole collection every
+    7s for its life) — fixed by `GET /api/footage/jobs/:id` and asking for the
+    unfinished ones by name; **one failed read killed the poll outright** (it
+    sat inside the `then`); **an EMPTY PROJECT hid `#feedbar`, which is the
+    only project picker**, so naming a new project left her with no control to
+    get back to All and a reload reopened the same empty one; **switching
+    FOLDER left the previous folder's search answer standing**, so the page
+    said "Nothing matches that." over clips that matched; **a card first drawn
+    while a filter hid it got no "… more"** (the Playground's `resyncClamps`
+    lesson through a filter rather than a view); **GRAB FRAME closed the
+    trimmer and threw away her marks**, against its own "on the spot" promise;
+    **the CHARACTER SHEET counted a keyframe**, so from the moment she marked
+    a first frame every slot its line named was one too high (and `withLine`'s
+    dedupe then missed, inserting the line twice); **a HAND-OFF left the
+    previous seed in the box**, pinning a belt scene to another clip's seed;
+    **a JOIN moved the gold line off a third block she was standing in**; **the
+    boot never called `paintControls`**, so with `/status` slow or refused a
+    restored draft's references were attached and INVISIBLE and a banked job's
+    `undo` was hidden; plus the empty-feed line naming the wrong filter, the
+    remove toast promising the whole clip back with parts still on it,
+    `stepHead` leaving `#tall` lying about the mode, a cancelled "New folder…"
+    sticking in the card's Move row, `#tgo` re-enabling mid-flight, the upload
+    tally counting uploads rather than attachments, `ftUploading` having no
+    `finally` (a throw there would have disabled the self-heal for the life of
+    the page), and the folder being unsearchable.
+    **NOT FIXED, and named rather than half-done:** the tile wall's signature
+    is per-WALL, so one clip changing `poster`/`status`/`ratio` re-decodes
+    every poster (it wants a per-cell signature); at FOUR across a 16:9 or
+    21:9 tile is ~49px tall and the ♥ overlaps ~45% of the ▶ (arithmetic off
+    the stylesheet — measure before moving anything); `… older` after a search
+    takes its cursor from the oldest thing in memory rather than the bottom of
+    the contiguous walk, so it skips the pages between; a search past 300
+    matches is truncated with the `… older` button hidden; an expanded prompt
+    re-collapses on a card rebuild; the note box survives a rebuild but loses
+    its focus and its Cancel leaves the mark lit; and `mark → unmark` renumbers
+    the others back but never re-names the returning picture. Tests:
+    `node scripts/test-footage-blocks-audit.js` (51 checks; it CRASHES against
+    the pre-fix page, where `#goall` does not exist).
+    **AND `test-footage.js` IS FLAKY — MEASURED, so do not read one red run as
+    a regression (2026-09-13).** Run on clean main it failed one assertion
+    twice and passed twice, and the failing assertion DIFFERED between runs
+    ("picking the ward re-asks the feed FOR the ward", "bare words AND a
+    -\"phrase\" take one clip out"). Re-run before diagnosing anything, and
+    check whether the same assertion fails twice. Which of its 424 is timing-
+    dependent is unfound.
   - **AN ORDINARY KEYSTROKE IN THAT BOX TOUCHES NO STYLE (2026-09-12, Sophie:
     "every other character moves textbox").** Two things ran on every
     character with nothing on screen changing: `fitBox` rewrote the focused
