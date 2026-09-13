@@ -19,6 +19,12 @@
       the strip afterwards, the draft carrying it, and nothing posted to the
       Dump.
 
+   THE PLAYER STAYS OPEN SINCE 2026-09-13, and this asserts it: closing
+   dropped `TR` and threw away the in and out marks she had just placed, so
+   the marks are set BEFORE the grab and read back after it. Verified against
+   the pre-fix page, where it crashes at the second grab — there is no video
+   left to seek, because the player has gone.
+
    Run: node scripts/test-footage-grab-frame.js */
 const fs = require('fs');
 const os = require('os');
