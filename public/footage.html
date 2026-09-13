@@ -2549,6 +2549,24 @@ $('file').addEventListener('change', function (e) {
 // stored.
 var recentOpen = false;
 $('rectog').addEventListener('click', function () { recentOpen = !recentOpen; paintRecent(); });
+// AND TYPING CLOSES IT (2026-09-13, Sophie: "recent references closes when i
+// start typing" → "it shud close"). She opens the drawer to attach a
+// reference; the moment she is writing the scene instead, it is a row of
+// thumbnails between her words and the buttons — and on a phone it is already
+// under the keyboard, so it costs a scroll to reach and a scroll to put away.
+// So the first character in a prompt block shuts it, exactly as her own tap
+// would. Three things not to undo: it is TYPING, never focus — tapping into
+// the box to put the caret somewhere is not writing, and a drawer that
+// vanished on a stray tap would be a control she cannot keep open; it hangs
+// off the block's own `input` rather than `saveDraft`, which is the ONE signal
+// every path that changes the job sends, so ATTACHING from the drawer (which
+// saves a draft) leaves it open for the second reference; and it closes only
+// what is open, so an ordinary keystroke costs no repaint.
+function typedInBlock() {
+  if (!recentOpen) return;
+  recentOpen = false;
+  paintRecent();
+}
 function recentItems() {
   var seen = {}, out = [];
   var add = function (it) { if (it.url && !seen[it.url]) { seen[it.url] = 1; out.push(it); } };
@@ -2997,7 +3015,7 @@ function mountBlock(w) {
     // no beforeinput (an older engine, a synthetic event) → the safe road
     var grow = !full && !!(e && e.inputType) && e.inputType.indexOf('insert') === 0;
     full = false;
-    fitBox(box, grow); saveDraft();
+    fitBox(box, grow); saveDraft(); typedInBlock();
   });
   paint();
 }

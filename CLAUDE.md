@@ -8553,6 +8553,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (one with none already draws the film glyph, so it needs no mark); and the
   drawer is DERIVED from the feed, so it repaints with it and nothing is
   stored.
+  **AND TYPING SHUTS IT (2026-09-13, Sophie: "recent references closes when i
+  start typing" → "it shud close").** The drawer is open to ATTACH; the moment
+  she is writing the scene it is a row of thumbnails between her words and the
+  buttons — and on a phone it is already under the keyboard, so it costs a
+  scroll to reach and a scroll to put away (MEASURED at 390pt: an empty box
+  puts it at y=362, a scene at y=480, under a keyboard starting at ~430). So
+  the first character in a prompt block closes it, exactly as her tap would.
+  Three things not to undo: it is **TYPING, never focus** — a tap to place the
+  caret is not writing; it hangs off the block's own `input` and **not
+  `saveDraft`**, which is the one signal every path that changes the job sends,
+  so **attaching leaves it open for the second reference**; and the character
+  sheet beside it is untouched (she named the Recent drawer).
   **THE CLIPS AND THEIR LAST FRAMES ARE HISTORY, NOT A RULE — DON'T PUT THEM
   BACK.** For a few hours that morning the box also listed a job's own
   FINISHED CLIP ahead of its references, at her ask ("make the recent box
