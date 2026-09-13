@@ -1067,13 +1067,22 @@
     <span class="selwrap"><select id="res" aria-label="Resolution" title="Resolution"></select><span class="chev"></span></span>
     <span class="selwrap"><select id="ratio" aria-label="Shape" title="Shape"></select><span class="chev"></span></span>
     <div class="step"><button type="button" id="secdn" aria-label="Fewer seconds">&minus;</button><input type="number" id="secs" inputmode="numeric" step="1" aria-label="Seconds" title="Seconds"><button type="button" id="secup" aria-label="More seconds">+</button></div>
+    <!-- THE SEED IS ON THIS ROW (2026-09-13, Sophie: "seed textbox shud go on
+         the same row as the other buttons above"). It rode the STAR's row
+         while it read as an ingredient of that tap, and it is a SETTING like
+         the model and the size — it already folded away with the Buttons, so
+         it was the one control living apart from the fold that hides it. Its
+         own row is what "bleeds over" now: MEASURED at 390pt, the seed (130)
+         plus the star and the price left 24px and a word is 25, so clear and
+         undo wrapped under the price; with the seed up here all four sit on
+         the star's line. -->
+    <span class="seedwrap" id="seedwrap"><input type="text" id="seedbox" inputmode="numeric" autocomplete="off" placeholder="Seed" aria-label="Seed" title="Seed — leave it blank for a fresh one"><button type="button" id="seedclear" aria-label="Clear the seed" title="Clear the seed" hidden></button></span>
   </div>
   <div id="recent" hidden></div>
   <div id="cast" hidden></div>
   <!-- THE STAR IS THE ONE BUTTON AND IT SENDS ON ITS TAP (2026-09-09, Sophie:
        "no plan button"), with the price of that tap right beside it. -->
   <div class="row" style="margin-top:12px">
-    <span class="seedwrap" id="seedwrap"><input type="text" id="seedbox" inputmode="numeric" autocomplete="off" placeholder="Seed" aria-label="Seed" title="Seed — leave it blank for a fresh one"><button type="button" id="seedclear" aria-label="Clear the seed" title="Clear the seed" hidden></button></span>
     <button class="go" id="go" type="button"><span id="gostar"></span>Go</button>
     <!-- AND SHE CAN SEND THEM ALL (2026-09-13, Sophie: "sending two boxes at
          once"). The star sends the block she is in, which is right when the
@@ -1526,11 +1535,18 @@ function takeFolders(d) {
   paintFolder();
   repaintCards();
 }
+// AN ARMED "SEND ALL · $x?" GOES DOWN WHEN THE FOLDER MOVES (2026-09-13, found
+// auditing the page). The arm promises that the second tap sends the job she
+// was looking at, and the folder rides the body — so an arm left standing
+// across a switch files the clip in a folder she was not in when she armed it.
+// `setProject` needs no line of its own: it repaints the controls, and
+// `paintWipe` disarms from there. This one does not repaint them.
 function setFolder(f, opts) {
   opts = opts || {};
   f = String(f || '');
   if (f === S.folder && !opts.force) return;
   S.folder = f; folderSave(f);
+  disarm();   // an armed "send all · $x?" would file the clip in the folder she LEFT
   jobsById = {}; olderAt = null; feedMore = false;
   $('feed').innerHTML = ''; $('tiles').innerHTML = '';
   paintFolder(); paintRecent();
@@ -1583,6 +1599,21 @@ $('project').addEventListener('change', function () {
   else setFolder(f);
 });
 var jobsById = {};
+// A CLIP SHE JUST SENT IS NEVER FILTERED AWAY (2026-09-13, found auditing the
+// page). The search's `qHits` is a set of ids the SERVER answered with, so a
+// clip that did not exist when it answered can never be in it — send one with
+// a search standing and the card was posted, charged and drawn while the feed
+// showed only the old hits: nothing on screen said a job had started, which is
+// how a clip gets paid for twice. The mark filters and the funnel do it too (a
+// brand-new clip has no ♥, and its model may not be the one she is filtering
+// on). So a clip THIS PAGE sent rides through them until she next moves the
+// view — any change to the search or a filter is her re-deciding what the list
+// is, and from then on it obeys like everything else. The PROJECT and the
+// folder still apply: the card carries the ones it was sent under, so it
+// passes them by construction, and a clip must never appear in another
+// project's feed.
+var justSent = {};
+function forgetSent() { justSent = {}; }
 // the feed's walk back past its first page — see loadOlder
 var feedMore = false, olderAt = null, loadingOlder = false;
 var pollT = null;
@@ -1741,11 +1772,12 @@ function paintWipe() {
   if (c.hidden !== ch) c.hidden = ch;
   if (u.hidden !== uh) u.hidden = uh;
   // AND THE GROUP GOES WITH THEM, so an empty page costs the row nothing.
-  // MEASURED at 390pt: the star's row has 24px of slack left after the seed,
-  // the star and the price, and a word is ~38 — so a drawn word WRAPS to a
-  // line of its own, hard right under the price (her own rule: "same row
-  // unless it bleeds over"). A `.wipes` left in the flow with both children
-  // hidden is 0 wide and would not wrap, but hiding it outright is what
+  // THE TWO WORDS SIT ON THE STAR'S OWN LINE since the seed moved up to the
+  // buttons row (2026-09-13): MEASURED at 390pt the seed (130) plus the star
+  // and the price left 24px against a 25px word, so a drawn word wrapped to a
+  // line of its own under the price; with the seed gone the four sit together,
+  // hard right either way. A `.wipes` left in the flow with both children
+  // hidden is 0 wide and costs nothing, but hiding it outright is what
   // guarantees the row is the height it has always been while nothing is
   // offered.
   if ($('wipes').hidden !== (ch && uh)) $('wipes').hidden = ch && uh;
@@ -2011,11 +2043,11 @@ function paintFolds() {
   $('reffold').classList.toggle('shut', rShut);
   $('reffold').setAttribute('aria-expanded', rShut ? 'false' : 'true');
   $('reffoldlab').textContent = rShut ? 'References · ' + refs.length : 'References';
+  // THE SEED IS ON THIS ROW AND FOLDS WITH IT (2026-09-13) — it used to sit in
+  // the STAR's row and be display-hidden by hand here, which is the same fold
+  // spelled twice. DISPLAY-hidden with the rest, so a folded Go still sends
+  // the seed the box holds.
   $('controls').style.display = cShut ? 'none' : '';
-  // THE SEED IS A CONTROL AND FOLDS WITH THEM, though it lives in the STAR's
-  // row — the star is the one button and never folds. DISPLAY-hidden like the
-  // rest, so a folded Go still sends the seed the box holds.
-  $('seedwrap').style.display = cShut ? 'none' : '';
   // AND THE TWO DRAWERS GO WITH THEIR BUTTONS. Both toggles are inside
   // `#controls` and hide with it; `#recent` and `#cast` are its SIBLINGS, so
   // until this they stayed on screen with no control left to close them.
@@ -3154,10 +3186,20 @@ $('go').addEventListener('click', function () { sendJob(''); });
 // button's appended scene). `box` still says where a refusal's gold line
 // belongs, so the two are separate arguments on purpose.
 function sendJob(pin, box, text) {
-  var btn = $('go');
+  var btn = $('go'), all = $('goall');
   if (btn.disabled) return Promise.resolve(false);
+  // BOTH STARS GO DOWN TOGETHER (2026-09-13, found auditing the page). `#go`
+  // is the gate and greys itself (`button[disabled]{opacity:.45}`), and the
+  // All star sat beside it at full strength doing NOTHING on a tap — a live-
+  // looking button that answers nothing is the shape of every "it didn't
+  // work" report. It is the same one send either way, so they read the same.
   btn.disabled = true;
-  return postJob(pin, box || activeBox(), text).then(function (ok) { btn.disabled = false; return ok; });
+  if (all) all.disabled = true;
+  return postJob(pin, box || activeBox(), text).then(function (ok) {
+    btn.disabled = false;
+    if (all) all.disabled = false;
+    return ok;
+  });
 }
 function postJob(pin, box, text) {
   var words = text == null ? box.value : text;    // the block she is in, or every block appended
@@ -3238,8 +3280,17 @@ function postJob(pin, box, text) {
       sentAt: new Date().toISOString(), note: d.note || '', video: '', poster: '', vote: '' });
     // AN APPENDED SEND SAYS SO — "block 1" over a clip carrying all three
     // would be the toast lying about which words went.
-    toast(text != null ? 'Drawing all ' + wordyBlocks().length + ' blocks as one clip…'
-      : (blocks().length > 1 ? 'Drawing block ' + (blocks().indexOf(box.closest('.promptwrap')) + 1) + '…' : 'Drawing…'));
+    // and it is never filtered away while she waits for it (`justSent`), which
+    // is SAID rather than done quietly: a card sitting in a feed her own
+    // search says nothing matches would otherwise read as the filter broken
+    var card = jobsById[d.jobId] || {};
+    var hid = !(passesSearch(card) && passesFilt(card))
+      || (likedOnly() && card.vote !== 'like') || (hideX() && card.vote === 'dislike');
+    justSent[d.jobId] = 1;
+    applyFilt();
+    toast((text != null ? 'Drawing all ' + wordyBlocks().length + ' blocks as one clip…'
+      : (blocks().length > 1 ? 'Drawing block ' + (blocks().indexOf(box.closest('.promptwrap')) + 1) + '…' : 'Drawing…'))
+      + (hid ? ' · shown here though it is outside your search' : ''));
     // her words STAY in the box after a send (a re-roll is one tap), and so
     // does the draft — it used to be wiped here while the box still showed
     // the words, so a reload right after a send opened on an empty box
@@ -3329,13 +3380,14 @@ function paintFilt() {
 // WHICH CLIPS SHOW — one predicate, read by both views, so the wall and the
 // list can never disagree about what a filter means.
 function shown(j) {
-  return !j.hidden && !(likedOnly() && j.vote !== 'like') && !(hideX() && j.vote === 'dislike')
+  var mine = !!justSent[j.id];          // sent from this page since she last moved the view
+  return !j.hidden && (mine || (!(likedOnly() && j.vote !== 'like') && !(hideX() && j.vote === 'dislike')))
     // a TUCKED project is left out of All — the server already filters the
     // read, and this keeps a card a poll lands off both views too
     && !(!S.project && !searchQ && tucked(j.project || ''))
     && !(S.project && (j.project || '') !== S.project)
     && !(S.project && S.folder && (j.folder || '') !== S.folder)
-    && passesSearch(j) && passesFilt(j);
+    && (mine || (passesSearch(j) && passesFilt(j)));
 }
 function applyFilt() {
   var tiles = curView() === 'tiles', any = false;
@@ -3408,8 +3460,8 @@ function applyFilt() {
     : fw ? 'Nothing that recent.'
     : hideX() ? 'Everything here is crossed out.' : 'Nothing to show here.';
 }
-$('v-liked').addEventListener('click', function () { try { localStorage.setItem('footage_liked', likedOnly() ? '' : '1'); } catch (e) {} paintFilt(); applyFilt(); });
-$('v-hidex').addEventListener('click', function () { try { localStorage.setItem('footage_hidex', hideX() ? '' : '1'); } catch (e) {} paintFilt(); applyFilt(); });
+$('v-liked').addEventListener('click', function () { try { localStorage.setItem('footage_liked', likedOnly() ? '' : '1'); } catch (e) {} forgetSent(); paintFilt(); applyFilt(); });
+$('v-hidex').addEventListener('click', function () { try { localStorage.setItem('footage_hidex', hideX() ? '' : '1'); } catch (e) {} forgetSent(); paintFilt(); applyFilt(); });
 
 // ── THE SEARCH (2026-09-11, Sophie: "add a search button and filter like
 // playground" · "single magnifying glass button that expands" · "yea
@@ -3466,6 +3518,7 @@ function readSearch() {
   var box = $('q');
   searchQ = (box.value || '').trim();
   qGroups = qparse(searchQ);
+  forgetSent();                                          // she is re-deciding what the list is
   $('qclear').hidden = !searchQ;
   box.classList.toggle('hasq', !!box.value);            // the ✕'s padding, only while it shows
   qHits = null;                                          // the loaded feed answers meanwhile
@@ -3531,7 +3584,7 @@ var FILT = SF ? SF.build($('feedfilters'), [
   { key: 'when', kind: 'chips', label: SF.WHEN.label, vals: SF.WHEN.vals, words: SF.WHEN.words,
     get: function () { try { return localStorage.getItem('footage_filt_when') || ''; } catch (e) { return ''; } },
     set: function (v) { try { localStorage.setItem('footage_filt_when', v || ''); } catch (e) {} } },
-], function () { paintFeed(); paintSearchBtn(); }, { label: 'Filters' }) : null;
+], function () { forgetSent(); paintFeed(); paintSearchBtn(); }, { label: 'Filters' }) : null;
 paintSearchBtn();
 function passesFilt(j) {
   if (!FILT) return true;
@@ -3674,6 +3727,14 @@ function goToCard(id) {
   // under them. Measuring after both is what lands on the right one.
   requestAnimationFrame(function () {
     requestAnimationFrame(function () {
+      // AND THE PILL'S COLUMN IS RESERVED BEFORE THE MEASUREMENT (2026-09-13).
+      // The reserve is applied by an observer a frame or two behind a view
+      // change, and a row that takes it wraps — so a card measured before it
+      // lands is measured against a panel that is about to grow, and the
+      // window stops that much short of the card she tapped (MEASURED: 42px,
+      // one row of controls). `fitPillGap` is synchronous, so asking for it
+      // here settles the panel first.
+      if (window.__fitPillGap) window.__fitPillGap();
       var top = el.getBoundingClientRect().top + (window.scrollY || 0) - 12;
       window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
       el.classList.add('found');
@@ -5247,16 +5308,32 @@ function setGap(el, name, v) { if (el.style.getPropertyValue(name) === v) return
 // its width whether the pill is drawn this second or not. Still the pill's
 // REAL rect (its top rides the safe-area inset), never a hardcoded band; a
 // page served with no pill at all still reserves nothing.
+// AND THE BAND INCLUDES THE ARROWS WHETHER THEY ARE DRAWN OR NOT (2026-09-13).
+// The rule above is about the pill's own display; its HEIGHT moves too — the
+// back-to-top and to-the-bottom arrows appear a screen into the scroll and
+// leave at the ends, which grows the rail by ~92px. A row sitting near the
+// band's edge (MEASURED: the controls row at page y 276 against a band ending
+// at 273) therefore took the reserve only once she had scrolled, and a row
+// that wraps when it is reserved changed HEIGHT under her as she scrolled —
+// the "switches back and forth between narrow and full width" complaint, one
+// row down. So both arrows are shown for the same synchronous measurement,
+// invisible, put back before anything paints: the column is the same column
+// at every scroll position.
 function pillRect() {
   var pill = document.querySelector('body > .float');
   if (!pill) return null;
-  if (pill.getClientRects().length) return pill.getBoundingClientRect();
+  // only the ones that are not drawn right now are touched, so the common
+  // path (both arrows out) writes nothing and forces no layout of its own
+  var arrows = [], all = pill.querySelectorAll('.ptop'), was = [], k;
+  for (k = 0; k < all.length; k++) if (!all[k].getClientRects().length) arrows.push(all[k]);
+  for (k = 0; k < arrows.length; k++) { was.push(arrows[k].style.display); arrows[k].style.display = 'flex'; }
   var d = pill.style.display, v = pill.style.visibility, r = null;
   try {
-    pill.style.visibility = 'hidden'; pill.style.display = '';
+    if (!pill.getClientRects().length) { pill.style.visibility = 'hidden'; pill.style.display = ''; }
     if (pill.getClientRects().length) r = pill.getBoundingClientRect();
   } catch (_) {}
   pill.style.display = d; pill.style.visibility = v;
+  for (k = 0; k < arrows.length; k++) arrows[k].style.display = was[k];
   return r;
 }
 function fitPillGap() {

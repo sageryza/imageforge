@@ -160,18 +160,22 @@ const typeIn = (t) => { const el = document.getElementById('prompt'); el.value =
   ok('it is underlined — ' + s.clear.underline, /underline/.test(s.clear.underline));
   ok('with no box and no fill (border ' + s.clear.border + ', bg ' + s.clear.bg + ')',
     parseFloat(s.clear.border) === 0 && /rgba\(0, 0, 0, 0\)|transparent/.test(s.clear.bg));
-  // THE ROW WRAPS AT 390pt AND THAT IS THE HOUSE RULE, not a bug ("consolidate
-  // buttons. same row unless it bleeds over"): MEASURED, the seed, the star
-  // and the price leave 24px and the word is 25. So it lands hard right on the
-  // line under the price — never centred, never adrift in the middle.
+  // IT SITS ON THE STAR'S OWN LINE SINCE 2026-09-13, and that is what moving
+  // the seed onto the buttons row bought: MEASURED at 390pt the seed (130),
+  // the star and the price used to leave 24px against a 25px word, so `clear`
+  // and `undo` wrapped onto a line of their own. With the seed up with the
+  // other buttons the four sit together — hard right either way, never centred
+  // and never adrift in the middle.
   ok('it sits in the star\'s row block (' + Math.round(s.clear.top) + '-' + Math.round(s.clear.bottom) + ' inside ' + Math.round(s.row.top) + '-' + Math.round(s.row.bottom) + ')',
     s.clear.top >= s.row.top - 1 && s.clear.bottom <= s.row.bottom + 1);
   ok('hard right, at the row\'s own edge (' + Math.round(s.clear.right) + ' of ' + Math.round(s.row.right) + ')',
     Math.abs(s.clear.right - s.row.right) <= 1);
   ok('at or under the star, never above it (' + Math.round(s.clear.top) + ' vs ' + Math.round(s.go.top) + ')', s.clear.top >= s.go.top - 1);
   ok('and a tap really reaches it', s.clear.reaches);
-  ok('the row it costs is the ONE it wraps onto (' + Math.round(emptyRow) + ' → ' + Math.round(s.row.h) + 'px)',
-    s.row.h > emptyRow && s.row.h < emptyRow * 2);
+  ok('and it costs the star\'s row no height at all (' + Math.round(emptyRow) + ' → ' + Math.round(s.row.h) + 'px)',
+    Math.abs(s.row.h - emptyRow) <= 1);
+  ok('so it is level with the star, not under it (' + Math.round(s.clear.top) + ' vs ' + Math.round(s.go.top) + ')',
+    Math.abs(s.clear.top - s.go.top) <= 12);
   // THE PILL'S COLUMN IS REAL, so a row that sits in its band must end before
   // it. This row is below the band today (content passes under the rail on
   // every page here) — the check is conditional rather than vacuous, and it
