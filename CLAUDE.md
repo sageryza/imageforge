@@ -5019,19 +5019,74 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     tally counting uploads rather than attachments, `ftUploading` having no
     `finally` (a throw there would have disabled the self-heal for the life of
     the page), and the folder being unsearchable.
-    **NOT FIXED, and named rather than half-done:** the tile wall's signature
-    is per-WALL, so one clip changing `poster`/`status`/`ratio` re-decodes
-    every poster (it wants a per-cell signature); at FOUR across a 16:9 or
-    21:9 tile is ~49px tall and the ♥ overlaps ~45% of the ▶ (arithmetic off
-    the stylesheet — measure before moving anything); `… older` after a search
-    takes its cursor from the oldest thing in memory rather than the bottom of
-    the contiguous walk, so it skips the pages between; a search past 300
-    matches is truncated with the `… older` button hidden; an expanded prompt
-    re-collapses on a card rebuild; the note box survives a rebuild but loses
-    its focus and its Cancel leaves the mark lit; and `mark → unmark` renumbers
-    the others back but never re-names the returning picture. Tests:
-    `node scripts/test-footage-blocks-audit.js` (55 checks; it CRASHES against
-    the pre-fix page, where `#goall` does not exist).
+    **AND THE SEVEN THAT WERE NAMED AND LEFT ARE FIXED TOO (2026-09-13,
+    Sophie: "good. real bugs. can u fix them all? use agents if u want / then
+    find more").** Worst first:
+    - **`mark → unmark` NEVER PUT THE RETURNING PICTURE'S NAME BACK** — the
+      only one that could send a job she did not mean. A keyframe leaves the
+      reference list, so the mark deletes its `[ImageN]` out of her words and
+      the POSITION of that name goes with it; unmarking renumbered the others
+      and left nothing naming the one that came back, so the clip drew a
+      reference short with its thumb still on screen. Inserting the name at
+      the end of the box would be writing words where she did not put them, so
+      **the words are BANKED at the mark** (the Playground prompt-extra box's
+      rule): the text before the rewrite, the text after it, and the strip as
+      it stood, renumbered back through `reslotBlocks`'s own arithmetic. The
+      restore fires only while the block is **byte-for-byte what the rewrite
+      produced** — anything she typed since wins outright — and the bank is
+      spent either way, so a stale one can never fire later.
+    - **THE WALL'S SIGNATURE IS PER CELL** (`tileSig`). It was one string for
+      the whole list, so one clip finishing re-decoded every other poster; a
+      cell whose poster, status and ratio are unchanged is REUSED now, and
+      putting it back in order MOVES the node, which never re-decodes the
+      picture in it. The list signature stays as the fast path.
+    - **`… older` HAS ITS OWN CURSOR, `walkAt`** — the bottom of the contiguous
+      walk, never the oldest thing in memory. A search ADDS up to 300 hits
+      from anywhere on the log, so after searching and clearing, the cursor
+      was a clip from months back and the next tap skipped every page between.
+      And the cursor is the **smallest sentAt in an answer** (`minSentAt`),
+      never its last element.
+    - **A SEARCH PAST THE CAP IS PAGEABLE** — the door stays and says `… more
+      matches`, walking the search's own pages off the oldest hit's sentAt
+      (`qAt`), unioned into `qHits` so nothing already shown leaves. The route
+      has always answered `more`; the page hid the door on the reasoning that
+      "a search already read the whole log", true only while it fits.
+    - **AN EXPANDED PROMPT SURVIVES A REBUILD** — `openPrompt`, in memory,
+      keyed by the clip's own id (the chats part-fold's rule) and never
+      localStorage, so a reload collapses everything.
+    - **AND SO DOES HER CARET** — removing a node blurs what was focused in it,
+      so a rebuild mid-sentence left the box on screen with the keyboard gone;
+      the focus and the selection are carried across with the node. And
+      **Cancel clears the mark she can SEE** (`noteMark(el)` asked when it is
+      needed, never captured — the captured one is detached after a rebuild,
+      so Cancel put `on` out on a dead node and the live mark stayed lit).
+    - **FOUR ACROSS: THE ♥ AND THE ▶ ARE OFF EACH OTHER.** MEASURED at 390pt:
+      four across is ~86px wide, so a 16:9 clip is 50px tall and the 26px
+      marks at `bottom:4` ran y 18-44 while the 28px doors sat centred at y
+      10-38 — 71% overlap both ways, and a tap on either was a coin toss
+      (`elementFromPoint` answered `tmark heart` at the ▶'s own centre). Four
+      controls cannot share one row at that width, so **a measured `.short`
+      class (under 64px) puts the doors in the TOP band and keeps the marks in
+      the bottom**, both at 22px: doors y 1-23, marks y 25-47. **The note's
+      WORDS give up their band** — they would sit under the doors, and at 86px
+      the strip showed about eight characters; the whole note is on the card.
+      **The scissors stays**, because "even in the tile view" is her own ask by
+      name: the strip moves to the bottom and centres, into the 38px between
+      the two marks. **And 21:9 gets a 52px FLOOR** (measured 38px),
+      because no geometry fits two bands in 38. The alternatives were shrinking
+      every control under the tap floor, or a min-height that crops a third off
+      every landscape poster. `SHORT_TILE` is MEASURED rather than derived from
+      the ratio and the column count, since the height falls out of the page's
+      own width.
+    Tests: `node scripts/test-footage-blocks-audit.js` (55 checks; it CRASHES
+    against the pre-fix page, where `#goall` does not exist) and
+    `node scripts/test-footage-audit-2.js` (71 checks for the seven — every
+    assertion a MEASUREMENT or a reading of what the stub really received,
+    since an unmark that renumbers the others and names nothing, a wall that
+    re-decodes every poster, a cursor taken from memory, a capped answer, a
+    prompt springing shut, a box with its keyboard gone and two controls
+    sitting on each other all look identical in the source; verified failing
+    30 pre-fix).
     **AND A CLIP SHE JUST SENT IS NEVER FILTERED AWAY (2026-09-13, found on her
     "check for more bugs").** The search's `qHits` is a set of ids the SERVER
     answered with, so a clip that did not exist when it answered can never be
@@ -5063,8 +5118,12 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     twice and passed twice, and the failing assertion DIFFERED between runs
     ("picking the ward re-asks the feed FOR the ward", "bare words AND a
     -\"phrase\" take one clip out"). Re-run before diagnosing anything, and
-    check whether the same assertion fails twice. Which of its 424 is timing-
-    dependent is unfound. **The MECHANISM is found (2026-09-13), even if the
+    check whether the same assertion fails twice. Which of its 425 is timing-
+    dependent is unfound; re-measured 2026-09-13 the rotating one is any of
+    three, all in the project/search area ("bare words AND a -\"phrase\" take
+    one clip out", "picking the ward re-asks the feed FOR the ward", "on All
+    the ward's clips are gone from the list and the wall"), which is what
+    makes the same-assertion-twice check the honest test. **The MECHANISM is found (2026-09-13), even if the
     exact set is not: the search and project assertions wait with
     `waitForFunction` on a COUNT of visible cards, which is true for a moment
     of the CLIENT-filtered view — and the server's own answer over the whole

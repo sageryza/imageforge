@@ -1018,7 +1018,7 @@ async function pillSweep(pg, where) {
   await page.click('#older');
   await page.waitForSelector('#job-y2');
   await page.waitForTimeout(150);
-  ok('the tap asked for the page under the OLDEST clip on screen, by its sentAt',
+  ok('the tap asked for the page under the OLDEST clip on screen, by its sentAt — asked ' + jobReads[jobReads.length - 1],
     jobReads[jobReads.length - 1] === '2026-09-09T00:00:00.000Z');
   ok('yesterday\'s two newest clips landed at the END of the feed, newest first — ' + await page.$$eval('#feed .job', (els) => els.map((e) => e.id).join(',')),
     await page.$$eval('#feed .job', (els) => els.map((e) => e.id).slice(-2).join() === 'job-y2,job-y1' && !els.some((e) => e.id === 'job-y0')));
@@ -2130,7 +2130,13 @@ async function pillSweep(pg, where) {
     await pk.evaluate(() => document.querySelector('#refs .kf.on').click());
     await pk.waitForFunction(() => document.querySelectorAll('#refs .kf.on').length === 0);
     const back = await pk.$eval('#prompt', (e) => e.value);
-    ok('unmarking it renumbers the rest back up: ' + back, back === 'a in [Image1], b in, c in [Image3]');
+    // AND HER NAME COMES BACK WITH IT (2026-09-13). This assertion used to pin
+    // `b in` — the name gone for good, which is what the page really did and
+    // is the one bug here that could send a job she did not mean: the picture
+    // rejoined the list, the others renumbered, and nothing named the one that
+    // came back. The words are banked at the mark and restored on the unmark.
+    ok('unmarking it renumbers the rest back up AND gives the name back: ' + back,
+      back === 'a in [Image1], b in [Image2], c in [Image3]');
     // the cycle's middle stop
     await pk.evaluate(() => document.querySelectorAll('#refs .kf')[1].click());
     await pk.evaluate(() => document.querySelectorAll('#refs .kf')[1].click());
