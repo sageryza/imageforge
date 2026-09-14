@@ -1200,23 +1200,79 @@ function gateTrim(fn) {
 // carries sound. The ask is not the answer: a clip is 24·s + 1 frames, so a
 // 4s ask really runs 4.04s, and an out-mark she dragged to the end has to
 // clamp to the file rather than fail against the ask.
+//
+// AND HOW FAST ITS FRAMES COME (2026-09-14): `fps` is the video stream's own
+// rate (24 on every Seedance clip), 0 when the file will not say. `total`
+// is the VIDEO's length when there is one — the format's duration is the
+// longer of the two tracks, and the audio runs a few hundredths past the
+// last frame, so an out-mark clamped to it would name a frame that is not
+// there.
 async function probeMedia(file) {
-  const out = await runBin(ffprobeBin(), ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type', '-of', 'json', file], 60000);
+  const out = await runBin(ffprobeBin(), ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type,avg_frame_rate,duration', '-of', 'json', file], 60000);
   const info = JSON.parse(out || '{}');
+  const streams = info.streams || [];
+  const video = streams.find((x) => x.codec_type === 'video');
+  const m = /^(\d+)\/(\d+)$/.exec(String((video && video.avg_frame_rate) || ''));
+  const fps = m && Number(m[2]) > 0 ? Number(m[1]) / Number(m[2]) : 0;
+  const vdur = parseFloat((video && video.duration) || '0') || 0;
   return {
-    total: parseFloat((info.format || {}).duration || '0') || 0,
-    withAudio: (info.streams || []).some((x) => x.codec_type === 'audio'),
+    total: vdur || parseFloat((info.format || {}).duration || '0') || 0,
+    withAudio: streams.some((x) => x.codec_type === 'audio'),
+    fps: Number.isFinite(fps) && fps > 0 ? fps : 0,
+  };
+}
+
+// THE CUT LANDS ON THE FRAMES SHE CHOSE, NOT NEAR THEM (2026-09-14, Sophie:
+// "trim ends a frame after the one i chose"). A mark is the player's
+// `currentTime`, and the frame ON SCREEN at that time is the one whose
+// timestamp is at or before it — floor(t × fps). ffmpeg's `trim` keeps the
+// frames at or AFTER `start`, so unless her mark sat exactly on a frame
+// boundary (it never does — a tenth-of-a-second step is 2.4 frames) the frame
+// she was paused on was the first one dropped, and the part opened one frame
+// late. So the span is snapped to FRAMES: the in-frame is the one under the
+// start mark, the out-frame the one under the end mark, and BOTH are kept.
+// The cut is asked for at the MIDPOINTS between frames — half a frame either
+// side — so `chunkGraph`'s rounding to milliseconds (a frame is 41.7ms apart)
+// can never land on the wrong side of a boundary, and the audio is cut to
+// exactly `frames / fps`, the length of the picture it rides under.
+// PURE: measured against a numbered-frame clip by test-footage-trim.js.
+function frameSpan(start, end, fps, total) {
+  if (!(fps > 0)) return { start, end, frames: 0, seconds: Math.round((end - start) * 1000) / 1000, snapped: false };
+  const last = total > 0 ? Math.max(0, Math.round(total * fps) - 1) : Infinity;
+  const eps = 1e-6;
+  const a = Math.max(0, Math.floor(start * fps + eps));
+  const b = Math.min(last, Math.max(a, Math.floor(end * fps + eps)));
+  const frames = b - a + 1;
+  return {
+    start: Math.max(0, (a - 0.5) / fps),
+    end: (b + 0.5) / fps,
+    frames,
+    seconds: Math.round((frames / fps) * 1000) / 1000,
+    snapped: true,
   };
 }
 
 // ONE span out of one file, on disk. Kept apart from the Firestore/Storage
 // bookkeeping around it so the CUT can be measured with a real file and
 // ffprobe (`node scripts/test-footage-trim.js`) rather than reasoned about.
-async function cutSpan(src, out, start, end, withAudio) {
+//
+// EVERY SOURCE FRAME IS ONE OUTPUT FRAME (2026-09-14). `setpts` leaves the
+// graph with no frame rate, so ffmpeg fell back to 25fps and RE-CADENCED a
+// 24fps clip onto it — measured on her own baked part: 82 frames for 79,
+// three of them duplicates — which is how the last frame of a part could be
+// a frame she never chose. So the output is CFR at the SOURCE's own probed
+// rate — the source is CFR, so nothing is duplicated or dropped and the file
+// says 24 (measured: 80 frames in, 80 out, video and audio the same length).
+// A file whose rate the probe cannot read keeps every frame's own timestamp
+// instead (`passthrough`), which is one frame short of duration on the last
+// frame but never a frame she did not choose.
+async function cutSpan(src, out, start, end, withAudio, fps) {
   const bin = ffmpegBin();
   const graph = require('./clips').chunkGraph(start, end, withAudio);
   const args = ['-y', '-i', src, '-filter_complex', graph, '-map', '[v]'];
   if (withAudio) args.push('-map', '[a]', '-c:a', 'aac', '-b:a', '160k');
+  if (fps > 0) args.push('-fps_mode', 'cfr', '-r', String(fps));
+  else args.push('-fps_mode', 'passthrough');
   args.push('-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out);
   await runBin(bin, args, TRIM_RUN_MS);
   return out;
@@ -1278,14 +1334,16 @@ async function bakeTrim(id, plan) {
       // asked the door for: a clip is 24·s + 1 frames, so the real total
       // runs a frame past the ask. The end is CLAMPED rather than refused —
       // an out-mark she dragged to the very end must not fail the bake.
-      const { total, withAudio } = await probeMedia(src);
+      const { total, withAudio, fps } = await probeMedia(src);
       const end = total ? Math.min(plan.end, Math.round(total * 1000) / 1000) : plan.end;
       if (total && plan.start >= total) return write({ status: 'failed', error: `the clip is ${total.toFixed(1)}s — the trim starts after it ends` });
-      if (Math.round((end - plan.start) * 1000) / 1000 < TRIM_MIN_SECONDS) {
+      // her marks, snapped onto the frames under them (see `frameSpan`)
+      const fr = frameSpan(plan.start, end, fps, total);
+      if (fr.seconds < TRIM_MIN_SECONDS) {
         return write({ status: 'failed', error: `the clip is ${total.toFixed(1)}s — that leaves nothing to keep` });
       }
 
-      await cutSpan(src, out, plan.start, end, withAudio);
+      await cutSpan(src, out, fr.start, fr.end, withAudio, fps);
 
       const vf = bucket.file(plan.path);
       await vf.save(fs.readFileSync(out), { metadata: { contentType: 'video/mp4' } });
@@ -1302,7 +1360,9 @@ async function bakeTrim(id, plan) {
         poster = pub(plan.posterPath);
       } catch { /* a trim with no poster still plays */ }
 
-      return write({ status: 'ready', url: pub(plan.path), poster, seconds: Math.round((end - plan.start) * 1000) / 1000, end });
+      // `seconds` is the FILE's length — whole frames — and `end` stays her
+      // mark (clamped), so the row's span puts her marks back where she set them
+      return write({ status: 'ready', url: pub(plan.path), poster, seconds: fr.seconds, end });
     } catch (e) {
       return write({ status: 'failed', error: String((e && e.message) || e).slice(0, 200) });
     } finally {
@@ -2215,6 +2275,6 @@ module.exports = {
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf, atlasCacheBust,
   drawStats, drawTimeFor, drawTimeFrom, drawKeyOf, medianOf,
   startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf, pausedNow,
-  canvasFrom, pageJobs, hayOf, foldersOf, shelfOf, folderSlug, statusOf, staleJob, STALE_MS, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
+  canvasFrom, pageJobs, hayOf, foldersOf, shelfOf, folderSlug, statusOf, staleJob, STALE_MS, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, frameSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
   framePlan, framePath, pullFrame, grabFrame, FRAME_FOLDER, FRAME_END_PAD,
 };
