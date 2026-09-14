@@ -886,7 +886,8 @@ async function pillSweep(pg, where) {
   ok('the resolution is a <select>', sel.rTag === 'SELECT');
   ok('the native chrome is off and the box is the house 6px', sel.appearance === 'none' && sel.radius === '6px');
   // the project picker is a folder ICON since the folders landed (2026-09-11) and draws no chevron
-  ok('the four text drop-downs (model, size, shape, seconds) each draw our own inline chevron', sel.chevs === 4);
+  // FIVE SINCE 2026-09-14 — the door picker joined them ("add api door dropdown")
+  ok('the five text drop-downs (model, size, shape, seconds, door) each draw our own inline chevron', sel.chevs === 5);
   ok('the resolution opens at Mini\'s minimum', sel.rvalue === '480p' && sel.reses.join(',') === '480p,720p');
   // PICKING FAST REALLY REACHES THE PRICE AND THE JOB — a select whose change
   // handler never fires looks identical to one that works
@@ -1363,8 +1364,12 @@ async function pillSweep(pg, where) {
     const kids = [...row.children].map((k) => { const r = k.getBoundingClientRect(); return { id: k.id || k.className, y: Math.round(r.y), h: Math.round(r.height) }; }).filter((k) => k.h);
     return { lines: new Set(kids.map((k) => Math.round(k.y / 8))).size, n: kids.length, picker: !!row.querySelector('#projwrap'), kids };
   });
+  // SEVEN SINCE 2026-09-14: the three icons that attach a reference moved into
+  // the references block's own bar ("three relevant icons move to reference
+  // block"), and the door picker and its ? arrived on the same row ("add api
+  // door dropdown options w (?) info").
   ok('the controls row is three lines at most, and carries no picker — ' + JSON.stringify(ctlRow),
-    ctlRow.lines <= 3 && ctlRow.n === 8 && !ctlRow.picker);
+    ctlRow.lines <= 3 && ctlRow.n === 7 && !ctlRow.picker);
 
   // ── a reference through the Dump door, and its slot into the prompt ──────
   await page.setInputFiles('#file', { name: 'mayra.png', mimeType: 'image/png', buffer: PNG });
@@ -1638,10 +1643,19 @@ async function pillSweep(pg, where) {
   await page.waitForTimeout(150);
   const noRefs = await page.evaluate(() => ({ hidden: document.getElementById('reffold').hidden,
     disp: getComputedStyle(document.getElementById('reffold')).display,
+    nofold: document.getElementById('reffold').classList.contains('nofold'),
+    dis: document.getElementById('reffold').disabled,
+    barOn: document.getElementById('refbar').getBoundingClientRect().height > 0,
     left: document.querySelectorAll('#refs .ref').length,
     refsH: Math.round(document.getElementById('refs').getBoundingClientRect().height) }));
-  ok('with nothing attached the references fold is not drawn at all — never a dead control ' + JSON.stringify(noRefs),
-    noRefs.hidden && noRefs.disp === 'none' && noRefs.left === 0);
+  // THIS REVERSED ON 2026-09-14 and the reversal is the point: the heading used
+  // to come off with nothing attached, and the bar that attaches the FIRST
+  // reference lives under it now — a hidden row would be a block with no way
+  // in. There is still nothing to FOLD, so the chevron stands down instead.
+  ok('with nothing attached the references heading is still drawn — the bar under it is the way in ' + JSON.stringify(noRefs),
+    !noRefs.hidden && noRefs.disp !== 'none' && noRefs.left === 0);
+  ok('…with the chevron down and the bar reachable ' + JSON.stringify(noRefs),
+    noRefs.nofold && noRefs.dis && noRefs.barOn);
   await page.click('#job-f0 .copy');
   const beforeBlank = posted.filter((p) => p.prompt).length;
   await page.click('#go');
