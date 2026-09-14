@@ -616,7 +616,12 @@ function card(r){
 // the tab she is not looking at is the silent-filter failure this app keeps
 // getting burned by, and one shared state is what makes it impossible.
 function likedOnly(){ try{ return localStorage.getItem('voicelab_liked')==='1'; }catch(e){ return false; } }
-function hideX(){ try{ return localStorage.getItem('voicelab_hidex')==='1'; }catch(e){ return false; } }
+// DEFAULT ON (2026-09-14, Sophie: "default to hide x") — absent means HIDE, so
+// a fresh page opens with the crossed-out ones already gone. Stored '1'/'' as
+// before, and the reader asks ABSENT FIRST: null takes the default, '1' is on,
+// '' alone is off — so a phone that had already turned it on, or deliberately
+// off, keeps exactly what she chose. The bell's default-on shape.
+function hideX(){ try{ var v=localStorage.getItem('voicelab_hidex'); return v===null ? true : v==='1'; }catch(e){ return true; } }
 function voteBtns(r){
   var v=r.vote||'';
   return '<button type="button" class="vote yes'+(v==='like'?' on':'')+'" data-vote="like" data-id="'+esc(r.id)+'"'

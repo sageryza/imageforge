@@ -212,8 +212,9 @@ async function pickProject(pg, v) {
   // ride out the whole session on both views. MEASURED off what really
   // renders — a clip still in `jobsById` and one on screen look the same in
   // the source — and on BOTH views, since one predicate draws them.
-  await page.click('#v-hidex');
-  await page.waitForTimeout(250);
+  // It is already ON — the default since 2026-09-14 ("default to hide x") —
+  // so there is nothing to tap here.
+  ok('hide-the-✕\'d is lit with no tap', await page.evaluate(() => document.getElementById('v-hidex').classList.contains('on')));
   await page.evaluate(type, 'the one she crosses out');
   await page.click('#go');
   await page.waitForTimeout(600);
