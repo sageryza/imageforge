@@ -8804,6 +8804,48 @@ before working on that module. Nothing was deleted — the moved text is verbati
   really POSTs — a clip's poster and a still reference are the same markup,
   and a lit thumb says nothing about what left the phone; verified failing 5
   against the page that listed them).
+  **AND IT PAGES, AND IT ORGANIZES — `… older references` AND A PENCIL
+  (2026-09-14, Sophie: "add a more / see older references / and organize
+  button mode / to delete and add recent references without using them").**
+  Two complaints in one: the drawer was the newest 24 references with nothing
+  behind them reachable at all, and every tap on it meant ATTACH, so the only
+  thing she could do with a tile was use it. Now the drawer is a column — its
+  own little line (the organize mark, what a tap means, the undo), the tiles,
+  and `… older references` at the end, which widens it 24 at a time and is
+  drawn only while there really is something behind that page. **LIT, A TAP NO
+  LONGER ATTACHES**: every tile wears a ✕ that takes it OFF, tapping the tile
+  OPENS IT BIGGER (`openRef`'s own two doors — she is deciding whether to keep
+  it, and a 52px thumb does not answer that), and **the picture button on the
+  buttons row ADDS to the drawer instead of to the job**, which is the "add …
+  without using them" half. Six things not to undo:
+  - **NOTHING IS DESTROYED.** The file is in the Dump and on every clip it
+    already rode; a ✕ is only this drawer forgetting it. The last removal is
+    banked (`footage_recundo`) so one `undo` puts it back — the page's own
+    clear/undo rule, **an undo instead of a confirm**.
+  - **THE TWO CURATION LISTS ARE HER PHONE'S** (`footage_rechide` /
+    `footage_reckeep`), like every other setting here: the drawer is DERIVED
+    from the feed, so they say only what to leave out of it and what to stand
+    in front of it. A reference she ADDS leads the drawer — she put it there
+    to find it again.
+  - **A ✕ HIDES WHETHER THE TILE WAS KEPT OR DERIVED**, and adding un-hides —
+    or a kept tile with a job behind it walks straight back in as a derived
+    one, and a tile taken off could never be put back by hand.
+  - **THE MODE AND THE WIDENED LIST DIE WITH THE SCREEN** (memory only, and
+    `recClose` is the one door): the Playground's SELECT rule and the deck's
+    lane rule, one drawer over. Reopening is the calm 24 again.
+  - **THE PICTURE BUTTON SAYS WHICH IT IS ABOUT TO DO**, set BEFORE the
+    signature check — it is the one control the mode reaches outside the
+    drawer, and a label that still said "Add a reference" would be the tap's
+    meaning changing invisibly.
+  - **AN EMPTY DRAWER STAYS REACHABLE WHILE THERE IS AN UNDO IN IT** — taking
+    the last tile off would otherwise close the drawer over the one control
+    that could put it back, and the history icon would go with it.
+  Test: `node scripts/test-footage-recent-organize.js` (every assertion a
+  MEASUREMENT of the rendered drawer, of what the send really POSTs, or of
+  what is really in localStorage — a tile that wears a ✕ and attaches anyway,
+  an opener that widens nothing, a removal that never reached storage and an
+  upload that lands on the job as well as the drawer all look identical in the
+  source; it CRASHES against the pre-fix page, which has no opener at all).
   **A CHOSEN REFERENCE OPENS BIGGER — TAP ITS THUMB (2026-09-12, Sophie:
   "make clicking on a chosen reference open it bigger").** A 72px tile is too
   small to check that the picture riding as `[Image2]` is the one she meant,
