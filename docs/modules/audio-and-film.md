@@ -854,56 +854,89 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         pinned divide — the head box's own top on the glass, since the head
         shrinks from the bottom and setting `.value` drops the caret to 0 —
         the slot renamed in the second block).
-    - **CHARACTERS, THEN SETTING — TWO PERMANENT BLOCKS AT THE TOP, SHUT BY
-      DEFAULT (2026-09-13, Sophie: "i envision two permanent default collapsed
-      blocks at the top of footage: characters, then setting").** Who is in
-      the scene and where it is do not change from shot to shot, and until
-      this they were retyped into every block or re-tapped off the cast shelf
-      per clip. So the panel opens with two blocks of its own above the scene,
-      and **what is written in them rides at the TOP of the prompt of every
-      clip she sends** — in that order, blank line between, exactly the shape
-      the join mark already gives her words. Six things not to undo:
-      - **THEY ARE NOT `blocks()`.** A head is `.headwrap`/`.hblock`, never
-        `.promptwrap`/`.pblock`, so "the blocks" goes on meaning her SCENE
-        blocks in every reader there is: the numbering, the gold line, the
-        join marks, the ✕, the divide, `setBlocks`, the draft (`prompt` first,
-        `blocks` after it), the belt hand-off and every test are untouched by
-        construction rather than by remembering to skip two. The heads ride
-        the draft under their own names (`heads: {characters, setting}`),
-        written only when one of them holds something.
-      - **THE GOLD LINE NEVER MOVES TO ONE.** `setActive` is reached through
-        `closest('.promptwrap')`, which a head is not, so tapping into
-        Characters leaves the star pointing where she left it — right,
-        because the star cannot send a head on its own: it is a head, not a
-        shot. For the same reason the scene box, not a head, is what "say
-        what the clip is first" is about.
-      - **AN EMPTY HEAD ADDS NOTHING**, and with both empty the prompt is
+    - **CHARACTERS & SETTING — ONE FOLDED BLOCK, TWO BOXES, ABOVE THE BLOCK
+      SHE IS IN (2026-09-14, Sophie: "characters/setting become one collapsed
+      block w two text boxes" · "characters/setting move to above currently
+      selected block, w relevant characters for that block").** It shipped a
+      day earlier as TWO permanent blocks pinned at the top of the panel
+      (2026-09-13, "i envision two permanent default collapsed blocks at the
+      top of footage: characters, then setting") and a day of cutting settled
+      two things her sentence is naming:
+      - **THEY ARE ONE THOUGHT**, so they are ONE fold with two boxes rather
+        than two rows of chrome above every scene.
+      - **WHO IS IN A SHOT CHANGES SHOT TO SHOT, WHERE THE ROOM DOES NOT.**
+        That is what "relevant characters for that block" says, and it is what
+        makes the move worth its cost: a block carrying the same words wherever
+        it sat would be churn.
+      So **CHARACTERS IS THE BLOCK'S** — `__chars` on the wrap, exactly the
+      shape its strip already has, so tapping into another block hands its cast
+      back the way its pictures come back — and **SETTING IS STILL THE STANDING
+      VALUE**, one per project (`footage_heads`), riding every clip. What is
+      written in both rides at the TOP of the prompt of the clip that block
+      sends, cast first, blank line between, exactly the shape the join mark
+      already gives her words. Eight things not to undo:
+      - **IT IS NOT `blocks()`.** The wrap is `.headwrap`, each box sits in its
+        own `.hrow` (which is what the corner button is positioned against) and
+        is still `.hblock`, never `.promptwrap`/`.pblock` — so "the blocks"
+        goes on meaning her SCENE blocks in every reader there is: the
+        numbering, the gold line, the join marks, the ✕, the divide,
+        `setBlocks`, the draft, the belt hand-off and every test are untouched
+        by construction rather than by remembering to skip it. The cast rides
+        the draft as `chars`, one per block, beside the words it belongs to;
+        the setting rides `heads: {setting}` and the per-project map.
+      - **THE GOLD LINE NEVER MOVES TO IT.** `setActive` is reached through
+        `closest('.promptwrap')`, which this is not, so tapping into Characters
+        leaves the star pointing where she left it — right, because the star
+        cannot send a head on its own: it is the head of a shot, not a shot.
+        For the same reason the scene box, not a head, is what "say what the
+        clip is first" is about.
+      - **IT MOVES ON EVERY PAINT, AND `placeHeads` IS THE ONE WRITER** of
+        where it sits: directly above the active block, reached from
+        `markActive` (which every path changing the gold line already comes
+        through) and from the end of `paintBlocks`.
+      - **THE NODE IS HELD, NOT HUNTED** (`HEADWRAP`). `paintBlocks` takes the
+        wrap OUT while it rebuilds the join rows — a join row is inserted
+        BEFORE its lower block and the wrap sits there whenever that block is
+        the active one — so a lookup that walks `panel.children` answers null
+        exactly when `placeHeads` needs it and the whole block is lost on the
+        first divide. MEASURED: it simply vanished off the page.
+      - **A JOIN ROW'S TWO BLOCKS ARE ITS NEAREST `.promptwrap` EITHER SIDE,
+        NEVER ITS SIBLINGS** (`blockSide`, read by `paintJoinRows` and
+        `joinAt`). The wrap sits in that gap and is SHUT by default, so reading
+        the plain sibling found a shut node there and hid every join mark.
+      - **AN EMPTY BOX ADDS NOTHING**, and with both empty the prompt is
         byte-for-byte the words in her box. Emptying one is how it stops
-        riding: **permanent means no ✕ and no divide** — nothing takes one off
-        the page and nothing turns one into two.
-      - **`clear` DOES NOT TOUCH THEM.** It wipes the JOB — the blocks, the
-        references, the marks, the seed — and the cast and the room are the
-        standing thing above it, so the next shot of the same scene keeps
-        them. A clear that retyped them would be "permanent" meaning nothing.
-        A belt hand-off leaves them alone for the same reason.
-      - **SHUT IS WHERE THEY START, EVERY LOAD** — the one place this page
-        folds by default, and the opposite of a block's own fold (memory for
-        the life of the page, open on a reload). It is only safe because
-        **shut, the heading SAYS ITS WORDS**: a value riding every clip with
-        nothing on screen saying so is the hidden ingredient the price beside
-        the star exists to prevent.
-      - **`paintHeadBlock`, NOT `paintHead`** — the page header has a
-        `paintHead` of its own hundreds of lines down, and a duplicate
-        function DECLARATION is not an error: the last one in the file wins,
-        silently. The first cut of this folded correctly and painted nothing
-        at all, which is invisible in the source and is what the test caught.
+        riding: **permanent means no ✕ and no divide** — nothing takes it off
+        the page and nothing turns it into two.
+      - **`clear` WIPES THE CAST AND KEEPS THE ROOM.** That follows from the
+        split rather than loosening the 09-13 rule: the cast belongs to a
+        block, so it goes into the bank with the blocks and `undo` puts it
+        back, and the room is the standing thing above the job exactly as it
+        was. A belt hand-off leaves the room alone for the same reason.
+      - **SHUT IS WHERE IT STARTS, EVERY LOAD** — the one place this page folds
+        by default, and the opposite of a block's own fold (which rides the
+        draft). It is only safe because **shut, the heading SAYS BOTH SETS OF
+        WORDS**, cast first: a value riding a clip with nothing on screen
+        saying so is the hidden ingredient the price beside the star exists to
+        prevent.
+      A **divide** copies the cast into the tail (its words name that block's
+      pictures, and half a scene is the same people until she says otherwise);
+      a **join** unions the two, a blank line between; a **put-back** strips a
+      leading prefix that IS one of the casts on the page or the setting, and
+      re-homes the cast it stripped onto the block it makes; and a **draft from
+      the two-block day** seeds EVERY block with the one `heads.characters` it
+      saved (dropping it on block 1 alone would leave the rest of her scene
+      without the people in it). `paintHeadBlock`, NOT `paintHead` — the page
+      header has a `paintHead` of its own hundreds of lines down, and a
+      duplicate function DECLARATION is not an error: the last one in the file
+      wins, silently.
       Test: `node scripts/test-footage-heads.js` (every assertion a
       MEASUREMENT of what really renders or a reading of what the stub server
-      really received — a head that never folds, one that quietly joins
-      `blocks()` and renumbers her scene, one that rides at the BOTTOM, and one
-      whose words never reach the
-      door all look identical in the source; it CRASHES against the pre-fix
-      page, where there are no head blocks at all).
+      really received — a block that never folds, one that quietly joins
+      `blocks()` and renumbers her scene, one that sits in the markup above the
+      active block and paints somewhere else, a cast that reads back right and
+      never reaches the door, and a join mark hidden by the wrap that moved
+      between two blocks all look identical in the source).
     - **WHAT CHANGED — THE COMPARE PANEL (2026-09-11, Sophie: "is there an
       easy way I can diff video clips like I can't remember what I changed for
       example sometimes it's a single line or a reference for the model the
@@ -4106,40 +4139,113 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   no screen at all. The draft and the `clear` bank keep `refs`/`first`/`last`
   as the FIRST block's for a page cached from before, with the whole set
   beside them under `jobs`; a draft with no `jobs` gives every block the one
-  strip it saved, which is what it meant when the strip was shared. Full
+  strip it saved, which is what it meant when the strip was shared.
+  **AND EVERY BLOCK'S HEADING SAYS WHETHER IT HAS GONE — A RED SENT / UNSENT
+  (2026-09-14, Sophie: "add a red 'sent' or 'unsent' to top of collapsed
+  block").** One block is one clip, and a folded block is a clip she cannot
+  read: four shots into a scene, which of them had actually left was a fact the
+  page knew and said nowhere. **IT IS THE WORDS THAT WENT, NEVER A FLAG ON THE
+  BLOCK** — the Playground's `promptlab_panels_drawn_<g>` rule ("the EXACT
+  array that was sent, so editing one box after a draw makes that grid undrawn
+  again"): the question is only ever *are the words in this box words that have
+  gone*, so the mark is position-independent by construction and a divide, a
+  join, a removal, a reorder, a put-back and `use this` need no bookkeeping at
+  all (dividing a sent block leaves both halves UNSENT, which is right — neither
+  half is the clip that went).
+  **TWO SOURCES ANSWER IT, AND THE SERVER'S IS THE BETTER ONE.** A story part's
+  own `hist` — every clip sent from that part, read off the log by
+  `loadHistory`, whose `words` is the block's text before the heads — so a part
+  reads SENT on a phone that never sent it and after a page's whole life has
+  been forgotten; the local bank (`sentTexts`, riding the draft) is the fallback
+  for an ORDINARY block, which has no part and so no history to read, and for
+  the seconds between a send and the next sweep. The union can only ever ADD a
+  SENT, never take one away, and `loadHistory` calls `paintBlockHeads` rather
+  than `forEach(paintHist)` — a sweep that only repainted the ‹ › row would
+  leave a part that really has been sent reading UNSENT. Six things not to undo: it rides the heading **OPEN OR
+  SHUT**, like the reference count beside it (the don't-say-it-twice rule only
+  bites where the thing is right there on screen, and nothing in an open box
+  says whether it was sent); **a block with no words is neither** and draws
+  nothing; **editing a sent block flips it back to UNSENT** on the keystroke
+  that breaks the match, and restoring the words flips it back (whitespace she
+  cannot see is not an edit); **a REFUSAL banks nothing** — nothing drew and
+  nothing was charged; a **PUT-BACK reads SENT**, because those words came off
+  a clip that really drew, so a put-back-and-tweak flips the moment she changes
+  a word (and so does `use this` off the ‹ › walk); and **`clear` leaves the
+  bank alone**, so the undo hands her blocks
+  back still knowing which of them went. What is banked is the block's own
+  words **without the two heads** the send puts on top of them (`peelHeads`,
+  ONE copy of that rule, shared with the put-back — `copyBack` took the cast
+  head it peeled and that is the same peel), and a door word's re-send
+  banks the body that was REFUSED rather than the box, since she may have typed
+  since. The bank rides the DRAFT beside the words it is about, like `shut`, so it
+  survives a reload and the page's own self-heal — **but it is written by
+  `saveSentBank`, which PATCHES the stored draft, and never by `saveDraft`,
+  which rebuilds it from the live DOM (MEASURED: a send answers a round trip
+  later, so a `saveDraft` there writes the old scene back over a hand-off or a
+  put-back that landed in between, and it is why main deliberately leaves the
+  draft alone on the send path)**; it is the page's own red
+  (`#a0402a`, the refusal line's) and never a second one; `margin-left:auto`
+  puts it at the end of its own heading in both fold states; **`paintSent`
+  reads the BOX and never `paintBlockHead`'s `txt`**, which on a story part is
+  the PART's own words rather than the prompt (the red word is about what is
+  about to be sent); and the mark has
+  **its own painter** (`paintSent`) so a keystroke can repaint it without
+  walking every heading and every join row — an ordinary keystroke writes
+  nothing at all (the 2026-09-12 typing rule). Full
   note: *DIVIDE
   HERE* in `docs/modules/audio-and-film.md`; tests
+  `node scripts/test-footage-sent-mark.js` (the real page headless — every
+  assertion a MEASUREMENT of what really renders or a reading of what the stub
+  really received, since a mark whose CSS never landed, one painted in the
+  row's own grey, one that reads SENT off a block that was merely TYPED and one
+  that stays SENT after she edits a word all look identical in the source; it
+  CRASHES against the pre-fix page, which has no `.bsent` at all),
   `node scripts/test-footage-divide.js`,
   `node scripts/test-footage-block-refs.js` and
   `node scripts/test-footage-block-fold.js`.
-  **AND TWO PERMANENT BLOCKS SIT ABOVE THEM — CHARACTERS, THEN SETTING, SHUT
-  BY DEFAULT (2026-09-13, Sophie: "i envision two permanent default collapsed
-  blocks at the top of footage: characters, then setting").** Who is in the
-  scene and where it is do not change from shot to shot, so they are two
-  blocks of their own above the scene and **what is written in them rides at
-  the TOP of the prompt of every clip she sends** — in that order, blank
-  line between. Six things not to undo: **they are not `blocks()`** (a head is `.headwrap`/`.hblock`, never
-  `.promptwrap`/`.pblock`, so the numbering, the gold line, the join marks,
-  the ✕, the divide, `setBlocks`, the draft and every test are untouched by
-  construction rather than by remembering to skip two; the draft carries them
-  under their own names); **the gold line never moves to one** (`setActive` is
-  reached through `closest('.promptwrap')`, which a head is not, so tapping
-  into Characters leaves the star pointing where she left it — the star cannot
-  send a head on its own); **an empty head adds nothing**, and with both empty
-  the prompt is byte-for-byte the words in her box; **permanent means no ✕ and
-  no divide**, so emptying the box is how one stops riding; **`clear` does not
-  touch them** — it wipes the JOB and the cast and the room are the standing
-  thing above it, and a clear that retyped them would be "permanent" meaning
-  nothing; and **shut is where they START, every load** — the one place this
-  page folds by default, safe only because **shut, the heading says its
-  words** (a value riding every clip with nothing on screen saying so is the
-  hidden ingredient the price beside the star exists to prevent). Named
-  `paintHeadBlock` because the page header already has a `paintHead`, and a
-  duplicate function DECLARATION is not an error — the last one in the file
-  wins, silently, which is how the first cut folded correctly and painted
-  nothing at all. Full note: *CHARACTERS, THEN SETTING* in
-  `docs/modules/audio-and-film.md`; test
-  `node scripts/test-footage-heads.js`.
+  **AND CHARACTERS & SETTING IS ONE FOLDED BLOCK THAT RIDES ABOVE THE BLOCK
+  SHE IS IN (2026-09-14, Sophie: "characters/setting become one collapsed
+  block w two text boxes" · "characters/setting move to above currently
+  selected block, w relevant characters for that block").** It shipped a day
+  earlier as TWO permanent blocks pinned at the top of the panel (2026-09-13,
+  "i envision two permanent default collapsed blocks at the top of footage:
+  characters, then setting") and a day of cutting settled two things: they are
+  ONE thought, so they are one fold with two boxes rather than two rows of
+  chrome above every scene; and **who is in a shot changes shot to shot where
+  the room does not**, which is what "relevant characters for that block"
+  says. So **CHARACTERS IS THE BLOCK'S** — `__chars` on the wrap, exactly the
+  shape its strip already has, so tapping into another block hands its cast
+  back the way its pictures come back — and **SETTING IS STILL THE STANDING
+  VALUE**, one per project, riding every clip. `placeHeads` puts the wrap
+  directly above the active block on every paint, which is what makes the move
+  earn its cost: a block carrying the same words wherever it sat would be
+  churn. Eight things not to undo: **it is not `blocks()`** (the wrap is
+  `.headwrap`, each box sits in its own `.hpart` and is still `.hblock`, never
+  `.promptwrap`/`.pblock` — and `.hpart`, NOT `.hrow`, because the story
+  blocks took `.promptwrap .hrow` for their prompt-history walk); **the gold
+  line never moves to it** (`setActive` is reached through
+  `closest('.promptwrap')`, so tapping into Characters leaves the star
+  pointing where she left it); **the NODE IS HELD, not hunted** (`HEADWRAP` —
+  `paintBlocks` takes it OUT while it rebuilds the join rows, so a lookup that
+  walks `panel.children` answers null exactly when `placeHeads` needs it and
+  the whole block is lost on the first divide; MEASURED, it simply vanished
+  off the page); **a join row's two blocks are its nearest `.promptwrap`
+  either side, never its siblings** (`blockSide` — the wrap sits in that gap
+  and is SHUT by default, so reading the plain sibling hid every join mark);
+  **an empty box adds nothing**; **permanent means no ✕ and no divide**;
+  **`clear` wipes the cast with the blocks and leaves the room** (the cast
+  belongs to a block, so it rides the bank and `undo` puts it back — that
+  follows from the split rather than loosening the 09-13 rule); and **shut is
+  where it starts, every load** — the one place this page folds by default,
+  safe only because **shut, the heading says both sets of words**, cast first.
+  A divide copies the cast into the tail, a join unions the two, a put-back
+  re-homes the cast it stripped off the card's prompt onto the block it makes
+  (the log's own `words` win when the card has them), and a draft from the
+  two-block day seeds EVERY block with the one `heads.characters` it saved.
+  Named `paintHeadBlock` because the page header already has a `paintHead`,
+  and a duplicate function DECLARATION is not an error — the last one in the
+  file wins, silently. Full note: *CHARACTERS & SETTING* above in this file;
+  test `node scripts/test-footage-heads.js`.
   **A BLOCK IS A STORY PART, AND ‹ › WALK THE PROMPTS ALREADY SENT FOR IT
   (2026-09-14, Sophie: "replace footage blocks w story blocks, next and back
   to see old prompts").** The Story Timeline's Send to Footage carries the
@@ -4284,36 +4390,27 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   a clear that empties the box and leaves the references attached, a bank that
   never reached localStorage, and a word drawn where the pill covers it all
   look identical in the source; verified failing pre-fix).
-  **THE WHOLE PROMPT AREA FOLDS, AND THAT IS THE ONE BUTTON TO THE GALLERY
-  (2026-09-11, Sophie: "make the whole prompt area collapse or one button to
-  get to the gallery at bottom").** A **PROMPT** row leads the panel; shut, the
-  panel IS that row and the feed rises to just under the header — MEASURED at
-  390pt on a two-line scene, the panel 491px → 70 and the first clip's card
-  491 → 185. So the fold and the jump are one tap, and it leaves her at the TOP
-  of the gallery rather than parachuting her into the middle. Six things not to
-  undo: it is **one class over the panel** (`.panel.shut`), never a list of rows
-  in script — a BLOCK is a direct child of the panel and blocks are made and
-  joined as she types, so a sweep would have to be re-run by everything that
-  touches one; what it hides is **DISPLAY-hidden and stays in the DOM**, so
-  every value is set the way she left it and `fitPillGap` sees a zero rect;
-  **opening re-fits every block** (a box measured while it was hidden reports no
-  `scrollHeight`, so without it a panel reopened after a reload comes back one
-  line tall); the **project picker moved onto that row** and is the one control
-  a shut panel still draws, because it narrows the FEED as well as the clip and
-  a filter she cannot see from the screen it is filtering is the failure this
-  app keeps getting burned by; **shut, the row says the first words of the block
-  she is in** (and how many blocks there are) in her own case, not the row's
-  caps — at 390pt a 10.5px caps line at .12em fits about four of her words and
-  reads shouted; and **anything that puts words or a reference back OPENS it**
-  (a belt hand-off, a clip's prompt copied back, a reference landing, a last
-  frame re-attached), so nothing can ride hidden. Remembered, and OPEN until she
-  says otherwise. The star goes with it — the whole prompt area, her word — so
-  there is no send from a screen that is showing her the gallery. Test:
-  `node scripts/test-footage-panel-fold.js` (the real page headless — every
-  assertion a MEASUREMENT, since a fold that sets a class and hides nothing, one
-  that leaves the feed where it was, one that folds the picker away with it and
-  one that reopens a box one line tall all look identical in the source;
-  verified failing pre-fix).
+  **THE WHOLE PROMPT AREA USED TO FOLD, AND SHE HAD IT TAKEN OFF (2026-09-14,
+  Sophie: "remove prompt collapse").** It shipped 2026-09-11 as the one button
+  down to the gallery — a **PROMPT** row led the panel and shut, the panel WAS
+  that row — and it is **HISTORY now, not a rule: do not build it back.** What
+  went with it: `.panelrow`, `#panelfold`, the `panel` entry in `FOLDS`,
+  `panelLab()`, `.panel.shut`, the `openFold('panel')` every path that put
+  words in the box had to remember, the row's own sticky `--headtop` pin, and
+  `scripts/test-footage-panel-fold.js`. **What survives, so the gallery is
+  still one gesture away:** the FEED BAR is sticky, so the view switch, the
+  marks, the search and the project picker are on screen all the way down, and
+  the three folds that are still hers — each block's own heading, References,
+  Buttons — each put a third of the panel away. Three readers moved with it:
+  the STORY's own name is its own `#storyrow` label at the top of the panel
+  (it rode that fold row, and a page of parts with nothing saying which story
+  is a hand-off she has to remember — drawn only while a story is bound);
+  `goToBlock` aims at the characters-and-setting wrap when that sits above the
+  block it is walking to (landing the BLOCK at the top would push the two
+  boxes belonging to it off the screen, which is the one thing the move was
+  for); and `test-caret-under-button.js`'s sticky-row section measures the
+  RULE — nothing pinned, at either end, over the line she is typing on —
+  rather than that one row.
   **THE SEED IS ON THE CARD AND IN A BOX SHE CAN TYPE IN (2026-09-10, Sophie:
   "put a seed box that exposes the seed after the clip is drawn and put a copy
   button next to it so I can reuse the seed … make it into a text box so I can
@@ -5647,3 +5744,283 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
     `--live`, which drives the REAL argv all the way to a file on disk and is
     the only honest way to ask whether this box can still reach YouTube.
 
+### WHICH DOOR — the Seedance door history (moved from CLAUDE.md)
+
+Moved verbatim from the CLAUDE.md checklist on 2026-09-14; the standing rule stays there.
+
+**A SEEDANCE JOB WITH NO VIDEO REFERENCE GOES THROUGH OPENROUTER, NOT
+APIFRAME (2026-09-08, Sophie: "make a note so any reference w no video uses
+open router instead").** **PARKED 2026-09-09 — EVERYTHING GOES THROUGH
+APIFRAME WHILE THE 480p MINI DRAFT IS MADE (Sophie: "the answer is APIFRAME
+I guess. Let's build the pipeline around that for now").** Two things
+decided it the same day: OpenRouter stopped passing on the Mini sale (its
+discount reads 0 and today's jobs billed full list) and every other
+reseller carries the same face filter, so a film full of person references
+has one door anyway. The OpenRouter route, its log and its price reader stay
+built; the `/footage` page still sends `door:'openrouter'` and is NOT
+changed by this note — flipping it is hers to ask for. The rest of this
+paragraph is how the two doors work, kept for when she lifts this. OpenRouter bills ByteDance's list price; the ~5%
+top-up fee is paid when credit is BOUGHT, not per job. **SUPERSEDED
+2026-09-09 — the "480p Seedance 2.5 is 10.9¢/s all in against APIFRAME's 13¢,
+a 4s clip 44¢ against 52¢" figure was list × the fee on the WRONG CANVAS and
+is wrong.** The measured formula (Mini renders on the 2.5 canvases, a clip is
+24·s + 1 frames, no fee in the shown price, the sale read live off
+OpenRouter) is in the Footage bullet under *THE PRICE IS EXACT*.
+**BUT BYTEDANCE'S OWN DOOR REFUSES REFERENCE VIDEOS
+WITH PEOPLE THAT APIFRAME ACCEPTS (measured 2026-09-08, scene 36a1 of the
+ward film):** the two untouched Seedance clips APIFRAME drew that scene from
+came back from OpenRouter as `InputVideoSensitiveContentDetected.
+PrivacyInformation` — "may contain real person" — before anything drew, while
+the three pajama pictures on the same job passed. OpenRouter forwards to
+ByteDance directly, so BytePlus direct would refuse the same; APIFRAME is
+running with something looser (unmeasured — its own backend or ByteDance's
+paid "advanced creation rights"). **MEASURED THE SAME NIGHT ON THE
+CHEAPEST MINI JOB (refusals are free, an accepted one ~5¢): a PERSON-FREE
+reference video — the socks B-roll, a Seedance output — PASSED and drew
+(6.5¢), and an AI-GENERATED face STILL (a frame of the Mini clip itself) was
+REFUSED (`InputImageSensitiveContentDetected.PrivacyInformation`).** So the
+line is the PERSON, not the video.
+**BUT THE FILTER IS PER MODEL, NOT PER DOOR, AND THAT RETIRES "BYTEPLUS DIRECT
+WOULD REFUSE THE SAME" ABOVE (measured 2026-09-12 on her own two jobs).** The
+SAME photoreal AI-made still — the priest-uniform Sophie png, a face, plainly
+photographic — was **refused on 2.0** (`InputImageSensitiveContentDetected.
+PrivacyInformation`, "may contain real person", free, before drawing) and
+**accepted and drawn on 2.5, twice**, through the identical OpenRouter door
+minutes apart. Across all 8 of her OpenRouter jobs carrying an image
+reference, **6 drew and 2 were refused**, and the split is the MODEL every
+time. So "OpenRouter refuses a photoreal face" is wrong as it was written
+here: 2.5's input gate is looser than 2.0's, and a doubtful face is worth one
+free 2.5 attempt before assuming a door is closed. What is NOT known is
+whether 2.5's gate is merely looser or genuinely probabilistic — ByteDance's
+own filters are documented as probabilistic rather than binary, so two
+acceptances are not a guarantee. The refusal is free either way, so try it.
+The older reading below stands for 2.0 and for reference VIDEOS:
+- **text, pictures, audio, and person-free videos → OpenRouter**: `POST
+  /api/openrouter/video` (`openrouter.js`) takes the APIFRAME route's exact
+  body (`prompt, model?, duration, resolution, aspectRatio, generateAudio,
+  referenceImageUrls, referenceVideoUrls, referenceAudioUrls, chat, scene,
+  title, session`), answers 202 `{jobId, poll, sent}` — `sent` is the
+  literal body OpenRouter received, the read-back her rule asks for — poll
+  `GET /api/openrouter/video-job/:id`, and **files the SAME
+  `forge-video-jobs` log** stamped `provider:'openrouter'`, so `GET
+  /api/apiframe/video-log` reads both doors. `GET /api/openrouter/credits`
+  is the balance in dollars. From a container with no server:
+  `scripts/openrouter-video.js`.
+- **any reference with a FACE or a PERSON in it, still or video → APIFRAME.**
+  ByteDance's refusal is free and comes back before drawing as 400
+  `{refusal:'content'}` with a `hint` naming APIFRAME — so sending a doubtful
+  job to OpenRouter first costs nothing. **AN ILLUSTRATED FACE PASSES
+  (measured the same night, Sophie: "would it take an illustration face?
+  make varying degrees"): three Sandy-mirror ink-and-wash portraits — the
+  loosest, a finished painting, the most rendered — each sent as the only
+  reference, all three accepted and drawn (5.4¢ each, Mini 1:1), while the
+  photoreal frame of a Seedance clip was refused.** So the line is
+  PHOTOREAL: a drawn face rides, a photographic one (real or generated) does
+  not. Two things about the drawn face: it also sets the LOOK of the clip
+  (the loosest reference drew an illustrated clip, the most rendered a
+  photoreal one), and the watercolor parents were refused on both doors
+  earlier — a drawn face is likelier to pass, not certain to; the refusal is
+  free, so try it. **AND A REAL PHOTO WITH ONLY THE EYES BLURRED PASSES
+  (measured the same night, Sophie: "blue just the eyes / real still"):**
+  Mayra's real portrait was refused whole, and the identical photo with one
+  soft-blurred band over the eyes (`sharp` extract → blur(14) → composite,
+  everything else untouched) was accepted and drawn (job
+  `aY9LbIGMe9T5lEcA984a`, 5.4¢, Mini 1:1). So the filter is an EYES check,
+  not a face check — the mouth, the hair, the skin all rode through. It
+  drew O'Hara, not her, because the prompt describes O'Hara; a likeness
+  from a real photo needs the "the woman in [Image1]" wording and is
+  untested. **THE STILL TRICK DOES NOT CARRY TO VIDEO (same night, Sophie:
+  "also try blur eyes in a movie"):** the scale audition clip with every
+  face's eyes blurred on every frame (YuNet face landmarks → a Gaussian band
+  over the eyes, `blur-eyes-video.py`) was still refused,
+  `InputVideoSensitiveContentDetected.PrivacyInformation`. So a video is
+  screened for a PERSON, not a face; a person video goes through APIFRAME
+  whatever is done to its eyes. **And the likeness half is measured too:**
+  card 45a's words with "Mayra is the woman in [Image1]" over the
+  eyes-blurred photo drew HER (job `OudXGDf91uEk1um3pZUt`, Mini 3:4, 5.6¢) —
+  the eyes are the filter's key and not the model's; the likeness rides on
+  the rest of the face. Mini has no 2:3; its portrait shapes are 3:4 and 9:16.
+  **AND A HARD BLACK BAR PASSES THE INPUT FILTER TOO — BUT A FAMOUS FACE
+  THEN HITS A SECOND GATE ON THE OUTPUT (measured 2026-09-09, Sophie: "i
+  wanna test black bar over danielle radcliffe eyes").** A press photo of
+  Daniel Radcliffe, whole, was refused at validation like every real photo
+  (`InputImageSensitiveContentDetected.PrivacyInformation`, free, in twelve
+  seconds); the identical photo with a solid black rectangle over both eyes
+  (PIL, nothing else touched) was **ACCEPTED and drew for a full minute**,
+  then died at the far end with a refusal nothing here had seen before:
+  `status:'failed'`, *"the output video may be related to copyright
+  restrictions"* (job `3SL74kD3vCOePxCzjgh4`, Mini 480p 3:4 4s, the "the man
+  in [Image1]" wording). So the bar defeats the eyes check exactly as the
+  blur does — **and there are TWO filters, not one**: an INPUT check that
+  reads the reference's eyes, and an OUTPUT check on the drawn video that the
+  Mayra rounds never reached. No `generation_id` record exists for the failed
+  job, so it reads as unbilled; the shared key had another chat's batch
+  running, so the charge could not be isolated exactly. **Which half of that
+  photo tripped the output gate is UNMEASURED** — Radcliffe's own likeness,
+  or the branded premiere step-and-repeat filling the background. The cheap
+  next test is the same bar on a tight crop of the face with no backdrop in
+  frame: it still fails on copyright → the likeness; it draws → the
+  backdrop. **MEASURED THE SAME HOUR AND IT IS THE FACE:** the identical bar
+  on a tight crop of his face with the branded backdrop cropped OUT was
+  accepted, drew for a full minute, and failed with the same copyright line
+  (job `YMyKELvY54v87oTEhVG8`). So the output gate is reading HIM, not the
+  step-and-repeat behind him. **WHY IT EXISTS, from the public record:**
+  Seedance 2.0 took a Disney cease-and-desist on 2026-02-13 ("a virtual
+  smash-and-grab") with Paramount Skydance, Netflix, Warner Bros. Discovery,
+  Sony and Universal behind it, and ByteDance said on 02-15 it would stop
+  generating realistic human faces and IP-protected characters — this gate is
+  that promise. Three things worth knowing before designing around it: every
+  published guide documents the INPUT face filter and barely mentions an
+  output check, and the output-copyright error they DO document is about
+  AUDIO (we sent `generate_audio:false`, so that reading is ruled out here);
+  the filters are described as PROBABILISTIC rather than binary, so one job
+  is not a measurement and a near-threshold input can pass once and fail
+  next; and a failed generation is not billed, which matches our own two
+  blocked jobs leaving no `generation_id` record. **WHERE THE LINE SITS
+  BETWEEN FAMOUS AND NOT IS UNMEASURED AND IS THE OBVIOUS NEXT PASS** (Sophie's
+  own idea, 2026-09-09: "you could use progressively less famous people to
+  see where the bar is") — nobody has published one. Both ends are already
+  on file: Radcliffe blocked, Mayra drawn. Hold the bar constant on every
+  rung, since it is what reaches the output gate at all.
+- **WHY APIFRAME IS LOOSER, from ByteDance's own docs:** a face is only ever
+  allowed as a `asset://` from its trusted asset library — a VIRTUAL portrait
+  (a drawn or AI-made character that "must not resemble any real human
+  person", uploaded once under a signed commitment letter) or a REAL person
+  who face-verifies on their phone, every upload face-matched to that check.
+  Both need a BytePlus account with BUSINESS verification (a corporate
+  registration certificate); the entry tier is free (50 assets), the paid
+  tiers $1,400/mo and up. The ChatGPT-character workflow is exactly the
+  virtual-portrait door. NOT BUILT — hers to decide (Cod God Inc?).
+- **OTHER RESELLERS CARRY THE SAME FACE FILTER — RESEARCHED 2026-09-09
+  (Sophie: "research other platforms like OpenArt and Atlas Cloud and see if
+  they have the same restrictions as OpenRouter").** The face check runs
+  INSIDE ByteDance's model service, so every door that forwards to
+  Volcengine/BytePlus gets the identical `PrivacyInformation` refusal: Atlas
+  Cloud, fal, Kie, WaveSpeed, PiAPI (standard mode), OpenArt, Higgsfield,
+  Dreamina. Read off the vendors' own pages, not guides: **Atlas Cloud's June
+  blog says "supports realistic human faces … does not have this
+  limitation", and its CURRENT model FAQ says the opposite** ("Can I upload a
+  real person's face photo? No"), with the Mini page naming "the restriction
+  on uploading real human faces" across the family — the marketing line is
+  stale, the FAQ is live. OpenArt's own pages say nothing either way; every
+  third-party guide lists it among the standard-model doors. Kie's
+  "realistic human support" means GENERATED humans. **The doors that do take
+  a real photo are the ones with their own consent layer or a different
+  backend**: Runway's Seedance 2.0 (its API is documented as having no
+  real-face input filter and lighter moderation — Runway's ToS still bans
+  public figures and non-consenting people and it monitors output), PiAPI's
+  "Less Restriction" mode (consented images), HeyGen (a verified digital
+  twin of YOURSELF, her own face only), EvoLink (after verification), and
+  the official Volcengine liveness route above. **Reddit is unreadable from
+  this container by every door tried (2026-09-09: reddit.com answers a block
+  page, the pullpush archive refuses automated readers, the redlib mirrors
+  are down) and the web searches surfaced no thread** — so whether Atlas
+  Cloud quietly accepts a real face in practice, the way APIFRAME does, is
+  UNMEASURED beyond its own FAQ saying no. The only honest test is one 5¢
+  Mini job there with the eyes-blurred photo, which needs an account. **THE
+  DOOR IS BUILT FOR THAT TEST (2026-09-09, her API reference):
+  `atlascloud.js` at `/api/atlascloud` — the same body and the same
+  `forge-video-jobs` log as the other two doors, `provider:'atlascloud'`,
+  `ATLASCLOUD_API_KEY` set on Render by API (live on the next deploy).
+  **MEASURED THE SAME NIGHT — ATLAS TAKES A PERSON VIDEO (Sophie: "try the
+  hardest thing first · try the video reference with a person"):** the
+  O'Hara stretcher clip, three people in frame, the very clip OpenRouter
+  refused, went through as the only reference on Mini · 4s · 480p · 16:9
+  and DREW HER — accepted on the POST, done in 80s, 864x496 (job
+  `2b0b451548d84902988d01faf8bbcf99`). So Atlas is a second door for a
+  person reference, and **the 80% Mini sale is REAL**: its own `GET /models`
+  says Mini is 1.1¢/s (list 5.6¢) — 4.4¢ for that clip against ~16¢ on
+  APIFRAME — 2.5 13.4¢/s, 2.0 9¢/s, Fast 2.7¢/s; `footage.js` reads it live
+  (`atlasPrices()`). **AND A REAL UNTOUCHED PHOTO PASSES — Mayra's real
+  portrait, the one OpenRouter refused whole, drew her near-exactly (job
+  `1341e19bf73f44bd9e038c9b15c35286`, ~4¢); a reference image is not even
+  billed as tokens (a reference video is). Radcliffe is refused on the POST,
+  free, as COPYRIGHT — with the black bar too: Atlas's gate is a famous-face
+  check that sees through the bar, not a real-person check.** So Atlas takes
+  every person reference the film has except a public figure. **AND FAST'S OUTPUT GATE FIRES ON A PLAIN TEXT PROMPT (measured
+  2026-09-09, Sophie: "go on the fast vs mini dialogue test"):** the same
+  4s · 480p · 16:9 dialogue prompt — a woman at a kitchen table speaking one
+  line to camera, NO reference of any kind — was refused TWICE on 2.0 Fast
+  with the copyright line (`error_code 1012004`, `price "0"`, ~110s each,
+  unbilled) and drawn once on Mini (job `0fae510554ad4dbea977d4484990f716`,
+  ~4¢). So the output gate is per MODEL and probabilistic, and Fast is the
+  strict one; a plain prompt is not safe from it. Page: "Dialogue test — 2.0
+  Fast vs Mini" in this chat's Compare tab. The console is
+  the only billing read (no API), and Atlas's slot word is `video 1` /
+  `image 1`. **AND ATLAS IS THE ONE DOOR THAT HANDS BACK A LAST FRAME —
+  `return_last_frame` works there, is FREE, and beats an ffmpeg decode
+  (measured 2026-09-09; a no-op on OpenRouter, measured the day before).** A
+  job sent `returnLastFrame: true` answers a second output, `…_last-frame.png`,
+  billed at the clip's own token price to the token — and against the decoded
+  final frame it is 1.18x sharper with **118x the horizontal chroma detail**,
+  i.e. rendered before the h264 encode rather than pulled out of it. That is
+  the shot-to-shot chaining tool this film keeps needing. Mirrored to Storage
+  and filed on the log as `lastFrame`. **ON FOR EVERY FOOTAGE JOB SINCE
+  2026-09-10 (Sophie: "on")** — the page asks for it on the Atlas door alone
+  (OpenRouter's flag is a no-op and APIFRAME builds its own body) and the card
+  carries it. **AND SINCE 2026-09-11 IT IS ON THE CLIP'S OWN CARD, WHICH IS THE
+  ONLY PLACE SHE CAN REACH ONE (Sophie: "how do i get these last frames").**
+  It was being baked and banked on every Atlas job and the page drew it
+  NOWHERE: the only door it ever had was the RECENT drawer, and she took the
+  outputs out of there the same day it shipped ("recents is recent UPLOADED"),
+  so for a day every clip carried a picture with no way to see it — the "?"
+  card still pointed at the drawer, which is how it stayed invisible. Now it is
+  a small tile in the card's own picture row, **beside the references rather
+  than under them** (her word: "next to the references" — one grid, so it takes
+  the next free column and the card is no taller); tapping it opens it big in
+  the clip's own player, with a **save** that goes to Photos through the same
+  three-path ladder the clip's does. Its label says **`last frame · whole
+  clip`** on a TRIMMED clip, because the frame is the end of what the DOOR drew
+  and not the end of the part she kept — the one thing worth knowing before
+  chaining off it. A clip that went out through another door has none and shows
+  no tile at all (the Assets tab's silence rule). **CHAINING FROM IT IS STILL
+  SAVE-AND-RE-ATTACH — there is no "use this as a reference" button, and that
+  is hers to ask for.** Off by default still for any other caller:
+  `returnLastFrame: true` is what asks. Full numbers:
+  *`return_last_frame`* in `docs/modules/audio-and-film.md`; test
+  `node scripts/test-atlas-lastframe.js`. **AND IT WAS THE FOOTAGE PAGE'S ONLY DOOR
+  FROM THAT EVENING TO 2026-09-11 (Sophie: "make atlas the default and only
+  route through footage")** — it rode for an afternoon as its own "2.0 Mini ·
+  Atlas" row, then every 2.x row carried an Atlas id and the page pinned
+  `door:'atlascloud'`. **SUPERSEDED 2026-09-11 by "choose cheapest"**: auto
+  ranks the three doors by what the tap really costs, which keeps Mini and
+  Fast on Atlas (its 80%/70% sale) and moves 2.0 and 2.5 to OpenRouter (only
+  20% off there) — so a 2.0 or 2.5 clip gets NO last frame, since that rides
+  on Atlas alone. Full note: *ATLAS CLOUD — THE THIRD DOOR* in
+  `docs/modules/audio-and-film.md`.
+  The "go" rule applies word for word.** Likeliest
+  reading of APIFRAME's looseness is a Runway-style backend rather than a
+  ByteDance key — unmeasured; APIFRAME calls itself an "official partner"
+  and says nothing about faces. Whether any of those doors also skip the
+  OUTPUT copyright gate (the Radcliffe failure) is unmeasured everywhere.
+  **PRICED THE SAME DAY (Sophie: "check on the pricing compared to
+  OpenRouter, APIFRAME and ByteDance itself"), one 4s 480p 3:4 clip, no
+  reference video, off each vendor's own price page:** BytePlus direct and
+  OpenRouter share ByteDance's per-token list (OpenRouter's `orTok` IS the
+  SKU) — Mini 14¢ · Fast 17¢ · 2.0 28¢ · 2.5 ~43¢ (2.0/Fast/2.5 canvases
+  unmeasured) — **but OpenRouter is NOT the same price: its card fee is 5.5%
+  ($0.80 minimum) on every top-up, 5% by crypto, so a job costs list × 1.055
+  (Sophie's correction, 2026-09-09; this line first said "~5%" and "the same
+  list").** Measured the same hour: OpenRouter's `pricing.discount` on every
+  Seedance model reads **0**, and both of the day's `/footage` Mini jobs
+  billed $0.1396 — full list. **Atlas Cloud's "-80%" Mini banner is
+  UNVERIFIED and probably stale**: its own deal pages date the Seedance sale
+  window to "May 7, 2026, 23:59 UTC" and "June 15", its June Mini post says
+  $0.056/s with no sale, and its lowest-price page stacks a TOP-UP bonus
+  (up to +30% credit at $50,000) into the headline. At its undiscounted
+  $0.056/s Atlas is 22¢ for the 4s Mini clip — DEARER than OpenRouter — and
+  only 4.4¢ if the banner is real; a real charge needs an account and is
+  hers. Same face filter either way. APIFRAME: Mini ~16¢ · Fast 28¢
+  · 2.0 32¢ · 2.5 52¢. The doors that take a real photo are all dearer:
+  PiAPI less-restriction Mini 31¢ · 2.0 44¢ · 2.5 66¢ (a +10% markup, AND
+  the face still has to go through its asset library with the person
+  verified — the official route with a fee on it, not a loose door); EvoLink
+  2.0 37¢ · Fast 30¢ (no Mini); Runway Mini 64¢ (16¢/s with a 64-credit
+  minimum) · 2.0 $1.44 · 2.5 80¢ minimum (20¢/s plus 10¢ per second of input
+  video). So APIFRAME stays the cheapest door for a reference with a person
+  in it by 2-4x; for a person-free job OpenRouter at list + 5.5% is the
+  measured floor, and Atlas Cloud only beats it if its banner discount is
+  real.
+The "go" rule above applies to both doors word for word. A no-video job
+sent to APIFRAME is not wrong, it is 16% dearer. Full note: *OpenRouter for
+Seedance* in `docs/modules/audio-and-film.md`.

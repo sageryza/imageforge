@@ -119,7 +119,14 @@ const page = fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8');
   ok('a door word re-sends the exact body that was refused', /sendJob\(r\.door, box, body\)/.test(page) && /var body = resend \? Object\.assign\(\{\}, resend, \{ door: pin \|\| doorNow\(\) \}\)/.test(page));
   ok('offerDoors prices off the body that left, with the counts', /encodeURIComponent\(sent\.model \|\| S\.model\)/.test(page) && /'&auds=' \+ c\.audio;\n  Promise\.all\(others/.test(page));
   ok('reslotPlan forgets EVERY vanished slot name', /gones\.push\(a\.slots\[r\.url\]\)/.test(page) && /function reslotApply\(p, t\)/.test(page));
-  ok('a put-back strips the heads it carries', /headWords\(\)\.forEach\(function \(t\) \{ if \(back\.indexOf\(t \+ '\\n\\n'\) === 0\) back = back\.slice\(t\.length \+ 2\); \}\);/.test(page));
+  // (2026-09-14: the cast is per BLOCK now, so the prefix is matched against
+  // every cast on the page plus the one setting, and what comes off goes onto
+  // the block the put-back makes.)
+  ok('a put-back strips the heads it carries, and re-homes the cast',
+    /var known = blocks\(\)\.map\(function \(b\) \{ return charsOf\(b\); \}\);/.test(page)
+    && /known\.concat\(\[settingVal\(\)\]\)\.forEach/.test(page)
+    && /back = back\.slice\(t\.length \+ 2\);/.test(page)
+    && /addBlock\(back, tail, job, tookChars\)/.test(page));
   ok('a new folder is made in the project the sheet was on', /function newFolder\(project\)/.test(page) && /newFolder\(at\)/.test(page));
   ok('folding the buttons row closes the drawer through its own closer', /if \(recentOpen\) recClose\(\);/.test(page));
   ok("the Recent label says what the drawer holds", /aria-label="Recent — references you have used"/.test(page));
@@ -183,11 +190,15 @@ function exe() {
   const errs = []; pg.on('pageerror', (e) => errs.push(String(e)));
   await pg.goto(`http://127.0.0.1:${port}/footage`);
   await pg.waitForSelector('#job-j1', { timeout: 15000 });
-  // the two heads written, as they would be for this film
+  // the cast and the room written, as they would be for this film (ONE folded
+  // block with two boxes since 2026-09-14 — the cast is this block's own)
   await pg.evaluate(() => {
-    const hs = Array.from(document.querySelector('.panel').children).filter((c) => c.classList.contains('headwrap'));
-    hs[0].querySelector('.hblock').value = 'nurse edna, tired'; hs[0].querySelector('.hblock').dispatchEvent(new Event('input', { bubbles: true }));
-    hs[1].querySelector('.hblock').value = 'the ward office at night'; hs[1].querySelector('.hblock').dispatchEvent(new Event('input', { bubbles: true }));
+    const set = (id, v) => {
+      const el = document.querySelector('.panel > .headwrap .hpart[data-head="' + id + '"] .hblock');
+      el.value = v; el.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    set('characters', 'nurse edna, tired');
+    set('setting', 'the ward office at night');
   });
   // put the finished clip back
   await pg.evaluate(() => { document.querySelector('#job-j1 .copy').click(); });
