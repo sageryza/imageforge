@@ -3250,8 +3250,8 @@ function paintRecent() {
   // Set BEFORE the signature check: a repaint that changes nothing in the
   // drawer still has to leave this right.
   var addWhat = recOrganize && recentOpen ? 'Add to the drawer, without attaching it' : 'Add a reference';
-  $('add').setAttribute('aria-label', addWhat);
-  $('add').title = addWhat;
+  // and a paint that changes nothing writes nothing (this page's typing rule)
+  if ($('add').title !== addWhat) { $('add').setAttribute('aria-label', addWhat); $('add').title = addWhat; }
   // the poster is baked behind a finished clip, so it rides the signature —
   // otherwise the tile keeps the film glyph it first drew with. THE MODE, the
   // page size and the bank ride it too: each of them changes what every tile
