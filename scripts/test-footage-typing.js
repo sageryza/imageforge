@@ -182,15 +182,22 @@ const READ = () => {
   // ── 7. the pinned corner buttons are not rewritten per keystroke ────────
   //       (stickybox's input pass re-pinned them every character — class and
   //       every inline style — with nothing moving; 2026-09-12)
+  //       THE CARET GOES MID-SCENE, not to its end: since 2026-09-13 the keeper
+  //       lifts the caret clear of the pinned row, and at the END of a scene
+  //       that lift brings the buttons' own corner back into view, so they let
+  //       go and there is nothing left to count. Half way down, the box's
+  //       bottom is still far below the fold and they really must float.
   await page.evaluate(() => { document.getElementById('prompt').blur(); });
   await page.click('#bigprompt');
   await page.evaluate(() => {
     const el = document.getElementById('prompt');
     el.value = Array.from({ length: 40 }, (_, i) => 'line number ' + i + ' of the scene she is writing tonight').join('\n');
     el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.focus(); el.setSelectionRange(el.value.length, el.value.length);
+    const at = Math.round(el.value.length * 0.5);
+    el.focus(); el.setSelectionRange(at, at);
     window.__caretKeep.vv = { offsetTop: 0, height: 508 };
-    window.scrollTo(0, 400);
+    const c = window.__caretKeep.caretRect(el);
+    window.scrollTo(0, Math.max(0, window.scrollY + c.top - 300));
   });
   await page.waitForTimeout(800);
   const pinned = await page.evaluate(() => Array.from(document.querySelectorAll('[data-stickybox].sbx-pin')).map((b) => b.id));
@@ -203,7 +210,7 @@ const READ = () => {
   for (const ch of ' and more') { await page.keyboard.type(ch); await page.waitForTimeout(60); }
   await page.waitForTimeout(300);
   const bmuts = await page.evaluate(() => window.__bmuts);
-  ok('nine keystrokes at the end of the big box rewrite the pinned buttons ZERO times (' + bmuts + ')', bmuts === 0);
+  ok('nine keystrokes inside the big box rewrite the pinned buttons ZERO times (' + bmuts + ')', bmuts === 0);
 
   ok('no page errors', errors.length === 0);
   if (errors.length) console.log('  errors: ' + errors.join(' | '));

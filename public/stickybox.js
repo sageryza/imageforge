@@ -52,6 +52,18 @@
    for a tap that shrinks the box from its BOTTOM (a divide at the cursor)
    the seam is already where her eyes are, and bringing the box's TOP back
    on screen would walk the page away from it.
+
+   AND A PINNED BUTTON IS NOW CHROME THE CARET MOVES FOR (2026-09-13, Sophie,
+   typing at the end of a footage block: the corner buttons sitting ON the
+   line she was writing). This pins to the bottom of caretkeep's band and
+   caretkeep lifts her caret line to the bottom of the same band, so the two
+   landed on each other — measured, 16px of a 22px line, with
+   `elementFromPoint` on the caret's own line answering the divide button.
+   The keeper reads what is pinned and stands its caret above it; every move
+   here tells it (`nudgeCaret`), because a button that pins in this pass
+   lands on a line the keeper has already decided was safe. What must NOT
+   change is the band this asks for: narrowing THAT would walk these buttons
+   up the screen a row per pass.
 */
 (function () {
   if (window.__stickyBox) return;
@@ -235,6 +247,31 @@
       if (e.ro) try { e.ro.disconnect(); } catch (_) { /* already gone */ }
       return false;
     });
+    nudgeCaret();
+  }
+
+  // ── AND THE CARET MUST NOT END UP UNDER WHAT WE JUST PINNED (2026-09-13,
+  //    Sophie, typing at the end of a footage block: the corner buttons
+  //    sitting ON the line she was writing) ──
+  // caretkeep lifts the caret line to the bottom of the same band these
+  // buttons pin to, and it measures the chrome as it stood when IT ran — so a
+  // button pinning in THIS pass lands on a line the keeper had already decided
+  // was safe, and nothing re-checks until her next keystroke: measured, a new
+  // line at the end of a scene left the caret 16px under the divide button
+  // until something else happened. This move is the one moment that can know,
+  // so it tells the keeper. Only when the pinned row really moved (the keeper
+  // then scrolls, which brings us straight back here, and an unchanged row
+  // says nothing — that is what ends it).
+  var chrome = '';
+  function nudgeCaret() {
+    var now = seen.map(function (e) {
+      return e.pinned ? Math.round(e.pb) + ',' + Math.round(e.pr) : '-';
+    }).join('|');
+    if (now === chrome) return;
+    chrome = now;
+    try {
+      if (window.__caretKeep && window.__caretKeep.keep) window.__caretKeep.keep();
+    } catch (_) { /* no keeper on this page */ }
   }
   function soon() {
     if (raf) return;
@@ -290,7 +327,7 @@
   else burst();
 
   window.__stickyBox = {
-    version: 2,
+    version: 3,
     sync: sync,
     pinned: function (btn) { var e = entry(btn); return !!e.pinned; },
   };
