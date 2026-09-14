@@ -5043,27 +5043,18 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
       (her rule — an undo instead of a confirm). Taking the FIRST block off
       moves the words below UP into `#prompt`, because every reader expects
       that node to stay the first block.
-    - **A SECOND STAR APPENDS EVERY WRITTEN BLOCK INTO ONE CLIP — NOT N JOBS
-      (her note on the card the same hour: "u misunderstood. not separate
-      jobs. i want them to append to each other").** One job whose prompt is
-      every written block joined, blank line between them — the join mark's
-      own shape, without destroying her blocks, which keep their words and
-      their structure through the send. **It shipped for an hour as N
-      sequential jobs** (N scenes, N times the price, stopping at the first
-      refusal, the refused block taking the gold line); that is HISTORY, and
-      the walk, its tally toast and the `batch` flag are gone with it. Three
-      things not to undo: **CHAINING IS NOT THIS BUTTON** — a clip that
-      continues another one is still separate jobs, which is the half she
-      ruled out, and it is the keyframe marks' job; **the price is ONE clip's**
-      (`allCents`, never × the count) and is ON the button, her "approve the
-      prompt and references" rule answered at the tap, with **over $3 the
-      first tap ASKS and the second sends** and any change disarming it; and
-      **the gold line is left exactly where she put it**, since with one job
-      there is no "which block was refused" and moving her active block would
-      be the page deciding where she types next. A refusal's **door words
-      carry the job's own text** (`offerDoors(door, box, text)`) — without it
-      "those words re-send THAT exact job" breaks the moment the prompt is a
-      joined one, and only the active block would go (pinned, verified failing).
+    - **THE ALL STAR IS GONE — SHE HAD IT TAKEN OFF (2026-09-14, on the note
+      she left on the checklist item about it: "button is stipid get it
+      out").** It shipped 2026-09-13 at her own ask ("sending two boxes at
+      once"), corrected the same hour to ONE appended clip rather than N jobs,
+      and lived a day. **This is HISTORY now, not a rule — do not build it
+      back without her.** What went with it: the second star and its gold
+      arm, the union strip (`allStrip`/`allJob`), its own priced estimate
+      (`shapeKey`/`askAllCost`/`allFigure`), the over-$3 two-tap arm
+      (`ARM_MS`/`ASK_CENTS`/`armed`/`disarm`) and the `job` override that
+      threaded a whole job through `sendJob`/`postJob`/`offerDoors`. **The
+      star sends the block she is in, and that is the only send on the
+      page.** `refCounts` STAYS — the refusal's door words price off it too.
     - **THE PROMPT ROW IS STICKY**, so a long scene folds away from wherever
       she is standing. MEASURED at 390pt on a 40-line scene: at scrollY 600
       the row sat **521px above the viewport** with 1,836px of box below it
@@ -5321,11 +5312,10 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     while the two head boxes still held their own copy, so every "Try again"
     and every re-roll since the heads landed sent the cast and the room twice
     (the current heads' prefix comes off on the way back in); **the All star's
-    price ignored the reference COUNTS** (`shapeKey` ended in one bit, so a
-    ten-picture union quoted the block's Atlas price for a job Atlas must
-    refuse) and **sent with no figure at all** when the estimate had not
-    landed — no figure, no send now; **a refusal's door words outlived the
-    job** (nothing hid `#err` on clear, undo, a put-back or a project switch,
+    price ignored the reference COUNTS** and **sent with no figure at all**
+    when the estimate had not landed (both fixed, then the button itself was
+    removed a day later at her word — see THE ALL STAR IS GONE above);
+    **a refusal's door words outlived the job** (nothing hid `#err` on clear, undo, a put-back or a project switch,
     so a word tapped later re-sent words no longer on the page, and priced
     off the LIVE controls) — the line has a ✕, dies with the job, and a door
     word re-sends the exact BODY that was refused; **`reslotPlan` forgot one
@@ -5421,14 +5411,13 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     since the shield is per clip. A ♥ ends it too — un-marking a clip is her
     deciding as deliberately as marking one. Pinned by
     `node scripts/test-footage-just-sent.js` (verified failing 2 pre-fix).
-    **AND TWO MORE FROM THE SAME PASS.** The All star stayed at FULL STRENGTH
-    while a send was in flight and did nothing on a tap — `#go` is the gate and
-    greys itself (`button[disabled]{opacity:.45}`), and a live-looking button
-    that answers nothing is the shape of every "it didn't work" report; both
-    stars go down together now. And an armed **"send all · $x?"** survived a
-    FOLDER switch, so the second tap would have filed the clip in the folder
-    she left — `setFolder` disarms (`setProject` needs no line: it repaints the
-    controls and `paintWipe` disarms from there). Test:
+    **AND TWO MORE FROM THE SAME PASS**, both on the All star and both gone
+    with it a day later (see THE ALL STAR IS GONE): it stayed at full
+    strength while a send was in flight and did nothing on a tap, and an
+    armed "send all · $x?" survived a FOLDER switch. **The live-looking
+    button is the lesson that outlives them** — `#go` is the gate and greys
+    itself (`button[disabled]{opacity:.45}`), and a button that looks alive
+    and answers nothing is the shape of every "it didn't work" report. Test:
     `node scripts/test-footage-just-sent.js` (verified failing 4, then 2, on
     the pre-fix page).
     **AND `test-footage.js` IS FLAKY — MEASURED, so do not read one red run as
@@ -9046,11 +9035,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
   block's words alone**, since no other block's pictures moved; a **put-back**
   replaces that block's strip and touches no other; a **hand-off gives every
   block the same strip** (one job's references, however many parts its scene
-  came over in); and **the All star sends the union** with every block's
-  names renumbered onto it, priced by its OWN free estimate whenever the
-  union's shape (a reference video, a keyframe, anything attached at all)
-  differs from the active block's — the figure on a button has to be the
-  price of the clip that button sends. **AND FOLDING A BLOCK AWAY NO LONGER
+  came over in). **AND FOLDING A BLOCK AWAY NO LONGER
   MAKES IT THE ONE THE STAR SENDS** — the document click handler makes any
   button on a block active, which was invisible while the strip was shared and
   is wrong now: folding block 2 away moved the gold line onto it AND swapped
@@ -9073,9 +9058,8 @@ before working on that module. Nothing was deleted — the moved text is verbati
   blocks at the top of footage: characters, then setting").** Who is in the
   scene and where it is do not change from shot to shot, so they are two
   blocks of their own above the scene and **what is written in them rides at
-  the TOP of the prompt of every clip she sends** — the star's own block and
-  the appended All alike, in that order, blank line between. Six things not to
-  undo: **they are not `blocks()`** (a head is `.headwrap`/`.hblock`, never
+  the TOP of the prompt of every clip she sends** — in that order, blank
+  line between. Six things not to undo: **they are not `blocks()`** (a head is `.headwrap`/`.hblock`, never
   `.promptwrap`/`.pblock`, so the numbering, the gold line, the join marks,
   the ✕, the divide, `setBlocks`, the draft and every test are untouched by
   construction rather than by remembering to skip two; the draft carries them

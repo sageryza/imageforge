@@ -658,7 +658,7 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         the second block should start" — on the reasoning that there was
         nothing to cut, and that reasoning is HISTORY: an empty block is an
         ordinary state on this page (a restored draft can hold one,
-        `wordyBlocks` skips one, the star refuses one with "say what the clip
+        the star refuses one with "say what the clip
         is first"), and writing shot two means asking for a box before there
         are words to put in it. Three things not to undo: **the new empty
         block takes the gold line AND the caret** (the tap means "give me
@@ -715,11 +715,7 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         block's pictures moved; a **card's put-back** replaces that block's
         strip and touches nothing else; a **hand-off gives EVERY block the
         same strip**, since its scenes are one job's references however many
-        parts they came over in; the **All star sends the union** with each
-        block's names renumbered onto it, and asks its OWN free `/estimate`
-        whenever the union's shape (a reference video, a keyframe, anything
-        attached at all) differs from the active block's — the figure on a
-        button has to be the price of the clip that button sends; **each
+        parts they came over in; **each
         heading carries a picture glyph and a count**, so a block she is not
         standing in can never ride with pictures on no screen at all (a glyph
         and a digit rather than the word: the heading's room belongs to her
@@ -832,9 +828,8 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       this they were retyped into every block or re-tapped off the cast shelf
       per clip. So the panel opens with two blocks of its own above the scene,
       and **what is written in them rides at the TOP of the prompt of every
-      clip she sends** — the star's own block and the appended All alike, in
-      that order, blank line between, exactly the shape the join mark and the
-      All star already give her words. Six things not to undo:
+      clip she sends** — in that order, blank line between, exactly the shape
+      the join mark already gives her words. Six things not to undo:
       - **THEY ARE NOT `blocks()`.** A head is `.headwrap`/`.hblock`, never
         `.promptwrap`/`.pblock`, so "the blocks" goes on meaning her SCENE
         blocks in every reader there is: the numbering, the gold line, the
@@ -872,8 +867,8 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       Test: `node scripts/test-footage-heads.js` (every assertion a
       MEASUREMENT of what really renders or a reading of what the stub server
       really received — a head that never folds, one that quietly joins
-      `blocks()` and renumbers her scene, one that rides twice on an appended
-      send, one that rides at the BOTTOM, and one whose words never reach the
+      `blocks()` and renumbers her scene, one that rides at the BOTTOM, and one
+      whose words never reach the
       door all look identical in the source; it CRASHES against the pre-fix
       page, where there are no head blocks at all).
     - **WHAT CHANGED — THE COMPARE PANEL (2026-09-11, Sophie: "is there an

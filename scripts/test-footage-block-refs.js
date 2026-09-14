@@ -6,7 +6,7 @@
  * The REAL page headless, and every assertion is a MEASUREMENT of what is on
  * screen or a reading of what the stub server really received — a strip that
  * repaints with the wrong block's pictures, a send that carries the page's
- * last strip rather than the block's, an All button whose words name slots
+ * last strip rather than the block's, a send whose words name slots
  * that are not in the job it sends, and a draft that comes back with one
  * strip on every block all look identical in the source.
  *
@@ -78,7 +78,7 @@ const server = http.createServer((req, res) => {
     if (u.pathname === '/api/footage/estimate') {
       estimates.push(u.search);
       // a reference video is dearer, so the two shapes answer different money —
-      // which is the whole reason the All button asks for its own figure
+      // which is why a price is read off the shape that really rides
       const vid = u.searchParams.get('video') === '1';
       return json({ ok: true, cents: vid ? 9.9 : 4.4, door: 'atlascloud', exact: true });
     }
@@ -126,8 +126,6 @@ const read = () => {
     })),
     reflab: document.getElementById('reffoldlab').textContent,
     refsShown: (() => { const r = document.getElementById('refs').getBoundingClientRect(); return !!(r.width && r.height); })(),
-    goall: (() => { const b = document.getElementById('goall');
-      return { hidden: b.hidden, lab: document.getElementById('goalllab').textContent }; })(),
     draft: JSON.parse(localStorage.getItem('footage_draft') || '{}'),
     toast: document.getElementById('toast').classList.contains('show') ? document.getElementById('toast').textContent : '',
   };
@@ -215,17 +213,6 @@ const tapBlock = (i) => {
   ok('and from block 1 it sends block 1\'s words and block 1\'s own reference',
     sent && /the woman in \[Image1\]/.test(sent.prompt) && sent.refs.length === 1 && sent.refs[0].url === A);
 
-  // ── 5. ALL sends the union, with every block's words renumbered onto it ──
-  s = await page.evaluate(read);
-  ok('the All star is on screen with two written blocks', !s.goall.hidden);
-  await page.click('#goall');
-  await page.waitForTimeout(600);
-  sent = posted[posted.length - 1];
-  ok('All carried BOTH blocks\' references — ' + JSON.stringify((sent.refs || []).map((r) => r.url.slice(-1))),
-    sent.refs.length === 2 && sent.refs.some((r) => r.url === A) && sent.refs.some((r) => r.url === B));
-  ok('and renumbered the second block\'s name onto the union — "' + sent.prompt.replace(/\n+/g, ' / ') + '"',
-    /the woman in \[Image1\]/.test(sent.prompt) && /the boy in \[Image2\]/.test(sent.prompt));
-
   // ── 6. the draft carries a strip per block, and a reload gives them back ─
   s = await page.evaluate(read);
   ok('the draft keeps `refs` as the first block\'s for an older page',
@@ -295,29 +282,6 @@ const tapBlock = (i) => {
     s.n === 2 && s.counts[0] === '2' && s.counts[1] === '2');
   ok('with their own words — ' + JSON.stringify(s.values),
     /a in \[Image1\]/.test(s.values[0]) && /b in \[Image2\]/.test(s.values[1]));
-
-  // ── 10. the All price is the UNION's shape, not the active block's ───────
-  // a reference video on block 2 only: the star's own line is the cheap shape
-  // and the All button has to say the dear one
-  await page.evaluate(tapBlock, 1);
-  await page.waitForTimeout(200);
-  estimates.length = 0;
-  const had = await page.$$eval('#refs .ref', (n) => n.length);
-  await page.setInputFiles('#file', { name: 'shot.mp4', mimeType: 'video/mp4', buffer: Buffer.from('00') });
-  await page.waitForFunction((k) => document.querySelectorAll('#refs .ref').length === k + 1, had, { timeout: 5000 });
-  await page.evaluate(tapBlock, 0);
-  await page.waitForTimeout(800);
-  s = await page.evaluate(read);
-  ok('standing in block 1 the star\'s own price is the shape with no video — "'
-    + (await page.$eval('#cost', (e) => e.textContent)) + '"',
-    /4\.4|0\.04/.test(await page.$eval('#cost', (e) => e.textContent)));
-  ok('but the All button priced the union, which has one — "' + s.goall.lab + '"', /0\.10|0\.09|9\.9/.test(s.goall.lab));
-  ok('and it asked for that shape with video=1', estimates.some((q) => /video=1/.test(q)));
-  await page.click('#goall');
-  await page.waitForTimeout(600);
-  sent = posted[posted.length - 1];
-  ok('and the clip it sent really carries the video from the block she was not in',
-    (sent.refs || []).some((r) => r.kind === 'video'));
 
   // ── 11. AN UPLOAD LANDS ON THE BLOCK IT WAS STARTED FROM ────────────────
   // An upload is a ROUND TRIP and the globals are the block she is standing in
