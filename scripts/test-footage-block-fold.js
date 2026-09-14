@@ -285,7 +285,9 @@ const write = (text) => {
   ok('one block again, and its heading is hidden with the ✕ and the gold line',
     s.n === 1 && !s.many && s.head[0].display === 'none');
 
-  // ── 8. A FOLD IS MEMORY, NEVER A SETTING — a reload opens everything ────
+  // ── 8. A FOLD SURVIVES A RELOAD (2026-09-14, Sophie: "collapsed blocks
+  // don't stay collapsed"). It rides the draft beside the words it belongs
+  // to; the reload she actually meets is the page's own self-heal. ─────────
   await page.evaluate((c) => { const el = document.getElementById('prompt'); el.focus(); el.setSelectionRange(c, c); }, cut);
   await page.click('#divide');
   await page.waitForTimeout(250);
@@ -298,9 +300,34 @@ const write = (text) => {
   await page.waitForTimeout(400);
   s = await page.evaluate(read);
   ok('her two blocks came back from the draft', s.n === 2 && /head line 1/.test(s.values[0]));
-  ok('and NOTHING came back folded', s.shut.every((x) => !x) && s.box.every((b) => b.h > 40));
-  ok('no localStorage key was written for a fold',
-    await page.evaluate(() => Object.keys(localStorage).every((k) => !/fold_block|blockfold/.test(k))));
+  ok('and block 1 came back FOLDED, measured — its box is out of the layout',
+    s.shut[0] && s.box[0].h === 0 && s.box[0].display === 'none');
+  ok('shut, it still says its own first words — "' + s.lw[0] + '"', /head line 1/.test(s.lw[0]));
+  ok('block 2 came back open and fitted to its words (' + Math.round(s.box[1].h) + 'px)',
+    !s.shut[1] && s.box[1].h > 40);
+  ok('the fold rides the DRAFT, not a settings key of its own',
+    Array.isArray(s.draft.shut) && s.draft.shut[0] === true
+    && await page.evaluate(() => Object.keys(localStorage).every((k) => !/fold_block|blockfold/.test(k))));
+  // opening it again is remembered too, or the fold only works one way
+  await page.evaluate(tapHead, 0);
+  await page.waitForTimeout(200);
+  await page.reload();
+  await page.waitForFunction(() => document.querySelectorAll('#ratio option').length > 0);
+  await page.waitForTimeout(400);
+  s = await page.evaluate(read);
+  ok('unfolding it is remembered too (' + Math.round(s.box[0].h) + 'px back)',
+    !s.shut[0] && s.box[0].h > 40);
+  // and a hand-off replacing the blocks must not land her fold on new words
+  await page.evaluate(tapHead, 0);
+  await page.waitForTimeout(200);
+  await page.evaluate(() => {
+    localStorage.setItem('footage_handoff', JSON.stringify({ prompt: 'a brand new scene', refs: [], at: Date.now() }));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'footage_handoff', newValue: '1' }));
+  });
+  await page.waitForTimeout(400);
+  s = await page.evaluate(read);
+  ok('a hand-off lands as one OPEN block, never under her old fold',
+    s.n === 1 && !s.shut[0] && /brand new scene/.test(s.values[0]) && s.box[0].h > 20);
 
   ok('no page errors — ' + errors.join(' | '), errors.length === 0);
 

@@ -760,10 +760,19 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         character's line, a put-back, a hand-off — each writes into the block
         and then FOCUSES it, and focusing a box that is not on screen does
         nothing at all; a slot RENAME inside words she already wrote is not
-        this, exactly as it is not on the panel fold); it is **MEMORY, never
-        localStorage** — a reload opens everything, the safe direction, and
-        this is how she is reading the panel right now rather than a setting;
-        and **a box is never fitted while it is folded** (`scrollHeight` on a
+        this, exactly as it is not on the panel fold); **a fold STAYS FOLDED
+        across a reload** (2026-09-14, Sophie: "collapsed blocks don't stay
+        collapsed") — it rides the DRAFT as `shut`, an array by position
+        beside the words those folds belong to, never a settings key of its
+        own, so a hand-off or a put-back replacing the blocks replaces the
+        folds in the same write and a fold can never land on words it was not
+        made for, and it is written only while something is really folded, so
+        a page that never folds one saves exactly the draft it always saved.
+        (It shipped memory-only — "a reload opens everything, the safe
+        direction" — and that is HISTORY: the app keeps this web view alive
+        for the whole app process, so the reload she meets is the page's own
+        SELF-HEAL on a new build. Safe because a shut block still SAYS its
+        first words.) And **a box is never fitted while it is folded** (`scrollHeight` on a
         `display:none` box is 0, so it would come back one line tall — every
         path that reopens one refits it). **THE FIRST DIVIDE NOW COSTS HEIGHT
         ABOVE THE SEAM** — it turns the panel `.many` and draws that block's

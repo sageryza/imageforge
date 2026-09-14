@@ -92,6 +92,25 @@ const push = require('../push');
   ok('the guard flags only the re-affirming pause', /setPause\(fetchFn, true, true\)/.test(G));
   ok('and its first pause is unflagged', /const paused = await setPause\(fetchFn, true\);/.test(G));
 
+  // ── A STATE DOC IS NEVER PUSHED TO ────────────────────────────────────
+  // Found in the LIVE log the hour this shipped:
+  //   push: send issues [{"device":"__deploy", … "reason":"BadDeviceToken",
+  //                       "removed":true}]
+  // The deploy mark lives in the DEVICES collection, so `sendAll` pushed to
+  // it, Apple refused it, and the mark was deleted as a dead token — by the
+  // very "start" push that had just written it. The "back up" buzz on the
+  // next boot then found nothing, and it did it SILENTLY, because removing a
+  // dead token is exactly what that code is for. It fired on one deploy and
+  // not the next: the race between the two writes.
+  {
+    const P = fs.readFileSync(path.join(__dirname, '..', 'push.js'), 'utf8');
+    ok("a `__`-prefixed doc is reserved for this module's own state", /const STATE_DOC = \/\^__\//.test(P));
+    const at = P.indexOf('async function loadDevices');
+    const load = P.slice(at, at + 600);
+    ok('loadDevices skips a state doc', /STATE_DOC\.test\(d\.id\)/.test(load));
+    ok('and anything carrying no real token', /typeof d\.get\('token'\) === 'string'/.test(load));
+  }
+
   if (fails.length) {
     console.log('DEPLOY NOTIFY — ' + pass + ' passed, ' + fails.length + ' FAILED');
     fails.forEach((f) => console.log('  ✗ ' + f));

@@ -14,8 +14,9 @@
   .sec { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; font-weight: 600; }
   .sub { font-size: 12px; color: var(--text-dim); margin-bottom: 12px; line-height: 1.5; }
   .muted { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
-  .btn { padding: 8px 14px; background: var(--accent); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; }
-  .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  /* A TRANSPARENT BORDER, NEVER `border:none` — `.ghost` adds a 1px one and these buttons have no set height, so the ghost renders 2px taller than the filled button beside it (2026-09-13, the control-row sweep). */
+  .btn { padding: 8px 14px; background: var(--accent); color: #fff; border: 1px solid transparent; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; }
+  .btn.ghost { background: transparent; color: var(--text); border-color: var(--border); }
   .btn.on { background: var(--accent); color: #fff; border-color: var(--accent); }
   .rangebar { display: flex; gap: 8px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
   .spin { display:inline-block; width:13px; height:13px; border:2px solid var(--accent-dim, #ccc); border-top-color: transparent; border-radius:50%; animation: spin .7s linear infinite; vertical-align:-2px; margin-right:6px; }

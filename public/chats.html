@@ -1014,7 +1014,7 @@ button.dayrule{border:none; background:none; padding:0; cursor:pointer;
   color:var(--ink2); box-shadow:0 1px 4px rgba(0,0,0,.18);}
 .pinrow svg{width:15px; height:15px; display:block;}
 .t-cover .pinrow{position:absolute; top:5px; left:5px; width:26px; height:26px; z-index:2;}
-.catchip.starchip{display:inline-flex; align-items:center; padding:6px 8px; color:var(--chg);}
+.catchip.starchip{display:inline-flex; align-items:center; padding:0 8px; color:var(--chg);}
 .catchip.starchip svg{width:14px; height:14px; display:block;}
 .catchip.starchip.on{border-color:var(--chg); background:color-mix(in srgb, var(--chg) 12%, var(--paper));}
 .cr-acct{flex:none; width:11px; font-family:-apple-system,sans-serif; font-size:11px;
@@ -1854,9 +1854,18 @@ body.newspick #toolrow{position:sticky; top:0; z-index:30; background:var(--pape
 .catdiv::before{content:""; display:block; margin:2px 0 6px;
   border-top:1px solid color-mix(in srgb, var(--chg) 40%, var(--paper));}
 .catrow{display:flex; align-items:center; gap:6px; flex-wrap:wrap; flex:1; min-width:0;}
+/* EVERY CHIP IN THE ROW IS ONE HEIGHT, WHATEVER IT CARRIES (2026-09-13, the
+   control-row sweep after Sophie's "files button smaller than search button
+   footage"). A chip's height fell out of its CONTENTS — 11px uppercase text
+   in a text chip, a 14px block svg in the ★ — so the star sat 28 tall beside
+   a 26px TAGS chip in the same row, MEASURED. min-height pins them and the
+   padding is what is left over (searchfilters.css's own rule for the same
+   family of chip). */
 .catchip{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
   border:1.5px solid var(--line); border-radius:6px; background:transparent; color:var(--ink2);
-  padding:6px 10px; cursor:pointer; -webkit-tap-highlight-color:transparent; white-space:nowrap;}
+  padding:0 10px; cursor:pointer; -webkit-tap-highlight-color:transparent; white-space:nowrap;
+  display:inline-flex; align-items:center; justify-content:center;
+  box-sizing:border-box; height:26px;}
 .catchip.on{border-color:var(--chg); color:var(--chg); background:color-mix(in srgb, var(--chg) 12%, var(--paper));}
 .catchip .cc-n{opacity:.6; margin-left:1px;}
 /* SEE MORE IS A CONTROL, NOT A WORD SHE CAN FILE UNDER (Aug 2026, Sophie:

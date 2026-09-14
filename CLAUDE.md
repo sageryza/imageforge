@@ -4905,6 +4905,37 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     new line at the end of a scene left the caret 16px under the divide
     button until something else happened, and an unchanged row says nothing,
     which is what ends the loop.
+  - **AND THE SAME BUG HAS A MIRROR AT THE TOP OF THE BAND — A STICKY ROW
+    (2026-09-14, Sophie: "any other similar changes? bugs", audited after the
+    fix above).** The rule above lifts a caret that has fallen BELOW the band;
+    the other half of `keep()` LOWERS one that has risen above it, onto
+    `band.top` — which is the visual viewport's own top and knows nothing
+    about a row stuck to it. footage's **PROMPT fold row went
+    `position:sticky` on 2026-09-13**, so typing in the top half of a long
+    scene after scrolling down put her caret straight under it. MEASURED on
+    the real page: caret line 10–33, the sticky row 4–33, and
+    `elementFromPoint` on the caret's own line answering the **fold button**
+    rather than her words; after, the caret sits at 39–62 and the line reads
+    clear. **The bug was on the Playground, Voice Studio and Freeform too**
+    (60/60, 59/60 and 29/60 keystrokes under a pinned button at the end of a
+    long box, measured against the pre-fix modules) and the 09-13 fix, being
+    in the shared file, already covered all three — re-measured, 0/60 each.
+    `caretBand` narrows from BOTH ends now, and chrome narrows the end it is
+    **NEARER**: no rule about safe-area insets, which is what an "is it at the
+    top?" test cannot survive — in the app the row starts at the inset while
+    the band still starts at 0. Three things not to undo: a **stickybox button
+    is excluded from the sticky set and read live instead** (it goes fixed and
+    back as she scrolls, so a set cached at find time remembers it as chrome
+    long after it let go and has gone back to the box's corner — MEASURED as a
+    band 77px short); the set is found **once per FOCUS by a bounded walk** —
+    the box's ancestors' siblings plus body's own children, which is where a
+    header lives — because reading every node's computed position on every
+    keystroke is the churn the typing rule forbids; and **only chrome actually
+    PAINTED on top counts** (`onTop`), or the Story Room's sticky header,
+    which sits under its own beat popup at a higher layer, would lift her
+    caret clear of something she cannot see. The injected pill is in the set
+    and narrows nothing, because every box on these pages already reserves its
+    column (measured: box x 25–316, pill x 324–374).
   - **compare.js loads it on the first focus**, so every Compare page ever
     posted has it with nothing re-posted; chats.html, the Playground, the
     Story Room, Freeform, Voice Studio and the Story Timeline link it. A new
@@ -4917,7 +4948,7 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     lifted onto a button look identical in the source; every keystroke and
     every new line counted rather than one settled reading, and the buttons
     proved still pinned and still tappable mid-scene; verified failing 7
-    pre-fix).
+    pre-fix, and 4 more against the bottom-only fix for the sticky-row half).
 - **THE WAY OUT OF A BIG BOX STAYS ON SCREEN — `/stickybox.js`, ONE FILE,
   EVERY PAGE (2026-09-10, Sophie: "can we get a floating or sticky/pinned
   contract button for text boxes esp in footage so i can close with out having
@@ -8815,8 +8846,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
   that block's first words and its box is DISPLAY-hidden, so a folded block
   still sends its words and still renames its slots; the gold line moves to
   the heading when the block she is in is folded away; anything that puts
-  words in a block OPENS it; and it is MEMORY, never localStorage — a reload
-  opens everything. A box is never fitted while it is folded (`scrollHeight`
+  words in a block OPENS it. **AND A FOLD STAYS FOLDED ACROSS A RELOAD SINCE
+  2026-09-14 (Sophie: "collapsed blocks don't stay collapsed")** — it shipped
+  MEMORY-ONLY on the reasoning that "a reload opens everything, the safe
+  direction", and that is HISTORY rather than a rule: the app keeps this web
+  view alive for the whole app process, so the reload she actually meets is
+  the page's own SELF-HEAL firing on a new build — something she never asked
+  for and cannot see coming — and a fold springing open there is the fold not
+  working. It rides the DRAFT (`shut`, an array by position, beside the words
+  those folds belong to), never a settings key of its own, so a hand-off or a
+  put-back replacing the blocks replaces the folds in the same write and a
+  fold can never land on words it was not made for; it is written only while
+  something is really folded, so a page that never folds one saves exactly the
+  draft it always saved. Safe because a shut block still SAYS its first words.
+  A box is never fitted while it is folded (`scrollHeight`
   on a `display:none` box is 0, so it would come back one line tall), and the
   first divide gives back the height its own heading adds above the seam.
   **AND EVERY BLOCK KEEPS ITS OWN PICTURES (2026-09-14, Sophie: "blocks in
@@ -13438,6 +13481,16 @@ before working on that module. Nothing was deleted — the moved text is verbati
     nothing, one deploy is one pair, and a mark nobody consumed goes stale
     instead of buzzing her a week later. Gated on `RENDER_EXTERNAL_URL`, or a
     dev container booting server.js eats her notification.
+  - **AND A `__`-PREFIXED DOC IS NEVER PUSHED TO — found in the LIVE log the
+    hour this shipped (2026-09-14).** The mark lives in the DEVICES collection,
+    so `sendAll` pushed to it, Apple refused it (`BadDeviceToken`), and the
+    mark was **deleted as a dead token by the very "start" push that had just
+    written it** — the "back up" buzz on the next boot then found nothing. It
+    did it SILENTLY, because removing a dead token is exactly what that code is
+    for, and it fired on one deploy and not the next (the race between the two
+    writes). `loadDevices` skips a `__`-prefixed id and anything carrying no
+    real token; the undeployed-count mark lives in the same doc and had the
+    same hole.
   - **IT NAMES NO CHAT, deliberately** — `PushDelegate` opens the chat a push
     names and there is no chat here; with none it lands on the Update tab,
     which is the right room and needs no TestFlight build. It carries its own

@@ -77,8 +77,17 @@
   .sb-lib{ position:absolute; inset:0; overflow-y:auto; padding:14px 18px 40px; }
   .sb-toprow{ display:flex; gap:8px; margin:0 0 14px; align-items:center; flex-wrap:wrap; }
   .sb-filters{ display:flex; gap:8px; }
+  /* THE CHIPS ARE THE SEARCH BOX'S HEIGHT (2026-09-13, the control-row sweep
+     after Sophie's "files button smaller than search button footage"). Each
+     control's height fell out of its own type — 13px in a chip, the 16px the
+     input needs as an iOS auto-zoom floor — so the two chips sat 25 tall
+     beside a 31px box in the same row, MEASURED. Both are pinned to one
+     number now and the padding is what is left over; the 16px on the input
+     is untouchable, so the chips are what move. */
+  .sb-toprow button, .sb-toprow input{ min-height:32px; box-sizing:border-box; }
   .sb-filters button{ border:1px solid #d0c9b4; background:#fff; color:#6b6153;
-    border-radius:6px; padding:4px 10px; font-size:13px; font-family:inherit; cursor:pointer; }
+    border-radius:6px; padding:4px 10px; font-size:13px; font-family:inherit; cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center; }
   .sb-filters button.on{ border-color:#2c2620; color:#2c2620; }
   .sbox{ position:relative; flex:1; min-width:130px; }
   .sbox input{ width:100%; border:1px solid #d0c9b4; border-radius:6px; background:#fff;

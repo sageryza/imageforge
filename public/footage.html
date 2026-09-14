@@ -1117,7 +1117,7 @@
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
   <p><b>Characters, then setting.</b> The two blocks at the top are permanent and start folded away. What you write in them rides at the top of every clip you send &mdash; the cast on one line, the room on the other &mdash; so a scene is written once instead of into every shot. Folded, each heading says its own words, so you can see what is riding without opening it. Leave one empty and it adds nothing; <b>clear</b> never touches them.</p>
-  <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. Every block has the same buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing. The join mark goes away while either of its two blocks is folded. Each block gets its own heading, and <b>tapping the heading folds that block away</b> &mdash; shut it shows its first words, and it still sends them if it is the one the star is pointing at. Folds are for right now: a reload opens everything.</p>
+  <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. Every block has the same buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing. The join mark goes away while either of its two blocks is folded. Each block gets its own heading, and <b>tapping the heading folds that block away</b> &mdash; shut it shows its first words, and it still sends them if it is the one the star is pointing at. A folded block stays folded &mdash; it comes back that way after a reload, and opens by itself if anything puts words into it.</p>
   <p><b>Every block keeps its own pictures.</b> The references strip is the block you are in &mdash; tap into another one and its pictures come back, and the row above them says which block it is showing. Dividing gives both halves a copy of the strip the scene was written against, so every <b>[Image2]</b> still points at the same picture; joining puts the two strips together and renumbers both halves onto it. The <b>&times;</b> takes a picture off the block you are in and leaves the others alone. Each heading says how many that block is carrying, so nothing rides on a block you are not looking at. <b>All</b> sends every block's pictures in the one clip, with each block's names renumbered onto them &mdash; and its price is that clip's, not this block's.</p>
   <p><b>All of them at once.</b> Once two blocks have words in them a second star appears beside the first, carrying what that clip costs. It sends every written block as <b>one</b> clip, appended in order with a blank line between &mdash; one job, one price, one refusal line &mdash; and it carries every block's pictures, each block's names renumbered onto them. Your blocks are not touched. Over $3 the first tap asks and the second sends.</p>
   <p><b>Taking one block off.</b> The &times; in a block&rsquo;s corner takes that block off; with only one block left there is no &times; and <b>clear</b> beside the star is what empties it. Either way <b>undo</b> puts it back.</p>
@@ -1995,6 +1995,20 @@ function loadCtl() {
     if (d.prompt) $('prompt').value = d.prompt;
     // the blocks after the first, in order, and which one she was in
     if (Array.isArray(d.blocks)) d.blocks.forEach(function (t) { if (typeof t === 'string') addBlock(t); });
+    // AND THE FOLDS COME BACK WITH THEM (2026-09-14, Sophie: "collapsed blocks
+    // don't stay collapsed"). They shipped as memory only — "a reload opens
+    // everything, which is the safe direction" — and that reasoning is HISTORY
+    // rather than a rule: the app keeps this web view alive for the whole app
+    // process, so the reload she meets is the page's own SELF-HEAL firing on a
+    // new build, which she never asked for and cannot see coming. A fold
+    // springing open there is the fold not working. Keyed BY POSITION, and it
+    // rides the draft itself — the same object holding the words those folds
+    // belong to — so a hand-off or a put-back replacing the blocks replaces
+    // the folds in the same write and a fold can never land on words it was
+    // not made for. Safe because a shut block still SAYS its first words.
+    if (Array.isArray(d.shut)) {
+      blocks().forEach(function (w, i) { if (d.shut[i]) w.classList.add('shut'); });
+    }
     // AND EVERY BLOCK'S OWN STRIP (2026-09-14) — `jobs` when the page that
     // wrote the draft had them, and otherwise the ONE strip it saved, given to
     // EVERY block: that is what it meant back when the strip was shared, and
@@ -2006,6 +2020,9 @@ function loadCtl() {
       first: typeof d.first === 'string' ? d.first : '', last: typeof d.last === 'string' ? d.last : '' };
     var saved = Array.isArray(d.jobs) ? d.jobs : null;
     blocks().forEach(function (w, i) { setBlockJob(w, (saved && saved[i]) || one); });
+    // markActive, never setActive: setActive STASHES the live strip onto the
+    // block it is leaving, and at load time that is block 1 holding nothing yet
+    // — it would overwrite the strip the line above just gave it.
     if (d.active > 0 && blocks()[d.active]) markActive(blocks()[d.active]);
     loadActive();
     // THE TWO HEADS COME BACK, BY NAME AND NOT BY POSITION — they are a
@@ -2049,6 +2066,12 @@ function saveDraft() {
       d.active = ws.indexOf(activeWrap());
       // one strip per block, written only where there are blocks to tell apart
       d.jobs = jobs;
+      // the folds, by position — written only while something is really
+      // folded, so a page that never folds one saves exactly the draft it
+      // always saved (and a stale array can never outlive the words: it is
+      // written in the same object, by the same call)
+      var sh = ws.map(function (w) { return w.classList.contains('shut'); });
+      if (sh.some(Boolean)) d.shut = sh;
     }
     localStorage.setItem('footage_draft', JSON.stringify(d));
   } catch (e) {}
@@ -3408,10 +3431,12 @@ function fitAll() {
 // ── A BLOCK FOLDS ON ITS OWN (2026-09-13, Sophie: "make each text block in
 // footage collapsible") ───────────────────────────────────────────────────
 // The heading row of every block IS its fold, and the state is a class on the
-// wrap — MEMORY ONLY, never localStorage: a reload opens everything, which is
-// the safe direction, and this is how she is reading the panel right now
-// rather than a setting. It survives a repaint because `paintBlocks` rebuilds
-// the rows BETWEEN the blocks and never the blocks themselves.
+// wrap. It survives a repaint because `paintBlocks` rebuilds the rows BETWEEN
+// the blocks and never the blocks themselves, and since 2026-09-14 it survives
+// a RELOAD too: it rides the draft as `shut`, beside the words it belongs to.
+// (It shipped memory-only — "a reload opens everything, the safe direction" —
+// and she overruled that: "collapsed blocks don't stay collapsed". The reload
+// she actually meets is the page's own self-heal on a new build.)
 function setText(el, t) { if (el && el.textContent !== t) el.textContent = t; }
 function paintBlockHead(w, n, of) {
   var b = w.querySelector('.bfold');
@@ -3462,6 +3487,7 @@ function toggleBlock(w) {
   w.classList.toggle('shut');
   if (!w.classList.contains('shut')) fitBox(w.querySelector('.pblock'));
   paintBlockHeads();
+  saveDraft();   // a fold is part of the job now — see `d.shut` in loadCtl
   if (window.__fitPillGap) window.__fitPillGap();
 }
 // ANYTHING THAT PUTS WORDS IN A BLOCK OPENS IT — the panel fold's own rule,
@@ -3476,6 +3502,7 @@ function openBlock(box) {
   w.classList.remove('shut');
   fitBox(w.querySelector('.pblock'));
   paintBlockHeads();
+  saveDraft();
   if (window.__fitPillGap) window.__fitPillGap();
 }
 function mountBlock(w) {
