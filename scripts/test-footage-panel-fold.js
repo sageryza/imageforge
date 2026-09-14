@@ -111,7 +111,7 @@ const read = () => {
     return r.width > 0 && r.height > 0;
   };
   const area = ['.promptwrap', '#ctlfold', '#controls', '#seedwrap', '#go'].filter(box);
-  const proj = document.getElementById('project').getBoundingClientRect();
+  const proj = document.getElementById('projwrap').getBoundingClientRect();
   const hit = document.elementFromPoint(Math.round(proj.x + proj.width / 2), Math.round(proj.y + proj.height / 2));
   const card = document.querySelector('#feed .job');
   const words = document.getElementById('panelfoldwords');
@@ -123,7 +123,7 @@ const read = () => {
     area: area.join('|'), areaN: area.length,
     feedTop: card ? Math.round(card.getBoundingClientRect().top) : -1,
     projOn: proj.width > 0 && proj.height > 0,
-    projTappable: !!(hit && hit.closest('#project')),
+    projTappable: !!(hit && hit.closest('#projwrap')),
     lab: document.getElementById('panelfoldlab').textContent.trim(),
     words: words.textContent.trim(),
     wordCase: getComputedStyle(words).textTransform,

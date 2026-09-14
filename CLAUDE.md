@@ -201,6 +201,31 @@ still every time the work wraps up.
      sentence.
 
 **When the work WRAPS UP (not every turn)**
+3m. **MERGE YOUR OWN PR — a DRAFT LEFT OPEN IS WORK THAT NEVER SHIPPED
+   (2026-09-14, Sophie, looking at six unmerged branches: "why didn't they
+   merge? · add rule to merge? why isn't it?").** It WAS a rule — "Merge your
+   own PRs when CI is green — don't park them as drafts" — and it was on line
+   655 of this file, which is the whole reason the checklist exists. Here it
+   is at the top: **a turn does not end with an open PR of yours.** Mark it
+   ready, merge it (squash, `[skip render]` in the title — merging is not
+   deploying), and only then wrap up. *Measured that day: 6 real PRs sitting
+   open, four of them drafts, the oldest eight days; three had gone into
+   conflict because main moved under them, and one had been silently
+   SUPERSEDED by a later PR solving the same ask a different way.*
+   - **A DRAFT IS NOT A PARKING SPACE.** Mark it ready the moment the work is
+     done; a draft is for something genuinely half-built that you are about to
+     keep working on in the same turn.
+   - **THE COST IS NOT ZERO AND IT GROWS.** A clean branch left a week is a
+     conflicted branch, and resolving one correctly means re-applying your
+     change onto MAIN's copy, file by file, then re-running every test whose
+     source pins moved. Merging the day you write it is minutes; merging it a
+     week later is an afternoon.
+   - **ASK HER ONLY ABOUT DEPLOYING, never about merging** — the standing
+     permission to merge your own PR has not moved (*ASK BEFORE YOU DEPLOY*).
+   - **BLOCKED? SAY SO IN THE PR AND IN YOUR REPLY.** A red CI, a failing test
+     you cannot explain, a design question only she can answer — those are
+     reasons to leave it open, and every one of them is something to NAME
+     rather than a draft left sitting silently.
 3b. **Leave a WRAP-UP** — `POST /api/chatfeed/wrapup {chat, session, line,
    asked, did, next}`. It is **her three questions, ONE SENTENCE EACH** (Aug
    2026: "what I really wanted was the what you asked, what I did, and next
@@ -652,7 +677,9 @@ LIST ITEMS in your replies, `kind:'item'`; answer those with `POST
   commercial: every cut re-rendered all 16 pieces from scratch, twice through
   a box restart, while she waited.
 - **Estimate the cost before a paid batch, and ASK above $3.**
-- **Merge your own PRs** when CI is green — don't park them as drafts.
+- **Merge your own PRs** when CI is green — don't park them as drafts. It is
+  checklist item **3m** at the top of this file now, because sitting here is
+  what let six of them pile up (2026-09-14).
 - **Measure, never reason, about other sessions or the environment.**
 
 **Writing the reply** — **SHORT BY DEFAULT** (a few short paragraphs; only
@@ -4852,13 +4879,45 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     (padding on the scrolling element, given back when the keyboard goes):
     below the last line there is only the card's padding, so without it the
     one place she types most cannot be lifted over the keyboard at all.
+  - **AND THE KEYBOARD IS NOT THE ONLY THING COVERING THE BOTTOM OF THE BAND
+    — A PINNED BUTTON IS TOO (2026-09-13, Sophie's screenshot of a footage
+    block: the ✕, the divide and the bigger-box buttons sitting ON the line
+    she was writing, with "appearing on" unreadable behind them).**
+    `stickybox.js` floats a tall box's corner buttons at the bottom of
+    caretkeep's band — it ASKS caretkeep for it — and caretkeep lifts the
+    caret line to the bottom of that same band, so the two landed on each
+    other on every surface that carries both. MEASURED on the real footage
+    page with the keyboard up: caret line 382–404, the pinned buttons
+    372–398, `elementFromPoint` on the caret's own line answering the divide
+    button, and **90 of 90 keystrokes** at the end of a scene typed under a
+    control. Now `caretBand(el)` is the caret's own band — the visible one
+    minus anything pinned over that box's column — and the two stack: the
+    caret sits above the buttons, and at the END of a scene that lift brings
+    the buttons' own corner back into view so they let go entirely. Three
+    things not to undo: **`band()` itself is NOT narrowed** (stickybox reads
+    it to decide where to pin, and a band that moved under it would ratchet
+    the buttons up the screen a row per pass — that is why this is a second
+    function rather than an edit to the first); **only a control in the
+    BOX'S OWN COLUMN narrows it**, since a button floating elsewhere covers
+    none of her words; and **stickybox tells the keeper when the pinned row
+    MOVES** (`nudgeCaret`), because a button that pins in this pass lands on
+    a line the keeper had already decided was safe — measured, without it a
+    new line at the end of a scene left the caret 16px under the divide
+    button until something else happened, and an unchanged row says nothing,
+    which is what ends the loop.
   - **compare.js loads it on the first focus**, so every Compare page ever
     posted has it with nothing re-posted; chats.html, the Playground, the
     Story Room, Freeform, Voice Studio and the Story Timeline link it. A new
     page with a box she writes in adds the one line. `data-nocaret` opts a box
-    out. Test: `node scripts/test-caret-keep.js` (the real belt shape headless
+    out. Tests: `node scripts/test-caret-keep.js` (the real belt shape headless
     — the caret measured against a stubbed keyboard, the deck proved not to
-    have moved, and a caret already in view proved to move nothing).
+    have moved, and a caret already in view proved to move nothing) and
+    `node scripts/test-caret-under-button.js` (the real footage page — every
+    assertion a MEASUREMENT, since a caret lifted to the right number and one
+    lifted onto a button look identical in the source; every keystroke and
+    every new line counted rather than one settled reading, and the buttons
+    proved still pinned and still tappable mid-scene; verified failing 7
+    pre-fix).
 - **THE WAY OUT OF A BIG BOX STAYS ON SCREEN — `/stickybox.js`, ONE FILE,
   EVERY PAGE (2026-09-10, Sophie: "can we get a floating or sticky/pinned
   contract button for text boxes esp in footage so i can close with out having
@@ -4879,7 +4938,11 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   - **THE VISIBLE BAND IS caretkeep's**, when caretkeep is on the page — one
     definition of what the keyboard is covering rather than two, and it
     carries the blind-keyboard guess for the web views that never report
-    `visualViewport`. Without it: visualViewport, else the window.
+    `visualViewport`. Without it: visualViewport, else the window. **It must
+    stay `band()` and never `caretBand()`** — the keeper's own band is
+    narrowed by whatever is pinned, so asking for that one here would walk
+    these buttons up the screen a row per pass (2026-09-13; the caret half
+    of that fix is the bullet above, and every move here tells the keeper).
   - **IT STAYS INSIDE ITS OWN REGION.** A box inside a sheet or any other
     scroller pins to the bottom of THAT box, never to the bottom of the
     screen, so a Story Room caption's button can never float below the card it
@@ -5672,6 +5735,34 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
       already are. The guard is only safe because the doors are MEASURED on
       the real page by `node scripts/test-asset-doors.js`; without that, "no
       doors" would be the thing every harness silently passed.
+    - **AN UNCUT SHEET'S PLAYGROUND DOOR SLOTS ITS PANELS INTO THE BOXES
+      (2026-09-06, Sophie, on the 3x3 in her Assets tab: "when i press copy on
+      the original uncut grid it shud slot all 9 into panels").** The sheet's
+      content half is all N panels, and `?prompt=` put the whole wall in the
+      single box. `sheetGrid.panelParse({style, content, label, caption})`
+      reads the RECORD and the door sends `?panels=<json>&grid=N` instead
+      (seedPanelsFromLink lands them on the Panels tab); style, `sameref`,
+      quality and the cast ride exactly as before. Three markers, none of
+      them the shape of the text: a `1/9 (4K)` caption is a CUT panel and
+      goes to the single box (her 2026-08-27 rule); the grid sentence in the
+      style half (a server-filed sheet — sheetSeam puts it in the prefix) says
+      N; and for a sheet filed WITHOUT the sentence — the
+      mental-hospital-storyboard chat's shape, measured on the live records:
+      wrapper + `[content]`, the panels joined by a blank line — the label's
+      own `3x3` says N, only when that is a grid the module knows. Labeled
+      `Panel k (…):` lines or the blank-line join come apart; anything short
+      of exactly N is null and the door sends the one prompt it always did —
+      **never dropped, never padded**. The honest fix at the source is to
+      file the exact sent text, grid sentence included. **AND THE BACK-CRUMB
+      BLOCK USED TO WIPE THE SEED**: promptlab spent the WHOLE query one tick
+      after load, and the seed is read only once the styles fetch lands, so
+      every sheet that walked in with `&back=` arrived to nine empty boxes;
+      `panels`/`grid` now survive that spend and the seed spends them itself
+      (a reload is still a plain Playground). Pinned by
+      `node scripts/test-sheet-grid.js` (the parser against panelBlock) and
+      the sheet half of `test-asset-doors.js` (the REAL Playground behind the
+      door — the url read off the browser, then the nine boxes counted and
+      read; a cut panel still on the Picture tab).
     - Test: `node scripts/test-asset-doors.js` (both real pages headless —
       the set, the row measured, the Playground door's real url read off the
       browser AFTER it navigates, the no-prompt picture riding as a photo
@@ -5728,8 +5819,15 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
       index she held IS the next one. It heals the moment the picture is back
       on screen, and it can only ever be one tile out, because the only thing
       that re-filters while the box is open is a mark she just cast.
-      **The Playground has the same shape and is NOT fixed here** — its own
-      `lbAt()` returns -1 the same way once `loadRuns` re-filters under it.
+      **The Playground had the same shape and is FIXED since 2026-09-05**
+      (Sophie: "tap left right doesn't always work in the playground") —
+      worse there, because its re-render REPAINTS the lightbox (`renderFeed`
+      → `showLB`) and so both zones were not merely dead but GONE. `lbIdx`
+      is her place and `lbNext` is the one reader, for the zones AND the
+      step; `node scripts/test-playground-tap-next-vote.js` (verified
+      failing 11 pre-fix, against a STATEFUL stub — the vote has to come
+      back in the next feed read or the re-render restores the picture and
+      the bug cannot be reproduced).
     - **THE CACHED THUMB PAINTS FIRST, the original swaps in behind it** (the
       Playground's 2026-08-26 rule, which these two never had). They painted
       `it.url` — 1-3MB at the 2K and 4K tiers — so the box sat EMPTY through
@@ -8070,10 +8168,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
   side, `ensureVideoFloor` PROBED and DOWNLOADED every reference video on
   every send despite the "baked once" promise — the decision is banked now
   (`floorDecided` in memory, a sidecar under `footage/upscaled/<sha1(url)>.json`
-  across restarts). The **seconds are typed** into a real number
-  field, clamped to the model's own range on the way OUT — on change and on
-  blur, never on every keystroke, or a "1" on its way to "12" becomes 4 under
-  her. **Sound is always on**, sent explicitly rather than left to the model's
+  across restarts). **THE SECONDS ARE A DROP-DOWN OF FOUR —
+  4 · 8 · 12 · 15 (2026-09-14, Sophie: "seconds drop down · 4,8,12,15
+  only").** A typed number with a -/+ stepper made every length in the range
+  reachable and none of the four is where she actually cuts. `SEC_STEPS` is
+  the one list and the rows are it NARROWED to the model's served `secs`
+  range, never a hardcoded 4-15, so a model with a tighter range offers fewer
+  rows rather than a length the server would clamp. `clampSec` SNAPS to the
+  nearest offered row rather than clamping to the range — a stored 9, or a
+  belt hand-off naming one, has to land on a row the picker really has or the
+  box shows one number while `S.seconds` holds another (the hand-off
+  fixture's 9 lands on 8). Typing, the stepper and the clamp-on-blur rule
+  that protected a "1" on its way to "12" are HISTORY. **Sound is always on**, sent explicitly rather than left to the model's
   default. And **what is left lives behind the "?"**, read live when the card
   opens — it is a fact about the account, not a control, and it was sitting
   where the price of the tap belongs; OpenRouter's balance only, since APIFRAME
@@ -8575,6 +8681,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `saveDraft`**, which is the one signal every path that changes the job sends,
   so **attaching leaves it open for the second reference**; and the character
   sheet beside it is untouched (she named the Recent drawer).
+  **AND FOLDING THE PANEL AWAY TAKES IT WITH IT — AN ID BEAT THE FOLD'S OWN
+  SWEEP (2026-09-13, her screenshot of a SHUT panel with the drawer still
+  drawn under it).** `#recent` is a direct child of the panel, so
+  `.panel.shut > *{display:none}` was meant to hide it like everything else —
+  but that selector is two classes (0,2,0) and `#recent{display:flex}` is an
+  ID (1,0,0), so the drawer went on rendering with the panel folded away and
+  **no control left on screen to close it** (`#rectog` hides with the Buttons
+  row). MEASURED headless: shut panel, `display:flex`, 52px tall. The fold's
+  two rules carry `!important` now rather than being fixed one id at a time —
+  any child styled by its own id would have done the same, silently. Reopening
+  the panel brings the drawer back exactly as she left it; `paintFolds` still
+  really CLOSES both drawers when the BUTTONS row folds, since there the
+  toggles go and the drawers would otherwise stay. Pinned by
+  `node scripts/test-footage-recent.js` (verified failing 1 pre-fix).
   **THE CLIPS AND THEIR LAST FRAMES ARE HISTORY, NOT A RULE — DON'T PUT THEM
   BACK.** For a few hours that morning the box also listed a job's own
   FINISHED CLIP ahead of its references, at her ask ("make the recent box
@@ -9265,6 +9385,46 @@ before working on that module. Nothing was deleted — the moved text is verbati
   fold not working, and the picker and every card's menu read the ONE set; and
   **shut counts, open does not** (the archive summary's don't-say-it-twice
   rule).
+  **AND SINCE 2026-09-13 THE PICKER IS A POSTER SHEET, FIVE ACROSS (Sophie,
+  after four mocked options: "i like poster" · "more per row so all fit" ·
+  "5!").** The folder icon opens a sheet of TILES instead of a native list —
+  every folder here already has a picture, the last clip drawn in it, and a
+  row of words threw that away. Six things not to undo:
+  - **FIVE IS THE FLOOR, NOT THE NUMBER.** `fitShelf` widens to 6, 7 or 8 when
+    five would push a row off the bottom, measured off the real grid, so "all
+    fit" stays true as folders pile up and the density never needs choosing
+    again. It NEVER narrows: a two-folder project would otherwise draw two
+    enormous tiles and the sheet would look like a different screen every time.
+    (Measured at 390x844 on the mocked page before the widening: five across
+    holds 34 folders, six 41.)
+  - **TWO LEVELS** — the films, then one film's folders. A project WITH folders
+    descends on a tap and its level-2 **Everything** tile is how the whole
+    project is picked; one without folders simply picks. Descending moves
+    nothing: it is a level of the sheet, not a pick.
+  - **THE FACES COME FROM THE SERVER AND HAVE TO** — `GET /api/footage/shelf`
+    (`shelfOf`, one pass over the log, cached 60s, asked when the SHEET OPENS
+    and never on the feed poll). The page's own feed is narrowed to the project
+    she is standing in, so it holds no clip from anywhere else to draw a face
+    from. The face is the NEWEST clip that really drew, a HIDDEN clip faces
+    nothing and is counted by nobody, a project counts its folders' clips too,
+    and **a folder nothing has finished in draws an EMPTY square** rather than a
+    neighbour's picture (the Assets tab's silence rule).
+  - **THE TILES ARE NOT REBUILT UNDER HER** — a signature skip over the labels,
+    faces and counts, since a recreated `<img>` decodes async and the whole
+    sheet strobes blank (the house repaint rule).
+  - **A FOLDER SLUG READS BACK AS WORDS** (`folderName`: hyphens out, first
+    letter up) on the tile, in the header, in the toasts and in the card's
+    rows, so a folder is spelled one way wherever she meets it. Display only —
+    `folderSlug` is still the only thing that writes.
+  - **THE CARD'S MOVE MENU IS STILL A `<select>` WITH ITS FOLDS**, deliberately:
+    moving one clip is a one-tap decision, not a shelf to look at. Everything
+    the fold note above says is about that menu now.
+  The tuck is a WORD in the sheet's own header, offered only inside a project;
+  `shelfPick` is the old `<select>`'s handler body, so `setProject` /
+  `setFolder` / New project… / New folder… mean exactly what they meant. Test:
+  `node scripts/test-footage-shelf.js` (the widening MEASURED off the real
+  boxes — a grid that sets `--c` and never reflows looks identical in the
+  source; verified failing with `fitShelf` stubbed out).
 
   **EVERY CHAT'S CLIPS RIDE THE FEED SINCE THE SAME EVENING (Sophie: "most
   of them made in chat. Are you adding them to footage? If so, good")** — the
@@ -11036,7 +11196,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   colours are UNLABELLED everywhere but that drop-down, and no machinery
   lives on the canvas.**
   `ART.prefix`/`ART.characterLine` are COPIES of `PL_GPT.*` in server.js — keep
-  them identical. **Full details: `docs/modules/story.md`.**
+  them identical (`node scripts/check-derived.js` pins them).
+  **"I" IS HER, AND HER OWN SOPHIE BEATS THE HOUSE CARD (2026-09-06, Sophie,
+  drawing her Mental hospital beats: "i added the sophie character but it
+  wasn't applied when i made the images" · "it used the watercolor reference
+  not the blue pajamas i added").** Her captions are first person — "they
+  caught me in the library" — and every character line said only "whenever
+  the prompt mentions Sophie", so nothing told the model the I in the caption
+  IS the girl on the card and it drew the woman off the watercolor style
+  page. Both lines say `or says I or me` now: the house card's
+  (`PL_GPT.characterLine` / `ART.characterLine`) always, and the picker's
+  `charLine()` in `pad-characters.js` when a picked character's NAME reads
+  as her (`isSelf`: sophie · me · i) — Mason never claims "I". And ONE
+  SOPHIE PER DRAW: watercolor attaches the house book-girl card by default,
+  so her picked blue-pajamas Sophie rode beside it as a second "Sophie" and
+  lost; `houseCardRides` stands the house card down whenever a self-named
+  character is picked (the page dims `#dchar` to say so). A beat drawn
+  before this needs her re-draw to pick it up. Tests:
+  `node scripts/test-pad-characters.js`. **Full details: `docs/modules/story.md`.**
 - **Story Room data** (`forge-story` in membry, `/api/story/*`) — one doc per
   story; **every content field is optional**, any one of them starts a project.
   Films live ON their story. Voiceover comes in by PASTE (from iOS Voice Memos) or
@@ -11163,6 +11340,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   says. Both ends of that are pinned by `node scripts/test-timeline.js`.
   **The editor is behind a pencil and never a tap on the words** — tap-to-edit
   means every stray thumb on the way down the page opens an editor.
+  **SELECT — pick several cards and delete them together (2026-09-06, Sophie:
+  "can u add a select tool so i can mass delete", on the 172-card Mental
+  hospital story).** The Playground's SELECT chip ported: a Select button on
+  the open story's top row; lit, a tap on a card PICKS it (the pencil hides, a
+  folded middle picks rather than unfolds), and the mode bar under the row is
+  All/None · the count · Delete · Done. Delete drops every picked card out of
+  `units` exactly as the pencil's delete does — `moments` keeps the words, the
+  module's rule — then paints and saves once. Four things not to undo: **Delete
+  is TWO TAPS** (the first arms it, red, saying how many; the second deletes;
+  changing a pick disarms it) and never a browser `confirm()`, which a
+  WKWebView may swallow; **the mode is in memory only, never localStorage**
+  (the Playground's own call — it is something she is in the middle of doing);
+  the mode ends on Done, on leaving the story and on opening another; and it
+  is lit in INK, never the accent, which marks a sequence. **The number box is
+  `.tool input.no`, not `.no`** — tool.css's `.tool input[type=text]` out-
+  specifies a bare class, so its 10px padding won and every number past 9 read
+  as "1"; caught by PHOTOgraphing her live story at 390x844. Both pinned by
+  `node scripts/test-timeline.js`.
   Two bugs worth not repeating, both pinned by the test: a folded middle sets
   `white-space:nowrap`, so its grid track needs `minmax(0,1fr)` or the whole
   unit shoots off the right of the screen; and an editor that holds itself open
@@ -12191,6 +12386,28 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **FOLDERS CONTAIN ALBUMS — they never merge them** (a folder is the `track`
   field; filing an album moves nothing inside it). `photoIndex` comes from a
   transaction, never from counting — that is the bug that scrambled album order.
+  **WHAT A DUMPED CLIP SAYS IS TRANSCRIBED ONCE, EVER —
+  `node scripts/transcribe-media.js` (2026-09-14, Sophie: "transcribe w
+  whisper, cache it").** She shoots takes on her phone, dumps them, and then
+  wants to know what she said in each without opening every clip. whisper-1 is
+  ~0.6¢ a minute and a take gets read many times, so the answer is banked:
+  **`transcripts/<sha1(source url)>.json`** in Storage (text, word timestamps,
+  segments), and the Dump is content-addressed, so the same bytes in two albums
+  are ONE cache entry by construction. Asking twice costs nothing. **Two
+  mirrors, both deliberate:** the word list is ALSO written to
+  `scratchpad/take-words/<the same key>.json` — the Story Room's own take cache
+  — so a story whose voiceover IS that take renders with no transcription at
+  all; and `transcript`/`transcriptAt` go on the file's `forge-drops` doc so a
+  reader can SHOW what a clip says without fetching the cache (the words stay in
+  Storage — a long take is thousands of them and the doc rides a list read).
+  Her file is never touched: a throwaway 16k mono mp3 is what whisper gets. A
+  file with **no audio track caches as `silent`** rather than being retried
+  forever. `--session`/`--bundle` sweeps a whole album, `--dry` is free and says
+  what it would do, `--force` re-transcribes. Measured the day it landed: the
+  whole `footage` bundle — 14 clips, 113s — cost **1.1¢**. Test:
+  `node scripts/test-transcribe-media.js` (the cache key and the Story Room
+  mirror pinned against the REAL expressions in both files, since a drifted key
+  is invisible — it just pays twice).
   **Full details: `docs/modules/inbox-and-misc.md`.**
 - **THE UPDATE BUTTON** (`brief.js`, `/api/brief`, page at `/brief`, the
   **Update** row at the top of the Chats app's UPDATE tab) — Aug 2026,

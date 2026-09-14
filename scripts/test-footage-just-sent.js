@@ -120,6 +120,23 @@ const tileIds = () => [...document.querySelectorAll('#tiles .cell')].filter((e) 
 const type = (t) => { const b = document.getElementById('prompt'); b.value = t; b.dispatchEvent(new Event('input', { bubbles: true })); };
 const search = (t) => { const q = document.getElementById('q'); q.value = t; q.dispatchEvent(new Event('input', { bubbles: true })); };
 
+// the picker is a POSTER SHEET since 2026-09-13 — a real walk through it
+async function pickProject(pg, v) {
+  v = String(v);
+  const shut = await pg.evaluate(() => document.getElementById('shelf').hidden);
+  if (shut) await pg.click('#projwrap');
+  await pg.waitForSelector('#shgrid .shtile');
+  // the sheet opens on the project she is standing in — go up first, so a
+  // pick is always a walk down from the films
+  const up = await pg.$('#shback:not([hidden])');
+  if (up) { await up.click(); await pg.waitForSelector('#shgrid .shtile'); }
+  const p = v.split('/')[0];
+  if (p) {
+    const into = await pg.$(`.shtile[data-into="${p}"]`);
+    if (into) { await into.click(); await pg.waitForSelector(`#shgrid .shtile[data-go="${p}"]`); }
+  }
+  await pg.click(`.shtile[data-go="${v}"]`);
+}
 (async () => {
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   const base = 'http://127.0.0.1:' + server.address().port;
@@ -250,7 +267,7 @@ const search = (t) => { const q = document.getElementById('q'); q.value = t; q.d
   // switch files the clip somewhere she was not when she armed it. MEASURED
   // off the button's own state and off what the server really received.
   cents = 420;                                     // over the $3 ask line
-  await page.click('#secup');                      // any control change re-asks /estimate
+  await page.selectOption('#secs', '8');           // any control change re-asks /estimate
   await page.waitForFunction(() => /\$4\.20/.test(document.getElementById('goalllab').textContent), null, { timeout: 4000 });
   const nPosted = posted.length;
   await page.click('#goall');
@@ -259,12 +276,12 @@ const search = (t) => { const q = document.getElementById('q'); q.value = t; q.d
     (await page.evaluate(() => document.getElementById('goall').classList.contains('armed'))) && posted.length === nPosted);
   // the FOLDER is the one that needed a line of its own — `setProject`
   // repaints the controls and `paintWipe` disarms, where `setFolder` does not
-  await page.selectOption('#project', 'ward');
+  await pickProject(page, 'ward');
   await page.waitForTimeout(500);
   await page.click('#goall');                      // arm again inside the project
   await page.waitForTimeout(200);
   ok('armed inside the project', await page.evaluate(() => document.getElementById('goall').classList.contains('armed')));
-  await page.selectOption('#project', 'ward/commercials');
+  await pickProject(page, 'ward/commercials');
   await page.waitForTimeout(400);
   ok('switching folder disarms it — nothing is one tap from sending',
     !(await page.evaluate(() => document.getElementById('goall').classList.contains('armed'))));
