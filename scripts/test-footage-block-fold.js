@@ -256,7 +256,16 @@ const write = (text) => {
 
   // ── 6. WORDS LANDING IN A FOLDED BLOCK OPEN IT ──────────────────────────
   // a slot tap writes into the block she is in and then focuses it, and
-  // focusing a box that is not on screen does nothing at all
+  // focusing a box that is not on screen does nothing at all.
+  // Block 2 is made active by TAPPING INTO IT, never by folding it: a heading
+  // tap that shuts a block deliberately leaves the gold line where it was
+  // (2026-09-14), so the upload has to land on block 2's own strip first.
+  await page.evaluate(() => {
+    const panel = document.querySelector('.panel');
+    const wraps = Array.from(panel.children).filter((c) => c.classList.contains('promptwrap'));
+    wraps[1].querySelector('.pblock').focus();
+  });
+  await page.waitForTimeout(150);
   await page.setInputFiles('#file', { name: 'edna.png', mimeType: 'image/png', buffer: PNG });
   await page.waitForFunction(() => document.querySelectorAll('.ref .slot').length > 0, null, { timeout: 5000 });
   await page.evaluate(tapHead, 1);
