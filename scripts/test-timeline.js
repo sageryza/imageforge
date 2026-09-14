@@ -385,6 +385,19 @@ const DRIVE = `<script>
              'no empty block is ever handed over', '');
           ok(!!H && H.from === 'timeline' && typeof H.at === 'number',
              'and it names where it came from, stamped', H && H.from);
+          // AND THE STORY ITSELF (2026-09-14, "replace footage blocks w story
+          // blocks"): the story by id, and one entry per part keyed by its
+          // FIRST moment id, so Footage can bind a block to a part and merge a
+          // second send onto the prompts she wrote there.
+          var sid = new URLSearchParams(location.search).get('story');
+          ok(!!H && H.story && sid && H.story.id === sid && typeof H.story.title === 'string' && !!H.story.title,
+             'the hand-off carries the story by id', H && JSON.stringify(H.story));
+          ok(!!H && Array.isArray(H.units) && H.units.length === units().length,
+             'and one unit per connected part', H && H.units && H.units.length);
+          ok(!!H && H.units.every(function (u, i) { return u.key === ids()[i].split(',')[0] && Array.isArray(u.ids) && u.ids.join(',') === ids()[i]; }),
+             'each keyed by its first moment id, its ids beside it', H && JSON.stringify(H.units.map(function (u) { return u.key; })) + ' vs ' + JSON.stringify(ids()));
+          ok(!!H && H.units.every(function (u, i) { return u.text === H.blocks[i]; }),
+             'and its text is the block that rides for an older page', '');
 
           // embedded under the native bar, the header band goes compact
           // (Sophie: "a lot of space at the top") — static, unbordered, and

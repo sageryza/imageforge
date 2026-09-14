@@ -200,6 +200,31 @@
      a digit rather than the word: at 10.5px caps with .12em tracking the
      heading has room for about four of her words beside the label, and those
      belong to the scene. Drawn only where there is something to say. */
+  /* A STORY BLOCK ALWAYS HAS ITS HEADING (2026-09-14, Sophie: "replace
+     footage blocks w story blocks, next and back to see old prompts") — a
+     one-part story is one block, and the row that names the part and walks its
+     old prompts has to be on screen for it too. */
+  .promptwrap.story .bfold{display:flex}
+  /* THE WALK THROUGH A PART'S OLD PROMPTS — a small row under the heading,
+     drawn only once something has been sent from that part: ‹ back to an
+     older prompt, › on to a newer one, `now` at the end. Real buttons on
+     their own row (a button inside the heading's button is invalid), each
+     30px tall for the thumb; the mark stays light. */
+  .promptwrap .hrow{display:flex;align-items:center;gap:4px;margin:0 var(--pillgap,0px) 6px 0;font-size:11.5px;color:#9a8f7d}
+  .promptwrap .hrow button{border:0;background:none;padding:0 10px;margin:0;min-height:30px;min-width:34px;font:inherit;font-size:18px;line-height:1;color:#6f675e;-webkit-tap-highlight-color:transparent}
+  .promptwrap .hrow button:disabled{opacity:.3}
+  .promptwrap .hrow .hpos{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* AN OLD PROMPT SHOWS IN THE BOX'S PLACE, READ-ONLY — the box and its corner
+     buttons leave the layout the way a fold takes them, so nothing she cannot
+     see is what the star would send (the star refuses while one is showing).
+     One line under the words says when it went and what came of it, and
+     `use this` is the house underlined word that puts it back. */
+  .promptwrap.past .pblock,.promptwrap.past .boxbtn{display:none}
+  .promptwrap.shut .hrow,.promptwrap.shut .hpast{display:none}
+  .promptwrap .hpast{border:1px solid #d8cfc0;border-radius:6px;padding:9px;background:#fbf9f5;margin:0 var(--pillgap,0px) 6px 0}
+  .promptwrap .hpast .hwords{white-space:pre-wrap;overflow-wrap:break-word;font-size:15px;line-height:1.45;color:#5a534b}
+  .promptwrap .hpast .hmeta{display:flex;align-items:center;gap:14px;margin-top:8px;font-size:12px;color:#9a8f7d}
+  .promptwrap .hpast .hcard{border:0;background:none;padding:2px 0;margin:0;font:inherit;font-size:12px;color:#9a8f7d;text-decoration:underline;text-align:left;flex:1;min-width:0}
   .promptwrap .bfold .bref{display:none;align-items:center;gap:3px;flex:none;color:#9a8f7d}
   .promptwrap .bfold .bref.on{display:inline-flex}
   .promptwrap .bfold .bref .ic{display:inline-flex}
@@ -208,7 +233,9 @@
      BLOCK (2026-09-14, Sophie: "add a red 'sent' or 'unsent' to top of
      collapsed block"). One block is one clip, and a folded block is a clip she
      cannot read: four shots into a scene, which of them have actually left was
-     a fact the page knew and said nowhere.
+     a fact the page knew and said nowhere. On a story part the ‹ › row says
+     how many have gone, but only while the part is OPEN and only as a count —
+     the question the red word answers is about the words in the box right now.
      It rides the heading OPEN OR SHUT, like the reference count beside it and
      unlike the first words — the don't-say-it-twice rule only bites where the
      thing is right there on screen, and nothing in an open box says whether it
@@ -1271,7 +1298,7 @@
   <p><b>Sound is always on.</b></p>
   <p><b>Characters, then setting.</b> The two blocks at the top are permanent and start folded away. What you write in them rides at the top of every clip you send &mdash; the cast on one line, the room on the other &mdash; so a scene is written once instead of into every shot. Folded, each heading says its own words, so you can see what is riding without opening it. Leave one empty and it adds nothing; <b>clear</b> never touches them.</p>
   <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. With the cursor at the <b>end</b> there is nothing to cut, so it makes an <b>empty</b> block under this one and puts you in it &mdash; a box for the next shot before there are words for it. Every block has the same buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing. The join mark goes away while either of its two blocks is folded. Each block gets its own heading, and <b>tapping the heading folds that block away</b> &mdash; shut it shows its first words, and it still sends them if it is the one the star is pointing at. A folded block stays folded &mdash; it comes back that way after a reload, and opens by itself if anything puts words into it.</p>
-  <p><b>Every block keeps its own pictures.</b> The references strip is the block you are in &mdash; tap into another one and its pictures come back, and the row above them says which block it is showing. Dividing gives both halves a copy of the strip the scene was written against, so every <b>[Image2]</b> still points at the same picture; joining puts the two strips together and renumbers both halves onto it. The <b>&times;</b> takes a picture off the block you are in and leaves the others alone. Each heading says how many that block is carrying, so nothing rides on a block you are not looking at, and a red <b>sent</b> or <b>unsent</b> at the end of it says whether those exact words have gone &mdash; change one and it reads unsent again. <b>All</b> sends every block's pictures in the one clip, with each block's names renumbered onto them &mdash; and its price is that clip's, not this block's.</p>
+  <p><b>Every block keeps its own pictures.</b> The references strip is the block you are in &mdash; tap into another one and its pictures come back, and the row above them says which block it is showing. Dividing gives both halves a copy of the strip the scene was written against, so every <b>[Image2]</b> still points at the same picture; joining puts the two strips together and renumbers both halves onto it. The <b>&times;</b> takes a picture off the block you are in and leaves the others alone. Each heading says how many that block is carrying, so nothing rides on a block you are not looking at, and a red <b>sent</b> or <b>unsent</b> at the end of it says whether the words in that box have gone &mdash; change one and it reads unsent again. <b>All</b> sends every block's pictures in the one clip, with each block's names renumbered onto them &mdash; and its price is that clip's, not this block's.</p>
   <p><b>All of them at once.</b> Once two blocks have words in them a second star appears beside the first, carrying what that clip costs. It sends every written block as <b>one</b> clip, appended in order with a blank line between &mdash; one job, one price, one refusal line &mdash; and it carries every block's pictures, each block's names renumbered onto them. Your blocks are not touched. Over $3 the first tap asks and the second sends.</p>
   <p><b>Taking one block off.</b> The &times; in a block&rsquo;s corner takes that block off; with only one block left there is no &times; and <b>clear</b> beside the star is what empties it. Either way <b>undo</b> puts it back.</p>
   <p><b>Folding the prompt.</b> The PROMPT row stays at the top of the screen while you are writing, so a long scene folds away from wherever you are rather than from the top.</p>
@@ -1308,7 +1335,7 @@
        cursor into two; the second half becomes a block of its own right under
        this one, with a join mark in the gap. The star sends the block she is
        in — the one with the gold line — once there is more than one. -->
-  <div class="promptwrap active"><button type="button" class="fold bfold" aria-expanded="true"><span class="chev"></span><span class="bflab">Block 1</span><span class="lw"></span><span class="bref"><span class="ic"></span><span class="n"></span></span><span class="bsent"></span></button><textarea id="prompt" class="pblock"></textarea><button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this block off" title="Take this block off — undo puts it back"></button><button type="button" id="divide" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block; at the end, an empty one"></button><button type="button" id="bigprompt" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
+  <div class="promptwrap active"><button type="button" class="fold bfold" aria-expanded="true"><span class="chev"></span><span class="bflab">Block 1</span><span class="lw"></span><span class="bref"><span class="ic"></span><span class="n"></span></span><span class="bsent"></span></button><div class="hrow" hidden><button type="button" class="hprev" aria-label="An older prompt" title="An older prompt sent from this part">‹</button><span class="hpos"></span><button type="button" class="hnext" aria-label="A newer prompt" title="A newer prompt, back toward now">›</button></div><div class="hpast" hidden><div class="hwords"></div><div class="hmeta"><button type="button" class="hcard" title="Open that clip"></button><button type="button" class="wipe huse">use this</button></div></div><textarea id="prompt" class="pblock"></textarea><button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this block off" title="Take this block off — undo puts it back"></button><button type="button" id="divide" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block; at the end, an empty one"></button><button type="button" id="bigprompt" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
 
   <!-- THE REFERENCES BLOCK — ITS HEADING, THE BAR, THE PICTURES (2026-09-14,
        Sophie: "references default collapsed · and collapse when job is sent" ·
@@ -1666,6 +1693,19 @@ function doorWord(d) { return d === 'openrouter' ? 'OpenRouter' : d === 'atlascl
 var PAGE_MODELS = ['mini', 'fast', '2.0', '2.5'];
 var PAGE_MODEL = PAGE_MODELS[0];
 var S = { model: PAGE_MODEL, seconds: 4, res: '480p', ratio: '3:4', project: '', folder: '' };
+// ── STORY BLOCKS (2026-09-14, Sophie: "replace footage blocks w story blocks,
+// next and back to see old prompts") ─────────────────────────────────────
+// A block can be a PART of a Story Timeline story: the story is bound here by
+// id (`STORY`, on the draft), each block carries its part's key on its job
+// (`unit`, the part's first moment id) and the story's own words for it
+// (`utext`). The box holds the PROMPT for that part — seeded from the words,
+// hers to rewrite — and every clip sent from the block is tagged with the
+// story and the part, so the block can walk every prompt already sent for it
+// (`hist`, below). Nothing here writes back to the story: the Story Timeline
+// is where the story is edited, and a second Send to Footage of the same story
+// MERGES onto the prompts she has written here rather than replacing them.
+var STORY = null;                    // {id, title} — the story the blocks are parts of
+var HROW_HTML = '<div class="hrow" hidden><button type="button" class="hprev" aria-label="An older prompt" title="An older prompt sent from this part">\u2039</button><span class="hpos"></span><button type="button" class="hnext" aria-label="A newer prompt" title="A newer prompt, back toward now">\u203a</button></div><div class="hpast" hidden><div class="hwords"></div><div class="hmeta"><button type="button" class="hcard" title="Open that clip"></button><button type="button" class="wipe huse">use this</button></div></div>';
 // ── A BLOCK'S OWN REFERENCES (2026-09-14, Sophie: "blocks in footage that
 // have images attached shud keep attached images and the images return when
 // block is selected") ────────────────────────────────────────────────────
@@ -1706,13 +1746,25 @@ function cloneRefs(list) {
 function cleanJob(j) {
   j = j || {};
   var out = { refs: cloneRefs(j.refs), first: String(j.first || ''), last: String(j.last || '') };
+  // WHICH STORY PART THIS BLOCK IS (2026-09-14): the part's key (its first
+  // moment id in the Story Timeline) and the story's own words for it. They
+  // ride the block's job beside its strip, so every path that already carries
+  // a strip — a divide, a join, the draft, the bank, a put-back — carries the
+  // part with it and nothing else had to learn a new shape.
+  out.unit = String(j.unit || '').slice(0, 300);
+  out.utext = String(j.utext || '').slice(0, 600);
   var have = {};
   out.refs.forEach(function (r) { have[r.url] = 1; });
   if (!have[out.first]) out.first = '';
   if (!have[out.last] || out.last === out.first) out.last = '';
   return out;
 }
-function liveJob() { return { refs: cloneRefs(refs), first: firstUrl, last: lastUrl }; }
+function unitOf(w) { return (w && w.__job && w.__job.unit) || ''; }
+function utextOf(w) { return (w && w.__job && w.__job.utext) || ''; }
+function liveJob() {
+  var a = panelEl().querySelector('.promptwrap.active');
+  return { refs: cloneRefs(refs), first: firstUrl, last: lastUrl, unit: unitOf(a), utext: utextOf(a) };
+}
 function isActive(w) { return !!(w && w.classList && w.classList.contains('active')); }
 function jobOf(w) { return isActive(w) ? liveJob() : blockJob(w); }
 // written into the block she is LEAVING, before the class moves or the node does
@@ -2204,6 +2256,9 @@ function loadCtl() {
     if (d.prompt) $('prompt').value = d.prompt;
     // the blocks after the first, in order, and which one she was in
     if (Array.isArray(d.blocks)) d.blocks.forEach(function (t) { if (typeof t === 'string') addBlock(t); });
+    // the story the blocks are parts of, when they are (2026-09-14)
+    STORY = (d.story && typeof d.story === 'object' && typeof d.story.id === 'string' && d.story.id)
+      ? { id: d.story.id, title: String(d.story.title || 'A story').slice(0, 200) } : null;
     // AND THE FOLDS COME BACK WITH THEM (2026-09-14, Sophie: "collapsed blocks
     // don't stay collapsed"). They shipped as memory only — "a reload opens
     // everything, which is the safe direction" — and that reasoning is HISTORY
@@ -2221,7 +2276,8 @@ function loadCtl() {
     // AND WHICH WORDS HAVE ALREADY GONE (2026-09-14). The bank is the texts
     // themselves, so it needs no position and cannot land on the wrong block;
     // it rides the draft beside the words it is about, which is what carries
-    // the red word through a reload and through the page's own self-heal.
+    // the red word through a reload and through the page's own self-heal for
+    // an ordinary block (a story part reads its own history instead).
     if (Array.isArray(d.sent)) {
       sentTexts = d.sent.filter(function (t) { return typeof t === 'string' && t; }).slice(0, SENT_MAX);
     }
@@ -2255,6 +2311,8 @@ function loadCtl() {
   } catch (e) {}
   // the job a clear put aside, so the undo survives a reload and a deploy
   loadBank();
+  paintBlockHeads();
+  loadHistory(true);
 }
 function saveCtl() { try { localStorage.setItem('footage_ctl', JSON.stringify({ ratio: S.ratio })); } catch (e) {} }
 // `prompt` is still the first block, so a page cached from before the blocks
@@ -2293,6 +2351,10 @@ function saveDraft() {
     // written only once something has really been sent, so a page that has
     // never sent one saves exactly the draft it always saved
     if (sentTexts.length) d.sent = sentTexts;
+    // A STORY RIDES THE DRAFT, and so does a one-block story's part — `jobs`
+    // is only written above once there are blocks to tell apart, and a story
+    // of one part would otherwise lose its key on the next reload.
+    if (STORY) { d.story = STORY; d.jobs = jobs; }
     localStorage.setItem('footage_draft', JSON.stringify(d));
   } catch (e) {}
   // saveDraft is the ONE signal every path that changes the job already
@@ -2667,11 +2729,20 @@ function openFold(k) { if (foldShut(k)) setFold(k, false); }
 // row ellipsizes to give way to the project picker, so anything appended after
 // the words cannot be read at all — and a reference landing OPENS the panel
 // anyway, so nothing can ride hidden.
+// THE ROW NAMES THE STORY THE BLOCKS ARE PARTS OF (2026-09-14) — open or
+// shut, since a page of parts with nothing saying which story would be a
+// hand-off she has to remember. Cut short: the row is one line.
+function storyLab() {
+  if (!STORY) return 'Prompt';
+  var t = String(STORY.title || '').replace(/\s+/g, ' ').trim();
+  if (t.length > 26) t = t.slice(0, 25).replace(/\s+\S*$/, '') + '\u2026';
+  return 'Prompt \u00b7 ' + (t || 'a story');
+}
 function panelLab() {
   var ws = blocks(), box = activeBox();
   var txt = String((box && box.value) || '').replace(/\s+/g, ' ').trim();
-  var lab = 'Prompt';
-  if (ws.length > 1) lab += ' \u00b7 ' + ws.length + ' blocks';
+  var lab = storyLab();
+  if (ws.length > 1) lab += ' \u00b7 ' + ws.length + (STORY ? ' parts' : ' blocks');
   return { lab: lab, words: txt ? '\u00b7 ' + txt : '' };
 }
 function paintFolds() {
@@ -2685,7 +2756,7 @@ function paintFolds() {
   panelEl().classList.toggle('shut', pShut);
   $('panelfold').classList.toggle('shut', pShut);
   $('panelfold').setAttribute('aria-expanded', pShut ? 'false' : 'true');
-  var pl = pShut ? panelLab() : { lab: 'Prompt', words: '' };
+  var pl = pShut ? panelLab() : { lab: storyLab(), words: '' };
   $('panelfoldlab').textContent = pl.lab;
   $('panelfoldwords').textContent = pl.words;
   // THE HEADING IS ALWAYS THERE NOW (2026-09-14). It used to come off with
@@ -2717,7 +2788,7 @@ function paintFolds() {
   // block the star will send, so what is on screen and what will ride can
   // never read as two different things.
   var ws = blocks();
-  var mine = ws.length > 1 ? ' · block ' + (ws.indexOf(activeWrap()) + 1) : '';
+  var mine = ws.length > 1 ? (unitOf(activeWrap()) ? ' · part ' : ' · block ') + (ws.indexOf(activeWrap()) + 1) : '';
   $('reffoldlab').textContent = 'References' + mine + (hide ? ' · ' + refs.length : '');
   // THE SEED IS ON THIS ROW AND FOLDS WITH IT (2026-09-13) — it used to sit in
   // the STAR's row and be display-hidden by hand here, which is the same fold
@@ -3801,7 +3872,7 @@ function fitBox(box, growOnly) {
   // pixels as the height and the block would come back one line tall. Every
   // path that reopens one refits it.
   var wrap0 = box.parentNode;
-  if (wrap0 && wrap0.classList && wrap0.classList.contains('shut')) return;
+  if (wrap0 && wrap0.classList && (wrap0.classList.contains('shut') || wrap0.classList.contains('past'))) return;
   var border = box.offsetHeight - box.clientHeight;
   if (growOnly) {
     var need = (box.scrollHeight + border) + 'px';
@@ -3839,18 +3910,27 @@ function setText(el, t) { if (el && el.textContent !== t) el.textContent = t; }
 // IT IS THE WORDS THAT WENT, NEVER A FLAG ON THE BLOCK — the Playground's
 // `promptlab_panels_drawn_<g>` rule ("the EXACT array that was sent, so
 // editing one box after a draw makes that grid undrawn again"). A flag would
-// have to be carried through every divide, join, removal and put-back, and
-// each of those changes what the block SAYS: a block she has divided in two
-// has sent neither half, and a flag would claim both went. So a send banks its
-// text and a heading asks whether its own words are in that bank —
-// position-independent by construction, so nothing here knows about the
-// numbering at all, and a divide, a join, a removal and a reorder need no
-// bookkeeping.
+// have to be carried through every divide, join, removal, put-back and
+// `use this`, and each of those changes what the block SAYS: a block she has
+// divided in two has sent neither half, and a flag would claim both went. So
+// the question is only ever "are the words in this box words that have gone",
+// which is position-independent by construction — a divide, a join, a removal
+// and a reorder need no bookkeeping at all.
+//
+// TWO SOURCES ANSWER IT, AND THE SERVER'S IS THE BETTER ONE. A story part's
+// own `hist` is every clip sent from that part, read off the log by
+// `loadHistory` — `words` on each is the block's own text before the heads,
+// which is exactly what is being compared — so a part reads SENT on a phone
+// that never sent it, and after a page's whole life has been forgotten. The
+// local bank is the fallback for an ORDINARY block, which has no part and so
+// no history to read, and for the seconds between a send and the next sweep.
+// The union can only ever ADD a SENT, never take one away.
+//
 // Three things fall out of it and all three are right: editing a sent block
 // flips it back to UNSENT the moment a word changes (the words sitting there
-// are not the words that went); a PUT-BACK reads SENT, because those words
-// came off a clip that really drew; and a `clear` leaves the bank alone, so
-// the undo hands her blocks back still knowing which of them went.
+// are not the words that went); a PUT-BACK and `use this` read SENT, because
+// those words came off a clip that really drew; and a `clear` leaves the bank
+// alone, so the undo hands her blocks back still knowing which of them went.
 // Two blocks holding identical words both read SENT, which is honest — those
 // exact words have been sent.
 var sentTexts = [], SENT_MAX = 20;
@@ -3863,7 +3943,15 @@ function markSent(t) {
   sentTexts.unshift(t);
   if (sentTexts.length > SENT_MAX) sentTexts.length = SENT_MAX;
 }
-function wasSent(t) { t = normText(t); return !!t && sentTexts.indexOf(t) >= 0; }
+// `words` is the block's own text; an older record made before parts were
+// tagged carries only the whole `prompt`, heads and all, so it is read too —
+// it can only match a block whose words really are that whole prompt.
+function wasSent(t, w) {
+  t = normText(t);
+  if (!t) return false;
+  if (sentTexts.indexOf(t) >= 0) return true;
+  return histOf(w).some(function (c) { return normText(c && (c.words || c.prompt)) === t; });
+}
 // THE MARK HAS ITS OWN PAINTER because a KEYSTROKE has to reach it — a word
 // that only repaints on a fold would go on saying SENT over words she has just
 // rewritten, which is the one thing it exists to deny. So it is painted on its
@@ -3873,16 +3961,18 @@ function wasSent(t) { t = normText(t); return !!t && sentTexts.indexOf(t) >= 0; 
 // what it should say and the class is already where it should be, so the only
 // writes are the real changes — the first character into an empty block, and
 // the keystroke that breaks or restores a match.
-// Answers the tail its own heading's title should carry, so the two cannot
-// disagree about what the word says.
-function paintSent(w, txt) {
+// IT READS THE BOX, NEVER `paintBlockHead`'s `txt`, which on a story part is
+// the PART's own words rather than the prompt — the red word is about what is
+// about to be sent, which is the box. Answers the tail its own heading's title
+// should carry, so the two cannot disagree about what the word says.
+function paintSent(w) {
   var b = w.querySelector('.bfold'), sw = b && b.querySelector('.bsent');
-  if (txt == null) txt = normText(w.querySelector('.pblock').value);
   if (!sw) return '';
+  var txt = normText(w.querySelector('.pblock').value);
   // DRAWN ONLY WHERE THERE IS SOMETHING TO SEND: a block with no words is
   // neither sent nor unsent, and a red UNSENT over an empty box she has just
   // divided out is a label about nothing.
-  var did = !!txt && wasSent(txt);
+  var did = !!txt && wasSent(txt, w);
   setText(sw, txt ? (did ? 'sent' : 'unsent') : '');
   if (sw.classList.contains('on') !== !!txt) sw.classList.toggle('on', !!txt);
   return txt ? (did ? ' \u00b7 sent' : ' \u00b7 not sent yet') : '';
@@ -3891,10 +3981,17 @@ function paintBlockHead(w, n, of) {
   var b = w.querySelector('.bfold');
   if (!b) return;
   var shut = w.classList.contains('shut');
-  var txt = normText(w.querySelector('.pblock').value);
+  var txt = String(w.querySelector('.pblock').value || '').replace(/\s+/g, ' ').trim();
+  // A STORY PART IS NAMED AS ONE (2026-09-14) and its shut line is the story's
+  // own words for it, not the prompt's — the prompt is what she is writing,
+  // the words are what the part IS, and a folded part she is looking for is
+  // found by the latter.
+  var unit = unitOf(w), ut = String(utextOf(w) || '').replace(/\s+/g, ' ').trim();
+  w.classList.toggle('story', !!unit);
+  if (unit && ut) txt = ut;
   b.classList.toggle('shut', shut);
   b.setAttribute('aria-expanded', shut ? 'false' : 'true');
-  setText(b.querySelector('.bflab'), 'Block ' + n);
+  setText(b.querySelector('.bflab'), (unit ? 'Part ' : 'Block ') + n);
   // SHUT, IT SAYS WHAT IS IN THE BLOCK; open, the words are right there —
   // the archive summary's don't-say-it-twice rule, and the panel fold's own
   setText(b.querySelector('.lw'), shut && txt ? '\u00b7 ' + txt : '');
@@ -3910,11 +4007,12 @@ function paintBlockHead(w, n, of) {
     setText(cnt.querySelector('.n'), nr ? String(nr) : '');
     cnt.classList.toggle('on', nr > 0);
   }
-  // AND WHETHER THOSE WORDS HAVE GONE — one painter, so the word on the row
-  // and the word in the title can never disagree.
-  var tag = paintSent(w, txt);
-  b.title = (shut ? 'Open block ' : 'Fold away block ') + n + ' of ' + of
+  // AND WHETHER THE WORDS IN THE BOX HAVE GONE — one painter, so the word on
+  // the row and the word in the title can never disagree.
+  var tag = paintSent(w);
+  b.title = (shut ? 'Open ' : 'Fold away ') + (unit ? 'part ' : 'block ') + n + ' of ' + of
     + (nr ? ' with ' + nr + (nr === 1 ? ' reference' : ' references') : '') + tag;
+  paintHist(w);
 }
 function paintBlockHeads() {
   var ws = blocks();
@@ -3957,6 +4055,121 @@ function openBlock(box) {
   saveDraft();
   if (window.__fitPillGap) window.__fitPillGap();
 }
+// ── NEXT AND BACK THROUGH A PART'S OLD PROMPTS (2026-09-14, Sophie: "next
+// and back to see old prompts") ───────────────────────────────────────────
+// Every clip sent from a story block is tagged with the story and the part
+// (`story`/`unit` on the log, `words` for the block's own text before the
+// heads), and ONE read — `GET /jobs?story=<id>` over the whole log, never the
+// forty the feed holds — grouped by part is what the ‹ › on a block walk,
+// newest first. Position 0 is NOW, her draft, untouched; stepping back shows
+// the old prompt READ-ONLY in the box's place with the line under it saying
+// when it went and what came of it, and `use this` is the put-back — the
+// card's own `copyBack`, so the references and the settings ride with the
+// words and `undo` has what was there. Stepping never saves and never sends,
+// and the star REFUSES while an old prompt is showing: the star sends the box,
+// and the box is exactly what she cannot see then. A part nothing has been
+// sent from draws no row at all (the silence rule). It is re-read when she
+// comes back to the tool, throttled like the panels sweep, and a send this
+// page makes lands on its own part at once.
+var hist = {}, histAt = 0, HIST_RESWEEP = 20000;
+function histOf(w) { var u = unitOf(w); return (u && hist[u]) || []; }
+function histShown(w) { var l = histOf(w), p = w.__hpos || 0; return p > 0 && p <= l.length ? l[p - 1] : null; }
+function histWhen(iso) {
+  var d = new Date(iso || 0);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ', ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+}
+function histLine(c) {
+  var st = c.status === 'failed' ? (c.refused ? 'refused' : 'failed') : (c.status === 'done' ? 'drawn' : (c.status || 'sent'));
+  return 'sent ' + histWhen(c.sentAt) + (c.seconds ? ' \u00b7 ' + c.seconds + 's' : '') + (c.modelLabel ? ' \u00b7 ' + c.modelLabel : '') + ' \u00b7 ' + st;
+}
+function paintHist(w) {
+  var row = w.querySelector('.hrow'), past = w.querySelector('.hpast');
+  if (!row || !past) return;
+  var list = histOf(w), pos = w.__hpos || 0;
+  if (pos > list.length) pos = w.__hpos = 0;
+  row.hidden = !list.length;
+  w.classList.toggle('past', pos > 0);
+  // THE CORNER BUTTONS LEAVE WITH THE BOX — and stickybox has to be TOLD: a
+  // button it has pinned is `position:fixed` and measured off the wrap, which
+  // still has height (the old prompt's), so a display rule alone left the
+  // three floating over the words (PHOTOGRAPHED). `hidden` is what its
+  // evaluate() reads to let go.
+  var bs = w.querySelectorAll('.boxbtn');
+  for (var i = 0; i < bs.length; i += 1) bs[i].hidden = pos > 0;
+  if (window.__stickyBox && window.__stickyBox.sync) window.__stickyBox.sync();
+  if (!list.length) { past.hidden = true; return; }
+  row.querySelector('.hprev').disabled = pos >= list.length;
+  row.querySelector('.hnext').disabled = pos <= 0;
+  setText(row.querySelector('.hpos'), pos ? pos + ' of ' + list.length + ' sent' : 'now \u00b7 ' + list.length + ' sent');
+  past.hidden = !pos;
+  if (pos) {
+    var c = list[pos - 1];
+    setText(past.querySelector('.hwords'), c.words || c.prompt || '');
+    setText(past.querySelector('.hcard'), histLine(c));
+  }
+}
+function stepHist(w, dir) {
+  var list = histOf(w), pos = (w.__hpos || 0) + dir;
+  if (pos < 0 || pos > list.length) return;
+  w.__hpos = pos;
+  paintHist(w);
+  if (!pos) fitBox(w.querySelector('.pblock'));   // the box is back in the layout
+}
+// USE THIS PUTS THE OLD PROMPT BACK INTO THIS PART'S OWN BOX, IN PLACE — not
+// the feed card's put-back, which makes a NEW block at the end (her 2026-09-14
+// rule for a clip she is bringing back from the feed): here she is standing on
+// the part and has walked to one of ITS earlier prompts, and a copy of the part
+// at the end of the panel is not what "use this" means. What was in the box is
+// banked, so `undo` has it; the card's references, marks and settings ride
+// exactly as a put-back's do.
+function useHist(w) {
+  var c = histShown(w);
+  if (!c) return;
+  var wasJob = jobNow();
+  if (!jobEmpty(wasJob)) { bank = wasJob; saveBank(); }
+  w.__hpos = 0;
+  paintHist(w);
+  var back = (c.words && String(c.words).trim()) ? String(c.words) : String(c.prompt || '');
+  var job = { refs: (c.refs || []).map(function (r) { return { url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' }; }),
+    first: '', last: '', unit: unitOf(w), utext: utextOf(w) };
+  (c.refs || []).forEach(function (r) {
+    if (r.role === 'first') job.first = r.url;
+    if (r.role === 'last') job.last = r.url;
+  });
+  w.querySelector('.pblock').value = back;
+  setBlockJob(w, job);
+  if (isActive(w)) loadActive(); else setActive(w);
+  if (c.model && modelOf(c.model)) S.model = c.model;
+  if (c.seconds) S.seconds = c.seconds;
+  if (c.resolution) S.res = c.resolution;
+  if (c.ratio) S.ratio = c.ratio;
+  setSeed(c.seed);
+  openFold('refs'); openFold('ctl');
+  saveCtl(); saveDraft(); paintBlocks(); fitAll(); paintControls(true);
+  if (window.__fitBigPrompt) window.__fitBigPrompt();
+  var said = job.refs.length ? 'That prompt and its references are back' : 'That prompt is back';
+  if (!jobEmpty(wasJob)) said += ' \u2014 tap undo for what was here';
+  toast(said);
+}
+function loadHistory(force) {
+  // paintBlockHeads, never `forEach(paintHist)`: the history is also what the
+  // red SENT reads, so a sweep that only repainted the ‹ › row would leave a
+  // part that really has been sent reading UNSENT until something else
+  // repainted its heading.
+  if (!STORY || !STORY.id) { hist = {}; paintBlockHeads(); return Promise.resolve(); }
+  if (!force && Date.now() - histAt < HIST_RESWEEP) return Promise.resolve();
+  histAt = Date.now();
+  var id = STORY.id;
+  return api('/jobs?story=' + encodeURIComponent(id) + '&limit=300').then(function (d) {
+    if (!STORY || STORY.id !== id || !d || !Array.isArray(d.jobs)) return;
+    var h = {};
+    d.jobs.forEach(function (c) { if (!c || !c.unit) return; (h[c.unit] = h[c.unit] || []).push(c); });
+    Object.keys(h).forEach(function (k) { h[k].sort(function (a, b) { return String(b.sentAt || '').localeCompare(String(a.sentAt || '')); }); });
+    hist = h;
+    paintBlockHeads();
+  }).catch(function () {});
+}
 function mountBlock(w) {
   var box = w.querySelector('.pblock'), big = w.querySelector('.bigger'), div = w.querySelector('.divide');
   var off = w.querySelector('.wipeb'), head = w.querySelector('.bfold');
@@ -3986,6 +4199,11 @@ function mountBlock(w) {
   div.innerHTML = ICONS.divide;
   div.addEventListener('click', function () { divideBlock(box); });
   if (off) { off.innerHTML = ICONS.x; off.addEventListener('click', function () { dropBlock(box); }); }
+  var hp = w.querySelector('.hprev'), hn = w.querySelector('.hnext'), hu = w.querySelector('.huse'), hc = w.querySelector('.hcard');
+  if (hp) hp.addEventListener('click', function () { stepHist(w, 1); });
+  if (hn) hn.addEventListener('click', function () { stepHist(w, -1); });
+  if (hu) hu.addEventListener('click', function () { useHist(w); });
+  if (hc) hc.addEventListener('click', function () { var c = histShown(w); if (c && c.id) goToCard(c.id); });
   box.addEventListener('input', function (e) {
     // no beforeinput (an older engine, a synthetic event) → the safe road
     var grow = !full && !!(e && e.inputType) && e.inputType.indexOf('insert') === 0;
@@ -3993,7 +4211,7 @@ function mountBlock(w) {
     fitBox(box, grow); saveDraft(); typedInBlock();
     // the red word is about THESE words, so it is repainted as they change —
     // this block's alone, since typing in one says nothing about another's
-    paintSent(box.closest('.promptwrap'));
+    paintSent(w);
   });
   paint();
 }
@@ -4004,6 +4222,7 @@ function addBlock(text, after, job) {
   var w = document.createElement('div');
   w.className = 'promptwrap';
   w.innerHTML = '<button type="button" class="fold bfold" aria-expanded="true"><span class="chev"></span><span class="bflab">Block</span><span class="lw"></span><span class="bref"><span class="ic"></span><span class="n"></span></span><span class="bsent"></span></button>'
+    + HROW_HTML
     + '<textarea class="pblock" aria-label="Another block"></textarea>'
     + '<button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this block off" title="Take this block off — undo puts it back"></button>'
     + '<button type="button" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block; at the end, an empty one"></button>'
@@ -4172,7 +4391,9 @@ function joinJob(ja, jb) {
   });
   var first = ja.first || (have[jb.first] ? jb.first : '');
   var last = ja.last || (have[jb.last] && jb.last !== first ? jb.last : '');
-  return cleanJob({ refs: sortRefs(out), first: first, last: last });
+  // the joined block is the upper part's — a lower part joined up into it
+  // keeps that part's prompts reachable from the block its words are in
+  return cleanJob({ refs: sortRefs(out), first: first, last: last, unit: ja.unit || jb.unit, utext: ja.utext || jb.utext });
 }
 function joinAt(row) {
   var above = row.previousElementSibling, below = row.nextElementSibling;
@@ -4338,10 +4559,10 @@ function headLabel(w) {
 // setting, then the words she is sending. Blank line between, the join
 // mark's own shape, so a head and a joined block cannot read as two
 // different things.
-// THE HEADS COME OFF THE WAY THEY WENT ON — ONE COPY OF THAT RULE (2026-09-14),
-// read by the put-back and by the sent-bank a door word's re-send writes. Only
-// a prefix that IS the current heads is taken off; anything else is left
-// exactly as it went.
+// THE HEADS COME OFF THE WAY THEY WENT ON — ONE COPY OF THAT RULE
+// (2026-09-14), read by the put-back and by the sent-bank a door word's
+// re-send writes. Only a prefix that IS the current heads is taken off;
+// anything else is left exactly as it went.
 function stripHeads(text) {
   var back = String(text == null ? '' : text);
   headWords().forEach(function (t) { if (back.indexOf(t + '\n\n') === 0) back = back.slice(t.length + 2); });
@@ -4484,6 +4705,11 @@ function clearErr() { var el = $('err'); el.hidden = true; el.textContent = ''; 
 function postJob(pin, box, resend) {
   // the block she is in and its own strip, or every block appended and theirs
   var words = box.value;
+  // AN OLD PROMPT ON SCREEN IS NOT THE ONE THE STAR WOULD SEND (2026-09-14):
+  // the star sends the box, and the box is what she cannot see while a past
+  // prompt is showing in its place — so it refuses and says which tap sends.
+  var pw = box && box.closest ? box.closest('.promptwrap') : null;
+  if (!resend && pw && pw.__hpos > 0) { toast('That is an old prompt \u2014 tap "use this" to send it, or \u203a back to now'); return Promise.resolve(false); }
   var sendRefs = orderedRefs();
   var sendFirst = firstUrl;
   var sendLast = lastUrl;
@@ -4497,6 +4723,12 @@ function postJob(pin, box, resend) {
   // and the log, the card and the 1080p redo all carry the exact text that
   // went, which is the exact-prompt rule.
   var prompt = resend ? resend.prompt : withHeads(words);
+  // WHAT THE HEADING'S RED WORD WILL BE ABOUT: the block's own words, never
+  // the prompt that leaves. A door word re-sends the EXACT body that was
+  // refused rather than the page as it stands (she may have typed since), so
+  // its bank is read off that body — its own `words` when the log carries
+  // them, else the prompt with the heads taken back off.
+  var sentWords = resend ? (resend.words || stripHeads(resend.prompt)) : words;
   var body = resend ? Object.assign({}, resend, { door: pin || doorNow() })
     : { prompt: prompt, model: S.model, seconds: S.seconds, resolution: S.res, ratio: S.ratio,
       sound: true, door: pin || doorNow(), refs: sendRefs, project: S.project, folder: S.project ? S.folder : '' };
@@ -4508,13 +4740,13 @@ function postJob(pin, box, resend) {
   if (!resend && sendLast) body.lastFrameUrl = sendLast;
   // blank means nothing is sent, and the door mints one — never a remembered seed
   if (!resend && seedVal()) body.seed = Number(seedVal());
-  // WHAT THE BANK RECORDS IS THE BLOCK'S OWN WORDS — the scene, without the
-  // two heads the send puts on top of it — so the heading's word answers the
-  // block she is looking at rather than the prompt that left. A door word
-  // re-sends the EXACT body that was refused rather than the page as it stands
-  // (she may have typed since), so its bank is read off that body and never
-  // off the box.
-  var sentWords = resend ? stripHeads(body.prompt) : words;
+  // WHICH STORY AND WHICH PART (2026-09-14) — the story, the part and the
+  // block's own words before the heads, so the log can be walked per part. A
+  // resend already carries them from the body that was refused.
+  if (!resend && STORY && STORY.id) {
+    body.story = STORY.id;
+    if (unitOf(pw)) { body.unit = unitOf(pw); body.words = words; }
+  }
   return api('/jobs', { method: 'POST', body: JSON.stringify(body) }).then(function (d) {
     if (!d || !d.jobId) {
       var msg = (d && d.error) || 'Could not start';
@@ -4569,6 +4801,7 @@ function postJob(pin, box, resend) {
       // the door answers with the seed it really used — hers, or the one it
       // minted — so the card carries it without waiting for the first poll
       seed: d.seed != null ? d.seed : null, project: body.project, folder: body.folder,
+      story: body.story || '', unit: body.unit || '', words: body.words || '',
       sentAt: new Date().toISOString(), note: d.note || '', video: '', poster: '', vote: '' });
     // AN APPENDED SEND SAYS SO — "block 1" over a clip carrying all three
     // would be the toast lying about which words went.
@@ -4579,17 +4812,23 @@ function postJob(pin, box, resend) {
     var hid = !(passesSearch(card) && passesFilt(card))
       || (likedOnly() && card.vote !== 'like') || (hideX() && card.vote === 'dislike');
     justSent[d.jobId] = 1;
-    applyFilt();
-    toast((blocks().length > 1 ? 'Drawing block ' + (blocks().indexOf(box.closest('.promptwrap')) + 1) + '…' : 'Drawing…')
-      + (hid ? ' · shown here though it is outside your search' : ''));
-    // THE HEADING SAYS SO NOW (2026-09-14, Sophie: "add a red 'sent' or
-    // 'unsent' to top of collapsed block"). Banked before the draft is written
-    // so the word rides `footage_draft` beside the words it belongs to, which
-    // is what carries it through a reload and through the page's own self-heal
-    // — the reload she actually meets.
+    // …and it is the newest of its part's prompts from this moment, without
+    // waiting on the next read of the story's log
+    if (body.unit) { (hist[body.unit] = hist[body.unit] || []).unshift(card); if (pw) paintHist(pw); }
+    // AND THE HEADING SAYS SO (2026-09-14, Sophie: "add a red 'sent' or
+    // 'unsent' to top of collapsed block"). A story part will read it off its
+    // own history on the next sweep; the bank is what answers for an ordinary
+    // block, which has no part to read, and for the seconds in between. What
+    // is banked is the block's OWN words, without the two heads the send puts
+    // on top of them — `body.words` already is that where the log carries it.
+    // Banked before the draft is written, so it rides `footage_draft` beside
+    // the words it belongs to and survives a reload and the page's self-heal.
     markSent(sentWords);
     paintBlockHeads();
     saveDraft();
+    applyFilt();
+    toast((blocks().length > 1 ? (unitOf(pw) ? 'Drawing part ' : 'Drawing block ') + (blocks().indexOf(box.closest('.promptwrap')) + 1) + '…' : 'Drawing…')
+      + (hid ? ' · shown here though it is outside your search' : ''));
     // her words STAY in the box after a send (a re-roll is one tap), and so
     // does the draft — it used to be wiped here while the box still showed
     // the words, so a reload right after a send opened on an empty box
@@ -5770,11 +6009,16 @@ function copyBack(j) {
   // the two head boxes still held their own copy, and the next star sent the
   // cast and the room twice. Only a prefix that IS the current heads is taken
   // off; anything else is left exactly as it went.
-  var back = stripHeads(j.prompt);
+  // …AND THE LOG'S OWN `words` WIN WHEN IT HAS THEM (2026-09-14): a clip sent
+  // from a story block files the block's text before the heads, so nothing
+  // has to be guessed off a prefix.
+  var back = (j.words && String(j.words).trim()) ? String(j.words) : stripHeads(j.prompt);
   // AND THE BLOCK READS AS SENT: those words came off a clip that really drew,
   // so a put-back is not a shot waiting to go. Editing a word flips it to
   // UNSENT, which is exactly the signal a put-back-and-tweak wants. Banked
-  // before `saveDraft` below, so it rides the draft with the words it is about.
+  // before `saveDraft` below, so it rides the draft with the words it is
+  // about — a story part would read it off its own history anyway, and an
+  // ordinary block has only this.
   markSent(back);
   // the card's own strip, marks included: a clip drawn off a first frame comes
   // back with that picture still marked. `cleanJob` (through `setBlockJob` and
@@ -5888,7 +6132,44 @@ function takeHandoff() {
   var bl = Array.isArray(h.blocks)
     ? h.blocks.filter(function (t) { return typeof t === 'string' && t.trim(); })
     : null;
-  setBlocks(bl && bl.length ? bl : [h.prompt]);
+  // A STORY'S HAND-OFF BINDS THE STORY (2026-09-14): one block per PART, keyed
+  // by the part's first moment id. The SAME story sent again MERGES — a part
+  // she already has keeps the prompt she wrote here, its pictures and its
+  // fold (sub-blocks she divided out of it included), a new part comes in
+  // with its words, a part gone from the story goes, and the order is the
+  // story's. A different story, or a belt scene, replaces as it always did.
+  var st = h.story && typeof h.story === 'object' && typeof h.story.id === 'string' && h.story.id ? h.story : null;
+  var units = st && Array.isArray(h.units)
+    ? h.units.filter(function (u) { return u && typeof u.key === 'string' && u.key && typeof u.text === 'string' && u.text.trim(); })
+    : [];
+  var fresh = null;   // per block after setBlocks: does the hand-off's strip land on it
+  if (units.length) {
+    var have = {};
+    if (STORY && STORY.id === st.id) {
+      blocks().forEach(function (w) {
+        var k = unitOf(w);
+        if (!k) return;
+        (have[k] = have[k] || []).push({ text: w.querySelector('.pblock').value, job: cleanJob(jobOf(w)), shut: w.classList.contains('shut') });
+      });
+    }
+    var texts = [], jobs = [], shuts = [];
+    fresh = [];
+    units.forEach(function (u) {
+      var mine = have[u.key];
+      if (mine) {
+        mine.forEach(function (b) { b.job.utext = u.text; texts.push(b.text); jobs.push(b.job); shuts.push(b.shut); fresh.push(false); });
+      } else {
+        texts.push(u.text); jobs.push({ refs: [], first: '', last: '', unit: u.key, utext: u.text }); shuts.push(false); fresh.push(true);
+      }
+    });
+    STORY = { id: st.id, title: String(st.title || h.title || 'A story').slice(0, 200) };
+    setBlocks(texts, jobs);
+    blocks().forEach(function (w, i) { if (shuts[i]) w.classList.add('shut'); });
+    paintBlockHeads();
+  } else {
+    STORY = null;
+    setBlocks(bl && bl.length ? bl : [h.prompt]);
+  }
   if (Array.isArray(h.refs)) {
     var seen = {};
     refs = [];
@@ -5925,7 +6206,13 @@ function takeHandoff() {
   // any of them — so each block carries the same strip, which is exactly what
   // a hand-off meant while the strip was shared. Taking one off a block that
   // does not need it is a tap.
-  blocks().forEach(function (w) { setBlockJob(w, { refs: refs, first: firstUrl, last: lastUrl }); });
+  // — and on a story sent again, only on the parts that are NEW here: a part
+  // she already has keeps the pictures she attached to it.
+  blocks().forEach(function (w, i) {
+    if (fresh && !fresh[i]) return;
+    var j = blockJob(w);
+    setBlockJob(w, { refs: refs, first: firstUrl, last: lastUrl, unit: j.unit, utext: j.utext });
+  });
   loadActive();
   // THE SEED IS THE HAND-OFF'S OR NOTHING (2026-09-13, found auditing the
   // page). The marks beside it were already reset unconditionally and this
@@ -5938,7 +6225,13 @@ function takeHandoff() {
   openFold('panel'); openFold('refs'); openFold('ctl');
   saveCtl(); saveDraft(); paintControls(true); paintRefs();
   if (window.__fitBigPrompt) window.__fitBigPrompt();
-  toast(h.title ? 'From the belt: ' + h.title : 'From the belt');
+  if (STORY && units.length) {
+    paintFolds();
+    loadHistory(true);
+    toast('From the story: ' + STORY.title + ' \u00b7 ' + blocks().length + (blocks().length === 1 ? ' part' : ' parts'));
+  } else {
+    toast(h.title ? 'From the belt: ' + h.title : 'From the belt');
+  }
   handoffProject(h);
 }
 // A HAND-OFF SWITCHES THE PROJECT (the plan's first automatic case). A belt
@@ -5962,7 +6255,7 @@ function adoptProject(p, name, folder) {
   // a belt may name a sub-folder too; a project switch alone leaves the folder at All
   setProject(p, { force: true, folder: folderSlug(folder) });
 }
-document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') takeHandoff(); });
+document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { takeHandoff(); loadHistory(); } });
 window.addEventListener('pageshow', function () { takeHandoff(); });
 // e.key is null when a document called clear() — never a hand-off
 window.addEventListener('storage', function (e) { if (e && e.key === HANDOFF_KEY && e.newValue) takeHandoff(); });

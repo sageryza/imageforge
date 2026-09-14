@@ -73,7 +73,11 @@ const server = http.createServer((req, res) => {
         ratios: F.RATIOS, sizes: F.SIZES, fee: F.OR_FEE });
     }
     if (u.pathname === '/api/footage/estimate') return json({ ok: true, cents: 4.4, door: 'atlascloud', exact: true });
-    if (u.pathname === '/api/footage/jobs' && req.method === 'GET') return json({ ok: true, jobs });
+    if (u.pathname === '/api/footage/jobs' && req.method === 'GET') {
+      // the story-scoped read `loadHistory` makes — the part's own sent clips
+      const story = u.searchParams.get('story') || '';
+      return json({ ok: true, jobs: story ? jobs.filter((j) => j.story === story) : jobs, more: false, folders: {} });
+    }
     if (u.pathname === '/api/footage/jobs' && req.method === 'POST') {
       const b = JSON.parse(body);
       // A CONTENT REFUSAL: nothing drew, nothing was charged — and nothing may
@@ -84,7 +88,8 @@ const server = http.createServer((req, res) => {
       }
       posted.push(b);
       const id = 'j' + posted.length;
-      jobs.unshift({ id, prompt: b.prompt, model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', seconds: b.seconds,
+      jobs.unshift({ id, prompt: b.prompt, words: b.words || '', unit: b.unit || '', story: b.story || '',
+        model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', seconds: b.seconds,
         resolution: b.resolution, ratio: b.ratio, sound: true, refs: [], status: 'done',
         video: '', poster: '', seed: 7, sentAt: new Date().toISOString(), estimate: 4.4, vote: '' });
       return json({ ok: true, jobId: id, door: 'atlascloud', fellBack: false, estimate: 4.4, seed: 7 }, 202);
@@ -303,6 +308,50 @@ const RED = 'rgb(160, 64, 42)';
   ok('the clip came back into a block of its own', back.length === 1);
   ok('and it reads SENT — "' + (s.mark[back[0].i] || {}).words + '"',
     back.length === 1 && s.mark[back[0].i].words === 'sent');
+
+  // ── 11. A STORY PART READS IT OFF THE SERVER, WITH NO LOCAL BANK AT ALL ──
+  // The better of the two sources: #2404 tags every send from a story part with
+  // the part and the block's own `words`, and `loadHistory` reads that back over
+  // the whole log. So a part reads SENT on a phone that never sent it — which is
+  // the case the local bank can never answer, and the reason this runs in a
+  // FRESH context (a bank carried over would pass it either way).
+  const story = { id: 'st1', title: 'The ward at night' };
+  const units = [
+    { key: 'm1', ids: ['m1'], text: 'she wakes in the ward and the nurse is at the door' },
+    { key: 'm4', ids: ['m4'], text: 'the corridor, and the light at the far end of it' },
+    { key: 'm7', ids: ['m7'], text: 'the office, and the chair pulled out from the desk' },
+  ];
+  // one clip already sent from PART 2, by someone else, before this page existed
+  jobs.unshift({ id: 'old1', prompt: 'x', words: units[1].text, unit: 'm4', story: 'st1',
+    model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', seconds: 4, resolution: '480p',
+    ratio: '3:4', sound: true, refs: [], status: 'done', video: '', poster: '', seed: 7,
+    sentAt: new Date(Date.now() - 6e5).toISOString(), estimate: 4.4, vote: '' });
+
+  const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const p2 = await ctx2.newPage();
+  const errors2 = [];
+  p2.on('pageerror', (e) => errors2.push(String(e)));
+  await p2.goto(base + '/footage');
+  await p2.evaluate((h) => localStorage.setItem('footage_handoff', h),
+    JSON.stringify({ prompt: units[0].text, blocks: units.map((u) => u.text), from: 'timeline',
+      title: story.title, story, units, at: Date.now() }));
+  await p2.goto(base + '/footage');
+  await p2.waitForFunction(() => document.querySelectorAll('#ratio option').length > 0);
+  await p2.waitForTimeout(700);
+  let t = await p2.evaluate(read);
+  ok('the story landed as three parts', t.n === 3);
+  ok('nothing is in this phone\'s bank', !Array.isArray(t.draft.sent) || !t.draft.sent.length);
+  ok('the part someone else sent reads SENT off the log — "'
+    + t.mark.map((m) => m.words).join('" / "') + '"',
+    t.mark[0].words === 'unsent' && t.mark[1].words === 'sent' && t.mark[2].words === 'unsent');
+  ok('and it is the same red', t.mark[1].color === RED);
+  // and it is still the WORDS, not the part: rewriting the prompt flips it,
+  // even though the part it is bound to has not moved
+  await p2.evaluate(writeIn, { i: 1, text: units[1].text + ' and a trolley against the wall' });
+  await p2.waitForTimeout(300);
+  t = await p2.evaluate(read);
+  ok('rewriting that part\'s prompt flips it back — "' + t.mark[1].words + '"', t.mark[1].words === 'unsent');
+  ok('no page errors on the story page — ' + errors2.join(' | '), errors2.length === 0);
 
   ok('no page errors — ' + errors.join(' | '), errors.length === 0);
 

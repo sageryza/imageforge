@@ -683,19 +683,46 @@ LIST ITEMS in your replies, `kind:'item'`; answer those with `POST
   what let six of them pile up (2026-09-14).
 - **Measure, never reason, about other sessions or the environment.**
 
-**Writing the reply** — **SHORT BY DEFAULT** (a few short paragraphs; only
-what changes what she does next — detail goes behind "want the long version?"
-or into the PR description) · TLDR first · answer her questions before
-anything else, **each answered ONCE** · **did she MARK a question ("i have a
-question" / "quick question" / "file this")? then repeat THAT question in bold
-on its own line and answer under it — otherwise never echo a question back**
-(see *Answering a question*; the bare word alone is not the mark) · small
-question, short answer · **asking HER something? plain text, never the
-questions/option-picker UI** (2026-08-28, her rule) · full clickable links · no markdown tables · times in 12-hour
-Pacific · files and images LAST · **WORKING LINKS PINNED AT THE TOP of the
-reply, never the bottom** (2026-09-14, her rule) · **NEVER LINK HER TO A CHAT**
-— no `/chats?chat=<slug>`, in a briefing or anywhere else (same day) ·
-**fixed a bug? the link to the surface it shows on is at the TOP** (3h).
+**WRITING THE REPLY — A CAP, NOT A MOOD (2026-09-14, Sophie: "we need more
+concise messages · the example is wayyy too long · no link to pr either · make
+it more strict").** Measured the hour she said it, over the 175 newest replies
+in her feed: **median 601 characters, 56 over 1,000; 74 replies said "merged"
+and 22 of them linked the PR.** The rules, in order of how often they are
+broken:
+1. **NO WORDS BETWEEN TOOL CALLS.** The hook posts the joined text of EVERY
+   assistant block in the turn as ONE reply (`post-to-feed.sh`: "each turn =
+   the joined text of every assistant text block"), so "Now the JS…",
+   "Green. Now a test…", "Pushing and opening the PR." all land in front of
+   her, above the answer. Write nothing until the work is done, then one
+   message. This overrides the harness's own "brief updates while you work".
+2. **THE CAP IS 600 CHARACTERS — about five short lines — and only SHE lifts
+   it** ("long version", "explain", "details", "why"). Aim under 400. A reply
+   that needs more is a reply carrying something from the OUT list below.
+3. **THE SHAPE, and nothing that is not one of these lines:**
+   - **the links FIRST, full and clickable** (2026-09-14, her rule: pinned at
+     the top, never the bottom): the surface the change shows on (3h), then
+     **the PR, last in that block — on EVERY reply that opened, pushed to or
+     merged one**, no exceptions (that is the 22-of-74 above). **Never a
+     `/chats?chat=` link**, to any chat, yours included;
+   - what changed, in her words, one or two sentences;
+   - her questions answered, each ONCE (a question she MARKED — "i have a
+     question" / "quick question" / "file this" — is repeated in bold on its
+     own line and answered under it; otherwise never echo one back);
+   - money spent this turn — only if any;
+   - what you need from her — only if anything, one line, with the size of
+     the ask;
+   - the state, one line: merged or not, deployed or not.
+4. **OUT, always** — it goes in the PR description, the commit or this file
+   (*DON'T HAND HER YOUR FINDINGS*): what you left alone and why, how it
+   works, what you measured, test counts, the alternatives, "two things to
+   know", a "where to look" list when one link does it, restated plans,
+   closing recaps, next-step menus, offers she did not ask for.
+5. **A WAKE THAT WAS YOUR OWN PR's ECHO (CI green, your merge landing) gets
+   ONE line at most** — three replies saying "nothing to do" in a minute is
+   what she reads as a chat talking to itself.
+Still standing, unchanged: no markdown tables · times in 12-hour Pacific ·
+files and images LAST · **asking HER something? plain text, never the
+questions/option-picker UI** · small question, short answer.
 
 ## Where everything is
 
@@ -6153,7 +6180,10 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   like "file this", earns the bold echo; everything else is answered plainly).
   This bullet used to restate the gate and drifted a day behind it — the rule
   is there, this is the pointer.
-- **SHORT REPLIES BY DEFAULT — every reply, not just small questions (Aug
+- **SHORT REPLIES BY DEFAULT — and since 2026-09-14 a HARD CAP: 600
+  characters, no words between tool calls, the PR link on every reply that
+  touched one. The cap and the shape live in ONE place, *WRITING THE REPLY*
+  in the checklist at the top; this bullet is the history.** (Aug
   2026, Sophie: "a lot of my responses are really long and it's actually
   annoying cause I don't wanna read through it all").** The default reply is a
   few short paragraphs: the TLDR, her questions answered, and only the facts
@@ -9126,11 +9156,21 @@ before working on that module. Nothing was deleted — the moved text is verbati
   page knew and said nowhere. **IT IS THE WORDS THAT WENT, NEVER A FLAG ON THE
   BLOCK** — the Playground's `promptlab_panels_drawn_<g>` rule ("the EXACT
   array that was sent, so editing one box after a draw makes that grid undrawn
-  again"): a send banks its text and a heading asks whether its own words are
-  in that bank, so the mark is position-independent by construction and a
-  divide, a join, a removal and a reorder need no bookkeeping at all (dividing
-  a sent block leaves both halves UNSENT, which is right — neither half is the
-  clip that went). Six things not to undo: it rides the heading **OPEN OR
+  again"): the question is only ever *are the words in this box words that have
+  gone*, so the mark is position-independent by construction and a divide, a
+  join, a removal, a reorder, a put-back and `use this` need no bookkeeping at
+  all (dividing a sent block leaves both halves UNSENT, which is right — neither
+  half is the clip that went).
+  **TWO SOURCES ANSWER IT, AND THE SERVER'S IS THE BETTER ONE.** A story part's
+  own `hist` — every clip sent from that part, read off the log by
+  `loadHistory`, whose `words` is the block's text before the heads — so a part
+  reads SENT on a phone that never sent it and after a page's whole life has
+  been forgotten; the local bank (`sentTexts`, riding the draft) is the fallback
+  for an ORDINARY block, which has no part and so no history to read, and for
+  the seconds between a send and the next sweep. The union can only ever ADD a
+  SENT, never take one away, and `loadHistory` calls `paintBlockHeads` rather
+  than `forEach(paintHist)` — a sweep that only repainted the ‹ › row would
+  leave a part that really has been sent reading UNSENT. Six things not to undo: it rides the heading **OPEN OR
   SHUT**, like the reference count beside it (the don't-say-it-twice rule only
   bites where the thing is right there on screen, and nothing in an open box
   says whether it was sent); **a block with no words is neither** and draws
@@ -9139,15 +9179,19 @@ before working on that module. Nothing was deleted — the moved text is verbati
   cannot see is not an edit); **a REFUSAL banks nothing** — nothing drew and
   nothing was charged; a **PUT-BACK reads SENT**, because those words came off
   a clip that really drew, so a put-back-and-tweak flips the moment she changes
-  a word; and **`clear` leaves the bank alone**, so the undo hands her blocks
+  a word (and so does `use this` off the ‹ › walk); and **`clear` leaves the
+  bank alone**, so the undo hands her blocks
   back still knowing which of them went. What is banked is the block's own
   words **without the two heads** the send puts on top of them (`stripHeads`,
   ONE copy of that rule, shared with the put-back), and a door word's re-send
   banks the body that was REFUSED rather than the box, since she may have typed
-  since. It rides the DRAFT beside the words it is about, like `shut`, so it
+  since. The bank rides the DRAFT beside the words it is about, like `shut`, so it
   survives a reload and the page's own self-heal; it is the page's own red
   (`#a0402a`, the refusal line's) and never a second one; `margin-left:auto`
-  puts it at the end of its own heading in both fold states; and the mark has
+  puts it at the end of its own heading in both fold states; **`paintSent`
+  reads the BOX and never `paintBlockHead`'s `txt`**, which on a story part is
+  the PART's own words rather than the prompt (the red word is about what is
+  about to be sent); and the mark has
   **its own painter** (`paintSent`) so a keystroke can repaint it without
   walking every heading and every join row — an ordinary keystroke writes
   nothing at all (the 2026-09-12 typing rule). Full
@@ -9190,6 +9234,57 @@ before working on that module. Nothing was deleted — the moved text is verbati
   nothing at all. Full note: *CHARACTERS, THEN SETTING* in
   `docs/modules/audio-and-film.md`; test
   `node scripts/test-footage-heads.js`.
+  **A BLOCK IS A STORY PART, AND ‹ › WALK THE PROMPTS ALREADY SENT FOR IT
+  (2026-09-14, Sophie: "replace footage blocks w story blocks, next and back
+  to see old prompts").** The Story Timeline's Send to Footage carries the
+  story by id and one entry per connected part (`story: {id, title}`,
+  `units: [{key, ids, text}]`, `key` = the part's FIRST moment id — it
+  survives a reorder and a join, and a split makes a new part with a new key);
+  Footage binds the page to the story (`STORY`, on the draft) and each block
+  to its part (`unit` + the story's own words `utext` on the block's job, so
+  every path that already carries a strip — a divide, a join, the draft, the
+  bank, a put-back — carries the part with it). A block's heading says
+  **Part N** and, shut, the STORY's words for it rather than the prompt's; the
+  panel row names the story; a one-part story still draws its heading. **THE
+  SAME STORY SENT AGAIN MERGES** — a part she already has keeps the prompt she
+  wrote here, its pictures and its fold (sub-blocks she divided out of it
+  included), a new part comes in with its words, a part gone from the story
+  goes (the whole job is banked first, `undo` has it), and the order is the
+  story's; a different story, or a belt scene, replaces as it always did and a
+  belt scene unbinds. Nothing writes back to the story — the Story Timeline
+  is where the story is edited. **EVERY SEND FROM A STORY BLOCK IS TAGGED**:
+  `story`, `unit` and `words` (the block's own text BEFORE the two heads) ride
+  the body the way `project` does, the doors file them on the log doc
+  (`video-log.js` whitelists the first two, caps `words` at 4000; a REFUSED
+  send keeps them too), `cardOf` answers them and `GET /jobs?story=&unit=`
+  filters over the whole log before the page is cut (a story is asked by
+  name, so a tucked project does not narrow it). An appended All send carries
+  the story only — it spans parts. **THE WALK** is one read per story
+  (`loadHistory`, `/jobs?story=<id>&limit=300`, grouped by part, newest first;
+  on bind, on load, and on coming back to the tool throttled like the panels
+  sweep; a send this page makes lands on its own part at once) drawn as a
+  small `‹ now · 3 sent ›` row under the heading of a part that has been sent
+  from and NOWHERE else (the silence rule). ‹ shows the old prompt READ-ONLY
+  in the box's place — the box and its corner buttons leave the layout, and
+  stickybox is told (`hidden`, then `sync()`), because a pinned button is
+  `position:fixed` and went on floating over the words (PHOTOGRAPHED) — with
+  one line under it (`sent Sep 14, 10:34 pm · 4s · 2.0 Mini · drawn`, a tap
+  goes to that clip's card) and **use this**, which is the card's own
+  `copyBack` (the references and the settings ride, `undo` has what was
+  there; `stay:true` keeps her where she is). `copyBack` puts back `words`
+  when the log has them — the whole `prompt` carries the heads, and a box the
+  heads are prepended to again would send them twice. Stepping never saves and
+  never sends, and **the star REFUSES while an old prompt is showing** (the
+  star sends the box, which is exactly what she cannot see then). Not built:
+  editing a part's words back into the timeline, history for a plain (non-
+  story) block, a belt scene's hand-off carrying a story. Tests: `node
+  scripts/test-footage-story-blocks.js` (the real page headless against a stub
+  that files what it receives — every assertion a MEASUREMENT: the parts and
+  their keys, what a send really carried, the merge keeping her prompt, the
+  old prompt read back off the log after a reload, the box really out of the
+  layout, the star's refusal, `use this` and its bank, a belt scene unbinding,
+  a plain page unchanged) plus the story rows of `test-timeline.js` and
+  `test-video-log.js`.
   **AND A STORY TIMELINE STORY COPIES OVER, ONE CONNECTED PART PER BLOCK
   (2026-09-13, Sophie: "how do i copy a story to footage · each connected part
   its own section · lines breaks back").** A **Send to Footage** link on an open
@@ -11727,7 +11822,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **SEND TO FOOTAGE — one connected part is one block (2026-09-13).** A link
   on an open story hands the whole story to `/footage`: one block per UNIT, the
   moments inside one joined by a newline each. Full rules under *DIVIDE HERE* in
-  the Footage bullet; nothing is sent, the star is still her tap.
+  the Footage bullet; nothing is sent, the star is still her tap. **And since
+  2026-09-14 the hand-off carries the story by id and its parts by key** (a
+  part's first moment id), so Footage binds its blocks to the story's parts,
+  merges a second send onto the prompts she wrote there, and walks every prompt
+  already sent for a part — *A BLOCK IS A STORY PART* in the Footage bullet.
   **HER WORDS GO ON THE TIMELINE EXACTLY AS SHE SENT THEM — NEVER ADD, DELETE,
   SPLIT, REGROUP OR REORDER A LINE (2026-09-06, Sophie: "did u add delete or
   change my words" · "if so undo" · "add to docs never do this").** The chat
