@@ -13350,6 +13350,16 @@ before working on that module. Nothing was deleted — the moved text is verbati
     nothing, one deploy is one pair, and a mark nobody consumed goes stale
     instead of buzzing her a week later. Gated on `RENDER_EXTERNAL_URL`, or a
     dev container booting server.js eats her notification.
+  - **AND A `__`-PREFIXED DOC IS NEVER PUSHED TO — found in the LIVE log the
+    hour this shipped (2026-09-14).** The mark lives in the DEVICES collection,
+    so `sendAll` pushed to it, Apple refused it (`BadDeviceToken`), and the
+    mark was **deleted as a dead token by the very "start" push that had just
+    written it** — the "back up" buzz on the next boot then found nothing. It
+    did it SILENTLY, because removing a dead token is exactly what that code is
+    for, and it fired on one deploy and not the next (the race between the two
+    writes). `loadDevices` skips a `__`-prefixed id and anything carrying no
+    real token; the undeployed-count mark lives in the same doc and had the
+    same hole.
   - **IT NAMES NO CHAT, deliberately** — `PushDelegate` opens the chat a push
     names and there is no chat here; with none it lands on the Update tab,
     which is the right room and needs no TestFlight build. It carries its own
