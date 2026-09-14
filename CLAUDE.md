@@ -12275,6 +12275,28 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **FOLDERS CONTAIN ALBUMS — they never merge them** (a folder is the `track`
   field; filing an album moves nothing inside it). `photoIndex` comes from a
   transaction, never from counting — that is the bug that scrambled album order.
+  **WHAT A DUMPED CLIP SAYS IS TRANSCRIBED ONCE, EVER —
+  `node scripts/transcribe-media.js` (2026-09-14, Sophie: "transcribe w
+  whisper, cache it").** She shoots takes on her phone, dumps them, and then
+  wants to know what she said in each without opening every clip. whisper-1 is
+  ~0.6¢ a minute and a take gets read many times, so the answer is banked:
+  **`transcripts/<sha1(source url)>.json`** in Storage (text, word timestamps,
+  segments), and the Dump is content-addressed, so the same bytes in two albums
+  are ONE cache entry by construction. Asking twice costs nothing. **Two
+  mirrors, both deliberate:** the word list is ALSO written to
+  `scratchpad/take-words/<the same key>.json` — the Story Room's own take cache
+  — so a story whose voiceover IS that take renders with no transcription at
+  all; and `transcript`/`transcriptAt` go on the file's `forge-drops` doc so a
+  reader can SHOW what a clip says without fetching the cache (the words stay in
+  Storage — a long take is thousands of them and the doc rides a list read).
+  Her file is never touched: a throwaway 16k mono mp3 is what whisper gets. A
+  file with **no audio track caches as `silent`** rather than being retried
+  forever. `--session`/`--bundle` sweeps a whole album, `--dry` is free and says
+  what it would do, `--force` re-transcribes. Measured the day it landed: the
+  whole `footage` bundle — 14 clips, 113s — cost **1.1¢**. Test:
+  `node scripts/test-transcribe-media.js` (the cache key and the Story Room
+  mirror pinned against the REAL expressions in both files, since a drifted key
+  is invisible — it just pays twice).
   **Full details: `docs/modules/inbox-and-misc.md`.**
 - **THE UPDATE BUTTON** (`brief.js`, `/api/brief`, page at `/brief`, the
   **Update** row at the top of the Chats app's UPDATE tab) — Aug 2026,
