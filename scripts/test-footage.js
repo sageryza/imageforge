@@ -1736,15 +1736,29 @@ async function pillSweep(pg, where) {
     };
     requestAnimationFrame(tick);
   }));
+  // AND IT LANDS UNDER THE PINNED BAR, NOT BEHIND IT (2026-09-14). The feed
+  // bar is sticky, so the top of the screen is not the top of the gallery:
+  // the card is measured against the bar's own bottom edge and asked with
+  // `elementFromPoint`, because a card scrolled to y=12 is "on screen" by
+  // every rect assertion and is sitting behind the controls.
   const landed = await page.evaluate(() => {
-    const r = document.getElementById('job-old1').getBoundingClientRect();
+    const el = document.getElementById('job-old1');
+    const r = el.getBoundingClientRect();
+    const bar = document.getElementById('feedbar');
+    const br = bar && !bar.hidden ? bar.getBoundingClientRect() : null;
     const doc = document.documentElement;
+    const hit = document.elementFromPoint(Math.round(r.x + r.width / 2), Math.round(r.top + 6));
     return { top: Math.round(r.top), view: window.innerHeight, y: Math.round(window.scrollY),
+      barBottom: br ? Math.round(br.bottom) : 0,
+      clear: !!(hit && hit.closest('#job-old1')),
       atEnd: Math.round(window.scrollY + window.innerHeight) >= doc.scrollHeight - 2,
-      found: document.getElementById('job-old1').classList.contains('found') };
+      found: el.classList.contains('found') };
   });
   ok('the window lands ON the card she tapped ' + JSON.stringify(landed),
-    landed.top >= -2 && landed.top < landed.view - 40 && (landed.top <= 40 || landed.atEnd));
+    landed.top >= -2 && landed.top < landed.view - 40
+    && (landed.top <= landed.barBottom + 40 || landed.atEnd));
+  ok('and its top edge is clear of the pinned bar, not behind it',
+    landed.atEnd || (landed.top >= landed.barBottom && landed.clear));
   ok('and it flashes so she can see which one it is', landed.found);
   ok('the flash then leaves the card alone',
     await page.evaluate(() => new Promise((res) => setTimeout(

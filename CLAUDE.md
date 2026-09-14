@@ -8578,6 +8578,34 @@ before working on that module. Nothing was deleted — the moved text is verbati
   times to end with N cells (measured on a first load of 40 clips: 39 wipes,
   820 cells created for the 40 that stayed). Only a BATCH is deferred — a
   vote, a new job and a view switch still paint on the spot.
+  **AND THE BAR IT LIVES ON IS ALWAYS ON SCREEN (2026-09-14, Sophie: "tiles/
+  list bar shud be always visible - either under the prompt, or sticky/pinned
+  in gallery").** It sat in the flow between the panel and the feed, so the
+  one row that says how the gallery is READ — the switch, the ♥/✕ marks, the
+  glass and the project picker — scrolled away the moment she was reading the
+  gallery: switching to tiles or narrowing to a folder meant scrolling the
+  whole feed back up first. It is `position:sticky` at `--headtop`, the second
+  of her two seats and the only one that is true all the way down (under the
+  prompt leaves with the panel). Four things not to undo: **it needs no offset
+  and no script to clear the panel's own sticky fold row**, because a sticky
+  element is constrained by its containing block — the panel carries that row
+  up and off with it, so by the time the bar reaches the top the row's bottom
+  is already at or above it (MEASURED across the whole transition: the gap
+  never goes negative); the background is the PAGE's cream, not the panel's
+  white, or the clips scroll through the row, and the 10px that was a bottom
+  MARGIN is padding (`.panelrow`'s own lesson — a sticky element holds its
+  margin edge at `top`); the **FUNNEL CHIP now reserves the pill's 58px** like
+  the drawer beside it always has, UNCONDITIONALLY rather than while pinned,
+  because pinned its line sits in the pill's band at every scroll position
+  (MEASURED at 390pt with the search open: x 344-378 against a pill starting
+  at 324) and a reserve that comes and goes with the scroll is the
+  narrow/full-width bug; and **`goToCard` subtracts the pinned bar** —
+  `stuckH()` — or a tapped tile lands its card BEHIND the controls, which
+  reads as the tap going to the wrong clip. Test:
+  `node scripts/test-footage-feedbar-sticky.js` (every assertion a
+  MEASUREMENT, since a sticky that never pins, one the clips show through, one
+  whose own controls sit under the pill, and one that leaves a card behind it
+  all look identical in the source; verified failing 12 pre-fix).
   **AND THE FEED PAGES BACK PAST TODAY (2026-09-11, Sophie: "I can't go back
   farther than today in footage").** The read was the newest 40 clips and
   nothing else — at ~70 Mini clips a day that IS today, so everything before
