@@ -8700,6 +8700,36 @@ before working on that module. Nothing was deleted — the moved text is verbati
   MEASUREMENT, since a sticky that never pins, one the clips show through, one
   whose own controls sit under the pill, and one that leaves a card behind it
   all look identical in the source; verified failing 12 pre-fix).
+  **AND IT IS STICKY AT BOTH ENDS — IT IS THE DIVIDER (2026-09-14, her
+  correction the same day: "i want the tiles bar as a middle · in prompt block
+  mode its pinned to bottom · gallery its top (as now) · textblock / bar /
+  gallery · bar always visible").** Pinning at the top alone answers only half
+  of "always visible": with a long scene, the big box open or a strip of
+  references, the prompt block is taller than the screen and the bar sits
+  below the fold the whole time she is up in it (MEASURED at 390x844 on a
+  22-line scene with the big box open: the panel is 1,988px and the bar's
+  natural spot is y=2054, two screens down). `bottom:0` beside the `top` is
+  the whole fix — a sticky element sticks to whichever edge its natural
+  position is pushed past, so the bar is at the bottom while she is in the
+  prompt block, at the top once the gallery has reached it, and in the flow
+  for the stretch in between. It needs no script and keeps no copy of its own
+  height; the containing block is the page, which spans both halves.
+  Two things not to undo. **A box's pinned corner buttons sit ABOVE it** —
+  `stickybox.js` pins the bigger-box and divide buttons at the bottom of
+  caretkeep's band and the bar is bottom-pinned at the bottom of the same
+  band, so without this they land on each other on exactly the long scene
+  that makes the bar bottom-pin at all (MEASURED: the buttons' bottom 812
+  against a bar top of 793). The bar carries `data-pagechrome` and
+  `chromeBottom()` reads it LIVE on every pass, never cached — the bar is at
+  the bottom for one stretch of the scroll, in the flow for the next and at
+  the top after that, and a set remembered at find time would reserve a band
+  that is no longer there. **`band()` itself is still NOT narrowed** (the
+  2026-09-13 ratchet), because this is a row stickybox does not move. And
+  **nothing was added to `caretkeep`**: the bar is a body-level sticky row, so
+  `findStuck` already finds it and `caretBand` lifts her caret line clear by
+  itself. Pinned by sections 7 of
+  `node scripts/test-footage-feedbar-sticky.js` (verified failing 4 against
+  the top-only CSS, and 1 more with the stickybox half reverted).
   **AND THE FEED PAGES BACK PAST TODAY (2026-09-11, Sophie: "I can't go back
   farther than today in footage").** The read was the newest 40 clips and
   nothing else — at ~70 Mini clips a day that IS today, so everything before

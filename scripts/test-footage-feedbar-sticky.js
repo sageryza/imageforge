@@ -247,6 +247,69 @@ const read = () => {
   ok('and its top edge really takes a tap, so it is not behind the bar',
     landed.atEnd || landed.clear);
 
+  // ── 7. IT IS THE DIVIDER: BOTTOM-PINNED WHILE THE PROMPT BLOCK IS TALLER
+  //       THAN THE SCREEN (2026-09-14, Sophie: "in prompt block mode its
+  //       pinned to bottom · gallery its top (as now) · bar always visible").
+  //       Every assertion is a MEASUREMENT: a `bottom:0` that never takes
+  //       effect, one that pins the bar over the box's own corner buttons, and
+  //       one that leaves it off screen all look identical in the source. ────
+  await page.click('#v-list');
+  await to(0);
+  await page.evaluate(() => {
+    const t = document.getElementById('prompt');
+    t.value = Array.from({ length: 22 }, (_, i) => 'Line ' + (i + 1)
+      + ' — a long hospital corridor at night, [Image1] walks past the nurses'
+      + ' station and stops at the last door where the light is still on.').join(' ');
+    t.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await settle();
+  await page.evaluate(() => { const b = document.getElementById('bigprompt'); if (b) b.click(); });
+  await settle();
+  await to(0);
+  const tall = await page.evaluate(() => {
+    const bar = document.getElementById('feedbar').getBoundingClientRect();
+    const pn = document.querySelector('.panel').getBoundingClientRect();
+    const hit = document.elementFromPoint(Math.round(bar.x + bar.width / 2),
+      Math.round(bar.top + bar.height / 2));
+    const btn = document.querySelector('[data-stickybox].sbx-pin');
+    return { panelH: Math.round(pn.height), vh: window.innerHeight,
+      top: Math.round(bar.top), bottom: Math.round(bar.bottom),
+      paints: !!(hit && hit.closest('#feedbar')),
+      pinned: btn ? Math.round(btn.getBoundingClientRect().bottom) : null,
+      listReaches: (() => {
+        const e = document.getElementById('v-list'); const b = e.getBoundingClientRect();
+        const h = document.elementFromPoint(Math.round(b.x + b.width / 2), Math.round(b.y + b.height / 2));
+        return !!(h && h.closest('#v-list'));
+      })() };
+  });
+  ok('the prompt block really is taller than the screen (' + tall.panelH + ' of ' + tall.vh + ')',
+    tall.panelH > tall.vh);
+  ok('so the bar pins to the BOTTOM of the screen, not off it — '
+    + JSON.stringify([tall.top, tall.bottom, tall.vh]), tall.bottom === tall.vh && tall.top > 0);
+  ok('it still paints — the prompt does not show through it', tall.paints);
+  ok('and its own controls still take a tap down there', tall.listReaches);
+  ok('the box’s pinned corner buttons sit ABOVE it, never on it — '
+    + JSON.stringify([tall.pinned, tall.top]),
+    tall.pinned !== null && tall.pinned <= tall.top);
+
+  // and scrolling down the tall panel leaves it exactly where it was
+  await to(900);
+  const still = await page.evaluate(() => {
+    const b = document.getElementById('feedbar').getBoundingClientRect();
+    return { top: Math.round(b.top), bottom: Math.round(b.bottom), vh: window.innerHeight };
+  });
+  ok('it stays at the bottom all the way down the prompt block — '
+    + JSON.stringify(still), still.bottom === still.vh);
+
+  // …and once the gallery reaches it, it hands over to the TOP edge
+  await to(4000);
+  const over = await page.evaluate(() => {
+    const b = document.getElementById('feedbar').getBoundingClientRect();
+    return { top: Math.round(b.top), bottom: Math.round(b.bottom) };
+  });
+  ok('then the gallery takes it and it pins at the top again — ' + JSON.stringify(over),
+    over.top === 51);
+
   ok('still no page errors', errors.length === 0);
 
   await browser.close();

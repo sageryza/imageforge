@@ -584,9 +584,26 @@
      its margin edge at `top`, so her clips would show through a transparent
      band). And its z-index is under the pinned corner buttons' 8 and the
      pill's 9 — it never meets either, one rides the top of the band and they
-     ride the bottom and the corner. */
+     ride the bottom and the corner.
+     AND IT IS STICKY AT BOTH ENDS SINCE 2026-09-14 (Sophie: "i want the tiles
+     bar as a middle · in prompt block mode its pinned to bottom · gallery its
+     top (as now) · textblock / bar / gallery · bar always visible"). The bar
+     is the DIVIDER between the two halves of this page, so it is never off
+     screen: `bottom:0` beside the `top`, and a sticky element sticks to
+     whichever edge its natural position is pushed past — below the fold while
+     she is in the prompt block, the top once the gallery has reached it, and
+     in the flow for the moment in between. It needs no script and no second
+     copy of its own height: the containing block is the page, which spans
+     both halves.
+     Two things not to undo. It carries `data-pagechrome`, which is how
+     `stickybox.js` knows to pin a box's corner buttons ABOVE it rather than
+     on it — both aim at the bottom of the same band, and without that they
+     land on each other on a long scene (the 2026-09-13 caret/button fix, one
+     row down). And nothing narrows `caretkeep`'s band for it: the bar is a
+     body-level sticky row, so `findStuck` already finds it and lifts her
+     caret line clear by itself. */
   .feedbar{display:flex;align-items:center;gap:8px;margin:0;padding:6px 0 10px;flex-wrap:wrap;
-           position:sticky;top:var(--headtop,4px);z-index:5;background:#f6f2ea}
+           position:sticky;top:var(--headtop,4px);bottom:0;z-index:5;background:#f6f2ea}
   /* THE LIST · TILES · 3/4 SWITCH IS /viewswitch.css + /viewswitch.js — the
      one shell, linked in the head, never copied here (2026-09-12). */
   /* `minmax(0,1fr)` is load-bearing: a bare `1fr` is `minmax(auto,1fr)`, and a
@@ -1310,7 +1327,7 @@
   <div class="err" id="err" hidden></div>
 </div>
 
-<div class="feedbar" id="feedbar" hidden>
+<div class="feedbar" id="feedbar" data-pagechrome hidden>
   <div class="viewtog" role="group" aria-label="How to read the feed">
     <button type="button" id="v-list">List</button><button type="button" id="v-tiles">Tiles</button><button type="button" class="colseg" id="v-cols"></button>
   </div>
