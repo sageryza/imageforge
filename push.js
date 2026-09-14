@@ -166,10 +166,25 @@ function apnsSend(deviceToken, payload, headers) {
   });
 }
 
+// A `__`-PREFIXED DOC IS THIS MODULE'S OWN STATE, NEVER A PHONE — and until
+// 2026-09-14 it was pushed to and then DELETED as a dead token. Found in the
+// live log the hour the deploy notification shipped:
+//   push: send issues [{"device":"__deploy","ok":false,"status":400,
+//                       "reason":"BadDeviceToken","removed":true}]
+// `__deploy` holds the mark that says a deploy STARTED, so the "start" push
+// destroyed the very mark it had just written and the "back up" buzz on the
+// next boot then found nothing — and it did it silently, because a dead token
+// coming out of the collection is exactly what this is supposed to do. It
+// worked on one deploy and not the next, which is the race between the two
+// writes. The deploy mark and the undeployed-count mark both live here, so a
+// token is a doc with a real token on it and an id that is not reserved.
+const STATE_DOC = /^__/;
 async function loadDevices() {
   if (!admin.apps.length) return [];
   const snap = await db().collection(DEVICES).get();
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return snap.docs
+    .filter((d) => !STATE_DOC.test(d.id) && typeof d.get('token') === 'string' && d.get('token'))
+    .map((d) => ({ id: d.id, ...d.data() }));
 }
 
 // A token Apple says is dead comes out of the collection, or every future
