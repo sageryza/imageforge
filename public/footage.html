@@ -495,9 +495,32 @@
   #kfnote.bad{color:#a8423a}
   .up{position:relative;overflow:hidden}
   .up input{position:absolute;inset:0;opacity:0;font-size:0}
-  #recent{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+  /* THE DRAWER IS A COLUMN (2026-09-14): its own little line of controls, the
+     tiles, and the "… older references" opener at the end. */
+  #recent{display:flex;flex-direction:column;gap:7px;margin-top:8px}
+  #recent .rectiles{display:flex;gap:7px;flex-wrap:wrap}
+  #recent .rectop{display:flex;gap:8px;align-items:flex-start;font-size:11px;line-height:1.35;color:#8a7f6d}
+  #recent .rectop .say,#recent .rectop .recundo{padding-top:7px}
+  #recent .rectop .say{flex:1;min-width:0}
+  /* ORGANIZE — a rounded square at the house 6px, never a circle, lit in ink
+     while the mode is on. 28px rather than the row's 34: it is a mark on the
+     drawer's own line, not another control on the buttons row. */
+  #recorg{width:28px;height:28px;padding:0;flex:none;display:inline-flex;align-items:center;justify-content:center}
+  #recorg svg{width:15px;height:15px;display:block}
+  #recorg.on{background:#2b2620;border-color:#2b2620;color:#f6f2ea}
+  #recent .olderbtn{padding:0 2px}
+  /* the house inline opener's paint, but in the flow of the line rather
+     than absolute in a box's corner like the prompt's own `.moretxt` */
+  #recent .recundo{position:static;flex:none;padding:0;background:none}
+  /* THE ✕ IS A SIBLING OF THE TILE, never inside it — the tile is a <button>
+     and a nested button is invalid markup whose tap would bubble into it. */
+  #recent .rcw{position:relative;width:52px;height:52px;flex:none}
+  #recent .rcw .rx{position:absolute;left:-4px;top:-4px;z-index:2;width:19px;height:19px;border-radius:5px;border:0;padding:0;
+                   background:rgba(43,38,32,.9);color:#f6f2ea;font:12px/1 -apple-system,system-ui,sans-serif;
+                   display:flex;align-items:center;justify-content:center;cursor:pointer}
   #recent .rc{position:relative;width:52px;height:52px;border:1px solid #e0d8ca;border-radius:6px;overflow:hidden;padding:0;background:#2b2620;color:#f6f2ea;
               display:flex;align-items:center;justify-content:center}
+  #recent .rcw.kept .rc{border-color:#a89a80}
   #recent .rc img{width:100%;height:100%;object-fit:cover;display:block}
   #recent .rc svg{width:20px;height:20px}
   /* A VIDEO WEARS A FILM MARK OVER ITS POSTER — a clip's poster IS a still,
@@ -1401,6 +1424,10 @@ var ICONS = {
   note: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
   // Lucide `users` — the library of who is in this film
   users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  // Lucide `pencil` — ORGANIZE the drawer. Edit what you are looking at,
+  // the same thing the Story Room's caption pencil means. Not the Chats
+  // app's tag: nothing here is being filed or tagged.
+  pencil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
   back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>',
   chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
@@ -3017,6 +3044,11 @@ $('file').addEventListener('change', function (e) {
   // the block the tap was made from — an upload is a round trip and she may
   // have tapped into another block by the time it lands
   var into = activeWrap();
+  // AND WHICH DOOR IT GOES THROUGH IS READ AT THE TAP, for the same reason:
+  // while she is organizing, a picture lands in the DRAWER and attaches to
+  // nothing (her ask). Reading the mode when the bytes come back would land it
+  // wherever she happened to be by then.
+  var toDrawer = recOrganize && recentOpen;
   ftUploading += 1;                                 // the self-heal waits for it
   toast('Uploading ' + files.length + (files.length === 1 ? ' file…' : ' files…'));
   files.reduce(function (p, f) {
@@ -3033,7 +3065,16 @@ $('file').addEventListener('change', function (e) {
           // found auditing the page). The Dump is md5-deduped, so picking a
           // photo that is already in the strip hands back the same url,
           // nothing is pushed — and the tally still said "Attached 2".
-          var landed = addRefTo(into, { url: it.url, kind: kindOfFile(f), poster: it.posterUrl || '', name: f.name || '' });
+          var ref = { url: it.url, kind: kindOfFile(f), poster: it.posterUrl || '', name: f.name || '' };
+          if (toDrawer) {
+            // already on the drawer counts as a duplicate the same way an
+            // already-attached one does — the Dump is md5-deduped, so picking
+            // the same photo twice hands back the same url
+            if (recentAll().some(function (x) { return x.url === ref.url; })) { dup += 1; return; }
+            recKeep(ref); n++; paintRecent();
+            return;
+          }
+          var landed = addRefTo(into, ref);
           if (!landed) { dup += 1; return; }
           if (landed !== 'here') where = landed;
           n++;
@@ -3045,7 +3086,9 @@ $('file').addEventListener('change', function (e) {
     // AND IT SAYS WHERE, when that is not where she is standing — a picture
     // landing on a block she has tapped out of is a change to a job she cannot
     // see, which is what the price beside the star exists to prevent
-    if (n) toast((n === 1 ? 'Attached' : 'Attached ' + n) + (where ? ' to ' + where : ''));
+    if (n && toDrawer) toast(n === 1 ? 'On the drawer · nothing attached' : n + ' on the drawer · nothing attached');
+    else if (n) toast((n === 1 ? 'Attached' : 'Attached ' + n) + (where ? ' to ' + where : ''));
+    else if (dup && toDrawer) toast(dup === 1 ? 'That one is already on the drawer' : 'Those are already on the drawer');
     else if (dup) toast(dup === 1 ? 'That one is already attached' : 'Those are already attached');
   // THE COUNTER IS PUT DOWN WHATEVER HAPPENS. It gates the self-heal's
   // reload, so a throw anywhere in the chain would leave the page saying "an
@@ -3064,7 +3107,7 @@ $('file').addEventListener('change', function (e) {
 // rule; don't list a clip here again. Derived from the feed; nothing is
 // stored.
 var recentOpen = false;
-$('rectog').addEventListener('click', function () { recentOpen = !recentOpen; paintRecent(); });
+$('rectog').addEventListener('click', function () { recentOpen = !recentOpen; if (recentOpen) paintRecent(); else recClose(); });
 // AND TYPING CLOSES IT (2026-09-13, Sophie: "recent references closes when i
 // start typing" → "it shud close"). She opens the drawer to attach a
 // reference; the moment she is writing the scene instead, it is a row of
@@ -3080,12 +3123,107 @@ $('rectog').addEventListener('click', function () { recentOpen = !recentOpen; pa
 // what is open, so an ordinary keystroke costs no repaint.
 function typedInBlock() {
   if (!recentOpen) return;
-  recentOpen = false;
+  recClose();
+}
+// SHUTTING IT ENDS WHATEVER SHE WAS DOING IN IT. The mode and the widened
+// list are both things she is in the middle of — the Playground's SELECT rule
+// and the deck's lane rule, one drawer over — so neither outlives the screen
+// it belongs to, and reopening is the calm 24 again.
+function recClose() {
+  recentOpen = false; recOrganize = false; recShown = REC_PAGE;
   paintRecent();
 }
-function recentItems() {
-  var seen = {}, out = [];
-  var add = function (it) { if (it.url && !seen[it.url]) { seen[it.url] = 1; out.push(it); } };
+// ORGANIZE — TIDY THE DRAWER WITHOUT USING ANYTHING IN IT (2026-09-14,
+// Sophie: "add a more / see older references / and organize button mode / to
+// delete and add recent references without using them"). Two complaints in
+// one: the drawer was the newest 24 references with nothing behind them
+// reachable at all, and every tap on it meant ATTACH, so the only thing she
+// could do with a tile was use it.
+//
+// LIT, A TAP NO LONGER ATTACHES: every tile wears a ✕ that takes it OFF the
+// drawer, tapping the tile OPENS IT BIGGER (the strip's own `openRef` — she
+// is deciding whether to keep it, and a 52px thumb does not answer that), and
+// the picture button on the buttons row ADDS to the drawer instead of to the
+// job. So both halves of her sentence — delete and add — happen without a
+// reference ever riding a clip.
+//
+// NOTHING IS DESTROYED. The file is in the Dump and on every clip it already
+// rode; taking it off is only this drawer forgetting it, and the last removal
+// is banked so one `undo` puts it back — the page's own clear/undo rule, an
+// undo instead of a confirm.
+var REC_PAGE = 24;                  // how many the drawer opens on
+var recShown = REC_PAGE, recOrganize = false;
+// READ ONCE, KEPT IN MEMORY. `paintRecent` runs on every feed poll, and this
+// page's own typing rule is that a repaint which changes nothing must not do
+// work — parsing two localStorage lists per paint is exactly that. Nothing
+// else writes these keys, so the memo cannot go stale.
+var recMemo = {};
+function recList(k) {
+  if (recMemo[k]) return recMemo[k];
+  var v; try { v = JSON.parse(localStorage.getItem(k) || '[]'); } catch (e) { v = null; }
+  recMemo[k] = Array.isArray(v) ? v : [];
+  return recMemo[k];
+}
+function recSave(k, l) {
+  var cut = l.slice(0, 300);
+  recMemo[k] = cut;
+  try { localStorage.setItem(k, JSON.stringify(cut)); } catch (e) {}
+}
+// THE TWO CURATION LISTS ARE HER PHONE'S, like every other setting on this
+// page: the drawer is DERIVED from the feed, so these say only what to leave
+// out of it and what to stand in front of it. The bytes are the Dump's either
+// way, so nothing here can lose a file.
+function recHidden() { return recList('footage_rechide'); }
+function recKept() { return recList('footage_reckeep'); }
+var recBankMemo;
+function recBank() {
+  if (recBankMemo === undefined) {
+    try { recBankMemo = JSON.parse(localStorage.getItem('footage_recundo') || 'null'); } catch (e) { recBankMemo = null; }
+  }
+  return recBankMemo;
+}
+function recBankSet(v) {
+  recBankMemo = v || null;
+  try { if (v) localStorage.setItem('footage_recundo', JSON.stringify(v)); else localStorage.removeItem('footage_recundo'); } catch (e) {}
+}
+// A reference she ADDS rides at the front — she put it here to find it again,
+// and the derived ones behind it are already in newest-job order. Adding
+// un-hides it too, or a tile she took off could never be put back by hand.
+function recKeep(r) {
+  var keep = recKept().filter(function (x) { return x.url !== r.url; });
+  keep.unshift({ url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' });
+  recSave('footage_reckeep', keep);
+  recSave('footage_rechide', recHidden().filter(function (u) { return u !== r.url; }));
+}
+function recDrop(r) {
+  var wasKept = recKept().some(function (x) { return x.url === r.url; });
+  recSave('footage_reckeep', recKept().filter(function (x) { return x.url !== r.url; }));
+  // hidden whether it was kept or derived: a kept tile with a job behind it
+  // would otherwise walk straight back in as a derived one
+  var hid = recHidden().filter(function (u) { return u !== r.url; });
+  hid.unshift(r.url);
+  recSave('footage_rechide', hid);
+  recBankSet({ ref: { url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' }, kept: wasKept });
+  paintRecent();
+  toast('Off the drawer' + (r.name ? ' · ' + r.name : ''));
+}
+function recUndo() {
+  var b = recBank();
+  if (!b || !b.ref) return;
+  recSave('footage_rechide', recHidden().filter(function (u) { return u !== b.ref.url; }));
+  if (b.kept) recKeep(b.ref);
+  recBankSet(null);
+  paintRecent();
+  toast('Back on the drawer');
+}
+// EVERYTHING THE DRAWER COULD SHOW, in order; `recentItems` is the page of it
+// she is looking at. The two are separate because the "… older references"
+// opener has to know whether there is anything behind that page at all.
+function recentAll() {
+  var seen = {}, out = [], hid = {};
+  recHidden().forEach(function (u) { hid[u] = 1; });
+  var add = function (it) { if (it.url && !seen[it.url] && !hid[it.url]) { seen[it.url] = 1; out.push(it); } };
+  recKept().forEach(function (r) { add({ url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '', kept: true }); });
   Object.keys(jobsById).map(function (k) { return jobsById[k]; })
     .sort(function (a, b) { return String(b.sentAt).localeCompare(String(a.sentAt)); })
     .forEach(function (j) {
@@ -3093,34 +3231,112 @@ function recentItems() {
       // tile per url, so a reference she used on five clips is one tile
       (j.refs || []).forEach(function (r) { add({ url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' }); });
     });
-  return out.slice(0, 24);
+  return out;
 }
 function paintRecent() {
-  var list = recentItems();
-  $('rectog').hidden = !list.length;
+  var all = recentAll(), list = all.slice(0, recShown), bank = recBank();
+  // AN EMPTY DRAWER IS STILL REACHABLE WHILE THERE IS AN UNDO IN IT — taking
+  // the last tile off would otherwise close the drawer over the one control
+  // that could put it back, and the icon would go with it.
+  $('rectog').hidden = !all.length && !bank;
   $('rectog').classList.toggle('on', recentOpen);
   $('rectog').setAttribute('aria-expanded', recentOpen ? 'true' : 'false');
   var el = $('recent');
-  el.hidden = !(recentOpen && list.length);
+  el.hidden = !(recentOpen && (all.length || bank));
+  // AND THE PICTURE BUTTON SAYS WHICH IT IS ABOUT TO DO. It is the one control
+  // organize mode reaches outside the drawer, so a label that still said
+  // "Add a reference" would be the tap's meaning changing invisibly — the
+  // hidden-ingredient failure the price beside the star exists to prevent.
+  // Set BEFORE the signature check: a repaint that changes nothing in the
+  // drawer still has to leave this right.
+  var addWhat = recOrganize && recentOpen ? 'Add to the drawer, without attaching it' : 'Add a reference';
+  $('add').setAttribute('aria-label', addWhat);
+  $('add').title = addWhat;
   // the poster is baked behind a finished clip, so it rides the signature —
-  // otherwise the tile keeps the film glyph it first drew with
-  var sig = list.map(function (r) { return r.url + '\u0000' + (r.poster || ''); }).join('|');
+  // otherwise the tile keeps the film glyph it first drew with. THE MODE, the
+  // page size and the bank ride it too: each of them changes what every tile
+  // means, and a signature of urls alone would leave the old drawer on screen.
+  var sig = (recOrganize ? 'org' : 'use') + ':' + recShown + ':' + (all.length > list.length ? 'more' : 'end')
+    + ':' + (bank ? 'undo' : '-') + ':'
+    + list.map(function (r) { return r.url + (r.kept ? '*' : '') + '\u0000' + (r.poster || ''); }).join('|');
   if (el.__sig === sig) return;
   el.__sig = sig;
   el.innerHTML = '';
+
+  // The drawer's own line: the organize mark, what a tap means while it is on,
+  // and the undo while there is something to undo.
+  var top = document.createElement('div'); top.className = 'rectop';
+  var org = document.createElement('button');
+  org.type = 'button'; org.id = 'recorg';
+  org.className = recOrganize ? 'on' : '';
+  org.innerHTML = ICONS.pencil;
+  org.title = recOrganize ? 'Done organizing' : 'Organize — take references off, or add one without attaching it';
+  org.setAttribute('aria-label', org.title);
+  org.setAttribute('aria-pressed', recOrganize ? 'true' : 'false');
+  org.addEventListener('click', function () { recOrganize = !recOrganize; paintRecent(); });
+  top.appendChild(org);
+  var say = document.createElement('span'); say.className = 'say';
+  say.textContent = !list.length
+    ? 'Nothing on the drawer'
+    : recOrganize
+      ? '✕ takes one off · the picture button adds one'
+      : 'Tap one to attach it again';
+  top.appendChild(say);
+  if (bank) {
+    var un = document.createElement('button');
+    un.type = 'button'; un.className = 'moretxt recundo';
+    un.textContent = 'undo';
+    un.title = 'Put the last one back';
+    un.addEventListener('click', recUndo);
+    top.appendChild(un);
+  }
+  el.appendChild(top);
+
+  var grid = document.createElement('div'); grid.className = 'rectiles';
   list.forEach(function (r) {
+    var w = document.createElement('div'); w.className = 'rcw' + (r.kept ? ' kept' : '');
     var b = document.createElement('button'); b.type = 'button'; b.className = 'rc';
-    b.title = 'Attach again';
+    // a reference she cannot open bigger (an audio file) says so rather than
+    // offering a tap that does nothing
+    b.title = recOrganize ? (r.kind === 'audio' ? 'Take it off with the ✕' : 'Open it bigger') : 'Attach again';
     b.setAttribute('aria-label', b.title + (r.name ? ' — ' + r.name : ''));
     var pic = r.kind === 'image' || Boolean(r.poster);
     b.innerHTML = thumbHtml(r) + (r.kind === 'video' && pic ? '<span class="bdg">' + ICONS.film + '</span>' : '');
     b.addEventListener('click', function () {
+      // ORGANIZING NEVER USES ONE — that is the whole of her ask. The tap
+      // looks at it instead, through the strip's own big view.
+      if (recOrganize) {
+        if (r.kind === 'video') openPlayer(r.url, null);
+        else if (r.kind !== 'audio') openShot(r.url, { use: false });
+        return;
+      }
       if (!refs.some(function (x) { return x.url === r.url; })) refs.push({ url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' });
       openFold('panel'); openFold('refs');
       saveDraft(); paintControls(); toast('Attached');
     });
-    el.appendChild(b);
+    w.appendChild(b);
+    if (recOrganize) {
+      var x = document.createElement('button');
+      x.type = 'button'; x.className = 'rx';
+      x.textContent = '✕';
+      x.title = 'Take it off the drawer';
+      x.setAttribute('aria-label', x.title + (r.name ? ' — ' + r.name : ''));
+      x.addEventListener('click', function (ev) { ev.stopPropagation(); recDrop(r); });
+      w.appendChild(x);
+    }
+    grid.appendChild(w);
   });
+  el.appendChild(grid);
+
+  // … OLDER REFERENCES (her ask) — the feed's own opener, drawn only while
+  // there really is something behind this page.
+  if (all.length > list.length) {
+    var more = document.createElement('button');
+    more.type = 'button'; more.className = 'olderbtn';
+    more.textContent = '… older references';
+    more.addEventListener('click', function () { recShown += REC_PAGE; paintRecent(); });
+    el.appendChild(more);
+  }
 }
 
 // ── The character library ─────────────────────────────────────────────────
