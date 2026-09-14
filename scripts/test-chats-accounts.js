@@ -149,21 +149,20 @@ const same = (a, b) => JSON.stringify(a.slice().sort()) === JSON.stringify(b.sli
   // 1. the witch sheet's shape, in its place: two labels over a hairline,
   //    sitting directly above the hidden bar (Sophie, Aug 2026 — it shipped
   //    under the masthead and she moved it down to the list it governs)
-  // (the row grew a third tab in Aug 2026 — UPDATE, the notifications view,
-  // which LEADS the row at her ask; it is not an account, so everything below
-  // still asks about the two that are)
+  // (an UPDATE tab LED this row from Aug 2026 until 2026-09-14, when she had
+  // it taken off — "get rid of the updates tab in chats". One tab per account
+  // again, and nothing here counts them but this assertion.)
   const tabs = await page.$$eval('#accrow .acctab', (ns) => ns.map((n) => n.textContent.trim()));
-  if (tabs.length !== 4) fail('expected Update + three account tabs, got ' + tabs.length);
-  if (!/^Update/.test(tabs[0] || '')) fail('Update does not lead the row: ' + tabs.join(' | '));
-  // BARE DIGITS, not "Account 1" (her ask, so four tabs fit a 390pt phone).
+  if (tabs.length !== 3) fail('expected one tab per account, got ' + tabs.length);
+  // BARE DIGITS, not "Account 1" (her ask, so the tabs fit a 390pt phone).
   // The text starts with the digit; a red badge may follow it in the same node.
-  if (!/^1/.test(tabs[1]) || !/^2/.test(tabs[2]) || !/^3/.test(tabs[3])) {
+  if (!/^1/.test(tabs[0]) || !/^2/.test(tabs[1]) || !/^3/.test(tabs[2])) {
     fail('tab labels are not bare digits: ' + tabs.join(' | '));
   }
-  if (tabs.slice(1).some((t) => /account/i.test(t))) fail('a tab still says the word Account: ' + tabs.join(' | '));
+  if (tabs.some((t) => /account/i.test(t))) fail('a tab still says the word Account: ' + tabs.join(' | '));
   // …and the word is not lost — it is what the tab reads out as
   const alabels = await page.$$eval('#accrow .acctab', (ns) => ns.map((n) => n.getAttribute('aria-label') || ''));
-  if (!/^Account 1/.test(alabels[1]) || !/^Account 3/.test(alabels[3])) {
+  if (!/^Account 1/.test(alabels[0]) || !/^Account 3/.test(alabels[2])) {
     fail('the account tabs lost their spoken label: ' + alabels.join(' | '));
   }
   if (await page.$eval('#accrow', (n) => getComputedStyle(n).borderBottomStyle === 'none')) {
@@ -350,11 +349,11 @@ const same = (a, b) => JSON.stringify(a.slice().sort()) === JSON.stringify(b.sli
   //    non-archived chat counts: account 1 = one-a, one-b, one-hid, one-star,
   //    untagged (5); account 2 = two-a, two-b, two-hid, two-star, untagged (5);
   //    account 3 = three-a, three-hid, three-star, untagged (4).
-  //    (badges[0] is UPDATE's own count, which is not account-scoped — see
-  //    scripts/test-chats-news.js; the account tabs follow it)
+  //    (UPDATE's own count used to lead this row and was not account-scoped;
+  //    its tab is gone, so every badge here is an account's)
   const badges = await page.$$eval('#accrow .acctab',
     (ns) => ns.map((n) => (n.querySelector('.cc-new') || {}).textContent || ''));
-  if (badges[1] !== '5' || badges[2] !== '5' || badges[3] !== '4') fail('account tab badges wrong: ' + JSON.stringify(badges));
+  if (badges[0] !== '5' || badges[1] !== '5' || badges[2] !== '4') fail('account tab badges wrong: ' + JSON.stringify(badges));
 
   // 7. gone where the list is not chats — and the masthead rule comes back
   for (const [btn, what] of [['#todolink', 'To do'], ['#bmklink', 'Bookmarks']]) {

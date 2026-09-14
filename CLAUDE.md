@@ -2713,9 +2713,10 @@ them off the reference sheet, not off the old filenames.
   (2026-08-24, Sophie: "are there any extra instructions for if I tag a chat
   waiting for a response? Since I'm waiting for it I'd like a chat that's
   tagged like that to come with some extra indication").** The pin was the
-  whole of the rule, and a pin only exists on the Update tab — so on the home
+  whole of the rule, and a pin only existed on the Update tab — so on the home
   list, and inside the thread itself, a chat she was owed an answer from
-  looked like every other chat. It is a Lucide **`watch`** — a wristwatch — in
+  looked like every other chat. **The mark is the WHOLE rule now** (the tab
+  went on 2026-09-14, and the pin with it). It is a Lucide **`watch`** — a wristwatch — in
   the marks' red at the front of the row, beside the star and the bookmark (the
   slot for a state with no control of its own), and in the thread's `<h1>`.
   **THERE IS NO "SOMEONE POINTING AT THEIR WATCH" ICON, and that is measured**
@@ -2726,11 +2727,11 @@ them off the reference sheet, not off the old filenames.
   with a MAGNIFYING GLASS blown up. So the watch alone carries it: the object
   out of her own picture, legible small. It shipped as an hourglass for one
   afternoon. Three things
-  worth not undoing: it follows the **TAG**, not the Update tab's card — her ✓
-  there settles the CARD and the debt is over when the word comes off, the
-  same rule the sibling `Waiting for:` line has always followed; it reads the
-  rule off `TAG_RULES` rather than off the string, so the mark and the pin can
-  never disagree about which word means this; and it is a `<span>`, because a
+  worth not undoing: it follows the **TAG**, not a card — the debt is over when
+  the word comes off (or when her reply stamps `notifSeenAt`, which is what
+  `seenFloor` reads), the same rule the sibling `Waiting for:` line has always
+  followed; it reads the rule off `TAG_RULES` rather than off the string, so
+  nothing can disagree about which word means this; and it is a `<span>`, because a
   row is a `<button>` and a nested button would eat the tap. `waitMarkHtml` is
   the one renderer and `syncWaitMark` repaints the thread header, which is
   built once — the Organize sheet opens from inside that same thread, so
@@ -3009,53 +3010,57 @@ them off the reference sheet, not off the old filenames.
     say anything about it. Its own `<button>`, a sibling of the row's, never
     nested: a button inside a button is invalid and the tap would bubble into
     the player.
-  - **THE UPDATE TAB LIVES ON THE ACCOUNT ROW**, so it is one toggle-tap away
-    while the lists are showing — and entering any other view (Update, the
-    archive, bookmarks, the to-do) puts the account row back whatever mode she
-    left this in. `paintListTabs` speaks ONLY for the live chat list; anywhere
-    else `paintHomeChrome`'s answer stands, and it hides that row with
-    `style.display`, which beats the `hidden` attribute (the house rule).
+  - **THE ACCOUNT ROW COMES BACK ON EVERY OTHER VIEW** whatever mode she left
+    this in — the archive, bookmarks, the to-do. `paintListTabs` speaks ONLY
+    for the live chat list; anywhere else `paintHomeChrome`'s answer stands,
+    and it hides that row with `style.display`, which beats the `hidden`
+    attribute (the house rule).
   - Tests: `node scripts/test-deliverables-feed.js` (the bursts and the
     exclusions, pure) and `node scripts/test-chats-list-tabs.js` (the real
     page, headless — verified failing against the pre-fix page).
-  **ALL THREE UPDATE BOXES WEAR A CHIP ON THIS ROW (Aug 2026, Sophie: "'maybe
-  never' isn't on the tag list in the account area" → "give them both a
-  chip").** `come back to` had one because it was already a folder of hers;
-  `in a minute` and `maybe never` were invented as boxes and had no door
-  outside the Update tab. `QUEUE_CATS` in `chats.html` is the join, and the
-  two new words appear ONLY while their box holds something — they are not
-  seeded into her vocabulary and leave the row when she empties it. Filing is
-  unchanged: deferring one update still leaves the chat on the main list.
-  Full rules in `docs/chats-app.md`; tests `node
-  scripts/test-chats-labels.js`, `node scripts/test-chats-queue-chips.js` and
-  the same file as the tags above.
-  **AND `IN A MINUTE` STAYS ON THE SCREEN, IN MINT (2026-08-29, Sophie: "can u
-  turn chats green tint if in a minute filed / stay on scre[en]" · "mint").**
-  The one box of the three that is not a deferral: `come back to` is later
-  today or this week and `maybe never` is probably not at all, but IN A MINUTE
-  is something she is coming straight back to — and a card that vanished into
-  a box the instant she said so was one she then had to go and find again. So
-  `soon` is the deliberate exception to *an item is in exactly one place*: the
-  card stays on the main Update list wearing a mint wash (`.nwcard.soon`,
-  `--mint`/`--mintline`) AND its box still holds it, because the box is what
-  she opens to see only those. Four things not to undo: the **BACKGROUND**
-  carries the tint and never the border, since `picked` is a 2px border and
-  she picks a card in order to file it — the two marks have to show at once;
-  **inside the open box nothing is tinted**, where every card is one and the
-  mint would say nothing; the **badge counts the mint cards**, because the
-  number has to be exactly what she finds when she opens the tab; and the
-  other two boxes are **untouched** — a card filed there still leaves the
-  list. This is the Update CARD only; the chat's own row on the home list is
-  unchanged. Test: `node scripts/test-chats-news-mint.js` (the colour MEASURED
-  off the real computed background — a class name says nothing about what
-  renders; verified failing pre-fix).
-  **AND TEN HEADLESS TESTS COULD NOT REACH THE UPDATE TAB AT ALL** — the row
-  that carries it takes turns with the three lists (2026-08-28) and opens on
-  the LISTS, so `#accrow` is hidden and every `click('.acctab[data-acct=
-  "new"]')` timed out. They tap `#rowtog` first now; a new test on that screen
-  must too. (Four went green with that one line; `test-chats-come-back-to.js`,
-  `test-chats-news.js` and `test-chats-tags-button.js` still fail for their
-  own unrelated reasons, measured identical before and after this change.)
+- **THE UPDATE TAB IS GONE — SHE HAD IT TAKEN OFF (2026-09-14, Sophie: "get
+  rid of the updates tab in chats").** It LED the account row from Aug 2026 as
+  a whole VIEW rather than an account, and everything that screen owned went
+  with it: **the one card per chat** carrying its newest Compare page and its
+  last three pictures, **the ✓** that checked one off, **the three sections**
+  (urgent · important · the rest) and the triage that picked them, **the two
+  red boxes**, **the three queue boxes** — Come back to · In a minute · Maybe
+  never, with the mint wash on `soon` — **the picking-and-filing gesture**, the
+  tag sheet over a selection, the **Update** (`/brief`), **Review** and **To
+  read** doors above the tabs, and the **TAG_RULES pin** that put a `waiting
+  for a response` chat at the top of it. ~1,000 lines of `chats.html` and its
+  whole stylesheet; 12 test files went with them. **This is history now, not a
+  rule — do not rebuild any of it from git without her.**
+  - **WHAT SURVIVED, and why:** the **Update CARD** a chat posts
+    (`POST /api/chatfeed/update`) is untouched and still matters — the archive
+    wrap-up falls back to it, and `sumRows`/`UPD_LABELS` still draw its three
+    answers there. `notifSeenAt` is still stamped by the SERVER on her reply
+    and is still what settles the `waiting for a response` **wristwatch mark**
+    on the chat list (`seenFloor`, the old `newsFloor` renamed). `reviewHeld`
+    still suppresses the pop-out for a chat already holding a `reviewHoldAt`.
+  - **WHAT LOST ITS ONLY DOOR, named rather than quietly kept:** the
+    **Instagram mockups** icon moved to the CHAT LIST (the bug button's rule)
+    because `/instagram` is reachable from nowhere else. The **Update** door to
+    `/brief` and the **To read** door went with the screen — `/brief` is still
+    a page, and the keep-pile's To read chip is still how that pile is
+    narrowed. **Review** kept its own iOS tile and `/review`.
+  - **AND THE SECOND HALF OF THE `to be reviewed` RULE DIED WITH IT** — the
+    hold on her account lists was written by dismissing a card from that tab
+    ("IF i dismiss manually from update tab"), and there is no dismissal now.
+    Existing `reviewHoldAt` stamps still clear normally; nothing writes a new
+    one.
+  - **The queue chips are gone from the category row** — `come back to` is one
+    of her ordinary labels again, and `in a minute` / `maybe never` only ever
+    appeared while a box held something, so they simply stop appearing. Every
+    chat's `newsQueue` field is left on its registry doc, untouched and unread:
+    nothing is destroyed.
+  - **The server routes are left in place** (`POST /news-queue`,
+    `/notif-seen`, `GET /to-read`) — unreachable from the page, harmless, and
+    the safe direction while a phone may still hold a cached copy.
+  - `?view=news` / `?view=update` is still SWALLOWED by the page (an older
+    push, an older iOS build, a saved link) and lands her on the chat list.
+    iOS: `pendingUpdateTab` → `pendingChatList`, `forgePushOpenUpdate` →
+    `forgePushOpenChats`, and a push naming no chat opens `/chats`.
 - **STATUS CARDS — every chat keeps one, updated at the END of every turn
   (Aug 2026, Sophie's ask: "a line on what they need and a summary of what
   that chat is currently working on").** The card shows under the chat's name
@@ -12503,8 +12508,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
   mirror pinned against the REAL expressions in both files, since a drifted key
   is invisible — it just pays twice).
   **Full details: `docs/modules/inbox-and-misc.md`.**
-- **THE UPDATE BUTTON** (`brief.js`, `/api/brief`, page at `/brief`, the
-  **Update** row at the top of the Chats app's UPDATE tab) — Aug 2026,
+- **THE UPDATE BUTTON** (`brief.js`, `/api/brief`, page at `/brief`) —
+  **ITS DOOR WENT WITH THE UPDATE TAB (2026-09-14)**: the **Update** row that
+  opened it lived at the top of that tab and nothing in the app links `/brief`
+  now. The page still works at
+  https://imageforge-q125.onrender.com/brief — seating the door somewhere else
+  is hers to ask for. Aug 2026,
   Sophie: "an update button that I can just click and then
   it does an API call that gives me the top five things I might want to be
   updated on, and then maybe some lower priority things, and ideally images
@@ -12604,8 +12613,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
     `node scripts/test-brief-page.js` (the real page + the real injected pill,
     headless — the cache-first open counted in API calls, Refresh, the pill
     palette, the pill's corner over the top card, the lightbox contract, the
-    ⌄) and `node scripts/test-chats-update-row.js` (the row on the real
-    Update tab — first, her word, no icon, and still there when caught up).
+    ⌄). `test-chats-update-row.js` went with the Update tab.
 - **THE MORNING BRIEF — a Compare page, twice a day, on a Routine
   (`scripts/morning-brief.js` + `.tpl.html`, Aug 2026).** Sophie asked for her
   briefing as a page rather than a reply ("this would be more helpful as a
@@ -13288,9 +13296,10 @@ before working on that module. Nothing was deleted — the moved text is verbati
     whether the pill is sitting on it).
 - **Push notifications** (`push.js`, `/api/push`) — real APNs lock-screen
   notifications, raw HTTP/2 straight to Apple, no Firebase Messaging. Sent on a
-  **finished reply** (never a draft) and on a new Compare page. They are the
-  Update tab's **doorbell, not its replacement**, so a dropped push is never
-  lost news. A tap opens THE CHAT IT CAME FROM.
+  **finished reply** (never a draft) and on a new Compare page. They were the
+  Update tab's **doorbell, not its replacement** — that tab is gone
+  (2026-09-14) and a dropped push is still never lost news: the chat's own row
+  says it answered. A tap opens THE CHAT IT CAME FROM.
   **THE BANNER SHOWS WITH THE APP OPEN TOO, SILENTLY (Aug 2026, Sophie:
   "notifications that come down into the app and appear at the top of the
   screen while I'm in the app").** `willPresent` returned `[]` until then — the
@@ -13401,7 +13410,8 @@ before working on that module. Nothing was deleted — the moved text is verbati
   forever); and **a 15-minute fallback timer**, because a hookless session, a
   chat killed mid-turn or a script filing a film never posts a finished reply
   and a doorbell that waits forever never rings. A deploy drops a held buzz,
-  which is fine — the deliverables list and the Update tab are the catch-all.
+  which is fine — the deliverables list and the chat's own row are the
+  catch-all.
   Test: `node scripts/test-push-pending.js`.
   **THE BODY IS NEVER HER OWN WORDS (`pushBody`, found live 2026-08-15 from
   her screenshot — this, not the timing, is what she was actually reporting).**
@@ -13455,8 +13465,9 @@ before working on that module. Nothing was deleted — the moved text is verbati
     real token; the undeployed-count mark lives in the same doc and had the
     same hole.
   - **IT NAMES NO CHAT, deliberately** — `PushDelegate` opens the chat a push
-    names and there is no chat here; with none it lands on the Update tab,
-    which is the right room and needs no TestFlight build. It carries its own
+    names and there is no chat here; with none it lands on the chat list (the
+    Update tab until 2026-09-14), which is the right room and needs no
+    TestFlight build. It carries its own
     `thread` instead (a new `sendAll` case), so "Back up" replaces "Server
     update starting" in her shade rather than stacking.
   - Tests: `node scripts/test-deploy-notify.js` (the marker's whole decision

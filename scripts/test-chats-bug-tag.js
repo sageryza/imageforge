@@ -17,7 +17,10 @@
 //   5. it is a <span>, never a button — a nested button inside the row button
 //      would eat the tap,
 //   6. the bug BUTTON shows on the chat list (all three account tabs are views
-//      of it) and hides on the Update view, where the Instagram icon lives,
+//      of it) and hides on the other views — the Update tab it used to be
+//      checked against is gone (2026-09-14), so this uses the ARCHIVE, and the
+//      Instagram icon, which moved onto the chat list when that tab went, is
+//      checked beside it,
 //   7. tapping it narrows the screen to the OPEN bug-fix chats and lights the
 //      button — an archived one stays archived (2026-08-28, Sophie: "archive
 //      doesn't pop out ur insane that's the point of archive"; it reached in
@@ -131,16 +134,26 @@ const ok = () => { checks++; };
   else ok();
   if (await page.$eval('#bugbtn', (n) => n.hidden)) fail('the bug button is hidden on the chat list');
   else ok();
-  // The UPDATE tab lives on the ACCOUNT row, and since 2026-08-28 that row
-  // takes turns with the three lists — so this reaches it the way she does,
-  // through the toggle beside the account switcher.
-  await page.click('#rowtog');
-  await page.waitForTimeout(50);
-  await page.click('.acctab[data-acct="new"]');   // the Update view
-  await page.waitForTimeout(150);
-  if (!await page.$eval('#bugbtn', (n) => n.hidden)) fail('the bug button stayed on the Update view — it belongs to the chat list');
+  // …and the INSTAGRAM icon is beside it now: her ask had put it on the
+  // UPDATE tab, which was its only door, so it moved here when that tab went
+  // (2026-09-14) rather than taking `/instagram` away with it.
+  if (await page.$eval('#iglink', (n) => n.hidden)) fail('the Instagram icon is hidden on the chat list');
   else ok();
-  await page.click('.acctab[data-acct="1"]');     // back to an account page
+  // Both leave on a view that is not a list of chats. The ARCHIVE is the one
+  // this used to check against the Update tab.
+  // Section 1/2 left the bug filter ON (it is how the tagged chats are asked
+  // for). The old row-toggle tap that used to sit here cleared it as a side
+  // effect; now it is put back by hand, so section 7 starts from the whole
+  // list the way she would.
+  await page.click('#bugbtn');
+  await page.waitForSelector(row('plain'));
+  await page.click('#archlink');
+  await page.waitForTimeout(150);
+  if (!await page.$eval('#bugbtn', (n) => n.hidden)) fail('the bug button stayed in the archive — it belongs to the chat list');
+  else ok();
+  if (!await page.$eval('#iglink', (n) => n.hidden)) fail('the Instagram icon stayed in the archive');
+  else ok();
+  await page.click('#archlink');                  // back to the chat list
   await page.waitForSelector(row('plain'));
 
   // ── 7. the tap narrows, LEAVES the archive alone, and lights ─────────────

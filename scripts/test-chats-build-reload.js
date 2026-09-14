@@ -16,8 +16,14 @@
 //      the viewer is still there after a poll,
 //   2. once she closes it, the next poll DOES reload (a build has to be able
 //      to reach her, or the whole mechanism is pointless),
-//   3. …and she comes back on the UPDATE tab, not the chat list,
+//   3. …and she comes back on the VIEW SHE WAS IN, not the chat list,
 //   4. a plain first load with no reload flag still opens on the chat list.
+//
+// HER VIEW HERE IS **STATUS**, NOT UPDATE. This was written on the Update tab
+// — the screen she was actually on — and that tab came off on 2026-09-14
+// ("get rid of the updates tab in chats"). Status is the same shape for this
+// test's purpose: it is in `RELOAD_VIEW`'s restore list and it lists Compare
+// pages as `.pagerow`s that open the full-screen viewer.
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-build-reload.js
 //
@@ -83,16 +89,15 @@ const titleOf = (page) => page.textContent('#htxt');
   const page = await browser.newPage({ viewport: { width: 390, height: 780 } });
 
   await page.goto(base + '/chats');
-  // The row takes turns with the three lists (2026-08-28) and opens on the
-  // LISTS, so the account row — the UPDATE tab's own home — is one tap away.
-  if (!await page.isVisible('#accrow')) await page.click('#rowtog');
-  await page.waitForSelector('#accrow .acctab[data-acct="new"]');
+  await page.waitForSelector('#grid');
 
-  // her position: the Update tab, inside the artifact
-  await page.click('#accrow .acctab[data-acct="new"]');
-  await page.waitForSelector('.nwcard .pagerow', { timeout: 4000 })
+  // her position: the Status view, inside the artifact. (Status has no button
+  // of its own — `__setHomeView` is the documented way in, kept for exactly
+  // this.)
+  await page.evaluate(() => window.__setHomeView('status'));
+  await page.waitForSelector('#grid .pagerow', { timeout: 4000 })
     .catch(() => fail('the artifact row never rendered'));
-  await page.click('.nwcard .pagerow');
+  await page.click('#grid .pagerow');
   await page.waitForSelector('.pageview .pv-frame', { timeout: 4000 })
     .catch(() => fail('the Compare viewer never opened'));
 
@@ -103,11 +108,11 @@ const titleOf = (page) => page.textContent('#htxt');
   if (!(await page.$('.pageview .pv-frame'))) fail('a deploy reloaded the artifact out from under her');
 
   // 2/3. she closes it; now the reload may happen — and must put her back on
-  //      the Update tab rather than the chat list
+  //      the view she was in rather than the chat list
   await page.click('.pageview .pv-back');
   await page.waitForFunction(() => !document.querySelector('.pageview'), null, { timeout: 4000 });
   // Mark THIS document so the reload is PROVABLE rather than inferred — the
-  // title would still read "Update" if nothing had reloaded at all — and so
+  // title would still read "Status" if nothing had reloaded at all — and so
   // the checks below can wait for the new document instead of racing it.
   await page.evaluate(() => { window.__beforeReload = 1; });
   // the reload lands mid-evaluate by design, tearing the context down: that IS
@@ -117,31 +122,31 @@ const titleOf = (page) => page.textContent('#htxt');
     null, { timeout: 8000 })
     .catch(() => fail('the deferred reload never happened once she closed the artifact'));
   await page.waitForFunction(() => document.getElementById('htxt')
-    && document.getElementById('htxt').textContent === 'Update', null, { timeout: 6000 })
-    .catch(async () => fail('after the deferred reload she is not back on Update (title "'
+    && document.getElementById('htxt').textContent === 'Status', null, { timeout: 6000 })
+    .catch(async () => fail('after the deferred reload she is not back on Status (title "'
       + await titleOf(page) + '")'));
   const reloaded = await page.evaluate(() => ({
     flag: sessionStorage.getItem('chats-reload-view'),
-    tab: document.querySelector('#accrow').dataset.on,
   }));
   if (reloaded.flag) fail('the restore flag was left behind in sessionStorage');
-  if (reloaded.tab !== 'new') fail('the tab row does not read as Update after the reload: ' + reloaded.tab);
 
   // 4. a launch she started still opens on the chat list
   const fresh = await browser.newPage({ viewport: { width: 390, height: 780 } });
   await fresh.goto(base + '/chats');
-  await fresh.waitForSelector('#accrow .acctab');
+  await fresh.waitForSelector('#grid');
   if ((await fresh.textContent('#htxt')) !== 'Chats') {
     fail('a plain first load did not open on the chat list: ' + await fresh.textContent('#htxt'));
   }
 
-  // 5. a push tap loads /chats?view=news — lands on the Update tab with the
-  //    param STRIPPED, so checkBuild's later reloads can't drag her back
+  // 5. `?view=news` opened the Update tab until 2026-09-14. The tab is gone
+  //    and the param is still SWALLOWED — an older push, an older iOS build
+  //    and any saved link still carry it, and a leftover ?view would ride
+  //    checkBuild's reload forever. It lands her on the chat list.
   const pushed = await browser.newPage({ viewport: { width: 390, height: 780 } });
   await pushed.goto(base + '/chats?view=news');
   await pushed.waitForFunction(() => document.getElementById('htxt')
-    && document.getElementById('htxt').textContent === 'Update', null, { timeout: 5000 })
-    .catch(() => fail('?view=news did not open the Update tab'));
+    && document.getElementById('htxt').textContent === 'Chats', null, { timeout: 5000 })
+    .catch(() => fail('?view=news did not land on the chat list'));
   if ((await pushed.evaluate(() => location.search)) !== '') fail('?view=news not stripped after boot');
   await pushed.close();
 
@@ -160,5 +165,5 @@ const titleOf = (page) => page.textContent('#htxt');
   await browser.close();
   server.close();
   console.log(process.exitCode ? 'DONE with failures'
-    : 'OK: a deploy waits for the artifact to close, then puts her back on Update');
+    : 'OK: a deploy waits for the artifact to close, then puts her back where she was');
 })().catch((e) => { console.error(e); process.exit(1); });

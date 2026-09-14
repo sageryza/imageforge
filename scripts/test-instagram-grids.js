@@ -281,7 +281,11 @@ is('…and it is moon milk', real(witch)[0].label.toLowerCase(), 'moon milk');
       return route.fulfill({ status: 204, body: '' });
     });
 
-    await page.goto('https://forge.test/chats?view=news', { waitUntil: 'domcontentloaded' });
+    // THE ICON MOVED TO THE CHAT LIST (2026-09-14). Her ask had put it on the
+    // UPDATE tab, and when that tab came off ("get rid of the updates tab in
+    // chats") this was its ONLY door — so it rides the bug button's rule now:
+    // the chat list's own, gone on every other view.
+    await page.goto('https://forge.test/chats', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#catrow .catchip', { timeout: 6000 });
     await page.waitForFunction(() => {
       const b = document.getElementById('iglink');
@@ -307,8 +311,8 @@ is('…and it is moon milk', real(witch)[0].label.toLowerCase(), 'moon milk');
       };
     });
 
-    if (!geo.shown) fail('the Instagram icon is not on the Update tab');
-    else ok('the icon is on the Update tab');
+    if (!geo.shown) fail('the Instagram icon is not on the chat list');
+    else ok('the icon is on the chat list');
     if (geo.btn && geo.row) {
       // TOP RIGHT, as far as the row actually has one: right of every chip, on
       // the row's first line, and clear of the pill's reserved corner.
@@ -326,14 +330,17 @@ is('…and it is moon milk', real(witch)[0].label.toLowerCase(), 'moon milk');
     if (!(await page.$('#igpage'))) fail('the icon did not open /instagram');
     else ok('…and it opens /instagram');
 
-    // it belongs to the UPDATE tab and nowhere else
+    // …and it belongs to the chat list and nowhere else — the ARCHIVE is a
+    // view that is not a list of chats, so both this and the bug button leave.
     await page.goto('https://forge.test/chats', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#grid .crow, #grid .state', { timeout: 6000 });
-    const onList = await page.evaluate(() => {
+    await page.click('#archlink');
+    await page.waitForTimeout(200);
+    const inArchive = await page.evaluate(() => {
       const b = document.getElementById('iglink');
       return !!b && !b.hidden;
     });
-    if (onList) fail('the icon is still on the chat list');
+    if (inArchive) fail('the icon is still on screen in the archive');
     else ok('…and it is put away on every other view');
     await page.close();
   }

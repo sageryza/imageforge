@@ -186,15 +186,10 @@ const clickFolder = (page, label) => page.$$eval('#catrow .catchip',
   if (!(await page.$('#catrow .morechip'))) fail('SEE MORE missing after a reopen');
   await page.click('#catrow .tagsbtn');
 
-  // 8. the UPDATE row keeps its own boxes, select mode keeps the vocabulary
-  // The row takes turns with the three lists (2026-08-28) and opens on the
-  // LISTS, so the account row — the UPDATE tab's own home — is one tap away.
-  if (!await page.isVisible('#accrow')) await page.click('#rowtog');
-  await page.click('#accrow .acctab[data-acct="new"]');
-  await page.waitForFunction(() => !document.querySelector('#catrow .tagsbtn'), null, { timeout: 4000 })
-    .catch(() => fail('TAGS is on the UPDATE screen, which has its own boxes'));
-  await page.click('#accrow .acctab[data-acct="new"]');
-  await page.waitForSelector('#catrow .tagsbtn');
+  // 8. select mode keeps the vocabulary
+  // (This used to check the UPDATE row too — that screen borrowed the chip
+  // row for its three boxes, so TAGS had to leave. The tab came off on
+  // 2026-09-14 and the chip row is the chat list's alone again.)
   await page.click('#selbtn');
   await page.waitForSelector('#selbar', { timeout: 4000 }).catch(() => fail('select mode never opened its bar'));
   const selChips = await page.$$eval('#selbar .catchip', (ns) => ns.map((n) => n.textContent.trim()));

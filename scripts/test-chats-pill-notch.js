@@ -99,19 +99,13 @@ const geom = (page) => page.evaluate(() => {
   const acc = document.getElementById('accrow');
   // The gap is measured from the LAST VISIBLE thing above the tabs, not from
   // the chips: on the chat list the collapsed search row sits between them and
-  // is 34px of real control, not blank page. (On UPDATE it is parked into the
-  // tool row and hidden, which is why that screen showed the waste so plainly.)
+  // is 34px of real control, not blank page.
   const sr = document.querySelector('.searchrow');
-  // …and #nwdoors, the Update/Review chips, which landed between the tool row
-  // and the account tabs after this test was written (Aug 2026 — "they're
-  // supposed to go above the chats"). It is a real row of controls, so the gap
-  // it fills is not the blank page this test is hunting; measuring past it
-  // failed the UPDATE screen for 47px of buttons.
-  const nd = document.getElementById('nwdoors');
+  // (`#nwdoors`, the Update/Review chips that used to land between the tool
+  // row and the account tabs, went with the Update tab on 2026-09-14.)
   const above = [].concat(
     chips.map((r) => r.bottom),
-    sr && sr.getClientRects().length ? [sr.getBoundingClientRect().bottom] : [],
-    nd && nd.getClientRects().length ? [nd.getBoundingClientRect().bottom] : []);
+    sr && sr.getClientRects().length ? [sr.getBoundingClientRect().bottom] : []);
   return {
     rowTop: Math.round(tr.top), rowH: Math.round(tr.height),
     notchH: Math.round(nr.height), notchLeft: Math.round(nr.left),
@@ -162,18 +156,8 @@ const geom = (page) => page.evaluate(() => {
   }
   if (open.intruders) fail(open.intruders + ' chip(s) are sitting under the pill with the row open');
 
-  // ---- and the UPDATE screen, which is where she saw it -------------------
-  await page.click('#catrow .tagsbtn');
-  await page.waitForTimeout(150);
-  await page.evaluate(() => window.__setHomeView('news'));
-  await page.waitForTimeout(500);
-  const news = await geom(page);
-  if (!news.chips) fail('the UPDATE screen drew no boxes, so this proves nothing');
-  if (news.notchH > news.used + 1) {
-    fail('UPDATE: the notch reserves ' + news.notchH + 'px for ' + news.used + 'px of boxes');
-  }
-  if (news.gapToAcc > 32) fail('UPDATE: ' + news.gapToAcc + 'px of empty page between the boxes and the tabs');
-  if (news.intruders) fail('UPDATE: a box slid under the pill');
+  // (The UPDATE screen — the one she saw this on, two boxes on one line — was
+  // checked here too until 2026-09-14, when the tab came off.)
 
   await browser.close();
   server.close();

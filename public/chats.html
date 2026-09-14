@@ -103,7 +103,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .dv-txt{min-width:0; display:flex; flex-direction:column; gap:2px;}
 .dv-t{font-size:14px; line-height:1.35; color:var(--ink);}
 .dv-m{font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink2);}
-/* Three across, her size — the Update tab's own strip. */
+/* Three across, her size — the Update tab's old picture strip. */
 .dvpics{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:6px; margin:8px 0 2px;}
 .dvpic{padding:0; border:none; background:none; cursor:pointer; -webkit-tap-highlight-color:transparent;}
 .dvpic img{display:block; width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:6px;
@@ -136,12 +136,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    it needs `padding-right:56px` again (for the TAPS; the line looks after
    itself, see below).
 
-   UPDATE LEADS THE ROW, then one tab per account (Sophie: "I wanna make one
-   more tab, and this is like a daily notifications thing", then, having used
-   it: "I would put it on the left side of the accounts and call it update").
-   UPDATE is not an account, it is a VIEW (see renderNews), which is why it
-   lights up on its own and the account tabs go quiet under it — and it leads
-   the row because it is the screen she opens first.
+   ONE TAB PER ACCOUNT. An UPDATE tab used to LEAD this row — a whole VIEW
+   rather than an account, which is why it lit on its own while the account
+   tabs went quiet under it — and it came off on 2026-09-14 ("get rid of the
+   updates tab in chats"). Nothing here counted the tabs, so losing it cost no
+   layout work; the row just got wider per account.
    THE ACCOUNTS ARE BARE DIGITS since a third one arrived (Aug 2026, Sophie:
    "maybe just call them 1 2 3 with the numbers rather than account so it
    fits") — four tabs leave ~97px each on her 390pt phone, which "Account 3"
@@ -1172,20 +1171,9 @@ button.dayrule{border:none; background:none; padding:0; cursor:pointer;
 .sthead{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink2); margin:1.9em 0 .35em; display:flex; align-items:baseline; gap:8px;}
 .sthead .stn{color:var(--rose); font-weight:600;}
 #grid .sthead:first-child{margin-top:.3em;}
-/* The Update tab's section headers FOLD (Aug 2026, Sophie: "can y make the
-   categories in the update [tab] collapsible"). The whole header line is the
-   button — a chevron alone is the tap target this app has already had to grow
-   twice (test-chats-tap-targets.js) — so the padding buys ~36px of thumb and
-   the negative margins give it straight back, leaving the words on the pixel
-   they always sat on. */
-button.sthead{-webkit-appearance:none; appearance:none; background:none; border:0;
-  width:100%; text-align:left; padding:11px 2px; cursor:pointer;
-  margin:calc(1.9em - 11px) 0 calc(.35em - 11px); -webkit-tap-highlight-color:transparent;}
-#grid button.sthead:first-child{margin-top:calc(.3em - 11px);}
-.sthead .nwfoldic{margin-left:auto; width:15px; height:15px; align-self:center; color:var(--ink2);
-  transition:transform .15s;}
-.sthead .nwfoldic svg{width:100%; height:100%; display:block;}
-.sthead.folded .nwfoldic{transform:rotate(-90deg);}
+/* (The Update tab's foldable section headers lived here — `button.sthead`
+   plus the `.nwfoldic` chevron — and went with the tab on 2026-09-14. The
+   Status view's own `.sthead` is a plain div and never folded.) */
 .cr-snip{display:block; font-size:14.5px; line-height:1.35; color:var(--ink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px;}
 /* ---- The note line under a chat's name (Aug 2026, Sophie) ----------------
    ONE line, ONE look — italic, quiet, never bold, never rose. Hers and a
@@ -1213,7 +1201,7 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
   color:var(--ink2); white-space:pre-wrap; border-left:2px solid var(--line);}
 .wrapfull[hidden]{display:none;}
 /* THE SUMMARY IS THE THREE QUESTIONS (Aug 2026, her ask) and it is drawn with
-   the Update tab's own rows — `.nwrow`, one renderer — so the same three
+   the Update card's own rows — `.nwrow`, one renderer — so the same three
    answers read identically wherever she opens them. Only the size changes:
    in here they are a caption under a line she has already read. */
 .wrapfull .nwrow, .arcout .nwrow{font-size:14px; margin-bottom:6px;}
@@ -1336,139 +1324,11 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
 .q-q{font-weight:700;}
 .q-a{font-weight:400; margin-top:.5em;}
 .stquiet{font-size:15.5px; font-style:italic; color:var(--ink2); padding:8px 2px;}
-/* ---- The UPDATE tab's cards (Aug 2026, Sophie) -------------------------------
-   "A daily notifications thing, basically — so it includes a little more
-   information, and I can get rid of them if I've already checked them. For
-   the [oven] chat, they keep delivering different versions of this artifact,
-   so it would show the actual artifact — I guess maybe a link to it, and it
-   would just take me to their Compare tab. Or if there's a chat that's making
-   pictures, it would show the last three pictures in a little row, so I can
-   see it and be easily reminded what they're doing."
-   So a card is a ROW plus the thing itself: the chat's line on top (the same
-   name/note/time a home row shows, so it reads as the same app), then its
-   newest Compare pages as tappable titles, then up to three thumbnails. The
-   ✓ on the right is the "I've checked this" — see POST /notif-seen. */
-.nwcard{border:1px solid var(--line); border-radius:6px; background:var(--surface);
-  padding:4px 10px 10px; margin:0 0 10px;}
-/* ---- IN A MINUTE IS MINT (2026-08-29, Sophie: "can u turn chats green tint
-   if in a minute filed / stay on scre[en]" · "mint") -------------------------
-   A card she has filed IN A MINUTE stays on the main list and wears a mint
-   wash — see newsSoon in the script for why that box alone stays on screen.
-   The BACKGROUND carries it, never the border: `picked` is a 2px border and
-   she picks a card in order to file it, so the two marks have to be able to
-   show at once without arguing. Light enough that the ink and her note read
-   exactly as they do on any other card. */
-.nwcard.soon{background:var(--mint); border-color:var(--mintline);}
-/* ---- THE TWO RED BOXES AT THE TOP (2026-08-27, Sophie: "create a new '5 most
-   urgent' and 5 most important with a red box, the rest collapse hidden by
-   default") ------------------------------------------------------------------
-   Each is a rounded rectangle in the house red (--chg — the marks' red, never
-   the rose), holding up to five cards behind its own foldable header. The box
-   is an OUTLINE only: the cards inside keep their ordinary look, so a card
-   reads the same wherever it sits and the red says WHERE it is, not what it
-   is. See newsTriage in the script for how the five are picked. */
-.nwtopsec{border:1.5px solid var(--chg); border-radius:6px; padding:6px 8px 0; margin:0 0 10px;}
-.nwtopsec .sthead{margin:.15em 0 .55em; color:var(--chg);}
-.nwtopsec .sthead .nwfoldic{color:var(--chg);}
-.nwtopsec .nwcard{margin:0 0 8px;}
-.nwtopsec .sthead:last-child{margin-bottom:.5em;}
-/* ---- THE TWO DOORS: UPDATE and REVIEW (Aug 2026, Sophie: "the update and
-   also the review button that you probably copied are both supposed to be
-   smaller and they're supposed to go above the chats") -----------------------
-   Both led the LIST as full-width slabs — 92px of screen before the first
-   card, on the one screen she opens to find out what happened. They are chips
-   now, the same small box the filing categories wear, on their own line above
-   the account tabs.
-
-   REVIEW keeps the rose: it is the one door that says something is owed.
-   UPDATE does not — it is never owed, it is just the wider answer to the
-   question this tab already asks. Both hug their words (the house button
-   rule), so the row is as wide as what is in it and no wider.
-
-   The ⌄ beside Review is not decoration: her rule ends "IF i dismiss manually
-   from update tab", so the cards behind the word have to be reachable from
-   here. Its own hairline says the two halves are two taps — the word goes
-   somewhere, the arrow opens the cards in place. */
-.nwdoors{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:0 0 9px;}
-.nwdoors[hidden]{display:none !important;}
-.nwdoor{display:inline-flex; align-items:center; gap:6px; padding:6px 10px;
-  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em;
-  text-transform:uppercase; border:1.5px solid var(--line); border-radius:6px;
-  background:transparent; color:var(--ink2); cursor:pointer; white-space:nowrap;
-  -webkit-tap-highlight-color:transparent;}
-.nwdoor .stn{font-weight:600;}
-/* The pair reads as ONE control: the word and its arrow share a box, split by
-   a hairline, the way the slab did.
-
-   NOT RED ANY MORE (Aug 2026, Sophie: "make the review button on updates tab
-   not red"). It was the one door on the screen painted in the accent, on the
-   reasoning that Review is the door that says something is owed — she looked
-   at it and said no, so it wears the quiet border every other chip on this
-   page wears, and the COUNT beside the word is what says how much is waiting.
-   The To read chip beside it is the same box for the same reason: two doors
-   that do the same kind of thing must not read as two different weights. */
-.nwrevpair{display:inline-flex; align-items:stretch; border:1.5px solid var(--line);
-  border-radius:6px; overflow:hidden;}
-.nwrevpair .nwdoor{border:0; border-radius:0;}
-.nwrevfold{flex:none; width:30px; background:none; border:0; border-left:1.5px solid var(--line);
-  cursor:pointer; color:var(--ink2); display:flex; align-items:center; justify-content:center;
-  -webkit-tap-highlight-color:transparent;}
-.nwrevfold svg{width:15px; height:15px; display:block; transition:transform .18s ease;}
-.nwrevfold.folded svg{transform:rotate(-90deg);}
-/* PICKED — "I tap the item and it selects it with a thicker outline, and then
-   I tap the category and that's how it gets filed in" (Sophie, Aug 2026). The
-   outline IS the whole feedback, so it has to read on a card that already has
-   a border: the same filing green the lit chips wear, at 2px. The padding
-   loses the extra pixel back so a card never jumps as it is picked. */
-.nwcard.picked{border-color:var(--chg); border-width:2px; padding:3px 9px 9px;}
-/* gap was 3px, which is what put the ⌄ against the ✓ (Sophie: "I'm worried
-   I'll tap that by accident"). The timestamp now sits BETWEEN them as well —
-   see newsCard — so the clearing tap is isolated by a real gap plus the time. */
-.nwtop{display:flex; align-items:center; gap:9px;}
-/* The time left the inner row, so it needs its own breathing room here. */
-.nwtime{flex:none; margin:0 1px;}
-/* (There was a PIN here. Every card is kept now — see newsFloor — so the
-   button had nothing left to do and came out, Aug 2026.) */
-/* the home row's own layout, minus its rule — the card is the boundary now */
-.nwcard .crow{border-bottom:none; flex:1; min-width:0; padding:7px 0;}
-/* A picture and a page belong to the CARD, so they run its full width and the
-   page rows lose the heavy padding they carry in the Status list. */
-.nwcard .pagerow{padding:9px 2px; font-size:.95em;}
-.nwcard .pagerow:last-child{border-bottom:none;}
-.nwimgs{display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px;}
-.nwimg{background:none; border:none; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent;}
-.nwimg img{display:block; width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:4px;
-  border:1px solid var(--line); background:var(--barbg);}
-/* Same circle as the row's ⊖/✓ so it reads as one family of marks, in the
-   ARCHIVE green — checking a notification off is a settling gesture, not an
-   alarm, and the red on this screen belongs to the hidden bar and the badges. */
-/* The ⌄ that opens the chat's update. Quieter than the ✓ on purpose — no
-   circle, no shadow: the ✓ is the action on this card, this is just a way to
-   look closer. It rotates when open, so the card says which state it is in. */
-.nwmore{border:none; background:none; cursor:pointer; padding:14px 1px; display:flex; align-items:center;
-  justify-content:center; flex:none; color:var(--ink2); -webkit-tap-highlight-color:transparent;}
-/* every pixel of WIDTH here comes off the chat NAME, which already truncates
-   on 83 of her 144 names — so the glyph stays small and the real padding is
-   vertical only. That left a 19 x 29 target (Aug 2026, Sophie: "the arrow for
-   more information on the chats and the update tab is too small of a tap
-   target"): 29 tall is not what a thumb needs, and 19 wide is less than half
-   of it.
-   The height grew for real — the row beside it is 53px tall, so 45 costs
-   nothing and the card does not move. The WIDTH is the ::after, which reaches
-   exactly across `.nwtop`'s own 9px gaps on either side and stops at the
-   crow's edge: 37px of target that takes not one pixel off the name, because
-   the space was already there and belonged to nothing. It cannot reach the
-   ✓ — the timestamp still sits between them, which is the whole reason the
-   time was moved there ("I'm worried I'll tap that by accident"). */
-.nwmore{position:relative;}
-.nwmore::after{content:''; position:absolute; top:0; bottom:0; left:-9px; right:-9px;}
-.nwmore svg{width:17px; height:17px; display:block; transition:transform .18s ease;}
-.nwmore.on{color:var(--ink);}
-.nwmore.on svg{transform:rotate(180deg);}
-/* Closed by default; the card carries the open state so the whole block can be
-   hidden with one class. */
-.nwsum{display:none; margin:2px 0 2px; padding:9px 2px 2px; border-top:1px solid var(--line);}
-.nwcard.sumon .nwsum{display:block;}
+/* ---- WHAT THE ARCHIVE SUMMARY IS MADE OF ------------------------------------
+   The UPDATE tab's own stylesheet lived here — the card, the mint IN A MINUTE
+   wash, the two red triage boxes, the Update/Review/To read doors, the ✓, the
+   picture strip — and went with the tab on 2026-09-14. `.nwrow` stayed: the
+   three answers are drawn by `sumRows`, which the ARCHIVE SUMMARY reads. */
 /* Her shape: the label bold, the answer not ("those would be in bold, but the
    answers would not be"). Serif for both — this is prose, not a control, and
    the app's sans is its LABEL voice, which is also the one that must not be
@@ -1477,14 +1337,6 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
 .nwrow:last-child{margin-bottom:4px;}
 .nwrow b{display:block; font-weight:600; color:var(--ink);}
 .nwrow span{display:block; color:var(--ink2);}
-.nwck{border:none; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center;
-  -webkit-tap-highlight-color:transparent; border-radius:50%; width:31px; height:31px; flex:none;
-  background:rgba(250,247,240,.92); color:#5d7a5a; box-shadow:0 1px 4px rgba(0,0,0,.18);}
-.nwck svg{width:15px; height:15px; display:block;}
-/* LIT while the card is picked (Aug 2026) — the box is what she taps to
-   select now, so it has to say so. Filled in the filing green, the same
-   colour the picked card's outline and the boxes wear. */
-.nwck.on{background:var(--chg); color:var(--paper);}
 .stgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin:8px 0 2px;}
 .stcell{background:none; border:none; padding:0; cursor:pointer; text-align:left; min-width:0; -webkit-tap-highlight-color:transparent;}
 .stcell img{display:block; width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:6px; border:1px solid var(--line); background:var(--barbg);}
@@ -1824,8 +1676,6 @@ body.selecting .jumps{display:none;}
    width. It replaces the flex row's blanket padding-right:64px, which
    reserved the corner on EVERY line, including the twenty below the pill. */
 #pillnotch{float:right; width:64px; height:0;}
-body.newspick #toolrow{position:sticky; top:0; z-index:30; background:var(--paper);
-  padding-top:8px; padding-bottom:8px; margin-bottom:calc(.7em - 8px);}
 /* Inside the tool row everything is inline flow (the wrap under the icon is
    the point); the archive's own .catrow.arctagrow keeps the flex layout. */
 #toolrow .catrow{display:inline;}
@@ -1880,19 +1730,6 @@ body.newspick #toolrow{position:sticky; top:0; z-index:30; background:var(--pape
 .catchip.morechip{border:none; background:transparent; color:var(--chg);
   padding:6px 2px; display:inline-flex; align-items:center; gap:4px;}
 .catchip.morechip .mc-v{width:11px; height:11px; display:block; flex:none;}
-/* DONE, on the Update screen's pinned row: an ACTION rather than a folder, so
-   it wears the ink instead of the boxes' quiet grey — and it is only on the
-   row while something is picked (paintNewsQRow). */
-.catchip.nwdone{border-color:var(--ink2); color:var(--ink);}
-/* THE TAG ICON, beside Done on that same pinned row (Aug 2026, Sophie: "add
-   the tag icon to allow me to put any tag on a selected chat — add it next to
-   done, it only shows if something is selected"). It is a `.catchip` and not
-   an `.iconbtn` on purpose: it lives in the chips' flow, wraps with them, and
-   reads as the third thing she can do with a picked card rather than as page
-   chrome. Glyph only — the same luggage tag the thread header's Organize
-   button wears, so the sheet it opens is recognisable before it opens. */
-.catchip.nwtag{padding:5px 9px; line-height:0; border-color:var(--ink2); color:var(--ink);}
-.catchip.nwtag svg{width:15px; height:15px; display:block;}
 /* HOW MANY ANSWERED (Sophie, Aug 2026: "a little number next to stories that
    says if there's chats that just recently answered to me"). A dot said only
    "something happened in here"; the number says how much. It is a badge — a
@@ -2039,18 +1876,6 @@ body.ontop > .float{display:none !important;}
    corner. `display:none` rather than a z-index, because of the layer promotion
    above — and the pill has no job while she is picking chats to file. */
 body.selecting > .float{display:none !important;}
-/* And the SAME collision on the Update screen (Aug 2026, Sophie, from a
-   screenshot with one card picked: "something weird - covering the pill").
-   Picking a card pins the tool row (`body.newspick #toolrow` — sticky,
-   z-index 30, on the page's own paper), and that row sits inside the pill's
-   fixed band (y 14-192), so the row paints straight over it: what she was
-   looking at was the pill's outline with its glyphs and its fill covered.
-   Same fix and the same reason as select mode above — `display:none`, not a
-   z-index, because `.float` is promoted to its own layer (translateZ) and iOS
-   composites it above regardless; and the pill has no job while she is
-   picking. `sizePillNotch` reads the same class, so the row also gets the
-   corner back. */
-body.newspick > .float{display:none !important;}
 
 </style>
 
@@ -2127,10 +1952,13 @@ body.newspick > .float{display:none !important;}
          and her pull is the big title. -->
     <div id="toolrow" class="toolrow">
       <div id="pillnotch"></div>
-      <!-- THE INSTAGRAM MOCKUPS — an icon at the right of this row, on the
-           UPDATE tab only (Aug 2026, Sophie: "an icon button in the top right
-           within the existing header space where the tags are, of my update
-           tab … that leads to two tabs — two mockups of instagram"). It is a
+      <!-- THE INSTAGRAM MOCKUPS — an icon at the right of this row (Aug 2026,
+           Sophie: "an icon button in the top right within the existing header
+           space where the tags are, of my update tab … that leads to two tabs
+           — two mockups of instagram"). Her ask put it on the UPDATE tab, and
+           that was its ONLY door — so when the tab came off (2026-09-14) the
+           icon moved to the CHAT LIST rather than going with it, on the bug
+           button's rule. Losing the page silently was not part of the ask. It is a
            RIGHT FLOAT placed after #pillnotch, so it takes the rightmost place
            the row actually has: the true corner (x 324-374, y 14-192) belongs
            to the injected autoscroll pill, which the notch already reserves,
@@ -2180,15 +2008,6 @@ body.newspick > .float{display:none !important;}
          hidden bar (Sophie, Aug 2026 — it shipped up under the masthead and
          she moved it down here), so it is the last thing before the list it
          governs. Labels + badges are painted by paintAcctTabs(). -->
-    <!-- THE TWO DOORS ON THE UPDATE SCREEN — Update and Review (Aug 2026,
-         Sophie: "the update and also the review button that you probably
-         copied are both supposed to be smaller and they're supposed to go
-         above the chats"). They shipped as full-width slabs at the top of the
-         LIST, 92px of screen before the first card; they are `.catchip`-sized
-         buttons on their own line ABOVE the account tabs now, which is above
-         everything the tabs govern. Painted by paintNewsDoors(); empty and
-         hidden on every other view. -->
-    <div id="nwdoors" class="nwdoors" hidden></div>
     <!-- THE THREE LISTS (2026-08-28, Sophie: "one tab ALL chats, in timing
          order · one - list of deliverables AS they're delivered · bug fix tab
          third"). It stands in the ACCOUNT row's place rather than under it —
@@ -2213,7 +2032,6 @@ body.newspick > .float{display:none !important;}
       <button class="acctab" data-list="bugs">Bug fixes</button>
     </div>
     <div id="accrow" class="acctabs" data-on="1">
-      <button class="acctab" data-acct="new"></button>
       <button class="acctab" data-acct="1"></button>
       <button class="acctab" data-acct="2"></button>
       <button class="acctab" data-acct="3"></button>
@@ -3470,7 +3288,7 @@ function statusFor(list){
 // bookmarked message across all chats, and STATUS (what's waiting on her /
 // working / just delivered). `homeView` survives opening a chat and coming
 // back, so she returns to the list she was reading.
-var homeView='live';   // 'live' | 'archive' | 'bookmarks' | 'status' | 'todo' | 'news' | 'project'
+var homeView='live';   // 'live' | 'archive' | 'bookmarks' | 'status' | 'todo' | 'project'
 // THE PROJECT PAGE (2026-09-02). `projectKey` is the word the page groups on,
 // `projectFrom` the chat she came from (its OTHER project words are offered
 // as chips, so a chat on two things is one tap from either group), and
@@ -3480,22 +3298,22 @@ var projView='icons';
 try{ projView=localStorage.getItem('chats-project-view')==='list' ? 'list' : 'icons'; }catch(e){}
 // …restored ONLY across a reload the page did to itself (a new build landed —
 // see checkBuild). A launch she started still opens on the chat list; being
-// carried out of the Update tab by a deploy is the app interrupting her, and
-// putting her back is not the same as remembering a preference.
+// carried out of a view by a deploy is the app interrupting her, and putting
+// her back is not the same as remembering a preference.
 var RELOAD_VIEW='chats-reload-view';
-// A notification tap opens the app on /chats?view=news — the push IS an
-// Update-tab doorbell, so the tap lands on the tab (Aug 2026). The param is
-// consumed and STRIPPED immediately: checkBuild's reload keeps the URL, and a
-// leftover ?view would drag her back to Update on every deploy forever.
+// `?view=news` / `?view=update` USED TO OPEN THE UPDATE TAB, and the tab is
+// gone (2026-09-14). The param is still SWALLOWED rather than ignored: an
+// older push, an older iOS build and any link she has saved still carry it,
+// and a leftover ?view would otherwise ride checkBuild's reload forever. It
+// lands her on the chat list, which is the honest place for a doorbell now.
 try{
   var _qv=new URLSearchParams(location.search).get('view');
-  if(_qv==='news'||_qv==='update'){ homeView='news';
-    history.replaceState(null,'',location.pathname); }
+  if(_qv==='news'||_qv==='update'){ history.replaceState(null,'',location.pathname); }
 }catch(e){}
 try{
   var _rv=sessionStorage.getItem(RELOAD_VIEW);
   sessionStorage.removeItem(RELOAD_VIEW);
-  if(_rv==='news'||_rv==='archive'||_rv==='bookmarks'||_rv==='todo'||_rv==='status') homeView=_rv;
+  if(_rv==='archive'||_rv==='bookmarks'||_rv==='todo'||_rv==='status') homeView=_rv;
 }catch(e){}
 // Where am I / how do I leave. The title carries the state (the word alone was
 // "really confusing" — Sophie), the archlink carries the exit.
@@ -3505,7 +3323,7 @@ function paintHomeChrome(){
   document.getElementById('htxt').textContent = inHidden ? 'Hidden'
     : homeView==='archive' ? 'Archive' : homeView==='bookmarks' ? 'Bookmarks'
     : homeView==='status' ? 'Status' : homeView==='todo' ? 'To do'
-    : homeView==='news' ? 'Update' : homeView==='trash' ? 'Trash'
+    : homeView==='trash' ? 'Trash'
     : homeView==='project' ? projectTitle(projectKey) : 'Chats';
   t.classList.toggle('hid', inHidden);
   t.classList.toggle('arch', homeView==='archive');
@@ -3535,30 +3353,17 @@ function paintHomeChrome(){
   // own layout, so both would be controls that do nothing there. (The refresh
   // icon that used to hold this row's place is gone — Aug 2026, Sophie: "I
   // never use it anymore"; the page polls on its own.)
-  // UPDATE is in this set too: its cards are one per chat but they are
-  // notifications, not the filing surface — a category chip or a select
-  // checkbox there would be a control that does nothing to what is on screen.
   var other=otherView();
-  // …EXCEPT on UPDATE, which has its own two boxes in this row now (Aug 2026,
-  // Sophie: "there's no categories on the updates page in that same style of
-  // those little boxes"). Select stays gone there — a card is picked by
-  // tapping it, so a mode button would be a second way to do one thing.
-  var chipsOff = other && homeView!=='news';
-  document.getElementById('catrow').style.display = chipsOff ? 'none' : '';
+  document.getElementById('catrow').style.display = other ? 'none' : '';
   document.getElementById('selbtn').style.display = other ? 'none' : '';
   // The account tabs split a list of CHATS, so they belong on the chat list
   // and nowhere else — bookmarks and to-dos are not chats, and Status is
   // deliberately unfiltered (it is the everything-at-once view, like it is
   // for categories).
-  // The ROW itself always stays on the UPDATE view, though — it is what the
-  // third tab lives in, and hiding it would leave that view with no way out
-  // except the title.
   // NOT IN THE ARCHIVE (Aug 2026, Sophie: "I noticed there's an update and
   // account one account two tab in the archive"). The archive has its own
   // hairline row now — BUILT / OTHER — and two of them stacked 37px apart
-  // was one question too many on a screen she opens to triage. UPDATE was
-  // the incoherent half regardless: it is a whole VIEW, not a way of
-  // narrowing the chats underneath it.
+  // was one question too many on a screen she opens to triage.
   // The archive is therefore NOT account-filtered anymore (see renderHome) —
   // hiding the row while still filtering by it would be the silent filter
   // this app keeps warning about. Losing the split there costs little: the
@@ -3573,21 +3378,19 @@ function paintHomeChrome(){
   // while paintListTabs only runs on the four that rebuild the list. A second
   // writer meant the poll, a note save or a search put the account row back
   // underneath the lists.
-  var accOff = (other && homeView!=='news') || homeView==='archive' || listsOn();
+  var accOff = other || homeView==='archive' || listsOn();
   if(acc) acc.style.display = accOff ? 'none' : '';
-  // The Update/Review doors are the UPDATE screen's own chrome — they sit
-  // above the tabs, so every other view has to put them away itself
-  // (renderNews is the only thing that ever fills them).
   // The lists row is painted from HERE too, so the two halves of one row can
   // never disagree about which is showing — the four list branches call it as
   // well, which is a harmless repeat of the same answer.
   paintListTabs();
-  var doors=document.getElementById('nwdoors');
-  if(doors && homeView!=='news'){ doors.hidden=true; doors.innerHTML=''; }
-  // The Instagram mockups ride the same rule: her ask put the icon on the
-  // UPDATE tab, and this row is shared with every other view.
+  // THE INSTAGRAM MOCKUPS KEPT THEIR ICON WHEN THE UPDATE TAB WENT
+  // (2026-09-14). Her ask had put it on that tab, which was its ONLY door —
+  // so tying it to a view that no longer exists would have taken the page
+  // away silently. It rides the BUG button's rule now: the chat list's own,
+  // gone on every other view.
   var ig=document.getElementById('iglink');
-  if(ig) ig.hidden = homeView!=='news';
+  if(ig) ig.hidden = otherView() || homeView==='archive';
   // …and the BUG button is the chat list's own (2026-08-27, Sophie: "a bug
   // fix tag button on the right in the header on all 3 account pages") — the
   // three account tabs are views of that list, so it shows there and nowhere
@@ -3621,7 +3424,7 @@ function otherView(){
   // and account tabs mean nothing in there, so it folds its chrome away like
   // the other non-list views.
   return homeView==='bookmarks'||homeView==='status'||homeView==='todo'
-      ||homeView==='news'||homeView==='trash'||homeView==='project';
+      ||homeView==='trash'||homeView==='project';
 }
 function paintSearch(){
   var row=document.getElementById('searchrow'), btn=document.getElementById('searchbtn'),
@@ -3630,9 +3433,9 @@ function paintSearch(){
   var todoing=(homeView==='todo');
   var open=searchOpen && !todoing;
   row.classList.toggle('on', open);
-  // WITH THE CHIPS GONE THE GLASS JOINS THE TOOL ROW (Sophie caught it on the
-  // UPDATE tab): there, the tool row is nearly empty and the folded glass is
-  // a lonely icon on its own row underneath — two rows of screen spending
+  // WITH THE CHIPS GONE THE GLASS JOINS THE TOOL ROW: on a view with no
+  // category chips the tool row is nearly empty and the folded glass is a
+  // lonely icon on its own row underneath — two rows of screen spending
   // almost nothing. The glass only needs a row of its own on the chat list,
   // where the chips are using that width.
   var park = !open && otherView() && !todoing;
@@ -3674,14 +3477,10 @@ function setSearchOpen(on){
   }
   if(window.__jumpsRecheck) window.__jumpsRecheck();
 }
-// Leaving UPDATE drops whatever was picked there — a selection is a gesture
-// half-finished, not a state to carry to another screen and back.
 function setHomeView(v){
   homeView = (homeView===v ? 'live' : v);
   // a tag filter belongs to one visit to the keep-pile, never to the next one
   if(homeView!=='bookmarks') bmkTag='';
-  if(homeView!=='news') newsPick={};
-  document.body.classList.toggle('newspick', false);
   renderHome(); window.scrollTo(0,0);
 }
 // The STATUS view has no button anymore (Sophie had the icon removed), so this
@@ -3728,8 +3527,10 @@ var BMK_TABS=[['chat','Chats'],['page','Artifacts'],['msg','Messages']];
 function bmkTabOf(kind){ return kind==='chat' ? 'chat' : kind==='page' ? 'page' : 'msg'; }
 var bmkCache=null;
 // A TAG FILTER NARROWS THE PILE, IT DOES NOT SPLIT IT (Aug 2026) — which is
-// why it is a chip and the three kinds are tabs. It is what the To read door
-// on the Update tab opens, and it is session-only and cleared on the way out
+// why it is a chip and the three kinds are tabs. The To read door on the
+// Update tab used to open it with this lit; that door went with the tab
+// (2026-09-14), so the chip is how the pile is narrowed now — session-only
+// and cleared on the way out
 // of this view: a filter she cannot see, hiding most of what she kept, is the
 // failure to avoid.
 var bmkTag='';       // '' | one of BMK_TAGS' keys
@@ -4182,734 +3983,30 @@ function renderStatus(el){
     el.appendChild(dl);
   }
 }
-// ---- UPDATE — the tab that LEADS the row (Aug 2026, Sophie) ---------------
-// She named it after using it for an evening ("I would put it on the left
-// side of the accounts and call it update"). The internal view key is still
-// `news`; only the word she reads changed.
-// "Right now there's account one and account two, two tabs on my chat app
-// screen. I wanna make one more tab, and this is like a daily notifications
-// thing — so it includes a little more information, and I can get rid of them
-// if I've already checked them. For the [oven] chat, they keep delivering
-// different versions of this artifact, so it would show the actual artifact —
-// I guess maybe a link to it, and it would just take me to their Compare tab.
-// Or if there's a chat that's making pictures, it would show the last three
-// pictures in a little row, so I can see it and be easily reminded what
-// they're doing."
+// ---- WHAT SURVIVED THE UPDATE TAB -----------------------------------------
+// THE UPDATE TAB IS GONE (2026-09-14, Sophie: "get rid of the updates tab in
+// chats"). Everything that screen owned went with it — the one-card-per-chat
+// list, the three boxes (Come back to · In a minute · Maybe never), the
+// Update/Review/To read doors, the ✓, the triage sections, the tag-rule pin
+// at the top. ~1,000 lines, and the note that described them is history now,
+// not a rule: don't rebuild it from git without her.
 //
-// So this is NOT another filter over the chat list — it is one card per chat
-// that has something she hasn't seen, carrying the THING itself rather than a
-// line about it. Three rules hold it together:
+// These three pieces stayed because they were never really its — the chat
+// list and the archive summary read them.
 //
-//   • WHAT COUNTS AS NEW is the newest of three arrivals — a reply that isn't
-//     hers, a Compare page, an image — because a chat can deliver without
-//     saying anything, and the artifact is the point.
-//   • A CARD LEAVES ON THE ✓ — OR ON HER REPLY (`notifSeenAt` on the
-//     registry). Aug 2026, Sophie: "make the default behavior that it's pinned
-//     until I mark the checkmark and get rid of the pin" — so every card is
-//     kept by default, OPENING the chat clears nothing, and there is no pin
-//     because there is nothing left for a pin to say. Then, having lived with
-//     that: "is it possible to make it so that if I actually replied to the
-//     message that does get rid of the notification" — so POST /reply stamps
-//     the same field the ✓ does (server-side, since her reply arrives from the
-//     Claude app with no page open). It is still a STAMP compared against the
-//     arrival time, never a boolean — which is the whole answer to her oven
-//     example: checking off (or answering) v3 cannot silence v4, and the reply
-//     her message prompts brings the card straight back carrying it.
-//   • IT IGNORES THE ACCOUNT TABS, like Status does. This is the
-//     what-happened-while-I-was-away screen; splitting it in half would mean
-//     checking two screens to know she is caught up. The card still carries
-//     the account digit, so she can see which is which.
-//
-// Everything here reads the caches the page already has: the registry + feed
-// tail for the chats, and stCache (assets/recent + pages-recent, the same
-// one-minute cache the Status view uses) for the deliveries.
-function newsIndex(){
-  var imgs={}, pgs={};
-  (stCache.assets||[]).forEach(function(a){ if(a.chat) (imgs[a.chat]=imgs[a.chat]||[]).push(a); });
-  (stCache.pages||[]).forEach(function(p){ if(p.chat) (pgs[p.chat]=pgs[p.chat]||[]).push(p); });
-  return { imgs:imgs, pgs:pgs };
-}
-// The floor a card has to clear: ONE stamp, written by the ✓ and by her REPLY
-// (Aug 2026, Sophie — "make the default behavior that it's pinned until I mark
-// the checkmark and get rid of the pin", then "if I actually replied to the
-// message that does get rid of the notification"). Every card is now what a
-// pinned card used to be, so the pin is gone; this one line is the whole
-// feature, and answering a chat needed no second field — `POST /reply` writes
-// this same stamp, because her reply lands from the Claude app with no page
-// open anywhere.
-//
-// It used to be the later of TWO marks — this stamp and the per-device `seen`
-// written when she opens a chat — which meant reading a thread quietly cleared
-// its card, and the pin existed to opt out of that one card at a time. Opening
-// is STILL not clearing, and replying is not a back door to it: she opens a
-// chat precisely to deal with it later, and she replies having dealt with it.
-// `seen` drives the unread dot; it has no say here.
-//
-// notifSeenAt lives on the registry, so the ✓ she taps on the phone settles
-// the card on the laptop too — and the widget, which could never read the
-// localStorage half, has always counted off this stamp alone. Same floor
-// everywhere now, including the reply she never made on this device.
-function newsFloor(name){
+// `notifSeenAt` is still stamped by the SERVER on her reply (POST /reply) and
+// is what settles the `waiting for a response` wristwatch (see pinLive).
+// Nothing on the page writes it any more, and nothing needs to: her reply is
+// the one exit that word ever really had.
+function seenFloor(name){
   return (chats[name]&&chats[name].notifSeenAt)||'';
 }
-// WHICH PAGES A CARD SHOWS — v4: THE NEWEST ONE, and nothing else (Aug 2026,
-// Sophie: "I only want the newest compare page or whatever they posted on that
-// turn"). One card per chat carries one deliverable — the latest thing it
-// handed her.
-//
-// It is now ONE filter and NO string parsing:
-//
-//   1. NEWER THAN THE FLOOR — the ✓ she taps, or her own reply (see
-//      newsFloor). A page older than that mark never comes back, whatever its
-//      title says. This is what killed "Cutting blocks (s96) — moved from the
-//      Evan chat", the page with no version number that beat the old title
-//      rule twice: it was never a version question, it was an old-news one.
-//   2. …then the newest survivor, full stop.
-//
-// v3 kept up to TWO and collapsed versions by parsing the title into a
-// "family" (v6 sitting above v5, while genuinely different pages under one
-// project name stayed separate). That machinery is GONE — with one page shown
-// there is nothing for it to decide, because the newest wins whether or not it
-// is a new cut of the same thing. Its deletion is the point, not a side
-// effect: the family rule was the one half of this that could be tricked by a
-// title, and now nothing here reads a title at all.
-//
-// Two consequences worth knowing before flipping this back (v2 → v3 → v4; the
-// title parser is in git history if a fourth turn needs it):
-//   • two genuinely DIFFERENT pages posted in one unchecked stretch show as
-//     the newest one only — she asked for that explicitly, reversing "if they
-//     give me a different page, why would I want it to not be shown?"
-//   • nothing is hidden from the chat itself: the Compare tab still holds
-//     every page. This is only what the notification carries.
-function freshPages(pages, floor){
-  return pages.filter(function(p){ return (p.created||'')>floor; })
-    .sort(function(a,b){ return (a.created||'')<(b.created||'')?1:-1; })
-    .slice(0,1);
-}
-// The chat's pinned DELIVERABLE, when it is a film or an audio cut — the
-// "actively handing her new versions" half of the pin contract. A `link` pin
-// (a page being worked on) is deliberately not returned: it is a bookmark,
-// not a hand-off, and Compare pages already ride freshPages.
-function newsPin(name){
-  var p=chats[name]&&chats[name].pinned;
-  if(!p || !p.url) return null;
-  return (p.kind==='video'||p.kind==='audio') ? p : null;
-}
-function newsItems(g){
-  var ix=newsIndex(), out=[], done={};
-  // sortedChatNames covers the registry AND anything in the feed, and this
-  // view is deliberately NOT account-filtered, so it is used raw here.
-  sortedChatNames(g).forEach(function(name){
-    if(done[name]) return; done[name]=1;
-    if(chats[name]&&chats[name].archived) return;
-    var list=g[name]||[];
-    var last=list.length? list[list.length-1] : null;
-    var floor=newsFloor(name);
-    // THE PICTURES ARE NOT FLOOR-FILTERED, on purpose: she asked for "the last
-    // three pictures in a little row, so I can see it and be easily reminded
-    // what they're doing" — that is context, and a row of one picture with two
-    // blanks would be worse at the job. The PAGES are, because a page is a
-    // thing she opens and a stale one wastes the tap (see freshPages).
-    var pics=(ix.imgs[name]||[]).slice(0,3);
-    var pages=freshPages(ix.pgs[name]||[], floor);
-    // A STILL-WRITING DRAFT IS NOT AN ARRIVAL (Aug 2026, Sophie: "the update
-    // tab seems to give me an update before the turn is even done"). A card
-    // used to land at the chat's first tool call, carrying last turn's ⌄ and
-    // a timestamp about something she couldn't read yet. The widget and the
-    // push both already skip drafts; this makes the tab agree. So the reply
-    // that counts is the newest FINISHED one — an unchecked reply from an
-    // earlier turn still holds its card while a new turn runs on top of it.
-    // Pictures and Compare pages still count the moment they land, mid-turn
-    // included — "if they finished making something … I kind of want to
-    // preserve that" — because a filed image is done even when the reply
-    // around it isn't.
-    var lastFin=null;
-    for(var i=list.length-1;i>=0;i--){
-      var m=list[i];
-      if(m.from!=='sophie' && !m.working){ lastFin=m; break; }
-    }
-    var at='';
-    function bump(t){ if(t && t>at) at=t; }
-    if(lastFin) bump(lastFin.created||'');
-    pics.forEach(function(p){ bump(p.created||''); });
-    pages.forEach(function(p){ bump(p.created||''); });
-    // A RE-PINNED FILM OR AUDIO CUT IS AN ARRIVAL TOO (Aug 2026 v2 — the
-    // dream-commercial card): the pin contract re-posts on every new version,
-    // so pinned.at IS "the chat handed her a new cut", the same deliver-
-    // without-saying-anything rule the pictures and pages already have. Link
-    // pins stay out — a working page is a bookmark, and Compare pages are
-    // already counted above.
-    var pin=newsPin(name);
-    if(pin) bump(pin.at||'');
-    // Nothing since the ✓ means nothing to show. Nothing else takes a card
-    // off this screen any more — see newsFloor.
-    // …EXCEPT A LIVE PIN, which is the one card the arrival test cannot see
-    // (Aug 2026 — the `waiting for a response` rule; see TAG_RULES). She tags
-    // a chat because she owes it an answer, and a chat she owes an answer is
-    // usually one that said its piece days ago and went quiet: waiting for the
-    // arrival test to pass would mean the pin only ever showed on chats that
-    // did not need it. So the TAG is the arrival, and its time is the moment
-    // she tagged it.
-    var rule=tagRuleOf(name), pin=pinLive(name);
-    if(!at || at<=floor){
-      if(!pin) return;
-      at=chatFiledAt(name)||at;
-    }
-    out.push({ chat:name, list:list, last:last, lastFin:lastFin, pics:pics, pages:pages, at:at,
-      rule:(rule&&rule.rule)||'', pin:pin });
-  });
-  out.sort(function(a,b){ return a.at<b.at?1:-1; });   // newest first
-  return out;
-}
-// ---- THE TWO BOXES ON THE UPDATE SCREEN (Aug 2026, Sophie) ----------------
-// "There's no categories on the updates page in that same style of those
-// little boxes. I'd like to add two categories, one called IN A MINUTE for
-// things I want to look at in a minute, but not quite this second, and then
-// next to it on the left I want another category called LATER for things I
-// want to look at maybe later today or this week. How I want to work is that I
-// tap the item, it selects it with a thicker outline, and then I tap the
-// category and that's how it gets filed in."
-//
-// So: LATER on the left, IN A MINUTE next to it, in the chips' own row — the
-// same little boxes the chat list wears, painted into the same #catrow. A
-// CLOSED set of two, deliberately: she named both, there is no New… box here,
-// and a box she could type would be a folder — which is what the other row
-// already is. These file ONE UPDATE for a while, not a chat forever.
-//
-// AN ITEM IS IN EXACTLY ONE PLACE — the main list or a box, never both. That
-// is the difference from a category chip (where a chat rejoins the list and
-// stays in its folder): a card is the newest thing a chat has handed her, so
-// when something NEWER lands the card is new news again and comes back out of
-// the box on its own. One place means the number on a box is exactly what she
-// finds when she opens it, and it means she never deals with the same card
-// twice.
-//
-// The filter (which box is open) is SESSION-ONLY like every other filter on
-// this screen; the filing itself is on the registry (POST /news-queue).
-// The third entry carries a flag: MAYBE NEVER shows ONLY while something is
-// picked (Aug 2026, Sophie: "can you make one more option called maybe never,
-// and this also only shows when I'm actively categorizing stuff") — the same
-// rule DONE follows, so the resting row stays the two boxes she browses.
-// LATER IS CALLED "COME BACK TO" NOW (Aug 2026, Sophie: "can you combine the
-// come back to and later categories") — one word for one intention, on both
-// screens. The STORED value stays `later`, so nothing had to be migrated and
-// no older reader breaks; only the word she reads changed. See COME BACK TO
-// IS ONE BUCKET near the category chips for the other half.
-var NEWS_QS=[['later','Come back to'],['soon','In a minute'],['never','Maybe never',1]];
-var newsQ='';        // the open box, '' = the main list
-var newsPick={};     // what is selected right now (chat name → 1)
-function newsQueueOf(n){
-  var q=(chats[n]&&chats[n].newsQueue)||'';
-  for(var i=0;i<NEWS_QS.length;i++) if(NEWS_QS[i][0]===q) return q;
-  return '';
-}
-function newsQueuedAt(n){ return (chats[n]&&chats[n].newsQueuedAt)||''; }
-function newsQLabel(q){
-  for(var i=0;i<NEWS_QS.length;i++) if(NEWS_QS[i][0]===q) return NEWS_QS[i][1];
-  return q;
-}
-// Filed, and nothing newer has landed since — the one test both lists use, so
-// the main list and the box can never disagree about where a card is.
-function newsBoxed(it){
-  var q=newsQueueOf(it.chat);
-  return !!q && !((it.at||'') > newsQueuedAt(it.chat));
-}
-// ---- IN A MINUTE STAYS ON THE SCREEN, IN MINT (2026-08-29, Sophie: "can u
-// turn chats green tint if in a minute filed / stay on scre[en]" · "mint") --
-// The one box of the three that is not a deferral: `come back to` is later
-// today or this week and `maybe never` is probably not at all, but IN A MINUTE
-// is something she is coming straight back to — and a card that vanished into
-// a box the instant she said so was one she then had to go and find again.
-// So `soon` is the exception to ONE PLACE above: it stays on the main list,
-// tinted mint, AND its box still holds it, because the box is what she opens
-// to see only those. The other two boxes are untouched.
-//
-// The tint is the whole marking: the card keeps its ordinary layout, so the
-// mint says WHERE it is filed and nothing about what it is — the same job the
-// red boxes' outline does.
-function newsSoon(it){ return newsBoxed(it) && newsQueueOf(it.chat)==='soon'; }
-function newsList(g){
-  var items=newsItems(g);
-  return newsQ ? items.filter(function(it){ return newsBoxed(it) && newsQueueOf(it.chat)===newsQ; })
-               : items.filter(function(it){ return !newsBoxed(it) || newsSoon(it); });
-}
-// ---- THE MAIN LIST IS SORTED INTO THREE KINDS (Aug 2026, Sophie: "the update
-// tab is not working as I'd hoped because it became unmanageable. There's like
-// so many things there — a possible fix is to sort it into deliverables and
-// things that need to be read and things that just need quick decisions.") ----
-// Measured the day she asked (2026-08-19): 33 cards on the main list — 24
-// carried an open `need`, 9 were reply-only, 0 had a fresh deliverable at that
-// moment. One undifferentiated pile, and the asks were drowning everything
-// else — the same shape the brief measured (24 of 33) when it reserved a slot
-// for something to LOOK at.
-//
-// So the main list paints as three sections, in the order she spoke them —
-// DELIVERABLES · TO READ · QUICK DECISIONS — with the big ask pile LAST, so
-// the few things to look at are never buried under two dozen asks. Each card
-// is in exactly ONE section, decided from data already on the card:
-//
-//   1. a fresh deliverable → DELIVERABLES: a Compare page newer than the
-//      floor (freshPages already filters), a picture newer than it, or the
-//      pinned FILM/AUDIO re-posted since it (newsPin — v2, the card that
-//      taught this rule: "Dream commercial — v2" was pinned seven minutes
-//      after her ✓ and the classifier had no kind that could see a film, so
-//      its "watch v2, 45 sec" ask filed it as a quick decision). This
-//      outranks an open `need` on purpose: when a chat delivers a thing AND
-//      asks about it, the thing is what she opens, and the ask still reads on
-//      the card's own status line (need-first would file 24 of 33 cards as
-//      asks and the deliverables would never surface — the brief's finding).
-//   2. else a need that TELLS HER TO GO LOOK AT A THING → DELIVERABLES too
-//      (v2): "watch v2", "listen to two cuts", "install build 165" are review
-//      tasks wearing a need's clothes, not decisions. NEED_LOOK is a small
-//      word-boundary verb list over the need — yes, this reads words, which
-//      the v3 title parser died for; the difference is the stakes. That
-//      parser decided what was HIDDEN from her; a miss here files a card one
-//      visible section over on the same screen, and the verbs are the chats'
-//      own house vocabulary for asks ("listen to two cuts" is this file's
-//      canonical example of a need).
-//   3. else an open `need` on the status card → QUICK DECISIONS: the chat is
-//      waiting on her word.
-//   4. else → TO READ: the reply is the news.
-//
-// DERIVED, never filed — no model call (this screen opens constantly and must
-// spend nothing) and nothing new for a chat to POST (only ~7% ever write a
-// card; a filed kind would be empty for the same reason the Questions list is
-// derived). The pictures on a card are deliberately NOT floor-filtered for
-// display (context), so the freshness test here re-checks created > floor
-// rather than trusting the row.
-//
-// An empty section shows NO header — empty is silent. An open BOX stays one
-// flat list: filing a card into Come back to / In a minute was the triage.
-var NEWS_KINDS=[['look','Deliverables'],['read','To read'],['decide','Quick decisions']];
-var NEED_LOOK=/\b(watch|listen|look|peek|open|install|play|tap|test|try|check|review)\b/i;
-function newsKind(it){
-  var floor=newsFloor(it.chat);
-  var pin=newsPin(it.chat);
-  var fresh=it.pages.length>0 ||
-    it.pics.some(function(p){ return (p.created||'')>floor; }) ||
-    !!(pin && (pin.at||'')>floor);
-  if(fresh) return 'look';
-  var need=statusLines(it.chat).need;
-  if(need && NEED_LOOK.test(need)) return 'look';
-  if(need) return 'decide';
-  return 'read';
-}
-// ---- FOLDING A SECTION (Aug 2026, Sophie: "can y make the categories in the
-// update [tab] collapsible") ----------------------------------------------
-// The three sections above are the categories she means, and the one that
-// needs folding is the big one: measured the day the sections shipped, 24 of
-// 33 cards were QUICK DECISIONS, so the two piles she opens this screen to
-// LOOK at were under two dozen asks. Folding that one puts them back on one
-// screen without filing anything.
-//
-// SESSION-ONLY, AND EVERY LOAD STARTS OPEN — the hidden pile's rule and the
-// MORE fold's, for the same reason: a fold that remembered itself would hide
-// a section one morning with no memory of having asked for it. The header and
-// its count stay on screen either way, so a folded section is visibly folded,
-// never missing.
-//
-// ONE exception, hers by name (2026-08-27): THE REST — everything under the
-// two red boxes — starts SHUT on every load ("the rest collapse hidden by
-// default"). Still session-only: opening it lasts until the page reloads, and
-// its header carries the count, so the rest is visibly folded, never missing.
-//
-// FOLDING A SECTION DROPS THE PICKS INSIDE IT, the same way leaving the tab
-// does: a picked card she can no longer see is a card the next tap on a box
-// would file without her.
-// WHICH SECTION A CARD IS IN — one answer, read by the render and by the fold
-// (which has to drop the picks inside a section it is shutting). The two rule
-// words are sections of their own and never reach the classifier.
-function newsSection(it){
-  if(it.rule==='review'||it.rule==='pin') return it.rule;
-  return newsKind(it);
-}
-var newsFold={rest:1};   // kind → 1 while folded; THE REST starts shut (hers)
-function newsFoldHead(pair, n){
-  var shut=!!newsFold[pair[0]];
-  var h=document.createElement('button');
-  h.className='sthead nwfold'+(shut?' folded':'');
-  h.dataset.kind=pair[0];
-  h.setAttribute('aria-expanded', shut?'false':'true');
-  h.innerHTML=esc(pair[1])+(n?' <span class="stn">'+n+'</span>':'')
-    +'<span class="nwfoldic">'+NWDN+'</span>';
-  h.onclick=function(){ toggleNewsFold(pair[0]); };
-  return h;
-}
-function toggleNewsFold(kind){
-  if(newsFold[kind]) delete newsFold[kind];
-  else {
-    newsFold[kind]=1;
-    newsList(groups()).forEach(function(it){
-      // A card's on-screen home is the triage's answer first (urgent /
-      // important / rest); the kind sections only exist INSIDE the rest fold,
-      // so a kind fold may only drop picks from cards actually living there.
-      var top=newsSecOf[it.chat]||newsSection(it);
-      if(top===kind || (top==='rest' && newsSection(it)===kind)) delete newsPick[it.chat];
-    });
-  }
-  renderHome();                 // no scrollTo — she stays where she tapped
-}
-// ---- THE TWO RED BOXES + THE REST (2026-08-27, Sophie: "clear the update tab
-// of anything no longer relevant and create a new '5 most urgent' and 5 most
-// important with a red box, the rest collapse hidden by default") -------------
-// Measured the day she asked: 108 cards on the main list, so the three kind
-// sections were still one long pile. The main list now opens as two red boxes
-// — MOST URGENT and MOST IMPORTANT, five cards each — with everything else
-// behind one fold that starts SHUT (see the fold rules above).
-//
-//   MOST URGENT — the chats waiting on HER: every live `waiting for a
-//   response` pin first (her older above-every-section rule still holds —
-//   the pins lead this box, and a sixth pin widens the box past five rather
-//   than falling into the fold), then the chats whose status card carries an
-//   open `need`, newest ask first.
-//   MOST IMPORTANT — of what is left, her own filing signals rank it: the
-//   pushpin (4), the star (3), a fresh deliverable to look at (2 — the `look`
-//   kind), an open need (1), recency breaking ties. With no signals it is
-//   simply the newest — a fallback, not a claim.
-//   THE REST — the three kind sections she asked for in Aug 2026
-//   (Deliverables · To read · Quick decisions) live on INSIDE the fold,
-//   unchanged, each still foldable on its own.
-//
-// DERIVED on every paint from data already on the cards — no model call,
-// nothing filed, so nothing here can go stale on the server. A card leaves
-// exactly as before: her ✓/Done, her reply, or a box.
-var NEWS_TOP=5;
-var newsSecOf={};   // chat → 'urgent'|'important'|'rest', written by the
-                    // render, read by toggleNewsFold to drop hidden picks
-function newsTriage(pins, rest){
-  var urgent=pins.slice();
-  var pool=rest.slice();               // newsItems already sorts newest first
-  for(var i=0;i<pool.length && urgent.length<NEWS_TOP;i++){
-    if(statusLines(pool[i].chat).need){ urgent.push(pool.splice(i,1)[0]); i--; }
-  }
-  var scored=pool.map(function(it,i){
-    var r=chats[it.chat]||{}, s=0;
-    if(r.pinTop) s+=4;
-    if(r.starred) s+=3;
-    if(newsKind(it)==='look') s+=2;
-    if(statusLines(it.chat).need) s+=1;
-    return {it:it, s:s, i:i};
-  });
-  scored.sort(function(a,b){ return b.s-a.s || a.i-b.i; });  // ties → newest
-  var important=scored.slice(0,NEWS_TOP).map(function(x){ return x.it; });
-  var inTop={};
-  urgent.concat(important).forEach(function(it){ inTop[it.chat]=1; });
-  return { urgent:urgent, important:important,
-           rest:rest.filter(function(it){ return !inTop[it.chat]; }) };
-}
-// One red box: the fold header inside the outline, the cards under it. An
-// empty box draws NOTHING — empty is silent, like every section on this tab.
-function newsTopSec(el, kind, label, sub){
-  if(!sub.length) return;
-  var box=document.createElement('div'); box.className='nwtopsec';
-  box.appendChild(newsFoldHead([kind,label], sub.length));
-  if(!newsFold[kind]) sub.forEach(function(it){ box.appendChild(newsCard(it)); });
-  el.appendChild(box);
-}
-// ---- THE REVIEW DOOR (Aug 2026, Sophie: "the `to be reviewed` review queue
-// — like movies that are done, images waiting on my decision — go into a
-// `review` button (which links to the review queue) at the top of the updates
-// tab") ---------------------------------------------------------------------
-// A chip in the doors row above the account tabs, carrying how many chats are
-// behind it. The WORD is the link: it leaves for /review, which is where the
-// work actually gets done — a deck is swiped there, never here.
-//
-// The ⌄ beside it is not decoration and not an extra feature: her rule ends
-// "IF i dismiss manually from update tab", so the cards have to be REACHABLE
-// from this tab or there is nothing to dismiss. It opens the same cards, at
-// the top of the list, with the same ✓ and the same DONE chip as every other
-// section — folded by default, because the point of the door is that these
-// are out of the way.
-//
-// IT WAS A FULL-WIDTH SLAB AT THE TOP OF THE LIST until she asked for it
-// smaller and above the chats; only its size and its place changed.
-//
-// Session-only and always starting shut, like every other fold on this screen.
-function newsReviewDoor(revs){
-  var shut=!newsFold.reviewOpen;
-  var pair=document.createElement('div'); pair.className='nwrevpair';
-  var b=document.createElement('button'); b.className='nwdoor';
-  b.innerHTML='<span>Review</span><span class="stn">'+revs.length+'</span>';
-  b.setAttribute('aria-label','Review queue — '+revs.length+' waiting');
-  b.onclick=function(){ location.href='/review'; };
-  pair.appendChild(b);
-  var f=document.createElement('button');
-  f.className='nwrevfold'+(shut?' folded':'');
-  f.setAttribute('aria-expanded', shut?'false':'true');
-  f.setAttribute('aria-label', shut?'Show these chats':'Hide these chats');
-  f.innerHTML=NWDN;
-  f.onclick=function(){
-    if(newsFold.reviewOpen){
-      delete newsFold.reviewOpen;
-      // shutting drops the picks inside, the same rule the sections follow —
-      // a picked card she can no longer see is one the next tap would file
-      newsList(groups()).forEach(function(it){
-        if(it.rule==='review') delete newsPick[it.chat];
-      });
-    } else newsFold.reviewOpen=1;
-    renderHome();
-  };
-  pair.appendChild(f);
-  return pair;
-}
-// The chips: LATER · IN A MINUTE, each carrying how many are waiting in it.
-// Tapping one with nothing picked OPENS that box (tap it again to come back —
-// the category chips' convention, and why there is no "All" chip to reach
-// for). Tapping one with cards picked FILES them.
-function paintNewsQRow(row,g){
-  var items=newsItems(g);
-  var picking=!!Object.keys(newsPick).length;
-  NEWS_QS.forEach(function(pair){
-    // MAYBE NEVER is a filing target only, so it is not on the row when there
-    // is nothing to file. The two she browses stay put — a row that changed
-    // shape every time she picked something would move the box she was
-    // reaching for.
-    if(pair[2] && !picking) return;
-    var n=items.filter(function(it){
-      return newsBoxed(it) && newsQueueOf(it.chat)===pair[0]; }).length;
-    var b=document.createElement('button');
-    b.className='catchip'+(newsQ===pair[0]?' on':'');
-    b.innerHTML=esc(pair[1])+(n?'<span class="cc-new">'+n+'</span>':'');
-    b.setAttribute('aria-label', pair[1]+(n? ' — '+n+' waiting' : ''));
-    b.onclick=function(){
-      if(Object.keys(newsPick).length){ fileNews(pair[0]); return; }
-      newsQ=(newsQ===pair[0]?'':pair[0]); renderHome(); window.scrollTo(0,0);
-    };
-    row.appendChild(b);
-  });
-  // DONE — only while something is actively selected, her rule. It is the
-  // third thing she can do with a picked card (Later · In a minute · Done),
-  // so it belongs beside the boxes rather than anywhere else.
-  if(picking){
-    var d=document.createElement('button');
-    d.className='catchip nwdone'; d.textContent='Done';
-    d.setAttribute('aria-label','Clear these without filing them');
-    d.onclick=doneNews;
-    row.appendChild(d);
-    // ANY WORD, not just the three boxes (Aug 2026, her ask). The three chips
-    // beside it file into the update QUEUE — Come back to · In a minute ·
-    // Maybe never — which is a different question from what a chat IS. This
-    // opens her whole vocabulary on the picked cards, the same chips and the
-    // same writer the Organize sheet uses.
-    var t=document.createElement('button');
-    t.className='catchip nwtag'; t.innerHTML=TAG_SVG;
-    t.title='Tag these';
-    t.setAttribute('aria-label','Tag the picked chats');
-    t.onclick=function(e){ e.stopPropagation(); askTagPicked(Object.keys(newsPick)); };
-    row.appendChild(t);
-  }
-}
-// ---- TAG WHAT IS PICKED ------------------------------------------------------
-// The Organize sheet's chips, over a SELECTION instead of one chat (Aug 2026,
-// Sophie: "add the tag icon to allow me to put any tag on a selected chat").
-// It shares `paintVocabChips` (so the two groups and the line between them are
-// the same everywhere) and `saveLabels` (the one writer, optimistic with the
-// roll-back), so nothing here can disagree with the sheet the thread header
-// opens.
-//
-// A chip is LIT only when every picked chat already carries the word, and that
-// is what makes one control do both directions honestly: lit means "all of
-// them have this", so tapping it takes it off all of them; unlit — including
-// the half-and-half case — means "not all of them", so tapping it puts it on
-// the ones missing it. `saveLabels`' add/remove are per-chat edits, so a chat
-// that already has the word keeps its other words untouched.
-//
-// The picking is deliberately LEFT ON when the sheet shuts: she may want a
-// second word on the same cards, and filing them is the Done chip's job, not
-// this one's.
-//
-// `waiting for something` does NOT open its what-is-it-waiting-for box here —
-// that answer is per chat, and asking it six times in a row for one tap is a
-// worse thing than the prompt she already gets on each row.
-function askTagPicked(names){
-  if(!names || !names.length) return;
-  scrollStop();
-  var wrap=document.createElement('div'); wrap.className='askwrap';
-  var box=document.createElement('div'); box.className='askbox';
-  var q=document.createElement('p'); q.className='archq';
-  q.textContent = names.length===1 ? 'Tag '+dispName(names[0])
-                                   : 'Tag these '+names.length+' chats';
-  box.appendChild(q);
-  var trow=document.createElement('div'); trow.className='arctags'; box.appendChild(trow);
-  function allHave(c){
-    return names.every(function(n){ return chatLabels(n).indexOf(c)>-1; });
-  }
-  function paint(){
-    trow.innerHTML='';
-    paintVocabChips(trow, function(c){
-      var on=allHave(c);
-      var b=document.createElement('button'); b.type='button';
-      b.className='catchip'+(on?' on':'');
-      b.textContent=catLabel(c);
-      b.setAttribute('aria-pressed', on ? 'true' : 'false');
-      b.onclick=function(e){ e.stopPropagation(); set(c, !on); };
-      return b;
-    });
-    var none=document.createElement('button'); none.type='button';
-    none.className='catchip'; none.textContent='None';
-    none.setAttribute('aria-label','Take these out of every pile');
-    none.onclick=function(e){ e.stopPropagation();
-      saveLabels(names, {set:[], repaint:paint}); paint();
-      toast(names.length===1 ? 'Out of every pile' : 'All out of every pile');
-    };
-    trow.appendChild(none);
-    var inp=document.createElement('input'); inp.type='text'; inp.placeholder='New…';
-    inp.autocapitalize='none'; inp.autocorrect='off'; inp.setAttribute('autocomplete','off');
-    // Enter OR tapping away — she dictates these (same reasoning as the
-    // Organize sheet: a name lost to a stray tap is a word she has to invent
-    // twice).
-    function takeNew(){
-      var v=(inp.value||'').trim().toLowerCase().slice(0,40);
-      if(!v) return;
-      inp.value=''; set(v, true);
-    }
-    inp.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); takeNew(); } };
-    inp.onblur=takeNew;
-    trow.appendChild(inp);
-  }
-  function set(c, on){
-    saveLabels(names, on?{add:[c],repaint:paint}:{remove:[c],repaint:paint});
-    paint();
-    // Same sentence the Organize sheet says, and for the same reason: a pile
-    // word takes these chats off the main list and a plain tag does not, and
-    // as chips the two are identical.
-    var many = names.length>1 ? ' \u00d7'+names.length : '';
-    if(!on) toast('Took off '+catLabel(c)+many);
-    else if(isPile(c)) toast('Filed under '+catLabel(c)+many+' — off the main list');
-    else toast('Tagged '+catLabel(c)+many);
-  }
-  paint();
-  var row=document.createElement('div'); row.className='askrow';
-  var done=document.createElement('button'); done.className='go'; done.textContent='Done';
-  function close(){
-    wrap.remove(); document.body.style.overflow='';
-    // The picked cards may belong to a different list now, so repaint rather
-    // than leaving a stale screen — and `newsPickChrome` keeps the pinned row
-    // and this icon in step with a selection that survived the sheet.
-    renderHome(); newsPickChrome(); saveCache();
-  }
-  done.onclick=function(e){ e.stopPropagation(); close(); };
-  row.appendChild(done); box.appendChild(row);
-  wrap.onclick=function(e){ if(e.target===wrap) close(); };
-  box.onclick=function(e){ e.stopPropagation(); };
-  wrap.appendChild(box);
-  document.body.appendChild(wrap); document.body.style.overflow='hidden';
-}
-// Repaint just the boxes — the counts move on a ✓ and when the delivered
-// caches land, and neither is worth a whole re-render of the list she is
-// reading.
-function paintNewsChips(g){
-  if(homeView!=='news') return;
-  var row=document.getElementById('catrow'); if(!row) return;
-  row.innerHTML=''; paintNewsQRow(row,g);
-  // The row just changed shape — DONE and the tag icon come and go with the
-  // selection, and picking hides the pill entirely — so the notch has to be
-  // re-measured here as well as on a full paint, or it goes on reserving the
-  // pill's corner against a pill that is no longer on screen.
-  sizePillNotch();
-}
-// Picking is what pins the row (body.newspick) and what puts DONE on it, so
-// both are refreshed from here — the one place a selection ever changes by
-// hand.
-function toggleNewsPick(name,card){
-  if(newsPick[name]) delete newsPick[name]; else newsPick[name]=1;
-  var on=!!newsPick[name];
-  card.classList.toggle('picked', on);
-  var box=card.querySelector('.nwck'); if(box) box.classList.toggle('on', on);
-  newsPickChrome();
-}
-// The pinned row and the DONE chip, in step with whether anything is picked.
-function newsPickChrome(){
-  var any=homeView==='news' && !!Object.keys(newsPick).length;
-  document.body.classList.toggle('newspick', any);
-  paintNewsChips(groups());
-}
-// File the picked cards. Tapping the box a card is ALREADY IN takes it back
-// out — that is the way back to the main list, and it needs no third chip and
-// no None button. Optimistic, with the rollback every write on this screen
-// has: filing is a clearing gesture, and a card that sat there for a
-// round-trip would read as a missed tap.
-function fileNews(q){
-  var names=Object.keys(newsPick);
-  if(!names.length) return;
-  var now=new Date().toISOString(), prev={}, to={};
-  names.forEach(function(n){
-    prev[n]={q:newsQueueOf(n), at:newsQueuedAt(n)};
-    var t=(prev[n].q===q && newsQueuedAt(n)) ? '' : q;   // in it already → out
-    (to[t]=to[t]||[]).push(n);
-    chats[n]=chats[n]||{};
-    if(t){ chats[n].newsQueue=t; chats[n].newsQueuedAt=now; }
-    else { delete chats[n].newsQueue; delete chats[n].newsQueuedAt; }
-  });
-  newsPick={};
-  renderHome();
-  var out=(to['']||[]).length, into=(to[q]||[]).length;
-  toast(into && out ? (names.length+' moved')
-    : into ? (into+' → '+newsQLabel(q))
-    : (out===1 ? 'Back on the list' : out+' back on the list'));
-  function undo(){
-    names.forEach(function(n){
-      if(prev[n].q){ chats[n].newsQueue=prev[n].q; chats[n].newsQueuedAt=prev[n].at; }
-      else { delete chats[n].newsQueue; delete chats[n].newsQueuedAt; }
-    });
-    renderHome(); toast('Couldn’t save that');
-  }
-  Object.keys(to).forEach(function(t){
-    api('/api/chatfeed/news-queue',{method:'POST',
-      body:JSON.stringify({chats:to[t], queue:t})})
-      .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
-      .catch(undo);
-  });
-}
-var NWCK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
-var NWDN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
-// THE UPDATE BEHIND A TAP (Aug 2026, Sophie: "I wonder if it would be a good
-// idea to have a chat have like a TLDR in their update — not fully in the
-// message, because it would crowd things, but more as like a button I could
-// click and it would pop out"), in the shape she then specified: "the first
-// question in bold would be what I asked, and they just describe what I
-// originally wanted; and then the next would be what they did; and then an
-// optional one would be like if they had any questions for me or what would be
-// coming next" — and "those would be in bold, but the answers would not be".
-//
-// So it is three fields a chat WRITES (POST /api/chatfeed/update, stored on
-// the registry beside the status card), not anything derived from its reply:
-// what she asked, what it did, and what is next — the three things she would
-// otherwise have to reconstruct by reading a whole thread. The head row's one
-// line still belongs to her note / the chat's status card, which is exactly
-// why this is worth having: a chat's own account of the turn had nowhere to go.
-//
-// The FALLBACK is the reply's TLDR under "What I did" — honest (it is what the
-// chat did) and it means the ⌄ still does something for a chat that has not
-// written a card yet, instead of the button appearing and disappearing across
-// the list for no reason she can see.
+// HER THREE QUESTIONS, ONE SET OF WORDS — named on the Update CARD a chat
+// posts (POST /api/chatfeed/update, which is untouched) and read back by the
+// archive summary, which IS this shape.
 var UPD_LABELS=[['asked','What you asked'],['did','What I did'],['next',"What's next"]];
-function newsUpdate(it){
-  var r=chats[it.chat]||{};
-  var u={ asked:String(r.updAsked||'').trim(), did:String(r.updDid||'').trim(),
-          next:String(r.updNext||'').trim() };
-  if(u.asked||u.did||u.next) return u;
-  // The fallback reads the newest FINISHED reply, never a live draft — a card
-  // that exists mid-turn (fresh pictures, a page) must not open on half a
-  // sentence from the turn that is still running.
-  var m=it.lastFin||it.last;
-  if(!m || m.from==='sophie' || m.working) return null;
-  var t=String(m.tldr||'').trim();
-  // no TLDR (an older hook) — the reply's own
-  // opening line is the honest stand-in, and `plain` drops the markdown marks
-  if(!t) t=plain(String(m.text||'').split('\n').filter(function(l){ return l.trim(); })[0]||'');
-  t=t.trim();
-  if(!t) return null;
-  // a guard, not a design: anything this long is a chat that wrote an essay
-  // into a summary field, and the card must not become the thread
-  return { asked:'', did:(t.length>400? t.slice(0,399)+'…' : t), next:'' };
-}
-// ONE renderer for the three questions, wherever they are read — the Update
-// tab's card AND the archive summary, which IS this shape now (Aug 2026,
-// Sophie: "what I really wanted was the what you asked, what I did, and next
-// steps. Since chat already answered those three questions could you just
-// switch the summary for that"). Two copies would drift the labels apart, and
-// the whole point is that she is reading the same three answers in both places.
+// ONE renderer for the three. It used to be shared with the Update tab's own
+// card; the archive summary is the only reader left.
 function sumRows(u, box){
   UPD_LABELS.forEach(function(pair){
     var v=u[pair[0]]; if(!v) return;
@@ -4919,309 +4016,6 @@ function sumRows(u, box){
     box.appendChild(row);
   });
   return box;
-}
-function newsSumBox(u){
-  var box=document.createElement('div'); box.className='nwsum';
-  return sumRows(u, box);
-}
-// Tap to open, tap to close, and it opens IN PLACE rather than over the
-// screen: she is skimming a list, so an overlay would mean a second tap to get
-// back to the thing she is skimming. Session-only, and every paint starts
-// closed — a card that reopened itself would undo the "not fully in the
-// message" half of the ask.
-function newsMore(card){
-  var b=document.createElement('button'); b.className='nwmore';
-  b.innerHTML=NWDN;
-  b.setAttribute('aria-label','What this chat did');
-  b.setAttribute('aria-expanded','false');
-  b.onclick=function(e){
-    e.stopPropagation();
-    var on=!card.classList.contains('sumon');
-    card.classList.toggle('sumon',on);
-    b.classList.toggle('on',on);
-    b.setAttribute('aria-expanded',on?'true':'false');
-    if(window.__jumpsRecheck) window.__jumpsRecheck();
-  };
-  return b;
-}
-function newsCard(it){
-  var card=document.createElement('div'); card.className='nwcard'; card.dataset.chat=it.chat;
-  var top=document.createElement('div'); top.className='nwtop';
-  // The same row the home list draws — name, her note or the chat's status
-  // line, and how long ago — so the two screens read as one app.
-  var row=document.createElement('button'); row.className='crow'; row.dataset.chat=it.chat;
-  // The TIME comes OUT of the row here (Aug 2026, Sophie: the ⌄ "is a little
-  // bit close to the check box so I'm worried I'll tap that by accident —
-  // maybe just move it on the other side of the clock time"). So the card's
-  // top row reads: name/line · ⌄ · TIME · ✓ — the harmless tap on one side,
-  // and the one that clears the card alone behind the timestamp.
-  row.innerHTML=acctHtml(it.chat)+starHtml(it.chat)+iconHtml(it.chat,'cr-ic')
-    +'<span class="cr-body"><span class="cr-name">'+esc(dispName(it.chat))+'</span>'
-    +statusLinesHtml(it.chat, statusFor(it.list))+'</span>';
-  // A TAP ON THE CARD OPENS THE CHAT, exactly as it always did — the ✓ box is
-  // what picks a card now (Aug 2026, Sophie), so nothing here has to mean two
-  // things. It went the other way for one build: the card itself was the pick
-  // target, which left no thumb-sized way into the chat ("I don't think
-  // there's a way to open the chat now cause clicking on it selects it"), and
-  // an opener parked on the little picture icon was a 40px target for the
-  // commonest tap on the screen. Handling it on the CARD as well as the row
-  // means the quiet space beside a thumbnail opens it too; the ⌄, the ✓, a
-  // page title and a thumbnail all stop the click and keep their own jobs.
-  function openTap(e){ e.stopPropagation(); openChat(it.chat); }
-  card.onclick=openTap;
-  row.onclick=openTap;
-  if(newsPick[it.chat]) card.classList.add('picked');
-  // filed IN A MINUTE and still on the main list — see newsSoon. Inside the
-  // open box every card is one, so the tint would say nothing there.
-  if(!newsQ && newsSoon(it)) card.classList.add('soon');
-  top.appendChild(row);
-  var upd=newsUpdate(it);
-  if(upd) top.appendChild(newsMore(card));
-  var tm=document.createElement('span'); tm.className='cr-time nwtime';
-  tm.textContent=ago(it.at||(it.last&&it.last.created)||'');
-  top.appendChild(tm);
-  top.appendChild(newsCheck(it,card));
-  card.appendChild(top);
-  if(upd) card.appendChild(newsSumBox(upd));
-  // The artifact itself: its title opens the page full-screen, which is what
-  // she actually wants from "a link to it" — the Compare tab is one more tap
-  // to the same place.
-  it.pages.forEach(function(p){
-    var pr=document.createElement('button'); pr.className='pagerow';
-    pr.innerHTML='<span class="pr-title">'+esc(p.title||'Untitled page')+'</span>'
-      +'<span class="pr-time">'+ago(p.created)+'</span>';
-    pr.onclick=function(e){ e.stopPropagation(); openPage(p); };
-    card.appendChild(pr);
-  });
-  if(it.pics.length){
-    var grid=document.createElement('div'); grid.className='nwimgs';
-    it.pics.forEach(function(a){
-      var c=document.createElement('button'); c.className='nwimg';
-      c.setAttribute('aria-label', a.description||'Open this chat’s pictures');
-      var img=document.createElement('img'); img.alt=''; img.decoding='async'; img.loading='lazy';
-      var triedFb=false;
-      img.src=a.thumb||assetThumb(a.url);
-      // direct storage thumb → on-demand /api/story/thumb → hide (image gone)
-      img.onerror=function(){
-        if(!triedFb && a.thumb){ triedFb=true; img.src=assetThumb(a.url); return; }
-        c.style.display='none';
-      };
-      c.appendChild(img);
-      c.onclick=function(e){ e.stopPropagation(); curTab='assets'; openChat(it.chat); };
-      grid.appendChild(c);
-    });
-    card.appendChild(grid);
-  }
-  return card;
-}
-// THE ✓ IS THE SELECT BOX NOW (Aug 2026, Sophie: "I think the best thing
-// would be that I click the checkmark box to select it and then the buttons
-// get pinned to the top, and we just add one more, DONE, and that clears it
-// without putting it into a category — but the done button does not show up
-// unless something is actively selected").
-//
-// So the clearing that used to live on this tap moved to the DONE chip in the
-// pinned row (`doneNews`), and the box's whole job is picking. The glyph and
-// its place on the row are unchanged — it is the checkbox it always looked
-// like — and it lights when the card is picked.
-function newsCheck(it, card){
-  var b=document.createElement('button'); b.className='nwck'+(newsPick[it.chat]?' on':'');
-  b.innerHTML=NWCK;
-  b.setAttribute('aria-label','Pick this update');
-  b.onclick=function(e){ e.stopPropagation(); toggleNewsPick(it.chat, card); };
-  return b;
-}
-// DONE — "clears it without putting it into a category", i.e. exactly what the
-// ✓ did before: the `notifSeenAt` stamp, and the card goes.
-// Optimistic with a rollback, because the gesture is clearing a screen and a
-// card that lingered for a round-trip would read as a missed tap. The tab
-// badge and the boxes are repainted with it, or the numbers would still be
-// counting the cards she just cleared.
-function doneNews(){
-  var names=Object.keys(newsPick);
-  if(!names.length) return;
-  var prev={}, now=new Date().toISOString();
-  names.forEach(function(n){
-    var r=tagRuleOf(n);
-    prev[n]={seen:(chats[n]&&chats[n].notifSeenAt)||null,
-             hold:(chats[n]&&chats[n].reviewHoldAt)||null};
-    chats[n]=chats[n]||{}; chats[n].notifSeenAt=now;
-    // THE HOLD IS THE SERVER'S CALL — mirrored here only so the chat leaves her
-    // account list on the same tap rather than on the next registry poll. The
-    // POST below writes the real one (it re-reads the chat's labels, so a page
-    // days old cannot half-apply the rule), and the rollback takes it back off.
-    if(r && r.rule==='review') chats[n].reviewHoldAt=now;
-  });
-  newsPick={};
-  renderHome();
-  toast(names.length===1 ? 'Done' : (names.length+' done'));
-  names.forEach(function(n){
-    api('/api/chatfeed/notif-seen',{method:'POST',body:JSON.stringify({chat:n,seen:true})})
-      .then(function(r){return r.json()})
-      .then(function(d){
-        if(!d.ok) throw 0;
-        if(d.notifSeenAt) chats[n].notifSeenAt=d.notifSeenAt;
-        // The server decides whether this one is held — trust its answer over
-        // the optimistic mirror above, both ways.
-        if(d.reviewHoldAt) chats[n].reviewHoldAt=d.reviewHoldAt;
-        else delete chats[n].reviewHoldAt;
-      })
-      .catch(function(){
-        if(prev[n].seen) chats[n].notifSeenAt=prev[n].seen; else delete chats[n].notifSeenAt;
-        if(prev[n].hold) chats[n].reviewHoldAt=prev[n].hold; else delete chats[n].reviewHoldAt;
-        toast('Couldn’t save'); if(homeView==='news') renderHome();
-      });
-  });
-}
-// THE UPDATE ROW — the way into /brief (Aug 2026, Sophie: "rename it Update,
-// no icon, and put it on the update screen"). It moved here off the iOS home
-// grid, where it was "What's new" with a list icon.
-//
-// It is ALWAYS on this screen, including the caught-up one: the page behind it
-// is a different question from the cards (the five things worth knowing across
-// every chat, with the pictures and the pages), so "nothing new here" is no
-// reason to take the door away.
-//
-// It carries NO count, for the same reason the home button never did — a badge
-// means reading the brief every time this tab paints, and the number would be
-// the only stale thing on the screen. The page itself now opens on the last
-// list she saw and reads only on Refresh.
-function newsUpdDoor(){
-  var b=document.createElement('button'); b.className='nwdoor';
-  b.textContent='Update';
-  b.setAttribute('aria-label','Update — the five things worth knowing right now');
-  b.onclick=function(){ location.href='/brief'; };
-  return b;
-}
-// THE TO READ DOOR (Aug 2026, Sophie: "add a to read button next to it") —
-// the third chip in the row, beside Review. It is the one bookmark tag with a
-// door of its own: things she kept meaning to read back are the pile that goes
-// stale if it is only ever reachable by remembering it is there.
-//
-// It carries a COUNT, unlike Update, because unlike Update it can be empty —
-// and it goes to the keep-pile with the To read filter already lit, never to a
-// fourth pile of its own: there is ONE place kept things live.
-//
-// The count is its own tiny request (GET /to-read), asked once per load and
-// repainted when it lands: this tab paints on every poll, and the keep-pile
-// route returns up to a thousand documents.
-var toReadN=null;          // null = not asked yet; a number = what came back
-var toReadPend=false;
-var newsRevsLast=[];       // what the doors were last painted with, for the repaint
-function toReadFetch(){
-  if(toReadN!==null || toReadPend) return;
-  toReadPend=true;
-  api('/api/chatfeed/to-read?_='+Date.now())
-    .then(function(r){return r.json()})
-    .then(function(d){
-      toReadPend=false; toReadN=(d&&d.count)||0;
-      if(homeView==='news') paintNewsDoors(newsRevsLast);
-    })
-    .catch(function(){ toReadPend=false; });   // silent — a door with no count still works
-}
-function newsToReadDoor(){
-  var b=document.createElement('button'); b.className='nwdoor';
-  var n=toReadN;
-  b.innerHTML='<span>To read</span>'+(n?'<span class="stn">'+n+'</span>':'');
-  b.setAttribute('aria-label','To read'+(n?' — '+n+' waiting':''));
-  b.onclick=function(){ bmkTag='to-read'; setHomeView('bookmarks'); };
-  return b;
-}
-// THE DOORS ROW — both of them, above the account tabs (Aug 2026, Sophie:
-// "both supposed to be smaller and they're supposed to go above the chats").
-// It is chrome, not list: it lives in #nwdoors between the search row and the
-// tabs, so it does not scroll away with the cards and it costs one short line
-// instead of the 92px two slabs were spending at the top of the list.
-//
-// Update is always there. Review only when something is behind it — and only
-// on the main list: inside an open box (`newsQ`) the review cards are not
-// what she is looking at, so a fold arrow there would open cards from a
-// different pile.
-function paintNewsDoors(revs){
-  var row=document.getElementById('nwdoors'); if(!row) return;
-  row.innerHTML='';
-  if(homeView!=='news'){ row.hidden=true; return; }
-  row.hidden=false;
-  newsRevsLast = revs || [];
-  row.appendChild(newsUpdDoor());
-  if(!newsQ && revs && revs.length) row.appendChild(newsReviewDoor(revs));
-  // To read is on every paint, like Update: an empty pile is not a reason to
-  // take the door away, and its count says when there is something in it.
-  row.appendChild(newsToReadDoor());
-  toReadFetch();
-}
-function newsEmptyCheck(waiting){
-  var el=document.getElementById('grid');
-  // The Review door counts as something on the screen even with its fold shut —
-  // otherwise a tab holding nothing but review cards would say "you're all
-  // caught up" directly under a chip saying three are waiting. It is passed in
-  // rather than looked for, because the door moved OUT of the grid and into the
-  // chrome above the tabs. The Update door deliberately does not count: it is
-  // on every paint, so it can never be the reason she loses that line.
-  if(homeView!=='news' || waiting || el.querySelector('.nwcard')) return;
-  // An empty screen must say WHICH of the two it is, or an open box reads as
-  // the updates having vanished.
-  var s=document.createElement('div'); s.className='state';
-  s.textContent=newsQ
-    ? 'Nothing in '+newsQLabel(newsQ)+' — tap an update, then tap '+newsQLabel(newsQ)+'.'
-    : 'Nothing new — you’re all caught up.';
-  el.appendChild(s);
-}
-function renderNews(el){
-  newsPickChrome();
-  var g=groups();
-  function paint(){
-    if(homeView!=='news') return;            // she left while it loaded
-    el.innerHTML='';
-    var items=newsList(g);
-    // The review pile is needed BEFORE the list is drawn — its chip is chrome
-    // above the tabs, and its count decides whether "all caught up" is true.
-    var revs=newsQ ? [] : items.filter(function(it){ return it.rule==='review'; });
-    paintNewsDoors(revs);
-    if(!items.length){ newsEmptyCheck(revs.length); return; }
-    if(newsQ){
-      // an open box is already triaged — one flat list, as it always was
-      items.forEach(function(it){ el.appendChild(newsCard(it)); });
-    } else {
-      // THE TWO RULE WORDS COME OFF THE LIST FIRST (Aug 2026 — see TAG_RULES).
-      // A review is answered in the queue, so it stays behind its door; a
-      // live pin is the most urgent thing on the screen and LEADS the first
-      // red box (its old section head is gone — the box outranks it).
-      var pins=items.filter(function(it){ return it.rule==='pin'; });
-      var rest=items.filter(function(it){ return it.rule!=='review' && it.rule!=='pin'; });
-      // The word and the count are up in the doors row; only the cards behind
-      // the ⌄ belong in the list.
-      if(newsFold.reviewOpen) revs.forEach(function(it){ el.appendChild(newsCard(it)); });
-      // THE TWO RED BOXES + THE REST — see newsTriage above.
-      var tri=newsTriage(pins, rest);
-      newsSecOf={};
-      tri.urgent.forEach(function(it){ newsSecOf[it.chat]='urgent'; });
-      tri.important.forEach(function(it){ newsSecOf[it.chat]='important'; });
-      tri.rest.forEach(function(it){ newsSecOf[it.chat]='rest'; });
-      newsTopSec(el, 'urgent', 'Most urgent', tri.urgent);
-      newsTopSec(el, 'important', 'Most important', tri.important);
-      if(tri.rest.length){
-        el.appendChild(newsFoldHead(['rest','The rest'], tri.rest.length));
-        if(!newsFold.rest){
-          NEWS_KINDS.forEach(function(pair){
-            var sub=tri.rest.filter(function(it){ return newsKind(it)===pair[0]; });
-            if(!sub.length) return;          // an empty section is silent
-            el.appendChild(newsFoldHead(pair, sub.length));
-            if(newsFold[pair[0]]) return;    // folded — the header keeps its count
-            sub.forEach(function(it){ el.appendChild(newsCard(it)); });
-          });
-        }
-      }
-    }
-    paintAcctTabs(g); paintListTabs();                        // the badge, once the pictures land
-    paintNewsChips(g);                       // …and the boxes' counts with it
-    if(window.__jumpsRecheck) window.__jumpsRecheck();
-  }
-  // Paint immediately from what we already hold (the chats' own replies), then
-  // again when the delivered caches land — a screen that says "loading" while
-  // it already knows about six chats is a screen she can't read.
-  paint();
-  stFetch(paint);
 }
 // ---- The HIDDEN bar --------------------------------------------------------
 // A red bar at the top of where the chats live (Aug 2026, Sophie): the chats
@@ -5317,9 +4111,9 @@ function catsShown(){ return catsOpen || !!cat; }
 // reads it; a word not on it simply shows in the categories group, which is
 // the safe default for anything she invents. Purely client-side, so moving a
 // word between groups is editing this one array.
-// The three Update boxes sit together, in NEWS_QS's order — they are one
-// family (how soon she means to get to it) and reading them apart would be
-// three unrelated words scattered through the row.
+// `in a minute` and `maybe never` were the Update tab's own boxes and are
+// ordinary words of hers now the tab is gone (2026-09-14) — they stay on the
+// list so a chat already wearing one keeps its chip.
 var TASK_LABELS=['look at','come back to','in a minute','maybe never',
   'in progress','waiting for something','waiting for a response',
   'to be reviewed','to read'];
@@ -5411,10 +4205,9 @@ var listTab=stickyOne('forge.chats.listtab', LIST_TABS, 'all');
 var rowMode=stickyOne('forge.chats.rowmode', ['lists','accounts'], 'lists');
 function setListTab(t){ listTab=t; stickySet('forge.chats.listtab', t); }
 function setRowMode(m){ rowMode=m; stickySet('forge.chats.rowmode', m); }
-// THE LISTS GOVERN THE CHAT LIST ONLY. Update, the archive, the trash, the
-// bookmarks and the to-do are their own views; the row goes back to the
-// accounts there whatever mode she left this in — the UPDATE tab lives ON the
-// account row, so a mode that hid it would take away the only way in.
+// THE LISTS GOVERN THE CHAT LIST ONLY. The archive, the trash, the bookmarks
+// and the to-do are their own views; the row goes back to the accounts there
+// whatever mode she left this in.
 function listsOn(){ return rowMode==='lists' && homeView==='live'; }
 function bugPile(){ return listsOn() && listTab==='bugs'; }
 function trayPile(){ return listsOn() && listTab==='tray'; }
@@ -5695,7 +4488,7 @@ function pinLive(name){
   var r=tagRuleOf(name);
   if(!r || r.rule!=='pin') return false;
   var on=chatFiledAt(name);
-  return !!on && !(newsFloor(name) >= on);
+  return !!on && !(seenFloor(name) >= on);
 }
 // HELD OFF THE ACCOUNT LISTS — the second half of the `to be reviewed` rule.
 // The stamp is written by the server when she dismisses one of these from the
@@ -5773,68 +4566,23 @@ function isPile(c){ return pileList().indexOf(c)>-1; }
 // Is this chat FILED — i.e. off the unfiled home list? Only a pile word does
 // it. A chat wearing nothing but `images` stays exactly where it was.
 function chatFiled(name){ return chatLabels(name).some(isPile); }
-// ---- COME BACK TO IS ONE BUCKET (Aug 2026, Sophie: "can you combine the come
-// back to and later categories") ------------------------------------------
-// She had two names for one intention: the COME BACK TO folder on this list,
-// and the LATER box on the UPDATE screen. Same meaning, two words, two places
-// to go looking.
+// ---- COME BACK TO IS A LABEL AGAIN (2026-09-14) ----------------------------
+// It used to be one word over two things: the COME BACK TO folder on this
+// list, and the LATER box on the UPDATE screen, joined so a chip counted
+// both. `in a minute` and `maybe never` were the other two boxes and
+// had chips of their own for the same reason (Aug 2026, Sophie: "'maybe
+// never' isn't on the tag list in the account area").
 //
-// They stay TWO FIELDS underneath, and that is the deliberate part. `category`
-// files a chat FOREVER; `newsQueue` files ONE update until something newer
-// lands and then hands it back. Folding either into the other loses something
-// real: make the box write a category and a chat she defers an update from is
-// yanked out of Stories (a chat can only be in one folder), make the folder
-// write a queue and her filing expires on its own.
+// THE UPDATE TAB IS GONE, so the boxes are gone with it and the join has
+// nothing on its other side: `come back to` is one of her ordinary labels
+// now, and the two invented words only ever appeared while a box held
+// something, so they simply stop appearing. `newsQueue` stays on the registry
+// docs untouched — nothing is destroyed, nothing reads it.
 //
-// So the combine is ONE WORD and ONE PILE, not one field: the Update box is
-// labelled "Come back to" (NEWS_QS), and this folder shows the chats sitting
-// in that box as well as the ones filed into it.
-//
-// What it deliberately does NOT do: a chat deferred on the Update screen still
-// shows on the main list. Deferring one update is not filing the whole chat
-// away, and making it vanish from the list would be a filing she never asked
-// for.
-// ---- …AND THEN ALL THREE BOXES GOT ONE (Aug 2026, Sophie: "'maybe never'
-// isn't on the tag list in the account area" → "give them both a chip") ------
-// Only `later` was ever joined to a word on this row, because only `later`
-// already HAD a word — she had been filing chats into a "come back to" folder
-// by hand. The other two boxes were invented on the Update screen and never
-// got a chip, so a card she put in one could be reached from exactly one
-// screen. That is the inconsistency she spotted: three boxes, one door.
-//
-// So the join is a TABLE now rather than a pair, and the rest of this file
-// needs no idea it grew. `in a minute` and `maybe never` are not in her folder
-// vocabulary and are not seeded into it — they appear on the row only while
-// something is actually sitting in their box (catList), and they disappear
-// again when she empties it. Nothing about filing changes: a word she has
-// never used stays off her row, and a chat deferred on the Update screen still
-// shows on the main list (see above).
-//
-// The order matches NEWS_QS, so the chips and the boxes read the same way.
-var QUEUE_CATS=[['later','come back to'],['soon','in a minute'],['never','maybe never']];
-function queueCat(q){
-  for(var i=0;i<QUEUE_CATS.length;i++) if(QUEUE_CATS[i][0]===q) return QUEUE_CATS[i][1];
-  return '';
-}
-// word → { chat:1 } for every chat whose update card is in that box RIGHT NOW,
-// rebuilt each render. Read through newsItems/newsBoxed rather than
-// re-deriving the test, or the chip and the box could disagree about where
-// something is — the one thing the Update screen's own lists are careful never
-// to do.
-var cbBox={};
-function rebuildComeBack(g){
-  cbBox={};
-  newsItems(g).forEach(function(it){
-    if(!newsBoxed(it)) return;
-    var c=queueCat(newsQueueOf(it.chat));
-    if(!c) return;
-    (cbBox[c]=cbBox[c]||{})[it.chat]=1;
-  });
-}
 // The one test for "is this chat in that folder", used by the chip's count,
 // the list and the archive alike.
 function chatInCat(name,c){
-  return chatLabels(name).indexOf(c)>-1 || !!(cbBox[c] && cbBox[c][name]);
+  return chatLabels(name).indexOf(c)>-1;
 }
 // ---- THE ARCHIVE IS TWO PILES (Aug 2026, Sophie) ---------------------------
 // "One of things where we built something and something was accomplished and
@@ -5935,61 +4683,34 @@ function acctOf(name){ var a=(chats[name]&&chats[name].account)||''; return isAc
 // a side for them) makes a chat disappear from a screen she can't tell is
 // filtered. A chat gets tagged by posting, or by the picker in its thread.
 function acctMatch(name){ var a=acctOf(name); return !a || a===acctFilter(); }
+// THE UPDATE TAB CAME OFF THIS ROW (2026-09-14, Sophie: "get rid of the
+// updates tab in chats"). It LED the row and was a VIEW rather than an
+// account, which is why this function used to carry two shapes; there is one
+// kind of tab here now. The row measures its own underline (see `.acctabs`),
+// so losing a slot cost no layout — and a fourth account is still one entry
+// in ACCOUNTS.
 function paintAcctTabs(g){
   var row=document.getElementById('accrow'); if(!row) return;
-  // The UPDATE tab is a VIEW, not an account, so while she is in it neither
-  // account word is lit and the line sits under the third slot.
-  var on=(homeView==='news') ? 'new' : acctFilter();
+  var on=acctFilter();
   row.setAttribute('data-on', on);
   Array.prototype.forEach.call(row.querySelectorAll('.acctab'), function(b){
     var v=b.dataset.acct;
-    var fresh, label, hint;
-    if(v==='new'){
-      // the badge counts CARDS — the chats with something she hasn't seen —
-      // so the tab says whether it is worth opening.
-      // A chat can deliver pictures without saying anything, so the number is
-      // only honest once the delivered caches are in: fetch them ONCE per
-      // load from here (Refresh drops the cache, and entering the view
-      // re-asks on its own TTL). Deliberately not on every paint — that route
-      // reads 240 Firestore documents a call, and the home screen polls.
-      // (no recursion: stFetch stamps stCache.at before it calls back, so the
-      // repaint below can never start a second fetch)
-      if(!stCache.at) stFetch(function(){ paintAcctTabs(groups()); });
-      // UPDATE is her word for it (Aug 2026, after using it for an evening).
-      // The view key stays `news` — renaming it would re-key nothing and
-      // touch every function in this block for no gain.
-      // …the MAIN list only: a card she has put in Come back to or Maybe
-      // never is one she has dealt with for now, and the boxes carry their own
-      // counts. IN A MINUTE is still ON that list (see newsSoon), so it counts
-      // here too — the number has to be exactly what she finds when she opens
-      // the tab, which is the rule the boxes' own counts already follow.
-      fresh=newsItems(g).filter(function(it){ return !newsBoxed(it) || newsSoon(it); }).length;
-      label='Update';
-      hint = 'Update — '+(fresh ? fresh+' new' : 'nothing new');
-    } else {
-      // How many chats in THAT account have answered her and are unopened —
-      // counted per CHAT, exactly like the category chips' badge, so the tab
-      // she is not on can still say "there are three waiting over here".
-      fresh=Object.keys(chats).filter(function(n){
-        if(chats[n]&&chats[n].archived) return false;
-        var a=acctOf(n); if(a && a!==v) return false;
-        return chatAnswered(n, lastOf(g,n));
-      }).length;
-      // JUST THE DIGIT (Aug 2026, Sophie, when a third account arrived: "maybe
-      // just call them 1 2 3 with the numbers rather than account so it
-      // fits"). Four tabs across a 390pt phone leaves ~97px each and "Account
-      // 3" plus a two-digit badge does not sit in that. The word is not lost —
-      // it is the tab's aria-label, and the switch in the header is the other
-      // half of the sentence.
-      label=v;
-      hint = 'Account '+v+(fresh ? ' — '+fresh+' answered you' : '');
-    }
+    // How many chats in THAT account have answered her and are unopened —
+    // counted per CHAT, exactly like the category chips' badge, so the tab
+    // she is not on can still say "there are three waiting over here".
+    var fresh=Object.keys(chats).filter(function(n){
+      if(chats[n]&&chats[n].archived) return false;
+      var a=acctOf(n); if(a && a!==v) return false;
+      return chatAnswered(n, lastOf(g,n));
+    }).length;
+    // JUST THE DIGIT (Aug 2026, Sophie, when a third account arrived: "maybe
+    // just call them 1 2 3 with the numbers rather than account so it fits").
+    // The word is not lost — it is the tab's aria-label, and the switch in the
+    // header is the other half of the sentence.
     b.classList.toggle('on', v===on);
-    b.innerHTML=esc(label)+(fresh?'<span class="cc-new">'+fresh+'</span>':'');
-    b.setAttribute('aria-label', hint||label);
-    b.onclick = v==='new'
-      ? function(){ setHomeView('news'); }        // tap it again to come back
-      : function(){ acctTab=v; if(homeView==='news') homeView='live'; renderHome(); window.scrollTo(0,0); };
+    b.innerHTML=esc(v)+(fresh?'<span class="cc-new">'+fresh+'</span>':'');
+    b.setAttribute('aria-label', 'Account '+v+(fresh ? ' — '+fresh+' answered you' : ''));
+    b.onclick = function(){ acctTab=v; renderHome(); window.scrollTo(0,0); };
   });
 }
 // The tests' way in (no other code should set the tab directly).
@@ -6021,14 +4742,6 @@ function chatNotify(name){ return !(chats[name]&&chats[name].notify===false); }
 // — the chip has to outlive the filing that created it.
 function catList(){
   var out=CAT_SEEDS.slice();
-  // Never leave an Update box without a chip to reach it by: a chat sitting in
-  // one with no chip on the row would be a pile with no door. `come back to`
-  // is in her vocabulary already; the other two words appear ONLY while their
-  // box has something in it, and leave the row again when she empties it.
-  QUEUE_CATS.forEach(function(pair){
-    var box=cbBox[pair[1]];
-    if(box && Object.keys(box).length && out.indexOf(pair[1])<0) out.push(pair[1]);
-  });
   ((settings&&settings.categories)||[]).forEach(function(c){
     c=String(c||'').trim(); if(c && out.indexOf(c)<0) out.push(c);
   });
@@ -6042,21 +4755,8 @@ function catList(){
 // its chip and the vocabulary she had keeps working, but they only reach the
 // home row once something is actually wearing one. The row is a filter she
 // reads past on every screen; the sheets are somewhere she went on purpose.
-// A word that is on the home row ONLY because its Update box has something in
-// it is a FILTER, not a folder. Offering it in a FILING sheet would let her
-// stick it on a chat as a real label, where it would then behave nothing like
-// the box it came from — it would not empty itself when the card is superseded
-// and it would outlive the box entirely. `come back to` is exempt: that one is
-// a folder she made by hand, long before the Update screen existed.
-function queueOnly(c){
-  var pair=null;
-  QUEUE_CATS.forEach(function(p){ if(p[1]===c) pair=p; });
-  if(!pair || pair[0]==='later') return false;
-  if((((typeof settings!=='undefined'&&settings)||{}).categories||[]).indexOf(c)>-1) return false;
-  return !Object.keys(chats).some(function(n){ return chatLabels(n).indexOf(c)>-1; });
-}
 function fileVocab(){
-  var out=catList().filter(function(c){ return !queueOnly(c); });
+  var out=catList().slice();
   TAG_LIST.forEach(function(t){ if(out.indexOf(t)<0) out.push(t); });
   return out;
 }
@@ -6150,9 +4850,6 @@ function chatBack(name,last){
 // same reason the hidden bar names what is behind it.
 function paintCatRow(g){
   var row=document.getElementById('catrow'); row.innerHTML='';
-  // The UPDATE screen borrows this row for its two boxes — same chips, same
-  // place, a different thing being filed (see NEWS_QS).
-  if(homeView==='news'){ paintNewsQRow(row,g); sizePillNotch(); return; }
   var sb=document.createElement('button');
   sb.className='catchip starchip'+(starOnly?' on':'');
   sb.innerHTML=STAR; sb.setAttribute('aria-label','Starred chats');
@@ -6268,10 +4965,9 @@ function paintCatRow(g){
 function sizePillNotch(){
   var n=document.getElementById('pillnotch'), t=document.getElementById('toolrow');
   if(!n||!t) return;
-  // NO PILL, NO CORNER. Select mode and picking on the Update screen both hide
-  // the pill outright (see `body.selecting`/`body.newspick > .float`), and a
-  // notch reserved against a pill that is not on screen is 64px of nothing at
-  // the end of the row — which is exactly the width the tag icon needs.
+  // NO PILL, NO CORNER. Select mode hides the pill outright (see
+  // `body.selecting > .float`), and a notch reserved against a pill that is
+  // not on screen is 64px of nothing at the end of the row.
   var pill=document.querySelector('body > .float');
   if(!pill || !pill.getClientRects().length){ n.style.height='0px'; return; }
   var top=t.getBoundingClientRect().top;
@@ -6536,10 +5232,6 @@ function renderHome(){
   clearNew();   // a full rebuild shows everything, so nothing is pending
   var el=document.getElementById('grid'); el.innerHTML='';
   var g=groups();
-  // Which chats are sitting in the Come back to box right now — one pass, read
-  // by the chip, the list and the archive below (see COME BACK TO IS ONE
-  // BUCKET). Must run before anything filters or counts by category.
-  rebuildComeBack(g);
   // ONE ACCOUNT AT A TIME (Sophie, Aug 2026). Applied to `all` up front, so
   // every pile below it — live, hidden, ★ — is that account's.
   // The ARCHIVE is the exception (Aug 2026): its own BUILT / OTHER row
@@ -6705,9 +5397,7 @@ function renderHome(){
   // ★ is its own pile and it reaches INTO the archive: these are chats she has
   // finished with and put away, so stopping at `archived` would hide most of
   // them. It replaces the whole list rather than narrowing it.
-  // …unless she is in NEW, which is not a list of chats at all — a ★ filter
-  // left on from earlier would otherwise swallow the whole view.
-  if(starOnly && homeView!=='news'){
+  if(starOnly){
     var st=all.filter(chatStar);
     paintHomeChrome(); paintAcctTabs(g); paintListTabs(); paintCatRow(g);
     document.getElementById('selbtn').classList.toggle('on', selMode);
@@ -6769,7 +5459,6 @@ function renderHome(){
   paintSelBar();
   if(homeView==='trash'){ renderTrash(el); return; }
   if(homeView==='project'){ renderProject(el,g); return; }
-  if(homeView==='news'){ renderNews(el); return; }
   if(homeView==='todo'){ renderTodo(el); return; }
   if(homeView==='bookmarks'){ renderBookmarks(el); return; }
   if(homeView==='status'){ renderStatus(el); return; }
@@ -8019,8 +6708,9 @@ function renderMsg(m){
 //
 // A FIXED VOCABULARY pinned equal to BMK_TAGS in chatfeed.js by
 // `node scripts/test-chats-bookmark-tags.js` — the same contract TAG_LIST and
-// TAGS have kept since the archive sheet shipped. `to-read` is the one word
-// with a door of its own: the To read chip on the Update tab counts it.
+// TAGS have kept since the archive sheet shipped. (`to-read` had a counted
+// door of its own on the Update tab; that went with the tab on 2026-09-14 and
+// the chip in this pile is the way to it now.)
 var BMK_TAGS=[['to-read','To read'],['feature','Finished feature'],
               ['bugfix','Bug fix'],['answered','Answered']];
 // THE IMPORTANCE METER — three bars, the ones above the level left faint, so
@@ -8077,8 +6767,6 @@ function mkBmkRead(m, kind){
   b.onclick=function(e){
     e.stopPropagation();
     var nv=!m.read; m.read=nv; b.classList.toggle('on',nv); label();
-    // the To read door counts what is still waiting, so a tick moves it
-    toReadN=null;
     put({read:nv}).catch(function(){
       m.read=!nv; b.classList.toggle('on',!nv); label(); toast('Couldn\u2019t save that');
     });
@@ -8105,9 +6793,6 @@ function mkBmkMarks(m, kind){
         var prev=st.tags.slice();
         st.tags = on ? st.tags.filter(function(x){ return x!==t[0]; }) : st.tags.concat([t[0]]);
         bmkMarksSet(m, st); paint();
-        // the To read door's count is now a turn old — drop it so the next
-        // paint of the Update tab asks again rather than showing a stale number
-        if(t[0]==='to-read') toReadN=null;
         save({tags:st.tags}).catch(function(){
           st.tags=prev; bmkMarksSet(m, st); paint(); toast('Couldn\u2019t save that');
         });
@@ -9237,8 +7922,9 @@ function openChat(name, keepScroll, focusId, noFetch){
         mlist.appendChild(renderMsg({from:'sophie', text:v, created:new Date().toISOString()}));
         compTa.value='';
         // Mirror the registry writes /reply just made, so the send is VISIBLE
-        // when she taps back: the server stamps notifSeenAt (her reply clears
-        // this chat's Update card — see newsFloor) and unarchives, but the
+        // when she taps back: the server stamps notifSeenAt (see seenFloor —
+        // it is what settles the `waiting for a response` mark) and
+        // unarchives, but the
         // page's registry copy only refreshes on a poll, up to 20s away. She
         // taps back in two — the card still sitting there is exactly what
         // read as "we never fixed this" (Sophie, 2026-08-19). The answer her
