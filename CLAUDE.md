@@ -9156,9 +9156,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
     the door's own `params`, so the optimistic card carries it without waiting
     for the first poll, and `cardOf` reads `params.seed` off the log. A clip
     with none shows no seed row at all (the Assets tab's silence rule).
+  - **CLEARING IT NEVER OPENS THE KEYBOARD (2026-09-14, Sophie: "exing seed
+    shud not trigger keyboard").** The ✕ used to `focus()` the box after
+    emptying it — the home search bar's rule, where she is mid-hunt and about to
+    type again. Here the ✕ means *no seed on this clip*, which is the END of
+    typing, and this box sits in the CONTROLS row, so the keyboard rose over the
+    star and the price. The focus is gone, and the button's pointer press is
+    `preventDefault`ed so the tap can never land in the field (the ✕ is
+    absolutely positioned INSIDE the input's padding, so a tap at its edge lands
+    on the input itself).
   - Test: `node scripts/test-footage.js` (the seed section — the box ships
     empty, nothing sticky, the card's line, the copy filling the box, what the
-    job REALLY receives, and copyBack filling then clearing).
+    job REALLY receives, copyBack filling then clearing, and the ✕ MEASURED as
+    leaving the caret out of the box — a `focus()` left in the handler and one
+    taken out look identical in every assertion about the box's value).
   **A REFERENCE UNDER BYTEDANCE'S PIXEL FLOOR IS UPSCALED BEFORE IT IS SENT —
   AND THE CARD SAYS SO (2026-09-10, Sophie: "the first was just an iPhone ·
   why failed").** Her first video reference was refused at validation, free,

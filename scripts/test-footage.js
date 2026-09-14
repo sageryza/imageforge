@@ -1500,6 +1500,11 @@ async function pillSweep(pg, where) {
   await page.click('#seedclear');
   ok('the clear empties the box and takes itself off again',
     (await page.$eval('#seedbox', (e) => e.value)) === '' && (await page.$eval('#seedclear', (e) => e.hidden)));
+  // 2026-09-14, Sophie: "exing seed shud not trigger keyboard". MEASURED as the
+  // focus, because a focus() left in the handler and one taken out look
+  // identical in every assertion about the box's value.
+  ok('exing the seed never puts the caret in the box (no keyboard)',
+    !(await page.evaluate(() => document.activeElement && document.activeElement.id === 'seedbox')));
 
   // ── A ROW ONLY PAYS FOR A COLLISION IT REALLY HAS ───────────────────────
   // With four references attached the strip is two rows tall, which puts the
