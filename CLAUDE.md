@@ -8837,7 +8837,14 @@ before working on that module. Nothing was deleted — the moved text is verbati
   BLOCK SHE IS IN** — the one she last tapped into, wearing the star's gold
   line once there are two or more; the model, the seconds and the size are
   the job and are shared, the block is the words; a slot tap, a character's
-  line and a put-back land in the active block. Both corner buttons pin
+  line and a put-back land in the active block. **A CARET AT THE END MAKES AN
+  EMPTY BLOCK, AND IT TAKES THE GOLD LINE AND THE CARET WITH IT (2026-09-14,
+  Sophie: "divide here in footage should allow a divide with nothing after it
+  to make a new empty block")** — the old refusal there is HISTORY (an empty
+  block is an ordinary state here, and writing shot two means asking for a box
+  before there are words for it); a caret at the START is still refused (her
+  words would jump down the screen) and an empty box divides into nothing.
+  Both corner buttons pin
   together (`stickybox.js` v2 — buttons on one box are a group; the divide is
   `nofollow`, since it shrinks the box from the bottom and the seam is
   already where her eyes are). **`fitBox` holds the wrap's height while a box

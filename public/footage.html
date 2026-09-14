@@ -1143,7 +1143,7 @@
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
   <p><b>Characters, then setting.</b> The two blocks at the top are permanent and start folded away. What you write in them rides at the top of every clip you send &mdash; the cast on one line, the room on the other &mdash; so a scene is written once instead of into every shot. Folded, each heading says its own words, so you can see what is riding without opening it. Leave one empty and it adds nothing; <b>clear</b> never touches them.</p>
-  <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. Every block has the same buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing. The join mark goes away while either of its two blocks is folded. Each block gets its own heading, and <b>tapping the heading folds that block away</b> &mdash; shut it shows its first words, and it still sends them if it is the one the star is pointing at. A folded block stays folded &mdash; it comes back that way after a reload, and opens by itself if anything puts words into it.</p>
+  <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. With the cursor at the <b>end</b> there is nothing to cut, so it makes an <b>empty</b> block under this one and puts you in it &mdash; a box for the next shot before there are words for it. Every block has the same buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing. The join mark goes away while either of its two blocks is folded. Each block gets its own heading, and <b>tapping the heading folds that block away</b> &mdash; shut it shows its first words, and it still sends them if it is the one the star is pointing at. A folded block stays folded &mdash; it comes back that way after a reload, and opens by itself if anything puts words into it.</p>
   <p><b>Every block keeps its own pictures.</b> The references strip is the block you are in &mdash; tap into another one and its pictures come back, and the row above them says which block it is showing. Dividing gives both halves a copy of the strip the scene was written against, so every <b>[Image2]</b> still points at the same picture; joining puts the two strips together and renumbers both halves onto it. The <b>&times;</b> takes a picture off the block you are in and leaves the others alone. Each heading says how many that block is carrying, so nothing rides on a block you are not looking at. <b>All</b> sends every block's pictures in the one clip, with each block's names renumbered onto them &mdash; and its price is that clip's, not this block's.</p>
   <p><b>All of them at once.</b> Once two blocks have words in them a second star appears beside the first, carrying what that clip costs. It sends every written block as <b>one</b> clip, appended in order with a blank line between &mdash; one job, one price, one refusal line &mdash; and it carries every block's pictures, each block's names renumbered onto them. Your blocks are not touched. Over $3 the first tap asks and the second sends.</p>
   <p><b>Taking one block off.</b> The &times; in a block&rsquo;s corner takes that block off; with only one block left there is no &times; and <b>clear</b> beside the star is what empties it. Either way <b>undo</b> puts it back.</p>
@@ -1181,7 +1181,7 @@
        cursor into two; the second half becomes a block of its own right under
        this one, with a join mark in the gap. The star sends the block she is
        in — the one with the gold line — once there is more than one. -->
-  <div class="promptwrap active"><button type="button" class="fold bfold" aria-expanded="true"><span class="chev"></span><span class="bflab">Block 1</span><span class="lw"></span><span class="bref"><span class="ic"></span><span class="n"></span></span></button><textarea id="prompt" class="pblock"></textarea><button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this block off" title="Take this block off — undo puts it back"></button><button type="button" id="divide" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block"></button><button type="button" id="bigprompt" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
+  <div class="promptwrap active"><button type="button" class="fold bfold" aria-expanded="true"><span class="chev"></span><span class="bflab">Block 1</span><span class="lw"></span><span class="bref"><span class="ic"></span><span class="n"></span></span></button><textarea id="prompt" class="pblock"></textarea><button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this block off" title="Take this block off — undo puts it back"></button><button type="button" id="divide" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block; at the end, an empty one"></button><button type="button" id="bigprompt" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
 
   <button type="button" class="fold" id="reffold" aria-expanded="true" aria-controls="refs" hidden><span class="chev"></span><span id="reffoldlab">References</span></button>
   <div class="refs" id="refs"></div>
@@ -3588,7 +3588,7 @@ function addBlock(text, after, job) {
   w.innerHTML = '<button type="button" class="fold bfold" aria-expanded="true"><span class="chev"></span><span class="bflab">Block</span><span class="lw"></span><span class="bref"><span class="ic"></span><span class="n"></span></span></button>'
     + '<textarea class="pblock" aria-label="Another block"></textarea>'
     + '<button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this block off" title="Take this block off — undo puts it back"></button>'
-    + '<button type="button" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block"></button>'
+    + '<button type="button" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block; at the end, an empty one"></button>'
     + '<button type="button" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button>';
   w.querySelector('.pblock').value = text || '';
   setBlockJob(w, job);
@@ -3628,15 +3628,31 @@ function paintBlocks() {
 }
 // THE CUT IS THE TIMELINE'S: the words before the caret stay, the words after
 // it become the next block, the whitespace either side of the seam trimmed.
-// A caret at either end has nothing to divide, and says so rather than doing
-// nothing. The head shrinks from the BOTTOM, so the seam is exactly where
+// The head shrinks from the BOTTOM, so the seam is exactly where
 // her eyes already are — no scroll is made here, and the pinned button is
 // `nofollow` so stickybox makes none either.
+// AND A CARET AT THE END MAKES AN EMPTY BLOCK (2026-09-14, Sophie: "divide
+// here in footage should allow a divide with nothing after it to make a new
+// empty block"). It used to refuse — "put the cursor where the second block
+// should start" — on the reasoning that there was nothing to cut, and that is
+// history: an empty block is an ordinary state on this page (a restored draft
+// can hold one, `wordyBlocks` already skips one, and the star already refuses
+// one with "say what the clip is first"), and writing shot two means asking
+// for a box before there are words to put in it. Three things not to undo:
+//   - THE NEW EMPTY BLOCK TAKES THE GOLD LINE AND THE CARET. The tap means
+//     "give me somewhere to write"; leaving the star pointing at the block she
+//     just left would cost her a tap into a box she asked for.
+//   - A CARET AT THE START IS STILL REFUSED. There the words all move DOWN
+//     into a new block and the empty one lands ABOVE them — a long scene
+//     jumping down the screen, which is not what the mark says it does. The
+//     way to an empty block above is a divide at the end of the block before.
+//   - AN EMPTY BOX DIVIDES INTO NOTHING. Two empty blocks is not a state
+//     worth a tap, so it says so rather than making one.
 function divideBlock(box) {
   var all = box.value, cut = box.selectionStart;
   if (cut == null) cut = 0;
   var head = all.slice(0, cut).replace(/\s+$/, ''), tail = all.slice(cut).replace(/^\s+/, '');
-  if (!head || !tail) { toast('Put the cursor where the second block should start'); return false; }
+  if (!head) { toast('Put the cursor where the second block should start'); return false; }
   var w = box.closest('.promptwrap'), first = blocks().length === 1;
   // THE SEAM STAYS WHERE HER EYES ARE, AND THE FIRST DIVIDE NOW COSTS HEIGHT
   // ABOVE IT (2026-09-13). The head shrinks from the bottom, so its TOP is the
@@ -3656,12 +3672,16 @@ function divideBlock(box) {
   // `jobOf`, never `liveJob`: the button's own handler runs BEFORE the document
   // click that makes this block active, so a divide can fire on a block the
   // globals are not holding.
-  addBlock(tail, w, jobOf(w));
-  setActive(w);
+  var nw = addBlock(tail, w, jobOf(w));
+  // the empty one is the box she asked for, so she lands IN it; a real cut
+  // leaves her standing where her words are
+  setActive(tail ? w : nw);
   fitAll(); saveDraft();
   var top1 = box.getBoundingClientRect().top;
   if (Math.abs(top1 - top0) > 1) window.scrollBy(0, top1 - top0);
-  if (first) toast('Two blocks — the star sends the one with the gold line');
+  if (!tail) { var nb = nw.querySelector('.pblock'); if (nb) nb.focus(); }
+  if (first) toast(tail ? 'Two blocks — the star sends the one with the gold line'
+    : 'An empty block — the star sends the one with the gold line');
   return true;
 }
 // A BLOCK COMES OFF ON ITS OWN, AND THE UNDO IS THE WHOLE-JOB BANK
@@ -3803,6 +3823,14 @@ document.addEventListener('click', function (e) {
   // already run, so `shut` is where it landed. OPENING one is the other way
   // round and still makes it active: that is her going there to write.
   if (e.target.closest('.bfold') && w.classList.contains('shut')) return;
+  // …AND EXCEPT A DIVIDE THAT HAS ALREADY MOVED THE LINE (2026-09-14). This
+  // handler runs AFTER the button's own, so a divide at the end of a block —
+  // which hands the gold line and the caret to the new EMPTY block below —
+  // would have it dragged straight back onto the block the button sits in,
+  // and the star would point at the words she just divided away from. An
+  // ordinary divide leaves this block active anyway, so this can only ever
+  // fire on the empty-block case.
+  if (e.target.closest('.divide') && !w.classList.contains('active')) return;
   setActive(w);
 });
 window.addEventListener('resize', fitAll);
