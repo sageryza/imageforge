@@ -52,7 +52,9 @@
     text-transform:uppercase; color:var(--soft); flex:1}
   #back{background:none; border:0; color:var(--goldline); padding:0; cursor:pointer;
     display:flex; align-items:center; flex:none}
-  #helpbtn{flex:none; width:24px; height:24px; border-radius:50%; border:1.5px solid var(--goldline);
+  /* the same rounded square as #newbtn beside it — it was a 24px circle next
+     to a 26px square carrying that very rule (2026-09-13) */
+  #helpbtn{flex:none; width:26px; height:26px; border-radius:6px; border:1.5px solid var(--goldline);
     background:transparent; color:var(--goldline); font:600 13px/1 -apple-system,sans-serif; cursor:pointer}
   /* a rounded square, never a circle — the house icon-button rule */
   #newbtn{flex:none; width:26px; height:26px; border-radius:6px; border:1.5px solid var(--goldline);

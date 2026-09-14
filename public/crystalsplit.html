@@ -47,7 +47,10 @@
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .hmeta{font-size:12px; color:var(--soft); margin-top:1px}
   #hicons{display:flex; gap:6px; align-items:center; flex:none}
-  .hbtn{width:30px; height:30px; padding:0; display:flex; align-items:center; justify-content:center;
+  /* the injected back chevron's size — they are the two ends of one header
+     row, and 30 beside 34 reads as a mistake (2026-09-13, the control-row
+     sweep). Only #help wears this. */
+  .hbtn{width:34px; height:34px; padding:0; display:flex; align-items:center; justify-content:center;
     background:var(--cream); border:1px solid var(--goldline); color:var(--goldline); border-radius:6px}
   .hbtn svg{width:15px; height:15px}
   .hbtn.dim{opacity:.35}
