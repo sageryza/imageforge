@@ -4878,6 +4878,37 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     new line at the end of a scene left the caret 16px under the divide
     button until something else happened, and an unchanged row says nothing,
     which is what ends the loop.
+  - **AND THE SAME BUG HAS A MIRROR AT THE TOP OF THE BAND — A STICKY ROW
+    (2026-09-14, Sophie: "any other similar changes? bugs", audited after the
+    fix above).** The rule above lifts a caret that has fallen BELOW the band;
+    the other half of `keep()` LOWERS one that has risen above it, onto
+    `band.top` — which is the visual viewport's own top and knows nothing
+    about a row stuck to it. footage's **PROMPT fold row went
+    `position:sticky` on 2026-09-13**, so typing in the top half of a long
+    scene after scrolling down put her caret straight under it. MEASURED on
+    the real page: caret line 10–33, the sticky row 4–33, and
+    `elementFromPoint` on the caret's own line answering the **fold button**
+    rather than her words; after, the caret sits at 39–62 and the line reads
+    clear. **The bug was on the Playground, Voice Studio and Freeform too**
+    (60/60, 59/60 and 29/60 keystrokes under a pinned button at the end of a
+    long box, measured against the pre-fix modules) and the 09-13 fix, being
+    in the shared file, already covered all three — re-measured, 0/60 each.
+    `caretBand` narrows from BOTH ends now, and chrome narrows the end it is
+    **NEARER**: no rule about safe-area insets, which is what an "is it at the
+    top?" test cannot survive — in the app the row starts at the inset while
+    the band still starts at 0. Three things not to undo: a **stickybox button
+    is excluded from the sticky set and read live instead** (it goes fixed and
+    back as she scrolls, so a set cached at find time remembers it as chrome
+    long after it let go and has gone back to the box's corner — MEASURED as a
+    band 77px short); the set is found **once per FOCUS by a bounded walk** —
+    the box's ancestors' siblings plus body's own children, which is where a
+    header lives — because reading every node's computed position on every
+    keystroke is the churn the typing rule forbids; and **only chrome actually
+    PAINTED on top counts** (`onTop`), or the Story Room's sticky header,
+    which sits under its own beat popup at a higher layer, would lift her
+    caret clear of something she cannot see. The injected pill is in the set
+    and narrows nothing, because every box on these pages already reserves its
+    column (measured: box x 25–316, pill x 324–374).
   - **compare.js loads it on the first focus**, so every Compare page ever
     posted has it with nothing re-posted; chats.html, the Playground, the
     Story Room, Freeform, Voice Studio and the Story Timeline link it. A new
@@ -4890,7 +4921,7 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     lifted onto a button look identical in the source; every keystroke and
     every new line counted rather than one settled reading, and the buttons
     proved still pinned and still tappable mid-scene; verified failing 7
-    pre-fix).
+    pre-fix, and 4 more against the bottom-only fix for the sticky-row half).
 - **THE WAY OUT OF A BIG BOX STAYS ON SCREEN — `/stickybox.js`, ONE FILE,
   EVERY PAGE (2026-09-10, Sophie: "can we get a floating or sticky/pinned
   contract button for text boxes esp in footage so i can close with out having
