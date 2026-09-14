@@ -421,7 +421,8 @@ const readBlocks = () => {
   ok('the cast planner is never shown a keyframe',
     /return CL\.plan\(\{ refs: slotRefs\(\)/.test(src) && /function withMarks/.test(src));
   ok('a hand-off carries its own seed or none', /setSeed\(h\.seed != null \? h\.seed : ''\);/.test(src));
-  ok('a join only moves the gold line if it had it', /if \(mine\) setActive\(above\);/.test(src));
+  ok('a join only moves the gold line if it had it',
+    /if \(mine\) \{ markActive\(above\); loadActive\(\); \}/.test(src));
   ok('a trim in flight keeps its button down', /go\.disabled = !!trimSending;/.test(src));
   ok('the upload counter counts what attached', /dup \+= 1; return; \}/.test(src));
   ok('and is put down whatever happens', /\}\)\.catch\(function \(\) \{\}\)\.then\(function \(\) \{ ftUploading -= 1; \}\)/.test(src));
