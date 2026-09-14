@@ -8825,10 +8825,9 @@ before working on that module. Nothing was deleted — the moved text is verbati
   block right under the first, and the timeline's join mark (`fold-vertical`)
   in the gap puts them back with a blank line between. **THE STAR SENDS THE
   BLOCK SHE IS IN** — the one she last tapped into, wearing the star's gold
-  line once there are two or more; the references, model, seconds and size
-  are the job and are shared, the block is the words; a slot tap, a
-  character's line and a put-back land in the active block, and the ✕ on a
-  reference renames the slot in EVERY block. Both corner buttons pin
+  line once there are two or more; the model, the seconds and the size are
+  the job and are shared, the block is the words; a slot tap, a character's
+  line and a put-back land in the active block. Both corner buttons pin
   together (`stickybox.js` v2 — buttons on one box are a group; the divide is
   `nofollow`, since it shrinks the box from the bottom and the seam is
   already where her eyes are). **`fitBox` holds the wrap's height while a box
@@ -8863,9 +8862,47 @@ before working on that module. Nothing was deleted — the moved text is verbati
   A box is never fitted while it is folded (`scrollHeight`
   on a `display:none` box is 0, so it would come back one line tall), and the
   first divide gives back the height its own heading adds above the seam.
-  Full note: *DIVIDE
+  **AND EVERY BLOCK KEEPS ITS OWN PICTURES (2026-09-14, Sophie: "blocks in
+  footage that have images attached shud keep attached images and the images
+  return when block is selected").** The strip under the panel is the ACTIVE
+  block's: tapping into another block hands its pictures back, and the
+  references row says which block it is showing. **This SUPERSEDES "the
+  references are the JOB and are shared" and the ✕ renaming the slot in EVERY
+  block** — both are history, not rules: one block is one clip, so the
+  pictures it draws from belong to it exactly as its words do. What follows
+  from her sentence rather than loosening it: a **DIVIDE copies** the strip
+  into both halves (the tail's words name it, so an empty second block would
+  leave every `[Image2]` in it pointing at nothing); a **JOIN unions** the two
+  and renumbers BOTH texts onto the union (a slot is a POSITION, so below's
+  `[Image1]` is a different picture from above's); an **UPLOAD lands on the
+  block its tap was made from**, since an upload is a round trip and tapping
+  into another block while it runs would otherwise drop the picture there
+  (the toast names the block when it is not the one she is standing in); the
+  **✕ renames the active
+  block's words alone**, since no other block's pictures moved; a **put-back**
+  replaces that block's strip and touches no other; a **hand-off gives every
+  block the same strip** (one job's references, however many parts its scene
+  came over in); and **the All star sends the union** with every block's
+  names renumbered onto it, priced by its OWN free estimate whenever the
+  union's shape (a reference video, a keyframe, anything attached at all)
+  differs from the active block's — the figure on a button has to be the
+  price of the clip that button sends. **AND FOLDING A BLOCK AWAY NO LONGER
+  MAKES IT THE ONE THE STAR SENDS** — the document click handler makes any
+  button on a block active, which was invisible while the strip was shared and
+  is wrong now: folding block 2 away moved the gold line onto it AND swapped
+  her pictures on screen for its (MEASURED: her 2-picture strip became block
+  2's 4). A heading tap that SHUTS a block is "put this away"; one that OPENS
+  it still makes it active, which is her going there to write. Each heading
+  carries a picture glyph
+  and a count, so a block she is not standing in cannot ride with pictures on
+  no screen at all. The draft and the `clear` bank keep `refs`/`first`/`last`
+  as the FIRST block's for a page cached from before, with the whole set
+  beside them under `jobs`; a draft with no `jobs` gives every block the one
+  strip it saved, which is what it meant when the strip was shared. Full
+  note: *DIVIDE
   HERE* in `docs/modules/audio-and-film.md`; tests
-  `node scripts/test-footage-divide.js` and
+  `node scripts/test-footage-divide.js`,
+  `node scripts/test-footage-block-refs.js` and
   `node scripts/test-footage-block-fold.js`.
   **AND TWO PERMANENT BLOCKS SIT ABOVE THEM — CHARACTERS, THEN SETTING, SHUT
   BY DEFAULT (2026-09-13, Sophie: "i envision two permanent default collapsed

@@ -654,15 +654,63 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       copy the tail out, send the head, paste the tail back in.
       - **THE STAR SENDS THE BLOCK SHE IS IN** — the last one she tapped into,
         wearing the star's own gold line once there are two or more; one
-        block wears nothing and the page looks exactly as it did. The
-        references, the model, the seconds and the size are the JOB and are
-        shared across the blocks; the block is the words. A slot tap, a
-        character's line and a card's put-back land in that same block; the
-        ✕ on a reference renames the slot in EVERY block, since the strip is
-        shared and a second block left naming `[Image3]` would draw the wrong
-        picture as surely as the first would have. Every block keeps its
-        words after a send (the box's own rule) and the toast says which
-        block went.
+        block wears nothing and the page looks exactly as it did. The model,
+        the seconds and the size are the JOB and are shared across the
+        blocks; the block is the words AND its own pictures (below). A slot
+        tap, a character's line and a card's put-back land in that same
+        block. Every block keeps its words after a send (the box's own rule)
+        and the toast says which block went.
+      - **AND EVERY BLOCK KEEPS ITS OWN PICTURES (2026-09-14, Sophie: "blocks
+        in footage that have images attached shud keep attached images and the
+        images return when block is selected").** The strip under the panel is
+        the ACTIVE block's — tapping into another hands its pictures back, and
+        the references row names the block it is showing. **This supersedes
+        "the references are the JOB and are shared" and the ✕ renaming the slot
+        in EVERY block**; both are history rather than rules, because one block
+        is one clip and the pictures that clip draws from belong to it exactly
+        as its words do. Nine things not to undo:
+        **FOLDING a block away no longer makes it the one the star sends** —
+        the document click handler makes any button on a block active, which
+        was invisible while the strip was shared and is wrong now: MEASURED,
+        folding block 2 moved the gold line onto it and replaced her 2-picture
+        strip on screen with block 2's 4. A heading tap that SHUTS a block is
+        "put this away"; one that OPENS it still makes it active, which is her
+        going there to write. (The rule lives in the document click handler,
+        read off `shut` AFTER the heading's own handler has run.)
+        a **DIVIDE copies the strip into both halves** (the tail's words name
+        it by slot, so a second block starting empty would leave every
+        `[Image2]` in it pointing at nothing — the ✕'s own renumbering rule
+        arriving from the other end); a **JOIN unions the two and renumbers
+        BOTH texts onto the union** (a slot is a POSITION, so below's
+        `[Image1]` is a different picture from above's), with above's marks
+        winning each end and below's riding only into an end above left free;
+        an **UPLOAD lands on the block its tap was made from** (`addRefTo`) —
+        an upload is a round trip, so tapping into another block while a
+        picture uploads used to drop it there, on a scene that never asked
+        for it, and the toast now names the block when it is not the one she
+        is standing in; the **✕ renames the active block's words alone**, since no other
+        block's pictures moved; a **card's put-back** replaces that block's
+        strip and touches nothing else; a **hand-off gives EVERY block the
+        same strip**, since its scenes are one job's references however many
+        parts they came over in; the **All star sends the union** with each
+        block's names renumbered onto it, and asks its OWN free `/estimate`
+        whenever the union's shape (a reference video, a keyframe, anything
+        attached at all) differs from the active block's — the figure on a
+        button has to be the price of the clip that button sends; **each
+        heading carries a picture glyph and a count**, so a block she is not
+        standing in can never ride with pictures on no screen at all (a glyph
+        and a digit rather than the word: the heading's room belongs to her
+        scene); and the draft and the `clear` bank keep **`refs`/`first`/`last`
+        as the FIRST block's** for a page cached from before, with the whole
+        set beside them under **`jobs`** — a draft with no `jobs` gives every
+        block the one strip it saved, which is what it meant while the strip
+        was shared. The globals (`refs`, `firstUrl`, `lastUrl`) stay globals
+        and are the live copy of the ACTIVE block's, stashed onto its node when
+        she leaves it, so every attach, ✕, mark, character line and put-back
+        went on reading what it always read. `jobOf(w)` is what a reader asks —
+        the live copy for the active block, its `__job` for every other one —
+        because a block's own button fires BEFORE the document click that makes
+        it active. Test: `node scripts/test-footage-block-refs.js`.
       - **BOTH CORNER BUTTONS PIN TOGETHER.** `stickybox.js` v2: buttons on
         ONE box are one control row and pin as a group (the one-at-a-time
         rule is about two different boxes), and the divide is
@@ -680,7 +728,8 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         sat under every keystroke in a tall big box, where caretkeep pulled
         the caret back a frame later, so it read as a flicker.
       - **NOTHING IS SENT BY DIVIDING, NOTHING IS LOST BY JOINING** (the join
-        is the two texts with a blank line between). A block DOES have a ✕ of
+        is the two texts with a blank line between, each renumbered onto the
+        two strips' union). A block DOES have a ✕ of
         its own since 2026-09-13 (the audit), so the line that used to sit
         here saying it never would is history. A caret at either end divides
         nothing and says so. A belt hand-off is

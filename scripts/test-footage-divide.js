@@ -117,6 +117,14 @@ const read = () => {
       after: r.nextElementSibling && r.nextElementSibling.classList.contains('promptwrap'),
       svg: !!r.querySelector('.joinb svg'),
     })),
+    strip: Array.from(document.querySelectorAll('#refs .ref')).map((r) => ({
+      slot: (r.querySelector('.slot') || {}).textContent || '',
+      src: (r.querySelector('img') || {}).getAttribute ? r.querySelector('img').getAttribute('src') : '',
+    })),
+    counts: wraps.map((w) => {
+      const c = w.querySelector('.bref');
+      return c && c.classList.contains('on') ? c.querySelector('.n').textContent : '';
+    }),
     tops: wraps.map((w) => w.getBoundingClientRect().top),
     bottoms: wraps.map((w) => w.getBoundingClientRect().bottom),
     wrapRight: wraps[0].getBoundingClientRect().right,
@@ -277,7 +285,14 @@ const setCaret = ({ sel, at }) => {
   s = await page.evaluate(read);
   ok('the hand-off collapsed the blocks to one holding its words', s.n === 1 && s.values[0] === 'the sun room, morning' && s.rows.length === 0 && !s.many);
 
-  // ── 10. the ✕ on a reference renames the slot in EVERY block ────────────
+  // ── 10. A DIVIDE COPIES THE STRIP, AND THE ✕ IS THE ACTIVE BLOCK'S ──────
+  // 2026-09-14, Sophie: "blocks in footage that have images attached shud keep
+  // attached images and the images return when block is selected". The ✕ used
+  // to rename the slot in EVERY block, which was right while ONE strip was
+  // every block's — that is history, not a rule: the tail of a divide carries
+  // a COPY of the strip its words were written against, so taking a picture
+  // off the half she is standing in leaves the other half's prompt naming the
+  // pictures it still has.
   await page.evaluate((b) => localStorage.setItem('footage_handoff', JSON.stringify({
     prompt: 'the woman in [Image1] and the boy in [Image2]',
     refs: [{ url: b + '/ref.png?a', kind: 'image' }, { url: b + '/ref.png?b', kind: 'image' }], at: Date.now() })), base);
@@ -289,12 +304,26 @@ const setCaret = ({ sel, at }) => {
   await page.waitForTimeout(150);
   s = await page.evaluate(read);
   ok('divided between the two slot names', s.n === 2 && /\[Image2\]$/.test(s.values[1]));
+  ok('both blocks carry the strip the scene was written against — ' + JSON.stringify(s.counts),
+    s.counts[0] === '2' && s.counts[1] === '2');
   await page.click('#refs .x');
   await page.waitForTimeout(200);
   s = await page.evaluate(read);
-  ok('taking the first reference off renumbered the SECOND block\'s slot too — "' + s.values[1] + '"',
-    /\[Image1\]/.test(s.values[1]) && !/\[Image2\]/.test(s.values[1]));
-  ok('and took the name out of the first — "' + s.values[0] + '"', !/\[Image/.test(s.values[0]));
+  ok('the ✕ took the name out of the block she is IN — "' + s.values[0] + '"', !/\[Image/.test(s.values[0]));
+  ok('and left the other block\'s words alone, since its own pictures have not moved — "' + s.values[1] + '"',
+    /\[Image2\]$/.test(s.values[1]));
+  ok('the strip on screen is the active block\'s — one left', s.strip.length === 1 && s.counts[0] === '1');
+  ok('and the other still says it is carrying two', s.counts[1] === '2');
+  // and tapping into it brings ITS pictures back
+  await page.evaluate(() => document.querySelectorAll('.panel > .promptwrap')[1].querySelector('.pblock').focus());
+  await page.waitForTimeout(200);
+  s = await page.evaluate(read);
+  ok('tapping into the second block returns its two references — ' + JSON.stringify(s.strip.map((r) => r.slot)),
+    s.strip.length === 2 && s.strip[0].slot === '[Image1]' && s.strip[1].slot === '[Image2]');
+  await page.click('#prompt');
+  await page.waitForTimeout(200);
+  s = await page.evaluate(read);
+  ok('and tapping back gives the first block its one back', s.strip.length === 1);
 
   ok('no page errors', errors.length === 0);
   if (errors.length) console.log(errors.join('\n'));
