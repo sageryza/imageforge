@@ -9301,6 +9301,46 @@ before working on that module. Nothing was deleted — the moved text is verbati
   fold not working, and the picker and every card's menu read the ONE set; and
   **shut counts, open does not** (the archive summary's don't-say-it-twice
   rule).
+  **AND SINCE 2026-09-13 THE PICKER IS A POSTER SHEET, FIVE ACROSS (Sophie,
+  after four mocked options: "i like poster" · "more per row so all fit" ·
+  "5!").** The folder icon opens a sheet of TILES instead of a native list —
+  every folder here already has a picture, the last clip drawn in it, and a
+  row of words threw that away. Six things not to undo:
+  - **FIVE IS THE FLOOR, NOT THE NUMBER.** `fitShelf` widens to 6, 7 or 8 when
+    five would push a row off the bottom, measured off the real grid, so "all
+    fit" stays true as folders pile up and the density never needs choosing
+    again. It NEVER narrows: a two-folder project would otherwise draw two
+    enormous tiles and the sheet would look like a different screen every time.
+    (Measured at 390x844 on the mocked page before the widening: five across
+    holds 34 folders, six 41.)
+  - **TWO LEVELS** — the films, then one film's folders. A project WITH folders
+    descends on a tap and its level-2 **Everything** tile is how the whole
+    project is picked; one without folders simply picks. Descending moves
+    nothing: it is a level of the sheet, not a pick.
+  - **THE FACES COME FROM THE SERVER AND HAVE TO** — `GET /api/footage/shelf`
+    (`shelfOf`, one pass over the log, cached 60s, asked when the SHEET OPENS
+    and never on the feed poll). The page's own feed is narrowed to the project
+    she is standing in, so it holds no clip from anywhere else to draw a face
+    from. The face is the NEWEST clip that really drew, a HIDDEN clip faces
+    nothing and is counted by nobody, a project counts its folders' clips too,
+    and **a folder nothing has finished in draws an EMPTY square** rather than a
+    neighbour's picture (the Assets tab's silence rule).
+  - **THE TILES ARE NOT REBUILT UNDER HER** — a signature skip over the labels,
+    faces and counts, since a recreated `<img>` decodes async and the whole
+    sheet strobes blank (the house repaint rule).
+  - **A FOLDER SLUG READS BACK AS WORDS** (`folderName`: hyphens out, first
+    letter up) on the tile, in the header, in the toasts and in the card's
+    rows, so a folder is spelled one way wherever she meets it. Display only —
+    `folderSlug` is still the only thing that writes.
+  - **THE CARD'S MOVE MENU IS STILL A `<select>` WITH ITS FOLDS**, deliberately:
+    moving one clip is a one-tap decision, not a shelf to look at. Everything
+    the fold note above says is about that menu now.
+  The tuck is a WORD in the sheet's own header, offered only inside a project;
+  `shelfPick` is the old `<select>`'s handler body, so `setProject` /
+  `setFolder` / New project… / New folder… mean exactly what they meant. Test:
+  `node scripts/test-footage-shelf.js` (the widening MEASURED off the real
+  boxes — a grid that sets `--c` and never reflows looks identical in the
+  source; verified failing with `fitShelf` stubbed out).
 
   **EVERY CHAT'S CLIPS RIDE THE FEED SINCE THE SAME EVENING (Sophie: "most
   of them made in chat. Are you adding them to footage? If so, good")** — the
