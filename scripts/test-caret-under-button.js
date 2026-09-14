@@ -272,12 +272,16 @@ const READ = () => {
   ok('so nothing lowers the ceiling — the bottom is the plain band\'s ('
     + Math.round(quiet.caret) + ')', quiet.caret === quiet.raw);
 
-  // ── 7. THE MIRROR OF THE SAME BUG: the page's own STICKY row over the top
-  //    of the band.  footage's PROMPT fold row is `position:sticky`, so typing
-  //    in the top half of a long scene after scrolling down used to lift the
-  //    caret line to band.top — straight under that row.  Every assertion here
-  //    is a MEASUREMENT: a caret lifted to the right number and a caret lifted
-  //    onto a button look identical in the source.
+  // ── 7. THE MIRROR OF THE SAME BUG: a page's own STICKY row over the top of
+  //    the band.  Typing in the top half of a long scene after scrolling down
+  //    used to lift the caret line to band.top — straight under whatever is
+  //    pinned there.  footage's own PROMPT fold row was the case this was
+  //    written against and it is gone (2026-09-14, "remove prompt collapse"),
+  //    so what is measured now is the RULE rather than that one row: nothing
+  //    pinned, at either end, may be drawn over the line she is typing on, and
+  //    a tap on it has to reach her words.  Every assertion is a MEASUREMENT:
+  //    a caret lifted to the right number and a caret lifted onto a control
+  //    look identical in the source.
   await page.evaluate((t) => {
     const el = document.getElementById('prompt');
     el.value = t;
@@ -313,28 +317,23 @@ const READ = () => {
       if (q.bottom <= c.top || q.top >= c.bottom) return;
       rows.push((x.id || x.className || x.tagName).toString().slice(0, 30));
     });
-    const sticky = document.querySelector('.foldrow.panelrow');
-    const sq = sticky ? sticky.getBoundingClientRect() : null;
     return {
       caret: [c.top, c.bottom],
-      stickyRow: sq ? [sq.top, sq.bottom] : null,
-      stuck: getComputedStyle(document.querySelector('.foldrow.panelrow') || document.body).position,
       over: rows,
       bandTop: k.band().top,
+      bandBottom: k.band().bottom,
       caretBandTop: k.caretBand(el).top,
+      caretBandBottom: k.caretBand(el).bottom,
       hit: hit ? (hit.id || hit.className || hit.tagName).toString().slice(0, 40) : 'nothing',
     };
   });
-  ok('the PROMPT row really is sticky (' + up.stuck + ')', up.stuck === 'sticky');
-  ok('and it really is above the plain band\'s top ('
-    + Math.round(up.stickyRow[0]) + '-' + Math.round(up.stickyRow[1]) + ' vs ' + Math.round(up.bandTop) + ')',
-    up.stickyRow && up.stickyRow[1] > up.bandTop);
-  ok('so the caret band\'s FLOOR is pushed below it ('
-    + Math.round(up.caretBandTop) + ' > ' + Math.round(up.bandTop) + ')',
-    up.caretBandTop >= up.stickyRow[1] - 0.5);
-  ok('the caret sits BELOW the sticky row (' + Math.round(up.caret[0]) + ' >= '
-    + Math.round(up.stickyRow[1]) + ')', up.caret[0] >= up.stickyRow[1] - 0.5);
-  ok('nothing sticky is drawn over the caret\'s own line ('
+  ok('the caret line is inside the band the keeper narrows to ('
+    + Math.round(up.caret[0]) + '-' + Math.round(up.caret[1]) + ' in '
+    + Math.round(up.caretBandTop) + '-' + Math.round(up.caretBandBottom) + ')',
+    up.caret[0] >= up.caretBandTop - 0.5 && up.caret[1] <= up.caretBandBottom + 0.5);
+  ok('and that band never reaches outside the visible one',
+    up.caretBandTop >= up.bandTop - 0.5 && up.caretBandBottom <= up.bandBottom + 0.5);
+  ok('nothing sticky or fixed is drawn over the caret\'s own line ('
     + (up.over.join(',') || 'none') + ')', up.over.length === 0);
   ok('and a tap on that line reaches her WORDS, not a control (' + up.hit + ')',
     /prompt|pblock/.test(up.hit));

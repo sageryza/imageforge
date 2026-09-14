@@ -187,7 +187,14 @@ const setCaret = ({ sel, at }) => {
   ok('the second block sits under the first (' + Math.round(s.bottoms[0]) + ' < ' + Math.round(s.tops[1]) + ')', s.bottoms[0] < s.tops[1]);
   ok('the first block is the active one and wears the gold line; the second does not',
     s.many && s.active[0] && !s.active[1] && s.ring[0] && !s.ring[1]);
-  ok('the block she is dividing keeps the page where it was (scrollY ' + s.y + ')', s.y === 0);
+  // THE SEAM STAYS WHERE HER EYES ARE, and the page only ever moves by the
+  // heading row the first divide adds above it — never more. (It read `=== 0`
+  // until 2026-09-14, which was measuring that this fixture's document had no
+  // scroll room at all rather than that the compensation behaved; the panel is
+  // a row shorter since characters and setting became one block, so it has a
+  // few pixels now and the compensation uses them, which is the point of it.)
+  ok('dividing only ever gives back the heading row it added (scrollY ' + s.y + ')',
+    s.y >= 0 && s.y <= 32);
   ok('the first divide says the rule once — "' + s.toast + '"', /gold line/.test(s.toast));
 
   // ── 4. the star sends the block she is in ───────────────────────────────
