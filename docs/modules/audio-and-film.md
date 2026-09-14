@@ -5688,3 +5688,283 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
     `--live`, which drives the REAL argv all the way to a file on disk and is
     the only honest way to ask whether this box can still reach YouTube.
 
+### WHICH DOOR — the Seedance door history (moved from CLAUDE.md)
+
+Moved verbatim from the CLAUDE.md checklist on 2026-09-14; the standing rule stays there.
+
+**A SEEDANCE JOB WITH NO VIDEO REFERENCE GOES THROUGH OPENROUTER, NOT
+APIFRAME (2026-09-08, Sophie: "make a note so any reference w no video uses
+open router instead").** **PARKED 2026-09-09 — EVERYTHING GOES THROUGH
+APIFRAME WHILE THE 480p MINI DRAFT IS MADE (Sophie: "the answer is APIFRAME
+I guess. Let's build the pipeline around that for now").** Two things
+decided it the same day: OpenRouter stopped passing on the Mini sale (its
+discount reads 0 and today's jobs billed full list) and every other
+reseller carries the same face filter, so a film full of person references
+has one door anyway. The OpenRouter route, its log and its price reader stay
+built; the `/footage` page still sends `door:'openrouter'` and is NOT
+changed by this note — flipping it is hers to ask for. The rest of this
+paragraph is how the two doors work, kept for when she lifts this. OpenRouter bills ByteDance's list price; the ~5%
+top-up fee is paid when credit is BOUGHT, not per job. **SUPERSEDED
+2026-09-09 — the "480p Seedance 2.5 is 10.9¢/s all in against APIFRAME's 13¢,
+a 4s clip 44¢ against 52¢" figure was list × the fee on the WRONG CANVAS and
+is wrong.** The measured formula (Mini renders on the 2.5 canvases, a clip is
+24·s + 1 frames, no fee in the shown price, the sale read live off
+OpenRouter) is in the Footage bullet under *THE PRICE IS EXACT*.
+**BUT BYTEDANCE'S OWN DOOR REFUSES REFERENCE VIDEOS
+WITH PEOPLE THAT APIFRAME ACCEPTS (measured 2026-09-08, scene 36a1 of the
+ward film):** the two untouched Seedance clips APIFRAME drew that scene from
+came back from OpenRouter as `InputVideoSensitiveContentDetected.
+PrivacyInformation` — "may contain real person" — before anything drew, while
+the three pajama pictures on the same job passed. OpenRouter forwards to
+ByteDance directly, so BytePlus direct would refuse the same; APIFRAME is
+running with something looser (unmeasured — its own backend or ByteDance's
+paid "advanced creation rights"). **MEASURED THE SAME NIGHT ON THE
+CHEAPEST MINI JOB (refusals are free, an accepted one ~5¢): a PERSON-FREE
+reference video — the socks B-roll, a Seedance output — PASSED and drew
+(6.5¢), and an AI-GENERATED face STILL (a frame of the Mini clip itself) was
+REFUSED (`InputImageSensitiveContentDetected.PrivacyInformation`).** So the
+line is the PERSON, not the video.
+**BUT THE FILTER IS PER MODEL, NOT PER DOOR, AND THAT RETIRES "BYTEPLUS DIRECT
+WOULD REFUSE THE SAME" ABOVE (measured 2026-09-12 on her own two jobs).** The
+SAME photoreal AI-made still — the priest-uniform Sophie png, a face, plainly
+photographic — was **refused on 2.0** (`InputImageSensitiveContentDetected.
+PrivacyInformation`, "may contain real person", free, before drawing) and
+**accepted and drawn on 2.5, twice**, through the identical OpenRouter door
+minutes apart. Across all 8 of her OpenRouter jobs carrying an image
+reference, **6 drew and 2 were refused**, and the split is the MODEL every
+time. So "OpenRouter refuses a photoreal face" is wrong as it was written
+here: 2.5's input gate is looser than 2.0's, and a doubtful face is worth one
+free 2.5 attempt before assuming a door is closed. What is NOT known is
+whether 2.5's gate is merely looser or genuinely probabilistic — ByteDance's
+own filters are documented as probabilistic rather than binary, so two
+acceptances are not a guarantee. The refusal is free either way, so try it.
+The older reading below stands for 2.0 and for reference VIDEOS:
+- **text, pictures, audio, and person-free videos → OpenRouter**: `POST
+  /api/openrouter/video` (`openrouter.js`) takes the APIFRAME route's exact
+  body (`prompt, model?, duration, resolution, aspectRatio, generateAudio,
+  referenceImageUrls, referenceVideoUrls, referenceAudioUrls, chat, scene,
+  title, session`), answers 202 `{jobId, poll, sent}` — `sent` is the
+  literal body OpenRouter received, the read-back her rule asks for — poll
+  `GET /api/openrouter/video-job/:id`, and **files the SAME
+  `forge-video-jobs` log** stamped `provider:'openrouter'`, so `GET
+  /api/apiframe/video-log` reads both doors. `GET /api/openrouter/credits`
+  is the balance in dollars. From a container with no server:
+  `scripts/openrouter-video.js`.
+- **any reference with a FACE or a PERSON in it, still or video → APIFRAME.**
+  ByteDance's refusal is free and comes back before drawing as 400
+  `{refusal:'content'}` with a `hint` naming APIFRAME — so sending a doubtful
+  job to OpenRouter first costs nothing. **AN ILLUSTRATED FACE PASSES
+  (measured the same night, Sophie: "would it take an illustration face?
+  make varying degrees"): three Sandy-mirror ink-and-wash portraits — the
+  loosest, a finished painting, the most rendered — each sent as the only
+  reference, all three accepted and drawn (5.4¢ each, Mini 1:1), while the
+  photoreal frame of a Seedance clip was refused.** So the line is
+  PHOTOREAL: a drawn face rides, a photographic one (real or generated) does
+  not. Two things about the drawn face: it also sets the LOOK of the clip
+  (the loosest reference drew an illustrated clip, the most rendered a
+  photoreal one), and the watercolor parents were refused on both doors
+  earlier — a drawn face is likelier to pass, not certain to; the refusal is
+  free, so try it. **AND A REAL PHOTO WITH ONLY THE EYES BLURRED PASSES
+  (measured the same night, Sophie: "blue just the eyes / real still"):**
+  Mayra's real portrait was refused whole, and the identical photo with one
+  soft-blurred band over the eyes (`sharp` extract → blur(14) → composite,
+  everything else untouched) was accepted and drawn (job
+  `aY9LbIGMe9T5lEcA984a`, 5.4¢, Mini 1:1). So the filter is an EYES check,
+  not a face check — the mouth, the hair, the skin all rode through. It
+  drew O'Hara, not her, because the prompt describes O'Hara; a likeness
+  from a real photo needs the "the woman in [Image1]" wording and is
+  untested. **THE STILL TRICK DOES NOT CARRY TO VIDEO (same night, Sophie:
+  "also try blur eyes in a movie"):** the scale audition clip with every
+  face's eyes blurred on every frame (YuNet face landmarks → a Gaussian band
+  over the eyes, `blur-eyes-video.py`) was still refused,
+  `InputVideoSensitiveContentDetected.PrivacyInformation`. So a video is
+  screened for a PERSON, not a face; a person video goes through APIFRAME
+  whatever is done to its eyes. **And the likeness half is measured too:**
+  card 45a's words with "Mayra is the woman in [Image1]" over the
+  eyes-blurred photo drew HER (job `OudXGDf91uEk1um3pZUt`, Mini 3:4, 5.6¢) —
+  the eyes are the filter's key and not the model's; the likeness rides on
+  the rest of the face. Mini has no 2:3; its portrait shapes are 3:4 and 9:16.
+  **AND A HARD BLACK BAR PASSES THE INPUT FILTER TOO — BUT A FAMOUS FACE
+  THEN HITS A SECOND GATE ON THE OUTPUT (measured 2026-09-09, Sophie: "i
+  wanna test black bar over danielle radcliffe eyes").** A press photo of
+  Daniel Radcliffe, whole, was refused at validation like every real photo
+  (`InputImageSensitiveContentDetected.PrivacyInformation`, free, in twelve
+  seconds); the identical photo with a solid black rectangle over both eyes
+  (PIL, nothing else touched) was **ACCEPTED and drew for a full minute**,
+  then died at the far end with a refusal nothing here had seen before:
+  `status:'failed'`, *"the output video may be related to copyright
+  restrictions"* (job `3SL74kD3vCOePxCzjgh4`, Mini 480p 3:4 4s, the "the man
+  in [Image1]" wording). So the bar defeats the eyes check exactly as the
+  blur does — **and there are TWO filters, not one**: an INPUT check that
+  reads the reference's eyes, and an OUTPUT check on the drawn video that the
+  Mayra rounds never reached. No `generation_id` record exists for the failed
+  job, so it reads as unbilled; the shared key had another chat's batch
+  running, so the charge could not be isolated exactly. **Which half of that
+  photo tripped the output gate is UNMEASURED** — Radcliffe's own likeness,
+  or the branded premiere step-and-repeat filling the background. The cheap
+  next test is the same bar on a tight crop of the face with no backdrop in
+  frame: it still fails on copyright → the likeness; it draws → the
+  backdrop. **MEASURED THE SAME HOUR AND IT IS THE FACE:** the identical bar
+  on a tight crop of his face with the branded backdrop cropped OUT was
+  accepted, drew for a full minute, and failed with the same copyright line
+  (job `YMyKELvY54v87oTEhVG8`). So the output gate is reading HIM, not the
+  step-and-repeat behind him. **WHY IT EXISTS, from the public record:**
+  Seedance 2.0 took a Disney cease-and-desist on 2026-02-13 ("a virtual
+  smash-and-grab") with Paramount Skydance, Netflix, Warner Bros. Discovery,
+  Sony and Universal behind it, and ByteDance said on 02-15 it would stop
+  generating realistic human faces and IP-protected characters — this gate is
+  that promise. Three things worth knowing before designing around it: every
+  published guide documents the INPUT face filter and barely mentions an
+  output check, and the output-copyright error they DO document is about
+  AUDIO (we sent `generate_audio:false`, so that reading is ruled out here);
+  the filters are described as PROBABILISTIC rather than binary, so one job
+  is not a measurement and a near-threshold input can pass once and fail
+  next; and a failed generation is not billed, which matches our own two
+  blocked jobs leaving no `generation_id` record. **WHERE THE LINE SITS
+  BETWEEN FAMOUS AND NOT IS UNMEASURED AND IS THE OBVIOUS NEXT PASS** (Sophie's
+  own idea, 2026-09-09: "you could use progressively less famous people to
+  see where the bar is") — nobody has published one. Both ends are already
+  on file: Radcliffe blocked, Mayra drawn. Hold the bar constant on every
+  rung, since it is what reaches the output gate at all.
+- **WHY APIFRAME IS LOOSER, from ByteDance's own docs:** a face is only ever
+  allowed as a `asset://` from its trusted asset library — a VIRTUAL portrait
+  (a drawn or AI-made character that "must not resemble any real human
+  person", uploaded once under a signed commitment letter) or a REAL person
+  who face-verifies on their phone, every upload face-matched to that check.
+  Both need a BytePlus account with BUSINESS verification (a corporate
+  registration certificate); the entry tier is free (50 assets), the paid
+  tiers $1,400/mo and up. The ChatGPT-character workflow is exactly the
+  virtual-portrait door. NOT BUILT — hers to decide (Cod God Inc?).
+- **OTHER RESELLERS CARRY THE SAME FACE FILTER — RESEARCHED 2026-09-09
+  (Sophie: "research other platforms like OpenArt and Atlas Cloud and see if
+  they have the same restrictions as OpenRouter").** The face check runs
+  INSIDE ByteDance's model service, so every door that forwards to
+  Volcengine/BytePlus gets the identical `PrivacyInformation` refusal: Atlas
+  Cloud, fal, Kie, WaveSpeed, PiAPI (standard mode), OpenArt, Higgsfield,
+  Dreamina. Read off the vendors' own pages, not guides: **Atlas Cloud's June
+  blog says "supports realistic human faces … does not have this
+  limitation", and its CURRENT model FAQ says the opposite** ("Can I upload a
+  real person's face photo? No"), with the Mini page naming "the restriction
+  on uploading real human faces" across the family — the marketing line is
+  stale, the FAQ is live. OpenArt's own pages say nothing either way; every
+  third-party guide lists it among the standard-model doors. Kie's
+  "realistic human support" means GENERATED humans. **The doors that do take
+  a real photo are the ones with their own consent layer or a different
+  backend**: Runway's Seedance 2.0 (its API is documented as having no
+  real-face input filter and lighter moderation — Runway's ToS still bans
+  public figures and non-consenting people and it monitors output), PiAPI's
+  "Less Restriction" mode (consented images), HeyGen (a verified digital
+  twin of YOURSELF, her own face only), EvoLink (after verification), and
+  the official Volcengine liveness route above. **Reddit is unreadable from
+  this container by every door tried (2026-09-09: reddit.com answers a block
+  page, the pullpush archive refuses automated readers, the redlib mirrors
+  are down) and the web searches surfaced no thread** — so whether Atlas
+  Cloud quietly accepts a real face in practice, the way APIFRAME does, is
+  UNMEASURED beyond its own FAQ saying no. The only honest test is one 5¢
+  Mini job there with the eyes-blurred photo, which needs an account. **THE
+  DOOR IS BUILT FOR THAT TEST (2026-09-09, her API reference):
+  `atlascloud.js` at `/api/atlascloud` — the same body and the same
+  `forge-video-jobs` log as the other two doors, `provider:'atlascloud'`,
+  `ATLASCLOUD_API_KEY` set on Render by API (live on the next deploy).
+  **MEASURED THE SAME NIGHT — ATLAS TAKES A PERSON VIDEO (Sophie: "try the
+  hardest thing first · try the video reference with a person"):** the
+  O'Hara stretcher clip, three people in frame, the very clip OpenRouter
+  refused, went through as the only reference on Mini · 4s · 480p · 16:9
+  and DREW HER — accepted on the POST, done in 80s, 864x496 (job
+  `2b0b451548d84902988d01faf8bbcf99`). So Atlas is a second door for a
+  person reference, and **the 80% Mini sale is REAL**: its own `GET /models`
+  says Mini is 1.1¢/s (list 5.6¢) — 4.4¢ for that clip against ~16¢ on
+  APIFRAME — 2.5 13.4¢/s, 2.0 9¢/s, Fast 2.7¢/s; `footage.js` reads it live
+  (`atlasPrices()`). **AND A REAL UNTOUCHED PHOTO PASSES — Mayra's real
+  portrait, the one OpenRouter refused whole, drew her near-exactly (job
+  `1341e19bf73f44bd9e038c9b15c35286`, ~4¢); a reference image is not even
+  billed as tokens (a reference video is). Radcliffe is refused on the POST,
+  free, as COPYRIGHT — with the black bar too: Atlas's gate is a famous-face
+  check that sees through the bar, not a real-person check.** So Atlas takes
+  every person reference the film has except a public figure. **AND FAST'S OUTPUT GATE FIRES ON A PLAIN TEXT PROMPT (measured
+  2026-09-09, Sophie: "go on the fast vs mini dialogue test"):** the same
+  4s · 480p · 16:9 dialogue prompt — a woman at a kitchen table speaking one
+  line to camera, NO reference of any kind — was refused TWICE on 2.0 Fast
+  with the copyright line (`error_code 1012004`, `price "0"`, ~110s each,
+  unbilled) and drawn once on Mini (job `0fae510554ad4dbea977d4484990f716`,
+  ~4¢). So the output gate is per MODEL and probabilistic, and Fast is the
+  strict one; a plain prompt is not safe from it. Page: "Dialogue test — 2.0
+  Fast vs Mini" in this chat's Compare tab. The console is
+  the only billing read (no API), and Atlas's slot word is `video 1` /
+  `image 1`. **AND ATLAS IS THE ONE DOOR THAT HANDS BACK A LAST FRAME —
+  `return_last_frame` works there, is FREE, and beats an ffmpeg decode
+  (measured 2026-09-09; a no-op on OpenRouter, measured the day before).** A
+  job sent `returnLastFrame: true` answers a second output, `…_last-frame.png`,
+  billed at the clip's own token price to the token — and against the decoded
+  final frame it is 1.18x sharper with **118x the horizontal chroma detail**,
+  i.e. rendered before the h264 encode rather than pulled out of it. That is
+  the shot-to-shot chaining tool this film keeps needing. Mirrored to Storage
+  and filed on the log as `lastFrame`. **ON FOR EVERY FOOTAGE JOB SINCE
+  2026-09-10 (Sophie: "on")** — the page asks for it on the Atlas door alone
+  (OpenRouter's flag is a no-op and APIFRAME builds its own body) and the card
+  carries it. **AND SINCE 2026-09-11 IT IS ON THE CLIP'S OWN CARD, WHICH IS THE
+  ONLY PLACE SHE CAN REACH ONE (Sophie: "how do i get these last frames").**
+  It was being baked and banked on every Atlas job and the page drew it
+  NOWHERE: the only door it ever had was the RECENT drawer, and she took the
+  outputs out of there the same day it shipped ("recents is recent UPLOADED"),
+  so for a day every clip carried a picture with no way to see it — the "?"
+  card still pointed at the drawer, which is how it stayed invisible. Now it is
+  a small tile in the card's own picture row, **beside the references rather
+  than under them** (her word: "next to the references" — one grid, so it takes
+  the next free column and the card is no taller); tapping it opens it big in
+  the clip's own player, with a **save** that goes to Photos through the same
+  three-path ladder the clip's does. Its label says **`last frame · whole
+  clip`** on a TRIMMED clip, because the frame is the end of what the DOOR drew
+  and not the end of the part she kept — the one thing worth knowing before
+  chaining off it. A clip that went out through another door has none and shows
+  no tile at all (the Assets tab's silence rule). **CHAINING FROM IT IS STILL
+  SAVE-AND-RE-ATTACH — there is no "use this as a reference" button, and that
+  is hers to ask for.** Off by default still for any other caller:
+  `returnLastFrame: true` is what asks. Full numbers:
+  *`return_last_frame`* in `docs/modules/audio-and-film.md`; test
+  `node scripts/test-atlas-lastframe.js`. **AND IT WAS THE FOOTAGE PAGE'S ONLY DOOR
+  FROM THAT EVENING TO 2026-09-11 (Sophie: "make atlas the default and only
+  route through footage")** — it rode for an afternoon as its own "2.0 Mini ·
+  Atlas" row, then every 2.x row carried an Atlas id and the page pinned
+  `door:'atlascloud'`. **SUPERSEDED 2026-09-11 by "choose cheapest"**: auto
+  ranks the three doors by what the tap really costs, which keeps Mini and
+  Fast on Atlas (its 80%/70% sale) and moves 2.0 and 2.5 to OpenRouter (only
+  20% off there) — so a 2.0 or 2.5 clip gets NO last frame, since that rides
+  on Atlas alone. Full note: *ATLAS CLOUD — THE THIRD DOOR* in
+  `docs/modules/audio-and-film.md`.
+  The "go" rule applies word for word.** Likeliest
+  reading of APIFRAME's looseness is a Runway-style backend rather than a
+  ByteDance key — unmeasured; APIFRAME calls itself an "official partner"
+  and says nothing about faces. Whether any of those doors also skip the
+  OUTPUT copyright gate (the Radcliffe failure) is unmeasured everywhere.
+  **PRICED THE SAME DAY (Sophie: "check on the pricing compared to
+  OpenRouter, APIFRAME and ByteDance itself"), one 4s 480p 3:4 clip, no
+  reference video, off each vendor's own price page:** BytePlus direct and
+  OpenRouter share ByteDance's per-token list (OpenRouter's `orTok` IS the
+  SKU) — Mini 14¢ · Fast 17¢ · 2.0 28¢ · 2.5 ~43¢ (2.0/Fast/2.5 canvases
+  unmeasured) — **but OpenRouter is NOT the same price: its card fee is 5.5%
+  ($0.80 minimum) on every top-up, 5% by crypto, so a job costs list × 1.055
+  (Sophie's correction, 2026-09-09; this line first said "~5%" and "the same
+  list").** Measured the same hour: OpenRouter's `pricing.discount` on every
+  Seedance model reads **0**, and both of the day's `/footage` Mini jobs
+  billed $0.1396 — full list. **Atlas Cloud's "-80%" Mini banner is
+  UNVERIFIED and probably stale**: its own deal pages date the Seedance sale
+  window to "May 7, 2026, 23:59 UTC" and "June 15", its June Mini post says
+  $0.056/s with no sale, and its lowest-price page stacks a TOP-UP bonus
+  (up to +30% credit at $50,000) into the headline. At its undiscounted
+  $0.056/s Atlas is 22¢ for the 4s Mini clip — DEARER than OpenRouter — and
+  only 4.4¢ if the banner is real; a real charge needs an account and is
+  hers. Same face filter either way. APIFRAME: Mini ~16¢ · Fast 28¢
+  · 2.0 32¢ · 2.5 52¢. The doors that take a real photo are all dearer:
+  PiAPI less-restriction Mini 31¢ · 2.0 44¢ · 2.5 66¢ (a +10% markup, AND
+  the face still has to go through its asset library with the person
+  verified — the official route with a fee on it, not a loose door); EvoLink
+  2.0 37¢ · Fast 30¢ (no Mini); Runway Mini 64¢ (16¢/s with a 64-credit
+  minimum) · 2.0 $1.44 · 2.5 80¢ minimum (20¢/s plus 10¢ per second of input
+  video). So APIFRAME stays the cheapest door for a reference with a person
+  in it by 2-4x; for a person-free job OpenRouter at list + 5.5% is the
+  measured floor, and Atlas Cloud only beats it if its banner discount is
+  real.
+The "go" rule above applies to both doors word for word. A no-video job
+sent to APIFRAME is not wrong, it is 16% dearer. Full note: *OpenRouter for
+Seedance* in `docs/modules/audio-and-film.md`.
