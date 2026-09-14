@@ -1116,20 +1116,45 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       the real page headless with a seekable VP8 fixture, every assertion a
       measurement of the rendered strip, the loop's own `currentTime`, or what
       the server really received).
-    - **GRAB FRAME — THE FRAME UNDER THE PLAYHEAD BECOMES A REFERENCE, ON THE
-      SPOT (2026-09-12, Sophie: "I need to cut one out. I said the last frame
+    - **GRAB FRAME — THE FRAME UNDER THE PLAYHEAD, PULLED OUT ON THE SPOT
+      (2026-09-12, Sophie: "I need to cut one out. I said the last frame
       doesn't have the curtains" · "it shouldn't file to the dump. It should
       give me a way to use it immediately as a reference for my next film").**
       The last frame Atlas hands back is the END of what the door drew, and
       the frame that carries continuity is often somewhere in the middle. A
       third word on the trimmer's row, beside Start here / End here: tap the
-      strip to put the playhead on the frame, tap **Grab frame**, and the
-      frame is `[ImageN]` in the references strip with the player closed and
-      the page at the top — the same landing the last-frame tile's
-      `reference` door makes (`useShot`). `POST /api/footage/jobs/:id/frame
-      { at }` answers `{ url, at }` synchronously — a download plus one
-      decoded frame is a few seconds and the url is what she is waiting for.
-      Four things not to undo:
+      strip to put the playhead on the frame, tap **Grab frame**.
+      `POST /api/footage/jobs/:id/frame { at }` answers `{ url, at }`
+      synchronously — a download plus one decoded frame is a few seconds and
+      the url is what she is waiting for. **The player stays open and her in
+      and out marks stay with it** (2026-09-13): it used to close, scroll to
+      the top and drop `TR`, so grabbing a frame mid-cut threw the marks away.
+      - **AND IT OFFERS, IT NO LONGER DECIDES (2026-09-14, Sophie: "grab frame
+        shud offer to save or add as reference").** It used to land the frame
+        in the strip by itself, so SAVING one meant taking on a reference she
+        may not have wanted and then hunting it down in the strip to open it
+        big — and she never saw the frame before it committed, on the one
+        button whose whole reason for existing is that the baked last frame has
+        the wrong thing in it. The pull now draws a row under the trimmer's
+        buttons: **the frame itself**, the second it came from, and her two
+        underlined words — `save` (the three-path ladder: the app's bridge, the
+        share sheet, a download) and `reference` (`useShot`, the last-frame
+        tile's own landing — one entry, no upload, no download, the draft
+        carrying it). Neither fires on its own, so the reference path costs one
+        more tap and buys the look at what she grabbed. Five things not to
+        undo: the two are **NOT exclusive** — a frame worth keeping is often
+        both — so the row stays until she grabs another, taps its ✕, or closes
+        the player; `reference` **lights once the frame really is in the
+        strip**, read off `refs` in `paintRefs` (the one place the strip
+        changes), so a ✕ on that reference puts the word out by itself and a
+        second grab of the same second opens the offer already lit; the thumb
+        is **`contain`, never `cover`** (a cover crop takes a third off a 16:9
+        frame's sides, which is the half of the picture the question is usually
+        about); there is **no "open it bigger"** and none is needed, since the
+        player directly above is paused on that very frame at full size; and
+        the row sits **above the parts list**, which is the thing that scrolls,
+        so the offer is on screen whatever the clip's shape.
+      Four things not to undo about the pull itself:
       - **HER CLIP IS NEVER TOUCHED and NOTHING GOES TO THE DUMP** (her
         word). The frame is a new PNG under `footage/frames/`,
         content-addressed by the source url and the second, so the same
@@ -1151,8 +1176,11 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       `node scripts/test-footage-grab-frame.js` (the rules pure, a REAL pull
       measured with ffprobe and its pixels, and the real page headless — the
       row measured as one line at 390pt with every word taking its own tap,
-      the second the stub really received against the playhead, the strip
-      and the draft afterwards, and zero Dump posts).
+      the second the stub really received against the playhead, the offer row
+      MEASURED with its picture really decoded and its words really tappable,
+      **nothing in the strip or the draft until she taps**, the strip and the
+      draft after she does, the light going out with a ✕ on that reference,
+      and zero Dump posts throughout).
     - **THE PRICE IS EXACT (2026-09-09, measured off 113 OpenRouter jobs, 44
       APIFRAME jobs and ffprobe on the clips).** `tokens = w × h × (24·s + 1)
       / 1024`, × the SKU, × `(1 − the live discount)` — Mini renders on the

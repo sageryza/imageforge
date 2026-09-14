@@ -415,7 +415,13 @@ const readBlocks = () => {
   ok('switching folder re-asks a standing search, and resets its own walk',
     /function setFolder[\s\S]{0,900}?if \(searchQ\) \{ qHits = null; qMore = false; qAt = ''; runSearch\(\); \}/.test(src));
   ok('unhiding cards re-decides their "… more"', /if \(!tiles\) resyncClamps\(\);\n  var n = Object\.keys\(jobsById\)/.test(src));
-  ok('grab frame keeps the player and her marks', /useShot\(false, 'frame at ' \+ Number\(d\.at\)\.toFixed\(1\) \+ 's', true\)/.test(src));
+  // THE GRAB OFFERS RATHER THAN LANDING IT (2026-09-14, Sophie: "grab frame
+  // shud offer to save or add as reference") — so the `useShot` moved out of
+  // the pull's own `then` and onto the offer row's `reference` word. `stay` is
+  // still the load-bearing half: closing the player drops `TR` and with it the
+  // in and out marks she had just placed.
+  ok('the pull itself lands nothing — it offers', /if \(!d \|\| d\.error \|\| !d\.url\) return toast[\s\S]{0,120}?showGrab\(d\.url, d\.at\);/.test(src));
+  ok('grab frame keeps the player and her marks', /\$\('tgref'\)\.addEventListener\([\s\S]{0,300}?useShot\(false, 'frame at ' \+ grabbed\.at\.toFixed\(1\) \+ 's', true\)/.test(src));
   ok('the optimistic card is built from the body the tap sent',
     /project: body\.project, folder: body\.folder,/.test(src) && /var m = modelOf\(body\.model\);/.test(src));
   // THE WHOLE RULE MOVED INTO `cast-line.js` AS `planMarked` (2026-09-14) —

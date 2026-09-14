@@ -9431,11 +9431,28 @@ before working on that module. Nothing was deleted — the moved text is verbati
   THAT ROW (2026-09-12, Sophie: "the last frame doesn't have the curtains" ·
   "it shouldn't file to the dump. It should give me a way to use it
   immediately as a reference for my next film").** Playhead on the frame, tap
-  the word, and it is `[ImageN]` in the references strip — the last-frame
-  tile's `reference` landing, for any second of the clip. `POST
+  the word, and the frame is pulled out for any second of the clip. `POST
   /api/footage/jobs/:id/frame {at}`: a PNG at the clip's own size out of the
   SOURCE, content-addressed under `footage/frames/`, one decode at a time in
   the trims' queue, the clip's doc untouched, NOTHING to the Dump (her word).
+  The player stays open and her in and out marks stay with it (2026-09-13).
+  **AND IT OFFERS, IT NO LONGER DECIDES (2026-09-14, Sophie: "grab frame shud
+  offer to save or add as reference").** It used to land the frame in the strip
+  by itself, so SAVING one meant taking on a reference she may not have wanted
+  and then hunting it down in the strip to open it big — and she never saw the
+  frame before it committed, on the one button whose whole reason for existing
+  is that the baked last frame has the wrong thing in it. The pull draws a row
+  under the trimmer's buttons — the frame itself, the second it came from, and
+  two underlined words: **save** (the three-path ladder) and **reference**
+  (`useShot`, the last-frame tile's own landing). Neither fires on its own.
+  Four things not to undo: the two are **NOT exclusive**, so the row stays
+  until she grabs another, taps its ✕, or closes the player; `reference`
+  **lights off the STRIP** (repainted in `paintRefs`, the one place it
+  changes), so a ✕ on that reference puts the word out and a second grab of the
+  same second opens already lit; the thumb is **`contain`, never `cover`** (a
+  cover crop takes a third off a 16:9 frame's sides, which is the half the
+  question is usually about); and there is **no "open it bigger"** — the player
+  directly above is paused on that very frame at full size.
   Full note: *GRAB FRAME* in `docs/modules/audio-and-film.md`; test
   `node scripts/test-footage-grab-frame.js`.
   **THE FIRST FRAME OF THE NEXT CLIP IS THE LAST FRAME OF THIS ONE — WIRED ON

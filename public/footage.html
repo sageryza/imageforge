@@ -969,6 +969,32 @@
   .trimbar .tsaves{display:flex;gap:14px;justify-content:flex-end;min-height:20px}
   .trimbar .tsaves button{background:none;border:none;padding:0 2px;height:auto;font-size:12.5px;
                           text-decoration:underline;color:#e7dfd2}
+  /* THE GRAB OFFERS, IT NO LONGER DECIDES (2026-09-14, Sophie: "grab frame
+     shud offer to save or add as reference"). The frame she pulled, SHOWN —
+     which the silent landing never did, and seeing it is half the point: the
+     whole reason this button exists is that the baked last frame "doesn't have
+     the curtains", so whether the second she stopped on has them is a question
+     only a picture answers. Two underlined words beside it, the `.tsaves`
+     paint, never boxed buttons; the ✕ puts the offer away, the `.tpart` row's
+     own control. The row sits directly under the button that made it and above
+     the parts list, so it is never what scrolls. It costs the stage ~44px and
+     the trimbar is `flex:none` with the stage yielding, so the offer is on
+     screen whatever the clip's shape. */
+  .trimbar .tgrabbed{display:flex;align-items:center;gap:10px;min-height:44px}
+  /* CONTAIN, NEVER COVER — the thumb's job is saying WHICH frame is on offer,
+     and a cover crop takes a third off a 16:9 frame's sides and most of a 3:4
+     one's height, which is the half of the picture the question is usually
+     about. There is no "open it bigger" here and none is needed: the player
+     directly above is paused on that very frame at full size. */
+  .trimbar .tgim{width:64px;height:44px;object-fit:contain;border-radius:6px;background:#2b2620;flex:none}
+  .trimbar .tgat{font-size:12.5px;color:#9a8f7d;flex:1;min-width:0;
+                 overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .trimbar .tgw{background:none;border:none;padding:0 2px;height:26px;font-size:12.5px;
+                text-decoration:underline;color:#e7dfd2;flex:none}
+  /* lit once it really is in the strip — a word that answers the same way
+     twice and says nothing the second time reads as a control that broke */
+  .trimbar .tgw.on{color:#f0b6ac}
+  .trimbar .tgx{width:26px;height:26px;padding:0;font-size:15px;flex:none}
   /* the card's own line: what is kept, and while it bakes, that it is baking */
   .trimtag{display:flex;align-items:center;gap:5px;font-size:12px;color:#8a7f70;margin-top:3px}
   .trimtag svg{width:13px;height:13px;flex:none}
@@ -1300,8 +1326,15 @@
       <button type="button" class="tstep" id="tback" aria-label="Back a tenth of a second" title="Back 0.1s">&lsaquo;</button>
       <button type="button" id="tin">Start here</button>
       <button type="button" id="tout">End here</button>
-      <button type="button" id="tgrab" title="Pull the frame under the playhead into the references">Grab frame</button>
+      <button type="button" id="tgrab" title="Pull the frame under the playhead out — then save it or add it as a reference">Grab frame</button>
       <button type="button" class="tstep" id="tfwd" aria-label="On a tenth of a second" title="On 0.1s">&rsaquo;</button>
+    </div>
+    <div class="tgrabbed" id="tgrabbed" hidden>
+      <img class="tgim" id="tgim" alt="">
+      <span class="tgat" id="tgat"></span>
+      <button type="button" class="tgw" id="tgsave">save</button>
+      <button type="button" class="tgw" id="tgref">reference</button>
+      <button type="button" class="tgx" id="tgx" aria-label="Put this frame away" title="Put it away">&times;</button>
     </div>
     <div class="tparts" id="tparts"></div>
     <div class="tsaves" id="tsaves" hidden>
@@ -2730,6 +2763,10 @@ function paintRefs() {
   var el = $('refs');
   pruneMarks();
   var list = orderedRefs(); refs = list;
+  // the grab offer's `reference` word is lit off the STRIP, so it is repainted
+  // here — the one place the strip changes — and a ✕ on that reference while
+  // the offer is still up puts the word out by itself
+  paintGrabRef();
   var marked = list.map(function (r) { return { url: r.url, kind: r.kind, poster: r.poster, name: r.name, role: roleOfUrl(r.url) }; });
   var slots = slotsOf(marked);
   // THE MARKS ARE IN THE SIGNATURE — marking a picture renames the one under
@@ -5831,6 +5868,7 @@ function closePlayer() {
   shotUrl = ''; $('psave').hidden = true; $('pfirst').hidden = true; $('pref').hidden = true;
   pl.hidden = true;
   TR = null;
+  clearGrab();                       // the offer belongs to the clip she was cutting
   $('trimbar').hidden = true;
   document.body.style.overflow = '';
   window.scrollTo(0, savedY);
@@ -5852,6 +5890,7 @@ window.__navBack = function () { if (!$('shelf').hidden) { closeShelf(); return 
 function armTrim(j, v) {
   $('trimbar').hidden = !j;
   TR = null;
+  clearGrab();                       // a frame off the last clip is not on offer for this one
   if (!j) return;
   // THE MARKS OPEN ON THE WHOLE CLIP, whatever she has already cut
   // (2026-09-10, Sophie: "re-cut the same whole clip … to also get a second
@@ -6130,6 +6169,38 @@ $('tgo').addEventListener('click', doTrim);
 // it lands in the strip the way the last-frame tile's `reference` does
 // (`useShot`) — one entry, no upload, no download, the draft carrying it.
 // Nothing on the clip changes and nothing is sent: the star is still her tap.
+//
+// AND IT OFFERS, IT NO LONGER DECIDES (2026-09-14, Sophie: "grab frame shud
+// offer to save or add as reference"). It used to land the frame in the strip
+// by itself, so SAVING one meant taking on a reference she may not have wanted
+// and then hunting it down in the strip to open it big — and she never saw the
+// frame before it committed, on the one button whose whole reason for existing
+// is that the baked last frame has the wrong thing in it. So the pull SHOWS
+// the frame with her two doors beside it and neither fires on its own: the
+// reference path costs one more tap and buys the look at what she grabbed.
+// The two are NOT exclusive — a frame worth keeping is often both — so the row
+// stays until she grabs another, puts it away, or closes the player.
+var grabbed = null;                 // { url, at } — the frame on offer, or null
+function clearGrab() {
+  grabbed = null;
+  $('tgim').removeAttribute('src');
+  $('tgref').classList.remove('on');
+  $('tgrabbed').hidden = true;
+}
+function showGrab(url, at) {
+  grabbed = { url: url, at: Number(at) || 0 };
+  $('tgim').src = url;
+  $('tgat').textContent = 'the frame at ' + grabbed.at.toFixed(1) + 's';
+  paintGrabRef();
+  $('tgrabbed').hidden = false;
+}
+// ALREADY IN THE STRIP READS AS ALREADY DONE. She can grab one second twice —
+// chaining off it, then coming back for the save — and `useShot` is idempotent,
+// so an unlit word over a reference that is already there would be the row
+// lying about what the tap did.
+function paintGrabRef() {
+  $('tgref').classList.toggle('on', Boolean(grabbed && refs.some(function (r) { return r.url === grabbed.url; })));
+}
 $('tgrab').addEventListener('click', function () {
   if (!TR || !TR.dur || !TR.j) return;
   var j = TR.j, b = $('tgrab');
@@ -6140,13 +6211,31 @@ $('tgrab').addEventListener('click', function () {
   api('/jobs/' + encodeURIComponent(j.id) + '/frame', { method: 'POST', body: JSON.stringify({ at: at }) }).then(function (d) {
     b.disabled = false;
     if (!d || d.error || !d.url) return toast((d && d.error) || 'That frame could not be grabbed');
-    shotUrl = d.url;
-    useShot(false, 'frame at ' + Number(d.at).toFixed(1) + 's', true);   // her marks stay
+    showGrab(d.url, d.at);
+    // the row IS the answer, but it names its two doors in small underlined
+    // words at the bottom of the screen — and it leaves "Grabbing that frame…"
+    // standing, which stops being true the moment the row is up
+    toast('Grabbed it — save it, or add it as a reference');
   }).catch(function () {
     b.disabled = false;
     toast('The server did not answer \u2014 nothing changed');
   });
 });
+// HER FINGER GOING DOWN IS THE HEAD START (the `.tsaves` rule) \u2014 a fetch
+// started inside the tap handler spends the transient activation and
+// `navigator.share` then rejects silently.
+$('tgsave').addEventListener('pointerdown', function () { if (grabbed) primeSave(grabbed.url); });
+$('tgsave').addEventListener('click', function () { if (grabbed) saveMedia(grabbed.url); });
+// THE REFERENCE PATH IS THE LAST-FRAME TILE'S OWN (`useShot`), with `stay`:
+// the frame is taken mid-cut, and closing the player drops `TR` and with it the
+// in and out marks she had just placed (2026-09-13). The offer row stays too,
+// so `save` is still one tap away.
+$('tgref').addEventListener('click', function () {
+  if (!grabbed) return;
+  shotUrl = grabbed.url;
+  useShot(false, 'frame at ' + grabbed.at.toFixed(1) + 's', true);   // her marks stay
+});
+$('tgx').addEventListener('click', clearGrab);
 
 // The one write, whichever shape: add a part, replace one, take one off.
 // The original is never written over, so a removal restores nothing — it is
