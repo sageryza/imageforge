@@ -41,6 +41,16 @@ page = r"""<!doctype html>
      copied — see tritoggle.css's header; /tritoggle.js is the aim rule, a
      tap landing on the stop under the thumb rather than cycling. -->
 <link rel="stylesheet" href="/tritoggle.css">
+<!-- THE CARET STAYS WHERE SHE CAN SEE IT (2026-09-08) — a box fitted to its
+     own words never scrolls itself, so the line she is typing can end up under
+     the keyboard. The module wires itself to every text box and needs no call.
+     Full reasoning in caretkeep.js. -->
+<script src="/caretkeep.js"></script>
+<!-- THE WAY OUT OF A BIG BOX STAYS ON SCREEN (2026-09-10) — the corner
+     toggle lives at the box's bottom, so a box fitted to a long caption
+     puts it below the card. Marked buttons pin themselves to the bottom of
+     what she can see. Full reasoning in stickybox.js. -->
+<script src="/stickybox.js"></script>
 <script src="/tritoggle.js"></script>
 <!-- THE HOUSE SEARCH, linked and never copied (/feedkit.js): the grammar the
      Chats app and the Playground speak, plus the two helpers every live box
@@ -55,6 +65,17 @@ page = r"""<!doctype html>
      Playground's did; the pick button and the step zones ride the shared
      file's hooks (cta, nav) now. -->
 <script src="/asset-lightbox.js"></script>
+<script src="/size-tier.js"></script>
+<!-- THE TYPED CAST'S CLAUSE AND THE PICKED CARDS' LINE, SERVED (2026-09-06,
+     Sophie: "add the character description feature as an option that's not
+     character image, like playground"). /sheet-grid.js is the ONE builder of
+     the characters clause (castBlock) and /pad-characters.js the one sentence
+     for the picked cards (charLine) — the same files the server sends the
+     prompt through, so what the sheet prints IS what rides the draw. The
+     page holds no copy of either wording. Both are guarded: a harness that
+     cannot serve them renders the sheet without the disclosure. -->
+<script src="/sheet-grid.js"></script>
+<script src="/pad-characters.js"></script>
 <style>
 @font-face{font-family:'EBGaramond';font-weight:400 700;font-display:swap;src:url(data:font/ttf;base64,__FONT__) format('truetype');}
 :root{ --paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --barbg:#fffdf7; --gold:#a8845c;
@@ -181,6 +202,26 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   -webkit-tap-highlight-color:transparent;}
 .stylerow .sw.on{color:var(--ink); font-weight:600;}
 .stylerow .tri{--tri-track:var(--ink); --tri-knob:var(--paper); --tri-ink:var(--ink);}
+/* THE CHAPTER ROW (2026-09-06, Sophie: "i want the chapter within a story.
+   arrow buttons at the top, and a contents page w all the stories and
+   thumbnails"). ‹ the chapter she is IN › — the house sticky-chapter idea
+   (compare.js's __pagePlace bar) on the pad. It rides INSIDE #topchrome so
+   it is pinned with the chevron and the buttons, and it exists only while
+   the story has a chapter at all: a row of dead arrows over a story with
+   none is machinery for nothing. The name between the arrows is the door to
+   the CONTENTS sheet. Right padding is the pill's column, like every row up
+   here. NOTHING is drawn on the canvas itself — a chapter is a heading in
+   this row and a row on the contents page, never a label between the beats
+   (the pad's own rule: no machinery on the canvas). */
+#chaprow{display:flex; align-items:center; gap:4px; padding:4px 56px 0 0;}
+#chaprow .iconbtn{width:30px; height:30px;}
+#chaprow .iconbtn[disabled]{opacity:.28; pointer-events:none;}
+#chapname{flex:1; min-width:0; display:flex; align-items:baseline; justify-content:center; gap:8px;
+  background:none; border:none; padding:4px 2px; cursor:pointer; color:var(--ink);
+  font-family:'EBGaramond',Georgia,serif; font-size:15px; -webkit-tap-highlight-color:transparent;}
+#chapname .chapt{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+#chapname .chapn{flex:none; font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:10px;
+  letter-spacing:.12em; color:var(--ink2);}
 /* THE SHELF (Aug 2026, the media-asset-survey prototype v5, ~15 rounds with
    Sophie): category chips + portrait tiles four across. A tile is a REAL
    picture from that story — portrait 2:3 so nothing crops the art — with the
@@ -584,12 +625,39 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    rule allows one where the ground behind it is this calm. */
 #capview{display:flex; align-items:flex-start; gap:8px; width:100%;}
 #captext{flex:1; min-width:0; font-family:'EBGaramond',Georgia,serif; font-size:17px;
-  line-height:1.4; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; padding:2px 0;}
+  line-height:1.4; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; padding:2px 0;
+  --lh:1.4em; --lines:3;}
 #captext:empty{min-height:22px;}
+/* A LONG CAPTION SHOWS ITS FIRST THREE LINES BEHIND THE HOUSE OPENER
+   (2026-09-06, Sophie: "caption shud default to showing, but truncated if
+   long, tap to show more"). The clamp is MEASURED (capClamp), never counted,
+   so a short caption carries no opener at all; the opener rides on the last
+   line, the descbody pattern. */
+#captext.clamp{max-height:calc(var(--lines) * var(--lh)); overflow:hidden;}
+#captext.clamp.fold::before{content:''; float:left; width:0; height:calc((var(--lines) - 1) * var(--lh));}
+#captext > .moretxt{float:right; clear:both; margin-left:8px;}
+#captext:not(.clamp) > .moretxt{float:none; margin-left:6px;}
 #capedit,#promedit{flex:none; width:30px; height:30px; display:flex; align-items:center; justify-content:center;
   padding:0; border:none; background:none; color:var(--ink2); cursor:pointer;}
 #capedit svg,#promedit svg{width:17px; height:17px;}
 #capedit.on,#promedit.on{color:var(--ink);}
+/* THE CHAPTER FIELD, beside the caption (2026-09-06). A beat that OPENS a
+   chapter says so on the Caption line — the name in the small caps the
+   headers use, a bookmark lit beside it. The bookmark is a TOGGLE like the
+   pencil: it swaps in a small box, empty by default (a chapter is her word
+   for it, never ours), and the box never closes on its own blur. Blur and
+   Return SAVE; an emptied box takes the chapter off. Every other beat shows
+   only the quiet bookmark, so the row costs a reading beat nothing. */
+.tlabrow{display:flex; align-items:center; gap:6px; width:100%;}
+.tlabrow .tlab{align-self:center;}
+#chaptxt{flex:1; min-width:0; text-align:right; overflow:hidden; text-overflow:ellipsis; letter-spacing:.14em;}
+#pchap{flex:1; min-width:0; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:15px;
+  color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:5px 9px;}
+#chapbtn{flex:none; margin-left:auto; width:30px; height:30px; display:flex; align-items:center; justify-content:center;
+  padding:0; border:none; background:none; color:var(--ink2); cursor:pointer;}
+#chapbtn svg{width:17px; height:17px;}
+#chapbtn.on{color:var(--ink);}
+#chapbtn.on svg{fill:currentColor;}
 #pnote{flex:1; min-width:0; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:17px;
   line-height:1.4; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:6px;
   padding:10px 12px 34px; resize:none;}
@@ -744,6 +812,62 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 .charrow .cdel svg{width:16px; height:16px;}
 #charsline{font-style:italic; color:var(--ink2); font-size:.9em; margin-top:1em;}
 #charlist{padding-bottom:24px;}
+/* THE SHEET'S TWO HALVES — PICTURES · DESCRIPTIONS (2026-09-06, Sophie: "also
+   add the character description feature as an option that's not character
+   image, like playground. u can copy the code"). The Playground's typed cast,
+   lifted whole: the words half of the story's people behind the SAME icon as
+   the picture cards, under the house hairline row (`.acctabs`, this page's
+   own copy — the add sheet's PICTURES · CLIPS row is the same rule, and
+   tabLineOf measures the lit tab so nothing declares a tab count). The rows
+   ship EMPTY; a placeholder NAMES the field and nothing more. */
+#chartabs{margin-top:4px;}
+.casthdr{display:flex; gap:6px; padding:0 68px 0 0; margin-bottom:6px;}
+.casthdr .castlab{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink2);}
+.casthdr .castlab:first-child{flex:1 1 90px;}
+.casthdr .castlab:last-child{flex:3 1 160px;}
+/* The rows sit right under the pill's fixed corner, so they end before its
+   column (the house 56px), like the hairline row above them. */
+#castrows{padding-right:56px;}
+.castrow{display:flex; gap:6px; align-items:center; margin-bottom:6px;}
+.castrow input, .castrow textarea{flex:1 1 0; min-width:0; font-family:'EBGaramond',Georgia,serif;
+  font-size:16px; color:var(--ink); background:var(--paper); border:1px solid var(--line);
+  border-radius:6px; padding:6px 9px;}
+.castrow input.cnm{flex:1 1 90px; order:0;}
+/* A TEXTAREA so it can be a bigger box, but ONE LINE by contract (Enter is
+   refused, a pasted newline collapses to a space): castBlock writes a
+   character per line and castParse reads them back that way. `min-height:0`
+   beats the page-wide textarea floor, or the compact row is two lines tall
+   and "expand" starts from nowhere. */
+.castrow textarea.cds{flex:3 1 160px; order:1; box-sizing:border-box; height:34px; min-height:0;
+  resize:none; overflow:hidden; line-height:1.2;}
+.castrow .cx, .castrow .cbig{flex:none; width:30px; height:34px; padding:0; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink2);}
+.castrow .cbig{order:2;}
+.castrow .cx{order:3;}
+.castrow .cbig svg{width:13px; height:13px;}
+.castrow .cx svg{width:16px; height:16px;}
+/* THE BIGGER DESCRIPTION BOX — the Playground's answer in shape: one field,
+   two sizes, never a second box. Expanding drops the description onto its
+   OWN LINE at full width (the row wraps; `order` keeps the name, the toggle
+   and the ✕ on the line above), because on a 390pt phone a taller box three
+   columns wide is still a column. Both bounds are CSS so the browser clamps
+   fitCds's inline height, and the FLOOR keeps the button worth tapping on an
+   empty row — a field she WRITES in. */
+.castrow.big{flex-wrap:wrap;}
+.castrow.big textarea.cds{flex:1 1 100%; order:4; height:auto; min-height:18vh; max-height:44vh; overflow-y:auto;}
+#castadd{font-family:-apple-system,sans-serif; font-size:13px; padding:7px 12px; cursor:pointer;
+  border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink);}
+/* WHAT THE CAST ADDS TO HER PROMPT, said where she is standing — from the
+   SAME served rules the draw goes through (charLine / castBlock), never a
+   copy of the wording. Nothing riding draws nothing at all: an empty cast
+   adds no clause, so there is nothing to disclose. */
+#castsays{margin-top:16px; padding-bottom:24px;}
+#castsays .castlab{display:block; font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink2); margin-bottom:6px;}
+#castsaystxt{font-family:-apple-system,sans-serif; font-size:12px; color:var(--ink2); line-height:1.4;
+  border-left:2px solid var(--ink); padding:2px 0 2px 8px; white-space:pre-line;}
 /* QUALITY IS THE THREE-WAY TOGGLE (2026-08-26, Sophie: "can you make the
    three-way toggle for the quality instead of the drop-down"). Both copies —
    the card's own draw and the draw-them-all confirm — are `.tri` from
@@ -864,6 +988,22 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 /* A control with no glyph of its own (the style toggle, tapping a beat) —
    the words carry it, so the row keeps its indent and skips the box. */
 .hrow.nogl .htxt{margin-left:46px;}
+/* THE CONTENTS SHEET — one row per chapter: its first beat's picture as the
+   thumbnail (the story's own shape), its name, how many beats it holds.
+   The whole row is the tap. The lit one is the chapter she is standing in. */
+#chaplist{margin-top:.6em; padding-right:56px;}
+.chrow{display:flex; align-items:center; gap:14px; width:100%; padding:9px 0; text-align:left;
+  background:none; border:none; border-bottom:1px solid var(--line); color:var(--ink); cursor:pointer;
+  font-family:'EBGaramond',Georgia,serif; -webkit-tap-highlight-color:transparent;}
+.chrow:first-child{border-top:1px solid var(--line);}
+.chthumb{flex:none; width:46px; aspect-ratio:var(--ar,2/3); border:1.5px solid var(--line); border-radius:4px;
+  background:var(--barbg); overflow:hidden; position:relative;}
+.chthumb img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;}
+.chall .chthumb{border-style:dashed; background:none;}
+.chtxt{flex:1; min-width:0; display:block;}
+.chnm{display:block; font-size:1.05em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.chcount{display:block; font-size:.8em; color:var(--ink2); margin-top:2px;}
+.chrow.on .chnm{font-weight:600;}
 /* The film's buttons ride the title row; this line only appears while it's
    making (or if it failed). */
 #filmrow{margin-top:.5em;}
@@ -969,6 +1109,13 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
     <button class="iconbtn" id="charsbtn" aria-label="Characters — reference cards a drawing can use"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></svg></button>
     <button class="iconbtn" id="addbtn" aria-label="Add an empty beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     <button class="iconbtn" id="inboxbtn" aria-label="Hearted in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
+  </div>
+  <!-- ‹ THE CHAPTER SHE IS IN › — see #chaprow in the CSS. Shown only while
+       the story has a chapter; the name opens the contents sheet. -->
+  <div id="chaprow" hidden>
+    <button class="iconbtn" id="chapprev" aria-label="Previous chapter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+    <button id="chapname" aria-label="Contents"><span class="chapt"></span><span class="chapn"></span></button>
+    <button class="iconbtn" id="chapnext" aria-label="Next chapter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
   </div>
   </div>
   <div class="stylerow">
@@ -1079,9 +1226,24 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
       <div class="no">Characters</div>
       <button class="iconbtn" id="charsaddbtn" aria-label="Add a character card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     </div>
-    <div id="charsline" hidden></div>
-    <div id="charlist"></div>
-    <div class="state" id="charsempty" hidden>No characters yet — the + adds a card, and its name is what a drawing prompt calls them.</div>
+    <!-- PICTURES · DESCRIPTIONS (2026-09-06): the picture cards and her typed
+         cast are the same question asked two ways, so they sit behind one
+         icon under one hairline row. -->
+    <div class="acctabs" id="chartabs">
+      <button class="acctab on" id="ctab-pics" type="button" data-ct="pics">Pictures</button>
+      <button class="acctab" id="ctab-desc" type="button" data-ct="desc">Descriptions</button>
+    </div>
+    <div id="charpics">
+      <div id="charsline" hidden></div>
+      <div id="charlist"></div>
+      <div class="state" id="charsempty" hidden>No characters yet — the + adds a card, and its name is what a drawing prompt calls them.</div>
+    </div>
+    <div id="chardesc" hidden>
+      <div class="casthdr"><span class="castlab">Name</span><span class="castlab">Description</span></div>
+      <div id="castrows"></div>
+      <button type="button" id="castadd">Add a character</button>
+    </div>
+    <div id="castsays" hidden><span class="castlab">Added to your prompt</span><div id="castsaystxt"></div></div>
   </div>
 </div>
 <input type="file" id="charfile" accept="image/*" hidden>
@@ -1096,6 +1258,20 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
       <div class="no">What the buttons do</div>
     </div>
     <div id="helpbody"></div>
+  </div>
+</div>
+
+<!-- CONTENTS (2026-09-06, Sophie: "a contents page w all the stories and
+     thumbnails" — every chapter of THIS story, its first beat's picture as
+     the thumbnail, its name, how many beats it holds; tap one to go there).
+     A sheet like the shelf: the page's own header, back chevron, no ✕. -->
+<div class="sheet" id="chapsheet" hidden>
+  <div class="wrap">
+    <div class="sheethead">
+      <button class="iconbtn" id="chapclose" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+      <div class="no">Contents</div>
+    </div>
+    <div id="chaplist"></div>
   </div>
 </div>
 
@@ -1136,10 +1312,17 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   <div id="verrow" hidden></div>
   <div id="genstate" hidden></div>
   <div class="tbox" id="capbox">
-    <button class="tlab" id="caplab" aria-expanded="true">Caption<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <div class="tlabrow">
+      <button class="tlab" id="caplab" aria-expanded="true">Caption<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <!-- THE CHAPTER THIS BEAT OPENS — see .tlabrow in the CSS. The box ships
+           EMPTY: its placeholder names the field and nothing more. -->
+      <span id="chaptxt" class="no" hidden></span>
+      <input id="pchap" type="text" placeholder="Chapter" autocomplete="off" hidden>
+      <button id="chapbtn" aria-label="Chapter — this beat starts one"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg></button>
+    </div>
     <div id="capview">
       <div id="captext"></div>
-      <div class="bigwrap" id="pnotewrap" hidden><textarea id="pnote" rows="3"></textarea><button type="button" class="bigbtn" id="pnotebig" aria-label="Bigger box"></button></div>
+      <div class="bigwrap" id="pnotewrap" hidden><textarea id="pnote" rows="3"></textarea><button type="button" class="bigbtn" data-stickybox id="pnotebig" aria-label="Bigger box"></button></div>
       <button id="capedit" aria-label="Edit the caption"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button>
     </div>
   </div>
@@ -1148,7 +1331,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
     <div id="drawbox" hidden>
       <div id="promview">
         <div id="promtext"></div>
-        <div class="bigwrap" id="dpromptwrap" hidden><textarea id="dprompt" rows="3" placeholder="what to draw"></textarea><button type="button" class="bigbtn" id="dpromptbig" aria-label="Bigger box"></button></div>
+        <div class="bigwrap" id="dpromptwrap" hidden><textarea id="dprompt" rows="3" placeholder="what to draw"></textarea><button type="button" class="bigbtn" data-stickybox id="dpromptbig" aria-label="Bigger box"></button></div>
         <button id="promedit" aria-label="Edit the drawing prompt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button>
       </div>
       <div id="promhint" hidden>empty — this beat draws from its caption</div>
@@ -1224,7 +1407,13 @@ function api(p,opts){
        the timeline — a DRAW that uses one is, and /generate marks it. */
     /* /shoebox doesn't stale the film either: it writes into her Memory
        Library, nothing on this pad changes. */
-    if(p.indexOf('/film')!==0&&p.indexOf('/pads')!==0&&p.indexOf('/character')!==0&&p!=='/tts'&&p!=='/style'&&p!=='/upload'&&p!=='/shoebox') dirtySinceFilm=true;
+    /* /chapter doesn't stale the film either: chapters are not cuts — the
+       render is made of the beats' pictures and words and a chapter heading
+       is neither (2026-09-06). */
+    /* /cast doesn't stale the film either (2026-09-06): the typed cast is the
+       /character family's twin — who the story's people are is not on the
+       timeline; a DRAW that uses them is, and /generate marks it. */
+    if(p.indexOf('/film')!==0&&p.indexOf('/pads')!==0&&p.indexOf('/character')!==0&&p!=='/tts'&&p!=='/style'&&p!=='/upload'&&p!=='/shoebox'&&p!=='/chapter'&&p!=='/cast') dirtySinceFilm=true;
   } else if(p.indexOf('/pads')!==0){
     p+=(p.indexOf('?')>=0?'&':'?')+'pad='+encodeURIComponent(padId);
   }
@@ -1489,10 +1678,17 @@ var lastPadSig=null;
 function render(){
   var pad=document.getElementById('pad');
   var units=padUnits();
-  var sig=padSig(units);
+  /* ONE CHAPTER AT A TIME (2026-09-06, Sophie: "is there a view where i see
+     just one chapter at a time. it's getting overwhelming"). With chapters
+     on the story the canvas holds the chapter she is in and nothing else;
+     the ‹ › row and the contents sheet swap which one. `chapView` says
+     which (or 'all' for the whole story, the contents sheet's first row). */
+  var view=chapViewOf();
+  if(view){ units=units.filter(function(u){ return u.at>=view.from&&u.at<view.to; }); }
+  var sig=(view?view.id:'')+'\u0004'+padSig(units);
   /* renderDrawall and paintSend watch their own inputs and repaint tiny
      boxes — they still run when the canvas itself is skipped. */
-  if(sig===lastPadSig){ renderDrawall(); paintSend(); return; }
+  if(sig===lastPadSig){ renderDrawall(); paintSend(); renderChapters(); return; }
   lastPadSig=sig;
   document.getElementById('empty').hidden=Boolean(beats.length||pending);
   var bank={};
@@ -1511,6 +1707,11 @@ function render(){
     var kept=bank[usig];
     if(kept){ delete bank[usig]; frag.appendChild(kept); return; }
     var wrap=document.createElement('div'); wrap.className='beatwrap'; wrap._usig=usig;
+    /* Which beats this tile holds — the chapter row and the contents sheet
+       scroll to a beat by finding its wrap (a chunk is one wrap). A kept
+       node is reused only on an identical unitSig, which names the members,
+       so this attribute can never go stale on it. */
+    wrap.setAttribute('data-beats', u.members.map(function(m){return m.id;}).join(' '));
     if(u.members.length===1){
       var b=u.members[0];
       var el=document.createElement('button');
@@ -1532,7 +1733,7 @@ function render(){
     }
     frag.appendChild(wrap);
   });
-  if(pending&&beats.length) slot(beats.length);
+  if(pending&&beats.length) slot(view?view.to:beats.length);   // the end of the chapter she is looking at
   if(pad.replaceChildren) pad.replaceChildren(frag);
   else { pad.innerHTML=''; pad.appendChild(frag); }
   renderDrawall();
@@ -1540,6 +1741,7 @@ function render(){
      armed, and placing is cancelled from anywhere (the document-level tap) —
      so it repaints with the canvas rather than at each of those call sites. */
   paintSend();
+  renderChapters();
 }
 
 function renderTitle(){
@@ -1942,7 +2144,7 @@ var HELP=[
   {sel:'#arplay', nm:'Playground', what:'Opens the Playground to make its art there instead.'},
   {sel:'#arinbox', nm:'From the inbox', what:'Swaps in a picture or clip you already have.'},
   {sel:'#arshoe', nm:'Add to Shoebox', what:'Files this picture into your Memory Library, so it shows up in the Shoebox as a polaroid — pin it to a board there.'},
-  {sel:'#dchars', nm:'Character references', what:'Under Drawing prompt: pick one or more of the story’s characters to ride along with this drawing. The count on the button says how many are coming.'},
+  {sel:'#dchars', nm:'Characters', what:'Under Drawing prompt: pick one or more of the story’s character pictures to ride along with this drawing, or describe them in words on the Descriptions tab — a typed name and description is written into every draw of this story. The count on the button says how many are coming.'},
   {sel:'#dgo', nm:'Draw', what:'Under Drawing prompt: draws it, at the quality on the toggle beside it. Low is where it starts.'},
   {sel:'#speak', nm:'Hear it', what:'Reads the beat aloud in your voice.'},
   {sel:'#micbtn', nm:'Record it', what:'Records you reading it. Your own take always wins over the read-aloud, and every take is kept.'},
@@ -1950,6 +2152,8 @@ var HELP=[
   {sel:'#unlinkbtn', nm:'Unlink', what:'Breaks the chunk back apart.'},
   {sel:'#coverbtn', nm:'Make it the cover', what:'This picture becomes the story’s tile on the shelf.'},
   {sel:'#delbtn', nm:'Delete the beat', what:'Asks first. Its pictures stay in your galleries.'},
+  {sel:'#chapbtn', nm:'Chapter', what:'On the Caption line: marks this beat as the start of a chapter and names it. Clear the name to take the chapter off. A chapter moves with its beat.'},
+  {sel:'#chapprev', nm:'‹ chapter ›', what:'At the top, once the story has a chapter: the canvas shows one chapter at a time, and the arrows step to the one before or after. Tap the name for the contents — every chapter with its picture and how many beats it holds, and Whole story at the top to see everything at once.'},
 ];
 function mkHelp(){
   var box=document.getElementById('helpbody');
@@ -1981,6 +2185,260 @@ document.getElementById('helpclose').onclick=function(ev){
   ev.stopPropagation();
   document.getElementById('helpsheet').hidden=true; lock(false);
 };
+
+/* ── CHAPTERS (2026-09-06, Sophie: "i want the chapter within a story. arrow
+   buttons at the top, and a contents page w all the stories and thumbnails")
+   A chapter is a MARKER ON A BEAT — `beat.chapter`, the title of the chapter
+   that beat opens — and nothing else is stored. chapterList() walks the
+   beats in order: every beat carrying one starts a chapter that runs to the
+   next such beat. So moving a beat moves its chapter, deleting it takes the
+   chapter away, and no second copy of the order can drift.
+   Three surfaces, none of them on the canvas (the pad's rule: no machinery
+   there): the ‹ name › row pinned at the top, the CONTENTS sheet, and the
+   field beside the caption in a beat's card.
+   "THE CHAPTER SHE IS IN" is compare.js's __pagePlace rule: the last chapter
+   whose first beat's tile has passed under the sticky block, or the first. */
+function chapterList(){
+  var out=[];
+  for(var i=0;i<beats.length;i++){
+    var b=beats[i];
+    if(!b.chapter||beatOff(b)) continue;
+    out.push({title:b.chapter, id:b.id, at:i});
+  }
+  out.forEach(function(c,k){
+    /* The span the chapter COVERS. Beats before the first marked one belong
+       to the first chapter — otherwise a chapter view could show them
+       nowhere at all. */
+    c.from=k?c.at:0;
+    c.to=k+1<out.length?out[k+1].at:beats.length;
+    var end=c.to;
+    var n=0, art=null;
+    for(var j=c.from;j<end;j++){
+      if(beatOff(beats[j])) continue;
+      n++;
+      if(!art) art=artOf(beats[j]);   // the first beat's picture — or the first one that has one
+    }
+    c.count=n; c.art=art;
+  });
+  return out;
+}
+function chapWrap(id){
+  return document.querySelector('#pad .beatwrap[data-beats~="'+id+'"]');
+}
+function topH(){ return document.getElementById('topchrome').getBoundingClientRect().height; }
+/* Which chapter is under the sticky block right now.
+   THE AIM: a short LAST chapter can never pass under the block — the page
+   runs out before its tile reaches the top — so by the top-edge rule alone
+   › would scroll to the end and the row would go on naming the chapter
+   before it, forever. A jump remembers where it landed (chapAim), and while
+   the window still sits exactly there the row names the chapter she asked
+   for; her first scroll away lets the top-edge rule speak again. */
+var chapAim=null;
+function chapCurrent(list){
+  if(chapAim){
+    if(Math.abs(window.scrollY-chapAim.y)<2){
+      for(var a=0;a<list.length;a++){ if(list[a].id===chapAim.id) return a; }
+    }
+    chapAim=null;
+  }
+  var line=topH()+8, i=0;
+  for(var k=0;k<list.length;k++){
+    var w=chapWrap(list[k].id); if(!w) continue;
+    if(w.getBoundingClientRect().top<=line) i=k; else break;
+  }
+  return i;
+}
+/* WHICH CHAPTER THE CANVAS SHOWS. `chapView` is a chapter's beat id, or
+   'all' for the whole story (the old scroll-through canvas, one row away in
+   the contents sheet), or null = not decided yet for this story. Remembered
+   per story in localStorage so reopening a story lands on the chapter she
+   was reading; a story with no chapters is untouched by all of this. A
+   remembered id whose chapter has since gone (she cleared that beat's
+   name, or moved it) falls back to the chapter that beat is IN now, never
+   to a blank canvas. */
+var chapView=null;
+function chapKey(){ return 'scratchpad_chap_'+padId; }
+function chapViewOf(){
+  var list=chapterList(); if(!list.length) return null;
+  if(chapView===null){ chapView=localStorage.getItem(chapKey())||list[0].id; }
+  if(chapView==='all') return null;
+  for(var k=0;k<list.length;k++){ if(list[k].id===chapView) return list[k]; }
+  // her chapter is gone — the one holding that beat now, else the first
+  var at=-1;
+  for(var j=0;j<beats.length;j++){ if(beats[j].id===chapView){ at=j; break; } }
+  var pick=list[0];
+  if(at>=0){ for(var m=0;m<list.length;m++){ if(list[m].at<=at) pick=list[m]; } }
+  chapView=pick.id; localStorage.setItem(chapKey(), chapView);
+  return pick;
+}
+function setChapView(id){
+  chapView=id; localStorage.setItem(chapKey(), id);
+  chapAim=null; lastPadSig=null; lastChapSig='';
+  render();
+  if(window.__scrollStop) window.__scrollStop();
+  window.scrollTo(0,0);
+}
+/* The index the row names: the shown chapter, or — on the whole story —
+   the one under the sticky block. */
+function chapIndex(list){
+  var v=chapViewOf();
+  if(v){ for(var k=0;k<list.length;k++){ if(list[k].id===v.id) return k; } }
+  return chapCurrent(list);
+}
+var lastChapSig='';
+function renderChapters(){
+  var row=document.getElementById('chaprow');
+  var list=chapterList();
+  if(!list.length){ if(!row.hidden){ row.hidden=true; lastChapSig=''; } return; }
+  row.hidden=false;
+  var i=chapIndex(list);
+  var sig=list.map(function(c){return c.id+'\u0001'+c.title;}).join('\u0002')+'\u0003'+i+'\u0003'+String(chapView);
+  if(sig===lastChapSig) return;
+  lastChapSig=sig;
+  row.querySelector('.chapt').textContent=list[i].title;
+  row.querySelector('.chapn').textContent=(i+1)+'/'+list.length;
+  document.getElementById('chapprev').disabled=(i<=0);
+  document.getElementById('chapnext').disabled=(i>=list.length-1);
+  // the contents sheet, if it is up, follows
+  var sh=document.getElementById('chapsheet');
+  if(!sh.hidden) paintContents(list, i);
+  if(window.__pillSync) window.__pillSync();   // a one-chapter canvas may not scroll at all
+}
+/* Scroll the WINDOW so the chapter's first tile sits just under the sticky
+   block. Instant, never smooth: the pill's autoscroll is stopped first, and a
+   smooth scroll racing it lands nowhere she can predict. */
+function jumpChapter(id){
+  if(chapViewOf()){ setChapView(id); return; }
+  var w=chapWrap(id); if(!w) return;
+  if(window.__scrollStop) window.__scrollStop();
+  var y=w.getBoundingClientRect().top+window.scrollY-topH()-6;
+  var max=Math.max(0, document.documentElement.scrollHeight-window.innerHeight);
+  window.scrollTo(0, Math.max(0, Math.min(max, y)));
+  chapAim={id:id, y:window.scrollY};
+  lastChapSig=''; renderChapters();
+}
+document.getElementById('chapprev').onclick=function(ev){
+  ev.stopPropagation();
+  var list=chapterList(); if(!list.length) return;
+  var i=chapIndex(list);
+  jumpChapter(list[Math.max(0,i-1)].id);
+};
+document.getElementById('chapnext').onclick=function(ev){
+  ev.stopPropagation();
+  var list=chapterList(); if(!list.length) return;
+  var i=chapIndex(list);
+  jumpChapter(list[Math.min(list.length-1,i+1)].id);
+};
+/* The row names where she is as she scrolls — one paint per frame at most. */
+(function(){
+  var raf=null;
+  function onScroll(){
+    if(raf) return;
+    raf=requestAnimationFrame(function(){ raf=null; renderChapters(); });
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll);
+})();
+/* THE CONTENTS SHEET — every chapter, its first beat's picture, its name and
+   its beat count; the row is the tap. */
+function paintContents(list, cur){
+  var box=document.getElementById('chaplist');
+  box.innerHTML='';
+  /* The whole story leads the list — the one door back to the scroll-through
+     canvas, lit while that is what the canvas shows. */
+  var all=document.createElement('button'); all.className='chrow chall'+(chapView==='all'?' on':'');
+  all.setAttribute('data-chapter','all');
+  var ath=document.createElement('span'); ath.className='chthumb';
+  var atx=document.createElement('span'); atx.className='chtxt';
+  var anm=document.createElement('span'); anm.className='chnm'; anm.textContent='Whole story';
+  var total=0; list.forEach(function(c){ total+=c.count; });
+  var act=document.createElement('span'); act.className='chcount'; act.textContent=total+(total===1?' beat':' beats');
+  atx.appendChild(anm); atx.appendChild(act); all.appendChild(ath); all.appendChild(atx);
+  all.onclick=function(ev){ ev.stopPropagation(); closeContents(); setChapView('all'); };
+  box.appendChild(all);
+  list.forEach(function(c,k){
+    var row=document.createElement('button'); row.className='chrow'+(k===cur&&chapView!=='all'?' on':'');
+    row.setAttribute('data-chapter', c.id);
+    var th=document.createElement('span'); th.className='chthumb';
+    if(c.art){ var im=document.createElement('img'); im.src=thumbOf(c.art); im.alt=''; im.loading='lazy'; th.appendChild(im); }
+    var tx=document.createElement('span'); tx.className='chtxt';
+    var nm=document.createElement('span'); nm.className='chnm'; nm.textContent=c.title;
+    var ct=document.createElement('span'); ct.className='chcount'; ct.textContent=c.count+(c.count===1?' beat':' beats');
+    tx.appendChild(nm); tx.appendChild(ct);
+    row.appendChild(th); row.appendChild(tx);
+    row.onclick=function(ev){
+      ev.stopPropagation();
+      closeContents();
+      setChapView(c.id);   // a chapter picked from the contents is the one on the canvas, even from Whole story
+    };
+    box.appendChild(row);
+  });
+}
+function openContents(){
+  var list=chapterList(); if(!list.length) return;
+  var sh=document.getElementById('chapsheet');
+  paintContents(list, chapIndex(list));
+  sh.hidden=false; sh.scrollTop=0; lock(true);
+  sheetPill(sh);      // a long story's contents can outrun one screen
+}
+function closeContents(){
+  var sh=document.getElementById('chapsheet');
+  if(sh._stopPill) sh._stopPill();
+  sh.hidden=true; lock(false);
+}
+document.getElementById('chapname').onclick=function(ev){ ev.stopPropagation(); openContents(); };
+document.getElementById('chapclose').onclick=function(ev){ ev.stopPropagation(); closeContents(); };
+/* THE FIELD BESIDE THE CAPTION — the bookmark toggles the box, Return blurs,
+   blur SAVES, an emptied box takes the chapter off.
+   BLUR ALSO CLOSES THE BOX HERE, which the caption pencil never does. The
+   pencil's reason is layout: a card that reshuffles between her mousedown
+   and mouseup eats the tap she was aiming at the button below. This row
+   cannot reshuffle — the words and the box take the same one-line slot and
+   the bookmark keeps its place at the right end — and a chapter name is
+   read far more often than it is typed, so it goes back to words the moment
+   she is done. The one tap blur could eat is the bookmark's own: pointerdown
+   on it marks the blur as "the button is handling this", so a tap on the
+   bookmark while typing closes the box ONCE rather than closing and
+   reopening it. */
+var chapEditing=false, chapBtnDown=false;
+function paintChap(){
+  var has=Boolean(popBeat&&popBeat.chapter);
+  var tx=document.getElementById('chaptxt');
+  tx.textContent=has?popBeat.chapter:'';
+  tx.hidden=chapEditing||!has;
+  document.getElementById('pchap').hidden=!chapEditing;
+  document.getElementById('chapbtn').classList.toggle('on',has);
+}
+function saveChapter(){
+  if(!popBeat) return Promise.resolve();
+  var t=document.getElementById('pchap').value.replace(/\s+/g,' ').trim();
+  if(t===(popBeat.chapter||'')) return Promise.resolve();
+  if(t) popBeat.chapter=t; else delete popBeat.chapter;
+  paintChap();
+  return api('/chapter',{method:'POST',body:JSON.stringify({id:popBeat.id,title:t})})
+    .then(function(r){return r.json()})
+    .then(function(d){ if(d.beats){
+      var keep=popBeat; beats=d.beats; if(keep) popBeat=beats.find(function(x){return x.id===keep.id;})||keep;   // the card may have closed while the save was in flight
+      lastChapSig=''; renderChapters();
+    }});
+}
+document.getElementById('chapbtn').addEventListener('pointerdown',function(){
+  chapBtnDown=true; setTimeout(function(){ chapBtnDown=false; }, 600);
+});
+document.getElementById('chapbtn').onclick=function(ev){
+  ev.stopPropagation();
+  chapBtnDown=false;
+  chapEditing=!chapEditing;
+  paintChap();
+  if(chapEditing){ document.getElementById('pchap').focus(); }
+  else { saveChapter(); }
+};
+document.getElementById('pchap').onclick=function(ev){ev.stopPropagation();};
+document.getElementById('pchap').onblur=function(){
+  if(!chapBtnDown){ chapEditing=false; paintChap(); }
+  saveChapter();
+};
+document.getElementById('pchap').onkeydown=function(ev){ if(ev.key==='Enter'){ ev.preventDefault(); this.blur(); } };
 
 function playFilm(){
   if(!film||!film.url)return;
@@ -2145,7 +2603,10 @@ function load(){
     /* The cast is per STORY, and the picked set does not survive a story
        switch (or a reload) — a reference she picked last time must never
        silently ride a draw she is making now. */
-    padChars=d.characters||[]; pickedChars=[]; charReturn=null; paintDchars();
+    padChars=d.characters||[]; pickedChars=[]; charReturn=null;
+    /* Her typed cast is the STORY's (pad.cast) — the same people on every
+       beat — so it comes with the pad, unlike the picked set. */
+    padCast=Array.isArray(d.cast)?d.cast:[]; castSaveTimer=null; paintDchars();
     audios=d.audios||[];
     padUpdated=d.updatedAt||0; dirtySinceFilm=false;
     padDesc=d.description||''; padDescAudio=d.descriptionAudio||null;
@@ -2459,6 +2920,7 @@ function openPad(id){
   padDesc=''; padDescAudio=null; padVoice=null; padVoiceText=''; renderAudios();
   padStyle='watercolor'; renderStyle(); padShape=SHAPES[0].key; renderShape(); uploads=[];
   closeShelf();
+  chapView=null;   // decided per story, remembered per story
   beats=[]; padTitle=''; render();
   load();
 }
@@ -2513,8 +2975,11 @@ function sheetPill(sheet){
    The line MEASURES the lit tab, so the tab count lives nowhere (the house
    `.acctabs` rule). */
 var inboxTab=0, shelfClips=null, clipQ='';
-function tabLine(){
-  var tabs=document.getElementById('inboxtabs');
+function tabLine(){ tabLineOf(document.getElementById('inboxtabs')); }
+/* ONE measurer for every .acctabs row on the page (the add sheet's PICTURES ·
+   CLIPS and the characters sheet's PICTURES · DESCRIPTIONS). */
+function tabLineOf(tabs){
+  if(!tabs) return;
   var on=tabs.querySelector('.acctab.on'); if(!on) return;
   var r=tabs.getBoundingClientRect(), t=on.getBoundingClientRect();
   if(!t.width) return;
@@ -2523,8 +2988,10 @@ function tabLine(){
   if(!tabs.__tl){ tabs.__tl=1; requestAnimationFrame(function(){ tabs.classList.add('tl'); }); }
 }
 window.addEventListener('resize',function(){
-  var tabs=document.getElementById('inboxtabs');
-  tabs.classList.remove('tl'); tabs.__tl=0; requestAnimationFrame(tabLine);
+  [document.getElementById('inboxtabs'),document.getElementById('chartabs')].forEach(function(tabs){
+    if(!tabs) return;
+    tabs.classList.remove('tl'); tabs.__tl=0; requestAnimationFrame(function(){ tabLineOf(tabs); });
+  });
 },{passive:true});
 function showInboxTab(i){
   inboxTab=i;
@@ -2932,9 +3399,26 @@ function place(at, it){
     body.url=it.url; body.style=padStyle;
     if(it.runId!==undefined) body.src={runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality};
   }
+  /* PLACING AHEAD OF A CHAPTER'S FIRST BEAT PUTS THE NEW BEAT IN THAT
+     CHAPTER (2026-09-06, Sophie: "doesn't let me add a new beat before the
+     1st beat in my new chapter"). The marker sits on the old first beat, so
+     a beat placed at its index would fall into the chapter BEFORE — and, in
+     one-chapter view, vanish. The marker hands over to the new beat. */
+  var v=chapViewOf(), take=(v&&at===v.at&&beats[v.at])?{id:beats[v.at].id,title:beats[v.at].chapter}:null;
   api(path,{method:'POST',body:JSON.stringify(body)})
     .then(function(r){return r.json()})
-    .then(function(d){shapeFromAnswer(d);if(d.beats)beats=d.beats;render();});
+    .then(function(d){
+      shapeFromAnswer(d); if(d.beats)beats=d.beats;
+      if(take&&d.beat){
+        var nb=beats.find(function(x){return x.id===d.beat.id;}), ob=beats.find(function(x){return x.id===take.id;});
+        if(nb) nb.chapter=take.title; if(ob) delete ob.chapter;
+        lastPadSig=null;
+        api('/chapter',{method:'POST',body:JSON.stringify({id:d.beat.id,title:take.title})})
+          .then(function(){ return api('/chapter',{method:'POST',body:JSON.stringify({id:take.id,title:''})}); })
+          .then(function(r){return r.json()}).then(function(d2){ if(d2&&d2.beats){beats=d2.beats;render();} });
+      }
+      render();
+    });
   render();
 }
 /* + adds an EMPTY beat — a blank tile whose art comes later (its popup has
@@ -3158,7 +3642,7 @@ function openBeat(b){
   var same=Boolean(popBeat && popBeat.id===b.id && !document.getElementById('beatpop').hidden);
   var typing=same&&(function(){
     var ae=document.activeElement;
-    return Boolean(ae&&(ae.id==='pnote'||ae.id==='dprompt'));
+    return Boolean(ae&&(ae.id==='pnote'||ae.id==='dprompt'||ae.id==='pchap'));
   })();
   popBeat=b;
   var im=document.getElementById('popimg'), bl=document.getElementById('popblank');
@@ -3191,14 +3675,16 @@ function openBeat(b){
   // The caption opens as WORDS with a pencil beside them; the box behind it
   // carries the same text so drawPrompt() and saveNote() read it either way.
   if(!typing){
-    capEditing=false; promEditing=false;
+    capEditing=false; promEditing=false; chapEditing=false;
     resetBig();
     document.getElementById('pnote').value=b.text||'';
     capBase=document.getElementById('pnote').value;
+    document.getElementById('pchap').value=b.chapter||'';
   }
+  paintChap();
   // The words are painted from the BOX, which mid-typing is ahead of the
   // saved beat — what she reads must be what she just wrote.
-  document.getElementById('captext').textContent=document.getElementById('pnote').value;
+  setCapText(document.getElementById('pnote').value);
   document.getElementById('coverbtn').hidden=!artOf(b);
   document.getElementById('coverbtn').classList.remove('on');
   /* Add to Shoebox only exists where there is a picture to add — same rule
@@ -3209,10 +3695,14 @@ function openBeat(b){
   // ringed — folded behind the stacked-squares button, which only appears
   // once a draw has actually replaced something.
   var vr=document.getElementById('verrow'); vr.innerHTML='';
-  var vers=((su.url&&!clip)?[su.url]:[]).concat((su.imageHistory||[]).slice().reverse().map(function(h){return h.url;}).filter(Boolean));
+  var hist=(su.imageHistory||[]).slice().reverse().filter(function(h){return h&&h.url;});
+  var vers=((su.url&&!clip)?[su.url]:[]).concat(hist.map(function(h){return h.url;}));
   // The same list the lightbox steps through, so the row's order and the
-  // left/right taps can never disagree.
+  // left/right taps can never disagree. Each picture's PROVENANCE rides
+  // beside it (the slot's `src`, the history entry's own `src`) — what the
+  // lightbox's Prompt door and MODEL · QUALITY · SIZE line are built from.
   lbVers=vers; lbHasCur=Boolean(su.url&&!clip);
+  lbSrcs=((su.url&&!clip)?[su.src||null]:[]).concat(hist.map(function(h){return h.src||null;}));
   var av=document.getElementById('arvers');
   // OPEN AT ONE, not at two (2026-08-28, the cull). It used to appear only
   // once a draw had replaced something, which was right while the row was
@@ -3425,12 +3915,167 @@ document.getElementById('dchar').onclick=function(ev){
    never-persist rule: a reference she picked last week must never silently
    ride today's draw. The count on the button is the disclosure. */
 var padChars=[], pickedChars=[], charPickMode=false, charReturn=null;
+/* THE COUNT IS THE WHOLE CAST — picked pictures plus typed descriptions,
+   because that is what the button opens onto and what rides the draw. A
+   person entered both ways counts twice, which is her doing and visible in
+   the sheet; a badge showing only half of it would be the misleading one. */
 function paintDchars(){
-  var n=pickedChars.length;
+  var n=pickedChars.length+castRows().length;
   document.getElementById('dchars').classList.toggle('on',n>0);
   var badge=document.getElementById('dcharsn');
   badge.hidden=!n; badge.textContent=n;
+  /* Every cast change comes through here — a pick, a typed row, a removal —
+     so the disclosure moves with the badge and cannot be forgotten. */
+  paintCastSays();
 }
+/* ── HER TYPED CAST (2026-09-06, Sophie, in the chapter chat: "also add the
+   character description feature as an option that's not character image,
+   like playground. u can copy the code"). The Playground's words half,
+   copied: name + description rows behind the same icon as the picture cards,
+   under a PICTURES · DESCRIPTIONS hairline row. Where the Playground keeps a
+   run's cast in localStorage, a STORY's cast lives on the pad (`pad.cast`,
+   POST /cast) — the same people on every beat, written once — and saves as
+   she types, debounced, flushed when she leaves the sheet.
+
+   THE CLAUSE ITSELF IS NEVER WRITTEN HERE — window.__sheetGrid.castBlock
+   builds it, the same function the server sends, so the sheet prints exactly
+   what will ride. An empty cast returns the empty string, which is her rule. */
+var padCast=[], castMax=12, castSaveTimer=null;
+function castRows(){
+  var f=window.__sheetGrid&&window.__sheetGrid.castRows;
+  return f?f(padCast):padCast.filter(function(c){return c&&((c.name||'').trim()||(c.description||'').trim());});
+}
+function castClause(){
+  var f=window.__sheetGrid&&window.__sheetGrid.castBlock;
+  return f?f(padCast,true):'';
+}
+function pickedCharRecords(){
+  return pickedChars.map(function(id){ return padChars.find(function(c){return c.id===id;}); }).filter(Boolean);
+}
+function charsLine(){
+  var f=window.__padCharacters&&window.__padCharacters.charLine;
+  return f?f(pickedCharRecords()):'';
+}
+/* The whole array is the write — the route stores what it is sent, so a row
+   she emptied is really gone and an empty cast stores []. */
+function saveCast(now){
+  clearTimeout(castSaveTimer); castSaveTimer=null;
+  var send=function(){
+    castSaveTimer=null;
+    api('/cast',{method:'POST',body:JSON.stringify({cast:padCast})}).catch(function(){});
+  };
+  if(now) send(); else castSaveTimer=setTimeout(send,400);
+}
+/* WHAT THE CAST ADDS TO HER PROMPT, printed in the sheet — both halves, the
+   picked cards' sentence and the typed clause, from the SAME served rules
+   the draw goes through (window.__padCharacters.charLine /
+   window.__sheetGrid.castBlock), never any wording written here. Nothing
+   riding → the block is not drawn at all. */
+function paintCastSays(){
+  var box=document.getElementById('castsays'); if(!box) return;
+  var parts=[]; var cl=charsLine(); if(cl) parts.push(cl.trim());
+  var ct=castClause(); if(ct) parts.push(ct);
+  var txt=parts.join('\n\n').trim();
+  box.hidden=!txt;
+  document.getElementById('castsaystxt').textContent=txt;
+}
+var CHARTABKEY='scratchpad_chartab';
+function charTab(){ return localStorage.getItem(CHARTABKEY)==='desc'?'desc':'pics'; }
+function paintCharTabs(){
+  var row=document.getElementById('chartabs'), t=charTab();
+  Array.prototype.forEach.call(row.querySelectorAll('.acctab'),function(b){
+    b.classList.toggle('on',b.getAttribute('data-ct')===t);
+  });
+  document.getElementById('charpics').hidden=t!=='pics';
+  document.getElementById('chardesc').hidden=t!=='desc';
+  /* The header's + adds a PICTURE card; on the words half the add is the
+     button under the rows, so the + stands down rather than mean two things. */
+  document.getElementById('charsaddbtn').hidden=t!=='pics';
+  tabLineOf(row);
+  if(t==='desc') buildCastBox();
+}
+document.getElementById('chartabs').onclick=function(ev){
+  ev.stopPropagation();
+  var b=ev.target.closest('.acctab'); if(!b) return;
+  try{ localStorage.setItem(CHARTABKEY,b.getAttribute('data-ct')); }catch(e){}
+  paintCharTabs();
+};
+function buildCastBox(){
+  var rows=document.getElementById('castrows'); if(!rows) return;
+  rows.innerHTML='';
+  padCast.forEach(function(c,i){
+    var d=document.createElement('div'); d.className='castrow';
+    var nm=document.createElement('input');
+    nm.type='text'; nm.className='cnm'; nm.value=c.name||'';
+    /* The placeholders NAME the field and nothing more (the house rule). */
+    nm.placeholder='Name'; nm.setAttribute('aria-label','Character '+(i+1)+' name');
+    /* A TEXTAREA, so it can be a bigger box — but still ONE LINE by contract:
+       castBlock writes a character per line and castParse reads them back the
+       same way, so a newline inside a description would cut a clause in half.
+       Enter is refused and a pasted newline collapses to a space. */
+    var ds=document.createElement('textarea');
+    ds.className='cds'; ds.rows=1; ds.value=c.description||'';
+    ds.placeholder='Description'; ds.setAttribute('aria-label','Character '+(i+1)+' description');
+    ds.addEventListener('keydown',function(e){ if(e.key==='Enter') e.preventDefault(); });
+    /* `height:auto` FIRST or the box can only ever grow; the border is added
+       on because the box is border-box and scrollHeight excludes it (both
+       lessons are fitBig's, learned on the caption box). */
+    function fitCds(){
+      if(!d.classList.contains('big')){ ds.style.height=''; return; }
+      ds.style.height='auto';
+      ds.style.height=(ds.scrollHeight+(ds.offsetHeight-ds.clientHeight))+'px';
+    }
+    function stash(){
+      if(/[\r\n]/.test(ds.value)) ds.value=ds.value.replace(/\s*[\r\n]+\s*/g,' ');
+      fitCds();
+      padCast[i]={name:nm.value,description:ds.value};
+      saveCast();
+      /* The badge is the whole cast, so it moves as she types — the row is
+         not rebuilt on input. */
+      paintDchars();
+    }
+    nm.addEventListener('input',stash);
+    ds.addEventListener('input',stash);
+    /* Deliberately NOT sticky and not stored on the row: the compact row is
+       the sheet's shape and a big box is a moment of reading or writing one
+       description — the same call the caption's bigger box makes. */
+    var big=document.createElement('button'); big.type='button'; big.className='cbig';
+    function paintCbig(){
+      var on=d.classList.contains('big');
+      big.innerHTML=on?ICON_SMALLER:ICON_BIGGER;
+      var w=(on?'Back to the small box':'Bigger box')+' for character '+(i+1);
+      big.setAttribute('aria-label',w); big.title=w; big.setAttribute('aria-expanded',on?'true':'false');
+    }
+    ds.__fit=fitCds;
+    big.onclick=function(ev){
+      ev.stopPropagation();
+      d.classList.toggle('big'); fitCds(); paintCbig();
+      if(d.classList.contains('big')) ds.focus();
+    };
+    paintCbig();
+    var x=document.createElement('button'); x.type='button'; x.className='cx';
+    x.setAttribute('aria-label','Remove character '+(i+1));
+    x.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+    x.onclick=function(ev){
+      ev.stopPropagation();
+      padCast.splice(i,1); saveCast(); buildCastBox(); paintDchars();
+    };
+    d.appendChild(nm); d.appendChild(ds); d.appendChild(big); d.appendChild(x);
+    rows.appendChild(d);
+  });
+  document.getElementById('castadd').hidden=padCast.length>=castMax;
+}
+window.addEventListener('resize',function(){
+  Array.prototype.forEach.call(document.querySelectorAll('#castrows .cds'),function(t){ if(t.__fit) t.__fit(); });
+},{passive:true});
+document.getElementById('castadd').onclick=function(ev){
+  ev.stopPropagation();
+  if(padCast.length>=castMax) return;
+  padCast.push({name:'',description:''});
+  buildCastBox();
+  var last=document.querySelectorAll('#castrows .cnm');
+  if(last.length) last[last.length-1].focus();
+};
 function renderChars(){
   var list=document.getElementById('charlist'); list.innerHTML='';
   document.getElementById('charsempty').hidden=padChars.length>0;
@@ -3489,15 +4134,20 @@ function renderChars(){
   });
 }
 function openCharSheet(pick){
-  charPickMode=Boolean(pick); renderChars();
+  charPickMode=Boolean(pick); renderChars(); paintCastSays();
   var sh=document.getElementById('charsheet');
   sh.hidden=false; sh.scrollTop=0; lock(true);
+  paintCharTabs();   // AFTER the sheet is shown — the underline is measured, and a hidden row has no width
 }
 document.getElementById('charsbtn').onclick=function(ev){
   ev.stopPropagation(); openCharSheet(false);
 };
 document.getElementById('charsclose').onclick=function(ev){
   ev.stopPropagation();
+  /* A save still waiting on the debounce lands NOW — the draw she is about to
+     make reads the pad, and a cast that had not reached it yet is a draw
+     without her people. */
+  if(castSaveTimer) saveCast(true);
   document.getElementById('charsheet').hidden=true;
   /* Came from the draw row — back to the beat she was on, like the inbox. */
   if(charReturn){ var b=charReturn; charReturn=null; openBeat(b); return; }
@@ -3685,6 +4335,34 @@ var capEditing=false;
 /* The caption's two faces: the words, and the box. Both live inside
    #capview so the pencil keeps its place either way — a control that
    disappears the moment you use it is a control you have to find again. */
+/* The ONE writer of the caption's words: every path that used to set
+   #captext's textContent goes through here, so the clamp is re-measured
+   whenever the words change. The measurement waits a frame — the card may
+   not have layout yet on the way in. */
+function setCapText(v){
+  var el=document.getElementById('captext');
+  el.textContent=v;
+  el.classList.remove('clamp','fold');
+  if(v) el.classList.add('clamp');
+  requestAnimationFrame(capClamp);
+}
+function capClamp(){
+  var el=document.getElementById('captext');
+  if(!el.classList.contains('clamp')||el.querySelector('.moretxt')) return;
+  if(!el.clientHeight) return;
+  if(el.scrollHeight-el.clientHeight<=1){ el.classList.remove('clamp'); return; }
+  var btn=document.createElement('button');
+  btn.className='moretxt'; btn.textContent='… more';
+  btn.onclick=function(ev){
+    ev.stopPropagation();
+    var open=el.classList.toggle('clamp')===false;
+    el.classList.toggle('fold',!open);
+    btn.textContent=open?'less':'… more';
+    if(open){ el.appendChild(btn); } else { el.insertBefore(btn, el.firstChild); }
+  };
+  el.classList.add('fold');
+  el.insertBefore(btn, el.firstChild);
+}
 function paintCap(){
   var open=document.getElementById('caplab').getAttribute('aria-expanded')==='true';
   document.getElementById('capview').hidden=!open;
@@ -3787,13 +4465,13 @@ document.getElementById('capedit').onclick=function(ev){
   capEditing=!capEditing;
   paintCap();
   if(capEditing){ document.getElementById('pnote').focus(); }
-  else { document.getElementById('captext').textContent=document.getElementById('pnote').value; saveNote(); }
+  else { setCapText(document.getElementById('pnote').value); saveNote(); }
 };
 document.getElementById('capview').onclick=function(ev){ev.stopPropagation();};
 /* Blurring SAVES but never closes the box — closing on blur reshuffles the
    card between her mousedown and mouseup and eats the tap. */
 document.getElementById('pnote').onblur=function(){
-  document.getElementById('captext').textContent=this.value;
+  setCapText(this.value);
   saveNote();
 };
 document.getElementById('caplab').onclick=function(ev){
@@ -3837,7 +4515,7 @@ function savePrompt(){
   return api('/prompt',{method:'POST',body:JSON.stringify({id:popBeat.id,prompt:t})})
     .then(function(r){return r.json()})
     .then(function(d){promBase=t; if(d.beats){
-      var keep=popBeat; beats=d.beats; popBeat=beats.find(function(x){return x.id===keep.id;})||keep;
+      var keep=popBeat; beats=d.beats; if(keep) popBeat=beats.find(function(x){return x.id===keep.id;})||keep;   // the card may have closed while the save was in flight
     }});
 }
 document.getElementById('dprompt').onblur=function(){
@@ -3874,7 +4552,7 @@ function saveNote(){
   return api('/text',{method:'POST',body:JSON.stringify({id:popBeat.id,text:t})})
     .then(function(r){return r.json()})
     .then(function(d){capBase=t; if(d.beats){
-      var keep=popBeat; beats=d.beats; popBeat=beats.find(function(x){return x.id===keep.id;})||keep;
+      var keep=popBeat; beats=d.beats; if(keep) popBeat=beats.find(function(x){return x.id===keep.id;})||keep;   // the card may have closed while the save was in flight
     }});
 }
 /* The speech icon: her words in her voice ("Sophie — morning"). Saves the
@@ -3901,33 +4579,84 @@ document.getElementById('speak').onclick=function(ev){
      the lock — `onClose` re-asserts this page's body lock, because the
        lightbox opens OVER the beat popup and the shared close clears
        body.overflow on its way out. */
-var lbVers=[], lbHasCur=false, lbAt=-1;
+var lbVers=[], lbSrcs=[], lbHasCur=false, lbAt=-1, lbAsset=null;
 function lbShowing(){
   var el=document.getElementById('clightbox');
   return !!el && el.style.display!=='' && el.style.display!=='none';
 }
-function openLbAt(i){
+/* WHAT THE PICTURE WAS MADE FROM — the Prompt door and the MODEL · QUALITY ·
+   SIZE line, exactly as the Assets tab and the Playground show them
+   (2026-09-06, Sophie: "the prompt, when things get drawn in the story room -
+   does it get attached. i don't see 'prompt' at the top w style and content,
+   nor model - it's not like the other light boxes. it shud be"). The beat had
+   stored all of it since the day the pad drew (`src`: her words, the exact
+   text that was sent, the model, the quality) and this page never handed any
+   of it to the lightbox. Built from the record and nothing else:
+     content = `src.prompt`, her words verbatim;
+     style   = the exact sent text (`promptUsed`) with her words cut out and
+               `[content]` marking the seam — the Assets overlay's convention.
+               Her words not verbatim inside it, or no sent text on file (a
+               Playground pick's src carries the run's words but not its
+               wrapper) → NO style half, which the lightbox shows as the
+               words alone. Never a reconstruction.
+     caption = model · quality · tier, each slot only when the record says
+               it; the tier is DERIVED from the recorded canvas (size-tier.js),
+               never a table here. A picture with no provenance at all (a
+               phone upload, a version banked before src was kept) gets no
+               door and no line — the Assets tab's own silence.
+     cast    = the characters that rode the draw, by name (the record keeps
+               names only, so no face is drawn beside them). */
+function lbAssetFor(src){
+  var s=src||{}; var a={};
+  var content=String(s.prompt||'').trim();
+  var full=String(s.promptUsed||'');
+  if(content){
+    a.promptContent=content;
+    var at=full?full.indexOf(content):-1;
+    if(at>=0){
+      var style=(full.slice(0,at)+'[content]'+full.slice(at+content.length)).trim();
+      if(style!=='[content]')a.promptStyle=style;
+    }
+  }
+  var parts=[];
+  if(s.model)parts.push(String(s.model));
+  if(s.quality)parts.push(String(s.quality));
+  var st=window.__sizeTier;
+  var tier=(st&&s.canvas)?st.tierOf(s.canvas):null;
+  if(tier)parts.push(tier);
+  if(parts.length)a.prompt=parts.join(' · ');
+  if(Array.isArray(s.characters)&&s.characters.length){
+    a.cast=s.characters.filter(Boolean).map(function(n){return {name:String(n),url:''};});
+  }
+  return a;
+}
+function openLbAt(i,step){
   if(i<0||i>=lbVers.length)return;
   lbAt=i;
   var url=lbVers[i];
   var pick=(i===0&&lbHasCur)?null:url;
-  window.__assetLightbox(url,{
-    nav:{
-      prev: i>0 ? function(){ openLbAt(lbAt-1); } : null,
-      next: i<lbVers.length-1 ? function(){ openLbAt(lbAt+1); } : null,
-      warm: [lbVers[i-1], lbVers[i+1]].filter(Boolean)   // fetched ahead of the step
-    },
-    cta: pick ? { label:'Use this one', onClick:function(e){ usePick(pick, e.currentTarget); } } : null,
-    onClose:function(){ lbAt=-1; if(popBeat)lock(true); }
-  });
+  var a=lbAssetFor(lbSrcs[i]);
+  // The door's state rides a STEP and dies with a fresh open (the house rule:
+  // "the half she picked rides along as she steps … a fresh open always
+  // starts on content").
+  if(step&&lbAsset){ a.promptSide=lbAsset.promptSide; a.promptOpen=lbAsset.promptOpen; }
+  a.nav={
+    prev: i>0 ? function(){ openLbAt(lbAt-1,true); } : null,
+    next: i<lbVers.length-1 ? function(){ openLbAt(lbAt+1,true); } : null,
+    warm: [lbVers[i-1], lbVers[i+1]].filter(Boolean)   // fetched ahead of the step
+  };
+  a.cta=pick ? { label:'Use this one', onClick:function(e){ usePick(pick, e.currentTarget); } } : null;
+  a.onClose=function(){ lbAt=-1; lbAsset=null; if(popBeat)lock(true); };
+  lbAsset=a;
+  window.__assetLightbox(url,a);
 }
 function openLb(url,pick){
   // Every caller goes through the list, so stepping works from the card's own
   // picture as well as from a thumbnail. A url the list has somehow lost opens
   // alone rather than not at all.
   var i=lbVers.indexOf(url);
-  if(i<0){ lbVers=[url]; lbHasCur=!pick; i=0; }
-  openLbAt(i);
+  if(i<0){ lbVers=[url]; lbSrcs=[null]; lbHasCur=!pick; i=0; }
+  openLbAt(i,false);
 }
 function closeLb(){
   if(window.__assetLightboxClose)window.__assetLightboxClose();
@@ -4019,7 +4748,24 @@ document.getElementById('delyes').onclick=function(ev){
     .catch(function(){ btn.disabled=false; });
 };
 
-function closeBeat(){stopRec(); stopPopVid(); saveNote(); savePrompt(); document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render(); paintSend();}
+/* LEAVING A BEAT FILLS THE EMPTY HALF (2026-09-06, Sophie: "caption and
+   drawing prompt shud auto copy into each other if i leave the beat and one
+   exists but the other doesn't"). A beat with a drawing prompt and no
+   caption gets the prompt's words AS its caption on the way out — stored,
+   so the tile, the film's voice (ttsFor reads `text`) and the Caption box
+   all carry them. The other direction already holds by rule: an empty
+   prompt FOLLOWS the caption (promptOf, and the hint line under the box
+   says so), and the server deletes a stored prompt equal to the caption's
+   drawable form — so nothing is written for it, on purpose. */
+function fillEmptyHalf(){
+  if(!popBeat) return;
+  var cap=document.getElementById('pnote').value.trim();
+  if(cap) return;
+  var prm=document.getElementById('dprompt').value.trim()||String(popBeat.prompt||'').trim();
+  if(!prm) return;
+  document.getElementById('pnote').value=prm;   // saveNote() sees it as hers and POSTs /text
+}
+function closeBeat(){stopRec(); stopPopVid(); fillEmptyHalf(); saveNote(); savePrompt(); saveChapter(); document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render(); paintSend();}
 /* Close on the edge around the card OR on the card's own empty cream — the
    same "tap anywhere that isn't a control" contract the old scrim had. */
 document.getElementById('beatpop').onclick=function(ev){
@@ -4061,6 +4807,8 @@ window.__navBack=function(){
     if(fillBeat){ var b=fillBeat; fillBeat=null; openBeat(b); } else lock(false);
     return true;
   }
+  el=document.getElementById('chapsheet');
+  if(!el.hidden){ document.getElementById('chapclose').click(); return true; }
   el=document.getElementById('ausheet');
   if(!el.hidden){ document.getElementById('auclose').click(); return true; }
   el=document.getElementById('helpsheet');

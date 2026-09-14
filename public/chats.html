@@ -254,7 +254,46 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    change typeface when you tap into it, and she wants the header left alone.
    So this rule carries NO font declarations at all, exactly as it always
    did — don't re-add family/weight/transform here to "match" the row. */
-.thread-head h1{font-size:1.5em; margin:0; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.thread-head h1{font-size:1.5em; margin:0; flex:1 1 auto; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+/* `flex:1 1 auto`, not the bare `flex:1` it was (2026-09-06): a zero basis made
+   the name the first thing to give when the chapter buttons landed beside it,
+   so "hospital" read "hosp…" with 60px of slack still in the row. With its own
+   width as the basis a short name stands whole and a long one ellipsizes
+   exactly as before — measured at 390pt on the hospital chat: 69px cut →
+   78px whole, both buttons whole. */
+/* CHAPTER BUTTONS ON THE NAME LINE (2026-09-06, Sophie, on the hospital chat:
+   "there's two distinct chapters, can u add two buttons at the top same line
+   as the name, one per chapter"). One button per chapter the chat carries
+   (`chapters` on the registry doc — the same list `chapterPlan` draws the
+   hairline headings from), oldest first, each a jump to its heading. A chat
+   with no chapters draws NOTHING here, so every other thread is untouched.
+   The button wears the HEADING'S OWN voice (`.chapdiv span`: sans, caps, not
+   bold) — it names the heading it jumps to — in a rounded square at the
+   house 6px. The strip takes at most half the line and SCROLLS sideways past
+   that (no scrollbar), so a five-chapter chat keeps every button readable
+   and the name keeps at least half its line; the name still ellipsizes, as
+   it always did. The row's own padding-right keeps it clear of the pill. */
+.chapbtns{display:flex; gap:4px; flex:0 0 auto; min-width:0; max-width:52%; overflow-x:auto;
+  scrollbar-width:none; -webkit-overflow-scrolling:touch; -ms-overflow-style:none;}
+.chapbtns::-webkit-scrollbar{display:none;}
+/* A button SHRINKS with an ellipsis before the strip ever scrolls — measured
+   at 390pt the strip has ~150px, and two buttons at their natural width
+   ("THE HOSPITAL FILM" is 130px alone) put the second one entirely past the
+   clip, invisible, with nothing on screen saying it existed. So each gives
+   way down to a 44px floor (enough for a word's first letters and the
+   ellipsis), and only a strip that cannot fit at the floor — four or five
+   chapters — scrolls. Two short titles sit at their full width.
+   The STRIP never shrinks (`flex:0 0 auto`, capped at 52%): with the name's
+   basis now its own width, a long chat name would otherwise squeeze the
+   buttons to their floor before it gave up a letter of itself — and the name
+   has always ellipsized here, where the buttons are the new thing she has
+   to be able to read. */
+.chapbtn{flex:0 1 auto; min-width:44px; font-family:-apple-system,sans-serif; font-size:10px; font-weight:400; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink2); background:var(--barbg); border:1px solid var(--line); border-radius:6px;
+  padding:6px 6px; margin:0; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  line-height:1.3; box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+.chapbtn:active{color:var(--ink); border-color:var(--ink2);}
+.chapdiv.flash span{color:var(--rose);}
 /* THE PINNED DELIVERABLE (Aug 2026, Sophie: "a play button at the top, just the
    title, and when I press play it opens full screen"). She should not have to
    open a Compare page to reach the thing she asked a chat to make. */
@@ -285,6 +324,24 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    pill, and this is a state, not a control. */
 .pinned .cur{flex:none; font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:9px;
   letter-spacing:.22em; text-transform:uppercase; color:var(--rose);}
+/* THE CLIPS STRIP (2026-09-07) — every clip the chat handed over, newest
+   first, under the pinned row. A row is LIT (rose dot, bold) until she taps
+   it; the seen set is the phone's own (localStorage), so a clip stays new
+   until she looks at it, whatever the chat does. Play = the pinned player;
+   save = the Dump file, a sibling never nested. */
+.clips{margin:0 0 .7em; width:calc(100% - var(--pillgap, 0px));}
+.clips .clipshead{display:flex; align-items:center; gap:8px; width:100%; border:0; background:none; padding:4px 0; font:inherit;
+  font-size:.82em; letter-spacing:.06em; text-transform:uppercase; color:var(--muted,#8a8176); cursor:pointer; text-align:left;}
+.clips .clipshead .n{color:var(--rose); font-weight:600; letter-spacing:0; text-transform:none;}
+.cliprow{display:flex; align-items:center; gap:8px; margin:0 0 4px;}
+.cliprow .clip{flex:1; min-width:0; display:flex; align-items:center; gap:9px; border:1px solid var(--line); border-radius:6px;
+  padding:7px 10px; background:var(--barbg); text-align:left; cursor:pointer; font:inherit;}
+.cliprow .clip .dot{width:8px; height:8px; border-radius:50%; flex:none; background:transparent; border:1px solid var(--line);}
+.cliprow.new .clip .dot{background:var(--rose); border-color:var(--rose);}
+.cliprow .clip .ti{flex:1; min-width:0; font-size:.9em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.cliprow.new .clip .ti{font-weight:600;}
+.cliprow .clip .when{flex:none; font-size:.72em; color:var(--muted,#8a8176);}
+.cliprow .clipsave{flex:none; font-size:.8em; color:var(--muted,#8a8176); text-decoration:underline; padding:6px 2px;}
 #pinfull{position:fixed; inset:0; background:#000; z-index:120; display:flex; align-items:center; justify-content:center;}
 #pinfull video{width:100%; height:100%; object-fit:contain; background:#000;}
 #pinfull .x{position:absolute; top:calc(env(safe-area-inset-top,0px) + 10px); right:12px; z-index:2;
@@ -343,6 +400,34 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .m-count{font-family:-apple-system,sans-serif; font-size:10px; color:var(--ink2);}
 .m-part+.m-part{margin-top:16px; padding-top:12px; border-top:1px solid var(--line);}
 .m-partt{font-family:-apple-system,sans-serif; font-size:10px; color:var(--ink2); margin-bottom:6px;}
+/* EACH REPLY IN A RUN FOLDS ON ITS OWN (2026-09-11, Sophie: "messages w two
+   replies - make it so i can collapse each reply individually"). THE HEADING
+   IS THE FOLD — the part's own small time line, the whole of it, not a caret
+   to hit (the pinned heading's rule, and judge.js's piles before it) — so it
+   is a <button> wearing `.m-partt`, the same furniture it already was.
+   PARTS OPEN BY DEFAULT and nothing is hidden until she taps one: her
+   correction to the first cut of the merge stands ("i need the messages
+   combined into one message, so i can read them in the right order, not
+   separated and hidden"). SHUT, the part shows its first line beside its
+   time, so she can tell which reply she put away — a row of bare timestamps
+   is a message she has to reopen to identify. The fold is in MEMORY, for this
+   visit (`partShut`): the thread rebuilds on every poll, so it has to survive
+   a repaint or a fold springs open under her (the Story Room caption's own
+   bug), and a reload opens everything, which is the safe direction. */
+button.m-partt{display:flex; align-items:center; gap:8px; width:100%; text-align:left;
+  border:none; background:none; padding:7px 0; margin:0 0 4px; min-height:30px;
+  box-sizing:border-box; cursor:pointer; color:var(--ink2); font:inherit;
+  font-family:-apple-system,sans-serif; font-size:10px;
+  -webkit-tap-highlight-color:transparent;}
+.m-partt .mp-t{flex:none;}
+.m-partt .mp-chev{width:12px; height:12px; flex:none; display:block; order:3;
+  margin-left:auto; transition:transform .16s ease; transform:rotate(180deg);}
+.m-part.shut .m-partt .mp-chev{transform:none;}
+.m-partt .mp-pv{display:none;}
+.m-part.shut .m-partt .mp-pv{display:block; flex:1; min-width:0; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap;
+  font-family:'EBGaramond',Georgia,serif; font-size:14px; color:var(--ink2);}
+.m-part.shut .m-partb{display:none;}
 .msg.flash{background:color-mix(in srgb, var(--rose) 16%, var(--paper)); border-radius:8px;}
 .m-head{display:flex; gap:8px; align-items:baseline;}
 .m-chat{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2);}
@@ -361,6 +446,25 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .codecopy{position:absolute; top:6px; right:6px; display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; background:var(--barbg); border:1px solid var(--line); border-radius:6px; color:var(--ink2); cursor:pointer; padding:0; -webkit-tap-highlight-color:transparent;}
 .codecopy svg{width:15px; height:15px;}
 .codecopy.done{color:var(--ink);}
+/* THE HOUSE OPENER FOR TRUNCATED TEXT — an underlined word, never a button.
+   Same declarations as every other copy (docs/design-rules.md); this page's
+   older `.wrapmore` is the same paint under a bold field label. */
+.moretxt{display:inline; border:0; background:none; margin:0; padding:0;
+  font:inherit; font-size:.8em; color:var(--ink2); text-decoration:underline;
+  -webkit-tap-highlight-color:transparent; cursor:pointer;}
+/* A CODE BLOCK IN A CLAUDE REPLY IS EDITABLE (2026-09-08, Sophie: "make
+   blocks editable if they're in ur message"). The `edit` opener sits under
+   the block; tapping it swaps the block for a box holding its live text, Send
+   posts the box into the thread as HER message (`edited block:` + her text,
+   verbatim, quietly — no doorbell), Cancel puts the block back untouched. The
+   box is 16px or iOS zooms the page on focus (the note input's floor). */
+.codebox .codeedit{display:inline-block; margin:2px 0 0 2px; line-height:1.4;}
+/* the three the editor stands in for — their own display rules beat a bare [hidden] */
+.codebox pre[hidden], .codebox .codecopy[hidden], .codebox .codeedit[hidden]{display:none !important;}
+.codebox textarea{display:block; width:100%; box-sizing:border-box; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:16px; line-height:1.45; min-height:48px; overflow:hidden; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); resize:vertical;}
+.codebox textarea:focus{outline:none; border-color:var(--rose);}
+.codebox .mtbar{display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap;}
+.codebox .mtstat{flex:1; min-width:0; font-style:italic; font-size:.85em; color:var(--ink2);}
 .m-full code{background:var(--barbg); border:1px solid var(--line); border-radius:4px; padding:0 4px; font-size:14px;}
 /* The folded technical middle of a message — collapsed to a tap. */
 .fold{margin:8px 0;}
@@ -690,10 +794,24 @@ button.dayrule{border:none; background:none; padding:0; cursor:pointer;
    body is pre-wrapped prose and the item is a line of it. Hers to tick;
    nothing derives it. A ticked item's words go quiet (never struck through:
    the tick is the mark, and a paragraph struck through is unreadable). */
-.mtick{display:inline-flex; vertical-align:-3px; margin:0 7px 0 0; width:19px; height:19px; padding:0; cursor:pointer;
+/* THE TARGET IS BIGGER THAN THE BOX (2026-09-09, Sophie: "can you make the
+   targets for the message X checklist bigger or make it so it doesn't also
+   scroll the page"). Both halves of that, because they are one complaint: a
+   19px box between lines of 16.5px prose is under any tap target worth the
+   name, and a MISS landed on `.m-full`, whose tap toggles the autoscroll — so
+   missing the box set the page moving under her thumb. The box is 22px now
+   and carries an INVISIBLE hit area around it (`::before`), which is what
+   buys the size without making the mark heavier or moving a line of her
+   words. It reaches LEFT into the indent and only ~5px right, into the gap
+   before the item's first letter — the words stay the words. The vertical
+   reach is held to the line box so two boxes in a run never fight over the
+   same pixel; `line-height` is what separates them, and the taller box grows
+   it a little by itself. */
+.mtick{display:inline-flex; position:relative; vertical-align:-4px; margin:0 7px 0 0; width:22px; height:22px; padding:0; cursor:pointer;
   border:1.5px solid var(--line); border-radius:6px; background:transparent;
   align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent;}
-.mtick svg{width:12px; height:12px; display:block; visibility:hidden;}
+.mtick::before{content:''; position:absolute; top:-5px; bottom:-5px; left:-13px; right:-5px;}
+.mtick svg{width:13px; height:13px; display:block; visibility:hidden;}
 .mtick.on{border-color:var(--chg); background:var(--chg);}
 .mtick.on svg{visibility:visible; color:var(--paper);}
 .mtitem.done{color:var(--ink2);}
@@ -716,14 +834,34 @@ button.dayrule{border:none; background:none; padding:0; cursor:pointer;
    (2026-09-04, Sophie: "doesn't need to ring doorbell · just see it when
    they're up by me"), so the chat reads it whenever it is next up; "Just for
    me" keeps it on the item and tells nobody. */
-.mtnote{margin:6px 0 8px 26px; padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--barbg);}
+.mtnote{margin:6px 0 8px 29px; padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--barbg);}
 .mtnote textarea{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; min-height:48px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); resize:vertical;}
 .mtnote textarea:focus{outline:none; border-color:var(--rose);}
 .mtnote .mtbar{display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap;}
 .mtnote .mtstat{flex:1; min-width:0; font-style:italic; font-size:.85em; color:var(--ink2);}
 /* A saved note reads back under its item in her italic, with who it was for
    in small caps in front. Tapping it reopens the box with her words in it. */
-.mtnotev{display:block; margin:2px 0 6px 26px; font-style:italic; color:var(--ink2); cursor:pointer; white-space:pre-wrap;}
+.mtnotev{display:block; margin:2px 0 6px 29px; font-style:italic; color:var(--ink2); cursor:pointer; white-space:pre-wrap;}
+/* A SCRIPT BLOCK — a `>` quote in a reply — IS EDITABLE IN PLACE (2026-09-07,
+   Sophie: "can u make it possible to edit the script blocks right in
+   message"). The words are the thing she is approving, so a pencil at the
+   block's foot opens the SAME block as a box holding the live text (her own
+   saved edit when there is one — prefilling with her value is not
+   pre-written text); Save files it on the message doc (`blockedits[key]`)
+   and sends it into the thread as HER message, quietly, so the chat reads the
+   edit next time it is up. The block then shows her version with a small
+   "edited" mark; the chat's original is kept under it and one tap on Reset
+   puts it back. */
+.mquote{margin:8px 0 10px; padding:8px 12px 6px; border-left:2px solid var(--line); background:var(--barbg); border-radius:0 6px 6px 0;}
+.mquote .mqtext{white-space:pre-wrap;}
+.mquote .mqfoot{display:flex; align-items:center; gap:8px; margin-top:4px;}
+.mquote .mqedited{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--bell);}
+.mquote .mqedit{margin-left:auto; width:26px; height:26px; padding:0; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink2); cursor:pointer;}
+.mquote .mqedit svg{width:14px; height:14px;}
+.mquote textarea{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; line-height:inherit; min-height:48px; overflow:hidden; padding:7px 10px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); resize:vertical;}
+.mquote textarea:focus{outline:none; border-color:var(--rose);}
+.mquote .mtbar{display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap;}
+.mquote .mtstat{flex:1; min-width:0; font-style:italic; font-size:.85em; color:var(--ink2);}
 .mtnotev .mtnv-to{font-family:-apple-system,sans-serif; font-style:normal; font-size:10px; letter-spacing:.08em; text-transform:uppercase; margin-right:6px; color:var(--bell);}
 .mtnotev .mtnv-to.me{color:var(--ink2);}
 .mtnotev .mtnv-reply{display:block; margin-top:2px; color:var(--ink);}
@@ -1848,6 +1986,7 @@ body.selecting .ckbtn,body.selecting .hidebtn,body.selecting .pinrow{display:non
 
 
 .float{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:flex; flex-direction:column; gap:8px; align-items:center; transform:translateZ(0); will-change:transform;}
+.float > *{transform:translateY(var(--vvtop, 0px));}  /* the rail follows the visual viewport — the CHILDREN move, so every page that reserves the pill's column off `.float`'s own rect is correct with no edit. Source: scripts/pill.py */
 .vseg{display:flex; flex-direction:column; width:48px; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09);}
 .vseg button{border:none; background:transparent; color:var(--ink); width:48px; height:52px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
 .vseg button + button{border-top:1.5px solid var(--ink);}
@@ -2080,7 +2219,15 @@ body.newspick > .float{display:none !important;}
 <script src="/sheet-grid.js"></script>
 <script src="/asset-actions.js"></script>
 <script src="/asset-lightbox.js"></script>
+<script src="/filmbar.js"></script>
 <script src="/filmnote.js"></script>
+<!-- THE CARET STAYS WHERE SHE CAN SEE IT (2026-09-08) — every box in this
+     page grows to the size of its words and never scrolls itself, so the
+     line she is typing can end up under the keyboard: the script block's
+     editor, a code block, a note on a list item, the composer. The module
+     wires itself to every text box and needs no call, so a harness that does
+     not serve it changes nothing. Full reasoning in caretkeep.js. -->
+<script src="/caretkeep.js"></script>
 <!-- WHICH PROJECT A CHAT IS ON (2026-09-02) — the stacked-cards button in a
      thread's header and the page behind it. One rule, shared with the server
      (chat-sort.js) so a project the sorter files is spelled the way this page
@@ -2287,19 +2434,34 @@ function tabLines(){
 // tick with nowhere to save is a dead control.
 function md(t,m){
   var s=esc(t);
-  s=s.replace(/```[a-z]*\n?([\s\S]*?)```/g, function(_,c){ return '<div class="codebox"><pre>'+c.replace(/\s+$/,'')+'</pre><button class="codecopy" aria-label="Copy code" title="Copy">'+COPY_ICON+'</button></div>'; });
-  s=s.replace(/\*\*([^*\n][^*]*?)\*\*/g,'<b>$1</b>');
-  s=s.replace(/(^|[\s(“"'>])\*([^*\n]+)\*/g,'$1<i>$2</i>');
-  s=s.replace(/`([^`\n]+)`/g,'<code>$1</code>');
-  s=s.replace(/^#{1,4}\s+(.+)$/gm,'<b>$1</b>');
-  // Clickable links, added last so pre/code blocks stay untouched:
-  // markdown [text](url) first, then bare https:// URLs.
-  s=s.split(/(<div class="codebox">[\s\S]*?<\/div>|<code>[^<]*?<\/code>)/g).map(function(part){
-    if(part.lastIndexOf('<div class="codebox">',0)===0||part.lastIndexOf('<code>',0)===0) return part;
-    part=part.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
-    part=part.replace(/(^|[^"'>])(https?:\/\/[^\s<)\]]+[^\s<)\].,!?:;'"])/g,'$1<a href="$2" target="_blank" rel="noopener">$2</a>');
-    if(m&&m.id) part=tickList(part, m);
-    return part;
+  // THE EDIT OPENER (2026-09-08) rides only on a block in a CLAUDE reply that
+  // can be answered (m.id, not hers, not a live draft) — the box under it
+  // posts into the thread as her message, so a block with nowhere to send to
+  // gets no opener. It sits inside .codebox so the split below leaves it be.
+  var editable=!!(m&&m.id&&m.from!=='sophie'&&!m.working);
+  s=s.replace(/```[a-z]*\n?([\s\S]*?)```/g, function(_,c){ return '<div class="codebox"><pre>'+c.replace(/\s+$/,'')+'</pre><button class="codecopy" aria-label="Copy code" title="Copy">'+COPY_ICON+'</button>'+(editable?'<button type="button" class="moretxt codeedit" aria-label="Edit this block">edit</button>':'')+'</div>'; });
+  // STYLING NEVER REACHES INSIDE A CODE BLOCK (2026-09-08, found by the
+  // editor, whose box must hold the block's EXACT text): the four inline
+  // styles used to run over the whole string, so a shell comment `# …` on a
+  // block's last line became a bold heading that swallowed the copy button,
+  // and `**`/`*`/backticks inside code were styled away. They run on the
+  // parts between code blocks now; outside a block nothing changed.
+  s=s.split(/(<div class="codebox">[\s\S]*?<\/div>)/g).map(function(part){
+    if(part.lastIndexOf('<div class="codebox">',0)===0) return part;
+    part=part.replace(/\*\*([^*\n][^*]*?)\*\*/g,'<b>$1</b>');
+    part=part.replace(/(^|[\s(“"'>])\*([^*\n]+)\*/g,'$1<i>$2</i>');
+    part=part.replace(/`([^`\n]+)`/g,'<code>$1</code>');
+    part=part.replace(/^#{1,4}\s+(.+)$/gm,'<b>$1</b>');
+    // Clickable links, added last so inline code stays untouched:
+    // markdown [text](url) first, then bare https:// URLs.
+    return part.split(/(<code>[^<]*?<\/code>)/g).map(function(p){
+      if(p.lastIndexOf('<code>',0)===0) return p;
+      p=p.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+      p=p.replace(/(^|[^"'>])(https?:\/\/[^\s<)\]]+[^\s<)\].,!?:;'"])/g,'$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+      if(m&&m.id) p=quoteBlocks(p, m);
+      if(m&&m.id) p=tickList(p, m);
+      return p;
+    }).join('');
   }).join('');
   return s;
 }
@@ -2318,6 +2480,39 @@ function tickKey(html){
   var t=String(html).replace(/<[^>]+>/g,'').replace(/&[a-z#0-9]+;/g,' ').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().slice(0,200);
   var h=5381; for(var i=0;i<t.length;i++) h=((h*33)^t.charCodeAt(i))>>>0;
   return h.toString(36)+t.length.toString(36);
+}
+// A RUN OF `> ` LINES IS ONE SCRIPT BLOCK (2026-09-07). Consecutive quoted
+// lines — a bare `>` between them keeps the run, a blank line ends it — become
+// one editable block keyed by a hash of the ORIGINAL words (tickKey), so her
+// edit survives a re-render. `m.blockedits[key]` = {text, at} is her version
+// and is what the block shows; the chat's original rides `data-orig` for the
+// Reset. Called only with a message that can save (m.id), like tickList.
+function quoteBlocks(part, m){
+  var lines=part.split('\n'), out=[], i=0, edits=(m&&m.blockedits)||{};
+  while(i<lines.length){
+    if(!/^&gt;( |$)/.test(lines[i])){ out.push(lines[i]); i++; continue; }
+    var q=[]; while(i<lines.length && /^&gt;( |$)/.test(lines[i])){ q.push(lines[i].replace(/^&gt; ?/,'')); i++; }
+    var orig=q.join('\n').replace(/^\n+|\n+$/g,''), key=tickKey(orig), ed=edits[key];
+    var shown=ed&&ed.text ? esc(ed.text) : orig;
+    out.push('<div class="mquote" data-key="'+key+'" data-orig="'+orig.replace(/"/g,'&quot;')+'"><div class="mqtext">'+shown+'</div>'
+      +'<div class="mqfoot">'+(ed&&ed.text?'<span class="mqedited">edited</span>':'')+'<button type="button" class="mqedit" aria-label="Edit this block" title="Edit">'+TICK_NOTE_SVG+'</button></div></div>');
+  }
+  return out.join('\n');
+}
+// A NEAR MISS on a checklist item: a tap inside the first MISS_PX of the
+// item's own words, right beside its box. The box's invisible hit area
+// (`.mtick::before`) reaches ~5px into the 7px gap before the first letter;
+// this is the rest of the reach, so a thumb that lands one letter in is
+// still read as aimed at the box and the page stays put. Anything further
+// along the words is a tap ON the words (see the `.m-full` tap in renderMsg).
+// Measured off the item's first line box: an inline span's own rect spans
+// every line it wraps onto, and its left edge is the first line's.
+var MISS_PX=16;
+function tickNearMiss(item, e){
+  try{
+    var r=item.getClientRects()[0]||item.getBoundingClientRect();
+    return typeof e.clientX==='number' && e.clientX < r.left + MISS_PX;
+  }catch(_){ return false; }
 }
 function tickList(part, m){
   var lines=part.split('\n'), kind=[], i;
@@ -2568,6 +2763,34 @@ var I={
 };
 function spd(){ return SPEEDS[si][1]; }
 function showSpd(){ document.getElementById('spd').textContent=SPEEDS[si][0]; }
+
+/* THE RAIL FOLLOWS THE VISUAL VIEWPORT (2026-09-13, Sophie, on /footage:
+   "auto scroll bug"). iOS shrinks the VISUAL viewport for the keyboard and
+   offsets it inside the LAYOUT one to reveal the caret; position:fixed pins
+   to the layout viewport, so the rail slides up out of the visible band by
+   visualViewport.offsetTop, top-first — measured ~115pt on her iPhone 13,
+   which left only the bottom button on screen. IT ONLY EVER CORRECTS: with
+   no offset reported the transform is left exactly as the CSS has it.
+   A BAKED COPY — the source is scripts/pill.py; change it there and here. */
+(function(){
+  var _vvOff=0, _f=null;
+  function railEl(){ if(_f && _f.isConnected) return _f; _f=document.querySelector('.float'); return _f; }
+  function placeRail(){
+    var el=railEl(); if(!el) return;
+    var vv=window.visualViewport;
+    var off=vv ? Math.max(0, Math.round(vv.offsetTop||0)) : 0;
+    if(off===_vvOff) return;
+    _vvOff=off;
+    if(off) el.style.setProperty('--vvtop', off+'px'); else el.style.removeProperty('--vvtop');
+  }
+  window.__pillOffset=function(){ return _vvOff; };
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', placeRail, {passive:true});
+    window.visualViewport.addEventListener('scroll', placeRail, {passive:true});
+  }
+  placeRail();
+  setTimeout(placeRail, 400);
+})();
 function paintPill(){
   if(playing){
     vtop.innerHTML=I.minus; vbot.innerHTML=I.plus; vmid.innerHTML=I.pause; vmid.classList.add('on');
@@ -2804,10 +3027,11 @@ function editName(chat, head){
   var btn=th.querySelector('.renamebtn'); if(btn) btn.style.display='none';
   var inp=document.createElement('input'); inp.type='text'; inp.className='nameed';
   inp.value=dispName(chat); inp.placeholder=chat; inp.maxLength=60;
+  var cb=th.querySelector('.chapbtns'); if(cb) cb.style.display='none';   // the input needs the line
   h1.style.display='none'; th.insertBefore(inp,h1); inp.focus(); inp.select();
   var done=false;
   function restore(label){
-    h1.textContent=label; h1.style.display=''; if(btn) btn.style.display='';
+    h1.textContent=label; h1.style.display=''; if(btn) btn.style.display=''; if(cb) cb.style.display='';
     if(inp.parentNode) inp.parentNode.removeChild(inp);
   }
   function save(){
@@ -2886,14 +3110,65 @@ function chapterPlan(rendered, chaps){
   if(!chaps||!chaps.length) return out;
   var last=null;
   for(var i=0;i<rendered.length;i++){
-    var t=(rendered[i]&&rendered[i].created)||'';
-    var ix=-1;
-    // Chapters arrive sorted, so the LAST one that has already begun owns it.
-    for(var c=0;c<chaps.length;c++){ if(chaps[c].at<=t) ix=c; }
+    var ix=chapterAt(chaps, (rendered[i]&&rendered[i].created)||'');
     if(ix>=0&&ix!==last) out[i]=chaps[ix].title;
     last=ix;
   }
   return out;
+}
+// Which chapter owns a moment: the LAST one that has already begun (chapters
+// arrive sorted), -1 before the first. ONE reader, shared by chapterPlan (the
+// headings) and the render loop (which stamps each heading with its chapter's
+// index for the header's buttons) — so a button can never aim at a heading the
+// plan drew under a different rule.
+function chapterAt(chaps, t){
+  var ix=-1;
+  for(var c=0;c<chaps.length;c++){ if(chaps[c].at<=t) ix=c; }
+  return ix;
+}
+// THE CHAPTER BUTTONS ON THE NAME LINE (2026-09-06, Sophie: "two buttons at
+// the top same line as the name, one per chapter"). One per chapter, oldest
+// first — reading order — each a jump to that chapter's hairline heading in
+// the thread. Nothing at all for a chat with no chapters.
+function chapBtnsHtml(name){
+  var ch=((chats[name]||{}).chapters)||[];
+  if(!ch.length) return '';
+  return '<div class="chapbtns" role="group" aria-label="Chapters">'+ch.map(function(c,i){
+    var t=String(c.title||'').trim();
+    return '<button class="chapbtn" data-chap="'+i+'" title="'+esc(t)+'" aria-label="Jump to '+esc(t)+'">'+esc(t)+'</button>';
+  }).join('')+'</div>';
+}
+// Jump to a chapter's heading. The heading is the `.chapdiv` the render loop
+// stamped with that chapter's index; it lands just under the top of the
+// screen so the block reads downward from there. Stops any autoscroll first
+// (a tap that moves the page must own the page — the lightbox's rule).
+// A heading that is NOT drawn means the feed's window did not reach that far
+// back (one read carries ~260 messages for ~770 chats) — so the whole thread
+// is fetched, merged and rebuilt, then the jump is asked once more, the same
+// road `focusMessage` takes for a message the page has not loaded.
+function jumpToChapter(name, i, noFetch){
+  scrollStop();
+  var h=document.querySelector('#thread .chapdiv[data-chap="'+i+'"]');
+  if(h){
+    var top=h.getBoundingClientRect().top+window.scrollY-10;
+    window.scrollTo(0, Math.max(0, top));
+    h.classList.add('flash');
+    setTimeout(function(){ h.classList.remove('flash'); }, 2400);
+    return;
+  }
+  if(noFetch){ toast('Couldn\u2019t find that chapter'); return; }
+  toast('Loading full history\u2026');
+  api('/api/chatfeed/thread?chat='+encodeURIComponent(name)+'&_='+Date.now())
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(cur!==name) return;
+      var have={}; msgs.forEach(function(m){ have[m.id]=1; });
+      (d.messages||[]).forEach(function(m){ if(!have[m.id]){ msgs.push(m); have[m.id]=1; } });
+      fullLoaded[name]=1;
+      openChat(name, true, null, true);   // rebuild with the whole thread; noFetch=true
+      jumpToChapter(name, i, true);
+    })
+    .catch(function(){ toast('Couldn\u2019t load history'); });
 }
 // The label Sophie sees for a chat. Defaults to the underlying chat key
 // (branch-derived); a custom displayName set in-app overrides it. Messages
@@ -7512,6 +7787,11 @@ function renderList(el,g,names){
 // touches the data, the home list, the Update tab, the Questions view or the
 // counts — a merged reply is still its own doc everywhere but this one scroll.
 var MERGE_MS=60*60*1000;
+// Which parts of a run she has folded away — keyed by the part's OWN message
+// id, in memory for this visit (see the `.m-partt` note in the styles). The
+// thread rebuilds on every poll, so a fold that lived on the node alone would
+// spring open under her a few seconds after she tapped it.
+var partShut={};
 function mergePlan(rendered, plan){
   var lead={}, hid={};
   function foldable(m){ return !!m && m.from!=='sophie' && !m.working && !m.bookmarked; }
@@ -7539,7 +7819,17 @@ function renderMsg(m){
   var first=parts?parts[0]:m;
   var firstLine=plain((first.tldr||first.text||'').split('\n')[0]).slice(0,140);
   var body=parts
-    ? parts.map(function(p){ return '<div class="m-part" data-mid="'+esc(String(p.id||''))+'"><div class="m-partt">'+ago(p.created)+'</div>'+foldBody(p.text, p.head, p.tail, p)+'</div>'; }).join('')
+    ? parts.map(function(p){
+        var pid=String(p.id||''), shut=!!partShut[pid];
+        // the first line is what the shut heading shows, so a folded reply is
+        // still identifiable — the same line `.m-preview` leads the row with
+        var pv=plain((p.tldr||p.text||'').split('\n')[0]).slice(0,120);
+        return '<div class="m-part'+(shut?' shut':'')+'" data-mid="'+esc(pid)+'">'
+          +'<button type="button" class="m-partt" aria-expanded="'+(shut?'false':'true')+'">'
+          +'<span class="mp-t">'+esc(ago(p.created))+'</span>'
+          +'<span class="mp-pv">'+esc(pv)+'</span>'
+          +CHEV.replace('hb-chev','mp-chev')+'</button>'
+          +'<div class="m-partb">'+foldBody(p.text, p.head, p.tail, p)+'</div></div>'; }).join('')
     : foldBody(m.text, m.head, m.tail, m);
   row.innerHTML='<div class="m-head"><span class="m-chat'+(m.from==='sophie'?' sophie':'')+'">'
     +(m.from==='sophie'?'me':'claude')+'</span><span class="m-time">'+ago(m.created)+'</span>'
@@ -7555,6 +7845,19 @@ function renderMsg(m){
       var body=ft.nextElementSibling, open=body.hasAttribute('hidden');
       if(open){ body.removeAttribute('hidden'); ft.setAttribute('aria-expanded','true'); ft.classList.add('open'); }
       else { body.setAttribute('hidden',''); ft.setAttribute('aria-expanded','false'); ft.classList.remove('open'); }
+    };
+  });
+  // EACH PART OF A RUN FOLDS ON ITS OWN — the heading IS the fold, so the
+  // whole time line is the target rather than a caret. Stops propagation so a
+  // tap never also toggles the reading-aid autoscroll under it.
+  row.querySelectorAll('.m-partt').forEach(function(ph){
+    ph.onclick=function(e){ e.stopPropagation();
+      var pe=ph.closest('.m-part'); if(!pe) return;
+      var shut=!pe.classList.contains('shut');
+      pe.classList.toggle('shut', shut);
+      ph.setAttribute('aria-expanded', shut?'false':'true');
+      var pid=pe.dataset.mid;
+      if(pid){ if(shut) partShut[pid]=1; else delete partShut[pid]; }
     };
   });
   // The list ticks: hers, saved on the message doc (`ticks`, keyed by the
@@ -7574,6 +7877,26 @@ function renderMsg(m){
       var open=tickEditorOf(tk); if(open) open.remove();
       if(st==='note'){ tickOpenNote(tk, owner, ''); return; }  // filed on Send, not on the press
       tickSave(tk, owner, was, st);
+    };
+  });
+  // The script blocks' pencils (quoteBlocks): the block becomes a box holding
+  // its live text; Save files the edit and sends it into the thread as hers.
+  row.querySelectorAll('.mqedit').forEach(function(bt){
+    bt.onclick=function(e){ e.stopPropagation();
+      var blk=bt.closest('.mquote'); if(!blk||blk.querySelector('textarea')) return;
+      var partEl=blk.closest('.m-part');
+      var owner=partEl && parts ? (parts.filter(function(p){ return String(p.id)===partEl.dataset.mid; })[0]||m) : m;
+      quoteOpenEdit(blk, owner);
+    };
+  });
+  // The code blocks' `edit` openers (md): the block becomes a box holding
+  // its live text; Send posts it into the thread as hers, quietly.
+  row.querySelectorAll('.codeedit').forEach(function(bt){
+    bt.onclick=function(e){ e.stopPropagation();
+      var box=bt.closest('.codebox'); if(!box||box.querySelector('textarea')) return;
+      var partEl=box.closest('.m-part');
+      var owner=partEl && parts ? (parts.filter(function(p){ return String(p.id)===partEl.dataset.mid; })[0]||m) : m;
+      codeOpenEdit(box, owner);
     };
   });
   // A saved note reopens its box with her words in it (prefilling with HER
@@ -7625,8 +7948,30 @@ function renderMsg(m){
   // a document-level listener, so it runs after this one, too late to help).
   // pre/code stay on top of that list: selecting text in a code block is not
   // a tap on the page.
+  // A CHECKLIST LINE IS A CONTROL, NOT PAGE (2026-09-09, Sophie: "make the
+  // targets for the message X checklist bigger or make it so it doesn't also
+  // scroll the page"). A tap ON the box was always exempt — it is a <button>,
+  // which PILL_SKIP names — but a MISS beside one landed here and started the
+  // autoscroll, which is the page moving as the answer to a tap she meant for
+  // a 19px box. So the whole item — its words, its saved note, its open note
+  // box — is off the tap gesture, alongside pre/code. The rest of the message
+  // still toggles.
+  // …AND THAT TOOK THE TAP GESTURE OFF MOST OF EVERY REPLY (2026-09-11,
+  // Sophie: "tapping chats no longer scrolls screen - only pill"). A reply
+  // here is mostly lists — a markdown list of two or more, or three bold-led
+  // paragraphs in a row, both wrap every item's WORDS in `.mtitem` — so
+  // exempting the whole item left nothing on the page to tap. The exemption
+  // is the NEAR MISS now: a tap inside the first `MISS_PX` of an item's own
+  // box, right beside the check box (whose invisible hit area already reaches
+  // ~5px into that gap), is the tap she aimed at the box and moves nothing;
+  // a tap on the words further in is a tap on the page and toggles the
+  // reading-aid, exactly as prose does. The saved note and the open note box
+  // stay off the gesture — those are hers to read and write in.
   row.querySelector('.m-full').onclick=function(e){
     if(e.target.closest('pre')||e.target.closest('code')) return;
+    if(e.target.closest('.mtick,.mtnote,.mtnotev')) return;
+    var it=e.target.closest('.mtitem');
+    if(it && tickNearMiss(it, e)) return;
     window.__scrollTap(e);
   };
   row.querySelector('.m-head').onclick=function(){
@@ -7884,6 +8229,135 @@ function wakeWords(s){
   return s==='quiet' ? 'Sent quietly' : s==='fired' ? 'Sent — waking them' : s==='queued' ? 'Sent — a wake is on its way'
     : s==='not-wakeable' ? 'Sent — they\u2019ll see it next time they\u2019re up' : s==='no-switchboard' ? 'Sent — waking isn\u2019t set up here' : 'Sent';
 }
+// THE SCRIPT BLOCK'S EDITOR (2026-09-07). One box in place of the words —
+// never a second copy to keep in step — holding the text the block shows
+// right now (her saved edit, else the chat's original). Save: POST
+// /api/chatfeed/blockedit {id, key, text} files `blockedits[key]` on the
+// message doc, then ONE LINE goes into the thread as HER message through
+// /reply, quietly (no doorbell — the list-note rule): "Block <id>/<key> …
+// was edited" — never the words themselves (2026-09-08, her rule: the block
+// is not part of the conversation, so the chat reads it back only when it
+// asks, with scripts/chat-block.js read). Reset sends '' (deletes the edit)
+// and shows the original again. Cancel closes with nothing changed.
+function quoteOpenEdit(blk, owner){
+  var key=blk.dataset.key, orig=blk.dataset.orig||'', textEl=blk.querySelector('.mqtext'), foot=blk.querySelector('.mqfoot');
+  var ed=(owner.blockedits||{})[key], cur=ed&&ed.text ? ed.text : orig, opened=cur;
+  var ta=document.createElement('textarea'); ta.value=cur; ta.maxLength=4000;
+  var bar=document.createElement('div'); bar.className='mtbar';
+  var stat=document.createElement('span'); stat.className='mtstat';
+  var reset=document.createElement('button'); reset.type='button'; reset.className='tbtn mqreset'; reset.textContent='Reset'; reset.hidden=!(ed&&ed.text);
+  var done=document.createElement('button'); done.type='button'; done.className='tbtn mqsave'; done.textContent='Done';
+  bar.appendChild(stat); bar.appendChild(reset); bar.appendChild(done);
+  textEl.hidden=true; foot.hidden=true;
+  blk.insertBefore(ta, foot); blk.insertBefore(bar, foot);
+  blk.onclick=function(e){ e.stopPropagation(); };
+  // THE BOX IS THE SIZE OF THE WORDS (2026-09-07, Sophie: "hard to edit since
+  // the text box is small. make it the same size as the text"). Fitted to its
+  // content on open and on every keystroke — height:auto first or it can only
+  // grow, the border added back on a border-box box (the Playground's
+  // bigger-box rules). No cap: a script block is read whole, so it is edited
+  // whole; the page scrolls, the box never does.
+  function fit(){ ta.style.height='auto'; ta.style.height=(ta.scrollHeight+(ta.offsetHeight-ta.clientHeight))+'px'; }
+  // EDITS AUTOSAVE (2026-09-07, Sophie: "could u make edits autosave?"). Every
+  // pause in typing (700ms) files the box's text on the message doc, so a
+  // page that dies mid-edit loses at most a phrase; leaving the page flushes
+  // the last one by beacon. The thread message ("Edit of …") goes ONCE, on
+  // Done, and only if the words really changed since the box opened — an
+  // autosave that posted into the thread would put twenty half-sentences in
+  // front of the chat. Reset files '' and puts the original back.
+  var saved=cur, timer=null, inflight=null;
+  function file(text){
+    saved=text; stat.textContent='Saving\u2026';
+    inflight=api('/api/chatfeed/blockedit',{method:'POST',body:JSON.stringify({id:owner.id, key:key, text:text})})
+      .then(function(r){ if(!r.ok) throw 0; paint(text); stat.textContent=text===opened?'':'Saved'; })
+      .catch(function(){ stat.textContent='Couldn\u2019t save'; })
+      .then(function(){ inflight=null; });
+    return inflight;
+  }
+  function schedule(){ clearTimeout(timer); timer=setTimeout(function(){ var v=ta.value.replace(/\s+$/,''); if(v!==saved) file(v); }, 700); }
+  function flushNow(){ clearTimeout(timer); var v=ta.value.replace(/\s+$/,''); return v!==saved ? file(v) : (inflight||Promise.resolve()); }
+  function beacon(){ var v=ta.value.replace(/\s+$/,''); if(v===saved) return; saved=v;
+    try{ navigator.sendBeacon('/api/chatfeed/blockedit', new Blob([JSON.stringify({id:owner.id, key:key, text:v})],{type:'application/json'})); }catch(e){} }
+  ta.addEventListener('input', function(){ fit(); schedule(); }); fit();
+  window.addEventListener('pagehide', beacon);
+  document.addEventListener('visibilitychange', function(){ if(document.hidden) beacon(); });
+  ta.focus();
+  function close(){ clearTimeout(timer); window.removeEventListener('pagehide', beacon); ta.remove(); bar.remove(); textEl.hidden=false; foot.hidden=false; }
+  function paint(text){
+    if(text && text!==orig){ owner.blockedits=owner.blockedits||{}; owner.blockedits[key]={text:text, at:new Date().toISOString()}; textEl.textContent=text; }
+    else { if(owner.blockedits) delete owner.blockedits[key]; textEl.innerHTML=orig; }
+    var mark=foot.querySelector('.mqedited');
+    if(text && text!==orig && !mark){ mark=document.createElement('span'); mark.className='mqedited'; mark.textContent='edited'; foot.insertBefore(mark, foot.firstChild); }
+    else if((!text || text===orig) && mark) mark.remove();
+    reset.hidden=!(text && text!==orig);
+  }
+  function tell(text){
+    var chat=owner.chat||cur||'';
+    if(!chat || (text||orig)===opened) return Promise.resolve();   // Done with the words as they were opened says nothing
+    // ONE LINE, NEVER THE WORDS (2026-09-08, Sophie: "the intent is that it's
+    // not part of the conversation so they don't have to read it back every
+    // turn … message could be one line: [block id] was edited"). The text
+    // lives on the doc; the chat fetches it when it wants it
+    // (scripts/chat-block.js read --id <msg> --key <key>).
+    var head=orig.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim().slice(0,40);
+    var line='Block '+owner.id+'/'+key+' \u201c'+head+'\u2026\u201d '+(text ? 'was edited' : 'was put back to the original');
+    var mlist=blk.closest('.msg')&&blk.closest('.msg').parentNode;
+    return postHers(chat, line, false).then(function(){
+      if(mlist) mlist.appendChild(renderMsg({from:'sophie', text:line, created:new Date().toISOString()}));
+    }).catch(function(){});
+  }
+  reset.onclick=function(e){ e.stopPropagation(); done.disabled=true; ta.value=''; file('').then(function(){ return tell(''); }).then(function(){ close(); toast('Original is back'); }); };
+  done.onclick=function(e){ e.stopPropagation(); done.disabled=true;
+    var v=ta.value.replace(/\s+$/,''); if(!v.trim()){ done.disabled=false; return; }
+    flushNow().then(function(){ return tell(v===orig?'':v); }).then(function(){ close(); if(v!==opened) toast('Saved \u2014 the chat is told'); });
+  };
+}
+// THE CODE BLOCK'S EDITOR (2026-09-08, Sophie: "make blocks editable if
+// they're in ur message"). The box holds the block's LIVE text — what the
+// block shows right now, which after a send is her own last edit — never
+// pre-written text (the Prompt panel's rule). Send posts `edited block:` and
+// her text VERBATIM (no trim, no rewording) into the thread as HER message
+// through /reply, QUIETLY — no doorbell, the list-note rule: the chat sweeps
+// it when it is next up. Nothing is filed on the message doc: the thread
+// message IS the record, and the block on screen shows what was sent. Cancel
+// closes with nothing changed.
+function codeOpenEdit(box, owner){
+  var pre=box.querySelector('pre'), copy=box.querySelector('.codecopy'), opener=box.querySelector('.codeedit');
+  if(!pre) return;
+  var orig=pre.textContent;
+  var ed=document.createElement('div'); ed.className='codeeditor';
+  var ta=document.createElement('textarea'); ta.value=orig; ta.maxLength=8000; ta.setAttribute('aria-label','Edit this block');
+  var bar=document.createElement('div'); bar.className='mtbar';
+  var stat=document.createElement('span'); stat.className='mtstat';
+  var cancel=document.createElement('button'); cancel.type='button'; cancel.className='tbtn codecancel'; cancel.textContent='Cancel';
+  var send=document.createElement('button'); send.type='button'; send.className='tbtn codesend'; send.textContent='Send';
+  bar.appendChild(stat); bar.appendChild(cancel); bar.appendChild(send);
+  ed.appendChild(ta); ed.appendChild(bar);
+  ed.onclick=function(e){ e.stopPropagation(); };   // a tap in the box is not the reading-aid toggle
+  pre.hidden=true; if(copy) copy.hidden=true; if(opener) opener.hidden=true;
+  box.appendChild(ed);
+  // The box is the size of the words — height:auto first or it can only grow,
+  // the border added back on a border-box box (the script block's own rule).
+  function fit(){ ta.style.height='auto'; ta.style.height=(ta.scrollHeight+(ta.offsetHeight-ta.clientHeight))+'px'; }
+  ta.addEventListener('input', fit); fit();
+  ta.focus();
+  function close(){ ed.remove(); pre.hidden=false; if(copy) copy.hidden=false; if(opener) opener.hidden=false; }
+  cancel.onclick=function(e){ e.stopPropagation(); close(); };
+  send.onclick=function(e){ e.stopPropagation();
+    var v=ta.value; if(!v.trim()||send.disabled) return;   // an empty box is nothing to send; the words themselves are never trimmed
+    var chat=owner.chat||cur||'';
+    if(!chat){ toast('Couldn\u2019t tell which chat to send to'); return; }
+    var line='edited block:\n'+v;
+    send.disabled=true; cancel.disabled=true; stat.textContent='Sending\u2026';
+    postHers(chat, line, false).then(function(){
+      // her message shows in the thread right away, like the composer's
+      var mlist=box.closest('.msg')&&box.closest('.msg').parentNode;
+      if(mlist) mlist.appendChild(renderMsg({from:'sophie', text:line, created:new Date().toISOString()}));
+      pre.textContent=v;   // the read state shows what was sent
+      close(); toast('Sent quietly');
+    }).catch(function(){ send.disabled=false; cancel.disabled=false; stat.textContent=''; toast('Couldn\u2019t send that'); });
+  };
+}
 function tickOpenNote(tk, owner, text, to){
   var key=tk.dataset.key, item=tk.nextElementSibling;
   var itemWords=item&&item.classList.contains('mtitem') ? item.textContent.trim().replace(/\s+/g,' ').slice(0,140) : '';
@@ -8134,11 +8608,19 @@ function openPinned(pin, chatName){
   // SCHOOL hit at 0.65s was in the file at eight times the voice and she
   // never heard it. Paused on its first frame; her tap (or the native play)
   // starts it, and filmnote.js keeps its buttons down until it has played.
-  v.src=pin.url; v.controls=true; v.preload='auto'; v.setAttribute('playsinline','');
+  // NO NATIVE CONTROLS ON A FILM (2026-09-10, Sophie: "the way a movie tints
+  // when it starts" → "go"). iOS paints its controls overlay as a WASH over
+  // the whole picture and offers no way to keep the controls without it, so
+  // the transport is ours: /filmbar.js, the ONE implementation, shared with
+  // compare.js's video lightbox. AUDIO keeps the native controls — an audio
+  // element has no picture to tint, and nothing here would improve it.
+  var isAudio = pin.kind==='audio';
+  v.src=pin.url; v.controls=isAudio; v.preload='auto'; v.setAttribute('playsinline','');
   var x=document.createElement('button'); x.className='x'; x.innerHTML='&times;';
   x.setAttribute('aria-label','Close');
   function close(){ try{ v.pause(); }catch(_){ }
     if(fnote) fnote.destroy();          // stops a live mic, drops the sheet
+    if(fbar) fbar.destroy();            // and its listeners, and its frame loop
     w.remove();
     document.body.style.overflow=''; window.scrollTo(0,y);
     document.removeEventListener('keydown',esckey); }
@@ -8158,7 +8640,17 @@ function openPinned(pin, chatName){
   // url thread via the asset-note machinery, so the pinning chat sweeps them
   // like image notes. Films only, and only when we know which chat the pin
   // belongs to.
-  var fnote = (pin.kind!=='audio' && chatName && window.__filmNote)
+  // OUR OWN TRANSPORT, in place of the tinted native one — play/pause, a
+  // scrubber, elapsed and total. It is drawn for every FILM, whether or not we
+  // know which chat to file a note into, because a film with no controls at
+  // all is not a player. If the module could not be fetched the video takes
+  // the native controls back rather than being left with none.
+  var fbar = null;
+  if(!isAudio){
+    if(window.__filmBar) fbar = window.__filmBar({ wrap:w, video:v });
+    else v.controls = true;
+  }
+  var fnote = (!isAudio && chatName && window.__filmNote)
     ? window.__filmNote({ wrap:w, video:v, chat:chatName, url:pin.url }) : null;
   document.body.appendChild(w); document.body.style.overflow='hidden';
 }
@@ -8223,7 +8715,7 @@ function openChat(name, keepScroll, focusId, noFetch){
   var list=(groups()[name])||[];
   var head=document.createElement('header');
   head.innerHTML='<div class="no"></div>'
-    +'<div class="thread-head">'+iconHtml(name)+'<h1>'+waitMarkHtml(name)+tagMarkHtml(name)+esc(dispName(name))+'</h1><button class="renamebtn" aria-label="Rename this chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>'
+    +'<div class="thread-head">'+iconHtml(name)+'<h1>'+waitMarkHtml(name)+tagMarkHtml(name)+esc(dispName(name))+'</h1>'+chapBtnsHtml(name)+'<button class="renamebtn" aria-label="Rename this chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>'
     +'<div class="headbtns"><div class="viewtog" style="margin:0"><button class="tg-chat on">Chat</button><button class="tg-assets">Assets</button><button class="tg-compare">Compare</button></div>'
     +'<button class="tbtn threadsearch" aria-label="Search this chat" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>'
     +'<button class="tbtn threadrefresh" aria-label="Refresh" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button></div><div class="rule"></div>';
@@ -8282,6 +8774,39 @@ function openChat(name, keepScroll, focusId, noFetch){
     }
     head.appendChild(b);
     pillRows.push(b);
+  })();
+  // THE CLIPS STRIP — see the CSS note. Rides `clips` on the registry doc
+  // (POST /api/chatfeed/clips), newest first; the seen set is localStorage.
+  (function(){
+    var clips=(chats[name]&&chats[name].clips)||[];
+    if(!clips.length) return;
+    var key='chats.clipseen.'+name, seen={};
+    try{ seen=JSON.parse(localStorage.getItem(key)||'{}')||{}; }catch(e){}
+    var fresh=clips.filter(function(c){ return c&&c.url&&!seen[c.url]; }).length;
+    var wrap=document.createElement('div'); wrap.className='clips';
+    var open=true; try{ open=localStorage.getItem('chats.clipsopen.'+name)!=='0'; }catch(e){}
+    var hd=document.createElement('button'); hd.type='button'; hd.className='clipshead';
+    function paintHead(){ hd.innerHTML='<span>'+(open?'\u2304':'\u203a')+' Clips \u00b7 '+clips.length+'</span>'+(fresh?'<span class="n">'+fresh+' new</span>':''); }
+    paintHead();
+    var list=document.createElement('div'); list.hidden=!open;
+    hd.onclick=function(){ open=!open; list.hidden=!open; try{localStorage.setItem('chats.clipsopen.'+name,open?'1':'0');}catch(e){} paintHead(); };
+    clips.forEach(function(c){
+      if(!c||!c.url) return;
+      var row=document.createElement('div'); row.className='cliprow'+(seen[c.url]?'':' new');
+      var b=document.createElement('button'); b.type='button'; b.className='clip';
+      var when=''; try{ var d=new Date(c.at); when=d.toLocaleString('en-US',{timeZone:'America/Los_Angeles',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).toLowerCase(); }catch(e){}
+      b.innerHTML='<span class="dot"></span><span class="ti">'+esc(c.title||'clip')+'</span><span class="when">'+esc(when)+'</span>';
+      b.onclick=function(){
+        if(!seen[c.url]){ seen[c.url]=1; try{localStorage.setItem(key,JSON.stringify(seen));}catch(e){} row.classList.remove('new'); fresh=Math.max(0,fresh-1); paintHead(); }
+        openPinned({url:c.url,title:c.title||'',kind:'video'}, name);
+      };
+      row.appendChild(b);
+      if(c.id){ var a=document.createElement('a'); a.className='clipsave'; a.href='/api/drop/file/'+encodeURIComponent(c.id); a.textContent='save'; a.setAttribute('download',''); row.appendChild(a); }
+      list.appendChild(row);
+    });
+    wrap.appendChild(hd); wrap.appendChild(list);
+    head.appendChild(wrap);
+    pillRows.push(wrap);
   })();
   // Archive sits beside the chat's NAME, above the tab bar, and reads as plain
   // text rather than a button — it isn't a place to go, it's a thing you do
@@ -8426,6 +8951,9 @@ function openChat(name, keepScroll, focusId, noFetch){
   var curl=claudeUrlFor(name, list); openUrl=curl;   // renderMsg reads openUrl
   sec.appendChild(head);
   head.querySelector('.renamebtn').onclick=function(){ editName(name, head); };
+  Array.prototype.forEach.call(head.querySelectorAll('.chapbtn'), function(b){
+    b.onclick=function(){ jumpToChapter(name, +b.dataset.chap); };
+  });
 
   // Chat panel — the messages (newest at top) + archive control
   var chatPanel=document.createElement('div');
@@ -8735,7 +9263,8 @@ function openChat(name, keepScroll, focusId, noFetch){
   var mrows=[];
   var chaprows=[];
   var rendered=list.slice().reverse();
-  var plan=chapterPlan(rendered, ((chats[name]||{}).chapters)||[]);
+  var chaps=((chats[name]||{}).chapters)||[];
+  var plan=chapterPlan(rendered, chaps);
   // The dribble merge (see mergePlan): a run of replies is ONE row, drawn
   // from the newest with the whole run as its parts, oldest first.
   var merge=mergePlan(rendered, plan);
@@ -8744,6 +9273,8 @@ function openChat(name, keepScroll, focusId, noFetch){
     if(plan[i]){
       var h=document.createElement('div');
       h.className='chapdiv';
+      // The heading's chapter index is what the name line's buttons aim at.
+      h.dataset.chap=String(chapterAt(chaps, (m&&m.created)||''));
       h.innerHTML='<span>'+esc(plan[i])+'</span>';
       mlist.appendChild(h);
       chaprows.push(h);
@@ -8752,8 +9283,9 @@ function openChat(name, keepScroll, focusId, noFetch){
     var row=renderMsg(parts.length>1 ? Object.assign({}, m, {parts:parts}) : m);
     // a run stays open if ANY of its turns was open before the rebuild
     if(parts.some(function(p){ return p.id&&wasOpen[p.id]; })) row.classList.add('open');
-    mrows.push({row:row, who:(m.from==='sophie'?'me':'claude'),
-      hay:(parts.map(function(p){ return (p.tldr||'')+' '+(p.text||''); }).join(' ')+' '+(m.from==='sophie'?'me':'claude')).toLowerCase()});
+    var mwho=msgWho(m);
+    mrows.push({row:row, who:mwho,
+      hay:(parts.map(function(p){ return (p.tldr||'')+' '+(p.text||''); }).join(' ')+' '+mwho).toLowerCase()});
     mlist.appendChild(row);
   });
   function applyMsgFilter(){
@@ -9402,6 +9934,12 @@ function focusMessage(name, id, noFetch){
   if(row){
     row.classList.add('open');
     var part=row.dataset.mid!==sid && row.querySelector('.m-part[data-mid="'+sid+'"]');
+    // a part she folded away is OPENED by the jump — landing on a collapsed
+    // reply is landing on nothing, and the jump is her asking for that turn
+    if(part && part.classList.contains('shut')){
+      part.classList.remove('shut'); delete partShut[sid];
+      var ph=part.querySelector('.m-partt'); if(ph) ph.setAttribute('aria-expanded','true');
+    }
     if(part) part.scrollIntoView({block:'center'}); else row.scrollIntoView({block:'center'});
     row.classList.add('flash');
     setTimeout(function(){ row.classList.remove('flash'); }, 2400);
@@ -9483,12 +10021,15 @@ function mkPagePill(getWin){
                    by:function(n){ b.scrollTop+=n; },
                    view:function(){ return b.clientHeight; },
                    full:function(){ return b.scrollHeight; },
-                   home:function(){ try{ b.scrollTo({top:0,behavior:'smooth'}); }catch(_){ b.scrollTop=0; } } };
+                   home:function(){ try{ b.scrollTo({top:0,behavior:'smooth'}); }catch(_){ b.scrollTop=0; } },
+                   end:function(){ var y=b.scrollHeight; try{ b.scrollTo({top:y,behavior:'smooth'}); }catch(_){ b.scrollTop=y; } } };
     return { top:function(){ return w.scrollY; },
              by:function(n){ try{ w.scrollBy(0,n); }catch(_){} },
              view:function(){ return w.innerHeight; },
              full:function(){ try{ return d.documentElement.scrollHeight; }catch(_){ return 0; } },
-             home:function(){ try{ w.scrollTo({top:0,behavior:'smooth'}); }catch(_){ try{ w.scrollTo(0,0); }catch(__){} } } };
+             home:function(){ try{ w.scrollTo({top:0,behavior:'smooth'}); }catch(_){ try{ w.scrollTo(0,0); }catch(__){} } },
+             end:function(){ var y=0; try{ y=d.documentElement.scrollHeight; }catch(_){}
+               try{ w.scrollTo({top:y,behavior:'smooth'}); }catch(_){ try{ w.scrollTo(0,y); }catch(__){} } } };
   }
   var I={
     up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
@@ -9508,9 +10049,17 @@ function mkPagePill(getWin){
   pill.innerHTML='<div class="vseg"><button class="ppt"></button><button class="ppm"></button><button class="ppb"></button></div><span class="pps"></span>'+
     '<button class="ptop" aria-label="Back to the top" title="Back to the top">'+
     '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+
-    '<path d="M5 4h14"/><path d="m18 14-6-6-6 6"/><path d="M12 8v12"/></svg></button>';
+    '<path d="M5 4h14"/><path d="m18 14-6-6-6 6"/><path d="M12 8v12"/></svg></button>'+
+    // AND TO THE BOTTOM (2026-09-13, Sophie, on a Compare page in the app:
+    // "why is there no scroll to bottom arrow"). pill.py grew `#pbot` on
+    // 2026-09-03 and this parent copy — the pill she taps on every Compare
+    // page inside the app — never did, so the jump existed everywhere except
+    // in the app. Class only, no id: chats.html's own pill owns `#pbot`.
+    '<button class="ptop pbot" aria-label="To the bottom" title="To the bottom">'+
+    '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+
+    '<path d="M12 4v12"/><path d="m6 10 6 6 6-6"/><path d="M5 20h14"/></svg></button>';
   var vt=pill.querySelector('.ppt'), vm=pill.querySelector('.ppm'), vb=pill.querySelector('.ppb'), sp=pill.querySelector('.pps');
-  var pt=pill.querySelector('.ptop');
+  var pt=pill.querySelector('.ptop'), pb=pill.querySelector('.pbot');
   function paint(){
     if(playing){ vt.innerHTML=I.minus; vb.innerHTML=I.plus; vm.innerHTML=I.pause; vm.classList.add('on');
       vt.classList.toggle('dim',si===0); vb.classList.toggle('dim',si===SPEEDS.length-1);
@@ -9549,11 +10098,38 @@ function mkPagePill(getWin){
   // the jump home: stop first, or the running scroll walks the page back down
   // under the animation (the shared pill's own rule)
   pt.onclick=function(){ stop(); var t=tgt(); if(t) t.home(); };
+  pb.onclick=function(){ stop(); var t=tgt(); if(t) t.end(); };
   // PTOP_AT is 150 here as in pill.py — pinned by test-back-to-top.js.
-  function syncTop(){ var t=tgt(); if(!t){ pt.classList.remove('on'); return; }
-    try{ pt.classList.toggle('on', t.top() > 150 && t.full() > t.view()+4);
-    }catch(_){ pt.classList.remove('on'); } }
+  function syncTop(){ var t=tgt(); if(!t){ pt.classList.remove('on'); pb.classList.remove('on'); return; }
+    try{ var can=t.full() > t.view()+4;
+      pt.classList.toggle('on', t.top() > 150 && can);
+      pb.classList.toggle('on', t.full() - (t.top()+t.view()) > 150 && can);
+    }catch(_){ pt.classList.remove('on'); pb.classList.remove('on'); } }
   paint(); syncTop(); pill._stop=stop;
+  // THE RAIL FOLLOWS THE VISUAL VIEWPORT (2026-09-13) — this parent-page copy
+  // drifts with the keyboard exactly as the injected pill does, so it takes
+  // the same correction; the listener takes itself off once the pill is
+  // detached, or opening pages would leave one behind per open.
+  var _vvOff=0;
+  function placeRail(){
+    if(!pill.isConnected){
+      if(window.visualViewport){
+        window.visualViewport.removeEventListener('resize', placeRail);
+        window.visualViewport.removeEventListener('scroll', placeRail);
+      }
+      return;
+    }
+    var vv=window.visualViewport;
+    var off=vv ? Math.max(0, Math.round(vv.offsetTop||0)) : 0;
+    if(off===_vvOff) return;
+    _vvOff=off;
+    if(off) pill.style.setProperty('--vvtop', off+'px'); else pill.style.removeProperty('--vvtop');
+  }
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', placeRail, {passive:true});
+    window.visualViewport.addEventListener('scroll', placeRail, {passive:true});
+  }
+  placeRail();
   pill._playing=function(){ return playing; };
   pill._topSync=syncTop;                                 // openPage wires the iframe's scroll to it
   pill._tap=function(){ playing? stop() : start(1); };   // tap the page to toggle
@@ -9653,6 +10229,38 @@ function openPage(p){
           return;
         }
       }catch(_){}
+      // THE SECOND NET — A SERVED PAGE THAT ARRIVED WITH ITS OWN PILL
+      // (2026-09-11, the double pill on the ward's scenes index). The
+      // interceptor below rewrites a page-to-page link onto the embed url,
+      // but a navigation it cannot see (a script setting location, a form,
+      // a page cached from before the rewrite) still lands a page here that
+      // the server dressed for a browser: `?embed=1` missing, so pill-inject
+      // ran inside the frame and its capsule sits under this viewer's own.
+      // Two pills in one corner, and a tap on the frame's ▶ drives a
+      // scroller this viewer cannot stop. So: stop the frame's own scroller
+      // (its __scrollStop, before ours replaces it), HIDE its capsule and
+      // arrows — a stylesheet with !important, never a removal: the injected
+      // script keeps painting those nodes (a stop repaints the glyphs, its
+      // ResizeObserver flips the capsule's inline display) and a node taken
+      // out of the document throws inside it — and blank the hooks page code
+      // might still call, exactly the way pill-inject's own opt-out branch
+      // does. THIS viewer's pill is the one pill for whatever the frame shows.
+      try{
+        if(doc && doc.getElementById('vtop') && !doc.getElementById('pv-onepill')){
+          try{ if(typeof w.__scrollStop==='function') w.__scrollStop(); }catch(_){}
+          var st=doc.createElement('style'); st.id='pv-onepill';
+          st.textContent='body > .float,#spd,#ptop,#pbot{display:none !important;}';
+          (doc.head||doc.documentElement).appendChild(st);
+          w.__scrollTap=function(){}; w.__pillSync=function(){}; w.__pillTopSync=function(){};
+        }
+        // …and the bar names the page she is now on, not the one she left
+        var seg=lp.slice('/api/chatfeed/page/'.length).split('?')[0].split('#')[0];
+        var onOther=false; try{ onOther=decodeURIComponent(seg)!==String(p.id); }catch(_){ onOther=seg!==String(p.id); }
+        if(bar && onOther){
+          var tt=(doc && doc.title ? String(doc.title).trim() : '')||p.title;
+          var tel=bar.querySelector('.pv-title'); if(tel) tel.textContent=tt;
+        }
+      }catch(_){}
       // THE INTERCEPTOR: catch the link CLICK itself, before any navigation,
       // so the nested app never boots at all. Capture phase on the page's
       // document — it runs before the page's own handlers (the brief's
@@ -9665,7 +10273,35 @@ function openPage(p){
         if(a.target==='_blank' || /^(mailto:|tel:)/i.test(a.getAttribute('href')||'')) return;
         var u; try{ u=new URL(a.href); }catch(_){ return; }
         if(u.origin!==location.origin) return;
-        if(u.pathname.indexOf('/api/chatfeed/page/')===0) return;
+        // A LINK TO ANOTHER SERVED PAGE STAYS IN THE FRAME — AS AN EMBED
+        // (2026-09-11, Sophie: "pill is double pill in some places · it was
+        // in light blue 3d button ward etc · y dies that happen always"). A
+        // scenes-index key is `/api/chatfeed/page/<belt>#j-<key>`, and this
+        // interceptor let it load in place as written — WITHOUT `?embed=1`,
+        // so the server injected its own pill into the belt page while this
+        // viewer's pill stayed in the corner above it: two pills, every time,
+        // on every page-to-page link. The link is rewritten to the embed url
+        // the viewer itself opens pages with (the hash rides along, so the
+        // key still lands on its scene). A hash-only hop on the page she is
+        // already on is left to the browser — no reload, just the scroll.
+        if(u.pathname.indexOf('/api/chatfeed/page/')===0){
+          var here=null; try{ here=w&&w.location; }catch(_){}
+          if(here && here.pathname===u.pathname && u.hash){
+            // the browser would still RELOAD here — the link carries no
+            // `?embed=1`, so its search differs from the frame's — so the
+            // hop is made on the frame's own url: same document, just the
+            // scroll to the anchor
+            e.preventDefault(); e.stopPropagation();
+            try{ w.location.hash=u.hash; }catch(_){}
+            return;
+          }
+          if(u.searchParams.get('embed')==='1') return;
+          e.preventDefault(); e.stopPropagation();
+          u.searchParams.set('embed','1');
+          if(TOKEN && !u.searchParams.get('token')) u.searchParams.set('token',TOKEN);
+          try{ w.location.href=u.href; }catch(_){ frame.src=u.href; }
+          return;
+        }
         e.preventDefault(); e.stopPropagation();
         var chat=u.searchParams.get('chat');
         v.__close();
@@ -10694,6 +11330,23 @@ var triNext = window.triNext || function (el, count, ev, cur) {
 // chatfeed.js) are UNTOUCHED and still lead with `all`, because `pickOne`
 // there leans on exactly that index-0 rule to widen an unknown value: this is
 // a display ORDER, and the values on the wire are the same strings.
+// WHOSE MESSAGE IS THIS — the thread filter's twin of the server's `whoOf`
+// (chatfeed.js), and it has to agree with it or the same word narrows to two
+// different piles on two screens. A compaction summary is stamped
+// `from:'sophie'` because the harness hands it over as a user turn, and it is
+// neither hers nor a reply — `auto`, so it leaves the moment she picks a side
+// and stays while she has not. The regex is the harness's own opening line,
+// ANCHORED, so a message merely talking about compaction is untouched; it is
+// COMPACTED in questions.js and the two are pinned equal by the test.
+function msgWho(m){
+  // The regex lives INSIDE the function on purpose: this is a hoisted
+  // declaration called from renderThread, two thousand lines above, and a
+  // `var` beside it would still be undefined if anything ever calls it before
+  // this line runs.
+  if(/^\s*\[?\s*this session is being continued from a previous conversation/i
+     .test(String((m&&m.text)||''))) return 'auto';
+  return (m&&m.from)==='sophie' ? 'me' : 'claude';
+}
 var FILTERS = {
   who: { key:'who', kind:'tri', param:'from', vals:['me','all','claude'], neutral:'all',
          words:['Mine','Everyone','Claude\u2019s'],

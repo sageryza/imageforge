@@ -12,16 +12,25 @@
                                        line each; tap one to open it
        SELECT                          pick several cards, delete them together
                                        (two taps on Delete — never a confirm())
-     TWO LEVELS, one page: the shelf of stories, and one story open. The
-     shelf is READ-ONLY on purpose (Sophie: "it's for chats to fill
-     themselves… I just wanna see a list of stories and I can click on one"):
-     a chat POSTs the dictation to /api/timeline/stories and the story
-     appears here; nothing on this page creates one.
+     TWO LEVELS, one page: the shelf of stories, and one story open. CHATS
+     STILL FILL THE SHELF (Sophie: "it's for chats to fill themselves… I just
+     wanna see a list of stories and I can click on one") — a chat POSTs the
+     dictation to /api/timeline/stories and the story appears here — AND SINCE
+     2026-09-13 she can start one herself: "make it possible to add my own new
+     story". New story takes a name and, if she has one, a dictation pasted or
+     dictated straight in (the SAME parseStory the chats' route runs, so one
+     code path); with the box empty it just opens an empty story and the + in
+     the gap is how the moments go in.
      window.__navBack takes the native chevron back to the shelf.
      Nothing here spends money — there is no model call in this tool. -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Story Timeline</title>
+<!-- THE CARET STAYS WHERE SHE CAN SEE IT (2026-09-08) — a box fitted to its
+     own words never scrolls itself, so the line she is typing can end up under
+     the keyboard. The module wires itself to every text box and needs no call.
+     Full reasoning in caretkeep.js. -->
+<script src="/caretkeep.js"></script>
 <link rel="stylesheet" href="/tool.css">
 <style>
   /* ---- the shelf ---- */
@@ -32,6 +41,20 @@
   .srow .st { flex:1; font-size:15px; font-weight:600; min-width:0;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .srow .sn { font-size:12px; color:var(--dim); flex:0 0 auto; }
+
+  /* ---- her own new story ---- */
+  /* the hand-off door is a REAL link (on her phone it opens the app on that
+     tool), so it needs the underline off to read as the button it wears */
+  a.btn { text-decoration:none; }
+  .newbox { margin-top:12px; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--r); padding:12px; }
+  .nlab { display:block; font:700 9px/1 -apple-system,'Helvetica Neue',sans-serif;
+    letter-spacing:1.6px; text-transform:uppercase; color:var(--dim); padding:0 0 5px; }
+  .nlab + input, .nlab + textarea { width:100%; display:block; margin:0 0 12px;
+    font:16px/1.42 inherit;   /* 16 or iOS zooms the page on a tap */
+    color:var(--ink); background:var(--bg);
+    border:1px solid var(--border); border-radius:var(--r); padding:8px 9px; resize:vertical; }
+  .nlab + input:focus, .nlab + textarea:focus { outline:none; border-color:var(--accent); }
 
   /* ---- one story ---- */
   .tl { list-style:none; margin:2px 0 0; padding:0; }
@@ -153,8 +176,10 @@
   <button id="help" aria-label="what this does">?</button>
 </header>
 <div class="helpcard" id="helpcard" hidden>
-  <b>Chats fill this shelf.</b> Dictate a story's moments to any chat and it
-  files them here; you put them in order.
+  <b>Chats fill this shelf</b> — dictate a story's moments to any chat and it
+  files them here — and <b>New story</b> starts one yourself: a name, and your
+  moments one to a line if you have them already. Either way you put them in
+  order here.
   <br><br>
   <b>Type a number</b> to send a moment to that place. Single arrows move it one
   step, double ones send it all the way. In the gap between two moments: join
@@ -177,8 +202,26 @@
        the paste screen shipped first and Sophie cut it ("it's for chats to
        fill themselves… I just wanna see a list of stories"). -->
   <section id="lvShelf">
+    <div class="row" style="margin-top:2px">
+      <button class="btn" id="newb" type="button">New story</button>
+    </div>
+    <!-- HER OWN NEW STORY. Boxes ship EMPTY (the house rule) — the two labels
+         above them are what say what goes in. The moments box is optional:
+         empty makes an empty story and the + in the gap adds the first
+         moment. -->
+    <div class="newbox" id="newbox" hidden>
+      <label class="nlab" for="ntitle">NAME</label>
+      <input type="text" id="ntitle">
+      <label class="nlab" for="ntext">MOMENTS &middot; ONE TO A LINE</label>
+      <textarea id="ntext" rows="6"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="ncreate" type="button">Create</button>
+        <button class="btn ghost" id="ncancel" type="button">Cancel</button>
+        <span class="saved" id="nsaid"></span>
+      </div>
+    </div>
     <div class="shelf" id="shelf"></div>
-    <div class="note" id="shelfNote" hidden>Nothing here yet — a chat fills this from a story you dictate to it.</div>
+    <div class="note" id="shelfNote" hidden>Nothing here yet — tap New story, or dictate one to a chat.</div>
   </section>
 
   <!-- LEVEL 2 — one story -->
@@ -196,6 +239,9 @@
       <span class="selcount" id="selcount"></span>
       <button type="button" id="sel-del" class="selword del" aria-label="Delete the picked ones">Delete</button>
       <button type="button" id="sel-done" class="selword">Done</button>
+    </div>
+    <div class="row" style="margin-top:2px">
+      <a class="btn ghost" id="tofoot" href="/footage" hidden>Send to Footage</a>
     </div>
     <ol class="tl" id="tl"></ol>
   </section>
@@ -256,6 +302,36 @@
       $('shelfNote').hidden = (d.stories || []).length > 0;
     }).catch(function (e) { $('shelfNote').hidden = false; $('shelfNote').textContent = String(e.message || e); });
   }
+
+  /* ---- HER OWN NEW STORY. It goes through the same POST /stories a chat
+     uses, so her paste is parsed by the one parser (an ALL-CAPS line opens a
+     sequence) and nothing new can drift from it. An empty box is a normal
+     answer: the story opens with just the gap's + in it. ---- */
+  function showNew(on) {
+    $('newbox').hidden = !on;
+    $('newb').hidden = on;
+    $('nsaid').textContent = '';
+    if (on) { $('ntitle').value = ''; $('ntext').value = ''; $('ntitle').focus(); }
+  }
+  $('newb').onclick = function () { showNew(true); };
+  $('ncancel').onclick = function () { showNew(false); };
+  $('ncreate').onclick = function () {
+    var b = $('ncreate');
+    if (b.disabled) return;                       // one tap is one story
+    b.disabled = true;
+    $('nsaid').textContent = 'making it…';
+    api('/stories', {
+      method: 'POST',
+      body: JSON.stringify({ title: $('ntitle').value, text: $('ntext').value }),
+    }).then(function (s) {
+      b.disabled = false;
+      showNew(false);
+      open(s.id);
+    }).catch(function (e) {
+      b.disabled = false;                          // her words stay in the box
+      $('nsaid').textContent = String(e.message || e);
+    });
+  };
 
   /* ------------------------------------------------------------ one story */
   var ID = null, MOM = {}, UNITS = [], NODES = {}, opened = {}, LONG = 3;   // a unit of this many or more folds (Sophie, 2026-08-25: was 5)
@@ -361,9 +437,62 @@
     var rows = [];
     UNITS.forEach(function (g, i) { rows.push(gapRow(i, i > 0)); rows.push(shell(g, i, UNITS.length)); });
     rows.push(gapRow(UNITS.length, false));
+    // A story she just started has nothing but the gap's + in it, which is a
+    // 15px mark on an empty screen — so it gets one line saying what to tap.
+    if (!UNITS.length) {
+      var e = document.createElement('li');
+      e.className = 'note'; e.style.margin = '8px 0 0';
+      e.textContent = 'Empty — tap + to write the first moment.';
+      rows.push(e);
+    }
     var tl = $('tl');
     tl.replaceChildren.apply(tl, rows);
+    paintFoot();
   }
+
+  /* ---- SEND TO FOOTAGE: one connected part is one block (2026-09-13, Sophie:
+     "how do i copy a story to footage · each connected part its own section ·
+     lines breaks back") ----
+     The Footage page is served from this same origin, so the hand-off needs no
+     route and no doc: it is ONE localStorage key, `footage_handoff`, which that
+     page CONSUMES — reads it, applies it, removes it — and the link is a real
+     link, so on her phone it opens the app on that tool.
+
+     A UNIT IS A BLOCK. A unit is what she joined together here, so it is the
+     part that belongs in one clip; its moments ride inside it ONE TO A LINE
+     ("lines breaks back"), never run together into a paragraph. NOTHING IS
+     SENT — the star on the Footage page is still her tap, and this only fills
+     the box, so a story that needs editing over there is edited over there.
+     The button is drawn only once the story has something to send. */
+  function footBlocks() {
+    return UNITS.map(function (g) {
+      return g.map(function (id) { return ((MOM[id] || {}).text || '').trim(); })
+        .filter(Boolean).join('\n');
+    }).filter(Boolean);
+  }
+  function paintFoot() {
+    var b = $('tofoot');
+    if (!b) return;
+    b.hidden = !footBlocks().length;
+  }
+  (function () {
+    var b = $('tofoot');
+    if (!b) return;
+    b.addEventListener('click', function () {
+      var bl = footBlocks();
+      if (!bl.length) return;
+      try {
+        localStorage.setItem('footage_handoff', JSON.stringify({
+          prompt: bl[0],            // one scene is what an older Footage page reads
+          blocks: bl,
+          from: 'timeline',
+          title: $('title').value || 'A story',
+          at: Date.now(),
+        }));
+      } catch (e) {}
+      // the link goes by itself
+    });
+  })();
 
   /* ---- saving: one debounced PUT of what she owns ---- */
   var saveT = null;
@@ -396,6 +525,33 @@
   function mint() { return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
   /* ---- the editor ---- */
+  // THE CARD IS PUT ABOVE THE KEYBOARD BEFORE THE KEYBOARD EXISTS (2026-09-13,
+  // Sophie: "the keyboard popping up when i click the bottom moments makes it
+  // impossible to write in them"). A moment at the BOTTOM of the story has
+  // nothing under it, so once the keyboard is up there is no page left to
+  // scroll it clear — the editor opens under the keyboard and stays there.
+  // caretkeep.js corrects a caret AFTER focus by borrowing room, and in
+  // headless Chromium that lifts this very card; on her phone it did not. So
+  // the page does not depend on it: before the box takes focus (which is what
+  // brings the keyboard), the card is scrolled to the top of the screen and
+  // the list borrows the room that scroll needs. A card already sitting in
+  // the top part of the screen is left exactly where it is.
+  var KB_GUESS = Math.min(360, Math.round(window.innerHeight * 0.46));   // caretkeep's own figure
+  function lift(c) {
+    var r = c.getBoundingClientRect();
+    var head = document.querySelector('.head');
+    var top = (head ? head.getBoundingClientRect().bottom : 0) + 8;
+    var safe = window.innerHeight - KB_GUESS - 26;
+    if (r.top >= top && r.bottom <= safe) return;
+    var want = Math.max(0, window.scrollY + r.top - top);
+    var tl = $('tl');
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    if (want > max) tl.style.paddingBottom = (parseFloat(tl.style.paddingBottom) || 0) + (want - max) + 'px';
+    window.scrollTo(0, want);                   // the window only, never scrollIntoView
+  }
+  function giveRoomBack() {
+    if (!$('tl').querySelector('.mcard.editing')) $('tl').style.paddingBottom = '';
+  }
   function openEditor(c) {
     if (c.querySelector('.edit')) return;
     var wrap = document.createElement('div');
@@ -408,6 +564,7 @@
     c.appendChild(wrap);
     c.classList.add('editing');
     box.style.height = Math.max(56, box.scrollHeight + 4) + 'px';
+    lift(c);
     box.focus();
     box.setSelectionRange(box.value.length, box.value.length);
   }
@@ -425,6 +582,9 @@
     }
     c.classList.remove('editing');
     wrap.remove();
+    // the borrowed room goes back once the keyboard has gone — shortening the
+    // page under her thumb mid-blur jumps the words she is reading
+    setTimeout(giveRoomBack, 400);
   }
   function closeAll(except) {
     Array.prototype.forEach.call($('tl').querySelectorAll('.mcard.editing'), function (c) {
@@ -437,8 +597,11 @@
     MOM[id] = { text: '' };
     UNITS.splice(at, 0, [id]);
     paint(); save();
+    // openEditor lifts the card itself; a scrollIntoView({block:'center'})
+    // here used to put a new bottom moment at the middle of the screen —
+    // which is exactly where the keyboard's top edge lands
     var c = NODES[id];
-    if (c) { openEditor(c); c.scrollIntoView({ block: 'center' }); }
+    if (c) openEditor(c);
   }
 
   function divide(c) {

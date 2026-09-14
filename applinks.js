@@ -51,6 +51,7 @@ const LINKS = [
   ['/gallery', 'gallery'],
   ['/playground', 'playground'],
   ['/freeform', 'freeform'],
+  ['/footage', 'footage'],
   ['/vector', 'vector'],
   ['/test', 'test'],
   ['/review', 'review'],
@@ -68,6 +69,7 @@ const LINKS = [
   ['/clips', 'chunking'],          // the alias the Chunking page also answers to
   ['/assembly', 'assembly'],
   ['/filmeditor', 'filmeditor'],
+  ['/stitch', 'stitch'],
   ['/dump', 'dump'],
   ['/blog', 'blog'],
   ['/studio', 'product'],

@@ -1,0 +1,2217 @@
+[
+ {
+  "key": "8b",
+  "title": "The dining room — face insert",
+  "secs": 4,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nsetting: mental hospital.\n\ncut to her face as she talks.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "9b",
+  "title": "B-roll — b-roll: the halls, the pajamas rolled up",
+  "secs": 8,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the meds clip (the jamaican nurse)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/f6138a818f436df0ce0cf4591c62f434.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nthe nurse: the jamaican nurse in [Video2].\n\nsetting: mental hospital.\n\nsophie walking the halls by herself, a nurse spontaneously coming up and rolling up her pajamas",
+  "mine": "the header lines"
+ },
+ {
+  "key": "michael-aud",
+  "title": "Michael — the 4s reference clip off the cafeteria",
+  "secs": 4,
+  "status": "landed",
+  "videos": [
+   [
+    "the cafeteria (his origin, 25s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0486bbb4b8d57fd7bfe0ab616167b3c1.mp4"
+   ]
+  ],
+  "images": [],
+  "prompt": "Michael, the boy in [Video1], walks down the hallway toward the camera. he wears the blue hospital pajamas.\n\nsetting: mental hospital.",
+  "mine": "all of it (a reference clip)"
+ },
+ {
+  "key": "15a",
+  "title": "Dinner with Michael — the table, the spoon, pocketing",
+  "secs": 15,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Michael's reference clip (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/fa846543c4c57f8c4178a4d79a126156.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nMichael: the boy in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\nMichael joins her table for dinner. They are having roast beef, mashed potatoes and soggy green beans. The plate perspires from the lid which kept the food warm in its cart before it was delivered. On the edge of the tray is a carton of milk, a pat of butter in a mini plastic container, and a bread roll wrapped in plastic. The dinner is fine but she finds she isn’t very hungry. She holds a spoon of mashed potatoes close to her lips, inhales, wrinkles her nose, then replaces it in the pile, smoothing the hole it’s left with the back of her plastic spoon.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "15b",
+  "title": "Dinner with Michael — she drops them in her room",
+  "secs": 5,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Michael's reference clip (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/fa846543c4c57f8c4178a4d79a126156.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nMichael: the boy in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\nShe saves the butter pat the salt and pepper packets from the cutlery pack and the milk which she hasn’t opened, and puts them in her room when no one’s looking.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "16",
+  "title": "The snack table — the snack table",
+  "secs": 20,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nsetting: mental hospital.\n\nAfter dinner there are snacks: a cup of yogurt, a banana, graham crackers. A young hispanic girl with dark locks which reach down her back helps a small Mexican man with a pocket full of keys unload a table and lay each of the things out. As they work they chat to each other in Spanish. When they are finished the patients line up in a sea of blue pajamas to pick which items they’d like. They are allowed two snacks each, but many of them sneak all three, and some take multiples of the same item, slipping them into the waistband of their pants, or hiding them behind their backs. When it is Sophie’s turn to take food she simply stares at all of it, then walks away without taking anything.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "17a",
+  "title": "The poem, and the walk after — the poem at breakfast",
+  "secs": 20,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Michael's reference clip (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/fa846543c4c57f8c4178a4d79a126156.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nMichael: the boy in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\n“I wrote you a poem” says Michael as they make their way into the dining hall the next morning. He unfolds a napkin from the front pocket of his shirt and reads aloud:\n\n“My moonbeam, my sweet sunshine, oh how dark and crowded this place was before you came, oh how light and happy it is now that you’re here.”\n\n“*Thanks*, Michael,” says Sophie, “That’s *very* sweet.” She smiles kindly at him, patting his hand which is laid out on the table. Michael refolds the napkin into his pocket, then beams at her.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "17b",
+  "title": "The poem, and the walk after — the walk, the drawer, his speech",
+  "secs": 15,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Michael's reference clip (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/fa846543c4c57f8c4178a4d79a126156.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nMichael: the boy in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\nThey go for a walk again after they’ve finished eating. When they get to her room, Sophie takes the butter pat etc she saved from breakfast out of her front pocket and closes it carefully into a drawer in her room.\n\n“You know Sophie, before I met you I wanted so badly to leave; it was all I could think of. But now that you’re here I can’t think of any place I’d rather be.”",
+  "mine": "the header lines"
+ },
+ {
+  "key": "21",
+  "title": "\"It just made me sluggish\" — sluggish, the pill on the desk, the orange",
+  "secs": 20,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the meds clip (the jamaican nurse)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/f6138a818f436df0ce0cf4591c62f434.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nthe nurse: the jamaican nurse in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\n“It just made me sluggish and my thoughts were unclear,” says Sophie the next morning to the nurse who has once again brought her two cups - one with water and one with a pill.\n\n“Well, at least you gave it a try” she says “If you decide to take the pill it’ll be right here.” She leaves it on the desk and after she leaves the room Sophie stares at it, then pushes the tissue box in front of it so it’s out of her line of vision. She leans her head back against her pillow, then takes the orange that is on her night table, presses one long fingernail into it’s pristine back, and begins to peel.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "22a",
+  "title": "The assistant: \"we're going to release you\" — we're going to release you",
+  "secs": 30,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the doctor and the assistant (hall b-roll, head on)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2d26ca4e4f944ccdd43772e5b1184885.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nthe assistant: the woman with the clipboard in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\nA little later the doctor’s assistant appears at her doorway, clipboard in hand.\n\n“We can’t find anything wrong with you. We’re going to release you.”\n\n“Ok,” says Sophie, shrugging. She was excited to tell the other residents who would be jealous of her for getting out so quickly.\n\n“We just need to make a plan. Do you have a place you might be able to go to after you leave here?” asks the assistant\n\n“I was living with my friend Stuart and his roommates Matt and Alex” she replies. “But I don’t know if they’ll let me live there now that I’ve been gone for so long without telling them where I went. I haven’t even paid rent. I suppose I could stay with my friend Michelle but I don’t think I have her number…” she trails off.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "22b",
+  "title": "The assistant: \"we're going to release you\" — Debra backs out — planning ability",
+  "secs": 20,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the doctor and the assistant (hall b-roll, head on)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2d26ca4e4f944ccdd43772e5b1184885.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nthe assistant: the woman with the clipboard in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\nDebra starts to look worried. She picks herself up off of the bed and starts backing out of the room, talking rather quickly.\n\n“You seem to be having some difficulty with making plans. We need to work on your planning ability,” she says gently, picking herself up from the solitary chair in her room and backing her way out the door, with her clipboard hugged to her chest. “Making a plan is very important Sophie. You’re going to have to have one if you want to get out of this ward.”",
+  "mine": "the header lines"
+ },
+ {
+  "key": "mary-aud",
+  "title": "Nurse Mary + Juanita — the audition",
+  "secs": 4,
+  "status": "needs your words",
+  "videos": [],
+  "images": [],
+  "prompt": "",
+  "mine": "needs your description"
+ },
+ {
+  "key": "23a",
+  "title": "The sculptures gone from the wall — the montage: hiding food, tape sculptures",
+  "secs": 15,
+  "status": "waits for: Nurse Mary + Juanita's audition",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Nurse Mary + Juanita's audition",
+    null
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nNurse Mary and Juanita the cleaning lady: the two women in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\nOver the next few days, Sophie spends much of her time hiding things from her tray in her shirt pockets and not eating anything. She walks with Michael everyday and she finds out he is leaving in just a few short days. At night she uses her last remaining pieces of masking tape to construct elaborate sculptures and adhere them to the wall with haphazard contraptions formed from all the things that come on her cart during meals.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "23b",
+  "title": "The sculptures gone from the wall — where did my sculptures go / esta es basura",
+  "secs": 15,
+  "status": "waits for: Nurse Mary + Juanita's audition",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Nurse Mary + Juanita's audition",
+    null
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nNurse Mary and Juanita the cleaning lady: the two women in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\nOne day she walks into her room and notices her sculptures missing from the wall.\n\n“Where did all my sculptures go?”\n\n“esta es basura” the woman it is trash.\n\n“They’re *not* trash. They’re *art.* And you’re a horrible person for throwing them away without telling me.” Sophie turns on her heel and marches back to her room. Carefully she plucks everything out of the trash can where it has been carelessly discarded.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "23c",
+  "title": "The sculptures gone from the wall — Mary and Juanita: genius, the city, the drawer",
+  "secs": 30,
+  "status": "waits for: Nurse Mary + Juanita's audition",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Nurse Mary + Juanita's audition",
+    null
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nNurse Mary and Juanita the cleaning lady: the two women in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\nJust as she is putting the finishing touches, Nurse Mary and a Mexican cleaning lady appear in her doorway.\n\n“No. This is *trash.* Juanita is going to clean everything up for you.” Nurse Mary disappears into the hallway and Sophie looks panic-stricken and speedwalks back to her room.\n\nspoons are broken into pieces, glued to the wall with masking tape. She’s taken the wrapping from a plastic knife and draped it in such a way that a small mess of salt packets hang from it. Each has been adorned with a blurb from the calendar provided with her meal menu every morning. “1:30 therapeutic music group.” says one serrated segment which has been separated carefully from its brothers without the use of scissors.\n\n“There.” The nurse points at the wall, looking back at the cleaning lady for disapproval.\n\n“She eez a genius!” whispers the cleaning lady “She eez makeeng...an entire city.” The cleaning lady looks at Sophie in wonder.\n\n“Yes, exactly what I was thinking,” says nurse Mary uncertainly. “Yes, but it *is* trash,” she says, walking over to her desk and pulling open the top drawer. A collection of carefully cleaned and dried half-and-half cups, salt packets and more blurbs from the calendar, all carefully torn along the edges.\n\n“But why do you make your room so messy?” asks the cleaning lady. Sophie giggles in spite of herself. “That’s what I made the...city...out of…” she closes the drawer.\n\n“You’re right. I’ll clean it up in a minute.”\n\n“Ok,” says the cleaning lady, and smiles at Sophie who beams back at her. Nurse Mary leaves without a backward glance.\n\nAs soon as they’re gone, Sophie pulls everything out of the drawer, wraps it in a spare uniform, and hides it under her bed.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "yolanda-aud",
+  "title": "Yolanda — the audition",
+  "secs": 4,
+  "status": "needs your words",
+  "videos": [],
+  "images": [],
+  "prompt": "",
+  "mine": "needs your description — the music-class Yolanda is not her"
+ },
+ {
+  "key": "24a",
+  "title": "Yolanda and the young male nurse — I uze to be so skeeny",
+  "secs": 15,
+  "status": "waits for: Yolanda's audition",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Yolanda's audition (from your description)",
+    null
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nYolanda: the woman in [Video2].\n\nsetting: mental hospital.\n\nYolanda is sitting on a chair talking to a young male nurse who is eager to sympathize, yet not quite listening. Her large bottom pushes it’s way through the back of the chair, and hangs over the side. She is Italian and her accent is apparent in her speech. “I uze to be so skeeny! I was beeautiful! My boyfriend, my beeautiful boyfriend, he uze to loove my body. But then it eez like this,” She gestures downwards, grabbing hold of a fold of skin and releasing it with dismay. Meanwhile the male nurse who is wearing a white shirt and white pants, a pen erect in his pocket, has been sitting at attention, nodding and murmuring at every word. Yolanda looks into the distance, only making eye contact now to make sure her point is understood.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "24b",
+  "title": "Yolanda and the young male nurse — the lithium speech",
+  "secs": 30,
+  "status": "waits for: Yolanda's audition",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Yolanda's audition (from your description)",
+    null
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nYolanda: the woman in [Video2].\n\nsetting: mental hospital.\n\n“They start geeving me de leetheum when I am only twenty years old. It turn my body like theese. Now they say I can be free but I need someone to come to my house and geev it to me once a week. When weel eet end?! I say ‘no!’ I don’t want anyone coming to my house, geeving me de leetheum.”",
+  "mine": "the header lines"
+ },
+ {
+  "key": "24c",
+  "title": "Yolanda and the young male nurse — the nurse's reply, the chair buckles",
+  "secs": 8,
+  "status": "waits for: Yolanda's audition",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Yolanda's audition (from your description)",
+    null
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nYolanda: the woman in [Video2].\n\nsetting: mental hospital.\n\nThe nurse nods and murmurs sympathetically. “I really hope your mood improves by the next time I see you,” he says, flashing a quick grin as he stands in his seat, the plastic folding chair buckling comically with the sudden lack of his weight. He makes a few notes on his clipboard, replaces the pen into his shirt pocket and strides off down the hallway.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "norbert-aud",
+  "title": "Mrs. Norbert — the 4s reference clip off the art class",
+  "secs": 4,
+  "status": "ready",
+  "videos": [
+   [
+    "the art class (her origin, 25s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/5d39cde4c324500a9da9aefdff9a3459.mp4"
+   ]
+  ],
+  "images": [],
+  "prompt": "the art teacher, the woman in [Video1], stands at the art table, talking.\n\nsetting: mental hospital. the art room in [Video1].",
+  "mine": "all of it (a reference clip)"
+ },
+ {
+  "key": "26",
+  "title": "Stealing the scissors B — scissors B — the hall, the drawer, all better",
+  "secs": 15,
+  "status": "waits for: Mrs. Norbert's audition",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Mrs. Norbert's audition",
+    null
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nMrs. Norbert, the art teacher: the woman in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\n\"I'm feeling sick,\" she says, getting up out of her chair and leaving the room. The teacher looks after her down the hall, watching until she is out of sight. As she walks back to her room, her grippy hospital socks slide on the linoelum floor and a smile plays at her lips. She places the scissors in the back of one of her drawers, then closes it and walks out of the room humming.\n\n\"All better,\" she says when she appears back in the art class and slides back into her seat.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "27",
+  "title": "The nurse finds the scissors — the nurse finds the scissors",
+  "secs": 15,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the meds clip (the jamaican nurse)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/f6138a818f436df0ce0cf4591c62f434.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nthe nurse: the jamaican nurse in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\nA nurse comes and knocks on the door.\n\n“Exactly where are they?” she says, when Sophie fails to come to the door, but the nurse opens it anyway.\n\n“Exactly where are what?” says Sophie, feigning innocense, but her body is blocking the drawers of her night table, and the hand that is behind her back fumbles for the drawer handle.\n\n“Mrs. Norbert tells me you took the scissors.”\n\n“Yes?” Sophie says uncertainly, and the nurse lunges for the drawers.\n\n“Here. Here they are,” she says, revealing the green neon plastic from inside her hand.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "office",
+  "title": "Doctor b-roll 2 — the office",
+  "secs": 4,
+  "status": "ready",
+  "videos": [
+   [
+    "intake A (25s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a59ab8130c2303616ed573c598bff00e.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "the two in the hall",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/4fe815caf2fc102bfef5e5d400d1ccd1.png"
+   ],
+   [
+    "the doctor in his chair",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8a4648e540fc7daf9f5b37f4cb2e9b08.png"
+   ]
+  ],
+  "prompt": "the doctor in [Video1] sits back in the black leather chair in [Image2], in his office. the woman with the clipboard in [Video1] stands by the door, clipboard in hand. they talk.\n\nshe wears the exact purple sweater and plaid skirt in [Image1]; he wears the lilac shirt and white coat in [Image1].\n\nsetting: mental hospital. the office in [Image2]: bare walls, the fluorescent ceiling light.",
+  "mine": "all of it (a reference clip)"
+ },
+ {
+  "key": "31",
+  "title": "Climax 3 — the verdict — through his grin, her on the ceiling",
+  "secs": 30,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the doctor and the assistant (hall b-roll, head on)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2d26ca4e4f944ccdd43772e5b1184885.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nDr. Grayson: the doctor in [Video2]. the assistant: the woman with the clipboard in [Video2].\n\nsetting: mental hospital.\n\n“Tomorrow?” she says, hopefully. Dr. Grayson’s arms are crossed over his chest and his face displays no emotion, only his eyebrows are slightly raised. “the next day?” she says, her cheeks puffing out a bit. “The day after that?” she says incredulously, her lip trembling.\n\n“You’re going to be here a *little* longer than that I’m afraid.” he says. “And if you aren’t able to follow the treatment procedure” he nods meaningfully at a bottle of pills on his desk, “we’ll be forced to get a judge to determine whether you’re mentally stable enough to be making your own decisions. And judging by your performance in class today I’m fairly certain I know what that decision’s going to be.” A malicious grin floats across his face and disappears in an instant. Sophie is no longer sitting in the chair across from him but floating somewhere in the center of the ceiling, her mouth wide with disbelief. “You can go now.” He says and her body floats out the door, barely managing to squeeze down enough to get under the door frame and continues floating through the hallway. The assistant follows her as she floats steadily to her room, her face still wide with shock.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "32",
+  "title": "Climax 4 — the float — you can go now, under the door, are you ok",
+  "secs": 15,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the doctor and the assistant (hall b-roll, head on)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2d26ca4e4f944ccdd43772e5b1184885.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nDr. Grayson: the doctor in [Video2]. the assistant: the woman with the clipboard in [Video2].\n\nsetting: mental hospital.\n\n“Are you ok?” says the assistant, whom Sophie ignores as she is far above her. “Are you ok?” she says again, over and over.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "33a",
+  "title": "Climax 5 — the mirror — psychotic episode",
+  "secs": 15,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the doctor and the assistant (hall b-roll, head on)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2d26ca4e4f944ccdd43772e5b1184885.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nthe assistant: the woman with the clipboard in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\nIn her room, she floats down to where the mirror is and looks into it, tugging at her hair. “I don’t know who I am anymore,” she whispers to herself. She turns around to face the assistant who is in her room. The assistant is right behind her. “You’re having a psychotic episode” she says confidently. “This is *very* normal.” she says.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "33b",
+  "title": "Climax 5 — the schizophrenia speech",
+  "secs": 25,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the doctor and the assistant (hall b-roll, head on)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2d26ca4e4f944ccdd43772e5b1184885.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1] — her face and hair only. she does NOT wear the clothes in [Video1]; she wears the blue hospital pajamas in [Image1], [Image2] and [Image3].\n\nthe assistant: the woman with the clipboard in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\nSchizophrenia typically sets in between the ages of 19-29. Now you’re 21, is that right?” Sophie nods, expressionless. “You have a long journey ahead of you filled with pain...but if you take your meds everyday and listen and do exactly what the doctor says, it might be possible for you to live a normal life, though perhaps not the normal that you’re used to.”",
+  "mine": "the header lines"
+ },
+ {
+  "key": "34",
+  "title": "Climax 6 — the breakdown in the hall",
+  "secs": 30,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the doctor and the assistant (hall b-roll, head on)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2d26ca4e4f944ccdd43772e5b1184885.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nthe assistant: the woman with the clipboard in [Video2].\n\nsetting: mental hospital.\n\nSophie leaves the room, the assistant trailing behind. Her eyes are welling with tears and she is still tearing at her hair. “I don’t know what to do anymore. I can’t do this anymore. I don’t understand what I’m supposed to do. I can’t do this anymore,” she repeats, her voice cracking midway through every word. “I don’t feel like myself anymore. I’m going crazy, this is exactly what I wanted.” The assistant whose been trailing her closely, nodding as she puts forth every word, pauses at the last sentence as though stung. “What you’ve always wanted?” “Yes,” says Sophie,” “I’ve always wanted to be crazy. I thought it would be so interesting to study my mind then.” she stops in the middle of the hallway. The assistant steps backwards, her auburn ponytail caught in itself and for once unkempt. She writes something down on her clipboard, then backs away slowly, without turning around.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "35",
+  "title": "Climax 7 — the phone — hi daddy",
+  "secs": 30,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nsetting: mental hospital.\n\nSophie goes to the nurses station and asks to use the phone. “I need to telephone my dad” she says in a fearful breathy voice that she can’t remember using before. The nurse hands her an old-fashioned telephone through the glass window. “Make it snappy,” she snaps, dialing “9” and then “1” on the pad. Sophie clutches the phone in her left hand, crouching out of sight of the nurse behind the window. She dials a number and then holds the phone to her ear. It rings once and then her own voice is heard over the answering machine, in a superficial baritone she says “Hey. This is Steve. Please leave a mesSophie.”\n\n“Hi daddy,” she says, looking at her surroundings wildly. “I don’t know what’s happening to me. I feel so strange all of a sudden - like I’ve never felt like this before. I need your help.” she pushes the receiver into its cradle and hands it back to the nurse without looking at her.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "ohara-aud",
+  "title": "Ms. O'Hara + her two nurses — the audition",
+  "secs": 4,
+  "status": "needs your words",
+  "videos": [],
+  "images": [],
+  "prompt": "",
+  "mine": "needs your description (the script: older, short brown hair in a wild mess, the wire helmet; a male nurse and a female nurse)"
+ },
+ {
+  "key": "36a",
+  "title": "Ms. O'Hara — strapping, the helmet, shock treatment again",
+  "secs": 25,
+  "status": "waits for: Ms. O'Hara's audition",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Ms. O'Hara's audition",
+    null
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nMs. O'Hara: the woman on the stretcher in [Video2]. the two nurses: the nurses in [Video2].\n\nsetting: mental hospital.\n\nSophie peeks through the doorway in her room, pausing to watch the commotion outside her door. There is an older woman who has short brown hair in a wild mess at the top of her head. She is adorned in the blue pajamas that all of the patients wear and she is holding her arms perfectly straight and still at her side while two nurses, one on either side, buckle the straps to the stretcher they are wheeling her on. On her head she wears a metal helmet with many little wires hanging off of it. The wires are red and blue and gold. “They say I have to get shock treatment again,” she says to no one in particular. “I don’t mind the treatment, I’m just worried about what it will do to my memory. The doctor said I might not remember everything once I’ve had it,” she says, looking worried indeed. She points her face up at one of the nurses so he is forced to make eye contact with her. “Yees.” he says encouragingly, “To help your miiind Ms. O’Hara. To help you stop having those visions.” he draws out the word mind as if she might not quite undersand if he doesn’t.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "36b",
+  "title": "Ms. O'Hara — ghosts and goblins, ready to be wheeled",
+  "secs": 25,
+  "status": "waits for: Ms. O'Hara's audition",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Ms. O'Hara's audition",
+    null
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nMs. O'Hara: the woman on the stretcher in [Video2]. the two nurses: the nurses in [Video2].\n\nsetting: mental hospital.\n\n“Oh yes,” she says, her face still screwed up with dread. “The world is a very dismal place, isn’t it? There are all these ghosts and goblins” she says, and her speech begins to waver and get faster at the same time, “and they’re always trying to get me!”\n\n“Shh Shh Ms. O’Hara. After your treatment, you’ll feel muuch better.” says the same male nurse. “Now we’ll just wheel you to the treatment room. Are you ready to be wheeled, Ms. O’Hara?” The woman nods, closing her eyes as they well with tears. She moves her hand to brush them away but it’s now fully strapped to the gurney and it simply falls limp at her side.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "37",
+  "title": "Walking beside the stretcher — walking beside the stretcher",
+  "secs": 15,
+  "status": "waits for: Ms. O'Hara's audition",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Ms. O'Hara's audition",
+    null
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nMs. O'Hara: the woman on the stretcher in [Video2]. the two nurses: the nurses in [Video2].\n\nsetting: mental hospital.\n\nSophie leaves her room as they begin wheeling her down the hallway, walking next to the stretcher as they wheel it down the hallway, turning her head sideways so she can look at the face of the woman which is screwed up in fear, a tear burrowing its way down the side of her face. “What are they doing to you?” says Sophie in a slight whisper, and the woman looks up in surprise.\n\n“Sophie! Be a good girl and go back to your room. There’s no use being in other people’s business,” says the female nurse who has yet to speak. Sophie stops walking next to the stretcher, looking onsadly as it disapears through the double doors at the end of the hallway.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "38a",
+  "title": "First meal in four days — first meal in four days",
+  "secs": 8,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nsetting: mental hospital.\n\nSophie eats her first meal in four days. It is the same meal they served on the night she arrived. She holds a bite of mashed potatoes close to her mouth, inhales, and brings her mouth forward to gobble it down as though she can’t help herself. She then proceeds to gobble the rest of her food down as well.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "38b",
+  "title": "First meal in four days — the shower",
+  "secs": 6,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nsetting: mental hospital.\n\nIn the shower in her room she let's the steam over take her skinny body, closing her eyes as the water washes over her.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "parents-aud",
+  "title": "The parents — the audition",
+  "secs": 4,
+  "status": "landed — yours to approve",
+  "videos": [],
+  "images": [],
+  "prompt": "Sophie's parents, both in their mid sixties, stride down the hallway toward the camera, looking positively stony.\n\nher father is wearing a suit complete with tie and jacket. he has slightly wild, curly grayish-white hair.\n\nher mother is wearing a maroon dress with flowers on it which goes past her knee. she has loose gray curls to just above her shoulders.\n\nsetting: mental hospital. a long ward hallway: white walls, fluorescent ceiling lights, linoleum floor.",
+  "mine": "'toward the camera' and the hallway line; the rest is the script + your description"
+ },
+ {
+  "key": "39a",
+  "title": "\"Your parents are here\" — the knock, the stride, the hug",
+  "secs": 10,
+  "status": "ready — parents from words",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nher parents, both in their mid sixties. her father has slightly wild, curly grayish-white hair. her mother has loose gray curls to just above her shoulders.\n\nthe nurse: a jamaican woman in a white blouse and a twill skirt.\n\nsetting: mental hospital.\n\nA nurse knocks at the door and says “Sophie! Your parents are here to see you” in a singsong voice. Sophie’s eyes open wide and a smile plays at her lips. She emerges sideways through the doorway in her room to find her parents striding towards her looking positively stony. Her father is wearing a suit complete with tie and jacket, her mother a maroon dress with flowers on it which goes past her knee. They both have gray hair. “Sophie!” they say when they see her, their voices wobbling and embrace her.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "39b",
+  "title": "\"Your parents are here\" — Mommy Daddy, the nurse breaks it up",
+  "secs": 10,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nher parents: the two people in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\n“Mommy! Daddy! Hi!, I didn’t know you were coming!” A nurse strides in to interrupt their hug. “Unfortunately,” she says, drawing out the word for effect, “visitors are allowed in the visiting room only.” She places her hand on her hip and taps her foot, waiting for them to comply.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "40a",
+  "title": "Parents at the dining table · Yolanda · \"you sounded so upset\" — I got your call… acting like I'm crazy",
+  "secs": 30,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nher parents: the two people in [Video2].\n\nsetting: mental hospital.\n\nThey sit at a table in the dining room. Yolanda is there too, shoveling two yogurts and three bread rolls down her throat, unwrapping as she goes. Sophie smiles at her parents who are seated on either side of her. She takes a hand from each of them and holds it on the table. Her dad looks at her oddly, appearing confused. “I got your call, Sophie - you seemed so upset. Your mother and I came at once.”\n\n“Oh,” says Sophie, looking wonderingly at them “Well that was nice of you but you didn’t have to come. I just wanted you to talk to the doctor on the phone. You see, he won’t let me leave. It’s so *weird* in here and everyone is acting like I’m *crazy*.” She let's go of their hands abruptly and her father screws up his face, trying to understand the situation.\n\n“You sounded so *upset* when you called” her father repeats, “Your mother and I got on a plane immediately…” he trails off unsure of herself in the face of her calm and collected demeanor.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "40b",
+  "title": "Parents at the dining table · Yolanda · \"you sounded so upset\" — mother's questions, her answer",
+  "secs": 30,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nher parents: the two people in [Video2].\n\nsetting: mental hospital.\n\nHer mother who has been staring intently, wide-eyed at her throughout her speech and continues to do so like a doe caught in headlights. Now she speaks, interrupting their confusing conversation with some motherly questions about her life here. “Can we see your room?” she says “What do you eat in here and what kinds of activities do you do?” she asks with curiosity, staring at Sophie pointedly in wait of her answer. Sophie just stares at her as though she’s gone mad.\n\n“I don't think you can see my room cause the nurse said we had to stay in here. As for what I eat, today we had roast beef and mashed potatoes and green beans. I haven’t been eating that much…” she trails off. “But we have lots of activities: we have art, we have music, and after dinner we watch a movie.”",
+  "mine": "the header lines"
+ },
+ {
+  "key": "40c",
+  "title": "Parents at the dining table · Yolanda · \"you sounded so upset\" — doesn't sound so bad / horrible in here",
+  "secs": 25,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nher parents: the two people in [Video2].\n\nsetting: mental hospital.\n\n“Well that doesn’t sound so bad,” she turns to her husband, “Now does it, Steve?”\n\n“I’m not...sure,” he starts to say, still sounding confused, staring at Sophie as though trying to figure out the key to what’s going on here.\n\n“But it’s horrible in here. Everyone’s mean and none of the patients talk to each other except to ask when they’re allowed to leave.”\n\n“That’s weird,” says her mother, barely listening. “Why don’t we ask the doctor whether they’ll let us see your room!” she says, her voice sounding bright and cheerful.\n\nNow Sophie looks about as confused as her father as they stare at each other across the table.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "41a",
+  "title": "The office with the parents — very unwell… the scissors… talented artist",
+  "secs": 30,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the doctor and the assistant (hall b-roll, head on)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2d26ca4e4f944ccdd43772e5b1184885.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nDr. Grayson: the doctor in [Video2]. the assistant: the woman with the clipboard in [Video2].\n\nher parents: the two people in [Video3].\n\nsetting: mental hospital.\n\nIt is crowded in his office when they meet with the doctor the next day. The assistant has brought in two more plastic folding chairs for her parents to sit on and she herself leans against the door, making notes on her clipboard which is perched in midair.\n\n“So you see,” the doctor is saying to her parents, “Your daughter is very unwell. She has been experiencing paranoid delusions and yesterday a nurse reported that she stole scissors from art class and hid them in a drawer in her room.” Her parents look at her with slight amusement.\n\nSophie is surprised to hear her father speak. His voice which is often, is now trying to sound impressive as though he’d like it if the doctor were very pleased with him.\n\n“Well. Sophie is a *very* talented artist.” her mother chimes in: “I’m sure she was just trying to make something in her room.” Her father continues. “Has she showed you her art website yet?” he asks, pointing at a computer which is on the desk in the room. “She has not,” Dr Grayson says grimly, “But I’m sure we’d be glad to see it, wouldn’t we Anne?” looking over at his assistant. “Mmhmm,” she says, looking up momentarily, then turning down to write more things on her clipboard.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "41b",
+  "title": "The office with the parents — the website, Wellesley/Wesleyan, late stage",
+  "secs": 30,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the doctor and the assistant (hall b-roll, head on)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2d26ca4e4f944ccdd43772e5b1184885.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nDr. Grayson: the doctor in [Video2]. the assistant: the woman with the clipboard in [Video2].\n\nher parents: the two people in [Video3].\n\nsetting: mental hospital.\n\nThe doctor pulls up a brightly colored website that immediately starts making noises: the sounds of people chewing. He clicks through a few pictures of paintings, looking nonplussed. “Mmhmm, she’s certainly very talented,” he says in a voice that is clearly meant solely to pacify her parents.\n\n“As I was saying,” he says in his grim voice. “Your daughter is very unwell. The straight A student who was once on the Dean’s list at - Wellesley was it?”\n\n“Wesleyan.” Sophie corrects him quietly.\n\n“Yes well, anyway - is not the same girl who sits before you today,” he gestures at Sophie and she shrugs her shoulders as though wondering where this girl might be if not exactly where she is. “The high level of academic acheivement which you described to me earlier would not be possible at this late stage in her illness.”\n\nHer father looks confounded, and his flimsy plastic seat heaves under the weight of his movement as he shifts his position.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "41c",
+  "title": "The office with the parents — better version / but I like myself / I'm an artist",
+  "secs": 30,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the doctor and the assistant (hall b-roll, head on)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2d26ca4e4f944ccdd43772e5b1184885.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nDr. Grayson: the doctor in [Video2]. the assistant: the woman with the clipboard in [Video2].\n\nher parents: the two people in [Video3].\n\nsetting: mental hospital.\n\n“The medication we are providing will help her reach all of her goals and become a better version of herself. With the pills we’re giving her, she’ll become a better version of herself and will hopefully be able to reach the high level of academic achievement which she previously\n\nthey look at her as though searching for where this girl could be, and Sophie shrugs her shoulders\n\n“But - I *like* myself.” She gestures at the bright figure painting still displayed on the screen of the computer. It is mostly blues and grays with a background of hot pink and if you squint closely you can make out the figure of her mother, resting on a high backed chair with her legs crossed at the knee as they are right now.\n\n“I want to make art. That’s what I *do.* I’m an *artist,*\n\n‘high level of academic achievement’ in a matter of years.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "41d",
+  "title": "The office with the parents — I dropped out to be an artist / an adjustment",
+  "secs": 25,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the doctor and the assistant (hall b-roll, head on)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2d26ca4e4f944ccdd43772e5b1184885.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nDr. Grayson: the doctor in [Video2]. the assistant: the woman with the clipboard in [Video2].\n\nher parents: the two people in [Video3].\n\nsetting: mental hospital.\n\n“But I like the version I am now. I dropped out of school so I could become an artist. I don’t want to go back to school. There’s nothing stopping me from making art now,” she wails.\n\n“Well, something tells me your mind’s in need of a bit of an adjustment,” says Dr. Grayson, pushing his glasses up on his nose as he smiles maliciously.\n\n...better art.”",
+  "mine": "the header lines"
+ },
+ {
+  "key": "42",
+  "title": "The hallway goodbye — the hallway goodbye",
+  "secs": 10,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the doctor and the assistant (hall b-roll, head on)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2d26ca4e4f944ccdd43772e5b1184885.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nthe assistant: the woman with the clipboard in [Video2].\n\nher parents: the two people in [Video3].\n\nsetting: mental hospital.\n\nOutside in the hallway, Sophie crosses her arms over her chest as she watches her parents leave. The assistant is listing things to her father as he nods in anxious understanding.\n\n“Sophie,” her mother whispers, already stepping out the door, “I think it’s best you take any pills they give you.” she says and she is gone.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "edna-aud",
+  "title": "Nurse Edna — the audition",
+  "secs": 4,
+  "status": "needs your words",
+  "videos": [],
+  "images": [],
+  "prompt": "",
+  "mine": "needs your description (the script: very tall, enormous breasts, the accent)"
+ },
+ {
+  "key": "43a",
+  "title": "The tall nurse · half a pill · the window over New York — you're lucky, wan peel, the half pill, veery good",
+  "secs": 30,
+  "status": "waits for: Nurse Edna's audition",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Nurse Edna's audition",
+    null
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nNurse Edna: the tall nurse in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\nThat night a new nurse, a very tall one with enormous breasts walks into her room smiling and carrying the two cups: one with a pill, one with the water. “You’re lucky,” she says, continuing to smile at her though it’s now unmistakeable from a grimace. “Dr. Grayson haz onley geeven yo wan peel. Sahm of de oder patients take a whole cap full,” she mimes holding a heavy cup full of pills belonging to one of the other patients.\n\nSophie pulls the pill out of it’s resting place in the cup and stares at it for a lengthy pause. Then she puts the pill to her mouth but as she’s doing so, breaks off half of it in her hand. She swallows half of the pill and surrepititiously places the other half in her water cup.\n\n“Veery Goood” says the nurse, smiling proudly, and Sophie beams back at her. The nurse takes both cups back and puts one inside the other.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "43b",
+  "title": "The tall nurse · half a pill · the window over New York — the pill in the cup — eet eez ahp to you",
+  "secs": 30,
+  "status": "waits for: Nurse Edna's audition",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Nurse Edna's audition",
+    null
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nNurse Edna: the tall nurse in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\nAs she’s walking out the door she glances down into the water cup which is on top and notices the pill is sitting there listlessly, barely dissolved still sitting in flakes and chunks at the bottom of the cup. “There is steel moh peel Mees Sophie,” says the nurse as though Sophie would have no idea and Sophie’s smile wavers. The nurse walks back over to where she is standing and Sophie puts the cup to her mouth but doesn’t let any liquid drip down past the barrier of her teeth. The nurse takes the cup. “You must swallow the peel.” “I already took half. I don’t want the other half. It’s too big. It’s not the right size for me,” she says, hoping that perhaps the nurse might grasp the simple concept of ratio as its been presented in this context. “Eet eez ahp to you.” says the nurse and Sophie beams at her once again. “But if you do not take de whole theeng I will have to write that you refuse.” The nurse leaves the cup with the very small amount of water and the half disintegrated pill on her night table and repeats: “Eet eez ahp to you,” then leaves the room.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "43c",
+  "title": "The tall nurse · half a pill · the window over New York — the window over New York, the soap",
+  "secs": 12,
+  "status": "waits for: Nurse Edna's audition",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Nurse Edna's audition",
+    null
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nNurse Edna: the tall nurse in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\nSophie stares repeatedly at the pill and then goes to the window and undoes the blinds so the city of New York unfolds before her, filtered through the shatter proof plastic of the windows. She holds the pill cup in her hand, goes to the bathroom and unwraps the new bar of soap she’s gotten delivered that day. She breaks off tiny pieces of it and, after flushing the contents of the cup down the toilet, drips a small amount of water into the cup and sprinkles the cracked pieces of soap in the bottom of the cup. Then she leaves the room holding the cup triumphantly out in front of her.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "43d",
+  "title": "The tall nurse · half a pill · the window over New York — the nurses' station, I've decided, good job",
+  "secs": 20,
+  "status": "waits for: Nurse Edna's audition",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Nurse Edna's audition",
+    null
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nNurse Edna: the tall nurse in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\nShe goes to the nurses station and asks politely “Where is the nurse that did my pills?” “Meez Ednah eez done with her rounds tonight. Pleez go back to your room.” Sophie turns dejectedly and walks slowly down the hall where she runs into the nurse. “Nurse Edna I’ve decided. I’m going to take my pill.” Sophie shows her the cup with the soap and water in it, then swallows it and Ms. Edna marks something on her chart. “Ok Sophie. Good job foh takeeng yoh peel. Go to sleep now.” Sophie shuffles back to her room and closes the door then turns on the light.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "43e",
+  "title": "The tall nurse · half a pill · the window over New York — the half pill takes hold: crayon, butter, sugar, the push-up",
+  "secs": 25,
+  "status": "waits for: Nurse Edna's audition",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Nurse Edna's audition",
+    null
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nNurse Edna: the tall nurse in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\nAs she sits in the dark she begins to feel strange as the half pill takes ahold of her. She opens her drawer and pulls out a blue crayon, using it to create thick strokes on a blank menu, repeating the action violently until the paper rips in multiple places. Then she opens her drawer once again and pulls out one of her beloved butter pats. She peels off the lid but instead of taking it to the bathroom to carefully wash, dry, and include in one of her sculptures, she smears it on the pictures she’s been working on and then all over the walls and floor near the entrance of her room. Where she has smeared the butter, she opens a packet of sugar and empties it everywhere the butter is smeared so the butter is being used as glue. She arranges herself in a push-up position on the floor, over a pile of butter and sugar and holds herself there, with her eyes shut tight, grimacing. She stays there for a long time as the clock ticks loudly on the wall.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "super-aud",
+  "title": "The Superintendent + Anastasia — the audition",
+  "secs": 4,
+  "status": "needs your words",
+  "videos": [],
+  "images": [],
+  "prompt": "",
+  "mine": "needs your description (the script: a tall brunette with a fake smile; Anastasia, Russian, a dancer)"
+ },
+ {
+  "key": "44a",
+  "title": "The town hall — the room, Anastasia's question",
+  "secs": 25,
+  "status": "waits for: the Superintendent + Anastasia's audition",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the Superintendent + Anastasia's audition",
+    null
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nthe meeting leader: the tall brunette in [Video2]. Anastasia: the other woman in [Video2].\n\nsetting: mental hospital.\n\nThe Superintendent has gathered all the patients for a “townhall meeting.” Most stare glassy-eyed without comprehending what the woman is saying, who talks in a loud, irritating voice at the front of the room, gesturing at various things in the room or pointing out in the hallway. Some are slumped over, others lean against the wall, drooling with their eyes closed. Sophie sits in a corner of the room on a bench, erect but incredibly still. Though she is looking in the direction of the meeting leader, her eyes are far away and she can hear a faint buzzing noise over all the talking which means their voices sound as though they are inside a tunnel.\n\n“Can we talk about all these pills we’re being given?” says Anastasia in a thick russian accent, “I mean what is the effect of pouring 100s of milileters of chemicals into a very healthy body. I mean that I am a dancer and I want my body to be good and strong. Every morning I eat a protein shake with fruit in it…”",
+  "mine": "the header lines"
+ },
+ {
+  "key": "44b",
+  "title": "The town hall — the leader's answer, hand up, the monotone complaint",
+  "secs": 30,
+  "status": "waits for: the Superintendent + Anastasia's audition",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the Superintendent + Anastasia's audition",
+    null
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nthe meeting leader: the tall brunette in [Video2]. Anastasia: the other woman in [Video2].\n\nsetting: mental hospital.\n\n“That is an *excellent* question, Anastasia,” says the person leading the meeting, a tall brunette with a fake smile plastered on her face at all times. “And a *very* good one to ask your doctor the next time you see him. Simply tell one of the nurses that you want to see your doctor and they’ll be sure to make you an appointment.” Anastasia tries to speak further but the woman interrupts her. “Any other questions?” she says, looking around the room, her eyes lighting upon\n\nSophie puts her hand up so that it is parallel with her shoulders. The woman calls on her. Sophie talks in a monotone that is unlike any voice she’s used before, and where her tone should rise and fall in conjunction with the words she is speaking, it instead falls flat. No smile plays at her lips. “Often times the nurses are very unkind. They come into my room when I don’t ask them to and take my things or move them around. When I complain they simply pretend they haven’t heard me.”",
+  "mine": "the header lines"
+ },
+ {
+  "key": "44c",
+  "title": "The town hall — we've had this complaint before",
+  "secs": 15,
+  "status": "waits for: the Superintendent + Anastasia's audition",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the Superintendent + Anastasia's audition",
+    null
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nthe meeting leader: the tall brunette in [Video2]. Anastasia: the other woman in [Video2].\n\nsetting: mental hospital.\n\nThe leader nods, trying to look sympathetic but failing: “We’ve had this complaint before. Unfortunately there seems to be nothing we can do. Any other questions, concerns, or comments?” She scans the room and when she sees no one, says “Good,” and bustles out of the room, taking the clipboard on which everyone wrote their name with her.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "45a",
+  "title": "Scale A — part 2: the cartwheel, 98 pounds, the exercises",
+  "secs": 25,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the scale audition (Mayra + the white-coat nurse)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/4dba2d7c7eae518339f4312d3f13d9ee.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nMayra: the woman with the long dark waves in [Video2]. the nurse: the woman in the long white coat in [Video2].\n\nsetting: mental hospital.\n\n“I feel so fit!” she says, as she jumps off the scale. “I wan to do someting. Jyou know, layk run around! I think I could do cartwheels if I wanted to,” she says. \n\nThe nurse who has gone into the other room to get something, doesn’t notice the cartwheel she does in the middle of the floor.\n\nshe comes back.\n“98 pounds,” says \nthe woman, reading Sophie’s weight off of the scale.\n\n“Wow! That’s the lightest I’ve ever been!” sophie says, jumping up and down in place, and pummeling her stomach with both fists. Mayra and Sophie run around the room doing all sorts of exercises: cartwheels and jumping jacks, running in place.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "45b",
+  "title": "The scale B — no exercise in the TV room, the headstand",
+  "secs": 15,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the scale audition (Mayra + the white-coat nurse)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/4dba2d7c7eae518339f4312d3f13d9ee.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nMayra: the woman with the long dark waves in [Video2]. the nurse: the woman in the long white coat in [Video2].\n\nsetting: mental hospital.\n\nThe nurse returns. “There is no, uhm, exercise in the TV room. We have a yoga class on Wednesdays with nice soothing music. If you’d like to exercise you can wait till then.” They each take a chair at the folding table and then the nurse leaves.\n\n“I don’t care what they say,” says Mayra, standing up from her seat, lying on the floor, then easing her legs upwards into a head stand, her legs standing stick straight and upwards in the air.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "46a",
+  "title": "\"We're going to let you go\" — tiptoes at the window, guided back, brought in",
+  "secs": 20,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the doctor and the assistant (hall b-roll, head on)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2d26ca4e4f944ccdd43772e5b1184885.mp4"
+   ],
+   [
+    "the doctor and the assistant (hall b-roll, head on)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2d26ca4e4f944ccdd43772e5b1184885.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nDr. Grayson: the doctor in [Video2]. the assistant: the woman with the clipboard in [Video2].\n\nthe assistant: the woman with the clipboard in [Video3].\n\nher parents: the two people in [Video4].\n\nsetting: mental hospital.\n\nHer parents spend most of the day meeting with the doctor in a room with a window at the top. Sophie stands on her tiptoes to be able to see what’s going on inside but everytime she does, the assistant points at her and the doctor stops talking, and a frail woman with gray hair comes out and kindly but firmly places her hands around Sophie’s shoulders and guides her back to her room. Sophie sits on the edge of her folded sheets, barely pressing herself into the mattress. Her feet don’t touch the floor and she looks around the room with very little curiosity. Finally the woman brings her into their meeting room, once again using her arms to steer Sophie to an available seat so that Sophie is sitting at head end of the table and her parents and the doctor are sitting at the other end.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "46b",
+  "title": "\"We're going to let you go\" — conditions… Orange County",
+  "secs": 25,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the doctor and the assistant (hall b-roll, head on)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2d26ca4e4f944ccdd43772e5b1184885.mp4"
+   ],
+   [
+    "the doctor and the assistant (hall b-roll, head on)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2d26ca4e4f944ccdd43772e5b1184885.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nDr. Grayson: the doctor in [Video2]. the assistant: the woman with the clipboard in [Video2].\n\nthe assistant: the woman with the clipboard in [Video3].\n\nher parents: the two people in [Video4].\n\nsetting: mental hospital.\n\n“We’re going to let you go,” says the doctor, “but there are a few conditions you’ll have to follow.”\n\n“The first is that you will continue to take your medication everyday, exactly as it is prescribed on the bottle.” Sophie nods her head unenthusiastically. “Now, we’re going to let you leave but your treatment isn’t finished yet. Your parents will be taking you to a specialist in Orange County.”\n\n“He’s famous for treating exactly what you’re going through,” interrupts her mother.\n\n“He’s very good,” says her father.\n\nThe doctor nods at them in appreciative agreement. It appears during the time they were left alone together they’ve all joined together on the same team.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "46c",
+  "title": "\"We're going to let you go\" — but that's LA / can you do that for me",
+  "secs": 30,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the doctor and the assistant (hall b-roll, head on)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2d26ca4e4f944ccdd43772e5b1184885.mp4"
+   ],
+   [
+    "the doctor and the assistant (hall b-roll, head on)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2d26ca4e4f944ccdd43772e5b1184885.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nDr. Grayson: the doctor in [Video2]. the assistant: the woman with the clipboard in [Video2].\n\nthe assistant: the woman with the clipboard in [Video3].\n\nher parents: the two people in [Video4].\n\nsetting: mental hospital.\n\n“But that’s in *Los Angeles!*” Sophie protests. “I want to live in New York. I have *friends* in New York.”\n\n“If you stay in New York I can guarentee the exact same thing is going to happen to you. You’ll spiral out of control and wind up in a place like this again. You don’t want that, Sophie, do you?”\n\nSophie looks about to protest again, but stops herself, instead laying her hands one on top of the other on the table in front of her. The assistant leans over the table in the direction of Sophie, her ample bosom pressing itself against the hard surface, her breasts splaying comically. “We all want you to get *well* Sophie. Can you do that for me?” she asks, as though asking a child to promise he won’t eat any more cookies.\n\nSophie nods, looking down.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "47",
+  "title": "The pill-cup sculpture · \"Sage, that's a nice name\" — the pill-cup sculpture — Sage",
+  "secs": 15,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the meds clip (the jamaican nurse)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/f6138a818f436df0ce0cf4591c62f434.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nthe nurse: the jamaican nurse in [Video2].\n\nsetting: mental hospital.\n\nShe is in the art room making something. it is a beaded sclupture where the animal's hang inside pill cups. the nurse says “the final pice.” Sophie supplies “masterpiece” it is .\n\n“Sage,” she says, replacing the sign on the door. “That’s a nice name.” They look at the door and gesture uninterested at it. “Oh and her name is Sage, not Sophie.”",
+  "mine": "the header lines"
+ },
+ {
+  "key": "48",
+  "title": "The end of the hallway — take the pill / don't take the pill",
+  "secs": 20,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nsetting: mental hospital.\n\nShe sits at the end of the hallway, next to the hallway which patients go in as they choose. It’s never been locked so long as she’s been there but there is no handle on the inside of the door. mulling over the matter of whether or not to take the pill she’s been prescribed. “Take the pill,” she mutters, clenching her fists tightly, then releasing, and the antithesis: “Don’t take the pill,” she clenches her fists again. She repeats these two phrases eleven times in a row before screwing up her eyes in concentration as though the decision were laid out in front of her and she has just to interpret it in order to know what to do. She gives up and resorts to clenching her fists again, muttering those words over and over so it sounds like a mantra.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "49a",
+  "title": "The nurses' meeting about her room — the nurses' meeting, ear to the door",
+  "secs": 15,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the meds clip (the jamaican nurse)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/f6138a818f436df0ce0cf4591c62f434.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nthe nurse: the jamaican nurse in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\nThe nurses are having a meeting about her behavior in the hallway outside her bedroom “that girl” in a jamaican accent “is a trouble maker.” “she should be closer to the nurses station.” “yes let’s move her bed in the closest room to the nurses station.” they are all agreeing with each other (they are all jamaican/black). sophie has her ear to the door in her own room and when they go to open it, she moves away wide eyed.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "49b",
+  "title": "The nurses' meeting about her room — the bed carried out, the smile",
+  "secs": 10,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the meds clip (the jamaican nurse)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/f6138a818f436df0ce0cf4591c62f434.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "her room",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c49338914c71d073917e47943a6a698f.png"
+   ]
+  ],
+  "prompt": "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]\n\nthe nurse: the jamaican nurse in [Video2].\n\nsetting: mental hospital. her room in [Image4].\n\nthey carry her bed away from the room with her roommate that she doesn’t like and she smiles devilishly as they move her whole bed, including the blankets etc. she goes to bed with a smile on her face\n\nthey tell her if she doesn’t clean her room they’re going to tell the doctor she can’t help herself be messy, and that somehow it’s related to her condi",
+  "mine": "the header lines"
+ },
+ {
+  "key": "50",
+  "title": "The marble steps — the marble steps — the run for it",
+  "secs": 10,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [],
+  "prompt": "sophie is the woman in [Video1].  she still wears the blue hospital pajamas, with boots, NOT the dress in [Video1]\n\nher parents: the two people in [Video2].\n\nsetting: (your call — hotel / New York / the airport)\n\nShe walks waveringly down the marble steps. Her eyes dart in both directions. She starts to make a run for it but her father catches her arm quickly and her mother runs to her side. They both force her into the taxi and it leaves quickly.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "51",
+  "title": "Grandma's apartment — Grandma — what a figure",
+  "secs": 12,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ]
+  ],
+  "images": [],
+  "prompt": "sophie is the woman in [Video1].  she still wears the blue hospital pajamas, with boots, NOT the dress in [Video1]\n\nsetting: (your call — hotel / New York / the airport)\n\n“Hi Grandma!” Sophie says, greeting her grandmother in the doorway of her apartment. “Let me, let me *look* at you,” Her grandmother says, and Sophie smiles as she gives a little turn.\n\n“My my my what a *figure* on this one!” she says, holding onto her cane for support.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "52",
+  "title": "\"Pulling out your hair\" — videos in the mirror — who are you going to trust",
+  "secs": 25,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [],
+  "prompt": "sophie is the woman in [Video1].  she wears a pink nightdress (her grandmother's), NOT the dress in [Video1]\n\nher parents: the two people in [Video2].\n\nsetting: (your call — hotel / New York / the airport)\n\n“The doctor says you were pulling out your hair and that you said you felt like your face was melting off.”\n\nSophie turns to look at them from where she is, taking short videos of herself in the mirror, with the gilded background of their nice hotel room taking up most of the frame, her tiny body in the pink nightdress that is her grandmothers only a small part of it. “What? I never said that.”\n\n“Who are you going to trust: me or the doctor?” her dad sighs and looks meaningfully at her mother. “The doctor seemed like a very smart man, Sophie. You know, maybe you don’t know everything like you always thought you did.”\n\n“But he’s *lying”* she insists",
+  "mine": "the header lines"
+ },
+ {
+  "key": "53",
+  "title": "Bed — bed — the boots, the belt, even so",
+  "secs": 30,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [],
+  "prompt": "sophie is the woman in [Video1].  she wears a pink nightdress (her grandmother's), NOT the dress in [Video1]\n\nher parents: the two people in [Video2] — their faces only. it is bedtime in a hotel room; her mother is in her nightclothes, not the dress in [Video2].\n\nsetting: (your call — hotel / New York / the airport)\n\n“You know, maybe it’s time we all went to bed,” says her mother, spreading cotton sheets over the bed and looking meaningfully at her dad.\n\n“Right.” says her dad. “Here Sophie, you can sleep on this pull out bed.”\n\n“I don’t have any pajamas.” her mom hands her the pair of blue hospital clothes she was wearing the whole time.\n\n“Here” she says, holding them out. “These are like pajamas.”\n\n“No thanks,” says Sophie, climbing into bed still wearing her boots. Her mom walks over to her and starts untying her boots. Her dad comes over holding his\n\n“I won’t try to escape,” she says. Her dad passes the belt through the side of the bed and pulls it through to the other end.\n\n“Even so,” he says. “Even so.”",
+  "mine": "the header lines"
+ },
+ {
+  "key": "54a",
+  "title": "The escape — the belt, the suitcase, the trap, go back to sleep",
+  "secs": 20,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [],
+  "prompt": "sophie is the woman in [Video1].  she wears a pink nightdress (her grandmother's), NOT the dress in [Video1]\n\nher parents: the two people in [Video2] — their faces only. they are in bed for the night: her mother in pink pajamas with little animals on them, her father in an undershirt; NOT the suit and the dress in [Video2].\n\nsetting: (your call — hotel / New York / the airport)\n\nThe room is dark and her parents are snoring ever so lightly, her dad with great big snores every few minutes, her mom with smaller lighter snores that are more like sighs everytime she breaths. Sophie lies in her bed still awake. She peeks over and looks at them to see that they are sleeping, then *ever* so carefully starts undoing the belt that is over her lap but not holding up her pants.\n\nWhen it’s fully undone she picks up her small suitcase, opens the door extremely quietly and walks out. something loud and shiny falls to the floor and it is a trap that her father set for her. She trips on it and it makes a lot of sound. Her parents wake up. Her mother says in a shrill voice that is filled with alarm. “Steve! What is going on?” “Don’t worry Susan, go back to sleep.” he says, the room is still dark, he switches the lamp on his table on, pulls his pants on rapidly and rushes out the door.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "54b",
+  "title": "The escape — the elevator, the bellhop, the door was locked",
+  "secs": 30,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [],
+  "prompt": "sophie is the woman in [Video1].  she wears a pink nightdress (her grandmother's), NOT the dress in [Video1]\n\nher parents: the two people in [Video2].\n\nsetting: (your call — hotel / New York / the airport)\n\nSophie is running through the hallway and slips into the elevator just as he sees her head peeking out the door. She jabs at the buttons, presses door close\n\n“Your father said not to let you leave.” he says, sort of sadly. “I’m sorry.” Even so she is still walking towards the door. “You can try it,” he says. “But it won’t work,” she tries the handle. it doesn’t budge. Her father comes running out of the stairwell, his eyes bulging, completely out of breath. He runs over to her, grabs her, stuffs a bill into the hand of the bellhop and nods at him,  and starts guiding her firmly towards the elevator. They travel back up the elevator silently, she holding her briefcase in front of her bare legs.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "54c",
+  "title": "The escape — back up — made a run for it, the velvet chair",
+  "secs": 25,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [],
+  "prompt": "sophie is the woman in [Video1].  she wears a pink nightdress (her grandmother's), NOT the dress in [Video1]\n\nher parents: the two people in [Video2] — their faces only. they are in bed for the night: her mother in pink pajamas with little animals on them, her father in an undershirt; NOT the suit and the dress in [Video2].\n\nsetting: (your call — hotel / New York / the airport)\n\n“What happened?” says her mother, when they get back to the room, who is now standing up in her pajamas, which happen to be pink with little animals on them.\n\n“Sophie just decided to make a run for it,” says Steve, in a falsely soothing voice, “but the bellhop stopped her like I asked him to, didn’t he, Sophie?”\n\nSophie nods and says “the door was locked.”\n\nThis time her father sleeps on a gilded velvet chair beside her bed, dozing off every now and then, starting whenever he hears a tiny noise.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "55a",
+  "title": "The taxi to the airport — the taxi",
+  "secs": 8,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [],
+  "prompt": "sophie is the woman in [Video1].  she wears (your call — the box is yours), NOT the dress in [Video1]\n\nher parents: the two people in [Video2].\n\nsetting: (your call — hotel / New York / the airport)\n\nThe next day they travel by taxi to the airport, all three of them stuffed in the backseat though her father could be sitting in the front next to the taxi driver. Sophie is in the middle and her face conveys no expression except that she is leaning forward in the seat.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "55b",
+  "title": "The taxi to the airport — the escalator — banana or croissant",
+  "secs": 25,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [],
+  "prompt": "sophie is the woman in [Video1].  she wears (your call — the box is yours), NOT the dress in [Video1]\n\nher parents: the two people in [Video2].\n\nsetting: (your call — hotel / New York / the airport)\n\nthe link arms with her as they travel through the tarmac and show the person her ID for her, which they have been holding in their purse just in case. As they travel up the escalator, them behind her, her in front, her father says with fake sweetness. “Why don’t you get a snack to eat on the plane.”\n\n“I can’t decide between a banana and a chocolate croissant,” she says, eying them both, one in a bowl on the counter, and the other in the top shelf of the display case.\n\n“You can get both,” he says, and hands the banana to the cashier and says “and the chocolate croissant, please.” he says, pointing to it\n\n“Here you go,” he says, the bag with the croissant in it in one hand and the banana in the other. She takes them both in different hands and walks with her weird silver suitcase along the length of the terminal, her mother hurrying to be by her side.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "55c",
+  "title": "The taxi to the airport — you'll like LA… padlock… outings",
+  "secs": 30,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [],
+  "prompt": "sophie is the woman in [Video1].  she wears (your call — the box is yours), NOT the dress in [Video1]\n\nher parents: the two people in [Video2].\n\nsetting: (your call — hotel / New York / the airport)\n\n“You’re going to like it in Los Angeles, sweetie. All the flowers are blooming in my garden and we just got a new lawn chair for the backyard.”\n\n“She won’t be able to go outside,” her father mutters under his breath to her mother, though Sophie obviously can hear him. “Don’t be silly,” says her mom, smiling at her. “We can put a padlock on the gate.” Sophie looks down at the people coming up the escalator that she was just on. Her mother gives her father a look and says “I’m sure we’ll have outings, won’t we, Steve.” and her father says:\n\n“Oh *yes.* We’ll *definitely* have outings. To the *park.* To the *supermarket.* And *of course* to Dr. Grossman’s office.” Her father hurries to her other side and she is pulled along and stops looking down below.",
+  "mine": "the header lines"
+ },
+ {
+  "key": "55d",
+  "title": "The taxi to the airport — the gate — marvelously, the bite, out into the air",
+  "secs": 25,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "the parents' audition (4s)",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3fe2d4b0f9b185c2792886d7a3d26bb7.mp4"
+   ]
+  ],
+  "images": [],
+  "prompt": "sophie is the woman in [Video1].  she wears (your call — the box is yours), NOT the dress in [Video1]\n\nher parents: the two people in [Video2].\n\nsetting: (your call — hotel / New York / the airport)\n\nWhen they get to the terminal her parents are looking a lot more calm while she is looking a lot more nervous. She is pacing around, holding her silver suitcase. They sit down on some chairs and they say to each other and slightly to her “We can all just relax now. This trip is going *marvelously* as planned.” She sits beside them for a second, peels the banana and takes a bite out of it, then picks up her silver suitcase again, and walks over to the end of the gate. She looks back to where they are seated, still talking and not noticing what she is doing, and then to outside. This is a strange gate where the building simply opens up to the outside air. She walks calmly forward, holding her silver suitcase in front of her knees and then calmly out the door into the air, and then sprints out of sight as her parents start to get up, rushing to the sight of her disappearance, trying to see where she ran off to. There is a commotion in the terminal as flight attendants look outside to see where she has gone and a last sight of her head, disappearing behind a building.",
+  "mine": "the header lines"
+ }
+]

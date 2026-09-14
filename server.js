@@ -11,6 +11,9 @@ const imageMeta = require('./image-meta');
 // The panel sheet's geometry — derived canvases, the grid sentence, the cut
 // rects and the style-tail sheet swap. See sheet-grid.js.
 const sheetGrid = require('./sheet-grid');
+// A ♥/✕ on a sheet is a ♥/✕ on its panels — the ONE rule, shared with the
+// page. See sheet-cascade.js.
+const sheetCascade = require('./sheet-cascade');
 // What a failed Playground run tells her, instead of "see the server log" —
 // see render-fail.js.
 const { renderFailMessage } = require('./render-fail');
@@ -306,6 +309,8 @@ loadConfig().then(() => {
   const mpc = require('./mpc');
   const mpcUpload = require('./mpc-upload');
   const apiframe = require('./apiframe');
+  const openrouter = require('./openrouter');
+  const atlascloud = require('./atlascloud');
   const ingest = require('./ingest');
   const crystals = require('./crystals');
   const dropbox = require('./dropbox');
@@ -358,6 +363,14 @@ loadConfig().then(() => {
   app.use('/api/mpc', mpc.router);
   app.use('/api/mpc-upload', mpcUpload.router); // full auto-upload (stops at cart)
   app.use('/api/apiframe', apiframe.router); // Midjourney deck-art generator
+  app.use('/api/openrouter', openrouter.router); // Seedance at ByteDance's price, no video references (the second door)
+  app.use('/api/atlascloud', atlascloud.router); // Seedance through Atlas Cloud's reference-to-video (the third door; unmeasured)
+  app.use('/api/footage', require('./footage').router); // Footage: she makes Seedance clips herself — both doors, one log
+  // The CHARACTER LIBRARY behind the footage page's people icon (2026-09-11,
+  // Sophie: "a version of 'characters' for footage so i can click a button and
+  // it auto adds the line at the top") — one shelf per FILM, characters with
+  // one look per outfit, and a wardrobe that floats across all of them.
+  app.use('/api/cast', require('./cast').router);
   app.use('/api/ingest', ingest.router); // import externally-made art (bring-your-own-MJ)
   app.use('/api/crystals', crystals.router); // crystal drop box (photos + metadata → Etsy listings)
   app.use('/api/drop', dropbox.router); // the Dump — one inbox for anything, labelled later
@@ -494,6 +507,7 @@ loadConfig().then(() => {
   // the arranging step between the Chunking shelf and a finished film. The
   // render is ffmpeg on our own box; nothing here spends money.
   app.use('/api/assembly', require('./assembly').router);
+  app.use('/api/stitch', require('./stitch').router);     // Stitch: pick Footage clips, order them, ffmpeg joins them (2026-09-12)
   // Film Editor: Sophie's tap-only phone editor (her Claude Design canvas,
   // docs/film-editor-design/) — the one surface that CUTS video: split, trim
   // in/out, reorder, one audio track. Render is ffmpeg on our own box; free.
@@ -924,6 +938,13 @@ app.get('/scratchpad', serveGated('scratchpad.html', { pill: true }));
 // Freeform: upload your own references, type your own words, pick the quality.
 // Nothing is added to the prompt here — that's the whole point of the page.
 app.get('/freeform', serveGated('freeform.html', { pill: true }));
+// Footage — Seedance clips by her own hand: describe it, attach references,
+// the star is the go (2026-09-09). footage.js is the module.
+app.get('/footage', serveGated('footage.html', { pill: true }));
+// Stitch — pick clips, put them in order, one button joins them (2026-09-12,
+// Sophie: "something very simple … it could be called stitch"). stitch.js is
+// the module; the render is the Film Editor's own recipe over one lane.
+app.get('/stitch', serveGated('stitch.html', { pill: true }));
 // Vector: describe drawings -> art that scales, and change its colours after
 // the fact for nothing. The front for /api/vector; see docs/vector-pipeline.md.
 app.get('/vector', serveGated('vector.html', { pill: true }));
@@ -2887,16 +2908,31 @@ async function syncVoteToAssets(url, vote) {
 async function syncVoteToPlayground(url, vote) {
   if (!url || !/\/promptlab\//.test(String(url)) || !admin.apps.length) return;
   try {
-    const snap = await admin.firestore().collection('forge-promptlab')
-      .where('images', 'array-contains', url).limit(1).get();
-    if (snap.empty) return;
-    const doc = snap.docs[0];
-    const i = (doc.data().images || []).indexOf(url);
-    if (i < 0) return;
-    await doc.ref.update({
-      [`votes.${i}`]: (vote === 'like' || vote === 'dislike')
-        ? vote : admin.firestore.FieldValue.delete(),
-    });
+    const col = admin.firestore().collection('forge-promptlab');
+    let snap = await col.where('images', 'array-contains', url).limit(1).get();
+    let doc = snap.empty ? null : snap.docs[0];
+    let i = doc ? (doc.data().images || []).indexOf(url) : -2;
+    if (!doc) {
+      // THE SHEET IS NOT IN `images` (2026-09-06) — a cut panels run banks it
+      // beside them, so a mark she casts on the sheet in Meta Assets used to
+      // reach nothing at all. It is the same picture at the Playground's own
+      // virtual index -1, and going through votePatchFor means it carries its
+      // panels with it here exactly as it does on the page.
+      snap = await col.where('sheetUrl', '==', url).limit(1).get();
+      if (snap.empty) return;
+      doc = snap.docs[0];
+      i = -1;
+    }
+    if (i < -1) return;
+    const run = doc.data() || {};
+    const next = (vote === 'like' || vote === 'dislike') ? vote : null;
+    const { patch, marks } = votePatchFor(run, i, next);
+    await doc.ref.update(patch);
+    plScanApply(doc.id, patch);
+    // Only the CASCADED panels need carrying back to their own Assets records —
+    // the picture she actually voted on is the one whose record the caller is
+    // already writing.
+    await syncMarks(marks.filter((m) => m.url !== url));
   } catch (e) { /* best-effort */ }
 }
 // Legacy docs hold only a single `note` string (everything written before the
@@ -3529,6 +3565,31 @@ app.get('/pausing', serveGated('pausing.html', { pill: true }));
 // recording, loaded by the render on the server AND by the page in the
 // browser, so the preview she approves by ear is the take she gets. Public
 // and immutable-ish: it is code, it holds nothing of hers.
+// What a character puts in the prompt, shared the same way (2026-09-11): the
+// footage page's character sheet prints the exact line the tap will insert —
+// resolved against the strip as it stands — so it calls the REAL rule rather
+// than keeping a second copy of the slot arithmetic that drifts.
+app.get('/cast-line.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/cast-line.js');
+});
+// What changed between two clips, shared the same way (2026-09-11, Sophie:
+// "is there an easy way I can diff video clips"): the footage page's compare
+// panel and the test drive the identical word/settings/reference arithmetic.
+app.get('/clip-diff.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/clip-diff.js');
+});
+// What a clip's card SAYS, for the footage page's search (2026-09-11): the
+// client filter that runs while the server's answer is in flight and the
+// server's own `?q=` over the whole log read one haystack, never two copies.
+app.get('/footage-hay.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/footage-hay.js');
+});
 app.get('/pause-plan.js', (req, res) => {
   res.type('application/javascript');
   res.set('Cache-Control', 'no-cache, must-revalidate');
@@ -3569,6 +3630,15 @@ app.get('/sheet-grid.js', (req, res) => {
   res.type('application/javascript');
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(__dirname + '/sheet-grid.js');
+});
+// What a ♥/✕ on a panels SHEET does to its panels (2026-09-06), shared the
+// same way: the vote routes here apply it and the Playground applies it
+// optimistically, so her tap marks the panels on screen in the same frame
+// rather than twenty seconds later when the Panels tab next sweeps.
+app.get('/sheet-cascade.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/sheet-cascade.js');
 });
 
 // The one shape of a Film Editor cut (2026-09-02): the page validates,
@@ -6189,6 +6259,21 @@ async function startQueuedRuns() {
 }
 setTimeout(startQueuedRuns, 8 * 1000);
 setInterval(startQueuedRuns, 45 * 1000);
+// AND THE NEW INSTANCE BOOTING IS "you can send again" (2026-09-13, the other
+// half of her ask). Only ever a pair: push.deployBootCheck() pushes nothing
+// unless a START was marked and is recent, and clears the mark on the way
+// past, so an OOM kill or a Render recycle is silent and one deploy is one
+// pair. Gated on RENDER_EXTERNAL_URL like the chat-icons tick — a dev
+// container booting this file must not eat her notification.
+if (process.env.RENDER_EXTERNAL_URL) {
+  setTimeout(() => {
+    try {
+      require('./push').deployBootCheck()
+        .then((r) => { if (r && r.pushed) console.log('push: deploy done'); })
+        .catch((e) => console.log('deploy push:', e.message));
+    } catch (e) { console.log('deploy push:', e.message); }
+  }, 4 * 1000);
+}
 async function sweepStuckPromptlabRuns() {
   try {
     if (!admin.apps.length) return;
@@ -6245,6 +6330,17 @@ async function sweepStuckPromptlabRuns() {
             status: 'running', error: admin.firestore.FieldValue.delete() });
           const cfg = plSweep.panelsCfgOf(r);
           cfg.chars = r.characters || [];
+          // A sheet drawn over her photo (2026-09-06) holds it only by url —
+          // the single run's rule: a photo that will not fetch fails the
+          // redraw, because a sheet without it is a different sheet.
+          if (cfg.photoUrl) {
+            try {
+              await refetchPhotoRefs(cfg);
+            } catch (e) {
+              await d.ref.update({ status: 'failed', error: `interrupted by a server restart; its photo reference could not be re-read (${e.message})` });
+              continue;
+            }
+          }
           runPromptLabPanelsJob(d.ref, cfg);
           console.log(`promptlab sweep: redrawing orphaned panels run ${d.id} (attempt ${n} of ${plSweep.REDRAW_CAP})`);
           continue;
@@ -6853,6 +6949,28 @@ async function finishPanelsCutInner(docRef, cfg, sheetBuf, sheetUrl) {
       promptPrefix: seam.prefix, promptSuffix: seam.suffix, source: 'playground',
     });
   });
+  // A MARK SHE CAST ON THE UNCUT SHEET REACHES THE PANELS THAT LAND AFTER IT
+  // (2026-09-06, Sophie: "when i x a uncut panels sheet it shud x every panel
+  // in it"). The still-cutting cell is votable at -1 and the cut runs seconds
+  // behind the banked sheet, so she really can mark a sheet before its panels
+  // exist — and panels arriving unmarked read as the rule not working.
+  // The SAME plan (sheet-cascade.js), run against the doc as it stands now.
+  try {
+    const fresh = (await docRef.get()).data() || {};
+    const plan = sheetCascade.planForCut(fresh);
+    if (plan.changed.length) {
+      const patch = {};
+      plan.changed.forEach((j) => {
+        patch[`votes.${j}`] = plan.votes[j] === null
+          ? admin.firestore.FieldValue.delete() : plan.votes[j];
+        patch[`voteFrom.${j}`] = plan.from[j] === null
+          ? admin.firestore.FieldValue.delete() : plan.from[j];
+      });
+      await docRef.update(patch);
+      plScanApply(docRef.id, patch);
+      await syncMarks(plan.changed.map((j) => ({ url: images[j], vote: plan.votes[j] })));
+    }
+  } catch (e) { /* a mark that did not carry must never fail the cut */ }
   return images;
 }
 
@@ -6879,6 +6997,12 @@ async function runPromptLabPanelsJob(docRef, cfg) {
   try {
     const st = PL_GPT_STYLES[cfg.styleId] || PL_GPT_STYLES.evan;
     const refs = await playgroundRefs(st);
+    // Her photo reference(s) ride after the style refs and before her cast
+    // (2026-09-06) — the same seat as on a single run, so the photo line the
+    // head carries names the right picture. `photoBufs` is the whole list,
+    // `photoBuf` its first (an older caller's shape).
+    const photoBufs = (cfg.photoBufs && cfg.photoBufs.length) ? cfg.photoBufs : (cfg.photoBuf ? [cfg.photoBuf] : []);
+    for (const b of photoBufs) refs.push(b);
     // Her picked characters ride LAST, the order she picked them — the same
     // order charLine() names them in the head. A reference that will not
     // fetch fails the run rather than quietly drawing a stranger (the Story
@@ -7050,7 +7174,20 @@ app.post('/api/promptlab', async (req, res) => {
       const over = (v, baked) => (typeof v === 'string' ? v.trim().slice(0, PL_GPT.promptMax) : baked);
       const prefix = over(req.body.prefix, st.prefix);
       const suffix = over(req.body.suffix, st.suffix);
-      const edited = prefix !== st.prefix || suffix !== st.suffix;
+      // THE "ALSO ADDED" BLOCK IS HERS TO EDIT TOO (2026-09-06, Sophie,
+      // circling it in the Prompt panel: "why is there no way to edit
+      // this??"). Everything printed under that label — the character line,
+      // the photo line, the picked cards' sentence, her typed cast's clause,
+      // the story line — used to be read-only, on the reasoning that each is
+      // a server-owned line tied to an attachment. `extra` is that whole block
+      // as ONE string, sent only when she edited it; a string REPLACES the
+      // derived block verbatim, an absent field keeps every line as it always
+      // was. The page sends it only while the block it replaced is still
+      // what would be sent (the same cast, the same photos), so a stale edit
+      // can never ride a later run unannounced.
+      const extra = typeof req.body.extra === 'string'
+        ? req.body.extra.trim().slice(0, PL_GPT.promptMax) : null;
+      const edited = prefix !== st.prefix || suffix !== st.suffix || extra !== null;
       // Her own photo reference, uploaded with this run (Aug 2026). The bytes
       // go straight to the job so a failed Storage write costs the record, not
       // the picture; the url is only what the run's doc remembers it by.
@@ -7145,7 +7282,11 @@ app.post('/api/promptlab', async (req, res) => {
       }));
       const soloCastTxt = sheetGrid.castBlock(soloCast, true);
       const headLine = `${prefix}${character ? st.characterLine : ''}${photoBuf ? photoLine : ''}${charsLine}`.trim();
-      const head = [headLine, soloCastTxt].filter(Boolean).join('\n\n');
+      // Her edited block stands in for every derived line at once (extra
+      // above); the attachments still ride — only the words about them moved.
+      const head = extra !== null
+        ? [prefix.trim(), extra].filter(Boolean).join('\n\n')
+        : [headLine, soloCastTxt].filter(Boolean).join('\n\n');
       const fullPrompt = `${head}${head ? '\n\n' : ''}${typed}${tail ? `\n\n${tail}` : ''}`;
       const outputs = Math.min(Math.max(Number(req.body.outputs) || PL_GPT.outputs, 1), PL_GPT.maxOutputs);
       const quality = PL_GPT.qualities.includes(req.body.quality) ? req.body.quality : PL_GPT.quality;
@@ -7165,9 +7306,18 @@ app.post('/api/promptlab', async (req, res) => {
       // the cut panels so votes, the lightbox and search need nothing new.
       // The canvas toggle picks the CELL shape and the tier the sheet's
       // pixel budget; the sheet canvas itself is derived (sheet-grid.js).
-      // The SOPHIE CARD and her photo ref are deliberately OFF here — both
-      // wordings name "the second/last attached image" for ONE picture, and
-      // a sheet is not the surface to argue that on.
+      // The SOPHIE CARD is deliberately OFF here — its wording names "the
+      // second attached image" for ONE picture, and a sheet is not the
+      // surface to argue that on.
+      //
+      // HER PHOTO RIDES A SHEET SINCE 2026-09-06 (Sophie: "i can add a photo
+      // reference in playground but not in panels"). It was off on the same
+      // reasoning as the Sophie card, and that reasoning was wrong for the
+      // photo: its line says "the LAST attached image … use it for the
+      // subject described below", which is as true over a panel block as
+      // over one picture — the same argument that turned the picked cards
+      // on. Same seat as a single run: after the style refs, before her
+      // cast, the line re-anchored when cards ride behind it.
       //
       // HER CAST IS ON, BOTH HALVES (2026-08-27, Sophie: "I want both.
       // Descriptions as well as pictures: two options"). They are different
@@ -7209,9 +7359,13 @@ app.post('/api/promptlab', async (req, res) => {
         // The picked cards' sentence rides the head with the style prefix; the
         // typed cast is its own paragraph in front of the panel lines, where
         // it establishes who these people are before anything refers to them.
-        const sheetHead = `${prefix}${charsLine}`.trim();
+        const sheetHead = (extra !== null ? prefix : `${prefix}${photoBuf ? photoLine : ''}${charsLine}`).trim();
         const blockTxt = sheetGrid.panelBlock(grid, panels);
-        const sheetBody = castTxt ? `${castTxt}\n\n${blockTxt}` : blockTxt;
+        // On a grid her edited block replaces the cards' sentence and the
+        // typed cast; the grid sentence wraps the panel lines and is not hers
+        // to reword here (the panel prints it read-only for that reason).
+        const castOrExtra = extra !== null ? extra : castTxt;
+        const sheetBody = castOrExtra ? `${castOrExtra}\n\n${blockTxt}` : blockTxt;
         const sheetPrompt = `${sheetHead}${sheetHead ? '\n\n' : ''}${sheetBody}${sheetTail ? `\n\n${sheetTail}` : ''}`;
         const docRef = admin.firestore().collection(PROMPTLAB).doc();
         await docRef.set({
@@ -7222,7 +7376,10 @@ app.post('/api/promptlab', async (req, res) => {
           size: plan.sheet, aspectRatio: plan.aspectRatio, res: resId,
           promptEdited: edited, noText,
           styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','),
-          outputs: 1, character: false, photoRef: '', images: [],
+          outputs: 1, character: false, photoRef: photoUrl, images: [],
+          // Every photo that rode, in order — `photoRef` is the first, for
+          // every reader that knows one; the list only when there are several.
+          ...(photoUrls.length > 1 ? { photoRefs: photoUrls } : {}),
           panels, grid: { across: plan.across, down: plan.down, count: plan.count },
           sheet: plan.sheet, cell: plan.cell,
           // Both halves of her cast, as provenance — the typed rows and WHICH
@@ -7234,7 +7391,7 @@ app.post('/api/promptlab', async (req, res) => {
         });
         if (!pausedNow()) runPromptLabPanelsJob(docRef, {
           fullPrompt: sheetPrompt, head: sheetHead, tail: sheetTail,
-          quality, prompt: typed, styleId, panels, plan, chars: pickedChars,
+          quality, prompt: typed, styleId, panels, plan, chars: pickedChars, photoBuf, photoBufs,
         });
         return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}`, ...queuedReply() });
       }
@@ -7249,10 +7406,10 @@ app.post('/api/promptlab', async (req, res) => {
       // panels gallery and under its Sheets view. The story line is part of
       // the head, so the filed style half discloses it; the tail's anti-grid
       // clause is swapped exactly as on a grid sheet (her edited tail no-ops
-      // the swap and her wording wins). The Sophie card, her photo and the
-      // Sophie card and her photo are OFF, the panels branch's own reasoning:
-      // their wordings name "the second/last attached image" for ONE picture.
-      // HER CAST IS ON, both halves, on the same terms as a grid sheet.
+      // the swap and her wording wins). The Sophie card is OFF, the panels
+      // branch's own reasoning: its wording names "the second attached image"
+      // for ONE picture. HER CAST IS ON, both halves, and HER PHOTO IS ON
+      // (2026-09-06), on the same terms as a grid sheet.
       if (req.body.story) {
         const sheetTail = applyNoText(
           sheetGrid.applySheet(suffix, st.sheet, PL_STORY.layout), st, noText);
@@ -7264,8 +7421,12 @@ app.post('/api/promptlab', async (req, res) => {
           name: c.name.slice(0, CAST_NAME), description: c.description.slice(0, CAST_DESC),
         }));
         const castTxt = sheetGrid.castBlock(cast);
-        const p0 = `${prefix}${charsLine}`.trim();
-        const storyHead = `${p0}${p0 ? '\n\n' : ''}${castTxt ? `${castTxt}\n\n` : ''}${PL_STORY.line}`;
+        const p0 = (extra !== null ? prefix : `${prefix}${photoBuf ? photoLine : ''}${charsLine}`).trim();
+        // Her edited block replaces the cards' sentence, the typed cast AND
+        // the story line — the panel prints all three under one label.
+        const storyHead = extra !== null
+          ? [p0, extra].filter(Boolean).join('\n\n')
+          : `${p0}${p0 ? '\n\n' : ''}${castTxt ? `${castTxt}\n\n` : ''}${PL_STORY.line}`;
         const storyPrompt = `${storyHead}\n\n${typed}${sheetTail ? `\n\n${sheetTail}` : ''}`;
         const docRef = admin.firestore().collection(PROMPTLAB).doc();
         await docRef.set({
@@ -7274,7 +7435,8 @@ app.post('/api/promptlab', async (req, res) => {
           size: canvas.size, aspectRatio: canvas.aspectRatio, res: resId,
           promptEdited: edited, noText, storySheet: true,
           styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','),
-          outputs: 1, character: false, photoRef: '', images: [],
+          outputs: 1, character: false, photoRef: photoUrl, images: [],
+          ...(photoUrls.length > 1 ? { photoRefs: photoUrls } : {}),
           ...(cast.length ? { cast } : {}),
           ...(pickedChars.length ? { characters: pickedChars } : {}),
           createdAt: admin.firestore.Timestamp.now(),
@@ -7283,7 +7445,7 @@ app.post('/api/promptlab', async (req, res) => {
         if (!pausedNow()) runPromptLabGptJob(docRef, {
           fullPrompt: storyPrompt, head: storyHead, tail: sheetTail, outputs: 1,
           quality, prompt: typed, character: false, styleId,
-          size: canvas.size, photoBuf: null, chars: pickedChars, padTarget,
+          size: canvas.size, photoBuf, photoBufs, chars: pickedChars, padTarget,
         });
         return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}`, ...queuedReply() });
       }
@@ -7496,6 +7658,15 @@ app.get('/api/chatfeed/build', (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.json({ build: pageBuildId('chats.html', false) });
 });
+// AND FOOTAGE (2026-09-12, Sophie still seeing the prompt box flip narrow/full
+// a day after that fix was live): the page she types in most, kept alive by
+// the app like the other two, with no way for a fix to reach it. Served with
+// the pill, so the pill is in the hash. `ftBuildCheck` in footage.html is
+// the page's half and its guards decide when a reload loses nothing.
+app.get('/api/footage/build', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ build: pageBuildId('footage.html', true) });
+});
 
 // WHAT THIS PROCESS IS DRAWING AND CUTTING RIGHT NOW, and how much of the box
 // is left (2026-09-02). Exact — the two in-process sets, not a Firestore
@@ -7519,6 +7690,14 @@ app.post('/api/promptlab/pause', (req, res) => {
     drawPause.until = Date.now() + secs * 1000;
     drawPause.note = String(req.body.note || '').slice(0, 200) || PAUSE_NOTE;
     console.log(`promptlab: draws paused ${secs}s — ${drawPause.note}`);
+    // THE ONE MOMENT A DEPLOY IS REALLY GOING (2026-09-13, Sophie: "can i get
+    // a notification when deploy starts and ends so i know when to stop making
+    // clips and start again"). The guard pauses, reads once more, and only
+    // re-affirms the pause with `deploy:true` once it has decided to let the
+    // swap through — so a guard still holding, or one that lifted its pause
+    // because a draw started, never buzzes her. Fire-and-forget: a push must
+    // never delay the answer the guard is waiting on.
+    if (req.body.deploy) { try { require('./push').notifyDeploy('start'); } catch (e) { console.log('deploy push:', e.message); } }
   } else {
     drawPause.until = 0; drawPause.note = '';
     console.log('promptlab: draw pause lifted');
@@ -7729,23 +7908,30 @@ app.post('/api/promptlab/votes', async (req, res) => {
     }
     if (!byRun.size) return res.status(400).json({ error: 'items: [{run, image}] required' });
     const col = admin.firestore().collection(PROMPTLAB);
-    const urls = [];
+    const marks = [];
     let marked = 0;
     let triangleMarked = false;   // → rebuild her standing Playground-hearts page, once for the batch
     for (const [id, idxs] of byRun) {
       const ref = col.doc(id);
-      const patch = {};
-      idxs.forEach((i) => {
-        patch[`votes.${i}`] = vote === null ? admin.firestore.FieldValue.delete() : vote;
-      });
       try {
-        await ref.update(patch);
-        marked += idxs.size;
+        // READ FIRST, for the same reason the single route does: a ✕ on the
+        // sheet carries its panels with it (sheet-cascade.js), and which panels
+        // depends on what the run says now. The panels of one run still land in
+        // ONE update — the batch's whole point.
         const run = (await ref.get()).data() || {};
-        idxs.forEach((i) => {
-          const u = i === -1 ? run.sheetUrl : (run.images || [])[i];
-          if (u) urls.push(u);
+        const patch = {};
+        // The SHEET first (-1 sorts ahead of every panel), so that a batch
+        // holding the sheet AND one of its panels ends with HER mark on that
+        // panel rather than the cascade's — the same "a direct mark is hers"
+        // rule the single route keeps, applied inside one write.
+        Array.from(idxs).sort((a, b) => a - b).forEach((i) => {
+          const one = votePatchFor(run, i, vote);
+          Object.assign(patch, one.patch);
+          one.marks.forEach((m) => marks.push(m));
         });
+        await ref.update(patch);
+        plScanApply(ref.id, patch);
+        marked += idxs.size;
         if (run.gptStyle === 'triangle') triangleMarked = true;
       } catch (e) { /* a run that has gone must not lose the rest of the batch */ }
     }
@@ -7753,15 +7939,61 @@ app.post('/api/promptlab/votes', async (req, res) => {
     // exactly as they do after a single tap. A few at a time: sequential is
     // seconds on a batch of fifty, and all-at-once is fifty Firestore sweeps
     // landing on the 512MB box together.
-    for (let k = 0; k < urls.length; k += 5) {
-      await Promise.all(urls.slice(k, k + 5).map((u) => syncVoteToAssets(u, vote).catch(() => {})));
-    }
+    await syncMarks(marks);
     if (triangleMarked) require('./triset').pokeLikes();
     res.json({ ok: true, marked, vote });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ONE WRITE, AND THE CASCADE RIDES IN IT (2026-09-06, Sophie: "when i x a
+// uncut panels sheet it shud x every panel in it unless i hearted it or heart
+// it after or unex" · "it shud work both ways - heart or x"). The rule itself
+// is sheet-cascade.js — pure, and served to the Playground so the page marks
+// the panels on screen in the same frame. Here it only becomes a patch: her
+// tapped mark, plus whatever the sheet's mark does to the panels under it, in
+// a single update.
+//
+// A DIRECT MARK ON A PANEL MAKES IT HERS. Dropping the `voteFrom` tag is what
+// answers her "or heart it after": once she has voted on a panel, the sheet
+// has no claim on it — the cascade only ever moves a mark it wrote itself and
+// nobody has touched since.
+function votePatchFor(run, i, vote) {
+  const del = admin.firestore.FieldValue.delete();
+  const patch = { [`votes.${i}`]: vote === null ? del : vote };
+  const marks = [];
+  const own = i === -1 ? run.sheetUrl : (run.images || [])[i];
+  if (own) marks.push({ url: own, vote });
+  if (i === -1) {
+    const plan = sheetCascade.plan(run, vote);
+    plan.changed.forEach((j) => {
+      patch[`votes.${j}`] = plan.votes[j] === null ? del : plan.votes[j];
+      patch[`voteFrom.${j}`] = plan.from[j] === null ? del : plan.from[j];
+      const u = (run.images || [])[j];
+      if (u) marks.push({ url: u, vote: plan.votes[j] });
+    });
+    return { patch, marks, cascaded: plan.changed };
+  }
+  if (sheetCascade.at(run.voteFrom, i)) patch[`voteFrom.${i}`] = del;
+  return { patch, marks, cascaded: [] };
+}
+
+// Carry a batch of marks onto the Assets-tab records. A few at a time:
+// sequential is seconds on a nine-panel cascade, and all-at-once is nine
+// Firestore sweeps landing on the 512MB box together.
+// Deduped by url, LAST mark winning, because one picture can be named twice in
+// a batch (the cascade's ✕ and her own mark on the same panel) and the two
+// writes would otherwise race inside a chunk.
+async function syncMarks(marks) {
+  const last = new Map();
+  marks.forEach((m) => { if (m && m.url) last.set(m.url, m.vote); });
+  const list = [...last];
+  for (let k = 0; k < list.length; k += 5) {
+    await Promise.all(list.slice(k, k + 5)
+      .map(([url, vote]) => syncVoteToAssets(url, vote).catch(() => {})));
+  }
+}
 
 app.post('/api/promptlab/:id/vote', async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
@@ -7782,21 +8014,26 @@ app.post('/api/promptlab/:id/vote', async (req, res) => {
     if (!Number.isInteger(i) || i < -1 || i > 24) return res.status(400).json({ error: 'image index -1 (the sheet) or 0-24 required' });
     const vote = ['like', 'dislike'].includes(req.body.vote) ? req.body.vote : null;
     const ref = admin.firestore().collection(PROMPTLAB).doc(req.params.id);
-    await ref.update({ [`votes.${i}`]: vote === null ? admin.firestore.FieldValue.delete() : vote });
-    // Carry the ♥/✕ (or the clear) onto any Assets-tab record holding this
-    // picture, so the two surfaces agree — see syncVoteToAssets. Awaited so a
+    // READ FIRST, because the cascade is a function of what the run says NOW —
+    // which panels she has already hearted, and which ✕ a previous sheet tap
+    // put there. (It also gives the Assets sync below its urls without a
+    // second read: the old shape read the doc back after the write.)
+    const run = (await ref.get()).data() || {};
+    const { patch, marks, cascaded } = votePatchFor(run, i, vote);
+    await ref.update(patch);
+    plScanApply(ref.id, patch);
+    // Carry the ♥/✕ (or the clear) onto any Assets-tab record holding these
+    // pictures, so the two surfaces agree — see syncVoteToAssets. Awaited so a
     // reload straight after the tap already reads the synced state; a sync
     // failure never fails the vote (the helper swallows its own errors).
     try {
-      const run = (await ref.get()).data() || {};
-      const url = i === -1 ? run.sheetUrl : (run.images || [])[i];
-      if (url) await syncVoteToAssets(url, vote);
+      await syncMarks(marks);
       // A heart on a TRIANGLE run rebuilds her standing Playground-hearts page
       // (2026-09-03, "auto update as i add new cards"). Fire-and-forget and
       // debounced inside triset.js: a mark must never wait on a page rewrite.
       if (run.gptStyle === 'triangle') require('./triset').pokeLikes();
     } catch (e) { /* best-effort */ }
-    res.json({ ok: true, image: i, vote });
+    res.json({ ok: true, image: i, vote, cascaded });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -7825,7 +8062,18 @@ const PL_SEARCH_SCAN = 1500;    // newest runs a search ever reads
 const PL_SEARCH_MAX = 300;      // matches handed back
 const PL_FILL_PASSES = 12;      // pages a kind-filtered feed read will walk to fill one
 const plFeedFill = require('./pl-feed-fill');
+const plScanPatch = require('./pl-scan-patch');
 let plScan = { at: 0, runs: null };
+// A VOTE REACHES THIS CACHE (2026-09-06, Sophie: "when i heart individual
+// panels the heart gets removed"). The Panels tab's gallery is read out of it,
+// and a vote used to write the doc and not the cache — so her next tap on the
+// tab re-read a copy frozen before her heart and put the old marks back on
+// screen. Every run-vote write goes through here; pl-scan-patch.js is the rule.
+function plScanApply(id, patch) {
+  if (!plScan.runs) return;
+  plScanPatch.applyPatch(plScan.runs, id, patch,
+    (v) => v instanceof admin.firestore.FieldValue);
+}
 async function promptlabScan() {
   if (plScan.runs && Date.now() - plScan.at < 60000) return plScan.runs;
   const snap = await admin.firestore().collection(PROMPTLAB)

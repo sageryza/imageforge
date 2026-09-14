@@ -286,6 +286,30 @@ const TEXT_ONLY = `<!doctype html><meta charset="utf-8"><title>A read-through</t
     ok('a missing html is still a 400', out.status === 400, JSON.stringify(out));
   }
 
+
+  { // (g) A NOTE AND THE PAGE'S OWN TEXT ON ONE ITEM KEY (2026-09-07 — the
+    // b-roll page saved her scene edit under the data-item id, her "go" note
+    // replaced it, and the chat sent the draft). A page that wires
+    // __compareNotes and writes its own `text` onto a bare item id is warned;
+    // the same page storing under its own key ('<id>.t') or a literal
+    // prefix is not — that is what every safe page already posted does.
+    const OWN_WRITE = (itemExpr) => SHELL.replace('</script>', `</script>\n<script>(function(){
+      var CHAT='c', SHEET='s';
+      function file(n,t){ fetch('/api/chatfeed/verdict',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({chat:CHAT,sheet:SHEET,item:${itemExpr},text:t})}); }
+      window.__compareNotes({chat:CHAT,sheet:SHEET});
+    })();</script>`);
+    const clash = await postPage({ chat: 'a-chat', title: 'clash', html: OWN_WRITE('n') });
+    ok('own text on a bare item id beside __compareNotes WARNS',
+      (clash.out.json.warnings || []).some((w) => /note thread/.test(w)), JSON.stringify(clash.out.json.warnings));
+    const keyed = await postPage({ chat: 'a-chat', title: 'keyed', html: OWN_WRITE("n+'.t'") });
+    ok('the same write under its own key (<id>.t) is clean',
+      !(keyed.out.json.warnings || []).some((w) => /note thread/.test(w)), JSON.stringify(keyed.out.json.warnings));
+    const prefixed = await postPage({ chat: 'a-chat', title: 'prefixed', html: OWN_WRITE("'ord-'+n") });
+    ok('…and a literal prefix is clean too',
+      !(prefixed.out.json.warnings || []).some((w) => /note thread/.test(w)), JSON.stringify(prefixed.out.json.warnings));
+  }
+
   console.log(fails ? '\n' + fails + ' FAILED' : '\nall passed');
   process.exit(fails ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

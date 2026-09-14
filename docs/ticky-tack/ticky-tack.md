@@ -1,0 +1,1428 @@
+# Ticky Tack
+
+Sophie's manuscript. Its own page headers date it **2/18/24, 11:29 pm** —
+151 pages, ~39,700 words, first person, Portland.
+
+`ticky-tack-source.txt` beside this file is what she sent, **byte for byte**.
+This file is the same words with the page headers dropped and the hard line
+wraps joined back into paragraphs, so it reads on a phone. Nothing is reworded,
+cut or reordered — checked character for character. When the two disagree, the
+source is right.
+
+The file she sent was named `Ticky Tack.pdf` but is **plain UTF-8 text, not a
+PDF**, which is why a reader app may refuse to open it.
+
+Related, in her Google Drive (not in this repo): *noble roasters (ticky tack)*,
+*ticky tack compiled from noble roasters and more exciting*.
+
+## Introduction
+
+If you asked me what I was doing there, the night when I met the boy, I might have said - “I took the bus that goes home.” And it’s true. The 44 bus goes down Ainsworth, which is two blocks from my house.
+
+However, if you take it in the opposite direction, it leads to a freeway and up a winding road with lots of wet foliage that turns black in the dark of night.
+
+And if you got off the bus, say, at the very top of the hill, and walked for a while: back down the winding road, along the edge of the freeway - you would be remiss to explain the sudden appearance of a boy with matted hair, a slender frame, gripping two bags, both black.
+
+It would be difficult to explain this chance meeting, not because it was complicated but because it was so simple. So effortless, in fact, that it wouldn’t make sense to anyone.
+
+## The Beginning
+
+There were a couple other people that got off the bus with me. I thought I might strike up a conversation with one of them, maybe be led to a local pub. But one by one, they gradually dispersed, melting into the surrounding brush behind the facade. And I was left standing alone; no other light but the two ugly fluorescents that shone faintly down from the overhang. I waited for the bus that would take me back in the opposite direction.
+
+But as the night grew longer, and the wind grew colder, I saw no second bus approaching. In fact, there was no one and nothing - no way even to measure the time passing. Was I really there, or was this some kind of dream? The night seemed to glow ghostly red. Perhaps it was just the orange light of the street lamp, filtering my vision.
+
+I could run home.
+
+How far could it be? I tried to remember when I had last seen the city lights, dipping low beyond the horizon.
+
+Back in high school, I had run for sport: six miles; every other day. How far had the bus traveled? Twelve miles? Maybe fifteen. Fifteen was only a little more than twelve. And twelve, well, twelve was just two times six. Two workouts back to back. Easy peasy. What did it matter that I hadn’t trained in years? It would be nice to feel the wind rushing through my hair. And perhaps the run might calm the never-ending chatter of my thoughts.
+
+* * *
+
+As I began to run, thick fields of indiscernible foliage roamed up on all sides. I remembered, vaguely, that I’d been here before - a small brick building - a job interview. Someone else’s life.
+
+I was now running parallel to the freeway. I thought I saw someone I knew on the other side and hurried to catch up with him. But I didn’t recognize him when I got closer. Soon I was walking on a cement path, cut into careful wedges, uniform and neat.
+
+And there it was: the billboard. I saw the strong legs of steel and felt foolish: of course it had to be held up by something. But I had never seen a billboard up close before. They had always looked flimsy, standing out against the sun.
+
+If I had a degree, it would surely be in reading signs. I could find hidden meanings in a fleck of dust that passed through my periphery. But this one was an actual sign. And this billboard, though the lettering was faded and yellow, wasn’t hard to read at all: “god takes back he who disobeys.”
+
+Did I really need the reminder? This thought thrummed in the recesses of my brain every second of every hour of every day. Making me question my every decision. Tinging my will with something dark and sinister.
+
+This, of course, was the missing explanation, for why I was here: in the middle of nowhere, in blackest night. Surely I would not choose to walk this path.
+
+No, this path had been chosen for me.
+
+But I had never seen a sign declaring it so. Though thousands of people had flown by the sign, this billboard felt specifically placed for me, sunk straight into my veins.
+
+And the sign was a threat. God would “take me back.” Back to whence I’d come. Was I being punished? Would I be punished? Punished for my disobedience - my continued incompetence. Surely I tried my best. But there were ever so many decisions throughout the day. And sometimes I did not have the courage to do what needed to be done. This ended up in mistakes. The word carried a mist of thick despair; it was a constant thorn in my side
+
+Or could it be for that one decision - my mind reaches back, try as I might to stop it - to the cold linoleum floor of a cleaning supplies closet.
+
+* * *
+
+I had been safe, I thought. Safe. Finally. Not from anyone, or anything, but from myself. Away from all the strange and silly things my mind might make me do. I could not run laps, I could not dare myself to have illogical conversations where I was both rude and strange in the same breath.
+
+Sliding, down onto the floor, in exhaustion, I thought dimly of how the hours might pass in this closet. Surely I did not mind! I had slept in a storage unit for the past three days. Enclosed in such a small space, there was very little in the way of trouble I could get into. And before that, a hotel. And before that? Well, I could not really remember. It all blurred together - a strange array of images, of actions I had taken. They made no sense, even to me, the “actioner.”
+
+“I dare you,” I said to myself 9 times in every hour. I had always been such a sucker for dares. Given a challenge, I would not, could not, give up.
+
+But this was not a playful sort of competition. No, it centered on a cold pit in my stomach that threatened at every turn - something terrible - if I did not obey.
+
+In a space this small, there was really only one possibility - to sit. An hour could stretch into a few days. I would spend as much time as I needed in here, I allowed myself. I could think things through. I could relax. - and I could be safe.
+
+However I would need something to eat - or at least something to drink.
+
+My mind flitted across the floor to a large bottle, filled with something that looked like water. Unsure what to do with the door handle, I had left the door ajar, only a fraction of an inch, creating a sliver of light that slid jauntily over the few objects contained within it.
+
+No, it wasn’t water. It was some nasty acidic liquid now that I looked closely. I squinted and now I could see that it was blue, instead of clear, with a neatly pasted label, detailing all its uses. And all the things it should not be used for.
+
+Silly me. There was no food or drink in this cabinet of cleaning supplies. Unless…but…oh no…
+
+And when my mind caught up to me, I shivered in horror. Because suddenly I realized that though this was not water, it could still be drunk.
+
+Surely I would stop myself before I finished taking the cap off the bottle, I thought desperately. Or maybe before the liquid reached my lips? Or before I…drank too much of it?
+
+Once the command had been spoken it would trail after me like a ghost unless I found a way to put it to bed. Some mistakes had still not left me. They flitted behind me, like tiny white ghosts. Surely this would be one, or I would die, trying to fulfill it.
+
+And now my fists were clenched as my mind flitted back to another scene. It had been dusk, almost, and I felt a pang of thirst in my stomach…
+
+a water fountain, covered in cobwebs and stained green with rust. I wasn’t even that thirsty, I realized. But now that I’d been given the task, I must
+
+drink.
+
+The water had tasted warm - stale, even, when I unwillingly took my first sip. And once I started to drink, it was as though the water were filling my mind; swirling shades of blue replaced any words that might have whirled in those depths. As I drank, my mind filled only with color. I took a long drink - it was impossible - to know - when to stop.
+
+And I might’ve drank forever, had I not made the decision, myself, to stop. Would it be too late by the time I could relax enough to stop this time?
+
+This moment flooded back to me, leaving my shoulders hunched, my fingernails white, as they created half moons in the surface of my palm.
+
+And it was at this moment that I rose, my mind suddenly silent, like a night without stars, and I left this room - this safe haven - this trap.
+
+* * *
+
+With a nervous nudge, I pushed this memory back to where it was normally kept: in my highest security vault.
+
+Only about 2 meters later, I came upon another billboard. This one was more difficult to relate to. I could not make sense of its hidden message. It was meant to protest abortion. “Don’t kill your unborn baby,” or something like that. At least this one had nothing to do with me.
+
+* * *
+
+So caught up was I, in deciphering the meaning of the sign, that I almost missed the silhouette of a small boy, so pale he looked almost white, against the night sky.
+
+As I got closer I could see that his size was due, not to his age, but to lack of sustenance. On instinct, I slowed to a brisk walk, and then a standstill; coming to rest only a foot or so from him. I didn’t wonder if I should stop; surely such an uncommon sight must be meant for me.
+
+I noted the state of his hair - disheveled - perhaps as disheveled as my own. And the dark smudges on his face; the bags under his eyes. He carried two bags, one canvas and one leather: both black.
+
+As I watched him, he spoke in a thin, tired drawl, fixing his brown eyes on my gray ones.
+
+“Can I use your phone?” He asked, his voice utterly flat, his eyes piercing - daring me to refuse. His voice was so polite - too polite for this late hour, for this middle of nowhere conversation. Had societal etiquette really maintained a hold on him, when we were the only two souls for miles?
+
+“No.” I said simply, for I did not have one.
+
+What about his quick sweep of my appearance had given him the impression that I might possess such a thing? I was wearing a strange variety of clothing. Under the flowered dress I had “borrowed” from a department store that morning, I wore striped leggings, and mismatched socks.
+
+Evidently, this was not an agreeable response. For he stood up suddenly, his dirt-streaked face alight with anger.
+
+“Not one goddamn person can you believe that? Not one. Goddamn.
+
+Person. ” He turned to look directly at me, yet carried on the charade that he was speaking to someone, anyone, else but me. Then he stepped backwards towards the hedge, dragging his luggage with him.
+
+It was no longer dusk, and the world had gone fully black. I looked onward. Endless miles stretched out in front of me. Not so much as a light shone in the distance.
+
+In truth, I would not make it home tonight. I could carry on walking: another mile or two. Four, maybe even five. My thoughts - sticking up like rusty nails - would keep me from sleep.
+
+But when at last I did grow tired, too weary to continue, when rest became the only option, it would be in some place unfamiliar - in front of houses I knew not the owner. And what would I do then? Hover by the window, hoping someone would offer me a place to sleep? Dare myself to ring the bell?
+
+I would come to rest on some small wall, telling myself I’d be on my feet in no more than three minutes, now five. And then? Sit there until morning? Fall asleep on the brick wall outside their house?
+
+“I simply don’t understand,” the boy was saying, and: “People these days.” Each word was sharp and hard - meant to injure - meant to cut, like a knife.
+
+Surely his rant was meant for someone other than myself. Of all the emotions to be right now - anger stood out as the least probable. Loneliness, I could understand. Fear perhaps, because it was late and we were alone. But anger? I could not have conjured such a thing in this flat night. How could I already be his enemy when we’d never met before. But as there was no one to confirm this suspicion, I had to accept that…I began to feel the harshness of his words against my skin. (And there was no one else to turn to). I wasn’t his enemy. (I didn’t even know him). But why didn’t he know that?
+
+He continued muttering, all the while backing up into the hedge until he touched it. And then, with something of a snarl, he said: “I’ve been thinking of ending things.”
+
+Against my will, I softened slightly. Hadn’t I been thinking of something similar? Well, not “I” exactly, I corrected myself. Anyway - it reduced to the same thing.
+
+I followed him, then, falling into step behind him. Soon my arm was only an inch from his clenched fist. Walking when he walked, stopping when he stopped.
+
+I said the words too quietly for him to hear, “Me too,” knowing that, if he were meant to hear them, he would. I said it again, again too quiet, trailing off at the end. “Me too. Me too. Me too,” I muttered, till it became a constant stream of sound, a buzzing noise on my lips.
+
+When he turned around slowly, I couldn’t tell if he’d finally heard me, or perhaps instead simply understood the tone and depth of what I was trying to say to him.
+
+We arrived at an intersection, and though the brilliant street lights turned from red to green, and back again, he did not continue, and my suspicion was confirmed that like me, he had nowhere, in particular, to go.
+
+I tuned back into his symphony of complaint, wishing to
+
+harmonize with his stream of revelation, though I was a stranger to rants and the diligent anger they seemed to stipulate. He was now explaining that he always sided with the villain in movies, as though this was only one of a number of things the world got wrong.
+
+He took a break - and I explained to him, slowly, hesitantly, about the two signs I’d seen: the one about god taking back people that didn’t do as they were told, and the second one about abortion.
+
+His generally concerned expression, furrowed brow, looked like he was thinking, indicated that these signs made sense and that they were likely part of a puzzle that he was trying to decode. I felt almost understood for a second, though he had only given me room to say back the signs to him, rather than getting too deep into my analysis.
+
+And yet there was no way he (or probably anyone) could possibly comprehend the infinite significance that these two innocent billboards could have on me. They strangled my mind, a silent reminder of every doubt I’d ever had. We walked until we stopped at the corner. I wanted so badly to tell somebody what they meant to me, but my explanation, mangled as it was by the intermittent pauses, the tangled roots of potential words and phrases getting caught on every rusty nail that plagued me, was trampled by yet another wave of his rant.
+
+***
+
+It grew colder and somehow, darker still, though the sun had gone down long ago. And the streets were pitch black and empty, save for a passing car that came every couple of minutes, dividing the night in a screech of light, and then gone a moment later.
+
+His never ceasing torrent of words, all of them practically alive with bitterness and anger, made me want to curl up into a ball facing away from him. Instead I settled for closing my eyes, and in this new darkness, I knew it had to end, it could not go on indefinitely, and I felt my way backwards to a metal power box that lay disrupting the middle of the sidewalk. It had become too much for me, and my solution was to remove myself from the situation. I would not move or speak, not even open my eyes until he stopped talking I commanded myself.
+
+He stopped mid sentence and laid a gentle hand on my arm, a silent apology, no, an invitation, nay, a valentine. I opened my eyes. Then we were quiet and I sank to my knees, pulling him towards me into the gnarled bark of the tree that stood right behind us. He followed me easily, and I felt his slender frame through his long sleeve shirt. I held him to me, watching the stars through the uneven branches. And though every decision felt like dragging a rusty nail, these words came easily; I did not even stop to think as I whispered them into his hair:
+
+“I love you.” And through the tangles of my matted hair, I could just make out the silver whisper of him agreeing.
+
+* * *
+
+We lay there, I don’t know for how long. It was not a comfortable position I had chosen. His weight was heavy and his leather jacket cut into me uncomfortably. I considered, without interest, that I had never thought to lay on cement before. It was so smooth, and didn’t leave room for the blades of my shoulders, or the plates embedded in my skull. Thoughts thudding through these porcelain plates like a syncopated drumbeat, so loudly, it’s a wonder he didn’t hear them, so close was his mind to mine.
+
+My new companion had fallen easily asleep. His smooth skin was unconcerned as he now lay breathing heavily, only an inch or so from me. Only an hour had I known him, and already he had left me to fend off these thoughts on my own. I wanted to tug on his shirt, and tell him I’d had a bad dream. And that the bad dream was my life.
+
+I stared out at the houses to my left. I imagined going into the one nearest me, finding the cupboard identical to the one at my parents house, where they kept the extra blankets. They wouldn’t miss it, just for one night. Could they notice me - a ghost, creeping into their house?
+
+But I would never be like them, these people that inhabited these houses. Even if I could have gone into one. I would not think, in slow half circles about the day that lay ahead - of papers that lay on my desk, yet to be resolved etc. For the fact was, I could not plan more than 10 minutes into the future. And as soon as I my mind remembered it existed, I would be off on a new mission, something just as pointless as the first.
+
+The moon, at least, knew what I was. It did not mind the way I spent my days…did not mind that I could not explain what I had done that day, or why. It did not ask me. But it was asleep too, on its bed of stars. With a sudden desperation, I realized that everyone, even the moon was asleep, but me.
+
+* * *
+
+In the morning it was still cold, but not nearly as cold as it had been during the night. We had woken up at what felt like half past four and he had shifted positions so that the small swath of skin that had bothered me throughout the night was covered and his jacket didn’t crush me quite so much. I had fallen asleep around dawn when the warmth that finally surrounded me, rising up through the treetops, allowed me to forget my task of willing heat to various parts of me.
+
+As we lay there still dewy-eyed and dazed from our night outside, I watched a man stroll out his front door. Had the man caught me restlessly searching his house for blankets in my dream? He glanced at us, before pulling a cellphone out of his suit pocket and descending the last of the three steps. Evidently he was off to work. And a highly important job it was, I thought, judging by his attire.
+
+He was gone a moment later, making one of the cars on that silent street splutter to life, and then racing off into the distance. Soon after, a police car pulled up serenely alongside the curb. There were flashing lights, but no sirens.
+
+The policeman got out of the car and stood, towering above us. It took me a moment to make the connection between the cell phone and this intrusion into our morning, but once it did, everything fell into place quite rapidly. And before the policeman could get so much as a word out, I was tugging my new friend up from the ground and tossing my disheveled hair behind my shoulder.
+
+The police man looked from my defiant face to the boy’s stricken one and slowly back again.
+
+“Come on,” I said to Thomas, and we walked away holding hands, our hair disheveled, but our heads held high.
+
+“Homeless people are lazy,” the policeman spat, as he watched us go.
+
+Once out of sight, we stopped to rest on a low wall. My companion stood up suddenly, holding out the waist band of his pants. “I need to get new pants, today” said the boy whose name I didn’t yet know. I could see that there was a good few inches between his waist and the fabric.
+
+“That’s my goal for the day,” he announced, with a sudden
+
+ambition that I couldn’t trace back from whence it had come.
+
+There was a bus stop a little ways away and we settled under the protective cocoon of the awning to wait. We shared the one seat; I sat in his lap but he was staring off into the distance, not paying attention to my sitting there, and his legs gave way and I slowly slid off onto the ground until I was seated at his feet. Neither of us commented on my slow descent, neither did I rectify the situation. Instead we kept on staring at where the bus would be.
+
+It had been the 44 bus that I had thought would take me back to my house the night before. But it was the 12 bus that we got on. Away from suburbia, back to cigarette butts lining dirty pavement, tall buildings stretching on for miles.
+
+Packed with people, the bus appeared dangerously close to keeling over. At the helm: a distraught woman driver, enraged and snappy about all the people that were getting on, threatening to topple her bus. We arrived at one of those bus stops in the middle of nowhere: no bench, just a blue pole.
+
+Another group of people tried to get on but she wouldn’t let them. Evidently the bus was at capacity. I had never been refused a bus ride before, indeed hadn’t known it was a possibility. I imagined the ugly taste it would leave in my mouth, as I watched its retreating metal back, chasing further and further into the distance. Relief as it approached, and then dismay as it left.
+
+Despite myself, I was glad she had someone else to hurl her fury at now and shrank back into the shadows of the back of the bus, leaving only my toe, hovering uncertainly just at the front of the yellow line.
+
+When the sprawling grass turned to tightly packed houses, and eventually to brick buildings and dirty pavement, the boy and I got off, settling onto yet another low brick wall as he searched for cigarettes among the grass. We had arrived directly across the street from a large red hotel. I could see through the high glass that extended above the doors into a large hall.
+
+We went inside. We had a few things in common with the other persons milling around the foyer. For one thing, we were carrying luggage, or what appeared to be luggage. However, far from folded shirts and suit pants ironed at the ready, Tom’s milieu of possessions included crushed soda cans, and paper bags with pipe residue. For another, we needed a place to sleep. Having slept poorly the night before, a hotel seemed like the proper destination. After all, we weren’t home, and what were hotels if not a place to sleep when you were not at home.
+
+Once inside the grand stone entry way, we felt out of place and nervous and wandered unsuredly towards the elevators. However, we were stopped by a guard and questioned about where we were going. I gave them a fake room number I made up on the spot. I did belong here! They’d sure be sorry when they realized. But then I remembered we weren’t staying there, and had slept outside the night before, and that our “luggage” was not in fact luggage, but instead filled with crushed soda cans, and pipe residue.
+
+We were told to sit tight on the black frozen couches that felt like decorations more than furniture while he checked on that for us. I didn’t stop to consider the possibility of actually paying for a hotel room. Spending money on a hotel with an arched ceiling when you’d slept the night before on someone’s lawn, seemed about the craziest thing you could do.
+
+The manager walked away, leaving me standing limply in the lobby, and there was nothing to do but turn around and walk back the way we’d come, booting out of the wide hall with the arched ceiling and taking our luggage with us.
+
+I wondered, suddenly, how I’d come to rest in this leadership role. I felt I wasn’t living up to my title: was not performing my duty adequately. Often these positions were sought after, and came at a price - hours of study, paperwork that needed to be filled out. But Tom accepted my absolute authority, acquiesced to every move I was struck into making. If it were up to me, I would have been fired.
+
+It seemed only natural to visit Starbucks then - a routine morning errand. Having just come from the gym, we needed to pop over for our morning caffeine before rushing off to work. There was a table waiting for us, but just one, and we sat in (very) close proximity to the other patrons. Directly across from each other, making the kind of placid eye contact you would with a stranger at a doctor’s office. Our only activity, which we engaged in with rapt attention, was listening to the gentle music floating down from ceiling speakers.
+
+Once this activity concluded, and our music listening duties had been fulfilled, we walked back out into the hot air. I could smell the grease as we passed sizzle pie, and continued on past that crazy intersection that went both ways at once - an extra street crossing the other, in the middle of two crosswalks. At the other end of which was powells.
+
+* * *
+
+Powells was calm and cool; sun gently oozing in through the window. The walls were a beige sort of tan. And there were the books: stacks and stacks of them. Mountains and piles of them. And also the people, their mouths and minds quiet as they perused with the sanctity of a temple, these never ending words. We naturally fell into step - hushing our voices, moving slowly, even slower than we had before. We found a bench and resumed our most common pastime: simply sitting. We sank into each other, till neither of us was clearly vertical, like something sticky, oozing slowly downward: glue or foam.
+
+I worried about finding the bathroom code, but the door was open when I got there. I glided through the door with that placid look my friend Jennie had always worn - serene - impossible to guess what might go on behind those vague eyes. As I slipped across the wooden threshold, my skin felt porcelain for a second. In the mirror, my open mouth, and wide eyes reflected the expression of a large, realistic doll. And wasn’t it true - that I was controlling myself like a doll. My limbs and mouth moved, regardless of what I wanted. I had no agency - all had been given to some unknown place in the back of my head. Limp, and lifeless, I let thing happen to me, rather than “doing them” myself.
+
+I got the idea that I should sign the bottom of my foot. And when they found my body, they would know that I had been art.
+
+I returned to the bench, as though I lived there. Our nook - the place among all the books where the bench resided, was almost completely filled with books. I wondered at all the titles, wondered if there was a book that contained the knowledge that my new friend was ineffectively hoping to convey to me (I wasn’t ready, open, or interested). Not really looking in particular, but staring, generally, at all the book titles that inhabited that cozy room with us, I thought about writing a story like ours.
+
+Sure that we’d traveled past time and space, that we were merely observing rather than inhabiting this world we saw as though through a misty fog, it came as a surprise when a man in a black vest came and told us, not in dulcet tones, to leave. Apparently, our glasses were in dire need of rubbing. And so we did, slowly, like the non-solid creatures we had become, collecting our myriad belongings, which had oozed around us like jello, including all the pieces of ourselves we had dropped during our prolonged stay among the wood and the books.
+
+I was under the (mis)impression that we were among those that visited establishments, rather than trespassed. It didn’t seem to have much to do with our empty wallets, indeed as I had been here many times before without spending any money. Evidently, we simply gave the impression of vagabonds. Was it the bags we were adorned with, the streaks across our faces, or the way we seemed slowly to ooze into any solid substance?
+
+We found ourselves at a large park, and let our many belongings fall unceremoniously around us. I now belonged with those faceless strangers I myself had held my breath while passing, hoping my lack of oxygen would make me invisible as well. It had seemed strange that one would take root here where anyone that chanced upon you could see them in the privacy of their “home.” But what did it matter when you(r thoughts were so entirely different. Was it even the same world?) no longer belonged to the same world anyway? Which world was I a part of now? Degrees and destinations were starting to feel like something out of a story book.
+
+I lay down on top of Tom on the grass next to a fountain. (and though I felt anxious to move, restless, must get on with our journey, it was nice to put down all the bags we were carrying and nice to have him under me and nice to see the things in the park behind him
+
+And though I felt anxious to get on with our journey, it was nice to put down all the bags we were carrying, and nice to have him next to me, nice to have his arms around me immediately and completely. Though our journey seemed imminent and important, at the present moment I wasn’t sure where exactly we would be heading. Presently, it felt right simply to lay their in the grass, to take in the goings on of the park, lazily. In a few minutes a pair of policeman stopped and towered above us, surveying what we were doing there, next to each other. So much for dreams and the innocence of the outside. I couldn’t retain my composure until they left.
+
+* * *
+
+I’d never thought to try to cross the bridge on foot, before. We ventured back across it now. As it happened, there was a bench about a quarter of the way across: ready and waiting for when we immediately grew tired of the journey. We sat down to rest. I leaned on him, and he leaned against the gray cold slats of the bench. I began vertical. But though he was willing to be leaned on, he wasn’t committed to staying upright (as I’d assumed anyone would be,) and so we fell, slowly, together.
+
+* * *
+
+It was quite a beautiful day, in a nonchalant sort of way. He told me his plan to go to Africa. He would take Ayahuasca in some sort of sacred ritual. People went there to cure themselves of drug problems, he told me. The drug loosened up their mind - made it more malleable for a time. There had been lots of people that had been cured that way. I wondered - would it work on something else? Could I cure myself of this terrible disease that had eaten away at my free will? Somehow it was hard for me to imagine us successfully making that journey to Africa he was describing. Not when we could not successfully get across a bridge. I imagined it anyway: us lined up next to each other on a flight, excited and anxious. In my imagining, he still had his black bags with him, and people were tripping over them in the aisle.
+
+The bus that went across the bridge came and went and I stared at a building with its many windows across the street, from his lap and imagined people that were bad as he was describing something, people that were between the worlds, people that could not speak at times.
+
+After a time, it became apparent that we were not destined to cross the bridge. One of us got hungry, and it seemed the only sensible thing to do was to make our way back across the part of the bridge we’d managed to cross.
+
+* * *
+
+We managed to buy French fries with what spare change we had. All our nickels and dimes were enough for one small boat of fries. We ate them silently, sitting against a painted wall of bricks. Someone passed by, and Thomas used their phone to made a call to his mother. The call was strangely normal. There was no sense of urgency, at least not one that I could sense, coming from the other end of the phone.
+
+She asked if he would be home for dinner and suddenly, my
+
+impression of him changed. He said he wouldn’t be home for dinner and carried on with a few pleasantries before hanging up the call.
+
+* * *
+
+We found ourselves by the waterfront. Having taken a wrong turn, we ended up on a set of dilapidated tracks and - perhaps due to the confusion of who was following who - we boarded the train. Once we were on, I leaned back in my seat, a little traumatized from getting on without knowing where it was going. Next to me was a crumpled piece of fabric. I unrolled it on my lap; it was a small American flag without a handle. I stuffed it into the bag I was carrying, and after a few moments, he renewed the placement of his arms around my shoulders and we settled into the seat.
+
+We proceeded to sit in silence on that train as the realization that we had no particular destination set in. Every stop I would look outside of the train through the doors, see the sunniness that was outside, the day that was still occurring despite our absence, bolting forward except his hands were locked around me and my motivation to make it back into that sunshine waned easily as I didn’t know clearly where we were.
+
+After a while the stops seemed to blur together, so it wasn’t clear why I would choose one over another, or perhaps I could just sit there, sinking into the dampness of his underarm. Eventually we were so far from anywhere I knew that I settled back into my seat thinking of what train would take us back.
+
+***
+
+A man came by with a pile of papers and a clipboard, asking if we were registered to vote, or wanted to be. I was admittedly surprised that we had not stepped so far out of the reaches of society that we were still the prey of solicitors of this sort. I was even more surprised when my new friend sat forward in our seat, causing my head to jostle, and inquired as to what steps were necessary, in order to register. It occurred to me that I had scarcely seen him interact with someone that was not me. Was he not an imaginary friend I’d dreamed up for myself on that black night?
+
+I was surprised to learn his name. He wrote it down on the piece of paper the man handed to him. Perhaps I was surprised to find that he had a name. I had gone this long without asking - had skipped the common pleasantries of meetings. Now I didn’t have to. We had not met. Had not exchanged a purpose for traveling, nor decided to become acquainted in any sort of way. It was only that we were together now, and hadn’t been before. Would we stay together? The fact remained unclear. And if we did manage to part - would we say goodbye? - an acknowledgement that we had in fact, become acquainted. Or would we simply fade away from each other, in the same way we had met?
+
+Though I didn’t speak them out loud, I tried to push both names: the first name and the last, deep into my memory.
+
+* * *
+
+Thick moody rays of sun entered the window. I had told him I would take him home with me, though I wasn’t sure it would work. How could I bring this boy I had made up, bring him into a house that I had paid money for, asked for roommates on craigslist etc. When we had moved in, there had been the business of arranging to get furniture, and though I’d ended up with an old mattress pad on the floor, though clothes were strewn about my room so it might have been mistaken for a mess, I felt sure that when one of my roommates came marching in through the door, in a thick cloud of (meiosis) that I often encountered them in, Thomas would simply disappear into a cloud of smoke and mist.
+
+And when I tried to convince Feather, or Joey, who were constantly changing their names, adding new names every three or four days (Joey Jane Lovechild etc.) so I could never keep up with what they wanted to be called, it would be as though I were speaking of a figment of my imagination.
+
+Then I would be left even more alone than before, left to ponder what was real and what was not with only my own brain to process the trauma that was my life.
+
+* * *
+
+We came off the train as one going the opposite direction entered the station. But we strode past its metallic doors, neglected to reverse our (pointless flight), and instead sauntered up the steps together. We settled next to each other on a bench, waiting for the number 73 bus. I didn’t look at the map to see if it might take us remotely near where I intended us to be heading, the house I shared with three roommates, one almost never home.} The sun stung us as we were waiting there.
+
+The panic that had started on the train - a low mellow hum in my ears and at the bottom of my chest, now seemed to beam down from the sun. Thick moody rays beat their way in past my skin and into my nerves; in fact, they had the power to reach all the way under my clothes. I wondered: how had I led myself into this mess with so little fuss.
+
+The wide eyes of my companion, always a little anxious, his brow often furrowed, mouth bent into a thin twist - I could tell he was thinking of things that I wouldn’t want to be thinking about. I rarely thought about the world, had chosen to accept it for lack of a better solution. But to constantly puzzle my way between the ins and outs of what human consciousness, unconscious, had come up with for the world to look like, felt like a confusing pursuit - one that would leave you trapped in between the two sides of the grand canyon, steam billowing up into your face. Thinking of his reaction when I explained that we were nowhere near the destination I had supposedly been leading him contrasted thickly with the strength of our embrace and the thick moody rays of sun that entered the window, an anxiety that I countered by surrendering my body to his enveloping limbs.
+
+Stinging, triggered
+
+But he didn’t seem to care (or notice, for that matter), when we arrived where we’d been going, seemed to have forgotten my promise.
+
+This was it. The stop we’d been waiting for. It matched the smaller version of the flag that I had picked up off the seat we’d chosen. My words came out in a rush, trying to make him understand the situation. But he didn’t care. He took my hand easily…the perfect partner - we needn’t fight about silly things like what we were going to do next. I would decide everything. And randomly at that.
+
+In the gray glows of the afternoon that filtered in through the window, I took notice of a giant American Flag gleaming on a pole next to the fabric store. I broke the silence of the ride with a handful of quick sentences: “This fabric store – I once wanted to go in – but I couldn’t.” He seemed interested. “Let’s get off here?” I said tentatively. He followed me off the bus, taking hold of my hand. We began striding along in the sunlight, towards the cross walk that led to the fabric store. I saw three pens – a sharpie, a highlighter, and a broken one with half the plastic missing. Ah - here was my chance - to write - all the words I had been thinking of.
+
+I told him “Wait. We need to go back the other way.” We were already in the middle of the crosswalk. He conveyed his annoyance when we were about halfway back to those pens. “Can we?” he said, pulling me down by the hand “stop here?” his voice was exasperated.
+
+We sat next to each other on the curb, close so that our legs were touching. He was wearing black, I was not. It seemed that he wanted to discuss something – most likely my tendency to take him in different directions without any explanation. But he remained silent, his face indicating that I was unaware of this behavior and therefore could not discuss it.
+
+The birds were rising up from the building in various clouds. I made a game with myself, much like the game I was already playing, that if none of the crows remained on the building, then things would be difficult for me. The pigeons clouded up in a black metal sky, hiding the horizon and there were none left so I got worried. But then one pigeon stood up from its hiding place in the gutter so it was alright.
+
+The sky was burning up, the sun was coming down. My new friend smoked his cigarette next to me in a jagged time lapse, said nothing. I couldn’t see him because I was looking and thinking about the building behind us. People came in and out through the door. Inside they must have been doing things. Inside there were things in different colors, shapes and sizes. Everyone moved with their own explanation of their reason for being there. what they were doing there. Out of my peripheral vision I could see little squares of black in the building behind me. People were coming in and out.
+
+I didn’t think about the things my friend was feeling at the time, only the new things that I was seeing. I don’t know if he was seeing new things, or only the cigarette stub he was putting to his lips.
+
+* * *
+
+Chapter Two: The Winning Spot
+
+I had started collecting things; little pieces that others might call trash along the trail, the trail being the sidewalk we’d chosen for our mightily slow jaunt. A straw, a red line on one side, a blue one on the other - I would use it to make a merry-go-round. The horses would represent paradoxes, and the whole mechanism would swing around, the way that our mind turned around concepts. After a few moments, I had collected a decent number of pieces, each like a piece of a missing puzzle. And along with them, each was accompanied by a bit of dirt from the street where it had been picked up.
+
+“Wait!” I said. “The Winning Spot” - a dive bar across the street was calling out to me.I felt sure, suddenly, that I was meant to go in. To win.
+
+I opened the door triumphantly, certain I’d find what I needed once inside. Inside were two dingy pool tables. In the corner was a man pouring shots. A couple of people looked up from their beer when the door opened - mostly men wearing jeans. Next to the door was an old-fashioned juke box.
+
+I went up to the counter, certainty waning with every step I took. “umm…” I said, hoping someone would fill in the rest of my sentence for me as often happened.
+
+Instead I was met with a cruel silence. “Yess?” the man said, looking up for less than a second as he polished a glass.
+
+“Could I possibly get…” I started, my voice reaching an impossibly high crescendo.
+
+“Come back when you have money” said the bartender with a cruel smile, and left me there to think about what I wanted to order, though I didn’t have the money to do so, and didn’t want anything anyway.
+
+I came out into the sun to find Thomas, perched with his usual vacant expression but he was clutching his legs so that he resembled, as closely as possible, a ball. It seemed that the whole sky was made of an easy pasty sun, shining indiscriminately onto everything so that some of its luster was gone but all of its holding people in parts of the world was there.
+
+I sat down next to him, and, in a high pitched, very detached voice, he said: “I’m feeling extremely anxious.” This surprised me. I couldn’t imagine his insides were like mine, which the hot sun had melted, and turned into butter. I had a thick thing in the pit of my stomach and my limbs felt like they wouldn’t work if I tried them. There was no way he could be feeling similarly. Having him sit there beside me with his legs gently nudging mine suddenly seemed like a source of comfort I hadn’t noticed.
+
+Suddenly, a woman emerged from the wooden door behind me. She held a crumpled $5 bill between two fingers but she extended it triumphantly. “This is for you.” She told me. “I saw you, and I thought you needed it.” I couldn’t possibly express what I felt - not because of the money, though it was nice to belong to society suddenly, but the love that shown through her eyes melted my insides which, a moment earlier, had felt like diamond mines.
+
+* * *
+
+He was humming the low bars of a song, beginning. “Nice dream…” his voice warbled. “Nice dream…If you think that you’re strong enough…”
+
+I knew that song. I remembered my brother, playing it on the stereo in our car.
+
+I didn’t know if I was allowed, but I knew the lyrics so how could I not. “If you think you belong enough! Nice dream! Nice dream. Nice dream.”
+
+He was walking a few paces ahead of me; I wondered if he could hear me humming the words quietly, like the first moments we’d met, I muttering “me too” to myself till my heart exploded while he led me…
+
+As the light slowly faded altogether from the sky, we kept walking, walked on, where were we going? Would we suddenly find ourselves among the salty lights of the city? Would the hotel we’d tried to rent apologize and offer us a room? Somehow I doubted it.
+
+* * *
+
+Ahead of us there was what looked like a party, in a refurbished pool hall. Red light was streaming out through the open door and a little bit of music, and there were people walking up to it, entering in ones, twos, and sometimes threes. I said maybe we should go in there and he followed me to the parking lot outside. I asked a girl coming out what it was, and she said they were giving away free pizza and soda. He didn’t seem too keen on going in but this seemed like just the kind of place we needed to be. And I followed the girl and he followed me.
+
+Inside there was a table where they took down our names and wanted to take our things – my small bag and his two black ones. Tom seemed very reluctant to give up his black bags. I said they didn’t need to take our stuff and she assured me that she would give it back to us once we were through and that she would give us little tags to identify the bags as our own. She said “We won’t look through your stuff.” And I said: “you’re going to look through our stuff?” and she said “No, I said we won’t look through your stuff.” And I said, well, I didn’t say anything. Because I couldn’t really come up with a reason for them not to take it, besides Thomas’s wide brown eyes, and in the end they took it and put it behind the desk and put the tags they had said that they would onto it - little white tags, attached with white strings.
+
+The other lady behind the desk said to go over and grab food before it was all gone and I hurried where there were cardboard pizza boxes and a group of soft drinks like mountain dew and coke. I tried to reach for the pizza but the lids opened the other way.
+
+I asked for one piece of vegetable pizza and one piece of pepperoni and then there were all these other people coming over and my friend was at the beginning of the table and there were people in between us. And suddenly it was crowded and there were too many lights, and all the people all around.
+
+I asked for coke. Then Tom and I walked back to the entrance and the woman said “Oh, I didn’t realize you weren’t staying or I wouldn’t have checked your bags.” Sounding embarrassed.
+
+I hesitated at the door and Thomas sat down in a chair that was in front of a short desk next to it. I went over and stood next to him and put the plate with the pizza down on the table. He put the piece of vegetable pizza onto the other plate that he’d gotten and proceeded to take off the cheese, which was embedded with the vegetables, which were things like peppers and mushrooms. He looked up at me and in a high pitched voice that sounded a little bit English and told me that he didn’t normally eat pizza but once in a while he did, and figured it wouldn’t hurt him. I started to ask him what was wrong with pizza if he took off the cheese but then I got distracted by a long pad of paper at the back edge of the table. At the top it said “To Do List.” I uncapped a pink pen from a container and brought it over and took two bites of the pizza and wrote out the things I had been thinking about. I wrote down about treating myself like a doll – about signing my name on my foot. I wrote down about the trail of items I’d discovered on our route to the winning spot - the straw, and the little horse, and the lid…a voice sounded over the loudspeaker and said: ”excellent job everyone” and I felt hopeful and proud that I’d remembered about the doll, and the purposes of each of the things that I’d considered picking up. It was perfect.
+
+I put the cap back on the pen and took more bites of my pizza and reached over onto tom’s plate and picked up the slimy combination of cheese and vegetables, the vegetables coming up with it and staying rigid. I ate it. I took a drink of my coke and was delighted I’d chosen to get soda as the cool taste of coke washed down, pretty, and settled, in my insides. The bubbles creating some amount of excitement inside my stomach that was usually plain and boring.
+
+* * *
+
+They were now gathering the people in the room - the participants , into a lopsided circle, around the chairs and tables that had been set up. I told Thomas we could go. We walked into the parking lot and paused outside the building, I trailing behind him. There were many things in my hands now - two plates of pizza - the coke. And my bag, lolling on my shoulder. I placed the coke atop a cement pillar that marked the spaces in the lot and moved to exit.
+
+But then I stopped walking and turned around. I wasn’t sure whether we ought to go back in and participate. I remembered the coke. I put my bag down, to go back to the coke, to get it. I turned back to him and he’d noticed I’d stopped walking and turned around and stopped walking too. He’d already put his bags down, too. Strangled and paralyzed, I told him: “wait, we can’t go anymore.” We stopped in the middle of the sidewalk. He sat down on the sidewalk behind his bag.
+
+We weren’t stopping though, I was just trying to decide whether I should go back and get the coke or continue. If I should throw the pizza away, behind the fence or into the grass, or keep the pizza and eat it. If we should go back the other way, to the party and get more food, or turn, and walk briskly out of the parking lot without looking back.
+
+I put my bag back on my shoulder, ready. Then I knelt down in the middle of the sidewalk, my bag listless on my shoulder. I stared ahead, at the low horizon, the gray sidewalk, a wall up ahead, flashes of green - they were patches of grass.
+
+None of the options sounded right in my head. Not leaving, not staying. Not taking the coke, eating the pizza, going back into the room and having them check our bags again , participate in the group activity. The possibility of coke or no coke, leaving the coke where it was, bringing it with me - but how could I carry it, sling my bag over my shoulder, stuff the pizza in my mouth, hand it to Thomas - sirens started ringing in my head.
+
+If it was ok - I didn’t know if it was ok - I would simply stop thinking about it. Instead, I thought about the grass - growing upwards, and yet, they were flat. What was it like to water a lawn - to cut it - to decide if the grass was too tall or not green enough?
+
+I fought off the tiny pit that was appearing in my stomach. I had had astroturf at the playground as a child, and everyone had talked about how awful it was - to have plastic instead of grass. And sometimes the little black dots got stuck in my shoes and my socks.
+
+I grabbed the pizza, took one last sip of the coke, remembering to celebrate the essence, then started walking without looking back, hoping Thomas would follow as though this was the right course of action.
+
+* * *
+
+We walked on into the night. When we got a bit too far, we doubled back the way we’d come, passing what looked like a raucous video poker room and collapsing in a heap under a tree in a park that appeared suddenly beside us. We spent the night.
+
+His leather jacket felt like a boulder on me, but I had resolved not to move because I did not want to wake him. I could see cars passing by, and then a lot of trees, and then the car that I had seen on the outside would come out from behind the trees on the other side and then I could see it again.
+
+In the nestled darn of those leaves I discovered a man standing over me, nested in the slight dark that those trees made. I didn’t like to see him there. My new friend was still asleep. I couldn’t understand what he was saying. He kept saying something to me about blankets that he had seen. I couldn’t understand what he was saying. Finally I understood that there were blankets nearby – up the street and to the right. “He said there are blankets nearby” I said. (and I got up and went to the blankets which were right where he said they’d be).
+
+“I think if we lay on top of each other we’ll be warmer” he told me as if he was sharing a secret he’d discovered. His lips went up in that moment, like I knew the secret too.
+
+* * *
+
+In the morning, the tree that had cloaked us in sleep could be seen clearly above us - a mesh net. Sunshine poured in through the uneven branches and my mind was freshly alive, had already begun churning. All my past and future mistakes thrashing about, causing a vague buzzing. But despite my anxiety, I recognized this moment for what it was. Looking at the endless leaves above us felt stolen - like I had taken it from a moment in the future, where I watched myself. Even now, trading the permanence of the present, for that silent and lost thing that was the past. But it wasn’t a mistake, it was worth it.
+
+A time machine - that’s what this mesh net above us
+
+represented. Because I recognized this moment for what it was - a memory. I was nostalgic for this moment as though it had already passed. Already I could see one long slender finger, sliding out of the sky, grasping at nothing - trying to capture: the cool whisper of leaves in the wind, how the light shown through the tree. And the pale figure, of the boy by my side. A solemn companion - one that warranted no explanation. And no thought. He was simply there. Perhaps he always had been, and perhaps he always would be.
+
+If only I could take Thomas with me - make him aware that we were living in the past.
+
+* * *
+
+Chapter Three: Back to the City
+
+It was time to go home - back to the city. We got on a bus. With the comfort of his arms holding me close, I felt I was in my own private viewing room. I was free to surreptitiously observe two men undertaking a logistical feat. One was gesturing wildly while talking to the bus driver, his gestures coupled with the movement of the bus. Holding the rail above him, but having to stop every few seconds to steady himself, and bouncing. The other was also bouncing: half standing, half sitting on one of the side facing seats near the front.
+
+It was hard to listen to what was being said as nothing was even said directly, but that made it all the more interesting to listen to and I followed the ups and downs of their exchange intently, feeling in the little whizzing bee in my mind; in the lightness of my head but not in my body which was too tense and only moved with the evenly violent jolting of the bus {as we passed through an entire city at night.}
+
+From what I gleaned, they were trying to decide whether they should continue on the bus we were on, or take a bus that they might miss if they got off the one we were on but if they didn’t would get there faster or wouldn’t have to walk as far.…and they were following the bus they needed to transfer to on their phones. every up and down with my mind - when the bus was coming, when the bus came, and when the bus left. I saw them leave the bus and wondered if I should leave too.
+
+They kept popping up from their seat and checking their phone to see the progress of the bus they needed to transfer to.
+
+* * *
+
+I was surprised to find that our destination, rather than a particular one, was instead a general one. When we got to where we were apparently going, Tom led me off the bus. I hadn’t known what he carried in those bags that always remained with him, but now I learned that he had been carrying a blanket. But he laid it on the ground under us, lay down and went to sleep with his arm around me.
+
+I lay there silently in the house of his leather coat, which was draped over both of us. A woman approached nearer and nearer, dancing an insane dance to music that wasn’t playing. I was glad to have a show to entertain me while Tom slept. With nothing to distract me, I entered her consciousness wholly and completely. And now I could hear the music too.
+
+As I was enjoying the performance, two suited men tried to pass on her right, their steps suddenly nervous as she noticed them but did not make room to pass. In their own way, they had joined the performance - making themselves as narrow as possible, side-stepping awkwardly now. She paused to look in the mirror of a store window and I decided with some relief, that I was happier, for once, with my own thoughts.
+
+Cloaked in weighty sleep, Tom removed his arm from my chest, and, with the lifting of this weight, a sudden lightness took over me, and I sprung from the place I’d been lying. Leapt up like a ghost, taking flight across the street.
+
+I was suddenly aware that I had been trapped there only by my own imagination. I dreamed up permissions for every step that I took away from the spot I had been tethered. Away from the space that he was still sleeping, tethered as I had been, to that very spot.
+
+Had I left my consciousness behind, still asleep under the ghost of his arm? Could it be: that I was now free? Had I always been trapped by my imagination? Lithe on my feet, I danced across the street. Was I not the ghost of this town - an apparition - even now, appearing in the dreams of the inhabitants of all these houses? Even to myself, I was not real in this late hour, when the houses appeared pale pink under the moon. I could haunt this place.
+
+I walked pacelessly up the street, and the world seemed to be made out of crystal. The shining jewel of the night was the dark - complete in its utter emptiness. Granted the opportunity to step away from their day selves, these doors were no longer doors, but wood, and bone, and memory. The street beside them, usually filled with cars, was now just a flat black expanse. No one was watching myself but me: from far away, distant like a piece of a dream.
+
+The houses on the other side were three stories tall, with stairs that led up to the front stoop. If it had been a beach, the waves might have licked these stairs bottom but left the windows and everything inside them untouched.
+
+Suddenly, a man and his friend, talking, laughing, jostling each other, claimed one of the tall houses as their own. Still jauntily strutting with the good fun of their night out, they passed me in the street, stopping in their tracks like they’d seen a ghost.
+
+They saw me there - hidden - or so I thought, in a small enclosure where I had ducked when I heard them coming. Suddenly their voices were harsh. They were defenders of their turf, and though I thought I must look innocent enough, they ordered me away.
+
+Suddenly unspeakably frightened, I craved the comfort of his woolen arms. I hurried back across the streets, the night, no longer crystal - my emptiness seeping out and instead filling the sky around me. Half awake, he spread out the blanket so it covered us rather than was under us. He took me back under his arm, settling so that his chest engulfed mine, dragging me into his little den of comfort
+
+And then my mind was blessedly empty. And I rejoined my ghost self. I wasn’t free but I fell asleep. It didn’t take much; after all, I was already dreaming.
+
+* * *
+
+In the morning a woman saw us huddled under the cool fog of morning and handed me a tall coffee from McDonalds. I had never drunk coffee before, but this seemed like a good time to start. “I wake up, I have to have my coffee” I said to myself, and the words felt right in my mind. “Don’t talk to me before I’ve had my coffee,” I told myself, watching the way the sunlight dappled the cool liquid in the cup. I was tired, and coffee was a remedy, I thought. I needed it and I drank it, covered the top with my lips. Only a tiny sip because the liquid could be quite acidic.
+
+By a parking meter, he found some stale rolls of bread that were covered in ants, along with a pasta salad that looked only slightly congealed. I crouched next to the food to examine it and he sat next to me. I nibbled off a bite of one of the rolls, brushing a few ants off and positioning my teeth carefully between the others. I took a piece of pasta into my fingers, then let it droop in my hand. I supposed I wasn’t quite as hungry as I thought.
+
+I handed him the cup of Mcdonald’s coffee that I still held. It was tall, and lean, and the coffee had begun to leak through the paper at the bottom. He took two paces, then, with an absentminded jerk of his hand, turned the cup over into the bushes. But he liked coffee. I had gotten the coffee for him. I couldn’t stand him.
+
+“We have to get out of town” I said suddenly. The sky was turning from blue to pink to gray to black above us. Somewhere, past the city. I didn’t know where, but there would be a place with eons of grass, no pavement, and no dirty looks at our now ragged clothing.
+
+We started planning - nodding along. Agreeing with each other. We started walking west. We would start a new life - just the two of us. I’m not sure why it didn’t occur to either of us to take a bus. or a train but it didn’t., I think, perhaps, we knew we weren’t really going anywhere. Not really.
+
+* * *
+
+## Part II
+
+Chapter Four: Christmas Morning
+
+Thomas, his arms are like sick things, and they wrap around me quite often. it’s not like I get them to, it’s like they are just surging back to where they belong.
+
+He wraps his wrists delicately around my throat and says:
+
+“imagine this.” But he doesn’t squeeze; the choke is in the time that passes. “What if?” the would-be choke says to both of us, and that is how we spend our time, and that is how the time passes.
+
+I stick my arm out behind me and run my finger into his mouth without looking back, let him have something to suck on, I’m still gazing at the sky, the thick sky, and the afternoon.
+
+He never says anything that makes sense which means he never needs to explain that his neck caresses have no plan in mind. Instead I dream he does intend to strangle me at some later date. It wont be a torrid affair though. I wouldn’t let it become one. Instead, I’d simply accept it.
+
+It is so sticky; it is so hot; We languish on the cement, the stickiness rotting our destination - making it so we will never get there/anywhere. We stick to each other, we stick to the street.
+
+A man comes by and hands my new friend a round orange, which he takes into his palm. We stop to rest in front of a young white hot wall - to sit and peel it and taste it. He presses each orange piece into his mouth without offering me a single one. After all, the man handed it to him.
+
+I consider what we must look like - a tangle of limbs, a pile of candle wax, melting into the sidewalk, together. As we are positioned directly next to a stop light, each of the cars has their chance to see us in turn. We can’t do anything but watch the cars and they are enthralling as they now rush by, four feet away. And because they are there for a while and we are stuck on that hot wall, we get a chance to peer into each others lives - to exist, for a second, as each other.
+
+I balance on his lap, then sink between his legs. His fingers reach behind the non-solid wall of my black tank top. “The girl in the illuminati shirt” he says, more to himself than to me. In truth, I found the shirt in a gutter somewhere. I scarcely registered the design. It is always this way - they all find some new way to decide I am meant to be theirs. I move away, along the wall, and his face is stricken, thinking I am offended. But no, it is simply not right. To have his hand stuck up my shirt , in the middle of the day when it is shining. (I feel bad, I want to comfort him).
+
+* * *
+
+The sun was high above us and we found ourselves on a main street; Belmont. Thomas bent over a metal trash can - the edges pointed up into spikes. He pulled out a coffee cup and swished around the remaining liquid. As he did so, A tall woman with a long dress was walking by, and stopped to watch us.
+
+“Here,” she said, handing us a crisp $5 bill. “Buy yourselves a fresh coffee.” And she walked on, her eyes twinkling.
+
+We debated, for a while, on what to spend the five dollars on. Food was the obvious choice but he wanted to spend some of it on cigarettes. I did not like this idea. And just in the nick of time, we found what the money would be used for.
+
+There was a bin outside one of the shops, low to the ground, with garments hanging, limp, over the side. “$5” the bin proclaimed, on a piece of plain paper.
+
+We picked out a black dress - thin cotton. Not scratchy, but not soft. We went into the shop to try it on.
+
+In the shop, there were no customers, and the two women who worked there were very excited to see us, drawing our eyes to various things that we might buy. How to explain the finite limitations of our budget?
+
+Finally we entered the dressing room, in turns. Leaving the other to wait outside the small curtained room with the mountainous pile of our belongings. The dress was loose and airy. We bought it with all of the money that we had.
+
+When we had found it, I had assumed that I would be the one to wear the dress; but I had been foolish. Thomas pulled it over his head as soon as we were out the door, sliding the long sleeved shirt he had been wearing into his bag.
+
+The dress hung loose over his pasty skin so that his pale shoulders shone - milky white - in the sun. It was I who could now reach into the pockets of air beneath his arms, feel the smooth and supple skin of his chest, hairless, and not a trace of cellulite.
+
+Wearing the dress, he adopted a somewhat regal affect. His nose, he held higher in the air. And now and then, as he spoke, I noticed that his words sounded slightly British. As the day trudged onwards, his shoulders turned from pale white, to light pink.
+
+* * *
+
+Across the street was a Chinese restaurant that I felt strangely drawn towards, though Chinese food did not seem the right thing at all on such a hot day. Besides, places like this tended to require money; and we had none.
+
+I wasn’t sure I could bear another one of those awkward
+
+interactions where they realized you in fact had no money, and the feigned brightness they’d had when you first come in turned darker, and their eyes became cold around the rims.
+
+On the way back, I was called towards it again, and this time, I decided to stop. I couldn’t help but stop - the restaurant was beaming - changing colors as I watched it - so that it stood out from the drab buildings beside it.
+
+When we walked in, we were met with a strange grin. One of the waiters - tall, with straight black hair falling into his eyes, told us that a meal was waiting for us. Then his face changed a little and he said it was cold. It had been hot before, apparently, and I knew without thinking too much about it that it had been at peak temperature the first time we’d walked by.
+
+It was a to-go order that had gone unclaimed. He sat us down at a two person table with a stiff pink tablecloth and brought them out to us on a thick white dish, nondescript except it’s curved shape. The noodles were indeed a bit cold but that didn’t stop us from devouring them, taking turns, but we never did quite find a rhythm with which to share the dish. There were many noodles but even so, we made quick work of it. I was, in turns, worried about not getting enough, and worried that I might be eating too much.
+
+I felt lucky to have a table for once, to get to sit, enjoying the noodles among the other patrons. It was only a shame that we hadn’t come sooner, the manager lamented, as the food had grown slightly cold in our absence. {I thought wistfully that I hadn’t believed it would work.}
+
+* * *
+
+Now we were away from the meat of the city. A dusty blue truck had been pulled to the side of the road, onto a patch of gravel that veered out from the asphalt like the pattern of sand surrounding a lake. And the gravel itself, turned yellow and hot by the sun, gave the impression of being on fire.
+
+Despite the crusty patches of dirt all over its metal body was a glittering jewel in the midday light. The trunk was thrust open, exposing a heaping mound of slightly overripe bananas. The man who’s truck it was explained his situation to us. Somehow, for some reason, he had a truck load of bananas that he needed to get rid of.
+
+And then he gave us a box with which to put the bananas into. He already had it ready, as though he’d been waiting for two such people to arrive. And when we didn’t load them in fast enough, he thunked them into the box himself.
+
+* * *
+
+The street we’d found, away from the main road, was filled with spiny balls that had fallen from a tree nearby. We had stopped moving. I turned, and Thomas was leaning gingerly against someone’s uneven stone wall, smoking a half of a relit cigarette. I waited for him, flicking some of the spiny balls into the box that had the bananas in it. I decided I needed to pee, and so, crossed the street, box and all, so that I could pee without him watching.
+
+But in a moment Thomas was next to me again. I hadn’t even seen him flick his stub to the ground. But he must have - he must have come running as soon as I disappeared behind the tree, to have appeared that quickly next to me. Why had he come so quickly? Did he think I would leave him, simply take off like that - without warning? That he thought I might take off, at any moment, without telling him, frightened me. Were my thoughts so alien he did not know of the steady companionship we now held?
+
+Now, with Thomas watching me lazily from the ground where he had settled - another cigarette butt, pulled from his waistband, now between his lips, I was even less likely to complete the deed. I had chosen one of those manicured bushes to pee behind: a perfect rectangle - entirely unnatural. Unfortunately, a man was now coming down the road, driving a truck. You’d think it would be easy, when everywhere was a potential opportunity, to find somewhere to pee. But what with Thomas following me, and the threat of a car suddenly appearing where we stood, it seemed I would be doomed to struggle ; I had to pee so bad it seemed like. Along with his seemingly constant barrage of vaguely directed negativity towards the state of the world these days, Thomas liked to talk about chemicals. Words I couldn’t even begin to parse swarmed his mouth and emanated from his lips. He would say, offhandedly, as if asking my thoughts on milk chocolate over dark: “Have you ever mixed ammonium with nitric acid?”
+
+And I would have to think of a way to say “no,” that sounded like it was the type of thing I would consider.
+
+“hmm, no I don’t believe I have tried that,” I might say, as though mentally thumbing through the list of chemicals I was intimately familiar with. Or else. “Ah yes! Yes. Oh no. No wait, I was thinking of a different kind of acid.”
+
+“Yes” he would continue, not paying attention to anything I’d said except perhaps my inflection: “I think I’d like to mix those.” And I would look around, satisfied that my piece of the conversation was through.
+
+“And what about nightshade?” he would start up again. “Have you ever studied the interaction between nightshade and sulfur?” And I would be charged with the task of thinking of yet another way to say simply: “No.”
+
+I don’t know why I played this game, when a simple “no”
+
+would’ve sufficed. Perhaps even a grunt would’ve done the trick. Yet, I liked the semblance of normalcy this created, so that I might, had I walked past us, thought we were having a conversation. Perhaps discussing the weather, or what our dogs had been up to recently.
+
+I had always, but especially as of late, become fascinated, craved even, the mundane. Humdrum, commonplace, boring - so boring that you (begged for something special to happen - an adventure.) wanted some sort of adventure. Well, an adventure I’d gotten. But I wondered if people really wanted an adventure, or whether it was simply part of this normalcy, this pretense of desiring something different.
+
+* * *
+
+We walked into a new neighborhood where I pushed him on a
+
+swing. And then we sat under a tree in front of the house with the swing. Grudgingly, I gave in, and I told him my plan, but pulled down my pants in a way so as you couldn’t see anything and he didn’t notice because he was talking. It was sort of based on a theory I had, that if you were simply in the right position, you could pee right out in the open
+
+Unfortunately, I was yet again unsuccessful, because a man with a lawn mower came by, blowing grass into the wind, every which way. So I lifted my pants up and rose from the place I was kneeling. He was beside me, as ever, and got up when I did. He continued talking, gesturing widely to my right about chemicals, and what a screwed up place the world was. I, feeling as though I lived in a dream where you can’t pee because your body moves too slowly, despite egging it on with every ounce of your mind that you never use. Always trying to pee but you just never can quite do it. I could not believe I still had not peed.
+
+He told me when I changed directions suddenly, continuing onto a block going the other direction, that he was upset because he hadn’t eaten. His face crumpled unexpectedly, and he said this as though a confession. In a few moments, we had decided, without speaking about it, to take a long rest in a park where there were ducks you could watch as they floated serenely around the pond. We sat there for a long moment, staring at the ducks quacking in circles.
+
+Looking out at the sometimes still water, I was able to see my mind calmly travel forth and back like the waves. There was no upset; they were not churning. And neither was my mind. The day felt dull and dim, but I didn’t mind. And as darkness started slowly to close in on us sitting there, I realized I felt for once mostly at peace. “You seem to be…picking up on…
+
+all the signs you’re given,” he finally said. It was perhaps my favorite moment. Of the day, of the year, perhaps ever. After a while, it felt right to continue on our way.
+
+***
+
+We arrived at a roundabout with a giant statue of a man on a horse at its center. I remembered I’d once been dropped off there, to take the bus at the end of a date. Thomas was explaining something, but it still didn’t make sense. He suggested we try to shave some of the gold off the statue. “To eat,” he said. There was a chemical compound in gold that was very good for your stomach, he said.
+
+I was no longer listening, sort of nodding along, Privately, I thought if we could manage the scraping, then we might as well use it as gold. It would be nice to have a lot of gold, I reflected, still not really listening to his story about the healthy stomach. Would we still be here, wandering, if we did manage that gold? What would we do, if we had a lot of gold?
+
+We perused the large upright map that accompanied the statue, except that, recognizing no familiar landmarks, the information was fairly useless.
+
+We walked into the roundabout and then past it We kept walking and walking down one long street, passing at first lots of houses, then a school, and finally passed some sort of official building - a church with a fence around it. It seemed we had entered a tacit agreement to simply continue in one direction long enough until we finally got “where we were going,” wherever that might be.
+
+And we did. Just as the day was gradually turning into the deeper hues of the afternoon, we came upon a cart parked in the middle of the street. The cart was completely packed with food, none of it even in bags, as though it had been teleported out of a supermarket, mid shopping trip. There were lots of things in plastic containers, and paper cartons too. There were quinoa burgers, and lentil soup, and this cookie butter stuff that I wanted to dip my finger in so I could lick it. The lentil soup came in a big round cup with a plastic film underneath the cap. I didn’t take stock of all the items, and instead began opening packages at random. I sat down on the grass to sample things - the quinoa burgers, and the lentil soup, and finally, the cookie butter, which I did dip my finger in. And which tasted quite as nice as I’d imagined it.
+
+After not having eaten more than scraps, it felt odd to be having such a feast. Tom sat in front of me, on the curb. We had chosen different packages, and we consumed the presents we hadn’t known we deserved in silence. I felt we might have some ceremony to appreciate this bounty but we did did not so much as look at each other.
+
+* * *
+
+After we’d supped, he was in a foul mood. Blasphemous, I thought, when all we had wanted had been given to us - to be anything but joyful - jubilant, even.
+
+And then I saw it - a green van - an ugly forest green - the same ugly van that my roommate had. It was too fast for me, of course. I chased it anyway - walking quickly down the street into another neighborhood packed with houses - then a flat out sprint, feeling sillier than I had in my life. In what world would I be able to catch the car. And yet, why would the world put this here just to taunt me - the last remnant of the past - that I could not go back to - not by choice, but by this white string that guided all of my actions into unwanted territory.
+
+Evidently, Thomas had given up chasing me. I had not had time to register his icy expression before taking off after the van. I had not had time to explain to him what I saw. I felt sure he would understand when I explained it to him. I came back and found him leaning against a fence blocking a construction site. But his the distaste in his large eyes - the (mad at me), made me wonder if I should even bother explaining at all. The afternoon was gritty and gray, slowly turning to evening. And the air came in flecks, wheeling themselves around me so that, with every breath I took, I choked on {got a mouthful of} other people’s stories, and other people’s problems, {leaving me to choke.} I started to think something might be amiss, and it was when he started talking that I knew what it was.
+
+He said he’d thought of something disturbing and could he tell me? I said no immediately. I wasn’t even curious. This was the thing that was amiss, and I would avoid it at all costs. He continued anyway, in his bored drawl, that was starting to feel aggressive in its apathy. He had imagined a scene: waking up early on Christmas Morning. Going downstairs to sit beneath the tree, to sit with all the presents that had been picked out - arranged and displayed - a paroxysm of (potential joy).
+
+Your mother and father would appear at the top of the stairs, smiling, and waiting, wanting to watch you open your presents. And then you would say “look mom and dad,” and then shoot
+
+your head off - shove a gun down your throat, and then shoot your head off.
+
+And it would be Christmas morning. The shock, fear, and revulsion on your parents faces would be tinged with the Christmas lights, twinkling near by. The smell of pine needles would rise up through the air, masking the small of smoke and blood.
+
+It wasn’t something particularly compelling to imagine, but the image had grabbed hold of him, and now it did the same to me. This image, so clear in his mind, had been implanted into mine. The shimmering gray of the afternoon turned into an opaque gray evening. And I tried to forget the image, but it was still there, turning over and over in my mind. Turning the shimmering afternoon into an opaque gray evening.
+
+* * *
+
+Chapter Five: Accidents Happen
+
+Thomas and I walked along the road towards People’s Co-op. I was struggling with the sun. It oozed into every crevice of my being, not melting but burning its way in. We walked by a lawn and To my there was the contents of discard contents of a previous yard sale. Things. Shirts and t shirts and pants and jeans. I hadn’t had any of those in a while. And wasn’t that what I needed, now, when I had nothing. To replace all the things I had left behind. Wasn’t being poor/
+
+homeless the absence of possessions? Weren’t possessions the exact thing that was missing from this life?
+
+I hurried to gather up as many as I could - an assortment of clothes, two plastic jugs, their water stale in the sun, a tangled mess of string that might have been a fishing line in another life.
+
+I started to consider that I might be crazy when I took the rolled up carpet and shoved it under one arm, too.
+
+And there was still more that I couldn’t carry. Thomas looked at me with anxious eyes, but I couldn’t be sure he was watching me; his eyes were far away and distant.
+
+My arms piled high with all the possessions I had most recently acquired, some things wedged between my elbows and my side, a shirt even wedged between my knees; I could barely walk. I wanted to stop; to sit, to figure things out - what was needed, what could be left behind, but how could I, when none of this stuff would even let me think.
+
+The sun, which had oozed into me before, was now eating at my insides, turning my cells a pale yellow color, like I imagined the inside of a cactus might look. And though I hadn’t had these new things for very long, to consider getting rid of any of them felt like a death to a piece of me. Two blocks away, at a low wall that had bricks to form a divet in which grass was set into, we stopped, and I slowly but surely, capsized. I let the rug slip out from under my arm, and come to rest at the base of the wall, if only temporarily. The other things I arrange unceremoniously around me.
+
+Thomas was, as usual, talking. But though I usually let his voice wash over me like a melodic din, this time each word stung into me like nails on a chalkboard. Because he was talking about me. (Though he didn’t know it) At least a part of me that I was trying to forget about. A tiny, niggling guilt - that I had not yet managed to carry out the task. One of a long list of commands that I hadn’t managed to do, but this was also part of a shorter list - things that I had not even attempted - not really. One of a long list of commands - all of which I had followed as best I could.
+
+I had sat on the floor of the bathroom in a building I didn’t know, trying to convince myself. Once I had gotten the command, it was up to me to find a way. And with this one, I knew the
+
+I wouldn’t be able to do it unless I wanted to.
+
+The tiles white, carving into my back. I should appreciate this - even this small pain. How long did I have left - 2 - 3 days, till I would be made to do it? To carry out this plan that was not my plan. It didn’t matter if I cried - tears leaked out of my eyes a little, I was a lump on the floor - a sweaty mess
+
+Would I be buried in these clothes? I slumped from the bathroom to a reading nook - carpeted, and with the last sun rays of the day streaming in through the high window. The nook must be situated at the top of a tower, as I could see students reading books beneath me. Would they come to my funeral? The timely and helpful death of Cobain. Or was it Heath Ledger? “And not a moment too soon.” That was what worried me. I had found the reason after I’d gotten over this command. To die at the right time - a concept I had never considered before. Death was something that happened to you - that you could not plan. But what if someone orchestrated your death for you. And what if you knew it was going to happen, and you could stop it?
+
+His ranting was reaching a crescendo, an infernal buzzing between my ears; it was becoming a screech. Something inside me was bubbling like a pot, about to boil over.
+
+And just then, right there on that silent street - a paradigm of tranquility, (the sun silencing everything) save for Thomas’s voice that was slowly drilling a tiny hole into my brain - a car accident happened.
+
+One car went slightly too fast, colliding into the one in front of it. There was a clunk of metal against metal; a screech of tires that was real, not imaginary.
+
+And now a chubby teenager was getting out of the (offending) car and an aging couple getting out of the other.
+
+“How could you have been so stupid, so reckless?” they chided her; but there was a parental tenor to the lecture. They took each other’s names purely out of custom.
+
+The idea that I had caused this accident was so preposterous that it wasn’t worth dwelling on. I refused, even, to consider it.
+
+And yet, hadn’t the accident happened when I could take it no longer? Wasn’t it a strange coincidence, strange indeed, that, just at the moment my mind was beginning to collapse from the inside, when the chewing gum and bits of string I had used to keep my mind intact, were threatening to gnaw off - was the exact moment when the crash should happen?
+
+Had the piercing scream inside my head, the infernal buzzing, been somehow “loud” enough to reach the driver, causing her to lose focus? And then to crash? Or had my frenzied nerves reached a tipping point, caused the very air to stir and tremble, so that anyone in its path would be (affected)? I could not be sure. Regardless, I felt suddenly powerful for a second. And this power, combined with the shock that the accident had left in its wake, allowed me to part with almost all of my newly acquired possessions. Enough that we were able to move from that solemn spot - the stillness now broken from what had happened there. I left the things I didn’t need anymore there on the low stone wall. The tangle of string, the rug, now only half-coiled, and the assorted clothes. And then I walked swiftly into the sun before I could notice how drastically my collection had dwindled.
+
+* * *
+
+Thomas, it seemed - had taken planning into his own hands, and had been leading us, without telling me, to an organic grocery store. Yoga pants wearing people walked in and out with light bags.
+
+He began to set up shop - laying down his cardboard, and the two black bags he still held fast to, one in each hand.
+
+Another consequence of the accident, is that Thomas had blissfully forgotten his tirade. And with this respite, I was able to push away those thoughts that I usually locked safely in a bin. I was free to enjoy the day, and the afternoon my lock affixed firmly once more.
+
+A car parked directly in front of where we were perched, blocking our view across the street, and a middle-aged man in jeans emerged, carrying a carton of eggs. He looked positively delighted about something, and stopped to make our acquaintance when we saw us there, as though we had chosen to sit in front of his car. And after a few moments of pleasant chatter between us - about the sun - the morning, and the bright day ahead of us, he plucked one of the eggs out of his carton.
+
+You can eat them raw, you know, he told me conversationally, and offhandedly sat it in my hand. “Go ahead and eat it,” he said, laughing. Then he walked into the store and I was left alone with this latest instruction. The specificity of the timing worried me. Why did this feel like one of my many dares, in another’s voice? The prospect of swallowing this egg - uncooked and translucent hidden in its shell - did not interest me in the slightest, hungry though I supposed I was. I turned to Thomas, hoping he’d convince me it was poison.
+
+“You can’t…eat eggs raw…can you?” I asked hesitantly. (In a small voice). Oh, but of course you could, and his eyes widened as he began to list the myriad benefits of raw eggs, in the strange, detached way that he had.
+
+“With the membrane intact, the protein…” I stopped listening, instead, steeling myself for this most ghastly prospect, doing what I could to muster the courage.
+
+And just as the man re-emerged from the store - I did it - choking on that god-awful slime. I didn’t swallow, but held it in my mouth for a few seconds, gurgling the white part, gnashing the yellow between my teeth. Then I let it fall partway back into the shell so that the intact remainder of the yolk cut itself on the sharp, and I was left with threads of white and yellow dripping down onto my clothes and my arms; a little on the bag I still kept.
+
+I was rewarded for my bravery with a barrette that he brought from the store for me, and a lucky penny. I felt good, and kind of proud of myself, then. I had been given a challenge, and I had prevailed.
+
+Then it was our turn to enter the market. Once we were in the market, I couldn’t understand how we hadn’t thought to come here before. Thomas was very much against stealing and yet, was willing to let a small trickle of the extra crunchy organic peanut butter fall onto his outstretched fingers. He then brought his finger to his lips and licked it clean; he did this at least five times in a row. This was too easy - we were getting food straight from the source. And my eyes stared up in wonder at the wide variety of lovely things in boxes and glass jars.
+
+* * *
+
+I had the urge to get away from him later that day. Perhaps he himself had put the idea in my head, because, while I hadn’t even considered this notion before, had never questioned us being stuck together like glue - now the urge to run away was strong - strong enough to do it.
+
+I had lived here before - only 13 blocks from this food store - though that had been too far for me to ever venture on foot. I recognized my surroundings, and there was that one all night cafe that I used to go to almost everyday. I started walking away from him, then - leaving him on the curb with his two black bags and the thin frail cardboard underneath him.
+
+He stared at me wonderingly as I went, his head cocked to one side. I had wandered off many a time before - on one errand or another, never on purpose, though he always followed as though it were. And he let me get away at first. I didn’t really want to leave. But I tried to remind myself what perks freedom would bring as I walked slowly and sadly down the street, towards the cafe. The day had somehow turned cold and dreary - perhaps the sun was hiding behind a cloud. And when I went under the bridge, it felt like I was the only person in the world.
+
+He caught up to me then, and clasped on for dear life, his grip now was a suffocating one. I knew I should be upset, to see him there. But I could not bring myself to struggle very hard at all against his suffocating arms. This safe haven was what I wasn’t supposed to want, but I did. And I was supposed to go, be on my way? How could I? When this flesh and breathing creature was with me, knew me, wanted to keep me. Wanted to keep me away from the far stretches of my mind that were bound to take hold, blind me, once I was alone.
+
+He followed me up the street and into other people’s lawns. He took me to the train track and told me I was special, I was made for him, I was the one. That he’d never felt this feeling before. I didn’t understand how so many people could feel things for the first time when they were with me. I came back with him then.
+
+But while he was asleep I crept out of reach to the place where I used to live. As often happened, he had fallen asleep before me. And then I had only to shrug off his coat, and pull myself from the solid ground; it helped that the cobblestones weren’t very comfortable. As I walked away, I didn’t turn back to look at him, but saw him there anyway, in my mind. He looked lost and forlorn in my mental vision.
+
+Despite the thick sleep of night, it wasn’t cold, and I felt enclasped like there were two light hands around me. Perhaps he lingered with me, Thomas, and his body had come with me, clung on even in sleep. When I got to the coffee shop (where I’d had friends, even!) everything was backwards, upside down. These night time patrons, immune to the (sleep of night) were creatures of the underworld and I was in hell.
+
+Then I wandered to the place I knew so well - the house I’d lived when I’d first moved to Portland. Next door, I knew the child. Several brimming boxes sat on their bright turquoise porch, overflowing with a myriad of discarded possessions.
+
+I lifted a box off a folding chair and sat down, aching from lack of sleep, my eyes slightly raw and red-feeling. Staring listlessly at the spider web I’d had to climb over, preparing myself to climb over it again, knowing I would not be allowed to enjoy this momentary reprieve for very long.
+
+Hanging out of the box nearest me, was a pair of orange and pink underwear with little flowers on it. I knew it belonged to the girl who had once regaled me with tales of her Minecraft missions. Her wide eyes had been bright, her thick hair had been soft and honey gold. I took it from the box and put it into my pocket, and also a pair of socks.
+
+Then I watched as the sun appeared faintly behind the houses on the other side of the street, wondering what would happen if the people inside were to wake up and find me here. Would they greet me with open arms, or would they know I now lived in a dream - and would they be wary? Would they treat me like others I’d encountered - like a leper, or the worst kind of scum?
+
+My dream world held little, if any, resemblance to the life I’d known here in this house. The goings on in the house that day might not make sense to me, as happenings often didn’t when you weren’t apart of them, at least not at their outset. I did not think I could ever come to feel as if this were my home.
+
+* * *
+
+When I was almost back to the place where he slept, when white sun rays were now drifting lazily down the street, proclaiming that it was almost morning, I slipped behind a low wall and tried on the underwear, slipping off the now soiled pair I’d worn since beginning this adventure. They were a little tight around the waist, but still better than the other, which had become crusty over many days. And I discarded these into a nearby trash can. I had already discarded so many other things - why not these?
+
+* * *
+
+The hazy, misty day arose, and I was greeted by a call from a man in an orange vest directing traffic. I couldn’t cross for a long while. I couldn’t stop staring at the crows as they made their leisurely flight across the sky. I should have been flying with them, but the best I could do was wait for the signal and then cross with the guard as they went forth. As I arrived at the other side of the street I noticed a whole flock, darting in the opposite direction - back the way I’d come. I signaled for the crossing guard to let me cross again, and once again, he dutifully made traffic stand still for me.
+
+Now the crows were crossing in all different directions. They flew in waves across the sky, some going north, others west. They almost blurred with the telephone wires they flew so close to and yet didn’t collide with. I couldn’t very well go in all directions I thought desperately. Then I chided myself for having such a thought. I must come up with a way to follow the wonderfully black creatures - so dark against the bright blue sky of morning, I couldn’t help thinking they were an omen of death. Perhaps, if I managed to get atop one of the poles, I could be closer to them, high as they were in the air, and then I could find a way to follow them.
+
+I stood foolishly on one side of the street, not wanting to attract the attention of the crossing guard yet again, lest he begin to wonder whether I was as purposeful in my destination as my confident stride had implied.
+
+I could see light - drifting through the streets up ahead - and I wanted badly to get to it, to feel the sun on my arms. Away from this cold, gray neighborhood. Then I could think straight. If I could just get to it, I thought, then the sun might reach down its fingertips upon me, soothing the muscles in my mind so I could be calm for a time. But at present, it looked like I was stuck at this four way intersection.
+
+Perhaps it was my idea, perhaps the idea came out of thin air. However, and I didn’t yet know how this worked, I managed to change the color I was following from black to orange. Orange wasn’t as terribly difficult to follow as black. For one thing, there were no orange birds. At least not here - perhaps in the tropics. For another, there was a great deal of black everywhere I looked. Black birds, black telephone wires, even the pavement of the street could seem black in shadow.
+
+On the other hand, there was not a lot of orange anywhere, I thought, as an orange car streaked down the street, and I quickly hobbled after it. I followed the few orange cars, all priuses, up one long street, and then down another. Each succeeded the next, giving me just enough time to watch it disappear from view, before another passed in my line of vision. Just as I thought I’d lost the trail, here was a man, running with orange shorts. And when he got too far for me to follow, he was succeeded by a woman, wearing bright orange socks. She was walking up a side street. I moved to follow, but then looked doubtfully up the street. It was a cul de sac and a dead silent one at that. What if there was no more orange? What if I had to wait here all day, amidst darker hues - no brilliant streak of orange to cheer me, watching desperately for a dog with an orange collar, a glimpse through a window of a woman washing orange dishes?
+
+I slowed my pace, hoping to catch a glimpse of some other orange before I was led away into an ambiguous abyss. But as I walked drawing ever nearer to my eventual end, I saw them. 10 or so bright orange flags standing erect in a square of lawn not protected by anyone’s house. Next to it was another.
+
+Suddenly I knew the woman had led me here - this side street where I thought the orange would end - that I thought would put a stop to this little game I was playing.
+
+I stepped past the bright yellow caution tape protecting the standing flags, protecting the finish line. For I knew that I had won. I had never won before. I stood for a while in my little orange enclosure, thinking triumphant thoughts. And then I made my way back to the market, where Thomas was very happy to see me. But I sat on a bench for a little while, thinking my winning thoughts still. At peace for once. Thinking bright, brilliant winning orange thoughts.
+
+* * *
+
+We picked one street a day, and walked down the length of it, sometimes back, and went to sleep under trees, using his cardboard or whatever we had. This is how the days passed. Sliding into each other whenever we felt the slightest bit of anxiety, leaning on each other, though neither of us were quite up to the task.
+
+* * *
+
+It was after one of these nights that we found ourselves in a jeep that was simply open. We had found some books piled on top of each other in a doorway, and had brought them into the jeep to read them.
+
+I got the idea that I would read the Bhagavad Gita, but it was too dense, and too packed with battles. Eventually I settled on letting my eyes glaze over while I turned page after page when it felt like it was the right time. I didn’t always only turn one - sometimes I turned two, or maybe three, until I felt I had read enough. I wondered if Thomas thought I was a very fast reader indeed, but he was not watching me, was instead absorbed in some sort of political commentary, and I envied, for a second, the way his eyes traveled smoothly from line to line.
+
+I wanted to stay in the jeep, perhaps sleep there for the night, but it wasn’t right. And besides, how would anyone feel if they woke up to find two kids sleeping in their car? They might get alarmed, or call the police.
+
+Instead, we fell asleep under a tree again. In the night it rained, and when we woke up, Tom’s face reflected color with sun rays filtered through blue plastic. It didn’t feel strange to have the weight of a blanket on me, until I remembered that we didn’t have one. And then I realized someone had covered us with a tarp while we were sleeping.
+
+Before I could wonder how neither of us had noticed the rain, nor being covered, a car pulled up beside us. I heard but did not see - three women talking and laughing as they got out of the car. I wished there was a graceful way to pop out from under a tarp.
+
+But eventually the supreme absurdity got the best of me, and I tore off the blue plastic blanket with a flourish and took an experimental look outside of the makeshift blanket.
+
+As predicted, the asian woman who happened to open the door on my side, registered shock, and perhaps was dismayed, to find that the contents of the tarp was not, in fact, wood or lumber as she might have guessed, but instead two human beings. She was instantly apologetic, as though she had snuck into our bedroom without our permission, and it was her own fault to have found us sleeping there. I had to reassure her that it was indeed alright. And she apologized again when she got back from whatever errand they were in the middle of and Thomas and I were still lying there, lazing in bed.
+
+* * *
+
+I was practicing speed reading, committing things to memory. Of the books we discovered in the little library was one about memory tricks. There were a lot of things I wanted to remember - a lot of things that I’d written on small scraps of paper. But I kept losing them. And what was the use of writing things down when you weren’t going to keep where you had written it?
+
+Here was the answer. All the floaty bits in my brain - I was trying to shove them into one place. If I could just remember it all, file it away in some secret part of my brain - then I could use the rest for making decisions. Then I wouldn’t have to use half my brain to keep things from falling out.
+
+I was reading it as I got samples. I kept it in my hand, reading as I spooned peanut butter and honey into my mouth. An awful woman with a lilting voice, tattled on me to the person doing the samples. They told her it wasn’t that big a deal, but they threw away one of the peanut butter containers and I didn’t take any more samples.
+
+Thomas was in front of the store, leaning against a brick enclosure surrounding a tree. Smoking a slightly longer than average cigarette butt. I came out of the store and sat cross legged on the brick wall. The peanut butter samples cam on little wooden spoons that looked like shovels, and I had collected a lot of them in a styrofoam cup, along with masking tape, some paper napkins, and a couple of coffee stirrers.
+
+All the things I had collected, I dumped them out onto the brick wall, and started taping the spoons to each other, and to the cup, around the rim.
+
+And Thomas started talking about red and blue money. He started telling me that money was fake. And how he’d like to make red and blue money, and mix that it in with normal dollars. To see if anyone noticed. I thought that was a nice idea; not exactly inspired, but still quite a nice one.
+
+* * *
+
+Night had fallen, and Thomas and I were still playing a dangerous game of cat and mouse, seeing as we had no way to contact each other if we were to get lost. It seemed we’d accidentally fallen into a different kind of adventure. Here were men and women meeting to share a drink. Red and blue light fell on their loud and talkative faces and I bounced from table to table, ignoring the invisible lines where one bar ended and another began, thinking I could take a sip from enough drinks so as to simulate one full drink.
+
+Suddenly everything was falling quickly into place, the moments were aligning in my mind like lightning, and every two seconds was a perfect decision. Usually there was a moment delay, and I could stop to consider if I was on the right path. But now I saw it in my mind almost as it happened - take a sip from the drink at that empty table, from there I would bounce up and look up into the face of the giant man to my left - towering over me when standing, with a giant beard to boot. From there - my path led out into the street, I did each thing as I’d been advised, hitting moment after moment to perfection, like a drum beat, till I made it out into the street. Usually there was a moment of hesitation between each new decisive moment; not now. Now I felt like I was in a video game, or a race. And here was a bus barreling towards me, and I was instructed not to move.
+
+Instantly my legs locked and I stared at the bus looming closer. For a terrifying moment I considered staying there, letting the bus smash into me, smithering my guts across all the lovely restaurant patrons who would later go on to tell their loves one's they’d been at the scene of a very terrible accident and they’d rather not talk about it. (“Please don’t ask me about it. It was awful.” They would say.) But it was still about a half a block away when my instincts kicked in and I finished crossing the street, collapsing into a pile of wet leaves by a chain link fence before the bus had even reached the spot I’d been moments earlier. Shame and disgust tugged at the hem of my shirt, which now felt too small; relief was an after thought. Thomas came barreling across the street after me, completely unaware of the moment I’d just had. Oh how I wished for him to collect me in his arms as he once had, but we were past that now. His eyes were wary, now, when he looked at me. And I realized he might’ve thought I crossed the street to run off again. Of course he had, or why else would he have come barreling so fast? And so, his tone was solemn when he spoke to me next. Outwardly polite, inwardly annoyed at all the effort into keeping me with him.
+
+The shock of the situation hadn’t fully cleared my system when Thomas suggested we look for a fitting place to sleep. Apparently neither of us were as attached to the night life as I had thought, and it was something of a relief to give it up so easily - a pursuit of the other life - that endless pursuit to find the next best thing - to settle down once more, among leaves, among these all alike houses. However, the sleeping situation was very uncomfortable; made worse by the ground which was becoming loose as rain trickled through the cracks in the leaves of the tree we’d chosen for maximum but incomplete shelter.
+
+* * *
+
+Bleary eyed and still a little damp, we woke with the sun. The close call of last night didn’t come surging back to me in full detail, instead, the incompleteness of the ordeal washed over me like the rain. Like a small steely wobbly thing in my gut, that came and went for the rest of the day. It amazed me that I could simply not think about it, and that every moment I didn’t, it got further and further away from me - the details of the bus - in front of me expectantly - the quick physics I had had to think about - -oof - the brunt force of it hitting me, that hadn’t happened. And all of these details were slowly but surely disappearing, replaced by the simple fact of the sun shining. I struggled to recount the details to myself. As though I needed to punish myself.
+
+I still hadn’t told Thomas about what happened, and it felt strange to be keeping a secret of sorts; not that he would necessarily have understood very well, if I had chosen to tell him. “I tried to kill myself, but I didn’t want to.” So the failure was both a mistake and a relief. He might nod knowingly, but no understanding would pass between us.
+
+Instead we went to a dim cafe, one that I remembered passing once with a friend - “I’ve been thinking about hitting my wife,” my friend had said. And I had tried to be understanding of him - of his predicament. The restaurant was cozy, with warm light filtering slightly through small windows at the top. And there were handsome mahogany tables, each with a matching velvet arm chair.
+
+Thomas had gone to use the bathroom. And in the absence of my companion, my mind raced furiously to distract myself from the night before. There was a heavy, leather valise by one of the handsome mahogany tables. It was too heavy to pick up completely, so I settled for dragging it by one of the straps. Closer and closer, to the door of the cafe. A lady had been glaring at me with hawk-like eyes since I’d walked in. Her face was a comical pantomime of disapproval - her nose turned up, her mouth pinched into a tight line.
+
+I was almost out the door when she’d had enough of my antics, and stood up. And told on me. “That girl - she’s trying to steal your golf bag!” Said she, to the man whose golf bag it once. And at the same time, Thomas emerged from the bathroom, oblivious to anything that was happening. But the man whose bag it was wasn’t upset. On the contrary, he seemed to think I was doing him a favor - undertaking the tough work of having to carry such a heavy bag to the door. And somehow, though I didn’t quite understand how it happened, he had been about to leave. And must’ve thought I knew this too. He thanked me with a polite smile, taking the bag out of my hand, which was something of a relief. And then we both glared at the woman who had told on me. Who was still scowling at me, and I thought about sticking my tongue out at her.
+
+And then Thomas and I walked out into a very sunny day, tossing our cups into a metal trash can, and waving graciously at the old man, whose golf clubs I’d helped carry.
+
+* * *
+
+We had fallen into the familiar predicament of me trying to pee and him accidentally not letting me. But if I could manage to stay out of sight, with him still knowing where I was…I went behind a metal box and he didn’t disturb me there. Instead I could hear a low song coming out under his breath.
+
+Thomas was humming a tune. He was singing a song about houses on a hill very quietly, to himself.
+
+“What are you singing?” I asked, when I came out from behind the box. He had hovered near it unsurely for a moment, and then - realizing I was not really leaving him - strayed away - went to stand on the corner, staring at the houses high up on the hill in front of us.
+
+He ignored my question. “And they’re all made out of ticky tack” (what was ticky tack?) “little boxes, all the same.”
+
+I liked how his voice got higher when he pronounced “ticky tack.” It was a wistful and kind of dreamy song that I was embarrassed that I didn’t know. “There’s a blue one and a green one and a red one and a yellow one.” I liked how his voice went up in some places, down in others. I started to sing along even though I didn’t know the words.
+
+“And they’re all made out of Ticky Tack. And they all look just the same.”
+
+Suddenly I started to understand, as we watched the houses high on the hill. He and I, we didn’t live in that world. Our house was the dirty pavement. And it changed everyday
+
+Though we stood, amongst it, we were no longer there within it.
+
+And what were all these people doing? Houses - there were so many of them. Each one, a box within which tiny people lived - at least, it looked that way from my vantage point far down beneath them.
+
+They belonged there. And whatever they did within them - their activities contained - I wouldn’t know about them. Fulfilling some vague purpose.
+
+Thomas and I, perhaps by accident, had chosen a different life. None of our days were the same in that we didn’t come back to the same place everyday. And, perhaps strangest of all - there was no purpose to anything we were doing. Whether we ate, or slept, were covered by blankets, or got killed, we would still be here, settling on walls, permeating our surroundings like the non-solid creatures we had become.
+
+It was a strange life and the choice to live it had not been made consciously. But, looking at all those houses above us, I kind of liked the path that Thomas and I had inadvertently taken. Perhaps it was not completely by accident.
+
+* * *
+
+It was the next day. I suddenly felt a rush of anxiety. “We have to get out of town” I said suddenly, knowingly (the sky turning from blue to pink to gray to black above us). Somewhere out of the city, far away. Maybe we could go camping! I say, suddenly, then realizing we are already camping. And we don’t have a tent. I realize I was imagining packing up our four wheel jeep, luggage loaded and ready to go. The woods wouldn’t bother us, cause we’d have our camping gear.
+
+We started walking around different people’s neighborhoods. In trying to get out of the city, we ventured into suburbia off the beaten path. Here there were plants to pick, tiny shriveled tomatoes growing on vines that leaned upwards with great pain like they were tortured, from sun or too much water, I didn’t know.
+
+On one of the street corners, next to an immature tree, was a box of food. In it was a few kinds of cereal, and Thomas pulled out the froot loops, and started spooning handfuls into his mouth, talking about how it had been his favorite cereal.We found froot loops, his favorite cereal.
+
+We leaned against a wall, he silently grabbing handfuls of fruit loops out of the box and placing them in his mouth. He got to his feet and handed me the box of fruit loops but they weren’t meant for me, they were his. I took a yellow one out and he told me it was his favorite cereal, and that I could have other things. He stared pointedly at the peanut butter flavored cereal that was still in the box. I didn’t mind so much - not having the Froot Loops. But I thought it was a strange distinction. And why would he need to have each and every one of those colored balls? Didn’t he know I didn’t want them anyway, and wouldn’t have eaten a lot?
+
+Back on the main road, we got on the bus and took it one stop. We had talked about how to get on the bus, and I had told him he needn’t worry. But Thomas was delighted to have discovered a bus card lying on the ground. He showed the driver his card, and the driver nodded. I walked on behind Thomas, showing him nothing, and the bus began to move.
+
+When we got off the bus, we crossed the street to a table that was outside a nice restaurant and I examined the menu that was hanging from a thick wire stand. Thomas laid down on me on the red picnic bench.
+
+I hadn’t yet gotten sick of the day, and it was already turning a faded yellow. The day was like a candle, burning down its wick to get to the nice surrounding wax. We walked on; the night would be upon on us and the air was thick; it felt like we were surrounded by sweet pieces of meat. But I didn’t see the end of the day coming and neither did he.
+
+We went into the restaurant together, I leading as always. The door was very heavy, and had pieces of colored glass; red, yellow, green and blue, set into it. While he went to the bathroom, I looked around. There was a magnificent selection of beef jerky hung up on hooks in the little atrium off the main entrance. And I went in there and grabbed one of the bags - it was so large it took both of my hands to hold it. As I beefed open the door once again, I had a conversation with the male hostess wearing black pants and a short apron over it, who either didn’t notice, or was too stunned to say anything, about the bag in my hands.
+
+Tom had followed me to the restaurant, but had disappeared while I was inside. I said I had gone to the bathroom, leaving the large bag unexplained in my hands.
+
+We walked through a neighborhood where I’d once been on a date and I stopped to try on a pair of black leather boots that were lying on the sidewalk, one of which was missing a heel. I struggled to get them on, and then to walk in them. And then, as we often did, we laid down in the grass, in some way defeated - unable to distinguish between rest and wake - sleeping time, and when we were out and about - hurrying on our way to a similar place in an identical-looking location.
+
+The beef jerky was dry and hard to chew and did not satisfy any of my many cravings. But I was hungry, as we hadn’t eaten anything except the front loops and a couple of tomatoes we had picked out of people’s front gardens, and it would have to do. Even worse, each piece was oblong and had its own identity - I couldn’t decide which one to pick.
+
+At this point a cat slunk heavily across the grass and settled comfortably into Thomas’s lap who was now horizontal. He was lying diagonal across the grass next to the tree, with the cat perched on his stomach. I chewed up a piece of beef jerky and then dangled it over his open mouth, let it fall in. For a second, he chewed it pensively, before dragging it out of his mouth, his mind finally lulled out of the trance he’d been in, stunned.
+
+He considered the now-chewed piece of jerky. Out of his mouth, in a high-pitched tone, came a torrent of justifications for breaking his one (as far as I knew) vow of not eating animals. Something about not having chewed it for very long, but he failed to blame me and for that I felt guilty. Or felt guilty that I didn’t feel the slightest bit guilty for doing such a thing.
+
+Considering there were infinite options available, what was becoming a common occurrence (or a common problem) - I needed to pee. Perhaps it wouldn’t be so bad to let him see me in this undignified position, and I started pulling my underpants down. Just at that very moment, the owner of the house pulled up in a pick up truck, and parked in the driveway. Caught redhanded, I shoved them back up my leg, and the man had a slight smile on his face as he rushed across the lawn to unlock the door to his house. Before he went inside, he took a moment to congratulate Thomas. Apparently he’d misunderstood the situation to mean that Thomas was successfully hooking up with me. He said simply “good job.”
+
+Thomas didn’t know what to do with the compliment, and it hung in the air between us, after the man had gone inside. Most likely, he hadn’t even noticed me trying to pee, and was bewildered, on multiple fronts, at the turn of events.
+
+* * *
+
+It was on some sort of piece of furniture - a yellow plush thing that was neither clearly a bed nor a couch - that Thomas struggled with his words. I had grown used to his rants, which were often verbose and trudged forward like a train. Never a single moment of hesitation, room for thought. Often accompanied by a panicked expression.
+
+Yet Thomas seemed to be struggling to express whatever he was thinking. “Do you ever think that…that we...could…” it was unlike him.
+
+I had an inkling what he might mean and I jumped in to save him from his floundering , but I was wrong. “Have a baby?” He finished, at the same moment as I supplied “have sex?” So alike, and yet so different. I wondered - was that what he’d been thinking, this whole time? In a way they were the same. In a way, they were different. We both cringed with embarrassment, then. And this conversation, having built to a crescendo of awkwardness that could not seriously be addressed, simply died down and turned into ashes.
+
+We had rested many times before - on benches, on low walls, and often on the curb itself. But this couch was the first place that might be considered “comfortable.” I thought we might come back to the couch and sleep on something that resembled a bed.
+
+But then I remembered that, if we were able to predict what we were going to do from one moment to the next, then we could go home and sleep in my bed. Or his. The fact of the matter was: we’d been trying to accomplish the vague goal of “getting out of the city,” for several days. Something that theoretically could be accomplished at any time: by walking without stopping, and without changing direction. Or by getting on a bus or a train.
+
+And yet, here we remained, among pavement, and the often dirty looks of strangers.
+
+One such look came from a woman in an old buick, who pulled up alongside us as we rested on the curb. “You too sure are lazy, huh?” she hollered, glaring out her open window. Thinking defiantly that she had no idea who we were or what she was talking about, I looked down, and couldn’t quite come up with an argument against it. We were seated, as usual, on a curb. And we had dispersed our many things, among them, ourselves, into the pavement.
+
+She was right, I supposed. Lazy or paralyzed with anxiety - it amounted to much the same thing. I wondered why she’d felt the need to tell us this.
+
+* * *
+
+We wandered into a juice shop and while the one employee was in the back room, I started fiddling around inside the cabinet, and without planning it, took a juice, in one of those square containers and put it into my pocket.
+
+Once we had wandered up one block, and come back to the juice shop, we went back inside to ask for a phone. “You guys took the juice that was here,” said the man, now behind the counter. It was a stern voice that we both instinctively shrank away from, staggering backwards through the door, leaving the stuff we’d come to collect where it was. I could imagine the angry thoughts he had been thinking about us since we reappeared in the doorway. They painted us ugly and black, and I didn’t like to look at them for very long.
+
+Thomas was walking so fast on the cement that I had to run to catch up with him. He turned backwards when he got to the corner to make sure I was still in eyesight, then scrambled up a short hill that seemed to be made of trash. And I scrambled up after him.
+
+“It was worth it, though” he said when I caught up to him, his eyes staring vaguely at the sun, his whole body tense, a pillar on that hill. “That juice was good.” There was something strange about this statement, and it took me a second to realize what it was. It wasn’t like us to acknowledge that one decision could be better than another. It was our tradition to simply accept whatever happened to us without question. To acknowledge one was to regret the others.
+
+We watched the sky that had turned light blue and pink and his eyes had that swooped in look like he couldn’t decide how the world could be quite so disgusting (he was getting bad again).
+
+* * *
+
+We made a home on the curb; it was starting to give us room to think. I looked at each of the cars and tried to predict the color and then tried to see, as it came rushing by, if it was the color I had been thinking it would be. And if it meant that what I had been thinking (when I guessed the color of the car) was true.
+
+I planned to write something and hide it underneath the stop sign. I would dig a hole underneath it, and they would uncover it in 50 years but I would know it was there the whole time, and wouldn’t have to worry about losing it. I planned to transport my things, mainly my piles of papers, that were black trash bags in in a black basement, to this spot. I would take the bus to get here.
+
+We perched on the curb. I couldn’t tell what he felt like, like I normally could. He was not letting me into his thoughts like he normally did. I discovered a few cigarette butts and put them on the floor next to the drain - a peace offering. I set up my things. He was sitting, smoking on the curb. I set in front of him. He was wearing the torn sweater I had found hanging over the fence for him.
+
+I explained to him that if the colors in my mind were the same as the ones in life, then it meant that life was a joke, and life was a mystery. We were seated with our legs dangling past the white stone wall that held in the dirt beneath our backs. It was pleasant, taking a break from our trip. Stopping even though we were planning on going somewhere, to take a break from the trip. There were roots underneath us and I shifted, leaning on his chest, there were dead leaves underneath us.
+
+We were sitting on the curb together and I was quiet, staring at him as he emphatically lamented the state of the world.
+
+* * *
+
+There was a festival the next day. Outside the People’s Co-op, on that cobbled street which felt in some ways, like our first home. People, all brightly colored, for some reason (perhaps that was the theme of the festival), and tables set up with food. The street was closed off by a long string on either end - ropes or ribbons or something. We came to the end - marked by a small fence with a sign. We turned one block and then sat down to rest. In fact, we simply lay down where we were. And when a friend I’d once known came back to ask us why we couldn’t talk anymore, it was because we were laying there, in the middle of the cement. A man with a beard passed over us gingerly avoiding our many limbs. He gave us a slight smile, as if to say “sorry for disturbing you.”
+
+* * *
+
+We were walking, after the festival, in the night, next to the street where there was barely a sidewalk. Wild brambles of blackberry bushes threatened to sting me as I passed. And then - a strange beacon - a fast food chain loomed alongside, closer and closer into view. We crossed the street quickly before a car could streak by. I entered, and while he went to the bathroom, I waited studiously in line. A little anxious as I rounded the bend shaped by the band. And the man in front of me counted out coins and received his greasy bundle. When it was my turn, I asked for fries, trying to sound confident. “That’ll be…” and he told me the total. “I could’ve sworn I had it somewhere,” I said, starting to pull things out of the pocket of my coat. There were a number of silver buttons, some bits of strings, a few discolored bus passes…I wondered at the sheer amount of stuff my pocket could hold, all the things I had collected along my way…
+
+some peels of a tangerine - a little yellow figurine of a horse - all came spilling out onto the counter as I continued my performance, pretending to think that there was actually some loose change at the end of this neverending mess.
+
+Finally the man who had lingered by the counter, carefully choosing his sauces, pouring ketchup into little plastic cups, got fed up. “I’ll pay for it,” he said, and his tone was one of annoyance, rather than benevolence. As if this Mary Poppins-esque show, which showed no end in sight, was an affront to his most basest of human sensibilities. Exasperatedly, setting down the myriad of little plastic containers he’d been collecting, he reached for the fold of leather in his back pocket. If this was the solution that I’d imagined when I’d entered the line, as I stood patiently waiting in the confines of red tape, then I supposed it had worked. Though the payoff wasn’t triumphant in any way. In fact, as an outsider, aloof, unaware of what was going on, and watching, I would’ve said seen this sad scene as a mess.
+
+Just as he was slipping a few crinkled bills across the counter, Tom emerged from the hallway that led to the bathroom. He looked bewildered at the transaction. I supposed his surprise would have to do, though I had been hoping for him to be impressed.
+
+The man who handed me my bundle, too, seemed, at best, indifferent to the display, at worst, a tinge of annoyance touched the corners of his mouth. Still, there were the fries: hot and crispy, each one, a resounding rebellion against the cold air of the night. They were contained in a little paper boat, that had golden grease on the sides and the bottom. These shiny plastic tables were the true prize of my (accidental) game. And when I had had enough, I passed them onto my friend, setting them down between us. I didn’t mind sharing, even if this wasn’t his custom. But he was anxious to leave this polished interior, so we brought them outside, the night air quickly robbing them of their essential quality - warmth.
+
+* * *
+
+He held the clump of sauerkraut above the wooden gate and I grabbed it. I hesitated, then manned up and put it in my mouth, wincing as its sour taste hit my tongue. But it was alright and I understood why people liked the stuff, though the taste was a little strong for my present enjoyment. I used my feet to climb up the fence but perched at the top not knowing how to get down. He stood beneath me with his arms out and said he could catch me but I jumped and
+
+As I walked away from him I decided I knew now what would happen if I tried to jump and have him catch me.
+
+* * *
+
+We’d ventured into an industrial complex, had perhaps walked too far in one direction it would seem. Here there were only tall buildings with faceless suited people, walking efficiently up and down the stone steps.
+
+I saw something shiny and stooped down to pick it up. It was next to a tiny leaf. It was the size of a blackberry, glass, and had eight facets. I handed it to Thomas and he took it and dropped it into his pocket with only a cursory glance and said he wanted some actual crystal meth.
+
+The sun started swooping low in the sky and I started leaning away from him but winced, and turned back, long enough to say in a high pitched voice and out of breath: “Isn’t that crystal cool?” Then I leaned away again.
+
+Thankfully, he reconsidered, pulling it out of his pocket. “where did you get it?” he said, and I tried to describe the place I’d gotten it; in the dirt behind the bushes.
+
+“What would you do if you were on crystal meth?” he wanted to know. I didn’t answer. So he considered what he’d do if he had crystal meth. I stopped walking and said I didn’t know and didn’t want to think about it. And we laid down in a part of the shade, discussing what he’d do if he had some crystal meth; perhaps the amount he’d left in his car.
+
+* * *
+
+## Part III: The Beginning of the End
+
+We passed a homeless shelter as we were back in downtown
+
+Portland. It was getting late, things were getting harder to see. Thomas told me about staying in one of those - about all the rules they had - you had to be in by 11, and out by 7. And there were rivalries, and feuds. It was best if you just kept to yourself, he said. We were a little too close for comfort to all these strange people, each with an odd assortment of repurposed clothing - sweatshirts that might have looked cool on (a normal person) were paired with odd bottoms, or there were one too many dust or dirt stains. And although on first glance they were innocently milling about, the few times I stopped to look closer, they were clustered around tin foil, or a crack pipe. Sometimes they monopolized the transparent cubicles of buses, or else sat, under a shallow awning, the employees feebly shooing them away or threatening to call authorities. Thomas looked longingly at these groups, and I held his hand tightly to keep his mind in check.
+
+Finally we settled on a restaurant/bar situation. It was one of those trendy places, with tables meant for the seven dwarves. too long tables, that serves all sorts of craft beers, I think. And lots of greasy, unhealthy food. Combined with their attitudes of cool, indifference, we both knew we didn’t belong. But that didn’t mean we couldn’t stay.
+
+We disagreed as to whether we should sit inside, or outside. And I wanted to get a drink, and he didn’t. We waited outside, for someone to come take our order, only no one did. This way probably good, considering we didn’t have any money.
+
+Tom was talking about Mein Kampf again. I didn’t like it when he talked about mein kampf. He was ranting again, and I tuned in just long enough to catch the word “genius,” and such. He had hoped to engage other patrons in the conversation, starting up in his high pitched voice when a grown man with a beard took one of the seats next to us. But none were interested, and looked away until he stopped talking to them.
+
+“Tom,” I started to say, my voice drawn out and a little leery. “Tom. I don’t think anyone wants to talk about that book.” I wasn’t intimately familiar with this book he kept mentioning, but I was starting to understand what that book was about. His words, though, passed over mine like a waterfall over rapids. Tom was explaining that hitler had been a dictator, but he had been a genius.
+
+Suddenly, I wanted to get away from him. I went inside to get water. I received two sweaty waters in pint sized beer cups, from a waiter who looked like she didn’t think she should be serving me. Perhaps it was the dirt smudges across my nose, or my odd choice of attire. When she brought it out, I didn’t think Tom looked like he deserved her fast and efficient service either. He and his identical face smudges.
+
+Finally we left, Tom not really noticing as we got up from the table and began walking down the street, yet following nevertheless. He was just a poor sick thing I sometimes told myself, if I didn’t like what he did or said. But this was different, he wasn’t poor or sick, he was being mean. I no longer felt sympathy for him and whatever predicament had landed him alone with his bags on that night only days ago. Tom’s eyes were glazed over, something fiery beneath the surface, continuing his unwelcome rant. and every sentence that passed through tom’s lips, the lines adorning my forehead grew deeper.
+
+* * *
+
+A man was offering to read my fortune. He had set up a little pink table that was actually just a crate with a dishcloth. The prop was positioned over an air vent, so the tablecloth blew around his legs as he sat behind it. Atop his table perched a crystal ball, and deck of tarot cards. “No thank you,” I told him, only half-turning. He seemed unaware of the strange pace we were keeping, with Tom walking a few steps ahead of me, and I, wearing a pained, stricken look.
+
+“Wait,” he called. Did I want weed instead. I regretted saying anything, since I couldn’t deny he existed, now. He produced a little bag from his pocket, and my muscles tightened at the sight of it. “No thank you,” I repeated. In truth, weed scared me, with its ability to muss up the careful categories I’d established: what I could, and could not think about. Which things would make my mind sticky with fear, might even cause my eyes to water inadvertently, and were therefore off limits. Even the idea scared me and I wanted to get away as quickly as possible
+
+But Tom was of a different mind, and he went over quite eagerly. He sat with his elbows perched on the precarious surface and said yes, he would like some weed please. Ready to have his fortune read, or whatever it took to acquire his blessed weed. Suddenly all the things that tom had said about meth came back to me, taking on a slightly different meaning. (Had he been addicted to drugs the whole time) I thought back to the tin foil I’d glimpsed in his bag, the crushed coke can (why was he carrying garbage when he walked many miles a day?)
+
+I could not see the look on the man’s face, nor whether he graciously accepted this unexpected turn of events, having accidentally baited that which he did not want.
+
+I was already edging away, up the dirty sidewalk. “Come on, Tom,” I said, frustrated, and I turned backwards as I (slowly) backed away. Perhaps it was this new and painful rant, perhaps it was my fear of weed and what it might do to my mind, but I did not wait for him. I could see his figure getting smaller and smaller as I moved into the distance. Now he was smoothing the pink dishcloth, his earnest eyes polite but disinterested. He was only there for the weed.
+
+As I got farther away I got emptier and emptier, till the silver sparkles that shined through the cement combined with my eyes. Why did they put those sparkles into the pavement? Was it to make the world more sparkly? more confusing? to distract you from where you were going by putting sparkly things in front of your eyes?
+
+I wasn’t waiting for him any longer. And I approached a parking garage that was closing its doors for the night; the metal grate was coming down, trapping any who chose that moment to enter by sheer coincidence; and I hurried to be that one.
+
+I would need a place to spend the night I thought, my thoughts scurrying around like rabbits, grabbing onto anything, whether it made sense or not. (After all, it was getting cold, and the night was quickly turning from blue to gray, and soon would be black.) and there was now no Tom to slow me down, to stop me from doing whatever compulsive thing I could dream up.
+
+I stumbled back out of the lot, finally, having found what I hadn’t known I’d been looking for - a pair of red-handled scissors in my hand. A policeman started following me, when he saw the scissors in my hand - poised to kill, to strike (no, I had been meaning to cut up magazines, to make valentines). I found a group of friends, all huddled together under the awning of the parking garage. And just in the knick of time too, because the policeman who’d been looking for me rounded the bend at the same moment I sat down.
+
+I sat down and pretended to be one of these hoodlums, and they did not question the intrusion, they were talking about something black - or was it simply “the black?” Regardless, they did not even look at me as I entered the outskirts of their circle. They seemed quite preoccupied in their pursuit of this black thing.
+
+* * *
+
+I slept in a permanently lit up alcove. Cruised through a recycle bin full of empty blank papers. Blank paper - the one thing I always wanted. But I wasn’t in the mood to write. I had never fully appreciated the slabs of cardboard that Tom carried around with him, everywhere he went. Instead, I slept on the cold, hard ground. Every five minutes or so, I woke up, startled, imagining that someone was coming. Constantly readjusting my limbs in search of a way to ensure that no swatch of skin remained uncovered. I stayed up late that night, and my mood was a solid indigo, unchanging.
+
+* * *
+
+In the morning I wandered down where the tracks made their way beside the river. There was a long stretch of gravel, clearly not a path but simply there. I passed a doorway that a man was looking out of. He asked me if I had my ticket, laughing at some private joke. What ticket? That was silly - I wasn’t trying to get on the train, just walking next to it.
+
+But it turned out it wasn’t funny. These words started up a swell in my stomach and I knew they were instructions to leave town. Go to Seattle, maybe - for that was west, in the direction the man had pointed. So I would go. Go to Seattle. Without Tom.
+
+I wondered if it was easy to get to Seattle; I’d never tried to get to a different city just by walking. Perhaps there would be a train in my future. I didn’t know how I would pay for it; probably sneak on. Sneaking onto things hadn’t proven to be of much difficulty. Keeping my mind in check, that was the difficult part. Finding food, sneaking into things, well, that part had always proven to be suspiciously easy.
+
+My stomach was thick in knots; I didn’t want to leave, yet could not find a reason to stay. Without Tom, there was nothing grounding me here, not even the lazy pattern we’d established, the one where we languished on sidewalks because neither could find the will to get up. The one that made any plan one of us might have had impossible as soon as it formed.
+
+To conclude in a mess of us sitting somewhere, leaning unsteadily against each other.
+
+Without Tom to slow me down, keep me from my impossible and pointless pursuits, I raced forward across streets and sidewalks alike, keeping vaguely in line with the crows above my head, so I ended up in a place far away by the river. There, some men decked in construction gear (harnesses, vests, hard hats) were perched precariously atop a metal pole that seemed to protrude directly from the river. How far down did it go?
+
+It was calm by the river. The water presented an impossible challenge that I did not mind at all. It was a thick blockade in my way - I could go no further. I could stop.
+
+* * *
+
+A piece of me was missing - a piece that had stuck by me, day and night. I missed Tom, I missed him very much. By some sticky glue, though I had tried to rid myself of my him many a time - somehow we had remained together - strangers that were attached at the hip. And now, here he wasn’t. With him I’d had a reason to wander aimlessly. Aimless as it was, it made sense. I had to wonder at this turn of events. Thomas had been a pipe dream. It hadn’t made sense when we’d come to travel together, and now that he was missing, everything was back to normal. I fell into my own patterns - traveling more quickly now - going to more places. But I was also more anxious. And the speed didn’t help much in the way of getting anywhere.
+
+* * *
+
+As soon as I’d thought of the idea, I knew it had to be true. Of course! Of course he’d be in the peanut butter aisle, why hadn’t I known this before? Didn’t I know Thomas well - well enough to know where he would be?
+
+And wouldn’t he be pleased to see me there, glad that I’d found him, and glad that I knew him well enough to know where he’d be? I would go to him tomorrow, and we would be reunited. I felt better - just thinking about Tom, and how I would see him soon - very, very soon.
+
+Once I’d found him, it would be like we’d never separated. Like I’d known he’d be here the whole time, and we’d planned to meet up. The peanut butter aisle was a symbol of hope to both of us. It was where we had found protein, despite.
+
+I entered the clammy cool of the store reluctantly. Once I entered the peanut butter aisle and saw that he wasn’t there, I could no longer hold onto this last, foolsome hope. Then, his gone-ness would seem to me all the more real to me, and I would have lost him all over again. I traversed the aisles, taking my time. Stopping first at the prepackaged meats, marveling at all the different kinds of cheese, cut into chunks and separated into plastic containers with hard-to-close lids. There were even bars of chocolates there - sold by the pound, jagged edges wrapped in plastic wrap, some boasting hazelnuts.
+
+And the drinks - so many drinks that you could choose from - each in a different kind of bottle - all various sizes and shapes, each design and logo worked out in exacting detail so I wouldn’t to pick up and touch each individually.
+
+I took the most circuitous route to the peanut butter aisle, but finally reached it.
+
+There was no Thomas. I had seen him so clearly in my mind - now I imagined him - reaching up to pull down on the lever, holding his hand, or one finger out, to catch the falling stream of nutty goodness. His hair, disheveled, askew as always. His waffle weave shirt, black pants that were still two sizes too large for him - so familiar to me, and yet - he was not here.
+
+A noise behind me - Thomas?! - no, just a man in blue jeans, scuttling past me, made impatient by my brief reverie. Feeling very forlorn and lonely all of a sudden, I made my way unwillingly back out into the sunshine.
+
+I crossed the street feeling less than hopeful, and like I had less of a purpose than ever before.
+
+Directly across the street was a restaurant. Through a side door, a man in a white apron and hat, came through the door, pulled out a cigarette and took a long drag. I sat down at one of the picnic tables in front and wondered if he would make me leave. He was wearing a simple tshirt, and jeans, a simple black apron cutting him in two. He reminded me of Tom - mostly cause he had brown hair, and he was a boy. Actually, he wanted to make conversation.
+
+“Are you a chef?” I asked, only mildly curious, but eager to continue this unusually normal interaction. “Not a chef,” he sighed. “Just a souschef,” and I caught a look of defeat on his face. But he would like to go to cooking school, he said.
+
+I subsided into the roll of consoler. Happy that he was talking to me like a normal person, instead of a slug he’d found on the bottom of his shoe. Without Thomas and his bags, perhaps I looked just like anyone else - pretty, even.
+
+This sudden role reversal - he was ashamed of what he was - couldn’t he see that I’d been sleeping on the streets for the past week? This unfortunate identity crisis suddenly struck me as silly, and put into perspective what I was always thinking.
+
+## Chapter ? : the two toms
+
+The sous-chef had come to sit beside me on one side of the picnic table. As we sat there together, Thomas materialized at my side. A minute ago I’d had no tom, now I had two: the real Tom, and the one I’d found to replace him. The one who wanted to go to cooking school, apparently. I didn’t know what to do, and so: held them tight, one in the crook of each arm. They both seemed kinda confused. Then fake Tom wandered off, and I was left with just my friend, who I had missed terribly, who was now with me in the flesh. Somehow, I didn’t convey that to him at all. Instead, I adopted an air of aloofness.
+
+“I’ll see you tomorrow,” I said abruptly, pulling myself up from the chair and in the same motion I was away from the bench.
+
+Cocking his head back so he could see me behind the bench. “But where will I see you?” he asked,
+
+I could try to laugh off his concern, tousle his hair. “Tommy, my boy, I always come back. You know that.” Except I didn’t know when I’d be seeing him next, and any air of reassurance I might have mustered was simply that - an air. I wondered uncertainly whether I would see him tomorrow. Partly confused by the sureness of my own voice as I said it; I couldn’t bare to think that it might not be true. I wanted to see him, keep seeing him. So badly it hurt. But I had to go. I’d had to go before, on the bridge, and in the night. But this time I would let it stick. After all, hadn’t we run into each other, on accident but as if planned, the night before?
+
+* * *
+
+From across the street, I could still see him sitting cross-legged, and eating from a take-out box that somebody must have given him - dry plastic-looking noodles, sweating from the sun, and little dots of orange, perhaps mandarins? I had not seen this new gift impressed upon him. Already he was having experiences without me. But I turned, and entered the strange calm of blasting air conditioning, whole foods. I climbed up the stairs, my mind elsewhere, but jostled forward by the stream of traffic.
+
+* * *
+
+I seemed to be creating the world with my mind. The world got divided into frames that fit into places in my mind as if I’d invented them myself. I felt sleepy. The day and my life seemed smoothly like a dream. I looked, for the first time, it seemed, at all the different drinks set up in the case. The Guayaki bottle was nicest. It was bright yellow and had less writing than the others. I considered all the people that designed these logos. I considered all the people that liked each of the designs. Then there was boxed water. Each drink had its own design specialist and a group of people that liked the drink, that found it on the shelf and bought it.
+
+I put my hand on the table between my hands. And I imagined all the people living nicely side by side. I could see them out the window. I could look down onto the sidewalk. It was a lovely day outside and everyone was walking arm in arm.
+
+I started writing on a little pad of white paper that had been on the table, it was a list of the things that could go on sandwiches, with check boxes next to them. Simple things that came to my head “I think I would like to eat fish” - with vowels that matched, like little poems. It pained me to think that I would never see them again. since I had not managed to retain a single item of mine. Not taking it with me would have a better chance of seeing it again; at least I would know where it was. I considered throwing the pad over the banister down onto the display that was below me. When I was finished with this homelessness. Perhaps if I gave up this homelessness, I could go and collect it).
+
+They wouldn’t let me climb down there myself, I’d have to get someone else to do it. I considered how it would sound to explain my plight to all the employees who would look mystified at the silliness of my request, and yet the downright seriousness of my tone. One after another, I would be met with bemused looks, until I finally got to the manager. “I’ll go and get Javier…” etc. until I finally got to the head hauncho. Then he would…
+
+I wanted my new friend to come up behind me, to surprise me, to sink his little claws into my back. I pictured him coming up behind me, and “practicing choking,” as he used to do, back in the good old days, when everything was simple. (And we were in love). But somehow the time passed anyway,I was keeping a careful eye out the window, . I looked in fear as the sky turned to golden as the sun was setting, and as more time passed away from my beloved tom. Finally it was time to get up. I retraced my steps but I didn’t see him. Instead, I made my way into one of those bougie stores, that I always loved but had recently avoided for fear of sideways glances, and the feeling of being out of place.
+
+* * *
+
+chapter: the black: “nothin scares me anymore”
+
+Inside the store, Lana Del Rey was playing “I got my red dress on tonight, dancing in the dark, in the pale moonlight” and as I’d been known to do many times before, the words now meant something about me. An eerie, creepy feeling struck me when I realized that I was, in fact, wearing a red dress. How could this be a coincidence? I couldn’t even remember where I’d gotten it - just that it was a plain dress - simple cotton with a blue belt. And that I felt like a whole different person while wearing it. Not stylish, perhaps, but at least like I was trying to look nice. So what was going to happen tonight?
+
+“Nothin scares me anymore..”
+
+Well that answered that question. In the past, I had been much too scared to ever carry out this plan that I hadn’t made. If I wasn’t scared, then it couldn’t be that bad, right?
+
+The song, and the words in it, reverberated across the store as I looked at myself suspiciously over the pointy sunglasses I was trying on, in the too-tiny mirror that could barely be seen on tip toe, and I plotted my eventual demise. I was aware that I was plotting my own demise. But in the brilliant sunshine, , so pleasant on my skin, in the shafts of light that made their way even into the store, I could not be too bothered. I was cool and calm as I tried on the glasses.
+
+* * *
+
+When it got dark, things got very grainy, and those little pieces of thoughts that often stayed disconnected in the back of my mind, were now out and about, floating in the air like little sick things. The entire sky was the hazy gray of the cement - speckled with unknown sparkles. I stepped onto one of those old above ground trains, that had often sent my thoughts into a dizzying panic as the too-loud rattling that preceded them snuck up on me.
+
+The tracks marking the route mixed with the telephone lines so that everything was upside down for a second. And by the time I was able to right everything, well: I wasn’t. And it stayed like that as the sun died silently in the sky. We weaved in and out of the neighborhood I’d just been standing still in, me and the other people on that train, until finally all the tiny specks of white I’d been trying to catch, that had been floating in the air that might have told me where I was going, and where I’d been, had turned paper thin, and to dust.
+
+I did not expect to find new companions so quickly, and yet I did. Fellow travelers - a boy who was blonde and kind of goofy looking. Another boy. And a girl, also blonde whose knees stuck out from ‘neath her skirt, knobby, and emphasized the pale, stickness of her legs. She had pigtails that expanded into waterfalls from the sides of her head.
+
+Their destination was as good as any other, certainly better than none. Without any thought at all, their destination became mine, and I followed them as we waited on a bus, and then a train. The only thing I did to control my destiny was held one arm high above me to catch the fabric handle that would save me from swaying. Their mood was effervescent as they discussed something they had recently procured. “The Black,” they called it simply. Whatever this black thing was held such a special power over them, deserved such reverence that it actually pried them from their lives, had taken them on this adventure that caused them to traverse one bus, and then a train - turning their smiles effervescent, and a little mad. Based on their tone of love, no, reverence, this “black” was really quite special. I guessed, and yet, did not really want to know, what they were talking about.
+
+We arrived at their final destination. , walked along cement that sloped gracefully down a grassy knoll, and passed tall metallic structures - a playground, or maybe a gym - a large tree with a low stone wall surrounding it - until we got to our final destination - a bathroom. Through the open door, I glimpsed one of those shiny metal toilets that didn’t bother to have a cover.
+
+The two boys were making some sort of preparations. They had positioned themselves a ways up the hill, near the stones fencing in the tree. I could see vaguely that they had plastic bags, and little metal things and were transferring one to another, talking in low murmurs. The grass was dark and damp, not right for sitting but they did it anyway. And I was left alone with the girl.
+
+Though we’d been in each other’s company, I could not think of a single word she had said to me on the first train, or the bus, nor I to her. I thought of making pleasant conversation, though I did not really want to. But she ignored me. Then she sank to the floor as though melting, her face screwed up in an ugly pierce, and she let out a low sob.
+
+This, at least, gave me permission to turn in her direction. She was sort of crying now, whimpering maybe - her knobby knees rattled against each other. And she was gently shaking. My base instinct was to comfort - to put my arm around her, to reassure her: “Everything’s going to be ok.” But there was an electric fence around her that snapped at me sharply and I could not take a step forward. Instead, I sort of hovered next to her, making vague conciliatory murmurs, my eyes darting back and forth between this girl who now looked very young indeed, crying as she was, on the ground, and the two boys on the hill.
+
+Now she look-up at me with tear filled eyes - wide and forlorn as a doe’s, and implored me to…something… Her words were garbled and she spoke in shaky half sentences. But of course she was crying because of me - because I was there.
+
+But before I could think about my part in this - what part I was playing, the boy came back down the hill and her eyes found his and she begged him.
+
+The boy led me inside the bathroom (and the flaky…did not
+
+disappoint). Soon all of our clothes were off, and he was laying them out in a human-sized bed next to the door.
+
+His sudden embrace was no more or less real than anything that had happened to me in the past week. His will was stronger than mine so even if I could have made my mind up about what I wanted, the ending would have been the same. Instead, I did not concern myself with such things. By the end it was feeling too real and I wished that the fluorescent lights in the bathroom weren’t quite so bright. I looked around wildly, as though distracted. We were so close to the door that I might have reached up to turn the shiny knob at any moment. I wondered what would happen next with my life.
+
+He finished and left the bathroom for a moment, telling me he’d be back. I didn’t know if he was lying, and for the moment, I didn’t care. I was too delighted to have my body back, to do with what I would. Cleanliness was in short supply, but I made use of what there was, not minding, for once, to be putting dirty clothes back on.
+
+As it happened, he did return. And with some of “the black,” he’d saved from his friends. From his tone, I wondered whether this had been a difficult feat, whether they’d refused him and he’d had to do it in secret. From listening to their conversations, I had begun to develop somewhat of a reverence for this stuff that he and his companions prized so much.
+
+He knelt on the concrete floor beside me, and I sunk into the cool metal of that shiny rim. Something would have reached out and stopped me from getting to this moment by now, I felt sure, but it hadn’t…and suddenly he was pulling at my wrist, extending my right arm for me as though instructing me on a new skill, (“that’s it. Easy does it.”) and then tying a black band around my bicep. Where had the black band come from? (“Actually, it’s ok.” I said, with words that were both too strong and too weak for the present situation.)
+
+But his grip was firm. He said: “trust me, you’ll like this,” as though this answers my concerns. Was he simply obtuse, or was there an aggressive tone to these actions, I wondered idly.
+
+“Ok, ok.” I said, watching as what little there was left of my will, floated under the door of that bathroom and out into the sky, bobbing madly like a kite, as it faded away into the blue.
+
+The bathroom was too full. Full of colors and fabrics. It should have just had us in it; he, myself, and the needle. Instead it had all this, all the fabric that our clothes were made out of. He pricked my arm below the joint. Instead of letting the black travel through the needle, I jerked my forearm down; away.
+
+I hadn’t yet looked at the needle and the dot of black that was sitting below one of the printed lines.
+
+He pricked me again. Again, I jerked my arm away. Again, he pricked me; again and again, until finally, the 14th time, I let the silver needle jab in. I let that tiny inky dot prick into me, travel through the needle. and into my blood. In this last and final time, the inky dot was my will - coming back to me. And I let it happen. For what could I do in that moment except accept my fate.
+
+I was the inky black dot, pacing steadily forward. And so I let it, the black. Let it consume me, let it take me over, as it would. I could make this decision - to decide this. I was ready. I wanted this to happen. At least I had that.
+
+And now, I myself, rose up like a kite. Soon my thoughts started to creep, as they never had before. I was this inky black, that had strayed into my veins without permission.
+
+And it was good. I was everything I wanted. (The tiny voice in my head that came every five seconds - “what to do next, should I do this, or this, listing two options, did not come, instead I was stuck in reverie. I stayed on the metal toilet, enjoying it, finally. What a nice place to be, really. Cold and smooth was the seat. The cement blocks were a nest. And really, nothing mattered. All was well.
+
+And when, finally, I did ask, and was met with a resounding “yes,” it was too long before I opened the bathroom door a sliver, than an inch. I heard a commotion outside. Too long, as I saw their backs retreating into the distance. I thought I could see him looking after me, somewhat wistfully, but she was dragging on his hand, pulling him to keep him in tow.
+
+I hadn’t much like for the company, I was glad at their absence. Happy to be alone. (At least now, my lack of will was my own thing to deal with. Hypothetically, I could do whatever I wanted now.)
+
+But as the dust settled, I found I was completely alone. I started following them in uncertain half steps, but I turned left, and then right, (and yet, they were nowhere nearer). At first I was sure of where they were going - they had mentioned another park, only a few streets away. I knew I could catch them if I wanted to. But I turned left, and then right, and suddenly I was on the side of a very busy street, cars zooming past into the night. And that is when I had the idea - the idea catching up to me from earlier. I was wearing my red dress - just like she had said. I tried to
+
+I stepped off the curb, one uncertain step at a time. Was I afraid? I didn’t know what I was. My heart felt whole and full like never before. And yet, as I stood there, I could feel the beginnings of tears rise up in my eyes, start to trace their way down my face.
+
+Was it possible to move, and act without thought? Could I simply “exist,” but not in nonaction, stasis, but in action instead? If I stopped myself from thinking, perhaps I could also not allow my brain to make this decision for me - perhaps I could make it for myself.
+
+I stumbled back, onto the curb, and turned around. My mind was the gray glow of twilight, the way that things were only now half visible in the depleting light. There were cars behind me, but they were only a rushing sound. I could not see their colors - blue and red and white, nor the silver metallic gleam of the mirrors that flanked them, nor the pavement beneath their wheels, nor the thick black tires that crushed it with five tons of invisible force.
+
+I was the houses on either side of me, now, I was their white and gold facades - their steeled balconies, their picket fences. And now I was the wide expanse of the park. Having not thought for this long, it felt like I wasn’t breathing. But mouthfuls of breath were still coming to my lips and through my nostrils. I was still breathing. My heart was still beating. I thought - black or no black, I would appreciate very much these most recent breaths - these most recent breaths would feel like heaven.
+
+It no longer mattered if I found my long-gone companions. {And I gave up on trying to chase these people. Just when I had resigned myself to the feeling of being lost, I found myself back at the park.} They would come back for me, I reasoned. He would, at least. He would double back, leave the silky-haired girl, and the other boy who I knew neither by face, nor by name.
+
+Before I had sought, without wanting to find. Now I wished I had their company - even if the girl erupted into sobs, even if she punched me. Anything that would not allow me to think - of what had just happened - and what had not.
+
+And just when I had resigned myself to the feeling of being lost, a young man emerged out of the growing dark, coming nearer and nearer. This man, who was almost my age, had brown hair cut short, and a thin stubbly beard. He was wearing a hat.
+
+Recently I hadn’t much like for talking to strangers. Whenever I spoke to them, I always felt their stubborn, bad gaze. Secreting into me, welling up inside me. Asking me to leave with their eyes, and insulting me at the same time. But gone was the bottom of my stomach and nothing affected me like it usually did. I felt someone could slap me in the face and it would feel like pulling a comb of rose petals across my cheek.
+
+“Do you know…” I trailed off, realizing now that I knew none of their names, not even the man who I’d spent those few strange moments with in the bathroom. He looked so much like a Devin that I had taken to calling him Devin in my mind, and I hadn’t needed to ask his name.
+
+Now I struggled with my words as he continued turning away from me. “He was…one of them had brown hair, and the other two were blonde…it was…one girl and two boys…”
+
+“I know them. I’ll take you to them.” he said. I did not question his authority on the subject, and I believed him without question. Ah I would be led back to the path. All was well, all was good.
+
+Instead I followed him, knowing he would lead me back to the path I was meant to be on, with the people I was meant to be with. Who had left me, and I was glad to be gone from them, but here was something to go back with them, to follow them. Like a lost sheep, following the wrong flock, like my kindergarten self, scooching closer and closer to Ana on the carpet.
+
+And though I was quite alone - he did not even walk next to me, but hurried on, two steps ahead, I couldn’t bring myself to quicken my steps, to even try to keep pace with him. I felt enveloped by the cool air of evening. A cotton net surrounded me as we walked And there were the leaves - gray, and yet gold - sighing above me. Singing to me. And I noted, only in passing, that he was never quite kind, that he never smiled, and that all of his questions felt like accusations. “how old are you?” “how did you meet them?”
+
+I felt enveloped - enclosed in some warm, damp cloth.
+
+He didn’t wait for me either, walking so quickly that he was always slightly ahead of me. No matter. I had the birds and the trees for company. I preferred to be alone anyway. The world wasn’t very real, anyway, was it?
+
+He led me to an outside hallway with a large warm fan blowing slowly on me, taking care of me as I waited. And told me he’d be back, he had to get something inside.
+
+I lay there in the dim light, vaguely red. And warm because of the fan blowing under me. I imagined someone, anyone, coming to put their arms around me. Arms tightening across my chest, locking me in. And I would embrace them, whoever they were. Never before had I felt such a strong urge to be held by someone. Anyone. That den of comfort, provided in equal measures by a lover or a stranger.
+
+Though I could not even see past the door, now locked, which did not even have a handle, which was opened only by the inside, I felt sure, even as each long moment passed, that someone would come soon.
+
+Finally, as the night grew colder, so that it was cold despite the warm air of the fan blowing on me constantly, I had to admit that he was not coming back, and I loped off in a random direction down the street.
+
+and then take the taxi
+
+I walked among trees, feeling so far from anywhere familiar. Was I getting further from the city? I thought there might be a carnival tomorrow, a summer carnival. Is that where I would see Thomas? I missed him, badly. Like a piece of my stomach was gone. Already the inviting den of his arms, always available - the safe comfort of having a friend felt so far removed from my life that I couldn’t believe it had been me that had someone they knew, someone they could count on, rely on to be there next to them, when they woke up. I felt lost…from having a friend, and in its place - loneliness
+
+But darkness had fallen, wholly and completely. My thoughts were no longer a warm embrace. I was starting to feel cold and empty. And completely alone.
+
+And in that pitch black night, a sudden thought struck me, as though an arrow had pierced the back of my neck. So caught up had I been, in the black, and not wanting it etc. that I had forgotten the consequences of what had happened in the bathroom.
+
+But something was nagging at me - bubbling to the surface. The consequences of actions. The thing that had happened in the bathroom. And suddenly I felt sure that the consequence of this action would be a seed. (Unwanted - growing inside me). Even now, I could have a baby, germinating in my womb. It became apparent I now had something new to worry about.
+
+And what did I know of this man who {could be half of a new me}? could be half of a living being, my living being? Not much. He had been kind. But just to me. And it wasn’t for naught. It didn’t bode well that he had left.
+
+Looking objectively at the situation, the thing he had done that I had liked the least had been a bit of kindness; delivering me the black. Keeping some of the black from his friends because he thought I would like it.
+
+His one act of kindness had been something I hated. And perhaps it was true that he had thought I secretly wanted the black - was…but then he was simply stupid. And that was possibly worse.
+
+* * *
+
+I paced back and forth as a part of my brain that I had not used in weeks - suddenly snapped to attention, and I began to think. There were pills you could buy…I did not have money. $40. I could find it. $40 was not very much - not when you asked every person you passed. And then - a drugstore of some kind - a rite aid perhaps.
+
+I would go and get one. I would solve this problem. I dared to have a plan.
+
+When I got to the first main street, I started collecting funds for my plight. The first people I stopped said they didn’t have any money. The next didn’t even look at me, the ones after wore a glazed expression, and though they glanced in my direction, they did not really look at me; made passive eye contact with a glazed expression.
+
+I didn’t want to have to keep repeating my predicament. The words felt sticky and crowded in the inside of my mouth; like cotton, clinging to my teeth. I turned onto a side street and saw two boys around my age, average looking. This sight was familiar and glorious to me - I would not need their pity. They would want something from me, I realized with sudden relief. I had played this game so often, the words and the actions were rehearsed in my mind: the shy glances, abashed flattery. And I could offer it, play the little game until I’d gotten what I wanted. They would see how special I was. I was so used to this kind of attention, felt so sure of it, that I rounded on them without pretense.
+
+They were coming back from somewhere - a bar, a loud dance maybe. Their clothes, sticky with sweat, clinging to them, were mixed with the smell of alcohol. Drinks, they had maybe had. Red and blue lights had bounced off their faces (as they thought they felt sweaty and sticky) and thought maybe they ought to be heading home soon.
+
+They were edging towards the door of their apartment now. The first boy was silent as I explained about my plight, his body still half turned toward the door. Then he let out a low chuckle and his hand swung round, and he slapped me roundly across the face. I saw now that I was not a prize, but a sea creature they might see through the round window at the bottom of a ship. His companion looked sorry for what his friend had done, and as the first boy walked smoothly now into his apartment, the second, looking pityingly at me, gave me the full contents of his wallet: three one dollar bills, before following his friend through the glass doors. And I tried to forget that a moment ago, I had thought they might invite me inside.
+
+I was not so much myself that the slap had upset me in any normal way, instead, it got added to a long list of things that weren’t quite right. The skin of my cheek felt only a mild sensation; and I continued on into the wind, perhaps a tear tugging lightly at the skin underneath my eyelid.
+
+My time with Thomas was floating away with every second we spent apart. Soon he would not know any of the recent adventures I’d had. He was somewhere, probably picking up loose cigarette butts off the floor. But in my mind he was simply sitting, or lying on a stray patch of grass, his arms open and outstretched, simply waiting for me to be there.
+
+Now the night that had held me so lovingly was befuddled by this latest turn of events, and the pavement seemed to clear away - perhaps I was floating, not walking, like a little metal angel, gliding smoothly into the night. Now, no one could see me.
+
+I took only a few paces forward before I suddenly remembered another idea that I might have. I remembered that place that I had never dared to go…planned parenthood.
+
+No! I could go to planned parenthood. It was free there. I’d never had any use for the endless paperwork, and the women saying in hushed voices “it’s ok, everybody makes mistakes.” But now I would grin and bear it, let them lose track of the particulars of me, let them lump me in with others in a similar predicament. In the backroom as they “processed” the paperwork (most likely just an excuse to gossip), they would give each other tight frowns that had little smiles attached to them - “poor, poor poor poor child.” They would tut their little heads. “Abused, probably. And then left out in the streets.” And I would nod, let them see the tear tracks around my eyes that were really me mourning the loss of my own will.
+
+No matter, same difference - that saying never made sense to me. Same difference meant a comparison of the degree of difference. This was not a common situation to be included in the general vernacular. In any case, the outcome was the same. I decided I would try to get a ride to planned parenthood.
+
+I went back to the main street and it was only a few moments before a lone taxi ran by. I held up my hand, just in the nick of time, before he completed his turn, and he saw me and waited a few feet away.
+
+I begged this taxi to take me. Slid into the back, felt the soft leather beneath me - unnecessary luxury, - I would have been satisfied had the car only standing room - but it was a special ride. I left the window cracked so I could gaze at the moon. I felt the hold of sleep that comes just before dreams, when your mind is numb to logic for once, and if you were to snapshot a thought, you might find a chimera there, that mimics nothing.
+
+* * *
+
+His gruff demeanor was not the savior of my dreams that I’d been imagining. In truth it was for the best, this way I need not stop hating people. But for the first time ever, I could have used a bit of kindness for the sake of it - not reading into it, what it might mean, where it might be coming from, where it might be heading, but kindness for the sake of kindness. I could have spent it. It might have eased the creaking muscles in my heart.
+
+I spent the ride bargaining with him to take me a little further, a constant stream of bargaining, but he had already agreed to take me where I wanted to go. And now the issue was, I didn’t know where it was. The grit of the debate left me overwhelmed and unable to think, and my destination got jammed. I couldn’t decide where I was, where I was going. In the end, I was my own worst enemy, as I kept changing my desired destination.
+
+Was I trying to find where to go, or get him to take me? So that eventually I could feel his voice growing harder, knew he regretted with all his being, this act of kindness, and dumped me onto the cool cement by the side of a freeway when he got another ride.
+
+I walked for a bit, slower than usual, enjoying the cool calm of night, enjoying everything. And at the same time, remembering that I was in the midst of a crisis.Though cool, the night felt warm. Though lost, I felt I was exactly where I was meant to be. I was immune, for once, to those sharp teeth, ever-threatening to sink themselves in that came at the kind (no, mean) words of strangers. You could’ve punched me in the face and I would have smiled.
+
+As I walked, I began to pass wheelchairs, strewn across the sidewalk like loose horses. It was an omen of things to come, as I passed St. John’s hospital next. I could see into the waiting room, all those plastic chairs, colored lights that beeped crazily - a manic circus - while you were trying to sleep, while I was trying to sleep. All that white - whites of the linens, pillowcases, and sheets - whites of the gowns, the gauze, and the uniforms. And the clicks of the metal instruments, shiny silver, the urgent calls of men in lab coats, as though the body were an emergency, and not a {work of art.} I walked quickly by, holding my breath like I was passing a graveyard.
+
+Something pulled me back, though I kept my body facing away, let my eyes glaze over as they passed the waiting room. It felt only natural to seep into one of the loose wheelchairs - a metal body with two weak pieces of black vinyl holding it together. It complimented my dress, left my legs dangling like icy ghosts against the night. Like a child’s, they dangled low to the floor but did not touch it; like a child’s they kicked out aimlessly in front of me, as I wheeled myself. Slower than walking, but faster than sitting still, held by that metal frame, vinyl body, like a lullaby into the night.
+
+I could sleep and walk at the same time; for I was barely awake, really. The whole world felt already, dreamlike, and distant from me. I wondered absentmindedly why people didn’t use wheelchairs always; why? when they were so useful? I felt like I could be part of the night, not behind it, not in front of it, constantly gaining movement as every step I took opposed the quiet. But instead, quietly wheeled as I should be, whistling softly with the silvery night, friends with the moon, moving as slowly, steadily as the stars, I rocked myself to sleep, wheeled myself into oblivion, I could sleep and walk at the same time. I sleep walked through the night, unable to tell if I was in a dream, or stirring. The big hands that clasped me were continuing to but I had a hand in my own tan jacket, an icy hand of my own swimming towards me, starting to say: people are mean to you, they’re not people, they are ugly masks.
+
+I kept trying to nod off, like some icy black figure in the night carrying itself on. I wheeled by a little library, where people left books and others could take them. This box was shaped elegantly, like a tiny cathedral. I found the largest book - a gilded scrapbook - different bits of trim on every page. The book looked so beautiful, I felt strange carrying it away from the place where it belonged.
+
+I began writing things that I thought I had done wrong in the past few days on the edges of the pages of the book. I kept the wheelchair where it was.
+
+* * *
+
+in the morning
+
+In the morning, the world grew light again, and I was surprised. Already the sun was peeking its way up, soon it would be past the buildings, already it was hot. White sun bounced off the tips of grass, tinging them brown. Any second now, they would unlock the doors. I need only wait for the doors to open. I parked my wheelchair, (my moving vehicle that had become a part of me), next to the tall silver pole of the cross walk, poised to cross at any moment.
+
+But when two women, one probably named “Stacy,” the other most likely called “Amy,” sidled up to the door, pulled out their key, and turned the lock in it, I stayed put. Perhaps I would wait for them
+
+When they came I stayed. Any moment now, I would join them. Perhaps I had to wait for them to finish their preparatory paperwork. Perhaps at any moment I would cross to see them, fill things out. I was tired but surely I could remember my date of birth and the address of the house I “lived” at.
+
+I started thinking about fried chicken. I was close to {the place I had once called home} my house. There was a fried chicken place there that I’d never gone in, but wanted to go in now. And they advertised biscuits, gory pictures of biscuits splayed across the outer edges of the building they inhabited. I had once waited in line, watched other people take their place at the counter and order their fried chicken meal, it would come in a bag, hot, and greasy, so that, when you gripped it, grease would stain your fingers and leave splotches across the brown surface. I hadn’t wanted it at the time but I wanted it now, wanted to sink my teeth into a biscuit, slather it with butter, let the cream melt into the flaky pieces of biscuit, crumbling all over my teeth as they fell down, past them.
+
+I left. I didn’t have time for biscuits, but I left.
+
+I still have my wheelchair, and I take it on a bus, uncomfortable. While I am on the bus, I fold it up - it compresses in a neat little pile - it could almost be a backpack. And when I get off, I don’t have it anymore. I dare not make eye contact with the bus driver lest I meet his eyes to find shock, and it registers in my soul. and then leave without it,
+
+I sit on this chair that comes with me wherever I go, the sun glinting off the gold in my empty photo book. It is gilded, it is too nice for my scrawls of writing. Suddenly I get the idea to write all the mistakes I’ve made along the way. “Sophie’s book of mistakes I think” and I love that in a deeply sad way, and my eyes have tears at the edges of them even though the day is blue, the leaves are green. I fill page after page with mistakes.
+
+I make my way up Weidler. Gone are the days where I follow these two boys I once played poker with, did other things with, frequenting the locations they frequent. I wonder, does it linger on - that pit in my stomach where unresolved emotions live? Even so, I make my way up Weidler, thinking the old thought: perhaps I’ll see him. I don’t. {There’s a Rite Aid on this block. I don’t have google maps to tell me where to go but I do remember this street because of all the times I walked up it.}
+
+But then I do, and he is driving in a convertible with a girl who’s prettier than me - I think it’s him, he’s got the same fold of brown hair covering one eye. He looks so blasé and careless and free as he makes the turn in to the parking lot, barely touching the steering wheel with one hand, laughing, the other hand behind the seat of the girl with him who is wearing sunglasses, her hair flowing in one long swoop behind her, still together, the breeze not disengaging a single strand. If I were to look any longer, he would disengage his hand from the steering wheel and smooth it through that long swoop. I stare after them into the distance - call even, a short breathy call that isn’t meant to be heard “Adam,” and wave my hand pointlessly, for a second.
+
+For a second I think he sees me, and he doesn’t turn away in disgust like I thought he would in my mind, but instead gives a short smile before turning into the other part of the lot.
+
+Then I go into the store, taking care to make myself as small and unassuming as possible, a sliver of a person. I walk sideways as I peruse the aisles looking for a rectangular package. This is flatland, and the few attendants milling about will not see me if I angle my body away from them.
+
+I alternate between walking quickly, and dragging my feet across the squeaking linoleum, taking my time, wondering at all the goods and trinkets wrapped up in flimsy boxes. I can’t find it - the box I am looking for.
+
+Ordinarily, I relish asking for help, revel in the ritual of the interaction, the words, and then the leading, and then the following. And though I often ask, in truth, I hardly ever need help finding things. The aisles are always clearly marked. And even if they weren’t - things follow a general logic, and can be found in the places of things that are like them..
+
+But I can’t ask for help now - I must to find it myself, I realize with a sudden startle. Because I am not a customer in the usual way. And no one can help me on this errand. I don’t know why I can’t find it on any of the shelves. The thing I hardly need help with is now a dire need as I began to move more quickly through the aisles, feel my heart quicken, and something like desperation seep through my veins.
+
+Perhaps it’s because my eyes have black spots in front of them. At least this room is air-conditioned.
+
+Just when I’m about to give up, I spot it, high up on a shelf, hidden amongst the many boxes of tylenol etc. It is the last box of its kind. The inside is an ugly pink; I don’t much like the way they’ve designed the packaging - it looks too much like candy. It is not candy. It is something much different.
+
+I’m not sure what to do once I find the box. I walk around the store as though looking for something else, wondering how to take it when I am the only one in the store, and there are three employees and all their eyes are on me, not specifically watching, just in a casual sort of way.
+
+But when I become more specific about the purpose of this
+
+transaction, I realize that it is not the box I need but the little pink pill at its core. And so, I walk with purposeful leisure, to the back where I know they have a water fountain and two bathrooms. I’ve been here before. That time my errand was much different. After going to a bar, we had stopped on the way back from a bar to get candy. We - I and my date - had both been tipsy, and enjoyed pausing and picking up various candies - weighing their advantages and disadvantages in mock hyperbole.
+
+There are no doors to walk through to get to the back, only an empty threshold. The fountain, though dirty with smudges, is so shiny it makes me wince. It’s not the kind of shine that you can see-through; my reflection is muddled; wavy and distorted, so I am just a colored blur in the metal.
+
+And then it is hard, so very difficult, to get the pill out of its package. I rip into it with my hands; no use. I gnash into it with my teeth. My breath is coming hot and quick and my awareness that someone could walk in on my stolen sanctuary any second now makes it difficult to dismantle (and difficult to think).
+
+And just when I’ve finally gotten it, the plastic is torn, turning milky white around the edges, a girl in a gray vest walks through the nonexistent door.
+
+But she doesn’t turn left at the fountain, nor even glance in my direction. Instead she disappears into the “employees only” swinging doors. Her single mindedness has saved me. If she did think to glance to her side, she’d see me standing there - clutching the mangled package, my eyes wide with fear and frenzy, as though caught in the act of strangling a rabbit with my bare hands.
+
+It’s now or never, I think, and I take the pill out of it’s secret hiding place in the very depths, and place it onto the tip of my tongue. It sits there, and then she returns. And now I am in her direct line of vision, clutching the mangled package, for dear life. Of course she can’t see the But she can’t see the pill tucked just behind the solid wall of my mouth, now a curtain, hiding my transgression. All I have to do is swallow.
+
+She is looking at me, her gaze pierces straight through me; perhaps she can see past my gums to the little pill lounging in my mouth. All I have to do is swallow.
+
+Something stops me. And I remember the sign I saw, now almost a week ago. God takes back what does not do as she is told. And then the second - anti-abortion. Is this the moment it was meant for? And why does it always happen this way - piercing you in the side when you least expect it.
+
+“Hey! What are you doing here?” And as she begins to speak, I am distracted for a second - long enough to act without thinking, and I swallow it dry. It is not difficult to swallow, though I had had it all planned out - to wash it down with the long stream from the fountain. But it goes down quick, and now my mission is complete.
+
+But why is she still here, now that I have done the deed - the thing that I came here for? And why is she so angry? Surely this is just a superficial transgression - surely she cannot be personally involved. But she is angry. It is clear by the pinched look on her face. I follow her to the front of the store, ignoring her face so I can imagine she is not scowling at me with every ounce of her being. The bag of cheetohs that I picked up on my way to the pill aisle, partly as pretense, and partly because, despite all this, I was hungry. is still clutched in my other hand. Feeling silly, I set it down on the counter, barely glancing down.
+
+Now there is a small scene, with all the other people that are working there. Already, though my body is left behind, my anxiety allows me a safe flight out the glass doors so I have only to stare at the scene from the ceiling. I have never been caught stealing before. I felt sure of a lukewarm rebuke - the corporate performance “we are just following protocol.” And maybe even an “it’s ok, sweetie, you’ve clearly been through a lot.” Their voracious anger surprises me. Don’t they know what the pill is for, can’t they guess at my motivation for taking it? Aren’t they also women? I hand them the bills I’ve collected, all of them. I haven’t even had a chance to count them, but I imagine it to be about eighteen dollars. It’s a shame to see them go after I’ve put so much effort into collecting them. Each one, its own individual prize - a memory of the strange and unique situation in which it was earned. Because I haven’t spent any money in the past week. I give one last longing glance at the bag of Cheetos. Then I back out of the store, making eye contact with no one.
+
+* * *
+
+There is a bus stop almost directly in front of the entrance to the store. Two men are also waiting, one with a large, rather bearish dog by his side, reaching his knee. I wait with them, and they tell me that McDonalds is having a special deal today.
+
+“A special deal?”
+
+“Yes. French fries. The French Fries are free today.”
+
+When I glance over, McDonalds is indeed brimming with people. I can see the mishmash of colors and patterns through the glass facade. It is almost impossible to say no to a special deal - fortuitous enough that it seems like it was designed for me. But something tells me not to go in, and for once, I listen. Instead, I wait at the bus stop as our conversation subsides and it begins to drizzle.
+
+When the bus arrives I take a seat near the back.
+
+“You did it. You got away with it.” I congratulate myself. “They saw you but you got away with it. The ordeal is over.”
+
+I wonder: why, then, are beads of sweat still nestling themselves into the tangles of hair that cling to my face. I hover beside a tall man at the back of the bus. I don’t quite sit; instead I hover just over the seat, jostling my leg up and down several times before moving to a seat slightly ahead of me.
+
+There is a large dog on the bus - a golden retriever - and the woman, wearing a matching golden fur coat, offers him up to be petted. I do so halfheartedly, more out of obligation than interest, staring at the length of red rope adorning its neck. I’ve never fully understood the luxury of a dog, nor the routine ease of keeping a creature trapped.
+
+But then I move again, inhabiting every empty seat, each for a moment, and finally: I settle down near the front of the bus. So close to the bus driver, I could reach out and touch him if I wanted to. I lean against the seat and try to remember where we are, to distract myself from anxiety that still has not ebbed away with all the seconds that have passed since the confrontation.
+
+Let’s see: Martin Luther King Jr. goes on for four more stops, then we turn onto…
+
+I can hear sirens in the distance. Sirens always make me nervous. I lean back and try to relax. The loud screeches are not just unpleasant in my ear, but echoes of the past. I can never remember if they are coming for me, or not.
+
+Suddenly the bus stops but I see no covered awning. Is there a bus stop here? In the middle of nowhere? We’re not even at a corner. Absentmindedly, I look behind me for the pole with the number that must be here. Instead I see, through the interrupted glass of the door, four policemen, boarding the bus in unison. They are dressed in navy blue, night sticks clanging into their sides.
+
+“We’re looking for…a criminal?” they say doubtfully. I am in the first seat and I get up; I was barely sitting anyway. I glide past them as they step forward, peering at the rows and rows of seats. “She’s wearing a red dress,” one of them says. I am now at the door. I glide out of the bus, onto the pavement, as he sees me for the first time.
+
+“And…that’s her,” they say, realizing. But I don’t stop to hear if they are disappointed, or if I can detect a note of rising anger in their voices. Because I am already gone, tan coat flying out behind me, like wings.
+
+I don’t stop to look to see if they are chasing, or still staring at each other on a bus stopped in the middle of the street. It doesn’t matter. Those three seconds of stopping to check would only drill this fear that clangs against my ribs, deeper into my heart. Instead, I fling off the coat, letting it crumple into a pile in the middle of the sidewalk. It was mine, but now it’s not, It’s been my one constant possession. But now I do not even stop to wish it farewell.
+
+Instead I turn left, springing across the graveI, towards the only structure in sight: an apartment complex with rickety wooden scaffolding. More gravel, and my feet have trouble gaining a foothold; they make cacophonous, screeching noises beneath me. It is like one of those dreams where you’re trying to run but you simply can’t get anywhere.
+
+My heart is racing as I tear up the stairs.
+
+* * *
+
+At the top I am met with five plain brown doors - two on each side, and one directly ahead of me. Behind me the sirens have grown louder. And - is it my imagination, or can I actually hear four sets of heavy black boots, shuffling up the stairs after me? Any moment now, they’ll come to collect me: clinging to the metal railing, clutching their badges, and panting.
+
+There is nowhere to go. I walk straight ahead, and press my hand against the knob of the last door. And, as if in a dream, it turns, and the door opens politely.
+
+## Chapter whatever: Alex and Alex
+
+I am in someone’s house. A narrow wooden hallway leads to the first bedroom, carpeted, and there is a big closet in it. I love seeing inside other people’s homes - a chance to peek into a private side of their life. The tour is always my favorite part of a dinner party. But now I don’t stop to take in my surroundings. Instead I charge forward into the first room.
+
+Heart hammering, I don’t stop to take in my surroundings, nor even to think.
+
+I push open the doors of the closet - two small white doors, with slats running up the sides. Now what? On the other side, I manage to ease the doors closed, though of course there is no knob on the inside of the closet. And then I stop. The closet is just big enough for me to stand; perhaps I could sit if there weren’t the clothes, soft, and some are fluffy, hung up neatly on hangers.
+
+My heart is pounding too furiously for this inaction. Is this a time to wait? Wait until the policemen have noticed my disappearance and written me off as a witch? If they do check the house - would they check this room? And would they check the closet?
+
+I have been running and I am sweaty - even on the bus I couldn’t sit still. Now that I’m here, I’m not really sure what to do. Wedged between all these soft clothes, it is difficult to navigate through the myriad decisions I could make in my mind. These clothes are confusing me. There is nothing to use for reference, all I can do is stare at the back of the closed doors. Nothing happens. Maybe I did imagine the police chasing me. Maybe they got tired at the bottom and didn’t want to go up those stairs. And then a new fear grips me, sending an icy chill down my spine.
+
+I decide it is best if I let them see me. After all, I am not very menacing looking. I am not large, and I am not a man. I am carrying nothing, not even my coat. And I am wearing a red dress.
+
+A small girl is not as dangerous as a tall man. I’m not a tall man, I never have been. I don’t have a gun, I don’t really have muscles even. I don’t have a burly face. And I am wearing a red dress, even if the dress is boxy and doesn’t cling smoothly to my hips.
+
+A small girl is not very menacing. Even if she does let herself into your house without permission.
+
+As I step out of the closet, I am struck with sudden inspiration - something like a reason for entering someone’s house without permission.
+
+“I was raped,” I say, and I don’t have to try hard to make my voice sound frantic, almost frenzied. This is true, I suppose, except for the small matter of timing, and the definition of consent. “I was raped, I was raped.” I repeat, like a little mantra, a fairly unpleasant one, as mantras go. Over and over again, hoping this is the first thing they hear, and that it somehow makes enough sense to let the intrusion slide.
+
+A woman with rounded figure, and a kind face walks into the room I am in - the room with the closet.
+
+“It’s ok.” She says. “It’s ok.”
+
+* * *
+
+(And it is.) A man and a woman live in this apartment, both of them named Alex.
+
+Alex, the man, makes me a cup of tea, while his wife (also Alex) sits with me in their bedroom, urging me to pet their chihuahua.
+
+“You can tell me what happened.” She says. But follows it up quickly with: “When you’re ready. Or we can just sit here.” She speaks to me slowly and clearly as I fiddle with her furry rug, and the detritus I find next to it.
+
+“I let him,” I say, and she looks down sadly.
+
+“It can be easy to blame yourself,” she says. “But remember. Rape is never the fault of the victim.
+
+Since I am not talking - my thoughts are too tangled in my mind to make words - she tells me that she is a crisis counselor, and that she has had a similar experience. Perhaps I really am dreaming.
+
+When she leaves the room to get the tea, I catch a glimpse of mail on the bed. A bright pink postcard proclaims loudly: “You’ve reached the next level.” Evidently she’s bought enough lip gloss to earn her way into their loyalty program. It is a Victoria’s Secret Ad. But I know what it really means. I sigh. It’s that easy. It means I’ve won.
+
+And after
+
+They drive me home and I sit in the back of their small silver car, not daring to think, lest I reverse this strange and auspicious turn of events. Instead, I fiddle with my fingers, check that I have the notebook still in my pocket, once, twice, three times; it is there. I am slightly cold. And I watch the streets that are so familiar to me pass through my periphery, and out the front viewfinder.
+
+* * *
+
+While I was gone, my roommates moved everything out of the big room with the lovely window, and into the tiny room that is all blue. The one that no one wanted because it was too blue.
+
+The house is mostly dark; everyone is out except Jon, who is having a party in the living room. His friends are there - friends I’ve never met before. Each is holding a wine glass, unsteadily, by the tips of their fingers. And they all look up at me curiously as I enter through the back door, which has been left open.
+
+Jon’s eyes are anxious when he sees me and I hover uncertainly on the far end of the room. He keeps one eye on his guests, but murmurs in a low voice “where have you been?”
+
+Is it anxiety that I detect in his voice? Concern for my well being? I can’t quite believe my luck that there is no tearful reunion, and he has the sense not to press me for details when I shrug, as if to say “all over.” He leaves me be, flitting a few nervous looks in my direction as I hasten my way up the stairs and into my bedroom.
+
+They’ve taken my mattress and replaced it with a large foam slab. Folded twice, and cinched by a string. I collapse onto the folded slab, all of my clothes on, including my shoes. It feels both nice, and strangely empty to lie there. The foam is lumpy, and not quite long enough to fit all of me. But I don’t readjust myself or untie the string. I am too tired to move.
+
+The foam is starting to feel cold and sweaty underneath me. Downstairs, I can hear soft music from the party. I try to remind myself of those dirty streets where we slept - the triumphant feeling of finding a new bit of food. But it is hard, like trying to remember a dream. Now, when all around me is soft wallpaper with blue flowers.
+
+I do not belong in this room. My home is outside, amidst the dust and the cobwebs. It is simply too nice - to lay here, to let my body conform to the mattress - it can’t be right.
+
+Thomas, I remember. I need to get up, I think. Thomas. But my eyelids close instead, and I drift, in and out of sleep, thinking vaguely of sirens. Of policemen running up steps. And all the harm that could’ve befallen me, but didn’t. I want to close my eyes and sleep for a very, very long time.
+
+I could go back; I could save him.
+
+I don’t know where he is, and yet I can picture him quite clearly. He is probably, just now, picking stale cereal out of a box, searching for cigarette butts with a faraway look in his eye. I can see his slim body, hunched shoulders, against a rough wall somewhere. , looking for some place to sleep.
+
+Oh but it is hard to wake me from my would-be sleep. All the nonsense of the past week feels foreign and somehow silly. And as my eyes start to close again, I remember the night before - when I was alone and lost, and the only thing that kept me going was the prospect of seeing Thomas the next day. Now a different picture comes to haunt my mind suddenly. Thomas - in his bulky jacket - stalking the pavement. His wide eyes combing each alley for the silhouette of a lost girl - myself.
+
+Outside, I can hear the sirens. This time, sure they are not coming for me. But what if they are coming for him? What if he got jumped in the alley I imagined him in? If any harm befalls him, it will be my fault.
+
+Slowly, ever so slowly, my eyes still closed, not daring to think of what I’m doing lest I believe it, I drag myself from the mattress. My body has left a large impression in the foam but as I rise, it rises too - back to its original shape.
+
+How long have I been lying here? I no longer hear the music playing. If my other roommates returned, they are now sleeping. All of their doors are closed. My body is filled with sweat and a cold dread. I try to soak in the last remaining calm of this place - somehow to steal it - and take it into the night.
+
+I steel out the back door. In the next room, I can hear Jon saying goodbye to his guests, one by one, and then shutting the door behind them. I hover uncertainly in the hall - wanting to share what I’ve been doing with him - to answer his question. The linoleum squeaks under my feet. But just as he shuts the door on the last guest, I steel out the back door from whence I came, hating every step that takes me from this warm serene place and out into the night.
+
+It is this crazy game that takes me from my quiet house. But what is the point of a quiet house when the mind isn’t silent?
+
+I slip out the back gate, glancing at the rose bushes. Some look bigger, and others have wilted and faded away since I was last here. The cold of the night strikes me like a thick pit of bricks in contrast to the warm hazy glow of my house. I force myself to think only of Thomas - of his warm embrace - the scratchy feeling of his waffle weave shirt on my cheek.
+
+Somehow the cold resolve with which I left my house steels me towards my purpose, and I manage to ignore the birds chattering quietly above my head. I can see those steel lines that used to trip me up, trick me, cause me confusion, but …Instead I concentrate on the numbers. I know which stop will take me downtown. I remind myself of my destination. The peanut butter place where I last saw him. And if he is not there? Well, then I tried my best and surely I will be able to sleep. Now that my home feels real to me, I feel sure I will be able to go back to it, I tell myself. No, I won’t get stuck in the city like before. No, the city will not ensnare me like the steel trap that it is. I am found, I am no longer lost. I am found, I am found, I am found.
+
+The relief of remembering that I have a home hasn’t left me yet, and I cling onto it - a steel ball in my chest - a cage that locks me in place. Each of the seven stops are an opportunity to get off - to get lost again. So many signs and meanings I could glean - we pass lights and houses, and I grit my teeth, willing myself to block everything out but my destination. In my mind - the matted tangles of Thomas’s hair - his eyes, wide and anxious as always - I will myself to remember a rant he once told me, even now, I can’t quite place any of the names of the chemicals but I think of them anyway - making up names that sound like fluoride, and oxide, imagining that I am overseeing their reactions.
+
+On the seventh and final stop, I see Thomas through the glass of the bus window. I see him - I see him there! I get off the bus, and go to the alcove outside Whole Foods.
+
+Thomas is there - hunched over - all but the whites of his eyes blending into the shadow. Now he looks pale - frailer and thinner than before. And his eyes are wide, struck dumb in a permanent expression of disbelief as he is flitting forth and back, across the brick path. I am upset to see that he looks cold.
+
+“Thomas!” I say, and I rush to him, wanting to spring my arms around him, take him into my embrace, like I did the first day we met. His eyes open wide when he sees me, but he looks at me as though I am part of a dream. His eyes flit quickly over mine, and then pass over them, and he looks off to the side.
+
+“Thomas.” I say again, much more quietly, and my hands
+
+instinctively rush up to greet him, but I do not dare to touch him. “Oh hi.” He says, in a high-pitched, deadened tone - and for a second, as his eyes flit back to mine - I can see all the anxiety he has maybe had to endure over the past two days, and a hint of my Thomas - my Thomas - a hint that he would like to spring forward too - to meet my embrace.
+
+But he is guarded - wary. I realize that I keep leaving him. I want to stay. I want to take him with me. And I do just that. “Let’s go,” Thomas, I say - reaching towards his fingertips but not quite taking them, instead my fingers caught in some made up gesture, as though pulling him along on a string, and he comes along with me, following the string we are both imagining. I sling one of his two black bags over my shoulder and it is heavy - heavier than I ever could have imagined. But I don’t stop to look inside, to see what is in its depths.
+
+And we take the 44 going back in the opposite direction.
+
+Thomas is stopped midway on our porch. His eyes shift widely in every direction. But the door in front of us. “This…is where you live?” He asks, in disbelief.
+
+“I…don’t know,” I say, suddenly not sure. “Live” seems like such a sure word for the situation. Do I live here? Have I ever lived here? I can hear commotion inside. Not loud, just low murmurs. Jon The party has died down - three em
+
+Lots of cups with last dregs. Someone has fallen asleep by the fire - positioned pillows under her - her skirt spilling out on one side.
+
+There are two - a man with a beard, and wearing a beanie. And a girl - soft brown curls, a slightly pudgy face. Her name looks like it would be Carolina.
+
+“This…is, uh…Sophie,” he says, uncertainly, “and her friend…” he trails off, looking at Tom with a mixture of dismay, and…mirth? Tom’s face is white, almost translucent. He looks so small - he is shrinking, in his overlarge clothes.
+
+Jon’s friends are looking up at us with sudden interest. The Carolinalooking girl is balancing her glass holding her glass aloft in midair but not sipping it. She is smiling, almost beaming. “Oh, are you guys friends of Jon’s?”
+
+And his bags make sense, even, in this context. If he is coming to stay over, then sure, an overnight bag would make se
+
+Like pale creatures of the night, we ascend the narrow staircase in the middle of the house. Thomas following, our hands not quite touching, but a thread strings us together, creating one long line as we ascend the stairs. Here it is cooler - the pale blue of my new room - the pristine white of the walls, reflecting off our faces. The light is off in this room and the room is mostly black, save for the silvery glow emanating from the window. Just enough to make out the rawest forms of each other.
+
+Thomas sits down on the rug, which is half covered with my forgotten clothes. He pulls a bathing suit top from underneath his knee and lets it dangle in the air like a banana peel, while he surveys it, swaying back and forth.
+
+The foam is warm and soft - calling to me. But Thomas is warmer and softer yet. I sit next to him. And then, we lie next to each other on the rug. Thomas pulls the cardboard from his bag, lays it over both of us. I think of the many blankets in the house. But now, the thought makes me laugh, and I let him pull out his tired cardboard, and spreads it out over our bodies. The cardboard is not comfortable, and it’s not very warm. It neither conforms to the shape of our bodies, nor lays flat; instead, it falls off, and lands at our side and Thomas reaches out with little effort, to replace it. We are under the window. Moonlight makes its way into the room - a tiny sliver over one of his eyes. I wonder if it is on my face too. “Thomas.” I say, savoring the saying of his name. He reaches one hand out, lays it across me, and leaves it there. I can’t feel the silk of his skin through my many coats, but I feel its tender touch nevertheless.
+
+“Thomas,” I say again. I have a thought in mind, but it is not going to be said. How can it, whe…
+
+And then we take the 44 bus going the right way.

@@ -1330,7 +1330,7 @@ module.exports = {
   // the mix
   mixGraph, activeSounds, soundInputArgs, segmentAudioFilter, soundLength,
   // the render, the diff, the shot map
-  renderCut, publishRender, nextRenderIndex, loadDoc, patchDoc, diffSince, shotsFromCut, downloadSource, probeFile, probeUrl, segKey, SEG_VERSION,
+  renderCut, publishRender, nextRenderIndex, loadDoc, patchDoc, txField, diffSince, shotsFromCut, downloadSource, probeFile, probeUrl, segKey, SEG_VERSION,
   proxyId, proxyNeeded, proxyArgs, stillProxyArgs, proxyStates, bakeProxy,
   posterArgs, posterAt, POSTER_W,
   audioProxyId, audioProxyNeeded, audioProxyArgs,

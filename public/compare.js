@@ -193,7 +193,12 @@
     vlb.className = 'cmp-vlb';
     vlb.setAttribute('hidden', '');
     vlb.innerHTML = '<button class="cmp-vlb-x" aria-label="Close">✕</button>'
-      + '<video controls playsinline preload="metadata"></video>';
+      // NO `controls` (2026-09-10): iOS paints its native controls as a WASH
+      // over the whole picture, so the transport is ours — /filmbar.js, the
+      // same module chats.html's pinned player uses. `controls` goes back on
+      // only if that module cannot be fetched (openVideo), so a film is never
+      // left with no way to play it.
+      + '<video playsinline preload="metadata"></video>';
     vlb.addEventListener('click', function (e) {
       // the ✕ closes it (the video fills the overlay now, so the backdrop
       // branch is nearly unreachable — kept for a zero-size video edge case);
@@ -259,6 +264,48 @@
      link this file and none of them asks for notes, so they must not pay for
      it. A page that does ask gets it on the first tap; the module is idempotent
      and no-ops if the page loaded it itself. */
+  /* THE CARET STAYS VISIBLE WHILE SHE TYPES — loaded on the first focus of a
+     text box, never up front (2026-09-08, Sophie on the belt: "when i edit
+     the text, the scroll position moves, so the cursor is under the
+     textbox"). Every Compare page ever posted links THIS file, so the fix
+     reaches the pages already out there — the belts, the scene boxes, the
+     note boxes — with nothing re-posted. A page with nothing to type in pays
+     one nothing. The full reasoning is in caretkeep.js. */
+  var caretTried = false;
+  document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (!t || !t.tagName) return;
+    if (t.tagName !== 'TEXTAREA' && t.tagName !== 'INPUT') return;
+    if (window.__caretKeep) { window.__caretKeep.focus(t); return; }
+    if (caretTried) return;
+    caretTried = true;
+    var sc = document.createElement('script');
+    sc.src = '/caretkeep.js';
+    sc.addEventListener('load', function () {
+      // she is still in the box the fetch was started for
+      if (window.__caretKeep && document.activeElement === t) window.__caretKeep.focus(t);
+    }, { once: true });
+    sc.addEventListener('error', function () { /* the box still types */ }, { once: true });
+    (document.head || document.documentElement).appendChild(sc);
+  }, true);
+
+  /* THE TRANSPORT — /filmbar.js, fetched the first time any film is opened.
+     Unlike the note module this one is wanted by EVERY film, notes or not: it
+     is what replaced the native controls. Every Compare page ever posted links
+     this file, so it reaches the pages already out there with nothing
+     re-posted; `ok=false` on the error path is what puts `controls` back. */
+  var fbar = null, filmbarTried = false, filmbarOK = true;
+  function loadFilmBar(cb) {
+    if (window.__filmBar) return cb(true);
+    if (filmbarTried) return cb(filmbarOK && !!window.__filmBar);
+    filmbarTried = true;
+    var id = 'filmbar-src', had = document.getElementById(id);
+    var sc = had || document.createElement('script');
+    sc.addEventListener('load', function () { cb(!!window.__filmBar); }, { once: true });
+    sc.addEventListener('error', function () { filmbarOK = false; cb(false); }, { once: true });
+    if (!had) { sc.id = id; sc.src = '/filmbar.js'; document.head.appendChild(sc); }
+  }
+
   var fnote = null;
   function loadFilmNote(cb) {
     if (window.__filmNote) return cb();
@@ -279,6 +326,11 @@
     document.body.style.overflow = 'hidden';
     var p = v.play();                       // inside the tap, so iOS allows it
     if (p && p.catch) p.catch(function () { /* she can press play herself */ });
+    loadFilmBar(function (ok) {
+      if (el.hasAttribute('hidden')) return;   // closed while the module fetched
+      if (ok) fbar = window.__filmBar({ wrap: el, video: v });
+      else v.controls = true;                  // no module, no film without controls
+    });
     if (note && note.chat) {
       loadFilmNote(function () {
         // she may already have closed it while the module was fetching
@@ -292,6 +344,7 @@
     var v = vlb.querySelector('video');
     try { v.pause(); } catch (_) { /* already gone */ }
     if (fnote) { fnote.destroy(); fnote = null; }   // stops a live mic too
+    if (fbar) { fbar.destroy(); fbar = null; }      // and its listeners, and its frame loop
     v.removeAttribute('src'); v.load();     // or it keeps playing behind the page
     vlb.setAttribute('hidden', '');
     document.body.style.overflow = '';
@@ -842,7 +895,21 @@
   (function () {
     var placeCss = document.createElement('style');
     placeCss.textContent =
+      // THE BAR MUST NOT WIDEN WHAT IT SITS IN (2026-09-08, Sophie's
+      // screenshot of a scene page: every line of card 1 ran off the right
+      // of her phone). The bar is inserted before the first <h2>, and on that
+      // page the <h2> sits inside a FLEX ITEM (a horizontal card deck). A
+      // flex item's min-width is auto, i.e. its min-content — and WebKit
+      // counts the bar's nowrap chapter title as that min-content, so the
+      // one card holding the bar came out 494px wide in a 362px deck
+      // (measured in WebKit; Chromium clamps and never showed it). Every
+      // other card was fine, which is why it read as the page's own bug.
+      // `contain:inline-size` makes the bar's intrinsic width zero whatever
+      // it holds; `width:0;min-width:100%` is the same promise for an
+      // engine without containment. The bar is always block-level and full
+      // width, so nothing about how it draws changes.
       '.pp{position:sticky;top:0;z-index:6;background:var(--paper);'
+      + 'contain:inline-size;width:0;min-width:100%;'
       + 'padding:6px 64px 6px 0;margin:0 0 10px;border-bottom:1px solid var(--line);}'
       + '.pp[hidden]{display:none !important;}'
       + '.pp-cur{display:flex;align-items:center;gap:8px;width:100%;min-width:0;'
@@ -896,7 +963,13 @@
       var getChapters = typeof opts.chapters === 'function' ? opts.chapters
         : function () {
           return Array.prototype.map.call(document.querySelectorAll(opts.chapters || 'h2'), function (el) {
-            return { el: el, label: (el.textContent || '').trim() };
+            // innerText, not textContent: a heading carrying a block-level
+            // status span ("…the judge<span>ready</span>") read as
+            // "the judgeready" on the bar (2026-09-08, the belt page).
+            // innerText keeps the line break; the collapse turns it into
+            // the one space the eye expects.
+            var t = (el.innerText != null ? el.innerText : el.textContent) || '';
+            return { el: el, label: t.replace(/\s+/g, ' ').trim() };
           });
         };
       var chapters = getChapters().filter(function (c) { return c && c.el && c.label; });
@@ -1104,13 +1177,39 @@
     // there grow the bar and the memory today. Deferred a tick so a page that
     // mounts its own (the grid template) is not mounted twice; skipped on a
     // one-screen deck and on a page that drives its own scrolling.
-    setTimeout(function () {
+    // WAIT FOR THE BODY (2026-09-08). A page that links this file in its
+    // <head> — before its first body element — runs this timer while
+    // document.body is still null: `document.body.classList` threw, the
+    // whole auto-mount died silently, and the same page got the bar in
+    // Safari and no bar in Chromium depending on which fired first. The
+    // shell puts the script at the end of the body; a hand-built page does
+    // not always.
+    function autoMount() {
       if (inst) return;
       if (document.body.classList.contains('jg-mombg')) return;
       if (document.body.hasAttribute('data-nopill')) return;
       if (document.querySelector('meta[name="forge-pill"][content="off"]')) return;
-      if (document.querySelectorAll('h2').length < 2) return;
+      var hs = document.querySelectorAll('h2');
+      if (hs.length < 2) return;
+      // CHAPTERS HAVE TO STACK (2026-09-08, the belt page: eight scene <h2>s
+      // in a HORIZONTAL card deck, one card on screen at a time). Every
+      // heading sat at the same height, so the bar said "1/8" forever,
+      // duplicated the page's own pager, and its jump list scrolled the
+      // window to a y every chapter shared — a chapter list over chapters
+      // that are not below one another. A page like that pages itself, so
+      // it gets neither the bar nor the scroll memory (which would fight the
+      // page's own place-keeping). An explicit __pagePlace call still mounts.
+      var lastTop = -Infinity;
+      for (var i = 0; i < hs.length; i += 1) {
+        var top = hs[i].getBoundingClientRect().top;
+        if (top <= lastTop) return;
+        lastTop = top;
+      }
       window.__pagePlace({ chapters: 'h2' });
+    }
+    setTimeout(function () {
+      if (document.body && document.readyState !== 'loading') return autoMount();
+      document.addEventListener('DOMContentLoaded', autoMount);
     }, 0);
   })();
 

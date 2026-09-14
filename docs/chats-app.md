@@ -3056,6 +3056,30 @@ little chat drawings.
   - Tests: `node scripts/test-chats-chapters.js` (the real route against a
     stubbed Firestore + `chapterPlan` lifted out of the page and executed;
     verified failing on both halves separately).
+  - **ONE BUTTON PER CHAPTER ON THE NAME LINE (2026-09-06, Sophie, on the
+    hospital chat: "there's two distinct chapters, can u add two buttons at
+    the top same line as the name, one per chapter").** `chapBtnsHtml` draws
+    a `.chapbtn` per chapter, oldest first, in the thread header between the
+    `<h1>` and the rename pencil; a tap (`jumpToChapter`) stops any autoscroll
+    and puts that chapter's hairline heading at the top of the screen. The
+    heading it aims at is the `.chapdiv` the render loop stamped with
+    `data-chap` — through `chapterAt`, the ONE reader `chapterPlan` also uses
+    for "which chapter owns this moment", so a button can never aim at a
+    heading the plan drew under a different rule. A chat with no chapters
+    draws nothing. A heading the feed's window never reached (one read
+    carries ~260 messages for ~770 chats) is fetched the way `focusMessage`
+    fetches a message: the whole thread, merged, rebuilt, then the jump asked
+    once more. The buttons wear the heading's own voice (sans, caps, not
+    bold) in the house rounded square; the strip is capped at 52% of the row
+    and a button shrinks with an ellipsis to a 44px floor before the strip
+    scrolls — measured at 390pt on the real chat, "hospital" + FILM +
+    MEMORIES + the pencil fit whole with the pill's column clear. `.thread-head
+    h1` is `flex:1 1 auto` since this (it was `flex:1`): a zero basis made the
+    name the first thing to give and "hospital" read "hosp…" with 60px of
+    slack in the row. The row is NOT sticky — her ask was "at the top", where
+    the name is — so after a jump the pill's back-to-top is the way back to
+    the buttons. Test: `node scripts/test-chats-chapter-buttons.js` (the real
+    page headless, every assertion a measurement; verified failing pre-fix).
 
 - **THE PINNED LINK — the row above the messages, and the *current* tag on it
   (Aug 2026, Sophie: "sometimes I'm constantly referring to a link to a page…
@@ -3168,3 +3192,20 @@ little chat drawings.
       mic faked — the button follows the controls' rhythm and never raises
       the sheet from a video tap, mic-first Done resumes immediately and
       files hold-then-text, the box edit path, Cancel, films-only).
+
+### A block from a file — no output tokens
+
+`node scripts/chat-block.js post --chat <slug> --file scene.txt [--lead "…"]`
+posts the file as one `>` script block (the editable-in-place block from
+2026-09-07) through `POST /api/chatfeed`, under the chat's session so it
+resolves session-first like any reply. The model never writes the words, so
+the block costs no output tokens and is verbatim by construction. Her edits
+autosave onto the message doc (`blockedits[key]`, `POST /blockedit`, 4000
+chars); `node scripts/chat-block.js read --chat <slug> [--id <msgId>] [--out
+file]` prints every block with her version where she edited it. When she
+taps Done, the thread gets one line as her message (`Block <id>/<key> "…"
+was edited`), never the words — the block is not part of the conversation;
+the chat reads it back only when it asks. The key is
+the page's `tickKey` over the original words; the test extracts that function
+out of `chats.html` and pins the two equal. A file over 4000 characters is
+refused before anything is posted. Test: `node scripts/test-chat-block.js`.

@@ -2,9 +2,18 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Playground</title>
 <link rel="stylesheet" href="/tritoggle.css">
+<!-- THE LIST · TILES · 3/4 SWITCH — the one shell (/viewswitch.js), linked, never copied -->
+<link rel="stylesheet" href="/viewswitch.css">
 <!-- The toggle's BEHAVIOUR is shared too since 2026-08-24 — a tap lands on the
      stop under the thumb rather than cycling. See /tritoggle.js. -->
+<!-- THE CARET STAYS WHERE SHE CAN SEE IT (2026-09-08) — a box fitted to its
+     own words never scrolls itself, so the line she is typing can end up under
+     the keyboard. The module wires itself to every text box and needs no call.
+     Full reasoning in caretkeep.js. -->
+<script src="/caretkeep.js"></script>
+<script src="/stickybox.js"></script>
 <script src="/tritoggle.js"></script>
+<script src="/viewswitch.js"></script>
 <!-- The feed's own shared pieces — the search grammar, liveInput/enterSubmits,
      the keyed reconcile, the derived display copy and the toast. ONE copy,
      so a second feed can never hand-copy them. -->
@@ -30,6 +39,13 @@
      on this page and the one on the filed record cannot disagree about which
      rung a picture was drawn on. See /size-tier.js. -->
 <script src="/size-tier.js"></script>
+<!-- A MARK ON A SHEET IS A MARK ON ITS PANELS (2026-09-06, Sophie: "when i x
+     a uncut panels sheet it shud x every panel in it unless i hearted it or
+     heart it after or unex" · "it shud work both ways - heart or x"). The SAME
+     rule the vote route applies, so her tap marks the panels in the same frame — on the Panels tab the feed read
+     that follows a vote asks for kind=single, and a panels run's real votes
+     only come back when its own sweep next runs. See /sheet-cascade.js. -->
+<script src="/sheet-cascade.js"></script>
 <script src="/asset-lightbox.js"></script>
 <!-- Midjourney's curly brackets: `a {red, blue} bird` is two prompts. ONE
      copy of the expansion rule, shared with the pure test. -->
@@ -309,15 +325,13 @@
      she cut (2026-08-28, "I specifically asked for it to stay where it is") —
      at the width she reads on, the box has not moved. */
   .feedbar { display: flex; flex-wrap: wrap; padding: 8px 56px 8px 0; background: #faf7f2; }
-  .viewtog { display: flex; border: 1px solid #d8d0c4; border-radius: 6px; overflow: hidden; background: #fdfcf9; }
+  /* THE LIST · TILES · 3/4 SWITCH IS /viewswitch.css + /viewswitch.js — the
+     one shell since 2026-09-12, linked in the head, never copied here. */
   /* 8px side padding, and each cut was bought by a control the row gained:
      15 -> 11 when the columns segment landed (2026-08-25), 11 -> 8 when the
      SELECT chip did (2026-09-02). The search box's own placeholder is what
      pays for any slack here, and it is MEASURED at 390pt on both tabs — the
      PANELS tab carries a fourth chip and is the tight one. */
-  .viewtog button { border: 0; background: none; font: inherit; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: #6f675e; padding: 7px 8px; }
-  .viewtog button + button { border-left: 1px solid #d8d0c4; }
-  .viewtog button.on { background: #2b2622; color: #faf7f2; font-weight: 600; }
   /* THE TWO MARK FILTERS, one segmented box beside the view switch — neither
      is a third view: each rides on top of whichever view she is already in,
      and both are sticky, so a reload keeps them.
@@ -499,7 +513,6 @@
      bar-count picture is a grey smudge). Two states, so a tap is the only
      move there is — the house no-cycling rule is about a three-way toggle
      with stops to aim at; with two there is nowhere else a tap could mean. */
-  .viewtog .colseg { font-weight: 600; font-size: 13px; letter-spacing: 0; padding: 7px 12px; min-width: 34px; box-sizing: border-box; }
   .emptynote { font-size: 13px; color: #8a8177; padding: 18px 0; text-align: center; }
   #tiles .emptynote { grid-column: 1 / -1; }
   /* Tiles: THREE to a row by default (Aug 2026, her ask — four was too small
@@ -923,6 +936,15 @@
     z-index: 60; aspect-ratio: auto; min-height: 30vh; max-height: 60vh;
     box-shadow: 0 12px 40px rgba(43, 38, 34, .35); }
   #panelgrid .pcell.pop .pbig { position: fixed; right: 5vw; top: calc(10vh - 34px); z-index: 61; }
+  /* THE STORY BOX EXPANDS TOO (2026-09-06, Sophie: "story panels · no extend
+     textbox"). It was the one box on the PANELS tab with no corner button —
+     a whole story dictated into 120px. Same cell, same button, same popup;
+     only the shape differs: the story cell keeps its own height (never the
+     grid's 2:3 aspect, which would draw a 120px box as a tall empty column
+     while its textarea is lifted out), and it reserves no top strip because
+     it carries no per-box ✕ (the row's Clear is its clear). */
+  #panelgrid .pcell.story textarea { padding-top: 8px; }
+  #panelgrid .pcell.story.pop { aspect-ratio: auto; min-height: 120px; }
   #panelbg { position: fixed; inset: 0; z-index: 59; border: 0; padding: 0; margin: 0;
     background: rgba(43, 38, 34, .45); }
   /* THE PER-BOX CLEAR — one panel's words, wiped where they are (2026-08-29,
@@ -983,7 +1005,7 @@
   </div>
   <div id="beattag"></div>
   <div id="promptpanel"></div>
-  <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" aria-label="Bigger box" title="Bigger box"></button></div>
+  <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
   <div id="panelrow" hidden><button type="button" id="panelfold" aria-expanded="true" aria-controls="panelgrid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg><span id="panelfoldlab">Panels</span></button><button type="button" id="panelclear" hidden>Clear</button></div>
   <div id="panelgrid" hidden></div>
   <div class="controls">
@@ -1092,6 +1114,7 @@
   var feedMore = true;    // the server had more behind the last page it gave
   var paging = false;     // an Older fetch is in flight
   var lbCur = null;       // { id, i } while the lightbox is open
+  var lbIdx = -1;         // her PLACE in the walk — the fallback once a mark takes the picture off the wall
   var lbBlob = null;      // { url, blob } prefetched so Save can share instantly
   var lbSrc = '';         // the ORIGINAL url on screen — what Save and the app bridge get
   var lbObj = '';         // the object url the full picture is painted from, to revoke
@@ -1170,26 +1193,32 @@
   // LIST (a box per run) or TILES (a wall of thumbnails). Sticky across loads.
   // Both buttons are always on screen and always labelled — the switch can
   // never strand her in a view she can't leave.
-  function curView() { return localStorage.getItem('promptlab_view') === 'tiles' ? 'tiles' : 'list'; }
-  function applyView() {
-    var tiles = curView() === 'tiles';
-    document.getElementById('v-list').classList.toggle('on', !tiles);
-    document.getElementById('v-tiles').classList.toggle('on', tiles);
-    document.getElementById('runs').hidden = tiles;
-    document.getElementById('tiles').hidden = !tiles;
-    // The drawing-runs box is a LIST-view thing: in tiles those runs hold
-    // their own squares at the front of the wall instead, so nothing is
-    // shown twice. (Cancelling a run therefore lives in list view.)
-    document.getElementById('pendings').hidden = tiles;
-    if (tiles) renderTiles();
-    // Coming back to the list: anything drawn while it was hidden measured 0/0
-    // and is still undecided, so measure it now that it has a box.
-    else resyncClamps();
-    if (selMode) paintSel();          // "All" means the view she is now in
-  }
-  function setView(v) { localStorage.setItem('promptlab_view', v); applyView(); }
-  document.getElementById('v-list').addEventListener('click', function () { setView('list'); });
-  document.getElementById('v-tiles').addEventListener('click', function () { setView('tiles'); });
+  // The switch itself is /viewswitch.js — the ONE implementation since
+  // 2026-09-12 (Sophie, on Stitch: "could you reuse the shell so I can switch
+  // between tiles and list view?"). This page owns the storage keys
+  // (promptlab_view / promptlab_cols, byte-for-byte what they were), what a
+  // view change does to its surfaces, and nothing else; the page's own names
+  // stay as thin wrappers so nothing below moved.
+  var VS = window.__viewSwitch({
+    mount: '.feedbar', key: 'promptlab', cols: [3, 4], view: 'list', apply: false,
+    onView: function (v) {
+      var tiles = v === 'tiles';
+      document.getElementById('runs').hidden = tiles;
+      document.getElementById('tiles').hidden = !tiles;
+      // The drawing-runs box is a LIST-view thing: in tiles those runs hold
+      // their own squares at the front of the wall instead, so nothing is
+      // shown twice. (Cancelling a run therefore lives in list view.)
+      document.getElementById('pendings').hidden = tiles;
+      if (tiles) renderTiles();
+      // Coming back to the list: anything drawn while it was hidden measured 0/0
+      // and is still undecided, so measure it now that it has a box.
+      else resyncClamps();
+      if (selMode) paintSel();          // "All" means the view she is now in
+    },
+  });
+  function curView() { return VS.view(); }
+  function applyView() { VS.applyView(); }
+  function setView(v) { VS.setView(v); }
 
   // ─── THE ADVANCED SEARCH DRAWER (2026-09-02, Sophie: "a toggle open
   // advanced search in all pages - reusable shell - playground meta assets
@@ -1418,11 +1447,11 @@
     var next = allSame ? '' : kind;               // all already marked -> clear
     // Optimistic, exactly as the lightbox's own cast is: her tap shows on the
     // page in the same frame, and loadRuns reconciles behind it.
-    items.forEach(function (it) {
-      var r = runsById[it.run];
-      var votes = r.votes = r.votes || {};
-      if (next) votes[it.image] = next; else delete votes[it.image];
-    });
+    // The SHEET first (-1 sorts ahead of every panel), so a batch holding a
+    // sheet AND one of its panels ends with HER mark on that panel rather than
+    // the cascade's — the order the batch route writes them in.
+    items.slice().sort(function (a, b) { return a.image - b.image; })
+      .forEach(function (it) { markLocal(runsById[it.run], it.image, next || null); });
     renderFeed();
     paintSel();
     var word = next === 'like' ? 'hearted' : next === 'dislike' ? 'crossed out' : 'put back';
@@ -1489,32 +1518,10 @@
   // and the button is therefore never dead in either view. Sticky, like the
   // view and the two filters; three is the default, which is where the wall
   // already stood.
-  var COLS = [3, 4];
-  function curCols() {
-    var n = parseInt(localStorage.getItem('promptlab_cols'), 10);
-    return COLS.indexOf(n) >= 0 ? n : 3;
-  }
-  function applyCols() {
-    var n = curCols(), next = COLS[(COLS.indexOf(n) + 1) % COLS.length];
-    document.documentElement.style.setProperty('--cols', String(n));
-    var b = document.getElementById('v-cols');
-    b.textContent = String(n);
-    b.setAttribute('aria-label', n + ' pictures a row — tap for ' + next);
-    b.title = n + ' a row';
-  }
-  // IT LIVES IN THE VIEW SWITCH NOW — a third segment after Tiles (2026-08-25,
-  // Sophie: "the 3/4 switch button is in a weird place. It should not be in
-  // the auto scroll roll row"). The pill's rail was its previous home and she
-  // retired it: the fixed column floats over the prompt card on her phone, so
-  // the button read as detached from everything. How many across IS a view
-  // decision, so it sits in the List/Tiles box — which also deletes the whole
-  // measure-the-rail machinery (placeCols and its observers) that placing a
-  // fixed guest under the pill required.
-  document.getElementById('v-cols').addEventListener('click', function () {
-    var n = COLS[(COLS.indexOf(curCols()) + 1) % COLS.length];
-    try { localStorage.setItem('promptlab_cols', String(n)); } catch (e) { /* private mode */ }
-    applyCols();
-  });
+  // `--cols` is the switch's third segment, driven by /viewswitch.js (above);
+  // the page reads the number through these two names.
+  function curCols() { return VS.cols(); }
+  function applyCols() { VS.applyCols(); }
   applyCols();
 
   // ─── SEARCH (Aug 2026, Sophie: "can u add a little search bar that fits in
@@ -1862,9 +1869,9 @@
       restoreChars(r);
       return;
     }
-    // A panels run never carries a photo (the button is off on that tab), so
-    // its record answers "none" and the restore CLEARS one that is attached —
-    // the same rule everywhere, and the honest one here.
+    // A panels run carries its photo by url like any other (since 2026-09-06),
+    // and a record with none answers "none" — the restore CLEARS one that is
+    // attached, the same only-change-what-the-record-knows rule everywhere.
     restorePhoto(r);
     restoreChars(r);     // the picked FACES rode the whole sheet
     restoreCast(r.cast); // …and so did her typed rows
@@ -2197,6 +2204,13 @@
     if (storyMode()) {
       box.setAttribute('data-mode', 'block');
       box.innerHTML = '';
+      // The story box sits in a cell like a panel does, so it carries the same
+      // corner button and the same popup (2026-09-06, Sophie: "story panels ·
+      // no extend textbox"); the cell wears `story` for its own shape — the
+      // CSS note above #panelgrid .pcell.story. No per-box ✕: the row's
+      // Clear is its clear.
+      var scell = document.createElement('div');
+      scell.className = 'pcell story';
       var st = document.createElement('textarea');
       st.setAttribute('data-story', '1');
       st.placeholder = 'The story';
@@ -2205,7 +2219,9 @@
         try { localStorage.setItem(STORYTEXTKEY, st.value); } catch (e) { /* private mode */ }
         paintPanelFold();      // the Clear appears with the first word, and leaves with the last
       });
-      box.appendChild(st);
+      scell.appendChild(st);
+      scell.appendChild(mkPanelBig(scell, st));
+      box.appendChild(scell);
       paintPanelFold();
       return;
     }
@@ -2693,12 +2709,18 @@
       body: JSON.stringify({
         prompt: joined, model: S.model, style: S.gptStyle, panels: texts, grid: g,
         quality: quality, canvas: canvas, res: resTier,
+        // Her photo reference(s), the single run's own shape (2026-09-06):
+        // `photo` is the first, `photos` the whole list when several ride.
+        // Absent otherwise, so a sheet without one is the request it was.
+        photo: photoRefs.length ? photoRefs[0].data : undefined,
+        photos: photoRefs.length > 1 ? photoRefs.map(function (p) { return p.data; }) : undefined,
         // Both halves of her cast — the typed rows and the picked cards.
         // Absent when she used neither, so a run without one is the request
         // it has always been.
         cast: castRows().length ? castRows() : undefined,
         characters: pickedChars.length ? pickedChars.slice() : undefined,
         prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
+        extra: extraSent(),
         noText: noTextFor(styleKey),
       }),
     }).then(readJson).then(function (d) {
@@ -2728,9 +2750,12 @@
       body: JSON.stringify({
         prompt: story, model: S.model, style: S.gptStyle, story: true,
         quality: quality, canvas: canvas, res: resTier,
+        photo: photoRefs.length ? photoRefs[0].data : undefined,
+        photos: photoRefs.length > 1 ? photoRefs.map(function (p) { return p.data; }) : undefined,
         cast: castRows().length ? castRows() : undefined,
         characters: pickedChars.length ? pickedChars.slice() : undefined,
         prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
+        extra: extraSent(),
         noText: noTextFor(styleKey),
       }),
     }).then(readJson).then(function (d) {
@@ -2842,7 +2867,18 @@
   // costs money. It survives between runs in one sitting, so a re-roll is one
   // tap.
   var CHAR_RECENT = 5;             // her number — the top row
-  var charList = null;             // the library, once fetched
+  var charList = null;             // the library, re-read on every open
+  // THE LIBRARY IS RE-READ EVERY TIME THE SHEET OPENS (2026-09-06, Sophie,
+  // after saving her own picture in Characters: "i uploaded but don't see my
+  // pic in character … in panels"). It was fetched ONCE per page life, and
+  // the app keeps this page alive for the whole app process — so a character
+  // she saved five minutes ago in the Character Creator could not reach the
+  // picker until a force-quit, while the server was listing it first the
+  // whole time. Same shape as the panels sweep's own latch (2026-08-29): a
+  // throttle, never a one-shot. The old list paints instantly; the fresh one
+  // repaints when it lands. One read of ~150 small docs, no model call.
+  var charsAt = 0;                 // when the library last landed
+  var CHAR_RESWEEP = 20000;        // a tap she may repeat is one query
   var charMax = (window.__padCharacters && window.__padCharacters.MAX_PICKED) || 6;
   var pickedChars = [];            // ids, in the order she picked them
   var charsOpen = false;
@@ -3001,10 +3037,11 @@
       // is the word to type.
       : 'Pick up to ' + charMax + '. The name under a face is what to write in your prompt.';
   }
-  function loadChars() {
-    if (charList) return Promise.resolve(charList);
+  function loadChars(force) {
+    if (charList && !force && Date.now() - charsAt < CHAR_RESWEEP) return Promise.resolve(charList);
     return fetch('/api/promptlab/characters').then(function (r) { return r.json(); }).then(function (d) {
       charList = (d.characters || []).filter(function (c) { return c && c.id && c.url; });
+      charsAt = Date.now();
       if (d.max) charMax = d.max;
       paintCharPanel();
       // A cast restored from a copied run is ids only until the library
@@ -3016,9 +3053,17 @@
       setTimeout(fitCharPill, 60);
       return charList;
     }).catch(function () {
-      document.getElementById('charnote').textContent = 'Could not load your characters.';
+      // A re-read that fails keeps the list she already has.
+      if (!charList) document.getElementById('charnote').textContent = 'Could not load your characters.';
+      return charList;
     });
   }
+  // Coming back to the tool with the sheet open is the moment a stale
+  // library is about to be read — ask PAST the throttle (the panels sweep's
+  // own rule, one screen over).
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && charsOpen) loadChars(true);
+  });
   charsBtn.addEventListener('click', function () {
     charsOpen = !charsOpen;
     charPanel.classList.toggle('on', charsOpen);
@@ -3139,8 +3184,20 @@
     // Spend it, like the Story Room trip: a reload lands on a plain Playground
     // rather than re-arming a walk she has already finished. DEFERRED — the
     // blocks below read location.search for the ported prompt this very link
-    // carries.
-    setTimeout(function () { try { history.replaceState(null, '', '/playground'); } catch (e) {} }, 0);
+    // carries. EXCEPT THE PANEL SEED (2026-09-06): `?panels=&grid=` — an
+    // uncut sheet's door — is read only once the styles fetch lands, well
+    // after one tick, so wiping the whole query here left every sheet that
+    // walked in with a crumb arriving to nine EMPTY boxes. Those two stay and
+    // seedPanelsFromLink spends them itself; everything else goes as before,
+    // so a reload is still a plain Playground.
+    setTimeout(function () {
+      try {
+        var q = new URLSearchParams(location.search), keep = new URLSearchParams();
+        ['panels', 'grid'].forEach(function (k) { if (q.has(k)) keep.set(k, q.get(k)); });
+        var s = keep.toString();
+        history.replaceState(history.state, '', '/playground' + (s ? '?' + s : ''));
+      } catch (e) {}
+    }, 0);
   })();
 
   (function () {
@@ -3211,7 +3268,12 @@
     // syncTab's painters are not all wired yet (rpick is a `var` several
     // hundred lines below, and calling it here threw before anything else in
     // this block could run). Boot's own syncTab() paints the tab at the end.
-    try { localStorage.setItem(TABKEY, 'picture'); } catch (e) { /* private mode */ }
+    // …unless the link carries PANELS: an uncut sheet's door sends
+    // `?panels=&grid=` in place of `?prompt=` (2026-09-06), and
+    // seedPanelsFromLink lands those on the Panels tab once the grids arrive.
+    if (!q.get('panels')) {
+      try { localStorage.setItem(TABKEY, 'picture'); } catch (e) { /* private mode */ }
+    }
     var st = q.get('style');
     if (st && STYLES[st]) setStyle(st);
     if (q.get('prompt')) {
@@ -3316,6 +3378,58 @@
     if (v) localStorage.setItem(OVERKEY + key, JSON.stringify(v));
     else localStorage.removeItem(OVERKEY + key);
     syncControls();
+  }
+  // THE "ALSO ADDED" BLOCK, derived — every line the server puts in front of
+  // her words besides the style prefix: the Sophie card's line, the photo
+  // line, the picked cards' sentence, her typed cast's clause, the story
+  // line. ONE reader for the panel's box and for what a run sends, so the
+  // two cannot disagree about what "that block" is. `fixed` is the grid
+  // sentence, which wraps the panel lines server-side and is printed
+  // read-only. Every wording is served, never written here.
+  function extraBlock() {
+    var b = bakedFor(styleKey) || {};
+    var extras = [];
+    // The Panels tab never sends the Sophie card (its wording names an
+    // attachment a sheet does not carry) — it DOES send her photo (since
+    // 2026-09-06, #2169).
+    if (charOn && !onPanels() && !(STYLES[styleKey] || {}).noCharacter && b.characterLine) extras.push(b.characterLine);
+    // The style's OWN photo line wins where it has one — the house sentence
+    // says the drawing style "comes from the style reference above", which is
+    // a lie on the plain ChatGPT tile where her photo is the only attachment.
+    // Re-anchored when a character card rides behind it — cards attach at the
+    // very end, so "the LAST attached image" is no longer the photo.
+    var cline = charsLine();
+    if (photoRefs.length) {
+      var pl = cline ? (b.photoLineWithChars || PHOTO_LINE_CHARS) : (b.photoLine || PHOTO_LINE);
+      // Several photos: the plural pair, the count written in — the same
+      // substitution server.js makes, so the panel prints the sentence sent.
+      if (photoRefs.length > 1) {
+        var pln = cline ? (b.photoLineManyWithChars || PHOTO_LINE_MANY_CHARS) : (b.photoLineMany || PHOTO_LINE_MANY);
+        if (pln) pl = pln.replace('{n}', photoWords(photoRefs.length));
+      }
+      if (pl) extras.push(pl);
+    }
+    if (cline) extras.push(cline);
+    // Her TYPED cast — the clause is left out entirely when nobody is in it
+    // (her rule). It rides EVERY tab since 2026-08-29, with the
+    // single-picture opening on the Picture tab.
+    var ct = castClause(!onPanels());
+    if (ct) extras.push(ct);
+    var fixed = '';
+    if (onPanels() && PANELS_CFG) {
+      if (storyMode() && PANELS_CFG.story) extras.push(PANELS_CFG.story.line);
+      else if (PANELS_CFG.grids[curGrid()]) fixed = PANELS_CFG.grids[curGrid()].sentence;
+    }
+    return { edit: extras.join(' ').trim(), fixed: fixed };
+  }
+  // What a run sends for that block: her edit, ONLY while the block it
+  // replaced is still the block that would be sent. Absent otherwise, so an
+  // ordinary run is byte-for-byte the request it has always been.
+  function extraSent() {
+    var ov = overrideFor(styleKey);
+    if (!ov || typeof ov.extra !== 'string') return undefined;
+    var xb = extraBlock();
+    return xb.edit && ov.extraOf === xb.edit ? ov.extra : undefined;
   }
   // What WILL be sent for this style — her edit if she has one, else the house
   // text. `null` while the server read is still in flight.
@@ -3443,53 +3557,27 @@
     } else {
       field('Before your words', p.prefix, 'prefix');
     }
-    // Whatever else actually rides this run, printed word for word. Read-only
-    // on purpose: these are server-owned lines tied to an attachment, not a
-    // half of the prompt she edits — taking the photo off is what removes the
-    // photo line, and the Sophie button is what removes the character one.
-    var extras = [];
-    // The Panels tab sends neither the Sophie card nor a photo (both wordings
-    // name an attachment a sheet does not carry) — and it DOES send the grid
-    // sentence, printed here so nothing rides the prompt unannounced.
-    if (charOn && !onPanels() && !STYLES[styleKey].noCharacter && p.baked.characterLine) extras.push(p.baked.characterLine);
-    // The style's OWN photo line wins where it has one — the house sentence
-    // says the drawing style "comes from the style reference above", which is
-    // a lie on the plain ChatGPT tile where her photo is the only attachment.
-    // Her own cast, and the photo line RE-ANCHORED when one rides behind it —
-    // character cards attach at the very end, so "the LAST attached image" is
-    // no longer the photo. Both halves are served, never written here.
-    var cline = charsLine();
-    if (photoRefs.length && !onPanels()) {
-      var pl = cline
-        ? ((p.baked && p.baked.photoLineWithChars) || PHOTO_LINE_CHARS)
-        : ((p.baked && p.baked.photoLine) || PHOTO_LINE);
-      // Several photos: the plural pair, the count written in — the same
-      // substitution server.js makes, so the panel prints the sentence sent.
-      if (photoRefs.length > 1) {
-        var pln = cline
-          ? ((p.baked && p.baked.photoLineManyWithChars) || PHOTO_LINE_MANY_CHARS)
-          : ((p.baked && p.baked.photoLineMany) || PHOTO_LINE_MANY);
-        if (pln) pl = pln.replace('{n}', photoWords(photoRefs.length));
-      }
-      if (pl) extras.push(pl);
+    // Whatever else actually rides this run, printed word for word — AND
+    // EDITABLE SINCE 2026-09-06 (Sophie, circling the block: "why is there no
+    // way to edit this??"). It used to be read-only on the reasoning that
+    // these are server-owned lines tied to an attachment; the reasoning was
+    // true and she overruled it. `extraBlock()` is the one derivation, the
+    // box holds her edit of THAT block, and the run sends it only while the
+    // block is still what would be sent (see `extraSent`).
+    var xb = extraBlock();
+    if (xb.edit) {
+      var ov = overrideFor(styleKey);
+      var xv = (ov && typeof ov.extra === 'string' && ov.extraOf === xb.edit) ? ov.extra : xb.edit;
+      field('Also added before your words', xv, 'extra');
     }
-    if (cline) extras.push(cline);
-    // Her TYPED cast, when there is one — the clause is left out entirely
-    // when nobody is in it (her rule), so the panel says nothing either. It
-    // rides EVERY tab since 2026-08-29, with the single-picture opening on
-    // the Picture tab; both wordings are served, never written here.
-    var ct = castClause(!onPanels());
-    if (ct) extras.push(ct);
-    if (onPanels() && PANELS_CFG) {
-      // STORY mode sends the served story line; a grid sends its sentence.
-      if (storyMode() && PANELS_CFG.story) extras.push(PANELS_CFG.story.line);
-      else if (PANELS_CFG.grids[curGrid()]) extras.push(PANELS_CFG.grids[curGrid()].sentence);
-    }
-    if (extras.length) {
+    // The grid sentence WRAPS the panel lines server-side (sheetGrid.
+    // panelBlock), so it is not a block her edit can stand in for — printed
+    // read-only, so nothing rides the prompt unannounced.
+    if (xb.fixed) {
       var al = document.createElement('div'); al.className = 'plab';
-      al.textContent = 'Also added before your words';
+      al.textContent = 'Also added around your panels';
       var av = document.createElement('div'); av.className = 'added';
-      av.textContent = extras.join(' ').trim();
+      av.textContent = xb.fixed;
       el.appendChild(al); el.appendChild(av);
     }
     var y = document.createElement('div'); y.className = 'plab'; y.textContent = 'Your words';
@@ -3544,9 +3632,25 @@
       // return to the house wording.
       var pre = parts.prefix != null ? parts.prefix : b.prefix;
       var suf = parts.suffix != null ? parts.suffix : b.suffix;
-      // Back to the house text on both halves = not an edit at all, so the
+      // THE "ALSO ADDED" BOX is her edit of a DERIVED block, so it is stored
+      // beside the text it replaced (`extraOf`): a run sends it only while
+      // the derived block is byte-for-byte that text, and the box shows the
+      // house lines again the moment the cast or the photos change — an edit
+      // written for one cast must never ride the next run silently. Typed
+      // back to the derived text = no edit; the field is dropped.
+      var xb = extraBlock();
+      var xtra = parts.extra != null && parts.extra !== xb.edit ? parts.extra : null;
+      delete parts.extra;
+      var prev = overrideFor(styleKey) || {};
+      if (xtra !== null) { parts.extra = xtra; parts.extraOf = xb.edit; }
+      else if (typeof prev.extra === 'string' && prev.extraOf !== xb.edit) {
+        // A stale edit of a block that is no longer on screen is kept, not
+        // wiped, by an edit to another half — it comes back if that cast does.
+        parts.extra = prev.extra; parts.extraOf = prev.extraOf;
+      }
+      // Back to the house text on every half = not an edit at all, so the
       // override is dropped rather than stored as an identical twin.
-      if (pre === b.prefix && suf === b.suffix) saveOverride(styleKey, null);
+      if (pre === b.prefix && suf === b.suffix && parts.extra == null) saveOverride(styleKey, null);
       else saveOverride(styleKey, parts);
       note.textContent = overrideFor(styleKey) ? 'Your wording' : 'House wording';
     }
@@ -3979,8 +4083,13 @@
     if (charsOpen) paintCharSays();
     // The photo rides gpt-image-2's EDITS call. The WTR LoRA has no
     // attachment slot at all — it takes a trigger word and nothing else — so
-    // the button comes off rather than sitting there doing nothing.
-    document.getElementById('photowrap').classList.toggle('on', gpt && !panels);
+    // the button comes off rather than sitting there doing nothing. It stays
+    // ON for the Panels tab since 2026-09-06 (Sophie: "i can add a photo
+    // reference in playground but not in panels") — a sheet attaches it in
+    // the same seat as a single picture, and the photo line's "the LAST
+    // attached image … the subject described below" is as true over a panel
+    // block as over one picture. Only the Sophie card is still off there.
+    document.getElementById('photowrap').classList.toggle('on', gpt);
     document.getElementById('qpick').hidden = !gpt;
     if (rt) rt.hidden = !gpt;
     // Both ladders are quality ladders, so both come off the Replicate LoRA,
@@ -4119,6 +4228,7 @@
           // "use the house text", so a normal run is byte-for-byte what it
           // always was.
           prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
+          extra: extraSent(),
           noText: noTextFor(styleKey),
           // Absent unless she came here from a beat, so an ordinary run is
           // byte-for-byte the request it has always been.
@@ -4740,10 +4850,41 @@
   // Fold a page of runs into the feed. Fresh copies WIN (a vote or a status
   // moved), and the whole list is re-sorted by time — so a head refresh and an
   // Older page can arrive in any order without scrambling it.
+  // A MARK SHE JUST CAST OUTLIVES A STALE READ (2026-09-06, Sophie: "when i
+  // heart individual panels the heart gets removed"). The Panels sweep answers
+  // out of the server's 60s scan cache, and it is armed on every tap of the
+  // tab — so the tap AFTER her heart could hand back the run as it stood
+  // before it, and "fresh copies win" put the old marks back on screen. The
+  // server patches its cache on every vote now; this is the second half, for
+  // the read that was already in flight when she tapped, and for any cache a
+  // vote cannot reach: a mark cast in the last MARK_SHIELD_MS is re-applied
+  // over whatever a fresh copy says about that picture, and nothing else on
+  // the copy is touched. After that the server's word stands, as it always did.
+  var recentMarks = {};
+  var MARK_SHIELD_MS = 90000;
+  function shieldMark(id, i, vote, from) {
+    var m = recentMarks[id] = recentMarks[id] || {};
+    m[String(i)] = { vote: vote, from: from, at: Date.now() };
+  }
+  function shieldRun(r) {
+    var m = r && recentMarks[r.id];
+    if (!m) return;
+    var now = Date.now(), live = false;
+    Object.keys(m).forEach(function (i) {
+      var k = m[i];
+      if (now - k.at > MARK_SHIELD_MS) { delete m[i]; return; }
+      live = true;
+      var votes = r.votes = r.votes || {};
+      if (k.vote) votes[i] = k.vote; else delete votes[i];
+      if (k.from) { (r.voteFrom = r.voteFrom || {})[i] = k.from; }
+      else if (r.voteFrom) delete r.voteFrom[i];
+    });
+    if (!live) delete recentMarks[r.id];
+  }
   function mergeRuns(fresh) {
     var byId = {};
     feed.forEach(function (r) { byId[r.id] = r; });
-    fresh.forEach(function (r) { byId[r.id] = r; });
+    fresh.forEach(function (r) { shieldRun(r); byId[r.id] = r; });
     feed = Object.keys(byId).map(function (k) { return byId[k]; })
       .sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
     // Merged, never replaced: a search hit can be an older run this feed has
@@ -5146,6 +5287,7 @@
     // background scroll itself.
     if (window.__scrollStop) window.__scrollStop();
     lbFresh = true;   // a fresh open: the door shut, content first
+    lbIdx = -1;       // a fresh open starts from the tile she tapped, never a held place
     showLB(id, i);
   }
 
@@ -5165,10 +5307,26 @@
     for (var k = 0; k < seq.length; k++) if (seq[k].id === lbCur.id && seq[k].i === lbCur.i) return k;
     return -1;
   }
+  // A MARK CAST FROM THE LIGHTBOX CAN TAKE THE PICTURE SHE IS LOOKING AT OFF
+  // THE WALL, AND THE WALK HAS TO SURVIVE IT (2026-09-05, Sophie: "tap left
+  // right doesn't always work in the playground"). A vote re-renders the feed,
+  // and with ♥-only or hide-✕ lit — which IS reviewing a batch — hearting or
+  // crossing out the open picture removes it from the wall; the re-render then
+  // repaints the lightbox (renderFeed → showLB), lbAt answers -1, and BOTH
+  // zones were dropped: tap left, tap right, nothing, and the next tap out
+  // closed the box. Exactly the heart · next · heart · next loop the zones
+  // exist for. Her PLACE (lbIdx) is still meaningful, so it is the fallback,
+  // the Assets tab's own rule: the wall closed up over the gap, so whatever
+  // now stands at the index she held IS the next one, and the one before it
+  // is still the previous one. It can only ever be one tile out, because the
+  // only thing that re-filters while the box is open is a mark she just cast.
+  function lbNext(seq, at, d) {
+    if (at >= 0) return seq[at + d] || null;
+    if (lbIdx < 0) return null;
+    return seq[d > 0 ? lbIdx : lbIdx - 1] || null;
+  }
   function lbStep(d) {
-    var seq = lbSeq(), at = lbAt();
-    if (at < 0) return;
-    var next = seq[at + d];
+    var next = lbNext(lbSeq(), lbAt(), d);
     if (next) showLB(next.id, next.i);
   }
 
@@ -5179,6 +5337,7 @@
   function closeLB() {
     if (window.__assetLightboxClose) window.__assetLightboxClose();
     lbCur = null;
+    lbIdx = -1;
   }
 
   // ── THE TWO HALVES OF THE PROMPT, AS THIS RUN REALLY SENT THEM ──────────
@@ -5310,6 +5469,10 @@
     var meta = lbCaption(r, i);
     var seq = lbSeq(), at = -1;
     for (var k = 0; k < seq.length; k++) if (seq[k].id === id && seq[k].i === i) { at = k; break; }
+    // Her place is written only while the picture is really on the wall; a
+    // repaint after a mark took it off keeps the LAST place (see lbNext), so
+    // the zones below still say which sides have somewhere to go.
+    if (at >= 0) lbIdx = at;
     var asset = {
       prompt: meta.join(' · '),
       promptStyle: h.style,
@@ -5352,9 +5515,12 @@
           })
           .catch(function () { cb(false); });
       },
+      // A null side draws NO zone (the ends of the feed close on that tap) —
+      // asked through lbNext, so a picture the wall just dropped still gets
+      // its zones from her place instead of losing both.
       nav: {
-        prev: at > 0 ? function () { lbStep(-1); } : null,
-        next: (at >= 0 && at < seq.length - 1) ? function () { lbStep(1); } : null,
+        prev: lbNext(seq, at, -1) ? function () { lbStep(-1); } : null,
+        next: lbNext(seq, at, 1) ? function () { lbStep(1); } : null,
       },
       actions: [
         // The same put-it-back-in-the-box button the list boxes have, but
@@ -5462,6 +5628,43 @@
       .catch(function () {});
   }
 
+  // ONE MARK ON THE PAGE'S OWN COPY OF A RUN — her tap, plus whatever a ♥/✕ on
+  // the SHEET does to the panels under it (2026-09-06, Sophie: "when i x a
+  // uncut panels sheet it shud x every panel in it unless i hearted it or
+  // heart it after or unex" · "it shud work both ways - heart or x"). The rule is /sheet-cascade.js, the SAME file the
+  // vote route decides with, so the two can never disagree about which panels
+  // a sheet's ✕ reaches.
+  //
+  // IT HAS TO HAPPEN HERE AND NOT ONLY ON THE SERVER: every vote is followed
+  // by loadRuns(), which asks for kind=single, so a PANELS run's real votes do
+  // not come back from that read at all — they wait on the panels sweep and
+  // its 20s throttle. Without this she crosses out a sheet, steps to the panel
+  // view and finds the panels unmarked, which reads as the rule not working.
+  //
+  // The cascade is planned BEFORE her own mark lands, because the plan asks
+  // what each PANEL says a moment ago — which of them are the cascade's to
+  // move and which are hers to leave alone.
+  function markLocal(r, i, next) {
+    if (!r) return;
+    var votes = r.votes = r.votes || {};
+    var C = window.__sheetCascade;
+    if (C && String(i) === C.SHEET) {
+      var plan = C.plan(r, next);
+      var from = r.voteFrom = r.voteFrom || {};
+      plan.changed.forEach(function (j) {
+        if (plan.votes[j] === null) delete votes[j]; else votes[j] = plan.votes[j];
+        if (plan.from[j] === null) delete from[j]; else from[j] = plan.from[j];
+        shieldMark(r.id, j, plan.votes[j], plan.from[j]);
+      });
+    } else if (r.voteFrom) {
+      // A direct mark on a panel makes it HERS — the tag goes, so the sheet
+      // has no claim on it any more ("or heart it after").
+      delete r.voteFrom[String(i)];
+    }
+    if (next === null || next === '') delete votes[i]; else votes[i] = next;
+    shieldMark(r.id, i, next || null, null);
+  }
+
   // ♥/✕ — this run doc's own vote route, tap again to clear, exactly as the
   // old copy did; the shared lightbox repaints through _lbPaint.
   function castLB(kind) {
@@ -5469,7 +5672,7 @@
     var r = runsById[lbCur.id];
     var votes = r.votes = r.votes || {};
     var next = votes[lbCur.i] === kind ? null : kind;    // tap again to clear
-    if (next === null) delete votes[lbCur.i]; else votes[lbCur.i] = next;
+    markLocal(r, lbCur.i, next);
     lbAsset.vote = next;
     if (lbAsset._lbPaint) lbAsset._lbPaint();
     fetch('/api/promptlab/' + lbCur.id + '/vote', {

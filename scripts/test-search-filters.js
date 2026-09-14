@@ -71,6 +71,48 @@ is('all keeps every voice', [whoMatches('all', 'sophie'), whoMatches('all', 'cla
 is('me keeps only hers', [whoMatches('me', 'sophie'), whoMatches('me', 'claude'), whoMatches('me', '')], [true, false, false]);
 is('claude keeps his, unstamped included', [whoMatches('claude', 'sophie'), whoMatches('claude', 'claude'), whoMatches('claude', '')], [false, true, true]);
 
+// ── A COMPACTION SUMMARY IS NEITHER (2026-09-11, Sophie: "these r sposed to be
+// only MY messages"). The harness hands the recap over as a user turn, so the
+// hook stamps it `from:'sophie'` — her real message, as far as every field on
+// the doc is concerned. Her whole MINE search was four of these.
+const RECAP = 'This session is being continued from a previous conversation that ran out '
+  + 'of context. The summary below covers the earlier portion of the conversation.\n\n'
+  + 'Summary:\n1. **Primary Request and Intent:** Atlas token billing formula...';
+is('a recap stamped hers is neither voice', whoOf('sophie', RECAP), 'auto');
+is('and not a reply either, so it cannot swamp Claude\'s pile',
+  [whoMatches('me', 'sophie', RECAP), whoMatches('claude', 'sophie', RECAP)], [false, false]);
+// It stays findable with NO side picked — the default, and what every older
+// cached page still sends.
+is('everyone still finds it', whoMatches('all', 'sophie', RECAP), true);
+// ANCHORED: a message that merely TALKS about compaction is hers, and she does
+// talk about this app's own machinery all day.
+is('talking about compaction is still her message',
+  whoOf('sophie', 'why does this session is being continued show up as mine'), 'me');
+// The text is optional everywhere — the archive filter and the name rows call
+// nothing with it, and an older caller must behave exactly as it did.
+is('no text is the old answer', [whoOf('sophie'), whoOf('')], ['me', 'claude']);
+
+// ── ONE RULE, TWO COPIES — the thread's own WHO filter runs client-side in
+// chats.html over messages already rendered, so it cannot call this file. A
+// drift there means the same word narrows to two different piles on two
+// screens, which is the `hl` bug (a highlight that disagreed with the match)
+// one filter over. `msgWho` is EXTRACTED from the real page and driven against
+// the same cases rather than re-typed here.
+{
+  const page = fs.readFileSync(path.join(__dirname, '..', 'public', 'chats.html'), 'utf8');
+  const m = page.match(/function msgWho\(m\)\{[\s\S]*?\n\}/);
+  if (!m) fail('chats.html has no msgWho — the thread filter has drifted back to an inline rule');
+  else {
+    // eslint-disable-next-line no-new-func
+    const msgWho = new Function(m[0] + '; return msgWho;')();
+    is('the page agrees: a recap is neither', msgWho({ from: 'sophie', text: RECAP }), 'auto');
+    is('the page agrees: hers is hers', msgWho({ from: 'sophie', text: 'make the dashes pink' }), 'me');
+    is('the page agrees: unstamped is a reply', msgWho({ from: '', text: 'ok' }), 'claude');
+    is('the page agrees: talking about it is hers',
+      msgWho({ from: 'sophie', text: 'why does this session is being continued show up as mine' }), 'me');
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 // 1b. PURE — the archive. Three options, which is exactly why it is a toggle:
 // the two useful narrowings are OPPOSITE and neither is the default.

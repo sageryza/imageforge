@@ -146,6 +146,13 @@ private struct GatedWebView: UIViewRepresentable {
         // The page draws its own header now (ForgePageHeader): this installs
         // the bridge its back chevron calls to leave the tool.
         context.coordinator.leaveHandler = ForgePageHeader.install(into: config, onLeave: onLeave)
+        // SAVE TO PHOTOS, for every page hosted here (2026-09-10, Sophie on the
+        // Footage page's save link: "shud save directly to my photos"). It was
+        // installed on the Playground and Meta Assets only, so a page under
+        // this wrapper could offer nothing better than a download. One line
+        // here rather than per tool: remembering to add it is exactly the kind
+        // of thing that gets missed, the way `?embed=1` was.
+        context.coordinator.saveHandler = ForgeSaveBridge.install(into: config)
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
         web.uiDelegate = context.coordinator
@@ -183,6 +190,7 @@ private struct GatedWebView: UIViewRepresentable {
         var lastTick = 0
         /// `addScriptMessageHandler` does not retain — the coordinator does.
         var leaveHandler: ForgeLeaveHandler?
+        var saveHandler: ForgeSaveHandler?
         init(_ parent: GatedWebView) { self.parent = parent }
 
         // The pages sit behind HTTP Basic (any user, password = studio token).

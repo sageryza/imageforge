@@ -28,7 +28,13 @@ final class GoogleNativeAuth: NSObject, ASWebAuthenticationPresentationContextPr
         let accessToken: String?
     }
 
-    func signIn(completion: @escaping (Result<Tokens, Error>) -> Void) {
+    /// The window the sheet is presented over — the web view's own, handed in
+    /// by the caller (see AppleNativeAuth for why a key-window lookup is not
+    /// enough on its own).
+    private weak var anchor: UIWindow?
+
+    func signIn(anchor: UIWindow? = nil, completion: @escaping (Result<Tokens, Error>) -> Void) {
+        self.anchor = anchor
         let verifier = Self.randomURLSafe(64)
         let challenge = Self.s256(verifier)
         var comps = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")!
@@ -95,9 +101,7 @@ final class GoogleNativeAuth: NSObject, ASWebAuthenticationPresentationContextPr
     }
 
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        UIApplication.shared.connectedScenes
-            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
-            .first ?? ASPresentationAnchor()
+        anchor ?? AppleNativeAuth.onScreenWindow() ?? ASPresentationAnchor()
     }
 
     private static func randomURLSafe(_ count: Int) -> String {

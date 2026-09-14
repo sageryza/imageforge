@@ -70,6 +70,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const fetch = require('node-fetch');
 const { buildQuestions, answeredOnly, isCompacted } = require('./questions');
+const verdictText = require('./verdict-text');
 const { parseQuery } = require('./search-grammar');
 const { shouldPushReply, chatNotifies, needEscalates, pushAlert, pushBody } = require('./push-gate');
 const chatSort = require('./chat-sort');
@@ -179,6 +180,23 @@ function sidTail(session) {
 // id owned the pretty slug — sidTail("session_…") is literally "sessio").
 // Every comparison and every write below goes through this, so a chat posting
 // its status card with the url spelling lands on the same thread as its hook.
+// WHOSE DEEP LINK THE REGISTRY KEEPS (2026-09-08, Sophie: "that's a bug,
+// right?"). `sessionId` is the chat's OWNER and is guarded by resolveChat;
+// `url` — the orange Open button — was written by whatever posted, with no
+// such check, so the two could disagree and the button opened SOMEONE ELSE'S
+// Claude session. Found live on `severance-api-multiple-frames`: every one of
+// its 872 messages is from session 018fYFNh…, and its url pointed at
+// 01XwF5s… (1 of 870 chats, repaired by hand). The shape that does it is a
+// post that skips session-first resolution — an explicit FORGE_CHAT, or a
+// draft whose final post re-patched its `chat` and left this crumb behind.
+// So: a chat with no owner yet takes the poster's link, an owner keeps its
+// own, and a post that names no session may not move one.
+function keepsDeepLink(ownerSid, postingSid) {
+  const own = bareSid(ownerSid);
+  if (!own) return true;
+  const post = bareSid(postingSid);
+  return !!post && post === own;
+}
 function bareSid(session) {
   return String(session || '').replace(/^(session_|cse_)/, '').slice(0, 120);
 }
@@ -713,8 +731,29 @@ function bestPerChat(ranked) {
 // stamp `sophie`. So an unstamped record has to land on Claude's side, and a
 // `from` value nobody has seen must never be counted as hers: silence is the
 // safe direction for the smaller pile.
+//
+// AND A COMPACTION SUMMARY IS NEITHER OF THEM (2026-09-11, Sophie, looking at
+// a MINE search full of billing formulas and container script paths: "these r
+// sposed to be only MY messages"). When a session runs out of context the
+// harness hands the model a recap as a USER turn, so the hook lifts it exactly
+// like something she typed and it is stamped `from:'sophie'` — 8,000
+// characters of another chat's technical notes sitting in the one pile she
+// narrowed the search down to. `isCompacted` already kept these out of the
+// Questions tab and the archive wrap-up line and questions.js's own note names
+// this as the half that was left: "the feed still shows the thing as hers in
+// the thread and under the search's Mine filter". This is that half, for the
+// search.
+//
+// IT IS `auto`, NOT CLAUDE'S. The recap is not a reply either — it quotes her
+// words back, so filing it under Claude's would put an 8,000-character echo of
+// her own messages into the pile she picks when she wants what a chat TOLD
+// her, and a summary quotes far above its weight (4 of 408 messages produced 5
+// of 35 question rows on the same measurement). A third value means it stays
+// findable with NO side picked — the default, and what every older cached page
+// still sends — and leaves the moment she picks one.
 const SEARCH_WHO = ['all', 'me', 'claude'];
-const whoOf = (from) => (from === 'sophie' ? 'me' : 'claude');
+const whoOf = (from, text) => (isCompacted(text) ? 'auto'
+  : from === 'sophie' ? 'me' : 'claude');
 // ONE reader for every search filter, because they all fail the same way: an
 // unknown value must be `all`, never an empty result. A filter she cannot see
 // — an old cached page sending nothing, or a word this server has not learned
@@ -725,7 +764,7 @@ const pickOne = (v, list) => {
   return list.indexOf(w) > 0 ? w : 'all';
 };
 const whoParam = (v) => pickOne(v, SEARCH_WHO);
-const whoMatches = (who, from) => who === 'all' || whoOf(from) === who;
+const whoMatches = (who, from, text) => who === 'all' || whoOf(from, text) === who;
 
 // ---- THE ARCHIVE — the second filter (Aug 2026, Sophie: "another filter to
 // add can be archived as in does it search the archive or not or just the
@@ -801,7 +840,7 @@ router.get('/search', async (req, res) => {
     const limit = Math.min(200, parseInt(req.query.limit, 10) || 80);
     // Every word she typed has to land in the SAME message — that is the whole
     // point — so the haystack is the one message, name and TLDR included.
-    const hits = searchIndex.filter((m) => whoMatches(who, m.from)
+    const hits = searchIndex.filter((m) => whoMatches(who, m.from, m.text)
       && archMatches(arch, archivedChat(m.chat))
       && queryMatches(m.chat + '\n' + m.tldr + '\n' + m.text, groups));
     // Her order first, then newest — see IN THE ORDER SHE TYPED THEM above.
@@ -1000,7 +1039,6 @@ router.post('/', async (req, res) => {
       msgId = ref.id;
     }
     const reg = { lastSeen: doc.created };
-    if (doc.url) reg.url = doc.url; // keep the chat's deep link on its registry tile
     // Which Claude account this chat's sessions run under (the hook posts the
     // environment's FORGE_ACCOUNT). Open buttons route app-vs-browser off it.
     if (account) reg.account = String(account).slice(0, 20);
@@ -1011,6 +1049,9 @@ router.post('/', async (req, res) => {
     // back here is current.
     let mine = {};
     try { mine = (await registry()).chats[doc.chat] || {}; } catch (e) { /* best effort */ }
+    // keep the chat's deep link on its registry tile — but only the OWNER's;
+    // see keepsDeepLink above for the live bug this closes.
+    if (doc.url && keepsDeepLink(mine.sessionId, skey)) reg.url = doc.url;
     // WHEN THE CHAT BEGAN (2026-09-02, the work log). `lastSeen` above is
     // rewritten on EVERY post, so it is the chat's newest message — measured
     // on twelve real threads, it matched the LAST message on all twelve and
@@ -3755,6 +3796,33 @@ router.post('/pin', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// THE CLIPS STRIP — every clip a chat has handed over, newest first, under the
+// pinned row (2026-09-07, Sophie: "a list with all the clips I could download
+// as a video most recent first and lights up when there's a new one until I
+// click it"). The pin holds ONE thing; a shoot hands over dozens. Stored on
+// the registry doc so it rides the feed read the page already makes; the
+// "new" light is the PHONE's (localStorage), never the doc's, so a clip stays
+// lit until she taps it. `id` is the Dump file id (the save link).
+router.post('/clips', async (req, res) => {
+  try {
+    const { chat, session, url, title, id } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const u = String(url || '').trim();
+    if (!/^https:\/\//.test(u)) return res.status(400).json({ error: 'url must be https' });
+    const target = await resolveChat(chat, session);
+    const ref = regRef(target);
+    await db().runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const cur = (snap.exists && Array.isArray(snap.data().clips)) ? snap.data().clips : [];
+      const row = { url: u, title: String(title || '').replace(/\s+/g, ' ').trim().slice(0, 120),
+        id: /^[\w-]{1,40}$/.test(String(id || '')) ? String(id) : '', at: new Date().toISOString() };
+      const next = [row].concat(cur.filter((c) => c && c.url !== u)).slice(0, 60);
+      tx.set(ref, { clips: next }, { merge: true });
+    });
+    res.json({ ok: true, chat: target });
+  } catch (err) { fail(res, err); }
+});
+
 // A chat reads its own card + her note (pass session for session-first
 // resolution, same contract as GET /name).
 router.get('/status', async (req, res) => {
@@ -4010,6 +4078,25 @@ router.post('/tick', async (req, res) => {
     }
     await db().collection(MSGS).doc(String(id)).set(patch, { merge: true });
     res.json({ ok: true, id: String(id), key, state, on: state === 'tick', note: patch.ticknotes ? patch.ticknotes[key] : undefined, filed: !!filed });
+  } catch (err) { fail(res, err); }
+});
+// A SCRIPT BLOCK EDITED IN PLACE (2026-09-07, Sophie: "make it possible to
+// edit the script blocks right in message"). `{id, key, text}` files her
+// version of a `>` quote block under `blockedits[key]` on the message doc
+// (key = the page's tickKey of the ORIGINAL words, so it survives a re-render);
+// '' deletes it. The page also posts the edit into the thread as her message
+// through /reply, so nothing here rings or files a note — the words reach the
+// chat the way anything she writes does.
+router.post('/blockedit', async (req, res) => {
+  try {
+    const { id, key, text } = req.body || {};
+    if (!id) return res.status(400).json({ error: 'id required' });
+    if (!/^[a-z0-9]{1,24}$/.test(String(key || ''))) return res.status(400).json({ error: 'key required' });
+    const t = String(text == null ? '' : text).replace(/\s+$/, '').slice(0, 4000);
+    const del = admin.firestore.FieldValue.delete();
+    const at = new Date().toISOString();
+    await db().collection(MSGS).doc(String(id)).set({ blockedits: { [key]: t ? { text: t, at } : del } }, { merge: true });
+    res.json({ ok: true, id: String(id), key, text: t, at: t ? at : null });
   } catch (err) { fail(res, err); }
 });
 // A CHAT ANSWERS ON THE NOTE ITSELF, the picture-note rule — `{id, key,
@@ -4347,6 +4434,27 @@ function kitWarnings(html) {
   if (/<(?:input|textarea)\b[^>]*\bplaceholder\s*=\s*["'][^"']/i.test(s)) {
     out.push('Example text in a box (placeholder=): text boxes ship EMPTY. '
       + 'If an example is genuinely needed, put it behind the "?" instead.');
+  }
+  // A NOTE AND A PAGE'S OWN TEXT MUST NOT SHARE AN ITEM KEY (2026-09-07 — a
+  // b-roll page saved each scene's editable text under its data-item id, the
+  // same slot __compareNotes writes the note thread to, and her "go" note
+  // replaced the scene edit she had just made; the chat then sent the draft.
+  // The text field on a verdict item IS the note thread. Any other text a
+  // page stores must ride its own key ('<id>.t', 'ord-<id>') or its own
+  // sheet.) The check is a heuristic on the page's OWN inline writes — a
+  // bare `item: id` / `item: item` beside `text:` — a literal prefix in the
+  // item expression ('p:' + c.id) passes, so the pages already doing it
+  // right stay quiet.
+  if (/__compareNotes\s*\(/.test(s)) {
+    const inline = s.replace(/<script[^>]*\ssrc=[^>]*>\s*<\/script>/gi, ' ');
+    const own = [...inline.matchAll(/verdict[\s\S]{0,400}?item\s*:\s*([^,}]{1,60}),[\s\S]{0,120}?\btext\s*:/g)]
+      .map((m) => m[1].trim()).filter((e) => !/['"]/.test(e));
+    if (own.length) {
+      out.push('The page wires __compareNotes AND writes its own `text` onto verdict '
+        + 'items (item: ' + own[0] + '): an item\'s text IS its note thread, so a note she '
+        + 'writes REPLACES whatever the page stored there. Save the page\'s own text under '
+        + 'its own key (`<id>.t`) or its own sheet.');
+    }
   }
   return out;
 }
@@ -5356,6 +5464,43 @@ async function applyPageVerdict(sheet, item, ok) {
   return { chat, archived: on };
 }
 
+// THE SCRIPT BOX — one long text per chat, scenes separated by the word
+// "cut" (2026-09-08, Sophie: "where can i put multiple scenes w only the word
+// cut to separate them"). A verdict text caps at 2,000 characters, which is
+// one scene; a script is many. One doc per chat in `forge-chat-scripts`,
+// `text` up to 200,000 characters, the previous text kept whole under
+// `was` so a paste that replaces a script is one write from undone. Free —
+// no model call. The belt's Script card is the writer; a chat reads it with
+// GET and splits on /^\s*cut\s*$/m itself.
+const SCRIPT_MAX = 200000;
+router.get('/script', async (req, res) => {
+  try {
+    const chat = String(req.query.chat || '').slice(0, 80);
+    if (!chat) return res.status(400).json({ error: 'chat is required' });
+    const snap = await admin.firestore().collection('forge-chat-scripts').doc(chat).get();
+    const d = snap.exists ? snap.data() : {};
+    res.json({ ok: true, chat, text: d.text || '', updatedAt: d.updatedAt || null, by: d.by || null });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+router.post('/script', express.json({ limit: '1mb' }), async (req, res) => {
+  try {
+    const { chat, text, by } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat is required' });
+    if (typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
+    const ref = admin.firestore().collection('forge-chat-scripts').doc(String(chat).slice(0, 80));
+    const t = text.slice(0, SCRIPT_MAX);
+    const now = new Date().toISOString();
+    await admin.firestore().runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const prev = snap.exists ? snap.data() : {};
+      const patch = { chat: String(chat).slice(0, 80), text: t, updatedAt: now, by: by === 'chat' ? 'chat' : 'sophie' };
+      if (prev.text && prev.text !== t) patch.was = { text: prev.text, at: prev.updatedAt || now };
+      tx.set(ref, patch, { merge: true });
+    });
+    res.json({ ok: true, chars: t.length, truncated: text.length > SCRIPT_MAX });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
   try {
     const { chat, sheet, item, ok, text, at } = req.body || {};
@@ -5374,7 +5519,26 @@ router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
           : typeof ok === 'string' ? String(ok).slice(0, 24) : !!ok,
       };
     }
-    if (text !== undefined) patch.texts = { [String(item)]: String(text || '').slice(0, 2000) };
+    // A SCENE IS LONGER THAN A NOTE — the cap is 8000, not 2000 (2026-09-08,
+    // Sophie, after a 2,343-character scene box on the hospital belt lost its
+    // tail mid-word on her first edit: "a stupid error that's gonna lose my
+    // edits"). The belt pages save a whole scene under one item; 2000 was a
+    // note's size. `chars` rides the answer so a page can SAY when the server
+    // kept less than it sent, never silently.
+    if (text !== undefined) patch.texts = { [String(item)]: String(text || '').slice(0, verdictText.TEXT_MAX) };
+    // THE TEXT BEING WRITTEN OVER IS KEPT — ONE STEP BACK (2026-09-07, after
+    // her scene edit was overwritten by her own "go" note on a page that
+    // saved both under one key, and nothing anywhere held the words she had
+    // typed). A write that replaces a DIFFERENT non-empty text files the old
+    // one under `textsWas[item]` with the moment it was replaced. One read
+    // per text write, no model call; a read failure never blocks the write.
+    if (text !== undefined) {
+      try {
+        const prev = await db.collection('forge-chat-verdicts').doc(id).get();
+        const was = verdictText.keptOver(prev.exists ? prev.data() : {}, String(item), patch.texts[String(item)]);
+        if (was) patch.textsWas = { [String(item)]: was };
+      } catch (e) { /* the write still lands */ }
+    }
     // HER PLACE IN THE DECK (2026-08-29, Sophie: "does it save my place rather
     // than showing me things I've already swiped on"). One item id, on the doc
     // her verdicts already live on — so it costs no extra read, it follows her
@@ -5407,7 +5571,9 @@ router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
       // triset; her mark is saved whatever the game does with it.
       try { require('./triset').pokeReview(String(sheet)); } catch (e) { /* not mounted */ }
     }
-    res.json({ ok: true, archived });
+    // `chars` = how much of the text landed, so a page can compare it to what it
+    // sent and say so instead of trusting the write.
+    res.json({ ok: true, archived, chars: text !== undefined ? patch.texts[String(item)].length : undefined });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }
@@ -5419,7 +5585,7 @@ router.get('/verdict', async (req, res) => {
     const id = `${String(chat).slice(0, 80)}__${String(sheet).slice(0, 80)}`;
     const doc = await admin.firestore().collection('forge-chat-verdicts').doc(id).get();
     const d = doc.exists ? doc.data() : {};
-    res.json({ ok: true, items: d.items || {}, texts: d.texts || {}, at: d.at || '' });
+    res.json({ ok: true, items: d.items || {}, texts: d.texts || {}, at: d.at || '', textsWas: d.textsWas || {} });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }
@@ -5439,7 +5605,7 @@ require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolv
   // `regRef` is exported for chaticons.js — it is the ONE write path that
   // invalidates the registry cache, so a sweep must not reach the collection
   // around it.
-module.exports = { router, regRef, worklogRows, worklogLine, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry, pickFilm,
+module.exports = { router, regRef, keepsDeepLink, worklogRows, worklogLine, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry, pickFilm,
   rankGroups, phraseRegex, phraseRank, bestPerChat, snippetWindows, snippetOf,
   SEARCH_WHO, whoOf, whoParam, whoMatches,
   SEARCH_ARCH, archParam, archMatches, pickOne, pickNameRows, NAME_ROWS,

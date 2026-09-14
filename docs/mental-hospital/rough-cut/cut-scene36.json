@@ -1,0 +1,41 @@
+{
+ "clips": [
+  {
+   "key": "A2",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/50a45092dba8e9b8c47b81af58a5b035.mp4",
+   "title": "clip A v2 \u2014 where are they taking you, no wince (30s)",
+   "seconds": 30.042,
+   "in": 0,
+   "out": 30.042
+  },
+  {
+   "key": "b1",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/db61ae492c1858c878b8e05c6bc8f3bf.mp4",
+   "title": "36b part 1 \u2014 to help your mind, ghosts and goblins (30s)",
+   "seconds": 30.042,
+   "in": 0,
+   "out": 30.042
+  },
+  {
+   "key": "b2",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8501884860756b1a6b9e8e90d705f5a4.mp4",
+   "title": "36b part 2 \u2014 the pan, ready to be wheeled (15s)",
+   "seconds": 15.042,
+   "in": 0,
+   "out": 15.042
+  },
+  {
+   "key": "s37",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/84ef4ff956e9d338ad07dfdff0ecc8e8.mp4",
+   "title": "37 \u2014 be a good girl, the double doors (12s)",
+   "seconds": 12.064,
+   "in": 0,
+   "out": 12.064
+  }
+ ],
+ "sounds": []
+}
