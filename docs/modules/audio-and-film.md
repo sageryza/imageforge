@@ -652,6 +652,29 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       mark (`fold-vertical`) in the gap to put them back. A 15-second shot on
       Mini is two clips, and until this she cut the scene in two by hand:
       copy the tail out, send the head, paste the tail back in.
+      - **AND A CARET AT THE END MAKES AN EMPTY BLOCK (2026-09-14, Sophie:
+        "divide here in footage should allow a divide with nothing after it to
+        make a new empty block").** It used to refuse — "put the cursor where
+        the second block should start" — on the reasoning that there was
+        nothing to cut, and that reasoning is HISTORY: an empty block is an
+        ordinary state on this page (a restored draft can hold one,
+        `wordyBlocks` skips one, the star refuses one with "say what the clip
+        is first"), and writing shot two means asking for a box before there
+        are words to put in it. Three things not to undo: **the new empty
+        block takes the gold line AND the caret** (the tap means "give me
+        somewhere to write", so leaving the star pointing at the block she
+        just left would cost her a tap into a box she asked for) — which
+        needed a second carve-out in the document click handler beside the
+        fold's, since that handler runs AFTER the button's own and would drag
+        the line straight back onto the block the button sits in; **a caret at
+        the START is still refused**, because there her words all move DOWN
+        into a new block and the empty one lands above them — a long scene
+        jumping down the screen, which is not what the mark says it does (the
+        way to an empty block above is a divide at the end of the block
+        before); and **an empty box divides into nothing** and says so, since
+        two empty blocks is not a state worth a tap. The strip is copied into
+        the empty block like any other divide — one rule, and the pictures are
+        what shot two is usually drawn against.
       - **THE STAR SENDS THE BLOCK SHE IS IN** — the last one she tapped into,
         wearing the star's own gold line once there are two or more; one
         block wears nothing and the page looks exactly as it did. The model,
