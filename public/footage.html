@@ -6949,14 +6949,14 @@ window.__fitPillGap = fitPillGap;
 //   What survives a reload by itself: her words and every block, the
 //   references and the two keyframe marks (footage_draft, on every
 //   keystroke), the shape, the project and folder, the filters, the view,
-//   the cleared job's bank. What does not, and so holds the reload: a field
+//   the cleared job's bank — and, since 2026-09-14, the model, the size and
+//   the seconds, which the heal CARRIES across (`healPickStash`) rather than
+//   refusing to reload over. What does not, and so holds the reload: a field
 //   under her caret, a tap in the last 10s, a send or an upload in flight, a
-//   refusal on screen she has not read, the seed box (never sticky), the
-//   model/size/seconds moved off their defaults (deliberately unsticky — a
-//   reload would silently put Fast back to Mini), an open search, the
-//   trimmer, the character sheet, the Recent drawer, a note box, an
-//   expanded clip. The common stale case — the tool opened after a night in
-//   the background, nothing typed yet — heals on the spot.
+//   refusal on screen she has not read, the seed box (never sticky), an open
+//   search, the trimmer, the character sheet, the Recent drawer, a note box,
+//   an expanded clip. The common stale case — the tool opened after a night
+//   in the background, nothing typed yet — heals on the spot.
 // READ LAZILY: the stamp is appended after the page, so a const here is empty
 // forever and the check is silently off (the Playground's own trap).
 function ftBuild() { return window.__forgeBuild || ''; }
@@ -6964,6 +6964,41 @@ var ftTouchedAt = 0, ftUploading = 0;
 ['pointerdown', 'keydown'].forEach(function (ev) {
   document.addEventListener(ev, function () { ftTouchedAt = Date.now(); }, true);
 });
+// THE MODEL, THE SIZE AND THE SECONDS RIDE THE HEAL — THEY ARE NOT A REASON TO
+// REFUSE ONE (2026-09-14, Sophie: "it doesn't work", about a divide that had
+// shipped that morning and was live). They were in the hold list below for a
+// real reason — all three are deliberately UNSTICKY, so a reload puts Fast back
+// to Mini and 15s back to 4s, and healing under her would silently change what
+// the next tap costs. But refusing the reload is the wrong end of it: MEASURED
+// on the real page, picking 15 seconds (or 720p, or any model but Mini) held
+// `ftBuildCheck` forever — a new build landed and the page never reloaded —
+// and the ward draft is cut at 15s, so her footage page could never heal at
+// all. A feature that shipped in the morning was simply not there, with nothing
+// on screen saying why. So the three are CARRIED ACROSS the reload instead.
+//   - SESSION storage, never local: it dies with the app process, so a genuine
+//     cold open still lands on Mini · 480p · 4s and the unsticky rule is
+//     exactly what it was. Only a heal carries them.
+//   - TAKEN ONCE. The key is removed as it is read, so a reload she makes
+//     herself later cannot resurrect last hour's pick.
+//   - NOT VALIDATED HERE. `paintControls` clamps all three against the SERVED
+//     table, so a build that dropped a model or a size lands on a real value
+//     rather than on whatever this page believed an hour ago.
+//   - BEFORE `takeHandoff`, so a belt scene arriving in the same load still
+//     wins — she just tapped it.
+var HEAL_PICK = 'footage_healpick';
+function healPickStash() {
+  try { sessionStorage.setItem(HEAL_PICK, JSON.stringify({ model: S.model, res: S.res, seconds: S.seconds })); }
+  catch (e) {}
+}
+function healPickTake() {
+  var p = null;
+  try { p = JSON.parse(sessionStorage.getItem(HEAL_PICK) || 'null'); sessionStorage.removeItem(HEAL_PICK); }
+  catch (e) { return; }
+  if (!p) return;
+  if (p.model) S.model = String(p.model);
+  if (p.res) S.res = String(p.res);
+  if (p.seconds != null) S.seconds = Number(p.seconds) || S.seconds;
+}
 function ftHolding() {                                       // the reason, or false
   if (Date.now() - ftTouchedAt < 10000) return 'a tap in the last 10s';
   var el = document.activeElement;
@@ -6978,12 +7013,6 @@ function ftHolding() {                                       // the reason, or f
   if (castOpen) return 'the character sheet';
   if (recentOpen) return 'the Recent drawer';
   if (searchOpen() || $('q').value.trim()) return 'a search';
-  var list = models(), m = modelOf(S.model);
-  if (list.length && m) {
-    if (S.model !== list[0].id) return 'the model off its default';
-    if (S.res !== m.res[0]) return 'the size off its default';
-    if (S.seconds !== m.secs[0]) return 'the seconds off their default';
-  }
   if (document.querySelector('.notebox')) return 'a note box';
   var more = document.querySelectorAll('.moretxt');
   for (var i = 0; i < more.length; i++) if (/less/.test(more[i].textContent)) return 'an expanded clip';
@@ -6997,6 +7026,7 @@ function ftBuildCheck() {
     .then(function (r) {
       if (!r || !r.build || r.build === mine) return false;
       if (ftHolding()) return false;
+      healPickStash();          // her model, size and seconds come back on the other side
       location.reload();
       return true;
     }).catch(function () { return false; });
@@ -7008,6 +7038,7 @@ document.addEventListener('visibilitychange', function () {
 });
 
 loadCtl();
+healPickTake();         // a heal reload carries her model, size and seconds across
 S.project = projectSaved(); castFilm = S.project;   // the ONE memory of which project she is on
 S.folder = S.project ? folderSaved() : '';
 headsApply(S.project, true);   // this project's own heads; the draft's stand until it has some on file
