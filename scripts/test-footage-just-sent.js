@@ -110,6 +110,8 @@ const server = http.createServer((req, res) => {
     if (u.pathname === '/api/gallery/assets/notes') return json({ ok: true, chat: 'footage', notes: [] });
     if (u.pathname === '/api/cast/shelf') return json({ ok: true, entries: [] });
     if (u.pathname === '/api/cast/films') return json({ ok: true, films: [{ slug: 'ward', name: 'The ward' }] });
+    // a mark the server refuses is put back on the card (2026-09-14), so the stub has to TAKE one
+    if (/^\/api\/footage\/jobs\/[^/]+\/vote$/.test(u.pathname)) return json({ ok: true, vote: JSON.parse(body || '{}').vote || '' });
     if (u.pathname === '/ref.png') { res.writeHead(200, { 'content-type': 'image/png' }); return res.end(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64')); }
     res.writeHead(404); res.end('nope');
   });

@@ -62,7 +62,8 @@ function report() {
     const line = (src.match(/const tucked = .*cast\.tuckedFilms\(\).*/) || [''])[0];
     ok('the feed reads the tucked slugs off the cast shelf — ' + line, /cast\.tuckedFilms\(\)/.test(line));
     ok('and only under All, never under a project or a search', /!project/.test(line) && /req\.query\.q/.test(line));
-    ok('and the filter really drops those clips', /tucked\.indexOf\(projectSlug\(x\.d\.project\)\) < 0/.test(src));
+    // both sides through `projectSlug` (2026-09-14): the shelf's slug is 60 characters and this page's 40
+    ok('and the filter really drops those clips', /tuckedSlugs\.indexOf\(projectSlug\(x\.d\.project\)\) < 0/.test(src));
   }
   ok('pinning OpenRouter on 1.5 Pro is refused with a reason', /only on APIFRAME/.test(F.doorFor({ model: '1.5', door: 'openrouter', resolution: '480p' }, both).error || ''));
   // THE APIFRAME DOOR STAYS IN THE MODULE — the page stopped offering it, a
@@ -786,7 +787,9 @@ async function pillSweep(pg, where) {
   // `await` is not legal in the pure block above, so the one asynchronous
   // pure check rides here: a read that cannot happen answers 0 — full list —
   // rather than throwing or leaving a sale in place.
-  ok('a failed endpoints read answers 0 rather than throwing', (await F.endpointDiscount('bytedance/nope')) === 0);
+  // "could not read" is NULL since 2026-09-14 — `discounts()` keeps the last good
+  // figure for it, where a 0 would have written full list over a real sale
+  ok('a failed endpoints read answers null rather than throwing', (await F.endpointDiscount('bytedance/nope')) === null);
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   const port = server.address().port;
   jobs = JSON.parse(JSON.stringify(jobs).replace(/PORT/g, String(port)));
@@ -1167,7 +1170,7 @@ async function pillSweep(pg, where) {
       && /sendFile\(__dirname \+ '\/footage-hay\.js'\)/.test(fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8'))
       && /root\.FootageHay = factory\(\)/.test(hayHead));
     ok('the route searches the whole log with the grammar BEFORE the page is cut',
-      /grammar\.feedMatches\(hayOf\(cardOf\(x\.id, x\.d\)\), groups\)/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
+      /const c = cardOf\(x\.id, x\.d\);[\s\S]{0,200}?return grammar\.feedMatches\(hayOf\(c\), groups\)/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
     ok('the pure half: a card says its model, its seconds, its shape and its parts',
       (() => { const h = F.hayOf({ prompt: 'a dog', modelLabel: '2.0 Mini', model: 'mini', seconds: 4, resolution: '480p', ratio: '3:4', trims: [{}], refs: [{ kind: 'video' }] });
         return /a dog/.test(h) && /2\.0 Mini/.test(h) && /\b4s\b/.test(h) && /480p/.test(h) && /3:4/.test(h) && /trimmed/.test(h) && /video ref/.test(h); })());

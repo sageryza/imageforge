@@ -413,8 +413,10 @@ const readBlocks = () => {
   // view's `more` and cursor would otherwise offer a page of another folder's
   // matches
   ok('switching folder re-asks a standing search, and resets its own walk',
-    /function setFolder[\s\S]{0,900}?if \(searchQ\) \{ qHits = null; qMore = false; qAt = ''; runSearch\(\); \}/.test(src));
-  ok('unhiding cards re-decides their "… more"', /if \(!tiles\) resyncClamps\(\);\n  var n = Object\.keys\(jobsById\)/.test(src));
+    /function setFolder[\s\S]{0,1400}?if \(searchQ\) \{ qHits = null; qMore = false; qAt = ''; runSearch\(\); \}/.test(src));
+  // (the count under it is taken off the VIEW since 2026-09-14, so the pin
+  // is the resync sitting directly above that count, comment and all)
+  ok('unhiding cards re-decides their "… more"', /if \(!tiles\) resyncClamps\(\);\n  \/\/ COUNTED OFF THE VIEW[\s\S]{0,600}?var n = Object\.keys\(jobsById\)\.filter/.test(src));
   // THE GRAB OFFERS RATHER THAN LANDING IT (2026-09-14, Sophie: "grab frame
   // shud offer to save or add as reference") — so the `useShot` moved out of
   // the pull's own `then` and onto the offer row's `reference` word. `stay` is

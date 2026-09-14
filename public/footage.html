@@ -325,7 +325,8 @@
      `overflow-wrap:anywhere` since it shipped; these three never did.
      `.st` is the same thing one box in: `InputVideoSensitiveContentDetected.
      PrivacyInformation` is 52 unbroken characters in a 238px box. */
-  .err{color:#a0402a;font-size:13px;margin-top:8px;overflow-wrap:anywhere}
+  .err{color:#a0402a;font-size:13px;margin-top:8px;overflow-wrap:anywhere;position:relative;padding-right:30px}
+  .err .errx{position:absolute;right:0;top:-4px;border:0;background:none;padding:2px 8px;font:inherit;font-size:18px;line-height:1;color:#a0402a;cursor:pointer}
   /* The doors that would still take a refused job — underlined words, never
      boxed buttons (the house rule for an inline opener), one per line so a
      long door name and its price never wrap into each other. */
@@ -1251,7 +1252,7 @@
   <button type="button" class="fold" id="ctlfold" aria-expanded="true" aria-controls="controls"><span class="chev"></span><span id="ctlfoldlab">Buttons</span></button>
   <div class="row" id="controls">
     <button class="up ib" type="button" id="add" aria-label="Add a reference" title="Add a reference"><span id="addicon"></span><input type="file" accept="image/*,video/*,audio/*" multiple id="file"></button>
-    <button id="rectog" type="button" aria-expanded="false" aria-label="Recent — clips you made and references you have used" title="Recent — clips you made and references you have used" hidden></button>
+    <button id="rectog" type="button" aria-expanded="false" aria-label="Recent — references you have used" title="Recent — clips you made and references you have used" hidden></button>
     <!-- THE CHARACTER LIBRARY (2026-09-11, Sophie: "add character icon to
          footage and have it per film - diff folders"). One tap attaches that
          character's references AND puts the line that names them by slot at
@@ -1802,6 +1803,11 @@ function setProject(p, opts) {
   p = String(p || '');
   if (p === S.project && !opts.force) return;
   S.project = p; projectSave(p);
+  // the cast and the room are the film's — the ones written for the film she
+  // is leaving stay on file for it, and the new film's come up (or nothing)
+  if (typeof headsApply === 'function') { headsApply(p); }
+  if (typeof clearErr === 'function') clearErr();   // its door words would file the old scene here
+  if (typeof cmpCancelPick === 'function') cmpCancelPick();   // an armed pick would swallow the next tap on a card that is gone
   // a folder belongs to the project she is leaving
   S.folder = String(opts.folder || ''); folderSave(S.folder);
   jobsById = {}; olderAt = null; walkAt = ''; feedMore = false;
@@ -1858,6 +1864,8 @@ function setFolder(f, opts) {
   if (f === S.folder && !opts.force) return;
   S.folder = f; folderSave(f);
   disarm();   // an armed "send all · $x?" would file the clip in the folder she LEFT
+  if (typeof clearErr === 'function') clearErr();
+  if (typeof cmpCancelPick === 'function') cmpCancelPick();
   jobsById = {}; olderAt = null; walkAt = ''; feedMore = false;
   $('feed').innerHTML = ''; $('tiles').innerHTML = '';
   paintFolder(); paintRecent();
@@ -1872,12 +1880,20 @@ function setFolder(f, opts) {
 }
 // A NEW FOLDER IS A NAME AND NOTHING ELSE — it exists the moment a clip lands
 // in it, so until then the picker simply offers the name she typed.
-function newFolder() {
+// `project` is the one the sheet was standing in — which need not be
+// `S.project` (2026-09-14, found auditing the page): from the ward, tapping
+// into the witch commercials and naming a folder made `ward/kitchen`, filed the
+// next clip there and remembered it across reloads. With no project at all a
+// folder means nothing, and it is refused rather than written into the void.
+function newFolder(project) {
+  var into = project || S.project;
+  if (!into) { toast('Pick a project first — a folder lives inside one'); paintFolder(); return; }
   var name = window.prompt('Name the folder');
   if (name == null) { paintFolder(); return; }
   var slug = folderSlug(name);
   if (!slug) { paintFolder(); return; }
-  setFolder(slug, { force: true });
+  if (into !== S.project) setProject(into, { force: true, folder: slug });
+  else setFolder(slug, { force: true });
   toast('Folder: ' + folderName(slug));
 }
 // A NEW PROJECT IS A NEW FILM ON THE CAST SHELF — one name, free, and the
@@ -2017,7 +2033,7 @@ function fitShelf() {
 function shelfPick(v) {
   if (v.indexOf(FOLD) === 0) { openToggle(v.slice(FOLD.length)); paintProject(); repaintCards(); return; }
   if (v === NEW_PROJECT) { closeShelf(); newProject(); return; }
-  if (v === NEW_FOLDER) { closeShelf(); newFolder(); return; }
+  if (v === NEW_FOLDER) { var at = shelfAt; closeShelf(); newFolder(at); return; }
   // tucking never moves the feed or a clip — the sheet stays where it is
   if (v === TUCK) { setTucked(S.project, !tucked(S.project)); return; }
   var p = v.split('/')[0], f = v.split('/')[1] || '';
@@ -2154,6 +2170,7 @@ function saveDraft() {
       if (String(v || '').trim()) { hw[w.dataset.head] = v; any = true; }
     });
     if (any) d.heads = hw;
+    headsStash(S.project, hw);
     if (jobs[0].first) d.first = jobs[0].first;
     if (jobs[0].last) d.last = jobs[0].last;
     if (ws.length > 1) {
@@ -2239,6 +2256,7 @@ function jobEmpty(j) {
 }
 function applyJob(j) {
   j = j || { blocks: [''], active: 0, jobs: [{ refs: [], first: '', last: '' }], seed: '' };
+  if (typeof clearErr === 'function') clearErr();   // a refusal was about the job that just left
   var ws = (j.blocks && j.blocks.length ? j.blocks : ['']).map(function (t) { return String(t || ''); });
   setBlocks(ws, jobJobs(j).map(cleanJob));
   var all = blocks();
@@ -2353,21 +2371,36 @@ function allJob() {
 // the active block's, and only where they differ is a second (free) estimate
 // asked for — the figure on the All button has to be the price of the clip
 // that button sends.
+function refCounts(plain) {
+  var c = { image: 0, video: 0, audio: 0 };
+  plain.forEach(function (r) { c[r.kind === 'video' ? 'video' : r.kind === 'audio' ? 'audio' : 'image'] += 1; });
+  return c;
+}
+// THE COUNTS ARE IN THE KEY (2026-09-14, found auditing the page): it ended in
+// `plain.length ? 1 : 0`, so a union of ten pictures and an active block of
+// one had the SAME key and the All button quoted the block's Atlas price for
+// a job Atlas must refuse — which `POST /jobs`, counting properly, then sent
+// through a dearer door.
 function shapeKey(job) {
-  var plain = plainOf(job);
+  var plain = plainOf(job), c = refCounts(plain);
   return [S.model, S.res, S.ratio, S.seconds,
     plain.some(function (r) { return r.kind === 'video'; }) ? 1 : 0,
-    job.first ? 1 : 0, job.last ? 1 : 0, plain.length ? 1 : 0].join('|');
+    job.first ? 1 : 0, job.last ? 1 : 0, c.image, c.video, c.audio].join('|');
 }
-var allCost = { key: '', cents: null, about: false };
+var allCost = { key: '', cents: null, about: false, error: '' };
 function askAllCost(job, k) {
-  allCost = { key: k, cents: null, about: false };   // keyed BEFORE the ask, so one shape asks once
-  var plain = plainOf(job);
+  allCost = { key: k, cents: null, about: false, error: '' };   // keyed BEFORE the ask, so one shape asks once
+  var plain = plainOf(job), c = refCounts(plain);
   var q = '?model=' + S.model + '&res=' + S.res + '&ratio=' + encodeURIComponent(S.ratio) + '&seconds=' + S.seconds
     + '&video=' + (plain.some(function (r) { return r.kind === 'video'; }) ? 1 : 0) + '&door=' + doorNow()
-    + (job.first ? '&first=1' : '') + (job.last ? '&last=1' : '') + (plain.length ? '&refs=1' : '');
+    + (job.first ? '&first=1' : '') + (job.last ? '&last=1' : '') + (plain.length ? '&refs=1' : '')
+    // the counts — Atlas has caps of its own, and the price has to be the door's that will really take it
+    + '&imgs=' + c.image + '&vids=' + c.video + '&auds=' + c.audio;
   api('/estimate' + q).then(function (d) {
-    if (allCost.key !== k || !d || d.error || d.cents == null) return;
+    if (allCost.key !== k) return;
+    // AN UNPRICEABLE UNION IS SAID, NOT LEFT BLANK: `sendAll` refuses on a
+    // missing figure, so a shape no door takes has to reach the button as words
+    if (!d || d.error || d.cents == null) { allCost.error = (d && d.error) || 'no price'; paintGoAll(); return; }
     allCost.cents = d.cents; allCost.about = !!d.about;
     paintGoAll();
   }).catch(function () {});
@@ -2382,7 +2415,7 @@ function allFigure() {
     return { cents: isFinite(c) ? c : null, about: !!$('cost').dataset.about };
   }
   if (allCost.key !== k) askAllCost(u, k);
-  return { cents: allCost.key === k ? allCost.cents : null, about: allCost.about };
+  return { cents: allCost.key === k ? allCost.cents : null, about: allCost.about, error: allCost.key === k ? allCost.error : '' };
 }
 function allCents() { return allFigure().cents; }
 function disarm() { if (armed) { armed = 0; paintGoAll(); } }
@@ -2649,7 +2682,7 @@ function paintFolds() {
   // until this they stayed on screen with no control left to close them.
   // Repainted only when one was really open, so the common path costs nothing.
   if (cShut && (recentOpen || castOpen)) {
-    if (recentOpen) { recentOpen = false; paintRecent(); }
+    if (recentOpen) recClose();        // ends organize mode with it, or the next tile tap deletes
     if (castOpen) { castOpen = false; paintCast(); }
   }
   $('ctlfold').classList.toggle('shut', cShut);
@@ -2923,22 +2956,31 @@ function reslotPlan(was, now) {
     var o = a.slots[r.url], n = b.slots[r.url];
     if (o && n && o !== n) { map[o] = n; renamed += 1; }
   });
-  var gone = '';
-  was.forEach(function (r) { if (!b.slots[r.url] && a.slots[r.url]) gone = a.slots[r.url]; });
-  return { CL: CL, map: map, renamed: renamed, gone: gone };
+  // EVERY name that left, not the last one (2026-09-14, found auditing the
+  // page): a join or an appended send can take TWO pictures off the plain list
+  // at once (both marked as keyframes in the other block), and `rewriteSlots`
+  // forgets one token per pass — so the second stale name stood and named the
+  // wrong picture. `restoreKf` already collected a list; this does too.
+  var gones = [];
+  was.forEach(function (r) { if (!b.slots[r.url] && a.slots[r.url]) gones.push(a.slots[r.url]); });
+  return { CL: CL, map: map, renamed: renamed, gone: gones[gones.length - 1] || '', gones: gones };
+}
+function reslotApply(p, t) {
+  p.gones.forEach(function (g) { t = p.CL.rewriteSlots(t, g, {}); });
+  return p.CL.rewriteSlots(t, '', p.map);
 }
 // ONE STRING, from the strip it was written against onto the strip it will
 // ride — the join's two halves and every block of an appended send.
 function reslotText(text, was, now) {
   var p = reslotPlan(was, now);
   var t = String(text == null ? '' : text);
-  return p ? p.CL.rewriteSlots(t, p.gone, p.map) : t;
+  return p ? reslotApply(p, t) : t;
 }
 function reslotActive(was, now) {
   var p = reslotPlan(was, now);
   if (!p) return { changed: 0, renamed: 0, gone: '' };
   var box = activeBox();
-  var out = p.CL.rewriteSlots(box.value, p.gone, p.map);
+  var out = reslotApply(p, box.value);
   var changed = 0;
   if (out !== box.value) { box.value = out; changed = 1; }
   if (changed && window.__fitBigPrompt) window.__fitBigPrompt();
@@ -3875,6 +3917,12 @@ function paintBlocks() {
     panel.insertBefore(r, ws[i]);
   }
   panel.classList.toggle('many', ws.length > 1);
+  // A LONE BLOCK CAN NEVER BE SHUT (2026-09-14, found auditing the page): its
+  // fold heading is drawn only with two or more, so a `shut` carried onto the
+  // last block — taking block 1 off while block 2 was folded — hid the box,
+  // the corner buttons and the heading at once, and the page showed no box at
+  // all with her words still in the DOM and the star still able to send them.
+  if (ws.length === 1 && ws[0].classList.contains('shut')) { ws[0].classList.remove('shut'); fitBox(ws[0].querySelector('.pblock')); }
   if (!panel.querySelector('.promptwrap.active')) setActive(ws[0]);
   paintBlockHeads();   // the numbering moves with every divide, join and removal
   // …and so does the references row's own label, which names the block whose
@@ -4134,6 +4182,34 @@ var HEADS = [
   { id: 'characters', label: 'Characters', of: 'who is in the clip' },
   { id: 'setting', label: 'Setting', of: 'where it is' },
 ];
+// THE HEADS ARE PER PROJECT (2026-09-14, found auditing the page). They lived
+// in the one `footage_draft` key while everything else on the page — the feed,
+// the cast shelf, the Dump album, the clip — narrows to the project, so
+// switching films (or a belt hand-off adopting one) rode the LAST film's cast
+// and room at the top of every clip in the new one. One map, keyed by project
+// ('' is All), written on every save beside the draft; a project she has
+// never written heads for opens with them empty. `footage_draft.heads` is
+// still written — a page cached from before this reads it as it always did.
+var HEADS_KEY = 'footage_heads';
+function headsMap() { try { var m = JSON.parse(localStorage.getItem(HEADS_KEY) || '{}'); return m && typeof m === 'object' ? m : {}; } catch (e) { return {}; } }
+function headsStash(project, hw) {
+  try {
+    var m = headsMap(), k = String(project || '');
+    if (hw && Object.keys(hw).length) m[k] = hw; else delete m[k];
+    localStorage.setItem(HEADS_KEY, JSON.stringify(m));
+  } catch (e) {}
+}
+// put the project's heads in the boxes — empty for one that has none on file
+function headsApply(project, keepIfNone) {
+  var hw = headsMap()[String(project || '')];
+  if (!hw && keepIfNone) return;
+  heads().forEach(function (w) {
+    var v = hw && typeof hw[w.dataset.head] === 'string' ? hw[w.dataset.head] : '';
+    var box = w.querySelector('.hblock');
+    if (box.value !== v) { box.value = v; if (!w.classList.contains('shut')) fitBox(box); }
+  });
+  paintHeadBlocks();
+}
 function heads() {
   var out = [], kids = panelEl().children;
   for (var i = 0; i < kids.length; i++) if (kids[i].classList.contains('headwrap')) out.push(kids[i]);
@@ -4247,7 +4323,7 @@ $('go').addEventListener('click', function () { sendJob(''); });
 // whose strip is every written block's unioned and whose words are renumbered
 // onto it). `box` still says which block a refusal's gold line belongs to, so
 // the two are separate arguments on purpose.
-function sendJob(pin, box, job) {
+function sendJob(pin, box, job, resend) {
   var btn = $('go'), all = $('goall');
   if (btn.disabled) return Promise.resolve(false);
   // BOTH STARS GO DOWN TOGETHER (2026-09-13, found auditing the page). `#go`
@@ -4257,19 +4333,43 @@ function sendJob(pin, box, job) {
   // work" report. It is the same one send either way, so they read the same.
   btn.disabled = true;
   if (all) all.disabled = true;
-  return postJob(pin, box || activeBox(), job).then(function (ok) {
+  return postJob(pin, box || activeBox(), job, resend).then(function (ok) {
     btn.disabled = false;
     if (all) all.disabled = false;
     return ok;
   });
 }
-function postJob(pin, box, job) {
+// THE REFUSAL LINE, and the one way it is written and cleared. It carries a ✕
+// (2026-09-14): until then the only way past a refusal she had read was to
+// send something, and `ftHolding` held the self-heal for the life of the page.
+function showErr(msg) {
+  var el = $('err');
+  el.textContent = msg;
+  var x = document.createElement('button');
+  x.type = 'button'; x.className = 'errx'; x.setAttribute('aria-label', 'Dismiss'); x.title = 'Dismiss';
+  x.innerHTML = '&times;';
+  x.addEventListener('click', clearErr);
+  el.appendChild(x);
+  el.hidden = false;
+}
+// AND IT DIES WITH THE JOB IT WAS ABOUT (2026-09-14, found auditing the page).
+// The door words under it close over the refused job, and nothing in clear,
+// undo, a put-back, a hand-off or a project switch hid them — so a word tapped
+// after a clear re-sent, and charged, words and pictures no longer anywhere on
+// the page, and one tapped after a project switch filed the old scene in the
+// new project.
+function clearErr() { var el = $('err'); el.hidden = true; el.textContent = ''; }
+// `resend`, when given, is the exact body that was refused: model, seconds,
+// size, shape, seed, project and prompt all ride from it and never from the
+// live controls, so a door word sends THAT job and nothing that has changed
+// since (2026-09-14 — it used to re-read every setting off `S`).
+function postJob(pin, box, job, resend) {
   // the block she is in and its own strip, or every block appended and theirs
   var words = job ? job.prompt : box.value;
   var sendRefs = job ? sortRefs(job.refs) : orderedRefs();
   var sendFirst = job ? job.first : firstUrl;
   var sendLast = job ? job.last : lastUrl;
-  $('err').hidden = true;
+  clearErr();
   // THE SCENE IS WHAT HAS TO BE THERE — characters and setting are the head
   // of a clip, never the clip, so an empty box with a cast written in it is
   // still nothing to draw.
@@ -4278,17 +4378,18 @@ function postJob(pin, box, job) {
   // star, the All star and a refusal's door words all send the same shape —
   // and the log, the card and the 1080p redo all carry the exact text that
   // went, which is the exact-prompt rule.
-  var prompt = withHeads(words);
-  var body = { prompt: prompt, model: S.model, seconds: S.seconds, resolution: S.res, ratio: S.ratio,
-    sound: true, door: pin || doorNow(), refs: sendRefs, project: S.project, folder: S.project ? S.folder : '' };
+  var prompt = resend ? resend.prompt : withHeads(words);
+  var body = resend ? Object.assign({}, resend, { door: pin || doorNow() })
+    : { prompt: prompt, model: S.model, seconds: S.seconds, resolution: S.res, ratio: S.ratio,
+      sound: true, door: pin || doorNow(), refs: sendRefs, project: S.project, folder: S.project ? S.folder : '' };
   // THE TWO KEYFRAMES RIDE AS URLS — the server marks the matching reference
   // with its `role`, leaves it out of the reference lists and maps it onto
   // whatever the door calls it (`image` on Atlas, `frame_images` on
   // OpenRouter, `start_image` on APIFRAME).
-  if (sendFirst) body.firstFrameUrl = sendFirst;
-  if (sendLast) body.lastFrameUrl = sendLast;
+  if (!resend && sendFirst) body.firstFrameUrl = sendFirst;
+  if (!resend && sendLast) body.lastFrameUrl = sendLast;
   // blank means nothing is sent, and the door mints one — never a remembered seed
-  if (seedVal()) body.seed = Number(seedVal());
+  if (!resend && seedVal()) body.seed = Number(seedVal());
   return api('/jobs', { method: 'POST', body: JSON.stringify(body) }).then(function (d) {
     if (!d || !d.jobId) {
       var msg = (d && d.error) || 'Could not start';
@@ -4305,7 +4406,7 @@ function postJob(pin, box, job) {
       // her words and references stay in the box for the next tap.
       else if (d && d.refusal === 'down') msg = d.hint || msg;
       else if (d && d.hint) msg += ' — ' + d.hint;
-      $('err').textContent = msg; $('err').hidden = false;
+      showErr(msg);
       // A CONTENT refusal is the one kind another door may take — a shape
       // refusal is refused everywhere that shape is refused, and a door being
       // down says nothing about this job. So the words are offered there and
@@ -4368,8 +4469,7 @@ function postJob(pin, box, job) {
     // server not answering, and a toast that vanishes in three seconds is
     // not a place to read that. It goes on the error line, and her words
     // stay in the box.
-    $('err').textContent = 'The server did not answer — nothing was sent or charged. Try again in a minute.';
-    $('err').hidden = false;
+    showErr('The server did not answer — nothing was sent or charged. Try again in a minute.');
     return false;
   });
 }
@@ -4386,7 +4486,15 @@ function sendAll() {
   if (btn.disabled) return;
   var ws = wordyBlocks();
   if (ws.length < 2) return sendJob('');
-  var total = allCents();
+  var fig = allFigure(), total = fig.cents;
+  // NO FIGURE, NO SEND (2026-09-14, found auditing the page): the over-$3 ask
+  // below was skipped whenever the estimate had not landed — or had come back
+  // as "no door takes that shape" — so the button read "All 4" with no price
+  // and the first tap sent, at any price, with no read-back at all.
+  if (total == null) {
+    if (fig.error) return toast(fig.error);
+    return toast('Working out what that costs — tap again in a second');
+  }
   // OVER $3 IT ASKS — the house rule, as a second tap rather than a dialog
   if (!armed && total != null && total >= ASK_CENTS) {
     armed = Date.now(); paintGoAll();
@@ -4418,11 +4526,17 @@ function offerDoors(refused, box, job, body) {
   var plain = (sent.refs || []).filter(function (r) {
     return r.url !== sent.firstFrameUrl && r.url !== sent.lastFrameUrl;
   });
-  var q = '?model=' + encodeURIComponent(S.model) + '&res=' + encodeURIComponent(S.res)
-    + '&ratio=' + encodeURIComponent(S.ratio) + '&seconds=' + encodeURIComponent(S.seconds)
+  // OFF THE BODY THAT LEFT, NEVER THE LIVE CONTROLS (2026-09-14, found
+  // auditing the page — the comment above promised this and the four fields
+  // that set the price were read off `S`), and WITH THE COUNTS, so a door is
+  // never offered at a price it cannot honour.
+  var c = refCounts(plain);
+  var q = '?model=' + encodeURIComponent(sent.model || S.model) + '&res=' + encodeURIComponent(sent.resolution || S.res)
+    + '&ratio=' + encodeURIComponent(sent.ratio || S.ratio) + '&seconds=' + encodeURIComponent(sent.seconds != null ? sent.seconds : S.seconds)
     + (plain.some(function (r) { return r.kind === 'video'; }) ? '&video=1' : '')
     + (sent.firstFrameUrl ? '&first=1' : '') + (sent.lastFrameUrl ? '&last=1' : '')
-    + (plain.length ? '&refs=1' : '');
+    + (plain.length ? '&refs=1' : '')
+    + '&imgs=' + c.image + '&vids=' + c.video + '&auds=' + c.audio;
   Promise.all(others.map(function (d) {
     return api('/estimate' + q + '&door=' + d).then(function (e) {
       return e && e.ok && e.cents != null ? { door: d, cents: e.cents, about: e.about } : null;
@@ -4437,9 +4551,11 @@ function offerDoors(refused, box, job, body) {
       b.type = 'button';
       b.className = 'doorgo';
       b.textContent = 'Send it through ' + doorWord(r.door) + ' · ' + (r.about ? '~' : '') + '$' + (r.cents / 100).toFixed(2);
-      b.addEventListener('click', function () { $('err').hidden = true; sendJob(r.door, box, job); });
+      // the EXACT body that was refused, pinned to this door — never the page as it stands now
+      b.addEventListener('click', function () { clearErr(); sendJob(r.door, box, job, body); });
       row.appendChild(b);
     });
+    if ($('err').hidden) return;       // she cleared it while the prices were being asked
     $('err').appendChild(row);
   });
 }
@@ -4504,7 +4620,14 @@ function applyFilt() {
   // at all until she switched the view or reloaded. Unhiding is exactly when
   // to ask again.
   if (!tiles) resyncClamps();
-  var n = Object.keys(jobsById).length;
+  // COUNTED OFF THE VIEW, NEVER THE MAP (2026-09-14, found auditing the page):
+  // `jobsById` keeps a clip moved out of this project, a hidden one and a
+  // tucked one reached by a search, so an emptied project reported "Nothing to
+  // show here" — which reads as a filter — over a project that really is empty
+  var n = Object.keys(jobsById).filter(function (k) {
+    var j = jobsById[k];
+    return j && !j.hidden && (!S.project || (j.project || '') === S.project) && (!S.folder || (j.folder || '') === S.folder);
+  }).length;
   // THE BAR STAYS WHILE ANYTHING NARROWS THE FEED — IT IS THE ONLY WAY OUT
   // (2026-09-13, found auditing the page). `#feedbar` carries the project and
   // folder picker as well as the search and the view switch, and it was
@@ -4578,11 +4701,20 @@ function hayOf(j) { return window.FootageHay ? window.FootageHay.hayOf(j) : ''; 
 // card still reads `jobsById`, so a vote cast during a search shows.
 function passesSearch(j) {
   if (!qGroups.length) return true;
-  if (qHits) return !!qHits[j.id];
+  // A HIT THE SERVER ANSWERED WITH STAYS; A CLIP IT NEVER SAW IS JUDGED BY ITS
+  // WORDS (2026-09-14, found auditing the page). `qHits` was a ceiling: a clip
+  // sent, trimmed or moved after the answer landed could never match, and one
+  // that stopped matching never left. A hearted just-sent clip that matched
+  // the standing search VANISHED from it the moment its shield dropped.
+  if (qHits && qHits[j.id]) return true;
   // the project's NAME is the word she reads on the card ("The ward"), where
   // the record carries only its slug — the hay takes it when the caller knows
   // it, and only this side does
-  return qmatch(hayOf(j.project ? Object.assign({}, j, { projectName: projectName(j.project) }) : j), qGroups);
+  // AND HER OWN NOTES ON THE CLIP (2026-09-14) — the words she wrote about it
+  // are the likeliest thing she remembers; a chat's answers are not hers
+  var mine = threadFor(j).filter(function (m) { return m && m.from !== 'chat' && m.text; }).map(function (m) { return m.text; }).join('  ');
+  var hay = hayOf(j.project ? Object.assign({}, j, { projectName: projectName(j.project) }) : j) + (mine ? '  ' + mine : '');
+  return qmatch(hay, qGroups);
 }
 // AND A SEARCH PAST THE CAP IS PAGEABLE, NOT TRUNCATED (2026-09-13). The
 // read asks for 300 and the server caps it there, so a common word answered
@@ -5131,12 +5263,14 @@ function saveMedia(url) {
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { try { URL.revokeObjectURL(a.href); } catch (e) {} }, 0);   // the download holds its own copy
 }
 function trimLine(j) {
   var ps = jobParts(j);
   if (!ps.length) return '';
   return ps.map(function (t, i) {
     var n = ps.length > 1 ? 'part ' + (i + 1) + ' · ' : '';
+    if (bakeStale(t)) return '<div class="st bad">' + n + 'that trim never finished — take it off and cut it again</div>';
     if (t.status === 'baking') return '<div class="trimtag">' + ICONS.scissors + '<span>' + n + 'trimming to ' + esc(fsec(t.start)) + '–' + esc(fsec(t.end)) + 's…</span></div>';
     if (t.status === 'failed') return '<div class="st bad">' + n + 'that trim did not bake' + (t.error ? ' — ' + esc(t.error) : '') + '</div>';
     return '<div class="trimtag">' + ICONS.scissors + '<span>' + n + 'trimmed ' + esc(fsec(t.start)) + '–' + esc(fsec(t.end)) + 's · keeping ' + esc(fsec(t.seconds)) + 's</span></div>';
@@ -5384,6 +5518,7 @@ function resyncClamps() {
 }
 function castVote(id, kind) {
   var j = jobsById[id]; if (!j) return;
+  var wasVote = j.vote || '';
   j.vote = j.vote === kind ? '' : kind;
   // HER MARK ON A CLIP ENDS ITS JUST-SENT SHIELD (2026-09-13, Sophie: "exed
   // clips in list view don't disappear when no x is selected"). A clip THIS
@@ -5398,7 +5533,17 @@ function castVote(id, kind) {
   delete justSent[id];
   jobCard(j);                       // ends in paintFeed → applyFilt, which paints the wall's marks
   paintRecent();                    // the drawer is drawn off the feed, so it repaints with it
-  api('/jobs/' + encodeURIComponent(id) + '/vote', { method: 'POST', body: JSON.stringify({ vote: j.vote }) }).catch(function () {});
+  // A MARK THE SERVER NEVER TOOK GOES BACK (2026-09-14, found auditing the
+  // page): the catch swallowed the failure and nothing re-reads a finished
+  // clip, so the badge lied for the rest of the session
+  var sent = j.vote;
+  api('/jobs/' + encodeURIComponent(id) + '/vote', { method: 'POST', body: JSON.stringify({ vote: j.vote }) })
+    .then(function (d) { if (!d || d.error) throw new Error('refused'); })
+    .catch(function () {
+      var live = jobsById[id]; if (!live || live.vote !== sent) return;
+      live.vote = wasVote; jobCard(live); paintRecent();
+      toast('That mark did not reach the server — it is back as it was');
+    });
 }
 // THE ROWS OF A CARD'S MOVE DROP-DOWN — the picker's own films, the clip's
 // project selected; a project the shelf no longer lists is still a row so
@@ -5445,12 +5590,21 @@ function moveTo(id, value) {
     folder = project ? (String(value || '').split('/')[1] || '') : '';
   }
   if (project === (j.project || '') && folder === (j.folder || '')) { resetMoveSel(j); return; }
+  var wasP = j.project || '', wasF = j.folder || '';
   j.project = project; j.folder = folder;
   if (folder && foldersIn(project).indexOf(folder) < 0) { FOLDERS[project] = foldersIn(project).concat([folder]).sort(); paintProject(); repaintCards(); }
   else jobCard(j);
   paintRecent();
   toast(project ? 'Moved to ' + projectName(project) + (folder ? ' › ' + folderName(folder) : '') : 'Taken off its project');
-  api('/jobs/' + encodeURIComponent(id) + '/project', { method: 'POST', body: JSON.stringify({ project: project, folder: folder }) }).catch(function () {});
+  // A MOVE THE SERVER NEVER TOOK GOES BACK (2026-09-14) — the toast had already
+  // said "Moved", and nothing re-reads a finished clip until the next load
+  api('/jobs/' + encodeURIComponent(id) + '/project', { method: 'POST', body: JSON.stringify({ project: project, folder: folder }) })
+    .then(function (d) { if (!d || d.error) throw new Error('refused'); })
+    .catch(function () {
+      var live = jobsById[id]; if (!live || (live.project || '') !== project || (live.folder || '') !== folder) return;
+      live.project = wasP; live.folder = wasF; jobCard(live); paintRecent();
+      toast('That move did not reach the server — the clip is back where it was');
+    });
 }
 function moveProject(id, project) { moveTo(id, project); }
 // PUTTING A PROMPT BACK PUTS ITS REFERENCES AND ITS SETTINGS BACK — only
@@ -5476,7 +5630,15 @@ function copyBack(j) {
   var wasJob = jobNow();
   if (!jobEmpty(wasJob)) { bank = wasJob; saveBank(); }
   var into = activeBox();
-  into.value = j.prompt || '';
+  // THE HEADS COME OFF ON THE WAY BACK IN (2026-09-14, found auditing the
+  // page). `j.prompt` is the text that WENT, and the send puts CHARACTERS and
+  // SETTING on top of it — so a put-back landed them in the scene block while
+  // the two head boxes still held their own copy, and the next star sent the
+  // cast and the room twice. Only a prefix that IS the current heads is taken
+  // off; anything else is left exactly as it went.
+  var back = String(j.prompt || '');
+  headWords().forEach(function (t) { if (back.indexOf(t + '\n\n') === 0) back = back.slice(t.length + 2); });
+  into.value = back;
   refs = (j.refs || []).map(function (r) { return { url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' }; });
   // ONLY WHAT THE RECORD KNOWS, the marks included: a clip drawn off a first
   // frame comes back with that picture still marked, and one drawn with no
@@ -5780,7 +5942,12 @@ function loadOlder() {
   if (!at) return Promise.resolve();
   loadingOlder = true; paintOlder();
   var asked = viewKey();
-  return api('/jobs?limit=40&before=' + encodeURIComponent(at) + projQ()).then(function (d) {
+  // AND THE ID OF THE CLIP THE CURSOR STANDS ON (2026-09-14) — two clips sent
+  // in one millisecond share a sentAt, and a cursor by time alone skipped the
+  // twin. `walkId` is the lowest id at that sentAt among what the page holds.
+  var bid = '';
+  Object.keys(jobsById).forEach(function (k) { var j = jobsById[k]; if (String(j.sentAt || '') === at && (!bid || k < bid)) bid = k; });
+  return api('/jobs?limit=40&before=' + encodeURIComponent(at) + (bid ? '&beforeId=' + encodeURIComponent(bid) : '') + projQ()).then(function (d) {
     if (asked !== viewKey()) return;
     takeFolders(d);
     var jobs = (d && d.jobs) || [];
@@ -5798,9 +5965,21 @@ $('older').addEventListener('click', function () { loadOlder(); });
 // landed in four seconds reads as one that never landed.
 // ONE definition of "this clip is still working" — the poll's own question,
 // and the one `unresolvedOffPage` asks to decide what to fetch by name.
+// A PART BAKING FOR OVER FIFTEEN MINUTES IS DEAD, NOT WORKING (2026-09-14,
+// found auditing the page). Drawing jobs age out after two hours on the server
+// (`staleJob`); a `baking` part never did, and a deploy mid-encode leaves one
+// on the doc for good — so this page re-read the whole collection every seven
+// seconds for the life of a web view the app keeps alive for days, over a
+// part nothing was going to finish. A real bake is seconds.
+var BAKE_STALE_MS = 15 * 60 * 1000;
+function bakeStale(t) {
+  if (!t || t.status !== 'baking') return false;
+  var at = Date.parse(t.at || '');
+  return isFinite(at) && Date.now() - at > BAKE_STALE_MS;
+}
 function waitingOn(j) {
   if (!j) return false;
-  return j.status === 'drawing' || jobParts(j).some(function (t) { return t.status === 'baking'; });
+  return j.status === 'drawing' || jobParts(j).some(function (t) { return t.status === 'baking' && !bakeStale(t); });
 }
 function anyDrawing() {
   return Object.keys(jobsById).some(function (k) { return waitingOn(jobsById[k]); });
@@ -5932,7 +6111,7 @@ function useShot(asFirst, name, stay) {
 }
 $('pfirst').addEventListener('click', function () { useShot(true); });
 $('pref').addEventListener('click', function () { useShot(false); });
-function openPlayer(url, j) {
+function openPlayer(url, j, opts) {
   var pl = $('player');
   if (window.__scrollStop) window.__scrollStop();
   savedY = window.scrollY || 0;
@@ -5949,6 +6128,12 @@ function openPlayer(url, j) {
   // written either way is one thread on one clip.
   // the STAGE is the host, not the whole player — see the `.pstage` note in
   // the stylesheet: filmnote anchors its controls to its wrap's bottom edge
+  // A CLIP THAT WILL NOT PLAY SAYS SO (2026-09-14) — a dead player with a
+  // trim row under it was a screen of controls that did nothing
+  v.addEventListener('error', function () { toast('That clip would not play — the file may be gone'); });
+  // NO NOTE DOOR ON A REFERENCE (2026-09-14): a note there lands under a url no
+  // card carries, where nothing would ever show it back to her
+  if (opts && opts.note === false) return;
   try { if (window.__filmNote) fnote = window.__filmNote({ wrap: pl.querySelector('.pstage'), video: v, chat: noteChat(), url: url }); } catch (e) {}
 }
 // A REFERENCE IN THE STRIP, BIG (2026-09-12, Sophie: "make clicking on a
@@ -5961,7 +6146,7 @@ function openPlayer(url, j) {
 function openRef(i) {
   var r = refs[i];
   if (!r || !r.url || r.kind === 'audio') return;
-  if (r.kind === 'video') openPlayer(r.url, null);
+  if (r.kind === 'video') openPlayer(r.url, null, { note: false });
   else openShot(r.url, { use: false });
 }
 // ── WHAT CHANGED — the compare panel (2026-09-11, Sophie: "is there an easy
@@ -6033,7 +6218,15 @@ function compareTap(id) {
     var b = jobsById[cmpPick] || cmpPool[cmpPick];
     var was = cmpPick; cmpPick = '';
     var wb = document.querySelector('#job-' + CSS.escape(was) + ' .cmpb'); if (wb) wb.classList.remove('on');
-    if (b) openCompare(b, j);
+    // THE NEWER ONE IS "THIS CLIP", WHICHEVER SHE TAPPED FIRST (2026-09-14,
+    // found auditing the page). The pick opened `(first tap, second tap)`, and
+    // the one path that OFFERS a pick — the oldest clip in its project — made
+    // every second tap a newer clip in the "before" column: her added words
+    // painted as struck-out deletions, `12s → 8s` when she went the other way.
+    if (b) {
+      var nw = String(b.sentAt || '') >= String(j.sentAt || '') ? b : j;
+      openCompare(nw, nw === b ? j : b);
+    }
     return;
   }
   if (cmpPick === id) { cmpCancelPick(); return; }
@@ -6261,7 +6454,7 @@ function paintParts() {
     return '<span class="part" style="left:' + Math.max(0, a) + '%;width:' + Math.max(0, Math.min(100, b) - Math.max(0, a)) + '%"></span>';
   }).join('');
   $('tparts').innerHTML = ps.map(function (t, i) {
-    var st = t.status === 'baking' ? 'trimming…' : t.status === 'failed' ? 'did not bake' : '';
+    var st = bakeStale(t) ? 'never finished' : t.status === 'baking' ? 'trimming…' : t.status === 'failed' ? 'did not bake' : '';
     return '<div class="tpart' + (TR.editing && TR.editing === t.key ? ' on' : '') + '">'
       + '<button type="button" class="tpspan" data-pick="' + esc(t.key || '') + '">'
       + (ps.length > 1 ? 'part ' + (i + 1) + ' · ' : '') + esc(fsec(t.start)) + '–' + esc(fsec(t.end)) + 's · '
@@ -6294,6 +6487,12 @@ var saveBlobs = {};
 // `primeSave` already clears its own slot on failure; this is its twin.
 function primeMany(urls) {
   if (nativeSaver()) return;
+  // THE BANK HOLDS ONE CLIP'S PARTS (2026-09-14, found auditing the page): a
+  // successful fetch was never let go, so a trimming session pinned every part
+  // she ever primed — multi-megabyte blobs, hundreds of them, in a web view the
+  // app keeps alive for days and the self-heal will not reload mid-trim
+  var keep = {}; urls.forEach(function (u) { keep[u] = 1; });
+  Object.keys(saveBlobs).forEach(function (u) { if (!keep[u]) delete saveBlobs[u]; });
   urls.forEach(function (u) {
     if (saveBlobs[u]) return;
     saveBlobs[u] = fetch(u).then(function (r) { return r.blob(); })
@@ -6332,6 +6531,7 @@ function saveMany(urls) {
       var a = document.createElement('a');
       a.href = URL.createObjectURL(f); a.download = f.name;
       document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { try { URL.revokeObjectURL(a.href); } catch (e) {} }, 0);
     });
   });
 }
@@ -6392,6 +6592,7 @@ function paintTrim() {
 function setMark(which) {
   if (!TR || !TR.dur) return;
   TR.all = false;               // moving a mark is the end of a whole-clip run
+  try { TR.v.pause(); } catch (e) {}   // a mark is placed on a FRAME — the steppers and the strip pause, so this does too
   var t = r3(Math.min(Math.max(TR.v.currentTime || 0, 0), TR.dur));
   if (which === 'in') {
     if (t > TR.out - TRIM_MIN) return toast('That is too close to the end mark');
@@ -6543,6 +6744,7 @@ $('tgref').addEventListener('click', function () {
   if (!grabbed) return;
   shotUrl = grabbed.url;
   useShot(false, 'frame at ' + grabbed.at.toFixed(1) + 's', true);   // her marks stay
+  paintGrabRef();                    // the word lights the moment the frame is in the strip
 });
 $('tgx').addEventListener('click', clearGrab);
 
@@ -6565,8 +6767,13 @@ function sendTrim(body, said) {
       jobCard(d.job); paintRecent();
       if (TR && TR.j && TR.j.id === d.job.id) {
         TR.j = d.job; TR.parts = jobParts(d.job);
-        TR.editing = ''; TR.all = false;
-        TR.in = 0; TR.out = TR.dur;          // ready to mark the next bit
+        TR.all = false;
+        // TAKING A PART OFF KEEPS HER MARKS (2026-09-14): she is usually
+        // clearing the way to re-cut the same bit, and losing both ends to a
+        // ✕ meant placing them again. A cut lands and resets, ready for the
+        // next bit; a removal only stops editing the part that went.
+        if (body.remove) { if (TR.editing === body.remove) TR.editing = ''; }
+        else { TR.editing = ''; TR.in = 0; TR.out = TR.dur; }
         paintTrim();
       }
     }
@@ -6767,6 +6974,7 @@ function ftHolding() {                                       // the reason, or f
   if (seedVal()) return 'the seed box';
   if (!$('shelf').hidden) return 'the folder sheet';
   if (!$('player').hidden) return 'the trimmer';
+  if (!$('cmp').hidden) return 'the compare panel';
   if (castOpen) return 'the character sheet';
   if (recentOpen) return 'the Recent drawer';
   if (searchOpen() || $('q').value.trim()) return 'a search';
@@ -6802,6 +7010,7 @@ document.addEventListener('visibilitychange', function () {
 loadCtl();
 S.project = projectSaved(); castFilm = S.project;   // the ONE memory of which project she is on
 S.folder = S.project ? folderSaved() : '';
+headsApply(S.project, true);   // this project's own heads; the draft's stand until it has some on file
 openSaved().forEach(function (k) { OPEN[k] = true; });   // which projects she left open
 paintProject(); paintFolder();
 loadFilms();

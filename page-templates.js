@@ -157,6 +157,18 @@ function cleanFootage(raw) {
     }
     if (refs.length) out.refs = refs;
   }
+  // THE FIELDS THE PAGE READS AND THIS DROPPED (2026-09-14, found auditing
+  // footage): a keyframe is only a keyframe if it is among the refs, several
+  // blocks are several blocks, and the project is where the clip files.
+  const inRefs = (u) => Array.isArray(out.refs) && out.refs.some((r) => r.url === u);
+  const first = STR(raw.firstFrame, 500); if (first && inRefs(first)) out.firstFrame = first;
+  const last = STR(raw.lastFrame, 500); if (last && inRefs(last) && last !== out.firstFrame) out.lastFrame = last;
+  if (Array.isArray(raw.blocks)) {
+    const blocks = raw.blocks.map((b) => STR(b, 4000)).filter(Boolean).slice(0, 40);
+    if (blocks.length) out.blocks = blocks;
+  }
+  const project = STR(raw.project, 60); if (project) out.project = project;
+  const folder = STR(raw.folder, 60); if (folder && project) out.folder = folder;
   return out;
 }
 
@@ -1113,5 +1125,5 @@ function archiveMapOf(data) {
 module.exports = {
   BUTTON_ICONS,
   TEMPLATES, ASPECTS, validateTemplate, archiveMapOf, renderTemplatePage, groupAssetVariants,
-  planAutoPages, parseCaption, normContent, assignVoiceSegments, isMomentDeck,
+  planAutoPages, parseCaption, normContent, assignVoiceSegments, isMomentDeck, cleanFootage,
 };

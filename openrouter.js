@@ -289,6 +289,7 @@ async function startVideo(b, extra) {
   }
   const jobId = r.id;
   if (!jobId) { const e = new Error('OpenRouter gave no job id: ' + JSON.stringify(r).slice(0, 200)); e.status = 502; throw e; }
+  let logged = true;
   try {
     await logDoc(jobId).set({
       ...videoLog.sentRecord({ jobId, prompt: b.prompt, model: built.model, params: built.params,
@@ -296,8 +297,21 @@ async function startVideo(b, extra) {
       provider: 'openrouter',
       ...(extra && typeof extra === 'object' ? extra : {}),
     }, { merge: true });
-  } catch (e) { console.warn('[openrouter] video log write failed', e.message); }
-  return { jobId, sent: built.body, model: built.model, params: built.params };
+  } catch (e) {
+    // ONE RETRY, THEN SAY SO (2026-09-14): a failed write was a console.warn and a
+    // normal answer, so footage filed nothing for a clip already charged and drawing
+    console.warn('[openrouter] video log write failed', e.message);
+    try {
+      await new Promise((r) => setTimeout(r, 400));
+      await logDoc(jobId).set({
+        ...videoLog.sentRecord({ jobId, prompt: b.prompt, model: built.model, params: built.params,
+          tag: { chat: b.chat, scene: b.scene, title: b.title, session: b.session, note: b.note, project: b.project, folder: b.folder } }),
+        provider: 'openrouter',
+        ...(extra && typeof extra === 'object' ? extra : {}),
+      }, { merge: true });
+    } catch (e2) { console.warn('[openrouter] video log write failed twice', e2.message); logged = false; }
+  }
+  return { jobId, sent: built.body, model: built.model, params: built.params, logged };
 }
 
 // The poll, as a function: reads the job, mirrors the clip once on completion,

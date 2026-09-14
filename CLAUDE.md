@@ -5312,8 +5312,64 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     pinning the drop, and the two page pins in `test-footage-audit-3.js` plus
     one in `test-footage-blocks-audit.js` quoted the page code that moved into
     `cast-line.js`.
-    **NAMED AND NOT FIXED — hers to pick from** (the three reports in full are
-    in this chat): the server's search does not fill `projectName`, so
+    **THE FOURTH ROUND (2026-09-14, Sophie: "audit footage for bugs and
+    missing features") FIXED ALL BUT ONE OF THE FOURTEEN NAMED BELOW AND
+    THIRTY-FOUR MORE — three read-only sweeps again (the server, the prompt
+    panel, the feed and player).** The ones that cost money or drew the wrong
+    clip: **a put-back doubled CHARACTERS and SETTING** — `j.prompt` is the
+    text that WENT, heads on top, and `copyBack` landed it in the scene block
+    while the two head boxes still held their own copy, so every "Try again"
+    and every re-roll since the heads landed sent the cast and the room twice
+    (the current heads' prefix comes off on the way back in); **the All star's
+    price ignored the reference COUNTS** (`shapeKey` ended in one bit, so a
+    ten-picture union quoted the block's Atlas price for a job Atlas must
+    refuse) and **sent with no figure at all** when the estimate had not
+    landed — no figure, no send now; **a refusal's door words outlived the
+    job** (nothing hid `#err` on clear, undo, a put-back or a project switch,
+    so a word tapped later re-sent words no longer on the page, and priced
+    off the LIVE controls) — the line has a ✕, dies with the job, and a door
+    word re-sends the exact BODY that was refused; **`reslotPlan` forgot one
+    vanished slot name** where a join can take two; **a lone block could be
+    left `shut`** with no heading to open it (the page showed no box at all);
+    **"New folder…" from a project she was only looking at** made it in the
+    one she was standing in; **the heads are per PROJECT now**
+    (`footage_heads`, keyed by project — switching films rode the last film's
+    cast onto every clip). Server: `/status` handed out her three balances
+    unauthenticated (only with the token now); **a trim REPLACE onto a span
+    another part already held wrote nothing** and told the page the part was
+    gone; **a poster that missed its one bake was never baked again** (tried
+    once per process on every read now, and the bake rides `gateTrim` — it
+    decoded outside the queue); vote/project/hide on a wrong id CREATED a doc
+    that read as drawing forever (they `update` and 404); a pair of long
+    reference videos on AUTO died on Atlas's 15.2s cap with two doors open
+    (walks off Atlas, card says so); a failed OpenRouter discount read wrote
+    full list over a good sale (merges, `null` for "could not read"); the
+    pause is checked inside `startJobInner` and, like every refusal footage
+    raises itself, LOGGED; a door whose log write fails retries once and
+    answers `logged:false`, which rides the card's note; kin reads one
+    project; the shelf cache empties on every write; balances keep the last
+    good figure per door; `pageJobs` breaks a `sentAt` tie by id and takes
+    `beforeId`. Page: a pick opens the NEWER clip as "this clip"; the server's
+    search hits are a floor, not a ceiling; a `baking` part over 15 minutes
+    old is dead, not working (the poll stopped re-reading the whole
+    collection over it); the compare panel never diffs against a hidden or
+    failed clip and holds the self-heal; a refused move or mark goes back; the
+    emptied line counts the VIEW; the save bank holds one clip's parts and
+    revokes its object urls; her notes are in the client-side hay;
+    `cleanFootage` passes `firstFrame`/`lastFrame`/`blocks`/`project`/
+    `folder`. Test: `node scripts/test-footage-audit-5.js` (67 checks, pure +
+    source pins + the two money bugs headless). **STILL NAMED AND NOT FIXED**:
+    `caretkeep`'s blind-keyboard band; footage's player keeps native
+    `controls` under `/filmnote.js`, so a tap on the native scrubber toggles
+    play (the other two hosts use `/filmbar.js` — a transport decision, hers);
+    no cancel for a drawing clip, no delete (only `hidden`, and no control on
+    this page sets or clears it), no spend by project, no compare mark on the
+    tile wall, `… older` walks the feed not the funnel. `test-timeline.js`
+    and `test-atlascloud-video.js` are RED ON MAIN independent of this
+    (an embedded header-band measurement; a `retry` pin tripped by the
+    billing reader's `Retry-After`).
+    **The fourteen as they were named on 2026-09-13** (thirteen fixed above;
+    `caretkeep` stands): the server's search does not fill `projectName`, so
     searching a
     project's display name shows hits and then blanks them;
     `… older` skips clips that share a `sentAt` to the millisecond;
