@@ -1062,6 +1062,27 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   - **THE CARET IS MEASURED**, in a hidden mirror wearing the box's own font,
     padding, border and width — counting characters is wrong on the first
     wrapped line.
+  - **A FIT NEVER COLLAPSES THE BOX SHE IS TYPING IN (2026-09-14, Sophie:
+    "huge text block bug · rapid movement · in footage · while typing").**
+    The 2026-09-12 typing rule (an ordinary letter writes no style on the
+    focused box — iOS answers a relayout of it by revealing the caret, the
+    keeper corrects a frame later, and the two tick-tock) left the SHRINK
+    road as it was: a Backspace, and every word iOS autocorrects
+    (`insertReplacementText`, on the full road by design), set the box to
+    `height:auto` to read `scrollHeight` and then wrote the real height back
+    — so a 120-line scene stood at its floor for one layout with the caret
+    somewhere else on the screen, every few words of a dictated scene, and
+    the taller the block the bigger the jump. footage's `fitBox` now measures
+    the words on a TWIN TEXTAREA (`fitHeight`: off screen, the box's computed
+    type/padding/border, the box's width, emptied between fits) and writes
+    the box only when the height really changed. A twin rather than a div,
+    MEASURED: in Chromium a textarea wraps as if 2px narrower than a div of
+    the same outer width, and a div mirror came back one line short on a real
+    scene. Not seen in headless Chromium (no engine here reveals the caret on
+    relayout), so the test pins the CAUSE — zero style writes and no `auto`
+    on the box for a backspace and an autocorrect mid-scene, verified failing
+    3 against the live page: 16 writes for four edits. `node
+    scripts/test-footage-typing.js`, section 8.
   - **AT THE END OF A SCENE THE PAGE BORROWS THE ROOM IT IS SHORT OF**
     (padding on the scrolling element, given back when the keyboard goes):
     below the last line there is only the card's padding, so without it the

@@ -3858,17 +3858,14 @@ function setActive(w) {
 // every fit would otherwise be two pixels short and scroll its own last
 // line. Both bounds are CSS, so the browser clamps and no vh is re-derived
 // here.
-// AND THE WRAP HOLDS THE ROOM WHILE THE BOX IS MEASURED. At `height:auto`
-// the box collapses to its floor for one layout, and if that layout leaves
-// the document shorter than where she is scrolled, the browser CLAMPS the
-// scroll — measured 2026-09-11: a divide from the pinned button at line 40 of
-// a 70-line scene threw the page from scrollY 654 to 0 with no script
-// scrolling anything, because the head's `auto` moment made the page 824px
-// tall under an 844px viewport. A min-height on the wrap for the length of
-// the measurement means the document changes height ONCE, to the real fit.
-// (The same shape sat under every keystroke in a tall big box — caretkeep
-// pulled the caret back a frame later, which is why it read as a flicker
-// rather than a jump.)
+// THE `auto` MOMENT IS HISTORY (2026-09-14) — the words are measured on a
+// twin, below, and the box itself is written once, to the real fit. It used
+// to collapse to its floor for one layout, and if that layout left the
+// document shorter than where she is scrolled the browser CLAMPS the scroll
+// — measured 2026-09-11: a divide from the pinned button at line 40 of a
+// 70-line scene threw the page from scrollY 654 to 0 with no script scrolling
+// anything. A min-height lock on the wrap held the document's height through
+// it; with no collapse there is nothing to hold and the lock is gone.
 // AN ORDINARY KEYSTROKE TOUCHES NO STYLE AT ALL (2026-09-12, Sophie: "every
 // other character moves textbox"). The `auto` pass above ran on EVERY input —
 // three style writes on the focused box and two on its wrap per character,
@@ -3899,17 +3896,76 @@ function fitBox(box, growOnly) {
       && wrap0.parentNode.classList.contains('shut')) return;
   var border = box.offsetHeight - box.clientHeight;
   if (growOnly) {
+    // a box the CSS cap is already clamping (its style height is taller than
+    // the box it got) cannot grow, so a write there changes nothing on screen
+    // and is the relayout the typing rule forbids
+    var set = parseFloat(box.style.height) || 0;
+    if (set > box.offsetHeight + 0.5) return;
     var need = (box.scrollHeight + border) + 'px';
     if (box.scrollHeight + border > box.offsetHeight && box.style.height !== need) box.style.height = need;
     return;
   }
-  var w = box.parentNode, lock = !!(w && w.classList && (w.classList.contains('promptwrap') || w.classList.contains('hpart')));
-  if (lock) w.style.minHeight = w.getBoundingClientRect().height + 'px';
-  box.style.height = 'auto';
-  var h = (box.scrollHeight + border) + 'px';
+  // THE SHRINK ROAD NEVER COLLAPSES THE BOX SHE IS TYPING IN (2026-09-14,
+  // Sophie: "huge text block bug · rapid movement · in footage · while
+  // typing"). It used to: `height:auto` to read `scrollHeight`, then the
+  // real height back — and for that one layout a 120-line scene was a box at
+  // its floor with the caret in a different place on the screen. On iOS the
+  // relayout of the focused textarea is the thing WebKit answers by
+  // revealing the caret (the 2026-09-12 typing rule), the keeper then
+  // corrects it a frame later, and the taller the block the bigger the jump.
+  // The grow-only road took ordinary letters off that path, but a BACKSPACE,
+  // and every word iOS autocorrects (`insertReplacementText` on the way to
+  // `full`), still took it — every few words of a dictated scene. So the
+  // needed height is now read off a MIRROR (the caret keeper's own trick: a
+  // hidden div wearing the box's font, padding, border and width, holding
+  // its words) and the box is written ONLY when that number differs from the
+  // height it already has. A backspace that unwraps nothing writes nothing;
+  // one that does writes the real height, once. The wrap's min-height lock
+  // that used to hold the document's height through the `auto` moment has
+  // nothing left to hold and is gone with it.
+  var h = fitHeight(box) + 'px';
   if (box.style.height !== h) box.style.height = h;
-  if (lock) w.style.minHeight = '';
 }
+// The words laid out at the box's own width, in a TWIN TEXTAREA that is never
+// on screen: `scrollHeight` plus the border, exactly the number the box's own
+// `auto` moment used to give, now read off a box nobody is typing in. A div
+// will not do — MEASURED in Chromium, a textarea wraps as if it were 2px
+// narrower than a div of the same outer width (scan of the same scene:
+// 33 lines at 290-291px in a div, 34 in the textarea), so a div mirror came
+// back one line short on a real scene and the box scrolled inside itself.
+// A twin is the same engine's own textarea rule, whatever it is. It copies
+// the box's computed type, padding and border rather than its classes (the
+// wrap's `padding-bottom:34px` is a descendant rule), is uncapped inline,
+// and is emptied between fits so it is nothing for iOS to keep a layer for.
+var FIT_COPY = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing',
+  'textTransform', 'textIndent', 'wordSpacing', 'paddingTop', 'paddingRight', 'paddingBottom',
+  'paddingLeft', 'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
+  'borderTopStyle', 'borderBottomStyle', 'borderLeftStyle', 'borderRightStyle', 'boxSizing',
+  'whiteSpace', 'wordBreak', 'overflowWrap', 'tabSize', 'lineBreak'];
+var fitTwin = null;
+function fitHeight(box) {
+  var cs = window.getComputedStyle(box);
+  if (!fitTwin || !fitTwin.parentNode) {
+    fitTwin = document.createElement('textarea');
+    fitTwin.setAttribute('aria-hidden', 'true');
+    fitTwin.setAttribute('tabindex', '-1');
+    fitTwin.setAttribute('rows', '1');
+    fitTwin.setAttribute('data-nocaret', '');
+    fitTwin.style.cssText = 'position:fixed;left:-9999px;top:0;visibility:hidden;pointer-events:none;'
+      + 'height:auto;min-height:0;max-height:none;margin:0;resize:none;overflow:hidden;';
+    document.body.appendChild(fitTwin);
+  }
+  var t = fitTwin;
+  for (var k = 0; k < FIT_COPY.length; k += 1) {
+    try { t.style[FIT_COPY[k]] = cs[FIT_COPY[k]]; } catch (_) { /* a property this browser has not got */ }
+  }
+  t.style.width = box.getBoundingClientRect().width + 'px';
+  t.value = box.value;
+  var h = t.scrollHeight + (t.offsetHeight - t.clientHeight);
+  t.value = '';
+  return h;
+}
+window.__fitBox = { fit: fitBox, height: fitHeight };   // the test's hands on the closure
 function fitAll() {
   blocks().forEach(function (w) { fitBox(w.querySelector('.pblock')); });
   // a SHUT head measures nothing and `fitBox` says so itself, so this is the
