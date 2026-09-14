@@ -13375,9 +13375,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **A SEND IN THE SWAP WINDOW IS REFUSED, NOT DRAWN.** The guard pauses the
     box once it has decided to let the swap through, and the old instance dies
     about a minute later. The Playground QUEUES a tap; a video job has no queue
-    to stand in, so `POST /api/footage/jobs` answers 503 `refusal:'paused'` with
-    the note in her own words. **It only ever reaches the OLD instance** — the
-    new one boots with no pause at all — so the wait is seconds.
+    to stand in, so `POST /api/footage/jobs` answers 503 `refusal:'paused'`
+    saying **nothing was sent or charged, tap again in about a minute** — this
+    page's OWN words, never the Playground's note, which promises the tap
+    "will draw on its own" and would be a message promising a clip that never
+    comes. **It only ever reaches the OLD instance** — the new one boots with
+    no pause at all — so the wait is seconds.
   - **THE COUNT IS IN MEMORY AND PER PROCESS, deliberately.** The question both
     readers ask is *would killing THIS process lose something*, which is a fact
     about this process. A doc saying `running` may belong to an instance that

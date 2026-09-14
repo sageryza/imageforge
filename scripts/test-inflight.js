@@ -77,6 +77,12 @@ const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
   ok(/inflight\.track\('footage-bake', fn\)/.test(f), 'a trim/frame bake is registered');
   ok(/bakePoster\(id, videoUrl\) \{ return inflight\.track\('footage-bake'/.test(f), 'a poster bake is registered');
   ok(/refusal: 'paused'/.test(f), 'a send during the deploy pause is refused, not drawn');
+  // THE WORDS ARE THIS PAGE'S OWN — the Playground's note promises the tap
+  // "will draw on its own in about a minute", which is false here: nothing
+  // queues a video job, and a message promising a clip that never comes is
+  // worse than no message.
+  ok(/nothing was sent or charged/.test(f), 'and it says nothing was sent or charged');
+  ok(!/pause\.note/.test(f), "it never borrows the Playground's queued-tap note");
 
   const srv = read('server.js');
   ok(/work: inflight\.counts\(\), working: inflight\.total\(\)/.test(srv), '/inflight reports the register');

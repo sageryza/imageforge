@@ -721,6 +721,7 @@ function init(opts) {
   if (opts && typeof opts.paused === 'function') pausedHook = opts.paused;
 }
 function pausedNow() { try { return pausedHook ? pausedHook() : null; } catch { return null; } }
+const PAUSED_WORDS = 'Paused for a server update — nothing was sent or charged. Tap again in about a minute.';
 function cfg() {
   const d = getDoors();
   return { openrouter: Boolean(d.openrouter && d.openrouter.configured()), apiframe: Boolean(d.apiframe && d.apiframe.configured()),
@@ -1713,10 +1714,12 @@ router.post('/jobs', async (req, res) => {
     // in her own words instead, and it is the one refusal that is not the
     // door's. It only ever reaches the OLD instance: the new one boots with
     // no pause at all, so the wait is seconds.
-    const pause = pausedNow();
-    if (pause) {
-      return res.status(503).json({ error: pause.note || 'Paused for a server update — try again in about a minute.',
-        refusal: 'paused', why: pause.note || 'Paused for a server update — try again in about a minute.' });
+    // THE WORDS ARE THIS PAGE'S OWN, NEVER THE PAUSE NOTE. The Playground's
+    // note says the tap "will draw on its own in about a minute", which is
+    // true there and false here — nothing queues a video job — and a message
+    // promising a clip that never comes is worse than no message.
+    if (pausedNow()) {
+      return res.status(503).json({ error: PAUSED_WORDS, refusal: 'paused', why: PAUSED_WORDS });
     }
     const r = await startJob(req.body || {});
     balCache.at = 0;
