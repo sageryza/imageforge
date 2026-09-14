@@ -2492,21 +2492,23 @@ async function pillSweep(pg, where) {
   });
   ok('with the search open the picker is still whole, before the funnel, and takes its tap — ' + JSON.stringify(barOpen),
     barOpen.w === barOpen.gw && barOpen.h === barOpen.gh && barOpen.tappable && barOpen.clear && (barOpen.chip === null || barOpen.chip > barOpen.x));
-  // folding the buttons, or the whole panel, leaves the picker on screen
+  // folding the buttons, or the references, leaves the picker on screen. (The
+  // PANEL's own fold went 2026-09-14 — "remove prompt collapse" — so the two
+  // folds left are the ones that can take a picker off the screen.)
   const folded = await pgP.evaluate(async () => {
     const h = () => document.getElementById('projwrap').getBoundingClientRect().height;
     document.getElementById('ctlfold').click();
     await new Promise((r) => setTimeout(r, 140));
     const afterButtons = h();
-    document.getElementById('panelfold').click();
+    document.getElementById('reffold').click();
     await new Promise((r) => setTimeout(r, 140));
-    const afterPanel = h();
-    document.getElementById('panelfold').click();
+    const afterRefs = h();
+    document.getElementById('reffold').click();
     document.getElementById('ctlfold').click();
     await new Promise((r) => setTimeout(r, 140));
-    return { afterButtons, afterPanel, back: h() };
+    return { afterButtons, afterPanel: afterRefs, back: h() };
   });
-  ok('folding the buttons or the whole panel never takes it off the screen — ' + JSON.stringify(folded),
+  ok('folding the buttons or the references never takes it off the screen — ' + JSON.stringify(folded),
     folded.afterButtons > 0 && folded.afterPanel > 0 && folded.back > 0);
   // the tiles narrow too
   await pgP.click('#v-tiles');

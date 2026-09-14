@@ -98,7 +98,9 @@ const read = () => {
   const cs = getComputedStyle(bar);
   const pill = document.querySelector('body > .float');
   const pr = pill && pill.getClientRects().length ? pill.getBoundingClientRect() : null;
-  const pw = document.querySelector('.panelrow').getBoundingClientRect();
+  // THE PANEL'S OWN STICKY ROW IS GONE (2026-09-14, "remove prompt collapse"),
+  // so what the bar has to stay under at rest is the panel itself.
+  const pw = document.querySelector('.panel').getBoundingClientRect();
   const tap = (sel) => {
     const e = document.querySelector(sel);
     if (!e) return null;
@@ -117,6 +119,8 @@ const read = () => {
     onScreen: r.top >= 0 && r.bottom <= window.innerHeight,
     paints: !!(mid && (mid.id === 'feedbar' || mid.closest('#feedbar'))),
     panelrowBottom: Math.round(pw.bottom),
+    stickyInPanel: Array.prototype.filter.call(document.querySelectorAll('.panel > *'),
+      (e) => getComputedStyle(e).position === 'sticky').length,
     pillLeft: pr ? Math.round(pr.left) : null,
     list: tap('#v-list'), tiles: tap('#v-tiles'), proj: tap('#projwrap'),
     chip: tap('#feedfilters .filtchip'),
@@ -155,7 +159,9 @@ const read = () => {
   ok('pinned at the header top, never a hardcoded band — ' + rest.top, rest.top === '51px');
   ok('and it starts BELOW the panel at rest (' + rest.barTop + 'px of 844)',
     rest.barTop > 300 && rest.barTop < 844);
-  ok('under the prompt panel, not over it', rest.barTop > rest.panelrowBottom);
+  ok('under the prompt panel, not over it', rest.barTop >= rest.panelrowBottom);
+  ok('and nothing inside the panel pins any more — the PROMPT row went with the fold',
+    rest.stickyInPanel === 0);
 
   // ── 2. scrolled into the gallery it is still on screen, and it WORKS ─────
   await to(1200);
@@ -186,24 +192,10 @@ const read = () => {
   await page.click('#v-list');
   await settle();
 
-  // ── 4. IT NEVER OVERLAPS THE PANEL'S OWN STICKY FOLD ROW. A sticky element
-  //       is constrained by its containing block, so the panel carries its
-  //       fold row up and off with it — by the time this bar reaches the top
-  //       that row's bottom is already at or above it. Scanned rather than
-  //       reasoned: the two share a `top` and a mistake here is a covered
-  //       fold button for a window of scroll nobody would look at. ─────────
-  const seam = [];
-  for (let y = 360; y <= 560; y += 5) {
-    await to(y);
-    seam.push(await page.evaluate(() => {
-      const pw = document.querySelector('.panelrow').getBoundingClientRect();
-      const fb = document.getElementById('feedbar').getBoundingClientRect();
-      return Math.round(fb.top - pw.bottom);
-    }));
-  }
-  ok('the fold row and the bar never overlap across the transition (min gap '
-    + Math.min.apply(null, seam) + 'px over ' + seam.length + ' positions)',
-    Math.min.apply(null, seam) >= 0);
+  // (The scan that stood here walked the seam between this bar and the panel's
+  // own sticky PROMPT row across the transition. That row is gone — 2026-09-14,
+  // "remove prompt collapse" — so there is no second sticky row to seam
+  // against, which is what `stickyInPanel` above measures instead.)
 
   // ── 5. the glass, pinned: the funnel is the last thing on the field's line
   //       and has to keep the pill's column clear ─────────────────────────
