@@ -8972,14 +8972,38 @@ before working on that module. Nothing was deleted — the moved text is verbati
   in the gap puts them back with a blank line between. **THE STAR SENDS THE
   BLOCK SHE IS IN** — the one she last tapped into, wearing the star's gold
   line once there are two or more; the model, the seconds and the size are
-  the job and are shared, the block is the words; a slot tap, a character's
-  line and a put-back land in the active block. **A CARET AT THE END MAKES AN
+  the job and are shared, the block is the words; a slot tap and a
+  character's line land in the active block, and a **PUT-BACK MAKES A BLOCK
+  OF ITS OWN** (2026-09-14, Sophie: "copy back from finished job shud make a
+  new text block · not replace the selected block") — see the paragraph after
+  next. **A CARET AT THE END MAKES AN
   EMPTY BLOCK, AND IT TAKES THE GOLD LINE AND THE CARET WITH IT (2026-09-14,
   Sophie: "divide here in footage should allow a divide with nothing after it
   to make a new empty block")** — the old refusal there is HISTORY (an empty
   block is an ordinary state here, and writing shot two means asking for a box
   before there are words for it); a caret at the START is still refused (her
   words would jump down the screen) and an empty box divides into nothing.
+  **AND PUTTING A FINISHED CLIP BACK MAKES A BLOCK RATHER THAN OVERWRITING
+  ONE (2026-09-14, Sophie: "copy back from finished job shud make a new text
+  block · not replace the selected block").** A card's copy button used to
+  write its words straight into the box she was standing in, so putting a clip
+  back cost her whatever was in that block — the scene she was part way
+  through, or the shot she had just divided out — and the only way back was the
+  `undo` `copyBack` had to bank the WHOLE job for. One block is one clip, so a
+  clip she puts back is another block. Five things not to undo: it lands at
+  the **END**, never inserted beside her (an insert renumbers the shots she is
+  reading in order); **except into a TRAILING EMPTY block**, which is the box
+  she already has — a fresh page IS one empty block and a divide at the end is
+  her asking for somewhere to write, so adding beside either would strand an
+  empty block she then has to take off (empty means no words AND no pictures);
+  the new block **takes the gold line and the card's own strip**, so the star
+  sends what she just put back and the references under the panel are its;
+  **nothing is banked**, because nothing is overwritten — an `undo` left on
+  the row by an earlier `clear` goes on meaning that clear; and **the
+  SETTINGS are still the job and are still replaced** (model, seconds, size,
+  shape, seed), only what the record knows, exactly as before. The window is
+  walked to the new block — never `scrollIntoView`, and never simply to the
+  top of the page, which on a panel of several blocks is not where it is.
   Both corner buttons pin
   together (`stickybox.js` v2 — buttons on one box are a group; the divide is
   `nofollow`, since it shrinks the box from the bottom and the seam is
@@ -9033,8 +9057,8 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (the toast names the block when it is not the one she is standing in); the
   **✕ renames the active
   block's words alone**, since no other block's pictures moved; a **put-back**
-  replaces that block's strip and touches no other; a **hand-off gives every
-  block the same strip** (one job's references, however many parts its scene
+  brings the card's strip in on the NEW block it makes and touches no
+  other; a **hand-off gives every block the same strip** (one job's references, however many parts its scene
   came over in). **AND FOLDING A BLOCK AWAY NO LONGER
   MAKES IT THE ONE THE STAR SENDS** — the document click handler makes any
   button on a block active, which was invisible while the strip was shared and

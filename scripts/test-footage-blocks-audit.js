@@ -309,13 +309,20 @@ const readBlocks = () => {
     if (btn) { btn.click(); return true; }
     return false;
   });
+  // 2026-09-14, Sophie: "copy back from finished job shud make a new text
+  // block · not replace the selected block". A put-back OVERWRITES NOTHING
+  // now — it lands in a block of its own — so it banks nothing either, and an
+  // `undo` left on the row by an earlier clear goes on meaning that clear.
   if (copied) {
     await page.waitForTimeout(500);
-    ok('a put-back offers an undo for what it overwrote',
-      await page.evaluate(() => document.getElementById('undojob').hidden === false));
+    const after = await page.evaluate(readBlocks);
+    ok('a put-back adds a block and leaves the ones she wrote alone',
+      after.length === before.length + 1
+      && after[0].text === before[0].text && after[1].text === before[1].text);
   } else {
-    ok('a put-back offers an undo for what it overwrote (no card button in this fixture — source pinned instead)',
-      /bank = wasJob; saveBank\(\);/.test(fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8').split('function copyBack')[1].slice(0, 400)));
+    const fn = fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8').split('function copyBack')[1].slice(0, 3000);
+    ok('a put-back banks nothing, because it overwrites nothing (no finished card in this fixture — source pinned instead)',
+      !/bank = /.test(fn) && /addBlock\(back, tail, job\)/.test(fn));
   }
 
   // ── 12. SOURCE PINS for the fixes with no reachable surface here ────────
