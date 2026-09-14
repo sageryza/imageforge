@@ -5216,15 +5216,66 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
       sheet — `navigator.share` was called after awaiting the bytes, which
       spends the tap's transient activation, the trap `primeSave` was written
       for. Not-ready is answered before the await now.
+    **AND THE TOP THREE OF THOSE ARE FIXED — the ones that cost money or draw
+    the wrong clip (2026-09-14, Sophie: "what's next").**
+    - **A KEYFRAME TAKES NO SLOT, AND `POST /api/cast/plan` DID NOT KNOW IT.**
+      `castLine.plan` numbers the slots over the strip it is handed and
+      `slotsOf` SKIPS a marked picture, so planning over the RAW strip
+      numbered every slot after a mark one too high: the line a chat got back
+      named a picture that is not there, and **the clip still drew**. The page
+      had learned this on 2026-09-13 and **kept the whole rule to itself**,
+      which is exactly why the door a CHAT calls went on getting it wrong. It
+      is `castLine.planMarked` now — ONE rule, both callers, and a source pin
+      that the page keeps no copy (`withMarks`/`castLine` are gone from it).
+      Three halves, each measured: it plans over the PLAIN strip; it puts the
+      marks back where they were (`plan`'s own `refs` would DELETE them, and a
+      look that OWNS a marked picture must not attach it twice — her mark
+      wins); and a `{n}` pointing at a marked picture **names the END** ("in
+      the first frame") rather than leaving a raw token. The marks ride in as
+      `first`/`last` or `firstFrameUrl`/`lastFrameUrl`, since a chat holds one
+      spelling or the other. With no mark, `planMarked` IS `plan`, byte for
+      byte.
+    - **A RENAMED WARDROBE LOOK KEY IS NAMED NOW, NEVER SILENT.** A `wear`
+      spec whose entry or whose LOOK KEY has been renamed pushed nothing at
+      all, so the pajamas did not ride and the line's `{2}` went out as a
+      literal `{2}` — a patient with no pajamas, nothing on screen saying so.
+      **Leaving the token alone is still right** (a line that lost a reference
+      must read wrong rather than read fine and send one slot short) — what
+      was missing is that nobody was told. `plan` answers `missing` (the spec
+      and why) and `unresolved` (the tokens still standing), the tap names it
+      **in the ONE toast it raises** (a second `toast()` call would simply
+      overwrite the first), and **`buildJob` REFUSES a prompt carrying a
+      `{n}`** — free, before anything draws, naming what to fix. She never
+      types those (she taps a character), so it can only ever be this bug.
+    - **`doorTakes` MODELS ATLAS'S OWN CAPS.** At most 9 reference images, 3
+      videos and 3 audios, and a reference audio needs a picture or a video
+      beside it (atlascloud.js's own numbers, pinned equal by the test). Atlas
+      refuses on the POST, free — but **AUTO ranks Atlas FIRST for Mini and
+      Fast on its 80% sale**, so a ten-picture job went to the one door that
+      must refuse it and the page offered no other. The counts ride the shape
+      (`images`/`videos`/`audios`), the page sends them with the estimate so
+      the price line is the real door, and `startJob` counts the PLAIN strip —
+      a keyframe never among them. **A caller that only says `hasRefs`
+      behaves exactly as before**, which is the safe direction: never refuse a
+      door for a cap that cannot be seen. OpenRouter's and APIFRAME's own caps
+      are UNMEASURED and are deliberately not modelled. A cap refusal is a
+      SHAPE refusal, so it is never offered back to the same door.
+    Tests: `node scripts/test-footage-audit-4.js` (45 checks, pure plus source
+    pins; verified failing **36** pre-fix) and the wardrobe half of
+    `node scripts/test-cast.js` (102 now — the real page headless, the token
+    MEASURED still standing in her box and the toast MEASURED naming the
+    wardrobe, since a plan that reports the miss and a page that says nothing
+    about it look identical in the source; verified failing 2 pre-fix). Two
+    tests were RED ON MAIN and are repointed rather than left: #2367 turned a
+    dropped keyframe url into a refusal and left `test-video-keyframes.js`
+    pinning the drop, and the two page pins in `test-footage-audit-3.js` plus
+    one in `test-footage-blocks-audit.js` quoted the page code that moved into
+    `cast-line.js`.
     **NAMED AND NOT FIXED — hers to pick from** (the three reports in full are
-    in this chat): `/api/cast/plan` hands `cast-line.js` a RAW strip, so a
-    chat's line names the wrong slots when a keyframe is marked; a renamed
-    wardrobe look key makes the wardrobe silently not ride and ships a literal
-    `{2}`; the server's search does not fill `projectName`, so searching a
-    project's display name shows hits and then blanks them; `doorTakes` does
-    not model Atlas's own caps (>9 pictures, >3 videos, audio alone), so
-    `auto` sends a job to the one door that must refuse it and the page offers
-    no other; `… older` skips clips that share a `sentAt` to the millisecond;
+    in this chat): the server's search does not fill `projectName`, so
+    searching a
+    project's display name shows hits and then blanks them;
+    `… older` skips clips that share a `sentAt` to the millisecond;
     the draw-time buckets double-count a clip with no ratio; a 40+ character
     film slug can never be tucked (two truncation lengths); footage's own
     shape refusals are the ones that leave no log; taking a part off resets

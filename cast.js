@@ -235,6 +235,16 @@ async function removeLook(id, key) {
 // wardrobe an entry WEARS lives in another doc: the sheet holds the whole
 // shelf, so it plans locally through the same `cast-line.js`, and this route
 // is what a chat calls.
+// A KEYFRAME TAKES NO SLOT, AND THIS ROUTE DID NOT KNOW IT (2026-09-14, from
+// the audit). `castLine.plan` numbers the slots over the strip it is handed,
+// and a picture marked as the first or last frame leaves the reference lists
+// entirely — so planning over the RAW strip numbered every slot after a mark
+// one too high, and the line a chat got back named a picture that is not
+// there. The clip still draws. The page had learned this and kept the rule to
+// itself; `castLine.planMarked` is that rule, shared, and both call it.
+// The marks ride in as `first`/`last` (the page's own draft field names) or as
+// `firstFrameUrl`/`lastFrameUrl` (the job body's), since a chat holds one or
+// the other and neither spelling should be the wrong one.
 async function planFor(b) {
   const rows = await allRows();
   const film = slugify(b.film);
@@ -244,7 +254,10 @@ async function planFor(b) {
   if (!entry) return { error: 'no such character in that film' };
   const look = b.look ? castLine.lookByKey(entry, String(b.look)) : entry.looks[0];
   if (b.look && !look) return { error: 'no such look' };
-  return { ...castLine.plan({ refs: b.refs, entry, look, byslug }), entry: entry.slug, look: (look && look.key) || '' };
+  const first = b.first || b.firstFrameUrl || '';
+  const last = b.last || b.lastFrameUrl || '';
+  return { ...castLine.planMarked({ refs: b.refs, entry, look, byslug, first, last }),
+    entry: entry.slug, look: (look && look.key) || '' };
 }
 
 // ─── Router ─────────────────────────────────────────────────────────────

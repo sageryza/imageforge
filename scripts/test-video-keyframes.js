@@ -211,8 +211,13 @@ const base = { prompt: 'she walks out of the office, camera at eye level', durat
     () => F.buildJob({ prompt: 'p', model: 'mini', refs: [], firstFrameUrl: FIRST }).body.firstFrameUrl === FIRST);
   ok('buildJob: one picture cannot be both ends',
     /cannot be both/.test(F.buildJob({ prompt: 'p', model: 'mini', refs: R, firstFrameUrl: FIRST, lastFrameUrl: FIRST }).error || ''));
-  ok('buildJob: a url that is not https is dropped rather than sent as a frame',
-    () => !('firstFrameUrl' in F.buildJob({ prompt: 'p', model: 'mini', refs: [], firstFrameUrl: 'a.png' }).body));
+  // A URL THE DOORS CANNOT FETCH REFUSES THE JOB — it is never dropped
+  // (2026-09-13). Dropping it left the picture she marked as the first frame
+  // riding as an ordinary slotted reference and the job went out
+  // references-only. This assertion used to pin the DROP and was left behind
+  // by that fix; it pins the refusal now.
+  ok('buildJob: a url that is not https REFUSES the job rather than being dropped',
+    /not a url the doors can fetch/.test(F.buildJob({ prompt: 'p', model: 'mini', refs: [], firstFrameUrl: 'a.png' }).error || ''));
   const none = F.buildJob({ prompt: 'p', model: 'mini', refs: R });
   ok('buildJob: with no keyframe every picture keeps its slot, as it always did',
     none.refs.map((r) => r.slot).join(' ') === '[Image1] [Image2] [Image3] [Video1]'

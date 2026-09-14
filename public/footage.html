@@ -2390,8 +2390,14 @@ function updateCost() {
   // get. Nothing here holds a copy of that rule — `doorFor` is the one place.
   var plain = slotRefs();
   var hasVideo = plain.some(function (r) { return r.kind === 'video'; });
+  // AND THE COUNTS, because Atlas has caps of its own (9 pictures, 3 videos,
+  // 3 audios, and audio never alone) and AUTO ranks Atlas first on its sale —
+  // so a ten-picture job would be priced on the one door that must refuse it.
+  // `doorFor` is still the only place that rule lives.
+  var nOf = function (k) { return plain.filter(function (r) { return r.kind === k; }).length; };
   var q = '?model=' + S.model + '&res=' + S.res + '&ratio=' + encodeURIComponent(S.ratio) + '&seconds=' + S.seconds + '&video=' + (hasVideo ? 1 : 0) + '&door=' + doorNow()
-    + (firstUrl ? '&first=1' : '') + (lastUrl ? '&last=1' : '') + (plain.length ? '&refs=1' : '');
+    + (firstUrl ? '&first=1' : '') + (lastUrl ? '&last=1' : '') + (plain.length ? '&refs=1' : '')
+    + '&imgs=' + nOf('image') + '&vids=' + nOf('video') + '&auds=' + nOf('audio');
   api('/estimate' + q).then(function (d) {
     if (seq !== costSeq) return;
     if (!d || d.error) { $('cost').textContent = (d && d.error) || ''; $('cost').dataset.cents = ''; $('cost').dataset.door = 'none'; paintKfNote(); return; }
@@ -2916,45 +2922,26 @@ function castBySlug() {
 // wrote named a slot number that `slotsOf` gives to a DIFFERENT picture. The
 // clip drew, of the wrong reference. Her MARK wins — it is hers, and a keyframe
 // takes no slot — so the plan's copy is dropped.
-function withMarks(planRefs, before) {
-  var isMark = {};
-  before.forEach(function (r) { if (roleOfUrl(r.url)) isMark[r.url] = 1; });
-  var out = planRefs.filter(function (r) { return !isMark[r.url]; });
-  before.forEach(function (r, i) {
-    if (roleOfUrl(r.url)) out.splice(Math.min(i, out.length), 0, r);
-  });
-  return out;
-}
-// AND THE LINE IS RE-RESOLVED AGAINST THE STRIP THAT REALLY RIDES. A `{n}`
-// pointing at a picture she has marked as a keyframe cannot be a slot name, so
-// it names the END instead — "in the first frame" — which is both true and
-// readable, where `resolveLine` would otherwise leave the raw `{2}` in her
-// prompt. Everything else resolves exactly as the planner answered.
-function castLine(p, ent, look) {
-  if (!CL || !CL.resolveLine || !CL.lookRefs || !CL.slotMap || !p || !p.template) return p && p.line;
-  var mine = CL.lookRefs(ent, look || (ent.looks || [])[0] || {}, castBySlug());
-  var map = CL.slotMap(slotRefs()).slots, slots = {};
-  Object.keys(map).forEach(function (u) { slots[u] = map[u]; });
-  refs.forEach(function (r) {
-    var role = roleOfUrl(r.url);
-    if (role) slots[r.url] = 'the ' + roleWord(role);
-  });
-  return CL.resolveLine(p.template, mine, slots);
-}
+// ALL THREE OF THOSE RULES LIVE IN `cast-line.js` NOW, AS `planMarked`
+// (2026-09-14). They were the page's alone, which is exactly why the door a
+// CHAT calls — `POST /api/cast/plan` — went on planning over the raw strip and
+// handing back a line naming a picture that is not there. One rule, two
+// callers; the page keeps no copy of it. The comments above are the record of
+// where each half came from.
 function castPlan(ent, look) {
-  if (!CL) return null;
-  return CL.plan({ refs: slotRefs(), entry: ent, look: look, byslug: castBySlug() });
+  if (!CL || !CL.planMarked) return null;
+  return CL.planMarked({ refs: refs, entry: ent, look: look, byslug: castBySlug(),
+    first: firstUrl, last: lastUrl });
 }
 function castApply(ent, look) {
-  var wasRefs = refs.slice();
   var p = castPlan(ent, look);
   if (!p) { toast('Characters are not loaded yet'); return; }
   if (p.empty && !p.line) { toast('Nothing on ' + (ent.name || ent.slug) + ' yet'); return; }
-  refs = withMarks(p.refs, wasRefs);
+  refs = p.refs;
   var box = activeBox();
   openBlock(box);
   var before = box.value;
-  box.value = CL.withLine(before, castLine(p, ent, look));
+  box.value = CL.withLine(before, p.line);
   if (window.__fitBigPrompt) window.__fitBigPrompt();
   // A LINE LANDING IN THE BOX OPENS THE PANEL, whether or not a picture was
   // attached with it — the panel-fold rule is that anything putting words in
@@ -2969,7 +2956,27 @@ function castApply(ent, look) {
   // this disclosure must never do.
   paintCast();
   var said = p.added ? ('Attached ' + p.added) : 'Already attached';
-  toast(box.value === before ? said + ' · the line was already there' : said + ' · line added');
+  said += box.value === before ? ' · the line was already there' : ' · line added';
+  // A WARDROBE THAT DID NOT RIDE IS SAID OUT LOUD (2026-09-14, from the
+  // audit). A `wear` spec whose look key has been renamed attaches nothing and
+  // leaves a literal `{2}` in her prompt — so the tap names it, and `buildJob`
+  // refuses the send rather than drawing around the token. It rides the ONE
+  // toast this tap raises: a second `toast()` call here would simply overwrite
+  // the first, so a warning on its own line would never be read.
+  said += castWarn(p);
+  toast(said);
+}
+// What did not resolve, in her words, or '' on an ordinary tap.
+function castWarn(p) {
+  if (p.missing && p.missing.length) {
+    return p.missing.length === 1
+      ? ' · its wardrobe did not ride (' + p.missing[0].wear + ': ' + p.missing[0].why + ')'
+      : ' · ' + p.missing.length + ' wardrobes did not ride: ' + p.missing.map(function (x) { return x.wear; }).join(', ');
+  }
+  if (p.unresolved && p.unresolved.length) {
+    return ' · its line still says ' + p.unresolved.join(' ') + ' — a reference it names is not riding';
+  }
+  return '';
 }
 
 $('casttog').addEventListener('click', function () {
