@@ -1468,8 +1468,37 @@ async function pillSweep(pg, where) {
     resent.length === 1 && resent[0].door === 'atlascloud' && resent[0].prompt === refusedBody.prompt
     && JSON.stringify(resent[0].refs) === JSON.stringify(refusedBody.refs));
 
+  // ── A PUT-BACK MAKES A NEW BLOCK (2026-09-14, Sophie: "copy back from
+  // finished job shud make a new text block · not replace the selected
+  // block") ──────────────────────────────────────────────────────────────
+  // Every assertion here is a MEASUREMENT of the rendered blocks: a put-back
+  // that lands in a block of its own and one that writes over the box she is
+  // standing in look identical in the source, and the whole of her ask is
+  // which of the two it did.
+  const blockState = () => page.evaluate(() => {
+    const ws = Array.from(document.getElementById('prompt').closest('.panel').children)
+      .filter((k) => k.classList.contains('promptwrap'));
+    return { n: ws.length, texts: ws.map((w) => w.querySelector('.pblock').value),
+      active: ws.findIndex((w) => w.classList.contains('active')),
+      refs: document.querySelectorAll('#refs .ref').length };
+  });
+  await page.evaluate(() => {
+    const el = document.getElementById('prompt');
+    el.value = 'the scene i am still writing';
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.focus();
+  });
+  await page.waitForTimeout(150);
+
   // ── putting a prompt back brings its seed, and clearing means clearing ───
   await page.click('#job-old1 .copy');
+  await page.waitForTimeout(250);
+  const put1 = await blockState();
+  ok('a put-back lands in a NEW block and leaves the one she was writing in alone ' + JSON.stringify(put1.texts),
+    put1.n === 2 && put1.texts[0] === 'the scene i am still writing'
+    && /a dog on a beach/.test(put1.texts[1]));
+  ok('…and the new block takes the gold line and the card\'s own references ' + JSON.stringify({ a: put1.active, r: put1.refs }),
+    put1.active === 1 && put1.refs === 4);
   ok('copying a clip back puts its seed in the box with its words',
     (await page.$eval('#seedbox', (e) => e.value)) === '4242');
   await page.click('#job-f0 .copy');
@@ -1481,9 +1510,11 @@ async function pillSweep(pg, where) {
   // The box opens at the model's minimum, so this is measured against a clip
   // that is deliberately NOT four seconds.
   await page.click('#job-f6 .copy');
+  // the words land in the block the put-back made, which is the one wearing
+  // the gold line — never `#prompt`, which is block 1 and is hers
   const back = await page.evaluate(() => ({ secs: document.getElementById('secs').value,
     res: document.getElementById('res').value, ratio: document.getElementById('ratio').value,
-    prompt: document.getElementById('prompt').value }));
+    prompt: document.querySelector('.promptwrap.active .pblock').value }));
   ok('copying a 15-second clip brings its seconds, its size and its shape back with its words ' + JSON.stringify(back),
     back.secs === '15' && back.res === '720p' && back.ratio === '9:16' && /socks on the line 6/.test(back.prompt));
   // AND IT WINS EVEN WITH THE SECONDS PICKER FOCUSED — on iOS that control
@@ -1558,8 +1589,10 @@ async function pillSweep(pg, where) {
   await page.waitForTimeout(120);
   const bothShut = await page.evaluate(() => ({ refs: (() => { const r = document.getElementById('refs').getBoundingClientRect(); return !!(r.width && r.height); })(),
     lab: document.getElementById('reffoldlab').textContent, n: document.querySelectorAll('#refs .ref').length }));
+  // the label names the block whose strip is showing once there is more than
+  // one of them, so the COUNT is what this asserts — never the whole string
   ok('the references fold separately, and the shut row counts them: ' + bothShut.lab,
-    !bothShut.refs && bothShut.n === 4 && /References · 4/.test(bothShut.lab));
+    !bothShut.refs && bothShut.n === 4 && /References ·( block \d+ ·)? 4/.test(bothShut.lab));
   await page.reload();
   await page.waitForFunction(() => document.querySelectorAll('#ratio option').length > 0);
   await page.waitForTimeout(500);

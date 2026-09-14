@@ -5416,29 +5416,54 @@ function moveTo(id, value) {
     });
 }
 function moveProject(id, project) { moveTo(id, project); }
-// PUTTING A PROMPT BACK PUTS ITS REFERENCES AND ITS SETTINGS BACK — only
-// what the record knows: a card with no references clears the strip.
-// A PUT-BACK IS A WIPE, SO IT BANKS THE JOB — AND IT RENUMBERS THE OTHER
-// BLOCKS (2026-09-13, found auditing the page). Two losses, both silent, both
-// through the one door the hand-off was fixed for on 2026-09-11 and this one
-// was not:
-//   - HER WORDS WENT WITH NO UNDO. `activeBox().value = j.prompt` overwrote
-//     whatever she was writing and `saveDraft()` two lines down overwrote the
-//     draft behind it, so a scene she had been typing was gone for good — and
-//     worse, an `undo` left on the row from an earlier `clear` restored THAT
-//     job instead, which is the one visible control lying about what it does.
-//     So it banks `jobNow()` first, exactly as `takeHandoff` does, and skips
-//     the bank on an empty page so an earlier one is not thrown away.
-//   - THE OTHER BLOCKS' SLOT NAMES POINTED AT A DIFFERENT STRIP — true while
-//     the strip was shared, and RETIRED by the per-block strips (2026-09-14).
-//     It replaced every block's pictures at once, so block 2's `[Image1]` went
-//     on naming a picture that was no longer there; now the put-back replaces
-//     the ACTIVE block's strip alone, the other blocks keep theirs, and there
-//     is nothing of theirs to rewrite. The bank above is untouched.
+// PUTTING A PROMPT BACK MAKES A NEW BLOCK — IT NEVER REPLACES THE ONE SHE IS
+// IN (2026-09-14, Sophie: "copy back from finished job shud make a new text
+// block · not replace the selected block"). It used to write the card's words
+// straight into the active box, so putting a finished clip back cost her
+// whatever was in that block — the scene she was part way through, or the shot
+// she had just divided out — and the only way back was the `undo` this
+// function had to bank the WHOLE job for. One block is one clip, so a clip she
+// is putting back is another block: nothing on the page is overwritten, and
+// there is nothing to bank and nothing to undo. Four things not to undo:
+//   - IT LANDS AT THE END, never beside the block she is standing in. A
+//     put-back that inserted itself would renumber the shots she is reading in
+//     order, which is a change to her scene she did not ask for.
+//   - …EXCEPT INTO A TRAILING EMPTY BLOCK, which is the box she already has: a
+//     fresh page IS one empty block, and a divide at the end of the last one is
+//     her asking for somewhere to write. Adding beside either would strand an
+//     empty block she then has to take off. Empty means no words AND no
+//     pictures — a block carrying a strip is one she set up.
+//   - THE NEW BLOCK TAKES THE GOLD LINE AND THE CARD'S OWN STRIP, so the star
+//     sends what she just put back and the references under the panel are its.
+//     The block she was in keeps its words and its pictures exactly as they
+//     were, which is the whole of her ask — and there is nothing of any other
+//     block's to renumber, since none of them moved.
+//   - THE SETTINGS ARE STILL THE JOB, and are still replaced: the model, the
+//     seconds, the size, the shape and the seed belong to the clip whichever
+//     block sends it. Only what the record knows — a card with no seed clears
+//     the box, a card with no keyframe brings no marks, and a model this page
+//     does not offer (1.5 Pro, an older APIFRAME job) leaves the picker where
+//     it is rather than switching to a row she cannot see.
+// Empty means empty of WORDS and of PICTURES: a block holding a strip and no
+// words is one she has set up and is about to write in.
+function blockEmpty(w) {
+  if (!w) return false;
+  var box = w.querySelector('.pblock');
+  return !(box && String(box.value || '').trim()) && !blockJob(w).refs.length;
+}
+// THE WINDOW, NEVER `scrollIntoView` — that walks every scrollable ancestor
+// (the caret keeper's and `goToCard`'s own rule) — and never simply to the top
+// of the page, which on a panel of several blocks is not where the new one is.
+// The panel's PROMPT row is sticky, so the block lands UNDER it rather than
+// behind it: `getComputedStyle(row).top` is the offset that row pins at, which
+// is what the page has already resolved from `--headtop`.
+function goToBlock(w) {
+  var row = document.querySelector('.panelrow'), pin = 0;
+  if (row) pin = row.getBoundingClientRect().height + (parseFloat(getComputedStyle(row).top) || 0);
+  var top = w.getBoundingClientRect().top + (window.scrollY || 0) - pin - 12;
+  window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+}
 function copyBack(j) {
-  var wasJob = jobNow();
-  if (!jobEmpty(wasJob)) { bank = wasJob; saveBank(); }
-  var into = activeBox();
   // THE HEADS COME OFF ON THE WAY BACK IN (2026-09-14, found auditing the
   // page). `j.prompt` is the text that WENT, and the send puts CHARACTERS and
   // SETTING on top of it — so a put-back landed them in the scene block while
@@ -5447,22 +5472,26 @@ function copyBack(j) {
   // off; anything else is left exactly as it went.
   var back = String(j.prompt || '');
   headWords().forEach(function (t) { if (back.indexOf(t + '\n\n') === 0) back = back.slice(t.length + 2); });
-  into.value = back;
-  refs = (j.refs || []).map(function (r) { return { url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' }; });
-  // ONLY WHAT THE RECORD KNOWS, the marks included: a clip drawn off a first
-  // frame comes back with that picture still marked, and one drawn with no
-  // keyframe CLEARS the marks rather than leaving the last clip's on the
-  // picture she just put back.
-  firstUrl = ''; lastUrl = '';
+  // the card's own strip, marks included: a clip drawn off a first frame comes
+  // back with that picture still marked. `cleanJob` (through `setBlockJob` and
+  // `addBlock`) drops a mark whose picture is not in the strip, so a card can
+  // never hand a block a keyframe it is not carrying.
+  var job = { refs: (j.refs || []).map(function (r) { return { url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' }; }), first: '', last: '' };
   (j.refs || []).forEach(function (r) {
-    if (r.role === 'first') firstUrl = r.url;
-    if (r.role === 'last') lastUrl = r.url;
+    if (r.role === 'first') job.first = r.url;
+    if (r.role === 'last') job.last = r.url;
   });
-  // ONLY WHAT THE RECORD KNOWS, and only what this page can send: a card
-  // drawn on a model the page offers comes back on it, and one drawn on a
-  // model it does not (1.5 Pro, an older APIFRAME job) comes back as its
-  // words, its references and its settings, on whichever model is showing —
-  // never silently switched to a row she cannot see in the box.
+  // she is about to write in this block, so the panel is opened before
+  // anything in it is measured
+  openFold('panel');
+  var ws = blocks(), tail = ws[ws.length - 1], fresh = !blockEmpty(tail);
+  var w = fresh ? addBlock(back, tail, job) : tail;
+  if (!fresh) { w.querySelector('.pblock').value = back; setBlockJob(w, job); }
+  w.classList.remove('shut');          // her words never land under a fold
+  // `setActive` stashes the block she is LEAVING and loads this one's strip.
+  // On a block that is ALREADY active it returns early, which would leave the
+  // globals holding the last one's references — so that case loads by hand.
+  if (isActive(w)) loadActive(); else setActive(w);
   if (j.model && modelOf(j.model)) S.model = j.model;
   if (j.seconds) S.seconds = j.seconds;
   if (j.resolution) S.res = j.resolution;
@@ -5470,19 +5499,13 @@ function copyBack(j) {
   // her ask: copying the words back brings the seed with them (and a clip with
   // no seed on file clears the box rather than leaving another clip's in it)
   setSeed(j.seed);
-  // NO OTHER BLOCK IS TOUCHED (2026-09-14). It used to renumber every one of
-  // them, which was right while the strip it just replaced was every block's;
-  // the strip is the ACTIVE block's now, so the others' pictures and their slot
-  // names have not moved and rewriting them would break the prompts that were
-  // right. The block she put this back into holds the card's own words, which
-  // already name the card's own references.
-  openFold('panel'); openFold('refs'); openFold('ctl');
-  saveCtl(); saveDraft(); paintControls(true);
+  openFold('refs'); openFold('ctl');
+  saveCtl(); saveDraft(); paintBlocks(); fitAll(); paintControls(true);
   if (window.__fitBigPrompt) window.__fitBigPrompt();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-  var said = refs.length ? 'Prompt and its references are back' : 'Prompt is back in the box';
-  if (blocks().length > 1) said += ' · block ' + (blocks().indexOf(into.closest('.promptwrap')) + 1);
-  if (!jobEmpty(wasJob)) said += ' — tap undo for what was here';
+  goToBlock(w);
+  var said = job.refs.length ? 'Prompt and its references are back' : 'Prompt is back';
+  if (fresh) said += ' — in a new block';
+  if (blocks().length > 1) said += ' · block ' + (blocks().indexOf(w) + 1);
   toast(said);
 }
 
