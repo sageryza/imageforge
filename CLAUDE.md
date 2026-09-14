@@ -8765,8 +8765,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
   that block's first words and its box is DISPLAY-hidden, so a folded block
   still sends its words and still renames its slots; the gold line moves to
   the heading when the block she is in is folded away; anything that puts
-  words in a block OPENS it; and it is MEMORY, never localStorage — a reload
-  opens everything. A box is never fitted while it is folded (`scrollHeight`
+  words in a block OPENS it. **AND A FOLD STAYS FOLDED ACROSS A RELOAD SINCE
+  2026-09-14 (Sophie: "collapsed blocks don't stay collapsed")** — it shipped
+  MEMORY-ONLY on the reasoning that "a reload opens everything, the safe
+  direction", and that is HISTORY rather than a rule: the app keeps this web
+  view alive for the whole app process, so the reload she actually meets is
+  the page's own SELF-HEAL firing on a new build — something she never asked
+  for and cannot see coming — and a fold springing open there is the fold not
+  working. It rides the DRAFT (`shut`, an array by position, beside the words
+  those folds belong to), never a settings key of its own, so a hand-off or a
+  put-back replacing the blocks replaces the folds in the same write and a
+  fold can never land on words it was not made for; it is written only while
+  something is really folded, so a page that never folds one saves exactly the
+  draft it always saved. Safe because a shut block still SAYS its first words.
+  A box is never fitted while it is folded (`scrollHeight`
   on a `display:none` box is 0, so it would come back one line tall), and the
   first divide gives back the height its own heading adds above the seam.
   Full note: *DIVIDE
