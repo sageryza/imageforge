@@ -75,8 +75,10 @@ const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
   ok(/async function startJob\(b\) \{ return inflight\.track\('footage-send'/.test(f),
     'a footage SEND is registered — the one piece of work here that spends her money before it writes anything down');
   ok(/inflight\.track\('footage-bake', fn\)/.test(f), 'a trim/frame bake is registered');
-  ok(/bakePoster\(id, videoUrl\) \{ return inflight\.track\('footage-bake'/.test(f), 'a poster bake is registered');
-  ok(/refusal: 'paused'/.test(f), 'a send during the deploy pause is refused, not drawn');
+  // through the one-decode queue since 2026-09-14, and `gateTrim` is what tracks it
+  ok(/bakePoster\(id, videoUrl\) \{ return gateTrim\(/.test(f) && /const run = \(\) => inflight\.track\('footage-bake', fn\)/.test(f), 'a poster bake is registered');
+  // the check lives in startJobInner since 2026-09-14, so a chat calling startJob meets it too
+  ok(/if \(pausedNow\(\)\) await refuse\(PAUSED_WORDS, 'paused'/.test(f), 'a send during the deploy pause is refused, not drawn');
   // THE WORDS ARE THIS PAGE'S OWN — the Playground's note promises the tap
   // "will draw on its own in about a minute", which is false here: nothing
   // queues a video job, and a message promising a clip that never comes is

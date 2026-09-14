@@ -263,13 +263,25 @@ async function startVideo(b, extra) {
   // THE LOG (video-log.js): the exact prompt and every reference of every
   // clip, filed the moment the job is accepted. Best-effort — a log write
   // must never fail a send that APIFRAME has already taken money for.
+  let logged = true;
   try {
     await admin.firestore().collection(videoLog.COLL).doc(String(jobId))
       .set({ ...videoLog.sentRecord({ jobId, prompt: b.prompt, model, params,
         tag: { chat: b.chat, scene: b.scene, title: b.title, session: b.session, note: b.note, project: b.project, folder: b.folder } }),
       ...(extra && typeof extra === 'object' ? extra : {}) }, { merge: true });
-  } catch (e) { console.warn('[apiframe] video log write failed', e.message); }
-  return { jobId, model, params };
+  } catch (e) {
+    // ONE RETRY, THEN SAY SO (2026-09-14): a failed write was a console.warn and a
+    // normal answer, so footage filed nothing for a clip already charged and drawing
+    console.warn('[apiframe] video log write failed', e.message);
+    try {
+      await new Promise((r) => setTimeout(r, 400));
+      await admin.firestore().collection(videoLog.COLL).doc(String(jobId))
+        .set({ ...videoLog.sentRecord({ jobId, prompt: b.prompt, model, params,
+          tag: { chat: b.chat, scene: b.scene, title: b.title, session: b.session, note: b.note, project: b.project, folder: b.folder } }),
+        ...(extra && typeof extra === 'object' ? extra : {}) }, { merge: true });
+    } catch (e2) { console.warn('[apiframe] video log write failed twice', e2.message); logged = false; }
+  }
+  return { jobId, model, params, logged };
 }
 
 // The poll as a function: mirrors the clip on completion (unless save is

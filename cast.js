@@ -166,6 +166,16 @@ function tuckedOf(names) {
 async function tuckedFilms() {
   try { return tuckedOf(await filmsDoc()); } catch { return []; }
 }
+// slug → the name she gave it, for a reader that has to SEARCH by the name
+// (footage's server-side search, 2026-09-14); a film never named is absent
+async function filmNames() {
+  try {
+    const n = ((await filmsDoc()) || {}).films || {};
+    const out = {};
+    Object.keys(n).forEach((slug) => { if (n[slug] && n[slug].name && n[slug].name !== slug) out[slug] = String(n[slug].name); });
+    return out;
+  } catch { return {}; }
+}
 
 // The shelf in reading order: people first (that is who a clip is about),
 // then the outfits that float across them, then the places — each by its own
@@ -357,5 +367,5 @@ router.post('/plan', async (req, res) => {
 module.exports = {
   router, COLL, FILMS_DOC, KINDS, MAX_LOOKS, MAX_REFS,
   slugify, docId, kindOk, cleanRefs, cleanLook, cardOf, faceOf,
-  filmsOf, tuckedOf, tuckedFilms, shelfOrder, upsertEntry, upsertLook, removeLook, planFor, allRows, bust,
+  filmsOf, tuckedOf, tuckedFilms, filmNames, shelfOrder, upsertEntry, upsertLook, removeLook, planFor, allRows, bust,
 };

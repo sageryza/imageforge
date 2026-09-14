@@ -619,7 +619,9 @@ function costLines(row) {
 }
 
 async function spend(opts = {}) {
-  const key = JSON.stringify(opts);
+  // `fresh` is HOW to read, not WHAT — in the key it wrote an entry under a
+  // name no ordinary read ever asks for, so `?fresh=1` refreshed nothing
+  const key = JSON.stringify({ ...opts, fresh: undefined });
   const hit = spendCache.get(key);
   if (!opts.fresh && hit && Date.now() - hit.at < SPEND_CACHE_MS) return hit.val;
   const r = await billRows('/model-costs', opts);
@@ -743,6 +745,7 @@ async function startVideo(b, extra) {
   }
   const jobId = r && r.data && r.data.id;
   if (!jobId) { const e = new Error('Atlas Cloud gave no prediction id: ' + JSON.stringify(r).slice(0, 200)); e.status = 502; throw e; }
+  let logged = true;
   try {
     await logDoc(jobId).set({
       ...videoLog.sentRecord({ jobId, prompt: b.prompt, model: built.model, params: built.params,
@@ -750,8 +753,21 @@ async function startVideo(b, extra) {
       provider: 'atlascloud',
       ...(extra && typeof extra === 'object' ? extra : {}),
     }, { merge: true });
-  } catch (e) { console.warn('[atlascloud] video log write failed', e.message); }
-  return { jobId, sent: built.body, model: built.model, params: built.params };
+  } catch (e) {
+    // ONE RETRY, THEN SAY SO (2026-09-14): a failed write was a console.warn and a
+    // normal answer, so footage filed nothing for a clip already charged and drawing
+    console.warn('[atlascloud] video log write failed', e.message);
+    try {
+      await new Promise((r) => setTimeout(r, 400));
+      await logDoc(jobId).set({
+        ...videoLog.sentRecord({ jobId, prompt: b.prompt, model: built.model, params: built.params,
+          tag: { chat: b.chat, scene: b.scene, title: b.title, session: b.session, note: b.note, project: b.project, folder: b.folder } }),
+        provider: 'atlascloud',
+        ...(extra && typeof extra === 'object' ? extra : {}),
+      }, { merge: true });
+    } catch (e2) { console.warn('[atlascloud] video log write failed twice', e2.message); logged = false; }
+  }
+  return { jobId, sent: built.body, model: built.model, params: built.params, logged };
 }
 
 // The poll, as a function: reads the prediction, mirrors the clip once on
