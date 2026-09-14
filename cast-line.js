@@ -76,7 +76,16 @@
   // Every reference a look really sends: its own, then each wardrobe it
   // WEARS, in the order it names them. Deduped by url — a still that is both
   // the character's and the outfit's rides once and keeps ONE slot.
-  function lookRefs(entry, look, byslug) {
+  // A WARDROBE THAT DOES NOT RESOLVE IS NAMED, NEVER SILENT (2026-09-14, from
+  // the audit). A `wear` spec whose entry or whose LOOK KEY has been renamed
+  // pushed nothing at all — so the pajamas silently did not ride, and the
+  // line's `{2}` pointed past the end and went out as a literal `{2}` in her
+  // prompt. The clip drew, of a patient with no pajamas, and nothing on
+  // screen said so. Leaving the token alone is still right (a line that lost
+  // a reference must read wrong rather than read fine and send one slot
+  // short) — what was missing is that nobody was told. `miss` is an optional
+  // array every caller may hand in; `plan` hands one in and answers it.
+  function lookRefs(entry, look, byslug, miss) {
     var out = [], seen = {};
     var push = function (r) {
       var c = cleanRef(r);
@@ -91,9 +100,12 @@
       // pajama stills, points at the three-still look.
       var parts = String(spec).split(':');
       var w = byslug && byslug[parts[0]];
-      if (!w) return;
+      if (!w) { if (miss) miss.push({ wear: String(spec), why: 'no such wardrobe' }); return; }
       var wl = parts.length > 1 ? lookByKey(w, parts[1]) : (w.looks || [])[0];
-      (wl && wl.refs ? wl.refs : (w.refs || [])).forEach(push);
+      if (parts.length > 1 && !wl) { if (miss) miss.push({ wear: String(spec), why: 'no such look on ' + parts[0] }); return; }
+      var got = (wl && wl.refs ? wl.refs : (w.refs || []));
+      if (!got.length && miss) miss.push({ wear: String(spec), why: 'nothing on it' });
+      got.forEach(push);
     });
     return out;
   }
@@ -165,19 +177,98 @@
     var entry = opts.entry || {};
     var look = opts.look || (entry.looks || [])[0] || {};
     var have = (opts.refs || []).map(cleanRef).filter(Boolean);
-    var mine = lookRefs(entry, look, opts.byslug || {});
+    var miss = [];
+    var mine = lookRefs(entry, look, opts.byslug || {}, miss);
     var after = stripAfter(have, mine);
     var had = {}; have.forEach(function (r) { had[r.url] = 1; });
     var tmpl = String(look.line || '').trim() || defaultLine(entry, mine);
+    var line = resolveLine(tmpl, mine, after.slots);
     return {
       refs: after.refs,
       slots: after.slots,
-      line: resolveLine(tmpl, mine, after.slots),
+      line: line,
       template: tmpl,
       added: mine.filter(function (r) { return !had[r.url]; }).length,
       total: mine.length,
       empty: !mine.length,
+      // WHAT DID NOT RESOLVE — the wardrobe specs that found nothing, and the
+      // `{n}` tokens still standing in the line because of it. Both empty on
+      // an ordinary tap, so a caller that ignores them is unchanged.
+      missing: miss,
+      unresolved: unresolvedIn(line),
     };
+  }
+
+  // The `{n}` tokens a resolved line still carries. A token here means the
+  // line names a reference that is not riding — the wardrobe is missing, or
+  // the look lost a still — and it is the one thing a prompt must not be sent
+  // with, because the door reads it as words and draws around it.
+  var TOKEN_RE = /\{\d+\}/g;
+  function unresolvedIn(line) {
+    return String(line == null ? '' : line).match(TOKEN_RE) || [];
+  }
+
+  // ── A TAP WHEN SOME OF THE STRIP IS A KEYFRAME ────────────────────────────
+  // 2026-09-14, from the audit. `plan` above is a rule about SLOTS, and a
+  // keyframe takes none — a picture she has marked as the first or last frame
+  // leaves the reference lists entirely (footage.js's `slotsOf`). So a plan
+  // computed over the RAW strip numbers every slot after a mark one too high:
+  // the clip draws, of the wrong picture. The page had learned that the hard
+  // way and kept the whole rule to itself, so `POST /api/cast/plan` — the door
+  // a CHAT calls — went on planning over the raw strip. It is one rule now,
+  // here, and both call it.
+  //
+  //   planMarked({ refs, entry, look, byslug, first, last })
+  //
+  // Three things it does that `plan` cannot:
+  //  · PLANS OVER THE PLAIN STRIP, the marks excluded, which is what keeps
+  //    the slot numbers the ones `slotsOf` will really give.
+  //  · PUTS THE MARKS BACK WHERE THEY WERE, so the answer is a strip the
+  //    caller can use as-is — handing `plan`'s own `refs` back would DELETE
+  //    every marked picture. And a look that OWNS a marked picture does not
+  //    attach it twice: her mark wins, so the plan's ordinary copy is dropped
+  //    (two tiles for one picture, and a line naming a slot that belongs to a
+  //    different one).
+  //  · NAMES THE END rather than a slot for a `{n}` pointing at a marked
+  //    picture — "in the first frame", which is both true and readable, where
+  //    `resolveLine` would leave the raw `{2}` in her prompt.
+  function roleWordOf(role) { return role === 'first' ? 'first frame' : role === 'last' ? 'last frame' : ''; }
+  function planMarked(opts) {
+    opts = opts || {};
+    var refs = (opts.refs || []).map(cleanRef).filter(Boolean);
+    var first = opts.first ? String(opts.first) : '';
+    var last = opts.last ? String(opts.last) : '';
+    var roleOf = function (u) { return u && u === first ? 'first' : (u && u === last ? 'last' : ''); };
+    var plain = refs.filter(function (r) { return !roleOf(r.url); });
+    var p = plan({ refs: plain, entry: opts.entry, look: opts.look, byslug: opts.byslug });
+    if (!first && !last) return p;
+
+    var isMark = {};
+    refs.forEach(function (r) { if (roleOf(r.url)) isMark[r.url] = 1; });
+    var out = p.refs.filter(function (r) { return !isMark[r.url]; });
+    refs.forEach(function (r, i) {
+      if (roleOf(r.url)) out.splice(Math.min(i, out.length), 0, r);
+    });
+
+    var entry = opts.entry || {};
+    var mine = lookRefs(entry, opts.look || (entry.looks || [])[0] || {}, opts.byslug || {});
+    var plainAfter = out.filter(function (r) { return !roleOf(r.url); });
+    var m = slotMap(plainAfter);
+    var named = {};
+    Object.keys(m.slots).forEach(function (u) { named[u] = m.slots[u]; });
+    refs.forEach(function (r) {
+      var role = roleOf(r.url);
+      if (role) named[r.url] = 'the ' + roleWordOf(role);
+    });
+    var line = resolveLine(p.template, mine, named);
+    // an explicit copy, not a spread — this file is served to the page and is
+    // deliberately ES5 all the way through
+    var o = {};
+    Object.keys(p).forEach(function (k) { o[k] = p[k]; });
+    o.refs = out; o.slots = m.slots; o.line = line; o.unresolved = unresolvedIn(line);
+    o.marks = refs.filter(function (r) { return roleOf(r.url); })
+      .map(function (r) { return { url: r.url, role: roleOf(r.url) }; });
+    return o;
   }
 
   // ── TAKING A REFERENCE OFF ────────────────────────────────────────────────
@@ -267,6 +358,7 @@
 
   return { slugify: slugify, kindOf: kindOf, cleanRef: cleanRef, lookRefs: lookRefs,
     lookByKey: lookByKey, slotMap: slotMap, stripAfter: stripAfter, resolveLine: resolveLine,
-    defaultLine: defaultLine, plan: plan, withLine: withLine,
+    defaultLine: defaultLine, plan: plan, planMarked: planMarked, withLine: withLine,
+    roleWordOf: roleWordOf, unresolvedIn: unresolvedIn,
     rewriteSlots: rewriteSlots, dropPlan: dropPlan };
 }));

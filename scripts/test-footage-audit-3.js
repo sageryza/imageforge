@@ -124,10 +124,14 @@ const V = require('../video-refusals');
 // ── THE PAGE'S TWO, BY SOURCE (the headless half lives in audit-2) ───────
 {
   const page = require('fs').readFileSync(require('path').join(__dirname, '..', 'public', 'footage.html'), 'utf8');
-  ok('a look that owns a marked picture does not attach it twice',
-    /before\.forEach\(function \(r\) \{ if \(roleOfUrl\(r\.url\)\) isMark\[r\.url\] = 1; \}\)/.test(page));
-  ok('and its line is re-resolved against the strip that really rides',
-    /function castLine\(p, ent, look\)/.test(page) && /castLine\(p, ent, look\)/.test(page));
+  // BOTH OF THOSE RULES MOVED INTO `cast-line.js` AS `planMarked` (2026-09-14),
+  // because keeping them in the page is exactly why `POST /api/cast/plan` — the
+  // door a chat calls — went on planning over the raw strip. So the pin is the
+  // other way round now: the page must keep NO copy of either.
+  ok('the page plans through the shared keyframe-aware rule',
+    /CL\.planMarked\(\{ refs: refs, entry: ent, look: look/.test(page));
+  ok('and keeps no copy of it — no withMarks, no castLine of its own',
+    !/function withMarks/.test(page) && !/function castLine\(/.test(page));
   ok('`newer ›` never steps past the clip the panel was opened on', /idx - 1 > ib \? sib\[idx - 1\] : null/.test(page));
   ok('a failed save-all fetch is retried rather than cached', /delete saveBlobs\[u\]; return null/.test(page));
   ok('and save-all answers "not ready" BEFORE awaiting the bytes', /var ready = urls\.every/.test(page) && /function markDone\(u\)/.test(page));

@@ -418,8 +418,13 @@ const readBlocks = () => {
   ok('grab frame keeps the player and her marks', /useShot\(false, 'frame at ' \+ Number\(d\.at\)\.toFixed\(1\) \+ 's', true\)/.test(src));
   ok('the optimistic card is built from the body the tap sent',
     /project: body\.project, folder: body\.folder,/.test(src) && /var m = modelOf\(body\.model\);/.test(src));
-  ok('the cast planner is never shown a keyframe',
-    /return CL\.plan\(\{ refs: slotRefs\(\)/.test(src) && /function withMarks/.test(src));
+  // THE WHOLE RULE MOVED INTO `cast-line.js` AS `planMarked` (2026-09-14) —
+  // keeping it in the page is why `POST /api/cast/plan` went on planning over
+  // the raw strip. The page hands it the WHOLE strip and the two marks now;
+  // excluding them is the shared rule's job.
+  ok('the cast planner is never shown a keyframe as a slot',
+    /CL\.planMarked\(\{ refs: refs, entry: ent, look: look/.test(src)
+    && /first: firstUrl, last: lastUrl/.test(src));
   ok('a hand-off carries its own seed or none', /setSeed\(h\.seed != null \? h\.seed : ''\);/.test(src));
   ok('a join only moves the gold line if it had it', /if \(mine\) setActive\(above\);/.test(src));
   ok('a trim in flight keeps its button down', /go\.disabled = !!trimSending;/.test(src));

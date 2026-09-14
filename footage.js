@@ -452,16 +452,47 @@ const REFUSED_WHY = { openrouter: 'a person in it', atlascloud: 'a famous face',
 //     them its own guide says frame_images WINS and the references are
 //     dropped, so that job is refused at the door rather than half-sent.
 // A job with neither keyframe is every door's, exactly as before.
-function doorTakes(door, { hasFirstFrame, hasLastFrame, hasRefs }) {
+// AND ATLAS HAS CAPS OF ITS OWN, WHICH THIS DID NOT MODEL (2026-09-14, from
+// the audit): at most 9 reference images, 3 videos and 3 audios, and a
+// reference audio needs at least one picture or video beside it
+// (atlascloud.js's own numbers, which are Atlas's). It refuses on the POST,
+// free — but AUTO ranks Atlas FIRST for Mini and Fast on its sale, so a
+// ten-picture job went to the one door that must refuse it and the page
+// offered no other. The counts ride the shape when the caller knows them; a
+// caller that only says `hasRefs` behaves exactly as before, which is the
+// safe direction — never refuse a door for a cap that cannot be seen.
+// OpenRouter's and APIFRAME's own caps are UNMEASURED and are not modelled.
+const ATLAS_CAPS = { image: 9, video: 3, audio: 3 };
+function atlasCapRefusal({ images, videos, audios }) {
+  if (images > ATLAS_CAPS.image) return `Atlas Cloud takes at most ${ATLAS_CAPS.image} reference images`;
+  if (videos > ATLAS_CAPS.video) return `Atlas Cloud takes at most ${ATLAS_CAPS.video} reference videos`;
+  if (audios > ATLAS_CAPS.audio) return `Atlas Cloud takes at most ${ATLAS_CAPS.audio} reference audios`;
+  if (audios > 0 && !images && !videos) return 'a reference audio needs at least one reference image or video beside it';
+  return '';
+}
+function doorTakes(door, shape) {
+  const { hasFirstFrame, hasLastFrame, hasRefs } = shape;
+  if (door === 'atlascloud' && atlasCapRefusal(countsOf(shape))) return false;
   if (!hasFirstFrame && !hasLastFrame) return true;
   if (door === 'apiframe') return true;
   if (hasRefs) return false;
   if (door === 'atlascloud') return Boolean(hasFirstFrame);
   return true;
 }
+// The counts a shape carries, or ZERO where it says nothing — so a cap can
+// only ever be broken by a number the caller really gave.
+function countsOf({ images, videos, audios }) {
+  const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  return { images: n(images), videos: n(videos), audios: n(audios) };
+}
 // The line she reads when a keyframe leaves no door open — plain, and it
 // names what to change rather than what is wrong.
-function shapeRefusal({ hasFirstFrame, hasLastFrame, hasRefs }) {
+function shapeRefusal(shape) {
+  const { hasFirstFrame, hasLastFrame, hasRefs } = shape;
+  // A CAP IS THE LOUDEST REASON WHEN ONE IS BROKEN — "no door is configured"
+  // would send her looking at env vars for a ten-picture job.
+  const cap = atlasCapRefusal(countsOf(shape));
+  if (cap) return `${cap} — and it is the only door open for that job. Take one off.`;
   if (hasRefs && (hasFirstFrame || hasLastFrame)) {
     return 'A first frame and references cannot ride one job — only APIFRAME takes both, and it is not open for that. Take the references off, or take the first frame off.';
   }
@@ -469,13 +500,13 @@ function shapeRefusal({ hasFirstFrame, hasLastFrame, hasRefs }) {
   return 'no door is configured for that';
 }
 
-function doorFor({ model, door, hasVideo, resolution, ratio, seconds, avoid, hasFirstFrame, hasLastFrame, hasRefs }, cfg) {
+function doorFor({ model, door, hasVideo, resolution, ratio, seconds, avoid, hasFirstFrame, hasLastFrame, hasRefs, images, videos, audios }, cfg) {
   const m = typeof model === 'string' ? modelOf(model) : model;
   if (!m) return { error: 'unknown model' };
   cfg = cfg || { openrouter: true, apiframe: true, atlascloud: true };
   const want = String(door || 'auto').toLowerCase();
   const res = m.res.includes(resolution) ? resolution : (resolution || '480p');
-  const shape = { hasFirstFrame: Boolean(hasFirstFrame), hasLastFrame: Boolean(hasLastFrame), hasRefs: Boolean(hasRefs) };
+  const shape = { hasFirstFrame: Boolean(hasFirstFrame), hasLastFrame: Boolean(hasLastFrame), hasRefs: Boolean(hasRefs), ...countsOf({ images, videos, audios }) };
   const orOk = Boolean(m.or) && cfg.openrouter && m.res.includes(res) && doorTakes('openrouter', shape);
   const afOk = Boolean(m.af) && cfg.apiframe && m.afCents && m.afCents[res] != null && doorTakes('apiframe', shape);
   const atOk = Boolean(m.atlas) && cfg.atlascloud && m.atlasCents && m.atlasCents[res] != null && doorTakes('atlascloud', shape);
@@ -492,7 +523,7 @@ function doorFor({ model, door, hasVideo, resolution, ratio, seconds, avoid, has
   const open = [orOk && 'openrouter', atOk && 'atlascloud', afOk && 'apiframe'].filter(Boolean).filter((d) => !skip.has(d));
   if (!open.length) {
     if (skip.size) return { error: 'every door has refused it' };
-    return { error: (shape.hasFirstFrame || shape.hasLastFrame) ? shapeRefusal(shape) : 'no door is configured for that' };
+    return { error: (shape.hasFirstFrame || shape.hasLastFrame || atlasCapRefusal(shape)) ? shapeRefusal(shape) : 'no door is configured for that' };
   }
   // Ranked by what the tap really costs on each, cheapest first. A door whose
   // price cannot be worked out sorts LAST rather than winning by default.
@@ -525,7 +556,7 @@ function doorFor({ model, door, hasVideo, resolution, ratio, seconds, avoid, has
 // `creditCost` — 60–450 on the refused 2.5 jobs — and the team total sits
 // ~1,100 credits UNDER the sum of them, so some failures are refunded; which
 // ones is unmeasured.)
-function estimate({ model, resolution, ratio, seconds, hasVideo, door, discount, hasFirstFrame, hasLastFrame, hasRefs }, cfg) {
+function estimate({ model, resolution, ratio, seconds, hasVideo, door, discount, hasFirstFrame, hasLastFrame, hasRefs, images, videos, audios }, cfg) {
   const m = typeof model === 'string' ? modelOf(model) : model;
   if (!m) return { error: 'unknown model' };
   const res = m.res.includes(resolution) ? resolution : m.res[0];
@@ -535,7 +566,7 @@ function estimate({ model, resolution, ratio, seconds, hasVideo, door, discount,
   // door the tap will really go to. A keyframe costs nothing extra on any
   // door (Atlas prices image-to-video the same per second as
   // reference-to-video), so only the DOOR moves, never the rate.
-  const d = doorFor({ model: m, door, hasVideo, resolution: res, ratio, seconds: s, hasFirstFrame, hasLastFrame, hasRefs }, cfg);
+  const d = doorFor({ model: m, door, hasVideo, resolution: res, ratio, seconds: s, hasFirstFrame, hasLastFrame, hasRefs, images, videos, audios }, cfg);
   if (d.error) return d;
   const p = priceOn(m, d.door, { res, ratio, seconds: s, hasVideo, discount });
   // THE RESOLVED SHAPE rides back beside the price — the caller asked with
@@ -641,6 +672,16 @@ function buildJob(b) {
   b = b || {};
   const prompt = String(b.prompt == null ? '' : b.prompt);
   if (!prompt.trim()) return { error: 'Say what the clip is first' };
+  // A `{n}` LEFT IN THE PROMPT REFUSES THE JOB (2026-09-14, from the audit).
+  // A character's line is stored as a template over its own references and
+  // resolved to slot names at the tap; a token that survives that means the
+  // line names a reference which is NOT riding — a wardrobe whose look key
+  // was renamed is the measured case — and the door reads `{2}` as words and
+  // draws around it. So it is a shape refusal: free, before anything draws,
+  // and it names what to fix. She never types these (she taps a character),
+  // so this can only ever be that bug.
+  const stray = prompt.match(/\{\d+\}/g);
+  if (stray) return { error: `Your prompt still says ${[...new Set(stray)].join(' ')} — that is a reference a character's line names and nothing is riding for it. Re-tap the character, or take the token out.` };
   const m = modelOf(b.model || 'mini');
   if (!m) return { error: `unknown model "${b.model}"` };
   const res = m.res.includes(String(b.resolution)) ? String(b.resolution) : m.res[0];
@@ -1554,9 +1595,13 @@ async function startJob(b) {
   // A KEYFRAME NEVER COUNTS AS A REFERENCE VIDEO — it is a picture, and
   // `hasVideo` is what picks APIFRAME's dearer with-a-video rate.
   const hasVideo = refs.some((r) => r.kind === 'video' && !r.role);
-  const shape = { hasFirstFrame: Boolean(first), hasLastFrame: Boolean(last), hasRefs: refs.some((r) => !r.role) };
+  const plain = refs.filter((r) => !r.role);
+  const shape = { hasFirstFrame: Boolean(first), hasLastFrame: Boolean(last), hasRefs: plain.length > 0,
+    images: plain.filter((r) => r.kind === 'image').length,
+    videos: plain.filter((r) => r.kind === 'video').length,
+    audios: plain.filter((r) => r.kind === 'audio').length };
   const d = doorFor({ model: m, door: b.door, hasVideo, resolution: res, ratio, seconds, ...shape }, cfg());
-  if (d.error) { const e = new Error(d.error); e.status = 400; e.refusal = e.refusal || ((shape.hasFirstFrame || shape.hasLastFrame) ? 'shape' : undefined); e.why = d.error; throw e; }
+  if (d.error) { const e = new Error(d.error); e.status = 400; e.refusal = e.refusal || ((shape.hasFirstFrame || shape.hasLastFrame || atlasCapRefusal(shape)) ? 'shape' : undefined); e.why = d.error; throw e; }
   // A reference under ByteDance's pixel floor is refused before anything
   // draws, so swap in an upscaled copy BEFORE the door sees the body — and
   // keep `refs` (the card) pointing at her originals.
@@ -1643,7 +1688,8 @@ router.get('/estimate', async (req, res) => {
   const q = req.query || {};
   const e = estimate({ model: q.model, resolution: q.res, ratio: q.ratio, seconds: q.seconds,
     hasVideo: q.video === '1', door: q.door,
-    hasFirstFrame: q.first === '1', hasLastFrame: q.last === '1', hasRefs: q.refs === '1' }, cfg());
+    hasFirstFrame: q.first === '1', hasLastFrame: q.last === '1', hasRefs: q.refs === '1',
+    images: q.imgs, videos: q.vids, audios: q.auds }, cfg());
   res.set('Cache-Control', 'no-store');
   if (e.error) return res.status(400).json({ error: e.error });
   // HOW LONG THIS SHAPE USUALLY TAKES (2026-09-12, her ask) rides the same
@@ -1998,7 +2044,7 @@ router.post('/jobs/:id/frame', async (req, res) => {
 module.exports = {
   router, init,
   MODELS, RATIOS, SIZES, CHAT, OR_FEE,
-  modelOf, doorFor, doorTakes, shapeRefusal, estimate, priceOn, DOOR_LOOSENESS, DOOR_REFUSAL_FREE, DOOR_WORDS, pollOne, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, resFactor, secondsOk, framesOf, projectSlug, HANDOFF_PROJECTS,
+  modelOf, doorFor, doorTakes, shapeRefusal, atlasCapRefusal, ATLAS_CAPS, estimate, priceOn, DOOR_LOOSENESS, DOOR_REFUSAL_FREE, DOOR_WORDS, pollOne, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, resFactor, secondsOk, framesOf, projectSlug, HANDOFF_PROJECTS,
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf, atlasCacheBust,
   drawStats, drawTimeFor, drawTimeFrom, drawKeyOf, medianOf,
   startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf,
