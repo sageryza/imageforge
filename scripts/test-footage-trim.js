@@ -194,6 +194,23 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
       w1[0].trim && typeof w1[0].trim === 'object');
   }
 
+  // THE CUT LANDS ON THE FRAMES SHE CHOSE (2026-09-14, Sophie: "trim ends a
+  // frame after the one i chose"). The frame on screen at a mark is
+  // floor(t × fps); both ends are kept, asked for at the midpoints so a
+  // millisecond rounding can never cross a boundary.
+  {
+    const fr = F.frameSpan(2.265, 5.545, 24, 15.0417);
+    ok('the in-frame is the one under the start mark (54 at 2.265s)', Math.floor(fr.start * 24 + 1e-6) === 53 && fr.start > 53 / 24 && fr.start < 54 / 24);
+    ok('the out-frame is the one under the end mark and is KEPT (133 at 5.545s)', fr.end > 133 / 24 && fr.end < 134 / 24);
+    ok('80 frames, 3.333s — the file\'s length, not the marks\' 3.28', fr.frames === 80 && fr.seconds === 3.333 && fr.snapped === true);
+    const edge = F.frameSpan(1 / 24, 2 / 24, 24, 5);
+    ok('a mark exactly on a boundary keeps that frame', edge.frames === 2 && edge.start < 1 / 24 && edge.end > 2 / 24);
+    const past = F.frameSpan(4, 9, 24, 5);
+    ok('an end past the last frame clamps to it', past.frames === 24 && past.end < 5 + 1e-9);
+    const none = F.frameSpan(1.2, 3.6, 0, 5);
+    ok('a file whose rate is unknown is cut on her marks as they are', none.snapped === false && none.start === 1.2 && none.end === 3.6 && none.seconds === 2.4);
+  }
+
   if (FF) {
     const out = path.join(tmp, 'cut.mp4');
     const src = await F.probeMedia(mp4);
@@ -207,6 +224,30 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
     await F.cutSpan(mp4, silent, 0, 1.5, false);
     const s2 = await F.probeMedia(silent);
     ok('a source with no audio cuts to a file with none', s2.withAudio === false && near(s2.total, 1.5, 0.12));
+
+    // THE MEASUREMENT BEHIND frameSpan: a 24fps clip whose every frame is
+    // painted with its own number (luma = N), cut the way bakeTrim cuts it,
+    // and the numbers read back off the output — a recipe that keeps frame
+    // 55 instead of 54, or re-cadences 79 frames onto 25fps and duplicates
+    // three of them (both measured on her real part pre-fix), looks
+    // identical to a correct one in every duration assertion above.
+    const num = path.join(tmp, 'num.mp4');
+    execFileSync(FF, ['-y', '-loglevel', 'error', '-f', 'lavfi', '-i', "color=size=64x64:rate=24:duration=6,geq=lum='N':cb=128:cr=128",
+      '-f', 'lavfi', '-i', 'sine=frequency=440:duration=6', '-c:v', 'libx264', '-qp', '0', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest', num]);
+    const pr = await F.probeMedia(num);
+    ok('the probe reads the frame rate', pr.fps === 24);
+    const fr = F.frameSpan(2.265, 5.545, pr.fps, pr.total);
+    const numOut = path.join(tmp, 'num-cut.mp4');
+    await F.cutSpan(num, numOut, fr.start, fr.end, true, pr.fps);
+    const raw = execFileSync(FF, ['-v', 'error', '-i', numOut, '-f', 'rawvideo', '-pix_fmt', 'yuv420p', '-'], { maxBuffer: 64 << 20 });
+    const fsz = 64 * 64 * 3 / 2;
+    const seen = [];
+    for (let i = 0; i + fsz <= raw.length; i += fsz) seen.push(raw[i + 2080]);
+    ok('the first frame out is the frame under the start mark (54)', seen[0] === 54);
+    ok('the last frame out is the frame under the end mark (133)', seen[seen.length - 1] === 133);
+    ok('every frame between, once each — nothing duplicated onto 25fps', seen.length === 80 && seen.every((v, i) => i === 0 || v === seen[i - 1] + 1));
+    const c2 = await F.probeMedia(numOut);
+    ok('the file says 24, and its picture and sound are the same length', c2.fps === 24 && near(c2.total, 80 / 24, 0.005));
   } else {
     console.log('  (ffmpeg-static missing — the real-cut half skipped)');
   }

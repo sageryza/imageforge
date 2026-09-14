@@ -180,8 +180,9 @@ still every time the work wraps up.
 3h. **FIXED A BUG? LINK HER TO WHERE SHE CAN SEE IT — EXAMPLES, NOT A PR
    (2026-09-03, Sophie: "link me to examples that showcase changes · make this
    a rule for bug fixes").** A bug fix is described in words and checked with
-   her eyes, so the reply that reports one ends with the **exact surface the
-   fix shows on**, full clickable url — the page, the chat's tab, the deck,
+   her eyes, so the reply that reports one **OPENS with the exact surface the
+   fix shows on** (2026-09-14: links pin to the top, never the bottom) —
+   full clickable url — the page, the chat's tab, the deck,
    the tool — and one short line per link saying what to look at ("the header
    is gone on the swipe view"). On her phone an ordinary page url opens the
    app on that tool, so nothing about the link has to look special.
@@ -194,8 +195,8 @@ still every time the work wraps up.
      OLD thing, which reads as the fix not working. Deploy first when she has
      said to, or write in one line that the link shows the change once it is
      deployed (the *ASK BEFORE YOU DEPLOY* rule is unchanged).
-   - **THE PR IS NOT THE LINK.** It is the record and it still goes at the
-     bottom; it is not a place she can see anything.
+   - **THE PR IS NOT THE LINK.** It is the record and it rides last in the
+     link block; it is not a place she can see anything.
    - **Nothing to point at?** Say so plainly — a fix to a script, a hook or a
      server rule may have no surface, and inventing one is worse than the
      sentence.
@@ -698,17 +699,19 @@ broken:
    it** ("long version", "explain", "details", "why"). Aim under 400. A reply
    that needs more is a reply carrying something from the OUT list below.
 3. **THE SHAPE, and nothing that is not one of these lines:**
-   - what changed, in her words, one or two sentences (TLDR first);
+   - **the links FIRST, full and clickable** (2026-09-14, her rule: pinned at
+     the top, never the bottom): the surface the change shows on (3h), then
+     **the PR, last in that block — on EVERY reply that opened, pushed to or
+     merged one**, no exceptions (that is the 22-of-74 above). **Never a
+     `/chats?chat=` link**, to any chat, yours included;
+   - what changed, in her words, one or two sentences;
    - her questions answered, each ONCE (a question she MARKED — "i have a
      question" / "quick question" / "file this" — is repeated in bold on its
      own line and answered under it; otherwise never echo one back);
    - money spent this turn — only if any;
    - what you need from her — only if anything, one line, with the size of
      the ask;
-   - the state, one line: merged or not, deployed or not;
-   - links LAST, full and clickable: the surface the change shows on (3h),
-     then **the PR — on EVERY reply that opened, pushed to or merged one**,
-     no exceptions (that is the 22-of-74 above).
+   - the state, one line: merged or not, deployed or not.
 4. **OUT, always** — it goes in the PR description, the commit or this file
    (*DON'T HAND HER YOUR FINDINGS*): what you left alone and why, how it
    works, what you measured, test counts, the alternatives, "two things to
@@ -719,9 +722,7 @@ broken:
    what she reads as a chat talking to itself.
 Still standing, unchanged: no markdown tables · times in 12-hour Pacific ·
 files and images LAST · **asking HER something? plain text, never the
-questions/option-picker UI** · small question, short answer · **briefing her
-on OTHER chats? every chat you name gets a `/chats?chat=<slug>` link at the
-bottom** (*BRIEFING HER ON OTHER CHATS* in Design rules).
+questions/option-picker UI** · small question, short answer.
 
 ## Where everything is
 
@@ -6136,35 +6137,25 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   fits *that* product rather than reaching for the studio tokens by reflex.
 - **Always use full clickable links** in updates — app pages, the deployed URL,
   PRs — never bare text the user has to assemble.
-- **BRIEFING HER ON OTHER CHATS? EVERY CHAT YOU NAME GETS A LINK BACK TO IT, AT
-  THE BOTTOM (Aug 2026, Sophie: "i've been asking a couple of chats to give me
-  briefings on other chats where they give me status updates … they should
-  always have a link back to the chat that they're talking about at the bottom
-  of their analysis").** Any reply that reports on OTHER chats — a status
-  sweep, a roundup, "what's happening in X", a comparison across threads, an
-  audit naming which chat did what — ends with one link per chat you talked
-  about, under your analysis. The point is that reading about a chat and
-  GOING to it are one tap apart; without the links she has to hunt each name
-  down her list.
-  - **The link is the chat in Deck Factory, never a claude.ai session url** —
-    `https://imageforge-q125.onrender.com/chats?chat=<slug>` — the same rule
-    the morning brief already follows. On her phone that is a universal link
-    and opens the app on that thread.
-  - **Label it with what she calls the chat**, not the slug:
-    `[Water reel](https://imageforge-q125.onrender.com/chats?chat=water-reel-v16)`.
-    Her `displayName` is on `GET /api/chatfeed/status?chat=&session=` (as
-    `note`'s neighbour) and on `GET /api/chatfeed/name?chat=&session=`; the
-    feed read you did to write the briefing already carries it, so this costs
-    no extra request.
-  - **The SLUG must be the effective one** — a chat's identity is its session,
-    so a thread can be forked to `<slug>-<sid6>`. Use the slug the feed/registry
-    gives you for that thread, never one you reconstructed from a branch name,
-    or the link opens nothing.
-  - **One link per chat, deduped**, at the very bottom with the rest of the
-    working links — the house *files and links last* order, unchanged. Mention
-    a chat inline in prose all you like; the links still collect at the end.
-  - This is about chats you REPORT ON. A reply about your own work does not
-    link to itself.
+- **NEVER LINK HER TO A CHAT — AND EVERY LINK PINS TO THE TOP OF THE REPLY
+  (2026-09-14, Sophie: "links now pin to page top" · "never link to chat").**
+  Two rules, both replacing what stood here.
+  - **NO `/chats?chat=<slug>` LINK, EVER** — not in a briefing, not in a
+    roundup, not beside a chat you are reporting on, not to your own chat.
+    Name the chat in words; she gets to it her own way. **THE AUG 2026 RULE IS
+    HISTORY, NOT A RULE**: it said any reply reporting on other chats ends with
+    one link per chat named ("they should always have a link back to the chat
+    that they're talking about at the bottom of their analysis"), and she
+    retired it. Don't put one back.
+  - **LINKS GO AT THE TOP.** The working links — the page, the deploy, the
+    surface a bug fix shows on, the PR last — sit at the head of the reply, not
+    the end of it. Everything else about them is unchanged: full clickable
+    urls, never bare text she has to assemble, one short line each saying what
+    to look at. **FILES AND IMAGES ARE STILL LAST** — that order is a separate
+    rule and it did not move.
+  - Where this reaches: the reply-format line in the checklist, rule **3h**
+    (a bug fix's example links), and anything that used to collect links "at
+    the very bottom".
 - **Always include clickable testing links** when something is ready to test:
   the deployed page for the feature plus the PR link.
 - **Copy-paste / handoff messages = one code block.** When the user asks for a
