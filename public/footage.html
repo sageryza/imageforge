@@ -2753,7 +2753,7 @@ function paintFolds() {
   // block the star will send, so what is on screen and what will ride can
   // never read as two different things.
   var ws = blocks();
-  var mine = ws.length > 1 ? ' · block ' + (ws.indexOf(activeWrap()) + 1) : '';
+  var mine = ws.length > 1 ? (unitOf(activeWrap()) ? ' · part ' : ' · block ') + (ws.indexOf(activeWrap()) + 1) : '';
   $('reffoldlab').textContent = 'References' + mine + (hide ? ' · ' + refs.length : '');
   // THE SEED IS ON THIS ROW AND FOLDS WITH IT (2026-09-13) — it used to sit in
   // the STAR's row and be display-hidden by hand here, which is the same fold
@@ -4682,7 +4682,7 @@ function postJob(pin, box, resend) {
     // waiting on the next read of the story's log
     if (body.unit) { (hist[body.unit] = hist[body.unit] || []).unshift(card); if (pw) paintHist(pw); }
     applyFilt();
-    toast((blocks().length > 1 ? 'Drawing block ' + (blocks().indexOf(box.closest('.promptwrap')) + 1) + '…' : 'Drawing…')
+    toast((blocks().length > 1 ? (unitOf(pw) ? 'Drawing part ' : 'Drawing block ') + (blocks().indexOf(box.closest('.promptwrap')) + 1) + '…' : 'Drawing…')
       + (hid ? ' · shown here though it is outside your search' : ''));
     // her words STAY in the box after a send (a re-roll is one tap), and so
     // does the draft — it used to be wiped here while the box still showed
