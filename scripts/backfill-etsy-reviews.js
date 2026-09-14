@@ -4,7 +4,9 @@
 // endpoint uses. Safe to re-run: review writes are idempotent (doc id =
 // transaction id) and the map is rebuilt from scratch each time.
 //
-// Usage: node scripts/backfill-etsy-reviews.js [--reviews-only|--map-only]
+// Usage: node scripts/backfill-etsy-reviews.js [--reviews-only|--map-only|--photos-only]
+// --photos-only fills the flat photo mirror from the reviews already on file:
+// no Etsy call, no Shopify call, so it costs nothing and is safe any time.
 // Needs: FIREBASE_SERVICE_ACCOUNT (deckfactory), ETSY_API_KEY,
 //        ETSY_SHARED_SECRET. The Shopify Admin token is read from Firestore
 //        (config/shopify-tokens) for the map step.
@@ -13,7 +15,7 @@ const admin = require('firebase-admin');
 admin.initializeApp({ credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)) });
 
 const etsy = require('../etsy');
-const { upsertPage, recomputeSummaries, SHOP_ID, META } = require('../etsy-reviews');
+const { upsertPage, recomputeSummaries, backfillPhotos, SHOP_ID, META } = require('../etsy-reviews');
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -75,8 +77,14 @@ async function buildHandleMap() {
 
 (async () => {
   const arg = process.argv[2] || '';
+  if (arg === '--photos-only') {
+    const r = await backfillPhotos({ dry: process.argv.includes('--dry') });
+    console.log(`photos: ${r.found} found${r.dry ? ' (dry — nothing written)' : `, ${r.written} mirrored`}`);
+    console.log('done'); process.exit(0);
+  }
   if (arg !== '--map-only') await backfillReviews();
   if (arg !== '--reviews-only') await buildHandleMap();
+  await backfillPhotos();
   console.log('done');
   process.exit(0);
 })().catch(e => { console.error('backfill failed:', e.message); process.exit(1); });

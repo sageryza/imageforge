@@ -13,6 +13,14 @@
 //   forge-etsy-reviews/{listingId}/items/{txnId}   — one review
 //   forge-etsy-reviews-meta/global                 — { count, average, lastSync }
 //   forge-etsy-reviews-meta/map                    — { [shopifyHandle]: listingId }
+//   forge-etsy-review-photos/{txnId}               — one review that has a photo
+// The photo mirror is FLAT on purpose. Buyers' photos are the shop's best
+// proof and they are scattered one listing at a time across 173 subcollections,
+// so "the newest photos, whatever they are of" had nowhere to come from. A
+// collectionGroup query would need a hand-made composite index (photo +
+// created); a flat collection ordered by `created` rides Firestore's automatic
+// single-field index, which is the same reasoning that shaped the subcollection
+// above. Measured 2026-09-14: 962 of the 7,800 mirrored reviews carry a photo.
 // The subcollection shape is deliberate: orderBy(created desc) inside a
 // subcollection rides Firestore's automatic single-field index, so no
 // composite index has to be created by hand.
@@ -25,7 +33,10 @@ const admin = require('firebase-admin');
 const SHOP_ID = Number(process.env.ETSY_SHOP_ID || 14194752); // sophiespincher
 const COL = 'forge-etsy-reviews';
 const META = 'forge-etsy-reviews-meta';
+const PHOTOS = 'forge-etsy-review-photos';
 const PAGE = 12;              // reviews per response
+const PHOTO_PAGE = 24;        // photos per response on the wall
+const PHOTO_MAX = 60;         // a caller may never ask for more than this
 const SYNC_EVERY_MS = 6 * 60 * 60 * 1000; // incremental top-up at most every 6h
 const SYNC_MAX_PAGES = 5;     // a top-up never walks more than this
 
@@ -43,6 +54,13 @@ function reviewDoc(r) {
   };
 }
 
+// The flat copy of a review that carries a photo. `listing_id` rides along so
+// a photo can be resolved back to the product it is of.
+function photoDoc(r) {
+  const d = reviewDoc(r);
+  return { listing_id: d.listing_id, photo: d.photo, rating: d.rating, text: d.text, created: d.created };
+}
+
 // Upsert one page of reviews. Returns how many were NEW (already-seen
 // transaction ids are how the incremental sync knows when to stop). The
 // existence check is one batched getAll, not a get per review — the serial
@@ -57,9 +75,40 @@ async function upsertPage(results) {
   const snaps = await db().getAll(...rows.map(x => x.ref));
   const fresh = snaps.filter(s => !s.exists).length;
   const batch = db().batch();
-  rows.forEach(x => batch.set(x.ref, reviewDoc(x.r)));
+  rows.forEach(x => {
+    batch.set(x.ref, reviewDoc(x.r));
+    // Same batch, so a review and its photo can never disagree. Only ever
+    // WRITTEN, never deleted: a review that loses its photo is not a thing
+    // Etsy does, and a delete here would be the one way this could drop a
+    // photo the subcollection still holds.
+    if (x.r.image_url_fullxfull) {
+      batch.set(db().collection(PHOTOS).doc(String(x.r.transaction_id)), photoDoc(x.r));
+    }
+  });
   await batch.commit();
   return fresh;
+}
+
+// Fill the flat photo mirror from the reviews already on file. Idempotent —
+// the doc id is the transaction id — so it is safe to re-run, and it is what
+// backfills the photos that landed before the mirror existed.
+// Reads only the subcollections; no Etsy call, so it costs nothing.
+async function backfillPhotos({ dry = false } = {}) {
+  const items = await db().collectionGroup('items').get();
+  const rows = [];
+  items.forEach(d => {
+    const x = d.data();
+    if (!x.photo || !x.listing_id) return;
+    rows.push({ id: d.id, doc: { listing_id: x.listing_id, photo: x.photo, rating: x.rating || 0, text: x.text || '', created: x.created || 0 } });
+  });
+  if (dry) return { found: rows.length, written: 0, dry: true };
+  for (let i = 0; i < rows.length; i += 400) {
+    const batch = db().batch();
+    rows.slice(i, i + 400).forEach(r => batch.set(db().collection(PHOTOS).doc(r.id), r.doc));
+    await batch.commit();
+  }
+  photoCache = { at: 0, rows: null };
+  return { found: rows.length, written: rows.length };
 }
 
 // Recompute the per-listing summary docs and the global rollup. Cheap enough
@@ -142,6 +191,11 @@ async function handleMap() {
   return mapCache.map;
 }
 
+// The wall's first page, held briefly. Photos arrive a handful a month, so a
+// shop tab opened three times in a minute is one read.
+let photoCache = { at: 0, rows: null };
+const PHOTO_CACHE_MS = 10 * 60 * 1000;
+
 let idsCache = { at: 0, ids: [] };
 async function parentIds() {
   if (idsCache.ids.length && Date.now() - idsCache.at < 10 * 60 * 1000) return idsCache.ids;
@@ -150,6 +204,18 @@ async function parentIds() {
     idsCache = { at: Date.now(), ids: docs.map(d => d.id) };
   } catch { idsCache = { at: Date.now(), ids: idsCache.ids }; }
   return idsCache.ids;
+}
+
+// listingId -> shopify handle, the map read backwards. Only the explicit map
+// doc can answer this: the suffix rule works the other way (handle -> id) and
+// cannot be run in reverse without the shop's handle list, which lives on the
+// page, not here. A photo whose listing has no handle is still a photo — it
+// just isn't a door into a product, and it says so by carrying no handle.
+async function inverseMap() {
+  const map = await handleMap();
+  const inv = {};
+  Object.entries(map).forEach(([h, id]) => { inv[String(id)] = h; });
+  return inv;
 }
 
 async function resolveListingId(handle) {
@@ -216,4 +282,58 @@ router.get('/', async (req, res) => {
   }
 });
 
-module.exports = { router, upsertPage, recomputeSummaries, incrementalSync, SHOP_ID, COL, META };
+// GET /photos[?limit=&before=&handles=a,b,c] → the shop's buyer photos,
+// newest first. One ordered read of the flat mirror.
+//
+// `handles` is how a photo becomes a DOOR rather than just a picture: the
+// page already holds the shelf's handles, and resolveListingId knows both ways
+// a handle names a listing (the explicit map, and the Shuttle suffix). Read
+// backwards that gives listing -> handle for everything currently on sale,
+// where the map doc alone covers about two thirds of the photos. A photo whose
+// product cannot be named still shows and simply carries no handle — it is
+// somebody's photo of her work either way.
+router.get('/photos', async (req, res) => {
+  try {
+    maybeSync();
+    const before = parseInt(req.query.before, 10);
+    const asked = parseInt(req.query.limit, 10);
+    const limit = Math.max(1, Math.min(PHOTO_MAX, isFinite(asked) ? asked : PHOTO_PAGE));
+
+    // The Firestore read is the cost; the handle pass below is in-memory, so
+    // the cache holds the ROWS and every caller's own shelf is applied after.
+    let rows;
+    const firstPage = !isFinite(before) && limit === PHOTO_PAGE;
+    if (firstPage && photoCache.rows && Date.now() - photoCache.at < PHOTO_CACHE_MS) {
+      rows = photoCache.rows;
+    } else {
+      let q = db().collection(PHOTOS).orderBy('created', 'desc').limit(limit);
+      if (isFinite(before)) q = q.startAfter(before);
+      const snap = await q.get();
+      rows = snap.docs.map(d => d.data());
+      if (firstPage) photoCache = { at: Date.now(), rows };
+    }
+
+    const inv = await inverseMap();
+    const many = String(req.query.handles || '').split(',').map(h => h.trim()).filter(Boolean).slice(0, 200);
+    if (many.length) {
+      const ids = await Promise.all(many.map(h => resolveListingId(h).catch(() => null)));
+      many.forEach((h, i) => { if (ids[i]) inv[String(ids[i])] = h; });
+    }
+
+    const photos = rows.map(x => ({
+      photo: x.photo,
+      rating: x.rating || 0,
+      text: x.text || '',
+      created: x.created || 0,
+      handle: inv[String(x.listing_id)] || null,
+    }));
+    res.json({
+      photos,
+      nextCursor: photos.length === limit ? photos[photos.length - 1].created : null,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+module.exports = { router, upsertPage, recomputeSummaries, incrementalSync, backfillPhotos, photoDoc, SHOP_ID, COL, META, PHOTOS };

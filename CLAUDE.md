@@ -11969,6 +11969,61 @@ before working on that module. Nothing was deleted — the moved text is verbati
   release). Run the metadata workflow with `dry_run` ON first. The two things that
   still need Sophie are the reviewer's rejection text and any Resolution Center
   reply — Apple exposes neither.
+  **BUYER PHOTOS — THE SHOP'S OWN CUSTOMERS, ABOVE THE SHELVES (2026-09-14,
+  Sophie: "photo reviews with [wit]ch website").** `etsy-reviews.js` has
+  mirrored the shop's Etsy reviews since July 2026 and every one of them
+  carries a `photo` field — **measured that day, 962 of the 7,800 mirrored
+  reviews have one, across 94 listings** — and the only place any of them ever
+  showed was inside ONE product's Reviews tab, 88px wide and not tappable. So
+  the Shop tab now leads with a strip of them (newest first, 24, `.pwall`
+  above the category chips), and tapping one opens it big with the review it
+  came from and a way into that product.
+  - **THE MIRROR IS FLAT ON PURPOSE — `forge-etsy-review-photos/{txnId}`.**
+    The photos are scattered one listing at a time across 173 subcollections,
+    so "the newest photos, whatever they are of" had nowhere to come from; a
+    collectionGroup query would need a hand-made composite index (photo +
+    created), where a flat collection ordered by `created` rides Firestore's
+    automatic single-field index — the same reasoning that shaped the
+    subcollection in the first place. Written in the SAME batch as the review
+    (`upsertPage`), so a review and its photo can never disagree, and only
+    ever written, never deleted. `node scripts/backfill-etsy-reviews.js
+    --photos-only` fills it from the reviews already on file — no Etsy call,
+    no Shopify call, free, `--dry` first.
+  - **`GET /api/witch/shop/reviews/photos?handles=` IS WHAT MAKES A PHOTO A
+    DOOR.** The map doc is handle → listingId and only covers about two thirds
+    of the photos (609 of 962); the page already holds the shelf's handles, so
+    it sends them and `resolveListingId` — which knows the explicit map AND
+    the Shuttle suffix — is read backwards for everything currently on sale.
+    **A photo whose product cannot be named still shows and carries no
+    handle**: it is somebody's photo of her work either way, and its viewer
+    simply offers no button (the Assets tab's silence rule).
+  - **TWO THINGS ON THAT PAGE WERE ALREADY WRONG and are fixed with it.**
+    Etsy hands review text back with HTML entities in it — **measured, 66 of
+    400 sampled** — and `esc()` escaped the ampersand a second time, so buyers
+    read *"I didn&#39;t know"* on the live site; `unent()` decodes once at the
+    DISPLAY and the stored text stays exactly what Etsy sent (*nothing stands
+    between the source and the output*). And a review's inline photo was not
+    tappable at all, which is the whole reason 962 of them were invisible.
+  - **THE VIEWER'S STAGE IS THE ONLY THING THAT GIVES** (the Playground
+    lightbox's own lesson): the card is `flex:none` and the WORDS are what
+    scroll, because capping the card instead cut the way into the product off
+    its own bottom on a long review — MEASURED at 390x700, the app's own web
+    view: card bottom 684, button bottom 699. The stage also carries a 38vh
+    floor and a 60vw minimum, or a photo still downloading collapses it to 0x0
+    and takes the invisible step zones down with it.
+  - **NOTHING IS CURATED YET** — the strip is the newest 24, whatever they are
+    of. A way to hide one is hers to ask for.
+  - **AND THE GLOBAL ROLLUP IS STALE — the page says 4,733 reviews and the
+    mirror holds 7,800** (measured 2026-09-14). `recomputeSummaries()` with no
+    arguments walks every listing and fixes it, free, and would raise the
+    number she shows buyers; deliberately NOT run, because it changes a public
+    figure and that is hers.
+  - Test: `node scripts/test-etsy-review-photos.js` (the mirror's shape and
+    the no-index rule pure, then the real page headless at 390x844 and
+    390x700 — every assertion a MEASUREMENT, since a strip rendered under the
+    shelves, step zones with no height because the photo hasn't loaded, a
+    button hanging past its own card and an entity that only reads wrong once
+    a browser has drawn it all look fine in the source).
   **Writing a Witch School lesson? `docs/witch-school-lessons.md` FIRST.**
   **Full details: `docs/modules/apps.md`.**
 - **Sticker Day** (`public/selfcare.html`, `/selfcare`, **ungated/public**) —

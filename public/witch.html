@@ -812,6 +812,67 @@
     .rv-photo { max-width: 46%; max-height: 150px; border-radius: 6px; margin-top: 8px; display: block; }
     .rv-who { color: var(--text-dim); font-size: 11px; margin-top: 6px; }
     .rv-more { display: block; width: 100%; margin: 12px 0 4px; padding: 10px; border-radius: 6px; border: 1px solid var(--line); background: none; color: var(--text); font-size: 13.5px; }
+    /* ── Buyer photos (the shop's own customers, mirrored from Etsy) ──
+       962 of the shop's reviews carry a photo of the thing in somebody's
+       house, and until now every one of them was buried inside one product's
+       Reviews tab. This is a STRIP, not a grid: it sits above the shelves as
+       proof and must never push the products down a screen. */
+    .pwall { margin: 2px 0 20px; }
+    /* The house rule: [hidden] loses to any author display rule, so say it here
+       rather than leave the next person's `display:flex` to find out. */
+    .pwall[hidden] { display: none; }
+    .pwall-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
+    .pwall-head .pw-t { font-family: var(--serif); font-size: 15.5px; font-weight: 500; }
+    .pwall-head .pw-n { font-size: 11.5px; color: var(--text-dim); white-space: nowrap; }
+    /* Horizontal scroll, no visible bar — the row is the whole control. */
+    .pwall-strip { display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+                   padding-bottom: 2px; scrollbar-width: none; }
+    .pwall-strip::-webkit-scrollbar { display: none; }
+    .pw-cell { flex: 0 0 auto; width: 88px; height: 88px; padding: 0; overflow: hidden;
+               border: 1px solid var(--border-soft); border-radius: 6px; background: var(--panel); cursor: pointer; }
+    .pw-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    /* ── One buyer photo, big, with the review it came from ──
+       Above every sheet (the product sheet is 220), because a review photo is
+       opened from inside one. */
+    .rvlb { position: fixed; inset: 0; z-index: 420; background: rgba(24,19,28,0.94);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; }
+    /* The stage is the only thing that gives — the card is flex:none below, so
+       a long review takes room from the PHOTO and never the other way (the
+       Playground lightbox's own lesson: a bare 54vh doesn't shrink when flex
+       squeezes its box, and the caption under it gets sat on).
+       The 38vh floor is the other half: the stage is sized by its photo, and a
+       photo still downloading (or one Etsy has dropped) left it 0px tall — which
+       took the step zones inside it down with it, so the viewer opened with
+       nothing to tap but the ✕. MEASURED at 390x844 before it: img 0x0, both
+       zones unclickable. */
+    .rvlb-stage { position: relative; max-width: 94vw; min-width: 60vw; min-height: 38vh; flex: 0 1 auto;
+                  display: flex; align-items: center; justify-content: center; }
+    .rvlb-stage img { max-width: 94vw; max-height: min(54vh, 100%); border-radius: 6px; display: block; }
+    /* Invisible step zones over the picture — the house rule: a big tap target
+       on a photo is never drawn. The middle of the photo does nothing, so a
+       tap meant for the picture can't close it by accident. */
+    .rvlb-nav { position: absolute; top: 0; bottom: 0; width: 28%; background: none; border: 0; padding: 0; cursor: pointer; }
+    .rvlb-nav.prev { left: 0; } .rvlb-nav.next { right: 0; }
+    /* The WORDS scroll, never the card. Capping the card instead cut the way
+       into the product off its own bottom on a long review — MEASURED at
+       390x700, the app's own web view: card bottom 684, button bottom 699.
+       The stars, the buyer line and the button are always on screen; only a
+       long review's text gives. */
+    .rvlb-card { width: min(94vw, 430px); margin-top: 13px; flex: none; }
+    .rvlb-top { display: flex; align-items: center; gap: 6px; }
+    .rvlb-date { color: var(--text-faint); font-size: 11.5px; }
+    .rvlb-text { color: #f3ece2; font-size: 13.5px; line-height: 1.55; margin-top: 7px;
+                 max-height: 18vh; overflow-y: auto; }
+    .rvlb-who { color: var(--text-faint); font-size: 11px; margin-top: 7px; }
+    .rvlb-go { display: block; width: 100%; margin-top: 12px; padding: 10px; border-radius: 6px;
+               border: 1px solid var(--gold-dim); background: none; color: var(--gold);
+               font-family: inherit; font-size: 13.5px; cursor: pointer; min-height: 44px; }
+    .rvlb-x { position: absolute; top: 14px; right: 14px; width: 38px; height: 38px; border-radius: 6px;
+              border: 1px solid rgba(255,255,255,0.18); background: rgba(0,0,0,0.25); color: #f3ece2;
+              font-size: 19px; line-height: 1; cursor: pointer; }
+    /* The inline photo inside a review is a way in, not just a picture. */
+    .rv-photo-btn { display: block; padding: 0; border: 0; background: none; cursor: pointer; }
     .cl-line { display: flex; gap: 11px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--border-soft); }
     .cl-line img { width: 54px; height: 54px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-soft); flex: 0 0 auto; }
     .cl-info { flex: 1; min-width: 0; }
@@ -2121,6 +2182,7 @@
           </button>
         </div>
         <div class="section-sub">Tools for the curious. Step into your power.</div>
+        <div id="shop-photos" class="pwall" hidden></div>
         <div id="shop-cats" class="shop-cats"></div>
         <div id="shop-grid" class="shop-grid"></div>
       </section>
@@ -2318,6 +2380,18 @@
   // ── Helpers ──
   const $ = (id) => document.getElementById(id);
   function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+  // Etsy hands review text back with HTML entities already in it — measured
+  // 2026-09-14, 66 of 400 sampled ("I didn&#39;t know there was one"). esc()
+  // then escaped the ampersand again and buyers read the entity. Decode once
+  // here, at the DISPLAY, and leave the stored text exactly as Etsy sent it.
+  // The result always goes back through esc(), so nothing decoded is ever
+  // inserted as markup; a <textarea> is the decode that runs nothing.
+  function unent(s) {
+    if (s == null) return '';
+    const t = String(s);
+    if (t.indexOf('&') < 0) return t;
+    const d = document.createElement('textarea'); d.innerHTML = t; return d.value;
+  }
   // ── The one star used everywhere (change this to change every star) ──
   // Currently the Heroicons solid three-star "sparkles". Any element with class
   // "js-star" is filled with it by renderStars(); JS strings use STAR directly.
@@ -3433,6 +3507,7 @@
       renderShopGrid();
       wrap.dataset.loaded = '1';
       loadShopRatings();  // stars under the thumbnails — one request, then redraw
+      loadShopPhotos();   // the buyers' own photos above the shelves
       refreshCartBadge(); // cosmetic — never blocks the shelves
     } catch (e) {
       await done();
@@ -3443,16 +3518,18 @@
   // FULL-SIZE original — ~150KB a tile, 54 of them — into a 180px square, which
   // is what makes thumbnails crawl or give up on a phone connection. Asking for
   // the size we actually draw cuts a tile to ~45KB.
+  // A product's name without its SEO tail. Shared: the tile and the photo
+  // viewer's way-in button name a product the same way.
+  function shopShort(t) {
+    const cut = String(t || '').split(/\s*[~•|]\s*/)[0].trim();
+    return cut.length >= 4 ? cut : String(t || '');
+  }
   function shopImg(u, w) {
     if (!u || !/\.shopify\.com\//.test(u) || /[?&]width=/.test(u)) return u;
     return u + (u.includes('?') ? '&' : '?') + 'width=' + w;
   }
   function renderShopGrid() {
     const wrap = $('shop-grid');
-    const shortTitle = t => {
-      const cut = t.split(/\s*[~•|]\s*/)[0].trim();
-      return cut.length >= 4 ? cut : t;
-    };
     const items = SHOP_CAT === 'all' ? SHOP_ITEMS : SHOP_ITEMS.filter(p => p.category === SHOP_CAT);
     wrap.innerHTML = items.map(p => {
       // Variant prices span a real range on the kits (a just-the-cards
@@ -3467,7 +3544,7 @@
       return `<a class="shop-item" href="${esc(p.url)}" rel="noopener" onclick="openProduct('${esc(p.handle)}');return false">
         ${img}
         <div class="sbody">
-          <div class="stitle">${esc(shortTitle(p.title))}</div>
+          <div class="stitle">${esc(shopShort(p.title))}</div>
           ${srev(p.handle)}
           ${price ? `<div class="sprice">${esc(price)}</div>` : ''}
           ${p.available ? '' : '<div class="soos">Sold out</div>'}
@@ -3492,8 +3569,91 @@
     try {
       const d = await apiGet('/api/witch/shop/reviews?handles=' + encodeURIComponent(handles.join(',')));
       Object.assign(SHOP_REV, d.items || {});
+      if (d.global) SHOP_GLOBAL = d.global;   // the rollup rides along — no second request
       renderShopGrid();
+      renderPhotoWall();                      // the head line carries the rating
     } catch (e) { /* no ratings, no problem */ }
+  }
+
+  /* ── Buyer photos ──────────────────────────────────────────────────
+     The shop's own customers' photos, newest first, above the shelves. The
+     handles go with the request so a photo can be resolved back to the product
+     it is of and tapping it opens that product; a photo whose listing can't be
+     named still shows and simply isn't a door. Garnish throughout: any failure
+     leaves the strip hidden and the shop exactly as it was. */
+  let SHOP_PHOTOS = [], SHOP_GLOBAL = null;
+  async function loadShopPhotos() {
+    const handles = SHOP_ITEMS.map(p => p.handle).filter(Boolean);
+    try {
+      const d = await apiGet('/api/witch/shop/reviews/photos?limit=24'
+        + (handles.length ? '&handles=' + encodeURIComponent(handles.join(',')) : ''));
+      SHOP_PHOTOS = (d.photos || []).filter(x => x.photo);
+      renderPhotoWall();
+    } catch (e) { /* no photos, no strip */ }
+  }
+  function renderPhotoWall() {
+    const box = $('shop-photos');
+    if (!box) return;
+    if (!SHOP_PHOTOS.length) { box.hidden = true; return; }
+    const g = SHOP_GLOBAL && SHOP_GLOBAL.count
+      ? `${Number(SHOP_GLOBAL.average).toFixed(1)}★ · ${SHOP_GLOBAL.count.toLocaleString()} reviews` : '';
+    box.innerHTML = `<div class="pwall-head"><span class="pw-t">Photos from buyers</span>${g ? `<span class="pw-n">${esc(g)}</span>` : ''}</div>
+      <div class="pwall-strip">${SHOP_PHOTOS.map((x, i) => `
+        <button class="pw-cell" onclick="wallPhoto(${i})" aria-label="A buyer's photo${x.handle ? ' — open the product' : ''}">
+          <img src="${esc(x.photo)}" alt="" loading="lazy"></button>`).join('')}</div>`;
+    box.hidden = false;
+  }
+  // Two thin openers so an inline onclick can name a list and an index; the
+  // viewer itself never has to know which surface it was opened from.
+  function wallPhoto(i) { showPhoto(SHOP_PHOTOS, i); }
+  function revPhoto(handle, i) {
+    const d = REV_CACHE[handle];
+    if (!d || !d.reviews || !d.reviews[i]) return;
+    showPhoto(d.reviews.map(r => Object.assign({ handle }, r)).filter(r => r.photo),
+      d.reviews.filter(r => r.photo).indexOf(d.reviews[i]));
+  }
+  let photoView = null;   // { list, i, atY, node }
+  function showPhoto(list, i) {
+    if (!list || !list.length) return;
+    i = Math.max(0, Math.min(list.length - 1, i));
+    if (photoView) { photoView.list = list; photoView.i = i; return paintPhoto(); }
+    const lb = document.createElement('div');
+    lb.className = 'rvlb';
+    // A tap on dead space closes; the picture and the card never do.
+    lb.addEventListener('click', (e) => { if (e.target === lb || e.target.closest('.rvlb-x')) closePhoto(); });
+    document.body.appendChild(lb);
+    photoView = { list, i, atY: window.scrollY, node: lb };
+    document.body.style.overflow = 'hidden';
+    paintPhoto();
+  }
+  function paintPhoto() {
+    if (!photoView) return;
+    const x = photoView.list[photoView.i]; if (!x) return closePhoto();
+    const prod = x.handle && SHOP_ITEMS.find(p => p.handle === x.handle);
+    const when = x.created ? new Date(x.created).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '';
+    const step = (n) => photoView.list[photoView.i + n]
+      ? `<button class="rvlb-nav ${n < 0 ? 'prev' : 'next'}" aria-label="${n < 0 ? 'Previous' : 'Next'} photo" onclick="stepPhoto(${n})"></button>` : '';
+    photoView.node.innerHTML = `
+      <button class="rvlb-x" aria-label="Close">✕</button>
+      <div class="rvlb-stage"><img src="${esc(x.photo)}" alt="">${step(-1)}${step(1)}</div>
+      <div class="rvlb-card">
+        <div class="rvlb-top">${starRow(x.rating)}<span class="rvlb-date">${esc(when)}</span></div>
+        ${x.text ? `<div class="rvlb-text">${esc(unent(x.text))}</div>` : ''}
+        <div class="rvlb-who">Verified Etsy buyer</div>
+        ${x.handle ? `<button class="rvlb-go" onclick="photoToProduct('${esc(x.handle)}')">${esc(prod ? shopShort(prod.title) : 'See the product')} ›</button>` : ''}
+      </div>`;
+  }
+  function stepPhoto(n) { if (photoView) { photoView.i += n; paintPhoto(); } }
+  function photoToProduct(handle) { closePhoto(); openProduct(handle, 'reviews'); }
+  function closePhoto() {
+    if (!photoView) return;
+    const atY = photoView.atY;
+    photoView.node.remove(); photoView = null;
+    // A sheet underneath keeps its own lock; otherwise she lands exactly where
+    // she opened the photo from.
+    const sheetOpen = document.querySelector('#prod-sheet-bg.show, #cart-sheet-bg.show');
+    document.body.style.overflow = sheetOpen ? 'hidden' : '';
+    if (!sheetOpen) window.scrollTo(0, atY);
   }
   $('shop-cats').addEventListener('click', (e) => {
     const btn = e.target.closest('.shop-cat'); if (!btn) return;
@@ -3668,11 +3828,11 @@
     // The tab label already carries the count, so only the empty state needs a header.
     const head = d.count > 0 ? '' : (d.global && d.global.count
       ? `<div class="rv-head"><span class="rv-count">No reviews for this item yet — the shop holds ${Number(d.global.average).toFixed(1)}★ across ${d.global.count.toLocaleString()} Etsy reviews</span></div>` : '');
-    const items = (d.reviews || []).map(r => `
+    const items = (d.reviews || []).map((r, i) => `
       <div class="rv">
         <div class="rv-top">${starRow(r.rating)}<span class="rv-date">${new Date(r.created).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span></div>
-        ${r.text ? `<div class="rv-text">${esc(r.text)}</div>` : ''}
-        ${r.photo ? `<img class="rv-photo" loading="lazy" src="${esc(r.photo)}" alt="">` : ''}
+        ${r.text ? `<div class="rv-text">${esc(unent(r.text))}</div>` : ''}
+        ${r.photo ? `<button class="rv-photo-btn" onclick="revPhoto('${esc(handle)}',${i})" aria-label="See this buyer's photo"><img class="rv-photo" loading="lazy" src="${esc(r.photo)}" alt=""></button>` : ''}
         <div class="rv-who">Verified Etsy buyer</div>
       </div>`).join('');
     const more = d.nextCursor ? `<button class="rv-more" onclick="moreSheetReviews('${esc(handle)}')">More reviews ✦</button>` : '';
