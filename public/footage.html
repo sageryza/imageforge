@@ -25,6 +25,12 @@
             border-radius:6px;padding:14px;font-size:14px;line-height:1.5;box-shadow:0 8px 30px rgba(0,0,0,.12)}
   .helpcard p{margin:0 0 8px}
   .helpcard b{font-weight:600}
+  .doorprices{font-size:13px;color:#6b6257}
+  .doorprices b{color:#2b2620}
+  /* the row's own ? — the header's gold outline, at the row's 34px so it sits
+     in the family the model and the size already make */
+  .qm{width:34px;height:34px;border-radius:6px;border:1px solid #c9a96a;background:#fff;color:#a0803a;
+      font:600 15px -apple-system,sans-serif;padding:0;flex:none}
   /* THE PILL'S COLUMN IS RESERVED ROW BY ROW, NEVER ON THE WHOLE PANEL
      (2026-09-10, Sophie: "shud be one row - not a column for pill scroll").
      `margin-right` on the PANEL took 64px off every row in it — including the
@@ -385,6 +391,17 @@
   .fold .lw:empty{display:none}
   .fold .lw + *, .fold > span:first-of-type{flex:none;white-space:nowrap}
   .fold.shut svg{transform:rotate(-90deg)}
+  /* THE BAR ABOVE THE PICTURES (2026-09-14, Sophie: "icons become bar above
+     the images" · "also collapsing"). Upload, Recent and Characters are the
+     three controls that PUT something in the strip, so they sit at the top of
+     the block they fill rather than on the BUTTONS row among the model and the
+     size. It carries the pill's own column like every other row in the panel,
+     and it is DISPLAY-hidden with the strip by `paintFolds` — one fold over
+     the block, never a bar left floating over pictures that are not there. */
+  .fold.nofold{opacity:1}
+  .fold.nofold svg{visibility:hidden}
+  .refbar{display:flex;align-items:center;gap:8px;margin:0 var(--pillgap,0px) 8px 0}
+  .refbar > button{flex:none;margin:0}
   /* THE WHOLE PROMPT AREA FOLDS, AND THAT IS THE ONE BUTTON TO THE GALLERY
      (2026-09-11, Sophie: "make the whole prompt area collapse or one button to
      get to the gallery at bottom"). With a scene in the box the panel is most
@@ -1203,6 +1220,20 @@
 </head>
 <body>
 <header class="app-header"><h1 id="title">Footage</h1><button id="help" type="button" aria-label="How this works" title="How this works">?</button></header>
+<!-- WHAT EACH DOOR ACCEPTS AND COSTS (2026-09-14, her ask). Every line here
+     is MEASURED and is in CLAUDE.md — what a door does with a real face, what
+     it does with a famous one, whether it hands back a last frame, and what it
+     bills. The PRICES are asked live when the card opens, for the clip she has
+     set up right now, so "and costs" is this tap's cost and never a table that
+     goes stale the next time a sale moves. Free: `/estimate` makes no model
+     call, and nothing is asked until she opens the card. -->
+<div class="helpcard" id="doorcard" hidden>
+  <p><b>Cheapest</b> is the default. It ranks the doors by what this exact tap costs and sends to the cheapest one that can take its shape. Pick a door yourself and it is pinned: a refusal there is the answer, and nothing is re-sent through another door on its own.</p>
+  <p id="doorprices" class="doorprices"></p>
+  <p><b>Atlas Cloud</b> takes a real person &mdash; a photo or a video &mdash; and refuses a <i>famous</i> face before it draws, free. It is the only door that hands back the clip&rsquo;s last frame. Cheapest for Mini and Fast on its own sale. It takes at most 9 pictures, 3 videos and 3 audios, and never audio on its own.</p>
+  <p><b>OpenRouter</b> is cheapest for 2.0 and 2.5. On 2.0 it refuses <i>any</i> real person in a reference before it draws (free); 2.5&rsquo;s gate is looser. No last frame. Credits cost 5.5% more to buy than the price you see.</p>
+  <p><b>APIFRAME</b> is the dearest, 2&ndash;4x, and it is the one door that takes a first <i>and</i> a last frame beside other references. <b>On 2.0 it silently drops every reference, draws a stranger and bills you</b> &mdash; measured &mdash; so a person reference belongs on Atlas, or on 2.5.</p>
+</div>
 <div class="helpcard" id="helpcard" hidden>
   <p class="bal" id="balline" hidden></p>
   <p class="bal" id="discline" hidden></p>
@@ -1257,15 +1288,20 @@
        in — the one with the gold line — once there is more than one. -->
   <div class="promptwrap active"><button type="button" class="fold bfold" aria-expanded="true"><span class="chev"></span><span class="bflab">Block 1</span><span class="lw"></span><span class="bref"><span class="ic"></span><span class="n"></span></span></button><textarea id="prompt" class="pblock"></textarea><button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this block off" title="Take this block off — undo puts it back"></button><button type="button" id="divide" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block; at the end, an empty one"></button><button type="button" id="bigprompt" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
 
-  <button type="button" class="fold" id="reffold" aria-expanded="true" aria-controls="refs" hidden><span class="chev"></span><span id="reffoldlab">References</span></button>
-  <div class="refs" id="refs"></div>
-  <div id="kfnote" hidden></div>
-  <!-- ONE ROW OF CONTROLS, WRAPPING ONLY WHERE IT MUST (2026-09-09, Sophie:
-       "no button word labels above (eg seconds)" · "consolidate buttons. same
-       row unless it bleeds over"). The picture icon attaches a reference, the
-       two drop-downs are the model and the size, the stepper is the length. -->
-  <button type="button" class="fold" id="ctlfold" aria-expanded="true" aria-controls="controls"><span class="chev"></span><span id="ctlfoldlab">Buttons</span></button>
-  <div class="row" id="controls">
+  <!-- THE REFERENCES BLOCK — ITS HEADING, THE BAR, THE PICTURES (2026-09-14,
+       Sophie: "references default collapsed · and collapse when job is sent" ·
+       "three relevant icons move to reference block" · "upload recent
+       characters" · "icons become bar above the images" · "also collapsing").
+       The three icons that PUT something in the strip — upload, Recent,
+       Characters — were on the BUTTONS row among the model and the size, which
+       are settings; these are the block's own tools, so they are a bar at the
+       top of it. The bar folds with the pictures it belongs to (her "also
+       collapsing"), so shut, the block is one line saying how many are riding.
+       THE HEADING NEVER HIDES ITSELF NOW. It used to come off with nothing
+       attached ("never a dead control") — and the bar is how the FIRST
+       reference is attached, so a hidden row would be a block with no way in. -->
+  <button type="button" class="fold" id="reffold" aria-expanded="true" aria-controls="refs"><span class="chev"></span><span id="reffoldlab">References</span></button>
+  <div class="refbar" id="refbar">
     <button class="up ib" type="button" id="add" aria-label="Add a reference" title="Add a reference"><span id="addicon"></span><input type="file" accept="image/*,video/*,audio/*" multiple id="file"></button>
     <button id="rectog" type="button" aria-expanded="false" aria-label="Recent — references you have used" title="Recent — clips you made and references you have used" hidden></button>
     <!-- THE CHARACTER LIBRARY (2026-09-11, Sophie: "add character icon to
@@ -1273,6 +1309,23 @@
          character's references AND puts the line that names them by slot at
          the TOP of the prompt. -->
     <button id="casttog" type="button" class="ib" aria-expanded="false" aria-label="Characters" title="Characters" hidden></button>
+  </div>
+  <div class="refs" id="refs"></div>
+  <!-- THE TWO DRAWERS FOLLOW THEIR BUTTONS (2026-09-14). They are siblings of
+       the strip rather than children of it, so each is measured on its own by
+       `fitPillGap` exactly as before — but they belong to this block now and
+       close when it does, where until today they closed with the BUTTONS row
+       their toggles used to sit on. -->
+  <div id="recent" hidden></div>
+  <div id="cast" hidden></div>
+  <div id="kfnote" hidden></div>
+  <!-- ONE ROW OF CONTROLS, WRAPPING ONLY WHERE IT MUST (2026-09-09, Sophie:
+       "no button word labels above (eg seconds)" · "consolidate buttons. same
+       row unless it bleeds over"). The drop-downs are the model, the size, the
+       shape and the length; the seed is the last of them. The three icons that
+       attach a reference moved to the references block on 2026-09-14. -->
+  <button type="button" class="fold" id="ctlfold" aria-expanded="true" aria-controls="controls"><span class="chev"></span><span id="ctlfoldlab">Buttons</span></button>
+  <div class="row" id="controls">
     <!-- TWO MODELS — 2.0 MINI AND 2.0 FAST (2026-09-10, Sophie: "add 2.0
          fast back as an option"). The choice came off the page that morning
          ("get rid of the model choice · just mini for now") and this puts
@@ -1301,9 +1354,20 @@
          undo wrapped under the price; with the seed up here all four sit on
          the star's line. -->
     <span class="seedwrap" id="seedwrap"><input type="text" id="seedbox" inputmode="numeric" autocomplete="off" placeholder="Seed" aria-label="Seed" title="Seed — leave it blank for a fresh one"><button type="button" id="seedclear" aria-label="Clear the seed" title="Clear the seed" hidden></button></span>
+    <!-- WHICH DOOR (2026-09-14, Sophie: "add api door dropdown options w (?)
+         info about what each accepts and costs"). The page has always sent
+         `auto` and let the server rank the three by what the tap really costs;
+         that is still the first row and still the default, and picking a door
+         by hand PINS it — a refusal on a pinned door is a measurement, and the
+         server never falls back off one (`doorFor`, 2026-09-11 evening: "if a
+         job refuses references it should just fail"). The rows are DERIVED
+         from `/status`'s own `doors`, so a door with no key on the server is
+         not offered. NOT STICKY, like the model and the seconds: a door pinned
+         last week silently sending tonight's clip at 4x is the hidden
+         ingredient the price beside the star exists to prevent. -->
+    <span class="selwrap"><select id="door" aria-label="Which door" title="Which door sends the clip"></select><span class="chev"></span></span>
+    <button type="button" id="doorq" class="qm" aria-label="What each door accepts and costs" title="What each door accepts and costs">?</button>
   </div>
-  <div id="recent" hidden></div>
-  <div id="cast" hidden></div>
   <!-- THE STAR IS THE ONE BUTTON AND IT SENDS ON ITS TAP (2026-09-09, Sophie:
        "no plan button"), with the price of that tap right beside it. -->
   <div class="row" style="margin-top:12px">
@@ -1522,6 +1586,7 @@ $('help').addEventListener('click', function (e) {
   e.stopPropagation();
   var card = $('helpcard'), opening = card.hidden;
   card.hidden = !opening;
+  $('doorcard').hidden = true;                 // one card at a time
   // the whole status: the sale Atlas is passing on today is one of the facts
   // this card shows, and the price line under the star has to agree with it
   if (opening) {
@@ -1536,6 +1601,7 @@ $('help').addEventListener('click', function (e) {
   }
 });
 document.addEventListener('click', function () { if (!$('helpcard').hidden) $('helpcard').hidden = true; });
+document.addEventListener('click', function () { if (!$('doorcard').hidden) $('doorcard').hidden = true; });
 
 // ── State ─────────────────────────────────────────────────────────────────
 var CFG = null;                      // GET /status
@@ -1556,6 +1622,15 @@ var SPENT_PARTIAL = false;           // …and whether that day is still open
 // left to the model's own default.
 var DOOR = 'auto';
 function doorNow() { return DOOR; }
+// THE ROWS ARE DERIVED FROM `/status` (2026-09-14) — a door with no key on the
+// server is not offered, so the picker can never name one that must refuse her
+// for a reason she cannot see. "Cheapest" leads and is the default.
+var DOOR_ORDER = ['atlascloud', 'openrouter', 'apiframe'];
+function doorRows() {
+  var live = (CFG && CFG.doors) || {};
+  return [{ id: 'auto', label: 'Cheapest' }].concat(
+    DOOR_ORDER.filter(function (d) { return live[d]; }).map(function (d) { return { id: d, label: doorWord(d) }; }));
+}
 // ONE SPELLING OF EACH DOOR — the price line before the tap and the card
 // after it have to say the same word for the same door.
 function doorWord(d) { return d === 'openrouter' ? 'OpenRouter' : d === 'atlascloud' ? 'Atlas Cloud' : d === 'apiframe' ? 'APIFRAME' : (d || ''); }
@@ -2415,6 +2490,11 @@ function paintControls(force) {
   // leaves the box showing a shape the server silently clamps to 1:1.
   if (CFG.ratios.indexOf(S.ratio) < 0) { S.ratio = CFG.ratios[0]; saveCtl(); }
   fillSel($('ratio'), CFG.ratios.map(function (r) { return { id: r, label: r }; }), S.ratio);
+  // A DOOR THE SERVER NO LONGER CARRIES FALLS BACK TO `auto` — the same clamp
+  // the size and the length get, so a heal or a stale pick lands on a real row.
+  var drows = doorRows();
+  if (!drows.some(function (r) { return r.id === DOOR; })) DOOR = 'auto';
+  fillSel($('door'), drows, DOOR);
   paintFolds();                                   // the label reads the size/shape/seconds it just settled
   updateCost();
 }
@@ -2422,6 +2502,49 @@ function paintControls(force) {
 // served table — Mini and Fast happen to share 480p/720p and 4–15s today, so
 // nothing moves under her, and the day a row does not the box lands on that
 // model's own minimum rather than a size the server would silently clamp.
+// PICKING A DOOR PINS IT, and re-prices the tap at once — the line beside the
+// star names the door it will really go to, so the two can never disagree.
+$('door').addEventListener('change', function () {
+  DOOR = $('door').value || 'auto';
+  updateCost();
+  paintDoorPrices();          // the card, if she has it open
+});
+// WHAT EACH DOOR WOULD COST FOR THE CLIP SHE HAS SET UP RIGHT NOW. Asked only
+// when the card is open — `/estimate` is free and makes no model call, but
+// three round trips on every keystroke would be three for nothing. A door that
+// cannot take this job's SHAPE answers nothing and is named as such rather
+// than shown at a price it could never honour.
+function paintDoorPrices() {
+  var el = $('doorprices');
+  if (!el || $('doorcard').hidden) return;
+  var rows = doorRows().filter(function (r) { return r.id !== 'auto'; });
+  if (!rows.length) { el.textContent = ''; return; }
+  el.textContent = 'Pricing this clip…';
+  Promise.all(rows.map(function (r) {
+    return api('/estimate' + costQuery(r.id)).then(function (e) {
+      return { label: r.label, cents: e && e.ok && e.cents != null ? e.cents : null, about: e && e.about };
+    }).catch(function () { return { label: r.label, cents: null }; });
+  })).then(function (out) {
+    if ($('doorcard').hidden) return;
+    el.innerHTML = '';
+    var lead = document.createElement('span');
+    lead.textContent = 'This clip, as you have it set up: ';
+    el.appendChild(lead);
+    out.forEach(function (o, i) {
+      if (i) el.appendChild(document.createTextNode(' · '));
+      var b = document.createElement('b');
+      b.textContent = o.label + ' ' + (o.cents == null ? 'cannot take it' : (o.about ? '~' : '') + cents(o.cents));
+      el.appendChild(b);
+    });
+  });
+}
+$('doorq').addEventListener('click', function (e) {
+  e.stopPropagation();
+  var card = $('doorcard'), opening = card.hidden;
+  card.hidden = !opening;
+  $('helpcard').hidden = true;                 // one card at a time
+  if (opening) paintDoorPrices();
+});
 $('model').addEventListener('change', function () {
   S.model = $('model').value;
   var mm = modelOf(S.model);
@@ -2491,7 +2614,18 @@ $('seedclear').addEventListener('click', function () { $('seedbox').value = ''; 
 // changed, because a value she cannot see is the hidden ingredient the price
 // line beside the star exists to prevent.
 var FOLDS = { panel: 'footage_fold_panel', refs: 'footage_fold_refs', ctl: 'footage_fold_ctl' };
-function foldShut(k) { try { return localStorage.getItem(FOLDS[k]) === '1'; } catch (e) { return false; } }
+// AND THE REFERENCES BLOCK OPENS SHUT (2026-09-14, Sophie: "references default
+// collapsed"). A default PER FOLD rather than a value written at boot: nothing
+// is stored until she folds one herself, so the page has no state to migrate
+// and a key that has never been written still means "she has not said".
+var FOLD_SHUT = { refs: true };
+function foldShut(k) {
+  try {
+    var v = localStorage.getItem(FOLDS[k]);
+    if (v === null) return !!FOLD_SHUT[k];
+    return v === '1';
+  } catch (e) { return !!FOLD_SHUT[k]; }
+}
 function setFold(k, shut) { try { localStorage.setItem(FOLDS[k], shut ? '1' : '0'); } catch (e) {} paintFolds(); }
 function openFold(k) { if (foldShut(k)) setFold(k, false); }
 // SHUT, THE ROW SAYS WHAT IS IN THE BOX — the first words of the block she is
@@ -2522,31 +2656,44 @@ function paintFolds() {
   var pl = pShut ? panelLab() : { lab: 'Prompt', words: '' };
   $('panelfoldlab').textContent = pl.lab;
   $('panelfoldwords').textContent = pl.words;
-  // never a dead control: with nothing attached there is nothing to fold
-  $('reffold').hidden = !refs.length;
-  $('refs').style.display = (rShut && refs.length) ? 'none' : '';
-  $('reffold').classList.toggle('shut', rShut);
-  $('reffold').setAttribute('aria-expanded', rShut ? 'false' : 'true');
+  // THE HEADING IS ALWAYS THERE NOW (2026-09-14). It used to come off with
+  // nothing attached — "never a dead control" — and the bar under it is how the
+  // FIRST reference is attached, so a hidden row would be a block with no way
+  // in. With nothing attached there is still nothing to FOLD, so the chevron
+  // stands down and the row is a label over the bar rather than a button.
+  var canFold = !!refs.length;
+  $('reffold').hidden = false;
+  $('reffold').classList.toggle('nofold', !canFold);
+  $('reffold').disabled = !canFold;
+  var hide = canFold && rShut;
+  $('refs').style.display = hide ? 'none' : '';
+  // AND THE BAR FOLDS WITH THE PICTURES IT FILLS (her "also collapsing"). It is
+  // the block's own tools, so shut the block is one line and nothing of it is
+  // left floating over a strip that is not drawn.
+  $('refbar').style.display = hide ? 'none' : '';
+  // AND THE TWO DRAWERS GO WITH THEM. Both toggles are in the bar, so a shut
+  // block would otherwise leave a drawer on screen with no control to close it
+  // — the bug the 2026-09-11 note fixed when they hung off the BUTTONS row.
+  if (hide && (recentOpen || castOpen)) {
+    if (recentOpen) recClose();        // ends organize mode with it, or the next tile tap deletes
+    if (castOpen) { castOpen = false; paintCast(); }
+  }
+  $('reffold').classList.toggle('shut', hide);
+  $('reffold').setAttribute('aria-expanded', hide ? 'false' : 'true');
   // AND IT SAYS WHOSE (2026-09-14). The strip is the ACTIVE block's, so with
   // two or more blocks the label names the one the gold line is on — the same
   // block the star will send, so what is on screen and what will ride can
   // never read as two different things.
   var ws = blocks();
   var mine = ws.length > 1 ? ' · block ' + (ws.indexOf(activeWrap()) + 1) : '';
-  $('reffoldlab').textContent = 'References' + mine + (rShut ? ' · ' + refs.length : '');
+  $('reffoldlab').textContent = 'References' + mine + (hide ? ' · ' + refs.length : '');
   // THE SEED IS ON THIS ROW AND FOLDS WITH IT (2026-09-13) — it used to sit in
   // the STAR's row and be display-hidden by hand here, which is the same fold
   // spelled twice. DISPLAY-hidden with the rest, so a folded Go still sends
   // the seed the box holds.
   $('controls').style.display = cShut ? 'none' : '';
-  // AND THE TWO DRAWERS GO WITH THEIR BUTTONS. Both toggles are inside
-  // `#controls` and hide with it; `#recent` and `#cast` are its SIBLINGS, so
-  // until this they stayed on screen with no control left to close them.
-  // Repainted only when one was really open, so the common path costs nothing.
-  if (cShut && (recentOpen || castOpen)) {
-    if (recentOpen) recClose();        // ends organize mode with it, or the next tile tap deletes
-    if (castOpen) { castOpen = false; paintCast(); }
-  }
+  // THE DRAWERS ARE THE REFERENCES BLOCK'S NOW (2026-09-14) — their toggles
+  // moved into its bar, so the fold that closes them is that one, above.
   $('ctlfold').classList.toggle('shut', cShut);
   $('ctlfold').setAttribute('aria-expanded', cShut ? 'false' : 'true');
   var m = modelOf(S.model);
@@ -2579,6 +2726,17 @@ $('ctlfold').addEventListener('click', function () { setFold('ctl', !foldShut('c
 // Atlas alone, and OpenRouter refuses any person in a reference (free, before
 // drawing — and the job stops there). It came off on 2026-09-09
 // only because there was one door left to name.
+// THE SHAPE OF THE CLIP AS ONE QUERY, so the price under the star and the
+// prices in the doors card are asked the same way and can never disagree about
+// what is being priced. The door is the one thing that varies.
+function costQuery(door) {
+  var plain = slotRefs();
+  var hasVideo = plain.some(function (r) { return r.kind === 'video'; });
+  var nOf = function (k) { return plain.filter(function (r) { return r.kind === k; }).length; };
+  return '?model=' + S.model + '&res=' + S.res + '&ratio=' + encodeURIComponent(S.ratio) + '&seconds=' + S.seconds + '&video=' + (hasVideo ? 1 : 0) + '&door=' + door
+    + (firstUrl ? '&first=1' : '') + (lastUrl ? '&last=1' : '') + (plain.length ? '&refs=1' : '')
+    + '&imgs=' + nOf('image') + '&vids=' + nOf('video') + '&auds=' + nOf('audio');
+}
 var costSeq = 0;
 function updateCost() {
   var seq = ++costSeq;
@@ -2594,16 +2752,11 @@ function updateCost() {
   // the rest: a first frame narrows which doors can take the job at all, so
   // the price and the DOOR she reads have to be the ones the tap will really
   // get. Nothing here holds a copy of that rule — `doorFor` is the one place.
-  var plain = slotRefs();
-  var hasVideo = plain.some(function (r) { return r.kind === 'video'; });
   // AND THE COUNTS, because Atlas has caps of its own (9 pictures, 3 videos,
   // 3 audios, and audio never alone) and AUTO ranks Atlas first on its sale —
   // so a ten-picture job would be priced on the one door that must refuse it.
   // `doorFor` is still the only place that rule lives.
-  var nOf = function (k) { return plain.filter(function (r) { return r.kind === k; }).length; };
-  var q = '?model=' + S.model + '&res=' + S.res + '&ratio=' + encodeURIComponent(S.ratio) + '&seconds=' + S.seconds + '&video=' + (hasVideo ? 1 : 0) + '&door=' + doorNow()
-    + (firstUrl ? '&first=1' : '') + (lastUrl ? '&last=1' : '') + (plain.length ? '&refs=1' : '')
-    + '&imgs=' + nOf('image') + '&vids=' + nOf('video') + '&auds=' + nOf('audio');
+  var q = costQuery(doorNow());
   api('/estimate' + q).then(function (d) {
     if (seq !== costSeq) return;
     if (!d || d.error) { $('cost').textContent = (d && d.error) || ''; $('cost').dataset.cents = ''; $('cost').dataset.door = 'none'; paintKfNote(); return; }
@@ -4323,6 +4476,14 @@ function postJob(pin, box, resend) {
     // her words STAY in the box after a send (a re-roll is one tap), and so
     // does the draft — it used to be wiped here while the box still showed
     // the words, so a reload right after a send opened on an empty box
+    // AND THE REFERENCES BLOCK SHUTS (2026-09-14, Sophie: "and collapse when
+    // job is sent"). Only on a job that really WENT — a refusal leaves it open,
+    // because the door words under the error re-send that same job and hiding
+    // half of what is about to ride again is the wrong moment. It writes the
+    // fold like her own tap, so the next load is shut too, which is what
+    // "default collapsed" already asks for. Her pictures are untouched: the
+    // strip still holds them and the shut row says how many.
+    setFold('refs', true);
     schedulePoll(true);
     loadStatus();
     return true;
@@ -6841,7 +7002,7 @@ var ftTouchedAt = 0, ftUploading = 0;
 //     wins — she just tapped it.
 var HEAL_PICK = 'footage_healpick';
 function healPickStash() {
-  try { sessionStorage.setItem(HEAL_PICK, JSON.stringify({ model: S.model, res: S.res, seconds: S.seconds })); }
+  try { sessionStorage.setItem(HEAL_PICK, JSON.stringify({ model: S.model, res: S.res, seconds: S.seconds, door: DOOR })); }
   catch (e) {}
 }
 function healPickTake() {
@@ -6852,6 +7013,7 @@ function healPickTake() {
   if (p.model) S.model = String(p.model);
   if (p.res) S.res = String(p.res);
   if (p.seconds != null) S.seconds = Number(p.seconds) || S.seconds;
+  if (p.door) DOOR = String(p.door);     // validated against the served doors by paintControls
 }
 function ftHolding() {                                       // the reason, or false
   if (Date.now() - ftTouchedAt < 10000) return 'a tap in the last 10s';
@@ -6861,6 +7023,7 @@ function ftHolding() {                                       // the reason, or f
   if (ftUploading > 0) return 'an upload in flight';
   if (!$('err').hidden) return 'a refusal on screen';
   if (seedVal()) return 'the seed box';
+  if (!$('doorcard').hidden) return 'the doors card';
   if (!$('shelf').hidden) return 'the folder sheet';
   if (!$('player').hidden) return 'the trimmer';
   if (!$('cmp').hidden) return 'the compare panel';
