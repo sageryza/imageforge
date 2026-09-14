@@ -49,11 +49,18 @@ async function main() {
         console.log(`could not read in-flight state (${e.message}); deploying anyway`);
         break;
       }
-      const busy = (st.drawing || []).length + (st.cutting || []).length;
+      // AND EVERYTHING ELSE (2026-09-14) — inflight.js's register on the
+      // live box: a footage send above all, plus every ffmpeg render, bake
+      // and paid sweep. An older server answers no `work` and reads as clear,
+      // exactly as it did before.
+      const work = (st.work && typeof st.work === 'object') ? st.work : {};
+      let working = 0; for (const v of Object.values(work)) working += Number(v) || 0;
+      const busy = (st.drawing || []).length + (st.cutting || []).length + working;
       const mem = st.memory ? ` · rss ${Math.round(st.memory.rss / 1048576)}MB` : '';
       if (!busy) { console.log(`nothing in flight${mem} — clear to deploy`); break; }
       const mins = ((Date.now() - started) / 60000).toFixed(1);
-      console.log(`${busy} in flight (${(st.drawing || []).length} drawing, ${(st.cutting || []).length} cutting)${mem} — waiting ${mins}m`);
+      const also = Object.entries(work).map(([k, v]) => `${v} ${k}`).join(', ');
+      console.log(`${busy} in flight (${(st.drawing || []).length} drawing, ${(st.cutting || []).length} cutting${also ? `, ${also}` : ''})${mem} — waiting ${mins}m`);
       if (Date.now() - started > maxMin * 60000) {
         console.error(`still busy after ${maxMin} minutes — NOT deploying. Re-run with a longer --max, or --now if it must ship.`);
         process.exit(3);

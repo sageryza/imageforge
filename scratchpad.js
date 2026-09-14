@@ -2179,7 +2179,12 @@ async function takeWords(url, job) {
   } finally { try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* tmp */ } }
 }
 
-async function runFilmJob(padId) {
+// A DEPLOY WAITS FOR THIS (2026-09-14, Sophie: "anything else that would
+// cause a problem"). A pad's film is minutes of ffmpeg; a restart
+// in the middle of it wedges the doc on 'making'.
+async function runFilmJob(padId) { return require('./inflight').track('render', () => runFilmJobInner(padId)); }
+
+async function runFilmJobInner(padId) {
   // EVERYTHING fallible lives inside the try — measured 2026-08-24: with
   // mkdtempSync on this line, a throw here (a full disk, an unwritable tmp)
   // rejects the fire-and-forget promise with no catch anywhere, which under

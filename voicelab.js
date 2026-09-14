@@ -262,7 +262,12 @@ function stampRequestId(id, res) {
 // whose process is GONE — which is the only case there is.
 const LIVE = new Set();
 
-async function renderJob(id, voiceId, voiceName, text) {
+// A DEPLOY WAITS FOR THIS (2026-09-14, Sophie: "anything else that would
+// cause a problem"). Her words are already at ElevenLabs and already
+// billed by the time this writes anything back.
+async function renderJob(id, voiceId, voiceName, text) { return require('./inflight').track('voice', () => renderJobInner(id, voiceId, voiceName, text)); }
+
+async function renderJobInner(id, voiceId, voiceName, text) {
   const doc = admin.firestore().collection(COL).doc(id);
   LIVE.add(id);
   try {
@@ -288,7 +293,11 @@ async function renderJob(id, voiceId, voiceName, text) {
 // The SOURCE is kept, on purpose (Sophie: "the recorded voice will also save
 // to firebase") — it goes to Storage before the conversion is even attempted,
 // so a failed or refused conversion still leaves her the take she recorded.
-async function changeJob(id, voiceId, voiceName, tmp, ext) {
+// A DEPLOY WAITS FOR THIS (2026-09-14, Sophie: "anything else that would
+// cause a problem"). The recording is already at ElevenLabs and already billed.
+async function changeJob(id, voiceId, voiceName, tmp, ext) { return require('./inflight').track('voice', () => changeJobInner(id, voiceId, voiceName, tmp, ext)); }
+
+async function changeJobInner(id, voiceId, voiceName, tmp, ext) {
   const doc = admin.firestore().collection(COL).doc(id);
   const bucket = admin.storage().bucket();
   const srcDest = `${SOURCE_FOLDER}/${id}.${ext}`;
