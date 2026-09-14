@@ -161,15 +161,56 @@ const server = http.createServer((req, res) => {
   await guard('the seed box holding a number',
     () => page.evaluate(() => { const s = document.getElementById('seedbox'); s.value = '12345'; s.dispatchEvent(new Event('input', { bubbles: true })); }),
     () => page.evaluate(() => { const s = document.getElementById('seedbox'); s.value = ''; s.dispatchEvent(new Event('input', { bubbles: true })); }));
-  await guard('the model moved off Mini',
-    () => page.evaluate(() => { const m = document.getElementById('model'); m.value = m.options[1].value; m.dispatchEvent(new Event('change', { bubbles: true })); }),
-    () => page.evaluate(() => { const m = document.getElementById('model'); m.value = m.options[0].value; m.dispatchEvent(new Event('change', { bubbles: true })); }));
-  await guard('the seconds moved off the minimum',
-    () => page.evaluate(() => { const b = document.getElementById('secs'); b.value = b.options[1].value; b.dispatchEvent(new Event('change', { bubbles: true })); }),
-    () => page.evaluate(() => { const b = document.getElementById('secs'); b.value = b.options[0].value; b.dispatchEvent(new Event('change', { bubbles: true })); }));
-  await guard('the resolution moved off 480p',
-    () => page.evaluate(() => { const r = document.getElementById('res'); r.value = r.options[1].value; r.dispatchEvent(new Event('change', { bubbles: true })); }),
-    () => page.evaluate(() => { const r = document.getElementById('res'); r.value = r.options[0].value; r.dispatchEvent(new Event('change', { bubbles: true })); }));
+  // ── THE MODEL, THE SIZE AND THE SECONDS NO LONGER HOLD — THEY RIDE ACROSS
+  // (2026-09-14, Sophie: "it doesn't work", about a divide that had shipped
+  // that morning and was live). They held the reload until this date, and the
+  // ward draft is cut at 15s, so her page could never heal at all. Every
+  // assertion here a MEASUREMENT: a check that returns true and reloads
+  // nothing, one that reloads and drops her pick back to Mini · 480p · 4s, and
+  // one that leaves the pick in storage for the NEXT reload to resurrect all
+  // look identical in the source.
+  const pick = () => page.evaluate(() => ({
+    model: document.getElementById('model').value,
+    res: document.getElementById('res').value,
+    secs: document.getElementById('secs').value,
+  }));
+  const opts = await page.evaluate(() => ({
+    model: document.getElementById('model').options[1].value,
+    res: document.getElementById('res').options[1].value,
+    secs: document.getElementById('secs').options[1].value,
+  }));
+  await page.evaluate((o) => {
+    for (const [id, v] of Object.entries(o)) {
+      const el = document.getElementById(id === 'secs' ? 'secs' : id);
+      el.value = v; el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }, opts);
+  await settle();
+  await page.waitForTimeout(200);
+  const armed = await pick();
+  ok('she has moved all three off their defaults (' + armed.model + ' · ' + armed.res + ' · ' + armed.secs + 's)',
+    armed.model === opts.model && armed.res === opts.res && armed.secs === opts.secs);
+  ok('NONE of the three holds the heal any more', await holding() === false);
+  doc = await docId();
+  ok('a new build reloads even with all three moved', await check() === true);
+  doc = await waitNewDoc(doc);
+  // the selects are empty until /status lands and paintControls refills them —
+  // reading before that measures a page mid-boot, not the pick that came back
+  await page.waitForFunction(() => document.querySelectorAll('#ratio option').length > 0);
+  await page.waitForTimeout(400);
+  const back = await pick();
+  ok('and her model came back across the reload (' + back.model + ')', back.model === opts.model);
+  ok('and her size came back (' + back.res + ')', back.res === opts.res);
+  ok('and her seconds came back (' + back.secs + 's)', back.secs === opts.secs);
+  ok('the carried pick is spent — sessionStorage is clear',
+    await page.evaluate(() => sessionStorage.getItem('footage_healpick')) === null);
+  // a reload SHE makes is a cold open again: the three are unsticky as ever
+  await open();
+  const cold = await pick();
+  ok('a plain reload still opens on the defaults (' + cold.model + ' · ' + cold.res + ' · ' + cold.secs + 's)',
+    cold.model !== opts.model && cold.res !== opts.res && cold.secs !== opts.secs);
+  doc = await docId();
+  currentBuild = 'deadbeefcafe';
   await guard('a refusal on screen',
     () => page.evaluate(() => { const e = document.getElementById('err'); e.textContent = 'refused'; e.hidden = false; }),
     () => page.evaluate(() => { document.getElementById('err').hidden = true; }));

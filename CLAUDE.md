@@ -5484,10 +5484,31 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     types in most). `GET /api/footage/build` + `ftBuildCheck` in footage.html:
     the Playground's block, with this page's own guards — a field under her
     caret, a tap in 10s, a send or an upload in flight, a refusal on screen,
-    the seed box, the model/size/seconds off default (deliberately unsticky,
-    so a reload would put Fast back to Mini), a search, the trimmer, the
-    character sheet, Recent, a note box, an expanded clip. Her words and
-    references ride `footage_draft` and come back. **A page loaded BEFORE
+    the seed box, a search, the trimmer, the character sheet, Recent, a note
+    box, an expanded clip. Her words and references ride `footage_draft` and
+    come back.
+    **AND THE MODEL, THE SIZE AND THE SECONDS RIDE IT TOO SINCE 2026-09-14 —
+    THEY HELD THE HEAL FOREVER, AND THAT IS WHY A FIX THAT SHIPPED THAT
+    MORNING WAS NOT THERE (Sophie, about the empty-block divide: "it doesn't
+    work" · "neither. doesn't work").** All three are deliberately UNSTICKY,
+    so the first cut of the guard refused to reload over them — a reload
+    would silently put Fast back to Mini and 15s back to 4s. MEASURED on the
+    real page: picking **15 seconds** (or 720p, or any model but Mini) made
+    `ftHolding()` answer "the seconds off their default" and `ftBuildCheck`
+    never reloaded, through any number of new builds — and the ward draft is
+    cut at 15s, so **her footage page could never heal at all** and every
+    deploy since stopped at her screen with nothing on it saying why. They
+    are CARRIED ACROSS the reload now (`healPickStash` / `healPickTake`)
+    rather than blocking it. Three things not to undo: it is **SESSION**
+    storage, so a cold open still lands on Mini · 480p · 4s and the unsticky
+    rule is exactly what it was — only a heal carries them; the key is
+    **TAKEN ONCE** as it is read, so a reload she makes later cannot
+    resurrect last hour's pick; and the values are **NOT validated at the
+    take** — `paintControls` clamps all three against the SERVED table, so a
+    build that dropped a model or a size lands on a real value. **The lesson
+    beyond this page: a guard that holds on a SETTING rather than on unsaved
+    work is a guard that never lets go** — the setting comes with her, it
+    does not get to veto the update. **A page loaded BEFORE
     this ships cannot heal itself** — the once-more force-quit is the one
     cure, and after that every fix reaches her on the next return to the
     tool. `ftHolding()` answers the REASON (`window.__ftHeal.holding()`), so
