@@ -149,44 +149,22 @@ const server = http.createServer((req, res) => {
   const page = await b.newPage({ viewport: { width: 390, height: 844 } });
   page.on('pageerror', (e) => ok(false, 'the page threw: ' + e.message));
 
-  // ---- the doors row ------------------------------------------------------
-  await page.goto(base + '/chats?view=news', { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('#nwdoors .nwdoor', { timeout: 8000 });
-  // the count is its own request — wait for it to land rather than reading the
-  // first paint, which is a race that only sometimes goes the right way
-  await page.waitForFunction(() => /To read/.test(document.getElementById('nwdoors').textContent)
-    && /3/.test(document.getElementById('nwdoors').textContent), null, { timeout: 8000 }).catch(() => {});
-
-  const words = await page.$$eval('#nwdoors .nwdoor', (ns) => ns.map((n) => n.textContent.trim()));
-  ok(words[0] === 'Update', 'Update still leads the row');
-  ok(words.some((w) => /^To read/.test(w)), 'a To read door sits in the row: ' + words.join(' · '));
-  ok(/To read3/.test(words.join('')) || /To read\s*3/.test(words.join('')),
-     'carrying its count from the server');
-
-  // NOT RED — measured against the token, so a copy-paste can't bring it back.
-  const paint = await page.evaluate(() => {
-    const rose = getComputedStyle(document.documentElement).getPropertyValue('--rose').trim();
-    const pair = document.querySelector('#nwdoors .nwrevpair');
-    if (!pair) return { none: true, rose };
-    const cs = getComputedStyle(pair);
-    const word = getComputedStyle(pair.querySelector('.nwdoor'));
-    const norm = (c) => { const d = document.createElement('div'); d.style.color = c;
-      document.body.appendChild(d); const v = getComputedStyle(d).color; d.remove(); return v; };
-    return { rose: norm(rose), border: cs.borderTopColor, colour: word.color, line: getComputedStyle(document.documentElement).getPropertyValue('--line').trim() };
-  });
-  ok(!paint.none, 'the Review door is on screen to be measured');
-  if (!paint.none) {
-    ok(paint.border !== paint.rose, 'the Review door’s border is not the accent (' + paint.border + ')');
-    ok(paint.colour !== paint.rose, '…and neither is its word (' + paint.colour + ')');
-  }
-
-  // tapping To read opens the keep-pile with the filter lit
-  await page.$$eval('#nwdoors .nwdoor', (ns) => {
-    const t = ns.find((n) => /^To read/.test(n.textContent.trim())); t.click();
+  // ---- the doors row is GONE (2026-09-14) ---------------------------------
+  // `#nwdoors` — Update · Review · To read — was the UPDATE screen's own
+  // chrome, and the tab came off at her ask ("get rid of the updates tab in
+  // chats"). The To read DOOR went with it; the To read CHIP inside the
+  // keep-pile is how that pile is narrowed now, and the rest of this file is
+  // about the chip and the row it filters, both of which are untouched.
+  await page.goto(base + '/chats', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('#grid');
+  await page.click('#bmklink');
+  await page.waitForSelector('#grid .bmktagbar .catchip', { timeout: 8000 });
+  await page.$$eval('#grid .bmktagbar .catchip', (ns) => {
+    const t = ns.find((n) => /^To read/i.test(n.textContent.trim())); if (t) t.click();
   });
   await page.waitForTimeout(600);
   ok(await page.$$eval('#grid .bmktagbar .catchip.on', (n) => n.length) === 1,
-     'the keep-pile opens with the To read filter lit');
+     'the keep-pile narrows to the To read chip');
   ok(await page.$$eval('#grid .bmkrow', (n) => n.length) === 1,
      'and shows only what is tagged to read');
   ok(await page.$$eval('#grid .acctabs.bmktabs', (n) => n.length) === 0,

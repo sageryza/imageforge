@@ -111,6 +111,10 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });   // iPhone 13
   await page.addInitScript(() => {
     localStorage.setItem('promptlab_tab', 'panels');
+    // Hide-the-✕'d is ON by default since 2026-09-14 ("default to hide x") and
+    // this pass MARKS a sheet ✕ and then reads it back, so it stores her own
+    // explicit OFF ('' is what her tap writes) rather than measuring the filter.
+    localStorage.setItem('promptlab_hidex', '');
     localStorage.setItem('promptlab_sheets', '1');     // the Sheets view — the uncut sheet, alone
   });
   await page.goto(base + '/playground');

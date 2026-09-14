@@ -11,9 +11,9 @@
  * CSS never landed, a put-back that loses her words, and a note filed under
  * a part's url all look exactly like the versions that work.
  *
- * Verified against the pre-fix page, where it CRASHES rather than failing a
- * count: `#goall` does not exist there at all, and every source pin at the
- * foot is a line that was not in the file.
+ * The All star this file used to drive is GONE (2026-09-14, Sophie: "button
+ * is stipid get it out"), so its sections are gone with it; the door-word
+ * re-send it happened to cover is kept, driven through the ordinary star.
  *
  * Run: node scripts/test-footage-blocks-audit.js
  */
@@ -143,7 +143,6 @@ const readBlocks = () => {
   await page.waitForTimeout(200);
   let bs = await page.evaluate(readBlocks);
   ok('one block: no ✕ is drawn at all', bs.length === 1 && !bs[0].xDrawn);
-  ok('and the second star is not drawn either', await page.evaluate(() => document.getElementById('goall').hidden === true));
 
   // ── 2. divide twice → three blocks, each with a ✕ inside its own box ────
   await page.evaluate(() => {
@@ -205,44 +204,17 @@ const readBlocks = () => {
     bs.length === 2 && bs[0].text === 'shot two' && bs[1].text === 'shot three');
   ok('and the first block is STILL #prompt', bs[0].id === 'prompt');
 
-  // ── 5. the second star: drawn with 2+ blocks, carrying the batch's price ─
-  const all = await page.evaluate(() => {
-    const b = document.getElementById('goall');
-    const r = b.getBoundingClientRect(), g = document.getElementById('go').getBoundingClientRect();
-    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-    return { hidden: b.hidden, text: b.textContent.trim(), w: Math.round(r.width),
-      // after the star on the same line, OR on the line under it — her own
-      // "same row unless it bleeds over". What it must never be is ON it.
-      after: r.left >= g.right - 1 || r.top >= g.bottom - 1,
-      overlaps: !(r.left >= g.right - 1 || r.right <= g.left + 1 || r.top >= g.bottom - 1 || r.bottom <= g.top + 1),
-      reach: hit ? ((hit.closest && hit.closest('button') && hit.closest('button').id) || hit.id || hit.tagName) : 'none',
-      armed: b.classList.contains('armed'), star: !!b.querySelector('svg') };
-  });
-  ok('the second star is drawn with two blocks', all.hidden === false);
-  ok('it wears the house generate star', all.star);
-  ok('it sits after the first star, on its line or under it (' + all.text + ')', all.after && !all.overlaps);
-  ok('and it really takes its own tap (' + all.reach + ')', all.reach === 'goall');
-  // ONE clip, so ONE clip's price — never a multiple of it (her note: "not
-  // separate jobs. i want them to append to each other").
-  ok('it names the count and ONE clip\'s price (' + all.text + ')',
-    /All 2/.test(all.text) && /4\.4¢/.test(all.text) && !/8\.8¢/.test(all.text));
-
-  // ── 6. it sends ONE job, every block APPENDED ───────────────────────────
-  posted.length = 0;
-  await page.click('#goall');
-  await page.waitForTimeout(900);
-  ok('exactly ONE job went (' + posted.length + ')', posted.length === 1);
-  ok('its prompt is both blocks appended, blank line between (' + JSON.stringify(posted[0] && posted[0].prompt) + ')',
-    posted.length === 1 && posted[0].prompt === 'shot two\n\nshot three');
-  ok('and every block still has its words after the send', (await page.evaluate(readBlocks)).every((b) => b.text));
-
-  // ── 6b. A DOOR WORD AFTER AN APPENDED SEND RE-SENDS THE APPENDED SCENE ──
-  // "those words re-send THAT exact job" — and a joined prompt is exactly
-  // what can break it, since `sendJob` with no text re-reads the ACTIVE box.
-  // The gold line is left where she put it, so this must not depend on it.
+  // ── 5. A DOOR WORD RE-SENDS THAT EXACT JOB ──────────────────────
+  // "those words re-send THAT exact job" — `sendJob` with no body re-reads the
+  // ACTIVE box, so the re-send has to carry the body that really went.
   posted.length = 0;
   refuse = true;
-  await page.click('#goall');
+  await page.evaluate(() => {
+    const ws = Array.from(document.getElementById('prompt').closest('.panel').children).filter((k) => k.classList.contains('promptwrap'));
+    ws[1].querySelector('.pblock').click();          // the gold line on block 2
+  });
+  await page.waitForTimeout(150);
+  await page.click('#go');
   await page.waitForTimeout(900);
   const doorText = await page.evaluate(() => {
     const b = document.querySelector('#err .doorgo');
@@ -251,63 +223,10 @@ const readBlocks = () => {
   ok('a refusal offers another door (' + doorText + ')', /Send it through/.test(doorText));
   await page.click('#err .doorgo');
   await page.waitForTimeout(900);
-  ok('the door word re-sent the SAME appended scene (' + JSON.stringify(posted.length > 1 ? posted[posted.length - 1].prompt : null) + ')',
-    posted.length === 2 && posted[1].prompt === 'shot two\n\nshot three');
+  ok('the door word re-sent the SAME scene (' + JSON.stringify(posted.length > 1 ? posted[posted.length - 1].prompt : null) + ')',
+    posted.length === 2 && posted[1].prompt === posted[0].prompt);
   ok('and it pinned the door she tapped (' + (posted[1] && posted[1].door) + ')',
     posted.length === 2 && posted[1].door && posted[1].door !== 'atlascloud');
-
-  // ── 7. a blank block is not sent and does not count ─────────────────────
-  posted.length = 0;
-  await page.evaluate(() => {
-    const ws = Array.from(document.getElementById('prompt').closest('.panel').children).filter((k) => k.classList.contains('promptwrap'));
-    const b = ws[1].querySelector('.pblock');
-    b.value = '   '; b.dispatchEvent(new Event('input', { bubbles: true }));
-  });
-  await page.waitForTimeout(300);
-  ok('with one block blank the second star comes off the row',
-    await page.evaluate(() => document.getElementById('goall').hidden === true));
-
-  // ── 8. over $3 the first tap ASKS and sends nothing ─────────────────────
-  // ONE clip's price is the figure now, so the fixture prices ONE clip over
-  // the line (a 30s 2.5 clip really is) rather than relying on × the count.
-  cents = 320;                       // one appended clip ⇒ $3.20
-  await page.evaluate(() => {
-    const ws = Array.from(document.getElementById('prompt').closest('.panel').children).filter((k) => k.classList.contains('promptwrap'));
-    const b = ws[1].querySelector('.pblock');
-    b.value = 'shot three again'; b.dispatchEvent(new Event('input', { bubbles: true }));
-  });
-  await page.evaluate(() => { document.getElementById('model').dispatchEvent(new Event('change', { bubbles: true })); });
-  await page.waitForTimeout(700);
-  posted.length = 0;
-  const lab1 = await page.evaluate(() => document.getElementById('goall').textContent.trim());
-  await page.click('#goall');
-  await page.waitForTimeout(400);
-  const armed = await page.evaluate(() => ({ armed: document.getElementById('goall').classList.contains('armed'),
-    text: document.getElementById('goall').textContent.trim() }));
-  ok('the price on the button is over $3 before the tap (' + lab1 + ')', /\$3\.20/.test(lab1));
-  ok('the first tap sent NOTHING (' + posted.length + ' posted)', posted.length === 0);
-  ok('it armed and says the total (' + armed.text + ')', armed.armed && /\$3\.20/.test(armed.text));
-  await page.click('#goall');
-  await page.waitForTimeout(900);
-  ok('the second tap sent the one appended clip (' + posted.length + ')',
-    posted.length === 1 && /shot two\n\nshot three again/.test(posted[0].prompt));
-  cents = 4.4;
-
-  // ── 9. a keystroke disarms it ───────────────────────────────────────────
-  await page.evaluate(() => { document.getElementById('model').dispatchEvent(new Event('change', { bubbles: true })); });
-  await page.waitForTimeout(500);
-  await page.evaluate(() => { window.__forgeTestArm = true; });
-  cents = 320;                       // one appended clip over the $3 line
-  await page.evaluate(() => { document.getElementById('model').dispatchEvent(new Event('change', { bubbles: true })); });
-  await page.waitForTimeout(600);
-  await page.click('#goall');
-  await page.waitForTimeout(300);
-  ok('armed again', await page.evaluate(() => document.getElementById('goall').classList.contains('armed')));
-  await page.focus('#prompt');
-  await page.keyboard.type('x');
-  await page.waitForTimeout(300);
-  ok('a keystroke disarmed it', await page.evaluate(() => !document.getElementById('goall').classList.contains('armed')));
-  cents = 4.4;
 
   // ── 10. THE FOLD ROW RIDES THE TOP OF THE SCREEN ────────────────────────
   await page.evaluate((s) => {
@@ -390,13 +309,20 @@ const readBlocks = () => {
     if (btn) { btn.click(); return true; }
     return false;
   });
+  // 2026-09-14, Sophie: "copy back from finished job shud make a new text
+  // block · not replace the selected block". A put-back OVERWRITES NOTHING
+  // now — it lands in a block of its own — so it banks nothing either, and an
+  // `undo` left on the row by an earlier clear goes on meaning that clear.
   if (copied) {
     await page.waitForTimeout(500);
-    ok('a put-back offers an undo for what it overwrote',
-      await page.evaluate(() => document.getElementById('undojob').hidden === false));
+    const after = await page.evaluate(readBlocks);
+    ok('a put-back adds a block and leaves the ones she wrote alone',
+      after.length === before.length + 1
+      && after[0].text === before[0].text && after[1].text === before[1].text);
   } else {
-    ok('a put-back offers an undo for what it overwrote (no card button in this fixture — source pinned instead)',
-      /bank = wasJob; saveBank\(\);/.test(fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8').split('function copyBack')[1].slice(0, 400)));
+    const fn = fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8').split('function copyBack')[1].slice(0, 3000);
+    ok('a put-back banks nothing, because it overwrites nothing (no finished card in this fixture — source pinned instead)',
+      !/bank = /.test(fn) && /addBlock\(back, tail, job\)/.test(fn));
   }
 
   // ── 12. SOURCE PINS for the fixes with no reachable surface here ────────
@@ -413,9 +339,17 @@ const readBlocks = () => {
   // view's `more` and cursor would otherwise offer a page of another folder's
   // matches
   ok('switching folder re-asks a standing search, and resets its own walk',
-    /function setFolder[\s\S]{0,900}?if \(searchQ\) \{ qHits = null; qMore = false; qAt = ''; runSearch\(\); \}/.test(src));
-  ok('unhiding cards re-decides their "… more"', /if \(!tiles\) resyncClamps\(\);\n  var n = Object\.keys\(jobsById\)/.test(src));
-  ok('grab frame keeps the player and her marks', /useShot\(false, 'frame at ' \+ Number\(d\.at\)\.toFixed\(1\) \+ 's', true\)/.test(src));
+    /function setFolder[\s\S]{0,1400}?if \(searchQ\) \{ qHits = null; qMore = false; qAt = ''; runSearch\(\); \}/.test(src));
+  // (the count under it is taken off the VIEW since 2026-09-14, so the pin
+  // is the resync sitting directly above that count, comment and all)
+  ok('unhiding cards re-decides their "… more"', /if \(!tiles\) resyncClamps\(\);\n  \/\/ COUNTED OFF THE VIEW[\s\S]{0,600}?var n = Object\.keys\(jobsById\)\.filter/.test(src));
+  // THE GRAB OFFERS RATHER THAN LANDING IT (2026-09-14, Sophie: "grab frame
+  // shud offer to save or add as reference") — so the `useShot` moved out of
+  // the pull's own `then` and onto the offer row's `reference` word. `stay` is
+  // still the load-bearing half: closing the player drops `TR` and with it the
+  // in and out marks she had just placed.
+  ok('the pull itself lands nothing — it offers', /if \(!d \|\| d\.error \|\| !d\.url\) return toast[\s\S]{0,120}?showGrab\(d\.url, d\.at\);/.test(src));
+  ok('grab frame keeps the player and her marks', /\$\('tgref'\)\.addEventListener\([\s\S]{0,300}?useShot\(false, 'frame at ' \+ grabbed\.at\.toFixed\(1\) \+ 's', true\)/.test(src));
   ok('the optimistic card is built from the body the tap sent',
     /project: body\.project, folder: body\.folder,/.test(src) && /var m = modelOf\(body\.model\);/.test(src));
   // THE WHOLE RULE MOVED INTO `cast-line.js` AS `planMarked` (2026-09-14) —

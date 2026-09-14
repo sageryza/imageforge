@@ -270,14 +270,24 @@ async function endpointDiscount(orId) {
     const eps = (j && j.data && j.data.endpoints) || [];
     const d = Number(eps[0] && eps[0].pricing && eps[0].pricing.discount);
     return Number.isFinite(d) && d > 0 && d < 1 ? d : 0;
-  } catch { return 0; }
+  // COULD NOT READ IS NOT "IT IS ZERO" (2026-09-14, found auditing the
+  // module). A throw answered 0 — full list — and `discounts()` wrote that
+  // over a good figure wholesale, the asymmetry `atlasPrices()` was fixed for
+  // on 2026-09-13: the door is chosen by price, so one flaky metadata read
+  // made every OpenRouter row look up to 60% dearer for ten minutes and could
+  // walk a job onto a genuinely dearer door. `null` here is "keep what you
+  // had"; a real 0 read off the record still clears a stale sale.
+  } catch { return null; }
 }
 async function discounts() {
   if (Date.now() - discCache.at < DISC_CACHE_MS && discCache.at) return discCache.val;
   const out = {};
-  await Promise.all(MODELS.filter((m) => m.or).map(async (m) => { out[m.id] = await endpointDiscount(m.or); }));
-  discCache = { at: Date.now(), val: out };
-  return out;
+  await Promise.all(MODELS.filter((m) => m.or).map(async (m) => {
+    const d = await endpointDiscount(m.or);
+    if (d != null) out[m.id] = d;
+  }));
+  discCache = { at: Date.now(), val: { ...discCache.val, ...out } };
+  return discCache.val;
 }
 function discountOf(id) { const v = discCache.val[id]; return Number.isFinite(v) ? v : 0; }
 // ─── Atlas Cloud's price, read off its own model list ───────────────────
@@ -505,7 +515,9 @@ function doorFor({ model, door, hasVideo, resolution, ratio, seconds, avoid, has
   if (!m) return { error: 'unknown model' };
   cfg = cfg || { openrouter: true, apiframe: true, atlascloud: true };
   const want = String(door || 'auto').toLowerCase();
-  const res = m.res.includes(resolution) ? resolution : (resolution || '480p');
+  // the same normalisation `estimate` and `buildJob` apply — a rung the model
+  // does not offer used to fail every door here and blame the configuration
+  const res = m.res.includes(resolution) ? resolution : m.res[0];
   const shape = { hasFirstFrame: Boolean(hasFirstFrame), hasLastFrame: Boolean(hasLastFrame), hasRefs: Boolean(hasRefs), ...countsOf({ images, videos, audios }) };
   const orOk = Boolean(m.or) && cfg.openrouter && m.res.includes(res) && doorTakes('openrouter', shape);
   const afOk = Boolean(m.af) && cfg.apiframe && m.afCents && m.afCents[res] != null && doorTakes('apiframe', shape);
@@ -711,7 +723,7 @@ function buildJob(b) {
   const roleOf = (u) => (u === kfFirst ? 'first' : u === kfLast ? 'last' : '');
   const refs = slotsOf((Array.isArray(b.refs) ? b.refs : [])
     .map((r) => ({ ...r, role: roleOf(String(r.url)) })))
-    .map((r) => ({ url: String(r.url), kind: r.kind, slot: r.slot, poster: r.poster ? String(r.poster) : '', name: r.name ? String(r.name).slice(0, 80) : '',
+    .map((r) => ({ url: String(r.url), kind: r.kind, slot: r.slot, poster: r.poster && !badUrl(r.poster) ? String(r.poster).slice(0, 500) : '', name: r.name ? String(r.name).slice(0, 80) : '',
       ...(r.role ? { role: r.role } : {}) }));
   const audio = b.sound == null ? (m.audioDefault !== false) : Boolean(b.sound);
   const plain = refs.filter((r) => !r.role);
@@ -789,7 +801,13 @@ async function balances() {
   // answer") — `/public/v1/balance`, a different prefix from the generation
   // api, read through atlascloud.js's own route. This line said "publishes no
   // balance endpoint here" and was wrong.
-  const out = { openrouter: { configured: c.openrouter, left: null }, apiframe: { configured: c.apiframe, credits: null }, atlascloud: { configured: c.atlascloud, left: null } };
+  // A DOOR THAT DID NOT ANSWER KEEPS ITS LAST FIGURE (2026-09-14, found
+  // auditing the module): one blip on one door blanked that balance on the
+  // "?" card for the whole cache minute, and there is no `?fresh=` on /status
+  // to get past it. `atlasPrices()`'s own rule, one read over.
+  const last = balCache.val || {};
+  const keep = (k, f) => (last[k] && last[k][f] != null ? last[k][f] : null);
+  const out = { openrouter: { configured: c.openrouter, left: keep('openrouter', 'left') }, apiframe: { configured: c.apiframe, credits: keep('apiframe', 'credits') }, atlascloud: { configured: c.atlascloud, left: keep('atlascloud', 'left') } };
   const base = process.env.RENDER_EXTERNAL_URL || `http://127.0.0.1:${process.env.PORT || 3000}`;
   const h = STUDIO_TOKEN ? { 'x-studio-token': STUDIO_TOKEN } : {};
   await Promise.all([
@@ -853,6 +871,7 @@ function trimCard(t) {
     start: Number(t.start) || 0, end: Number(t.end) || 0,
     seconds: Number(t.seconds) || Math.round(((Number(t.end) || 0) - (Number(t.start) || 0)) * 1000) / 1000,
     key: String(t.key || ''), status: String(t.status || ''), url: t.url || '', poster: t.poster || '', error: t.error || '',
+    at: t.at || '',        // when it was cut — the page ages a `baking` part out by it (2026-09-14)
   };
 }
 
@@ -919,7 +938,9 @@ async function drawStats(fresh) {
       if (!Number.isFinite(ms) || ms <= 0) return;
       const k = drawKeyOf(d);
       if (!k) return;
-      add(`${k.door}|${k.model}|${k.res}|${k.ratio}|${k.seconds}`, ms);
+      // a clip with NO ratio would land the exact key on the ratio key and
+      // count twice — it has no "exact" rung to speak for
+      if (k.ratio) add(`${k.door}|${k.model}|${k.res}|${k.ratio}|${k.seconds}`, ms);
       add(`${k.door}|${k.model}|${k.res}||${k.seconds}`, ms);
       add(`|${k.model}|${k.res}||${k.seconds}`, ms);
       add(`|${k.model}|||${k.seconds}`, ms);
@@ -1051,6 +1072,7 @@ function cardOf(id, d) {
 
 // ─── Polling the unfinished ones, throttled ────────────────────────────
 const lastPoll = new Map();   // job id → ms
+const posterTried = new Set();   // clips whose missing poster this process has tried once to bake
 async function pollOne(id, d) {
   const now = Date.now();
   if (now - (lastPoll.get(id) || 0) < POLL_EVERY_MS) return null;
@@ -1075,7 +1097,11 @@ async function pollOne(id, d) {
 function ffmpegBin() {
   try { return require('ffmpeg-static'); } catch { return null; }
 }
-async function bakePoster(id, videoUrl) { return inflight.track('footage-bake', () => bakePosterInner(id, videoUrl)); }
+// THROUGH THE ONE-DECODE QUEUE (2026-09-14, found auditing the module). It
+// registered with `inflight` and skipped `gateTrim`, so five clips finishing
+// inside one poll window fetched and decoded five clips at once on the 512MB
+// box — beside whatever trim the queue thought it had serialised.
+async function bakePoster(id, videoUrl) { return gateTrim(() => bakePosterInner(id, videoUrl)); }
 
 async function bakePosterInner(id, videoUrl) {
   const bin = ffmpegBin();
@@ -1099,6 +1125,7 @@ async function bakePosterInner(id, videoUrl) {
     await f.makePublic();
     const poster = `https://storage.googleapis.com/${bucket.name}/${posterPath}`;
     await coll().doc(String(id)).set({ poster }, { merge: true });
+    shelfBust();                       // a tile's face just changed
     return poster;
   } catch { return null; } finally {
     try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* temp */ }
@@ -1188,23 +1215,79 @@ function gateTrim(fn) {
 // carries sound. The ask is not the answer: a clip is 24·s + 1 frames, so a
 // 4s ask really runs 4.04s, and an out-mark she dragged to the end has to
 // clamp to the file rather than fail against the ask.
+//
+// AND HOW FAST ITS FRAMES COME (2026-09-14): `fps` is the video stream's own
+// rate (24 on every Seedance clip), 0 when the file will not say. `total`
+// is the VIDEO's length when there is one — the format's duration is the
+// longer of the two tracks, and the audio runs a few hundredths past the
+// last frame, so an out-mark clamped to it would name a frame that is not
+// there.
 async function probeMedia(file) {
-  const out = await runBin(ffprobeBin(), ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type', '-of', 'json', file], 60000);
+  const out = await runBin(ffprobeBin(), ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type,avg_frame_rate,duration', '-of', 'json', file], 60000);
   const info = JSON.parse(out || '{}');
+  const streams = info.streams || [];
+  const video = streams.find((x) => x.codec_type === 'video');
+  const m = /^(\d+)\/(\d+)$/.exec(String((video && video.avg_frame_rate) || ''));
+  const fps = m && Number(m[2]) > 0 ? Number(m[1]) / Number(m[2]) : 0;
+  const vdur = parseFloat((video && video.duration) || '0') || 0;
   return {
-    total: parseFloat((info.format || {}).duration || '0') || 0,
-    withAudio: (info.streams || []).some((x) => x.codec_type === 'audio'),
+    total: vdur || parseFloat((info.format || {}).duration || '0') || 0,
+    withAudio: streams.some((x) => x.codec_type === 'audio'),
+    fps: Number.isFinite(fps) && fps > 0 ? fps : 0,
+  };
+}
+
+// THE CUT LANDS ON THE FRAMES SHE CHOSE, NOT NEAR THEM (2026-09-14, Sophie:
+// "trim ends a frame after the one i chose"). A mark is the player's
+// `currentTime`, and the frame ON SCREEN at that time is the one whose
+// timestamp is at or before it — floor(t × fps). ffmpeg's `trim` keeps the
+// frames at or AFTER `start`, so unless her mark sat exactly on a frame
+// boundary (it never does — a tenth-of-a-second step is 2.4 frames) the frame
+// she was paused on was the first one dropped, and the part opened one frame
+// late. So the span is snapped to FRAMES: the in-frame is the one under the
+// start mark, the out-frame the one under the end mark, and BOTH are kept.
+// The cut is asked for at the MIDPOINTS between frames — half a frame either
+// side — so `chunkGraph`'s rounding to milliseconds (a frame is 41.7ms apart)
+// can never land on the wrong side of a boundary, and the audio is cut to
+// exactly `frames / fps`, the length of the picture it rides under.
+// PURE: measured against a numbered-frame clip by test-footage-trim.js.
+function frameSpan(start, end, fps, total) {
+  if (!(fps > 0)) return { start, end, frames: 0, seconds: Math.round((end - start) * 1000) / 1000, snapped: false };
+  const last = total > 0 ? Math.max(0, Math.round(total * fps) - 1) : Infinity;
+  const eps = 1e-6;
+  const a = Math.max(0, Math.floor(start * fps + eps));
+  const b = Math.min(last, Math.max(a, Math.floor(end * fps + eps)));
+  const frames = b - a + 1;
+  return {
+    start: Math.max(0, (a - 0.5) / fps),
+    end: (b + 0.5) / fps,
+    frames,
+    seconds: Math.round((frames / fps) * 1000) / 1000,
+    snapped: true,
   };
 }
 
 // ONE span out of one file, on disk. Kept apart from the Firestore/Storage
 // bookkeeping around it so the CUT can be measured with a real file and
 // ffprobe (`node scripts/test-footage-trim.js`) rather than reasoned about.
-async function cutSpan(src, out, start, end, withAudio) {
+//
+// EVERY SOURCE FRAME IS ONE OUTPUT FRAME (2026-09-14). `setpts` leaves the
+// graph with no frame rate, so ffmpeg fell back to 25fps and RE-CADENCED a
+// 24fps clip onto it — measured on her own baked part: 82 frames for 79,
+// three of them duplicates — which is how the last frame of a part could be
+// a frame she never chose. So the output is CFR at the SOURCE's own probed
+// rate — the source is CFR, so nothing is duplicated or dropped and the file
+// says 24 (measured: 80 frames in, 80 out, video and audio the same length).
+// A file whose rate the probe cannot read keeps every frame's own timestamp
+// instead (`passthrough`), which is one frame short of duration on the last
+// frame but never a frame she did not choose.
+async function cutSpan(src, out, start, end, withAudio, fps) {
   const bin = ffmpegBin();
   const graph = require('./clips').chunkGraph(start, end, withAudio);
   const args = ['-y', '-i', src, '-filter_complex', graph, '-map', '[v]'];
   if (withAudio) args.push('-map', '[a]', '-c:a', 'aac', '-b:a', '160k');
+  if (fps > 0) args.push('-fps_mode', 'cfr', '-r', String(fps));
+  else args.push('-fps_mode', 'passthrough');
   args.push('-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out);
   await runBin(bin, args, TRIM_RUN_MS);
   return out;
@@ -1266,14 +1349,16 @@ async function bakeTrim(id, plan) {
       // asked the door for: a clip is 24·s + 1 frames, so the real total
       // runs a frame past the ask. The end is CLAMPED rather than refused —
       // an out-mark she dragged to the very end must not fail the bake.
-      const { total, withAudio } = await probeMedia(src);
+      const { total, withAudio, fps } = await probeMedia(src);
       const end = total ? Math.min(plan.end, Math.round(total * 1000) / 1000) : plan.end;
       if (total && plan.start >= total) return write({ status: 'failed', error: `the clip is ${total.toFixed(1)}s — the trim starts after it ends` });
-      if (Math.round((end - plan.start) * 1000) / 1000 < TRIM_MIN_SECONDS) {
+      // her marks, snapped onto the frames under them (see `frameSpan`)
+      const fr = frameSpan(plan.start, end, fps, total);
+      if (fr.seconds < TRIM_MIN_SECONDS) {
         return write({ status: 'failed', error: `the clip is ${total.toFixed(1)}s — that leaves nothing to keep` });
       }
 
-      await cutSpan(src, out, plan.start, end, withAudio);
+      await cutSpan(src, out, fr.start, fr.end, withAudio, fps);
 
       const vf = bucket.file(plan.path);
       await vf.save(fs.readFileSync(out), { metadata: { contentType: 'video/mp4' } });
@@ -1290,7 +1375,9 @@ async function bakeTrim(id, plan) {
         poster = pub(plan.posterPath);
       } catch { /* a trim with no poster still plays */ }
 
-      return write({ status: 'ready', url: pub(plan.path), poster, seconds: Math.round((end - plan.start) * 1000) / 1000, end });
+      // `seconds` is the FILE's length — whole frames — and `end` stays her
+      // mark (clamped), so the row's span puts her marks back where she set them
+      return write({ status: 'ready', url: pub(plan.path), poster, seconds: fr.seconds, end });
     } catch (e) {
       return write({ status: 'failed', error: String((e && e.message) || e).slice(0, 200) });
     } finally {
@@ -1521,10 +1608,11 @@ async function ensureVideoFloor(url, name) {
     const done = `https://storage.googleapis.com/${bucket.name}/${objectPath}`;
     const [exists] = await f.exists();
     if (!exists) {
-      await runBin(bin, ['-y', '-i', src,
+      // one decode at a time, like every other ffmpeg on this box (2026-09-14)
+      await gateTrim(() => runBin(bin, ['-y', '-i', src,
         '-vf', `scale=${plan.w}:${plan.h}:flags=lanczos`,
         '-c:v', 'libx264', '-crf', '18', '-preset', 'veryfast', '-pix_fmt', 'yuv420p',
-        '-c:a', 'copy', '-movflags', '+faststart', out]);
+        '-c:a', 'copy', '-movflags', '+faststart', out]));
       await f.save(fs.readFileSync(out), { metadata: { contentType: 'video/mp4' } });
       await f.makePublic();
     }
@@ -1634,6 +1722,21 @@ async function startJobInner(b) {
   const built = buildJob(b);
   if (built.error) { const e = new Error(built.error); e.status = 400; throw e; }
   const { body, refs, m, res, ratio, seconds, first, last } = built;
+  // EVERY REFUSAL THIS MODULE RAISES ITSELF IS LOGGED TOO (2026-09-14, found
+  // auditing the module — `logRefusal` was called from the door's catch and
+  // nowhere else, so a shape refusal, the reference-video total and the PAUSE
+  // left no trace; the pause is the worst of them, since it fires on a scene
+  // she has just finished typing, and closing the page in that minute lost
+  // the prompt). Best-effort, never in the way of the refusal itself.
+  const refuse = async (message, refusal, door, status) => {
+    const e = new Error(message); e.status = status || 400; e.refusal = refusal; e.why = message; if (door) e.door = door;
+    await logRefusal({ body, refs, m, res, ratio, seconds, first, last, door: door || '', err: e }).catch(() => {});
+    throw e;
+  };
+  // THE PAUSE IS CHECKED HERE, NOT ONLY ON THE ROUTE — `startJob` is exported
+  // and a chat calling it in-process went straight through a deploy's swap
+  // window (2026-09-14).
+  if (pausedNow()) await refuse(PAUSED_WORDS, 'paused', '', 503);
   // A KEYFRAME NEVER COUNTS AS A REFERENCE VIDEO — it is a picture, and
   // `hasVideo` is what picks APIFRAME's dearer with-a-video rate.
   const hasVideo = refs.some((r) => r.kind === 'video' && !r.role);
@@ -1642,8 +1745,8 @@ async function startJobInner(b) {
     images: plain.filter((r) => r.kind === 'image').length,
     videos: plain.filter((r) => r.kind === 'video').length,
     audios: plain.filter((r) => r.kind === 'audio').length };
-  const d = doorFor({ model: m, door: b.door, hasVideo, resolution: res, ratio, seconds, ...shape }, cfg());
-  if (d.error) { const e = new Error(d.error); e.status = 400; e.refusal = e.refusal || ((shape.hasFirstFrame || shape.hasLastFrame || atlasCapRefusal(shape)) ? 'shape' : undefined); e.why = d.error; throw e; }
+  let d = doorFor({ model: m, door: b.door, hasVideo, resolution: res, ratio, seconds, ...shape }, cfg());
+  if (d.error) await refuse(d.error, (shape.hasFirstFrame || shape.hasLastFrame || atlasCapRefusal(shape)) ? 'shape' : undefined);
   // A reference under ByteDance's pixel floor is refused before anything
   // draws, so swap in an upscaled copy BEFORE the door sees the body — and
   // keep `refs` (the card) pointing at her originals.
@@ -1651,11 +1754,23 @@ async function startJobInner(b) {
   const floored = await floorRefs(body);
   delete body.__names;
   body.referenceVideoUrls = floored.urls;
-  const over = refVideoTotalRefusal(floored.seconds, d.door);
-  if (over) { const e = new Error(over); e.status = 400; e.refusal = 'shape'; e.why = over; throw e; }
+  let over = refVideoTotalRefusal(floored.seconds, d.door);
+  // ATLAS'S 15.2s CAP IS ATLAS'S ALONE, and AUTO ranks Atlas first for Mini and
+  // Fast on its sale — so a Mini job with a 12s and a 4s reference was refused
+  // outright while OpenRouter and APIFRAME were both open and neither is known
+  // to have the cap (2026-09-14, found auditing the module). On AUTO the job
+  // walks to the next-cheapest door that takes its shape and the card says so;
+  // a PINNED door still refuses, as every pinned door does.
+  let walked = '';
+  if (over && String(b.door || 'auto').toLowerCase() === 'auto') {
+    const alt = doorFor({ model: m, door: 'auto', hasVideo, resolution: res, ratio, seconds, ...shape, avoid: ['atlascloud'] }, cfg());
+    if (!alt.error && alt.door) { d = alt; walked = `Sent through ${DOOR_WORDS[alt.door] || alt.door} — Atlas takes ${videoRefusals.REF_VIDEO_TOTAL_MAX}s of reference video at most for one job.`; over = ''; }
+  }
+  if (over) await refuse(over, 'shape', d.door);
   const est = estimate({ model: m, resolution: res, ratio, seconds, hasVideo, door: d.door, ...shape }, cfg());
   const extra = { door: d.door, refs, estimate: est.cents != null ? est.cents : null, footage: true, aspect: ratio };
-  if (floored.notes.length) extra.note = floored.notes.join(' ');
+  const notes = floored.notes.concat(walked ? [walked] : []);
+  if (notes.length) extra.note = notes.join(' ');
   if (body.project) extra.project = body.project;
   if (body.folder) extra.folder = body.folder;
   // the story part rides onto the doc through `extra` exactly as the project
@@ -1693,8 +1808,16 @@ async function startJobInner(b) {
   // the seed the door really used — hers, or the one it minted — so the card
   // this tap draws carries it without waiting for the first poll
   const seed = r.params && r.params.seed != null ? Number(r.params.seed) : null;
+  // A DOOR THAT DREW BUT COULD NOT FILE THE JOB SAYS SO (2026-09-14, found
+  // auditing the module). Every door swallowed its log write's failure into a
+  // console.warn and answered like a success, so footage answered 202 for a
+  // clip with no doc: charged, drawing, and off every read — the poll, the
+  // card after a reload, the 1080p-redo list. The door retries once itself;
+  // when both writes fail the job id rides the note so it reaches the card
+  // and a chat can backfill it (`scripts/apiframe-video-log-backfill.js`).
+  const unfiled = r.logged === false ? `This clip is drawing but could not be filed on the log — job ${r.jobId} on ${DOOR_WORDS[d.door] || d.door}.` : '';
   return { jobId: r.jobId, door: d.door, sent: r.sent || req, seed: Number.isFinite(seed) ? seed : null,
-    fellBack: false, estimate: est.cents, note: extra.note || '' };
+    fellBack: false, estimate: est.cents, note: [extra.note || '', unfiled].filter(Boolean).join(' '), logged: r.logged !== false };
 }
 
 // ─── Router ─────────────────────────────────────────────────────────────
@@ -1719,7 +1842,12 @@ router.get('/status', async (req, res) => {
   const bal = await balances().catch(() => null);
   await discounts().catch(() => {});
   await atlasPrices().catch(() => {});
-  res.json({ ok: true, chat: CHAT, doors: cfg(), balances: bal, models: publicModels(), ratios: RATIOS, sizes: SIZES, fee: OR_FEE, handoffProjects: HANDOFF_PROJECTS });
+  // THE BALANCES RIDE ONLY WITH THE TOKEN (2026-09-14, found auditing the
+  // module). /status is exempt from the gate so the page can paint its
+  // controls before the token is in hand — the model table, the ratios and the
+  // sizes are the public half; her three balances in dollars are not.
+  const authed = !STUDIO_TOKEN || req.get('x-studio-token') === STUDIO_TOKEN || req.query.token === STUDIO_TOKEN;
+  res.json({ ok: true, chat: CHAT, doors: cfg(), balances: authed ? bal : null, models: publicModels(), ratios: RATIOS, sizes: SIZES, fee: OR_FEE, handoffProjects: HANDOFF_PROJECTS });
 });
 
 // GET /estimate?model=&res=&ratio=&seconds=&video=1&door=&first=1&last=1&refs=1
@@ -1785,11 +1913,11 @@ router.post('/jobs', async (req, res) => {
     // note says the tap "will draw on its own in about a minute", which is
     // true there and false here — nothing queues a video job — and a message
     // promising a clip that never comes is worse than no message.
-    if (pausedNow()) {
-      return res.status(503).json({ error: PAUSED_WORDS, refusal: 'paused', why: PAUSED_WORDS });
-    }
+    // (the check itself lives in `startJobInner` since 2026-09-14, so a chat
+    // calling `startJob` in-process meets it too)
     const r = await startJob(req.body || {});
     balCache.at = 0;
+    shelfBust();                       // a new clip is a new count on its tile
     res.status(202).json({ ok: true, ...r });
   } catch (e) {
     // `why` is the table's line for the door's text — the card's own field,
@@ -1811,10 +1939,21 @@ router.post('/jobs', async (req, res) => {
 // the oldest clip she holds; the answer is the page under it and `more` says
 // whether anything is left under THAT. Pure, so the walk has a test that
 // needs no Firestore.
-function pageJobs(all, { limit, before, max } = {}) {
+// A TIE ON `sentAt` IS BROKEN BY ID, BOTH IN THE SORT AND AT THE CURSOR
+// (2026-09-14). Two clips sent in one millisecond — the All star's appended
+// send and a chat's batch both do it — sorted in whatever order the read
+// happened to hand them back, and a `before` cursor equal to the bottom
+// clip's sentAt SKIPPED every other clip sharing it. `beforeId` names the
+// clip the cursor stands on; a page cached from before this sends none and
+// walks exactly as it did.
+function pageJobs(all, { limit, before, beforeId, max } = {}) {
   const lim = Math.min(Number(limit) || 40, max || 200);
-  const sorted = all.slice().sort((a, b) => String(b.d.sentAt || '').localeCompare(String(a.d.sentAt || '')));
-  const under = before ? sorted.filter((x) => String(x.d.sentAt || '') < String(before)) : sorted;
+  const at = (x) => String(x.d.sentAt || '');
+  const sorted = all.slice().sort((a, b) => at(b).localeCompare(at(a)) || String(b.id).localeCompare(String(a.id)));
+  const bid = beforeId != null ? String(beforeId) : '';
+  const under = before
+    ? sorted.filter((x) => at(x) < String(before) || (bid && at(x) === String(before) && String(x.id) < bid))
+    : sorted;
   const docs = under.slice(0, lim);
   return { docs, more: under.length > docs.length };
 }
@@ -1859,7 +1998,10 @@ router.get('/jobs', async (req, res) => {
     // whatever is tucked (a search is her asking for something by name — the
     // ALL tab's own carve-out for the bug-fix pile).
     const tucked = (!project && !story && !String(req.query.q || '').trim()) ? await cast.tuckedFilms() : [];
-    if (tucked.length) all = all.filter((x) => tucked.indexOf(projectSlug(x.d.project)) < 0);
+    // THE SHELF'S SLUG IS 60 CHARACTERS AND THIS PAGE'S IS 40 (2026-09-14) —
+    // compared raw, a film with a long name could never be tucked
+    const tuckedSlugs = tucked.map(projectSlug);
+    if (tuckedSlugs.length) all = all.filter((x) => tuckedSlugs.indexOf(projectSlug(x.d.project)) < 0);
     // every project's folders, off the whole read — the picker's and the
     // card's rows, derived rather than stored
     const folders = foldersOf(rows);
@@ -1872,10 +2014,18 @@ router.get('/jobs', async (req, res) => {
     // (search-grammar.js). A search may ask for a bigger page.
     const q = String(req.query.q || '').trim();
     if (q) {
+      // THE PROJECT'S NAME IS IN THE HAY HERE TOO (2026-09-14) — the page put
+      // it in its own client-side pass and the server did not, so typing "the
+      // ward" showed the loaded hits and then the server's answer blanked them
+      const names = await cast.filmNames().catch(() => ({}));
       const groups = grammar.compileFeed(q);
-      all = all.filter((x) => grammar.feedMatches(hayOf(cardOf(x.id, x.d)), groups));
+      all = all.filter((x) => {
+        const c = cardOf(x.id, x.d);
+        if (c.project && names[c.project]) c.projectName = names[c.project];
+        return grammar.feedMatches(hayOf(c), groups);
+      });
     }
-    const { docs, more } = pageJobs(all, { limit: q ? Math.min(Number(req.query.limit) || 40, 300) : req.query.limit, before: req.query.before, max: q ? 300 : undefined });
+    const { docs, more } = pageJobs(all, { limit: q ? Math.min(Number(req.query.limit) || 40, 300) : req.query.limit, before: req.query.before, beforeId: req.query.beforeId, max: q ? 300 : undefined });
     // ask the doors about the ones still drawing — throttled per job, so a
     // page polling every few seconds is one provider read per job per 12s
     await Promise.all(docs.map(async (x) => {
@@ -1886,6 +2036,16 @@ router.get('/jobs', async (req, res) => {
       const r = await pollOne(x.id, x.d);
       if (r && r.patch) Object.assign(x.d, r.patch, r.video ? { video: r.video } : {});
     }));
+    // A POSTER THAT MISSED ITS ONE CHANCE IS TRIED AGAIN (2026-09-14, found
+    // auditing the module). The bake fired from the poll that wrote
+    // `completed`, and a finished doc is never polled again — so one Storage
+    // hiccup left a clip with a video and no poster for ever: a blank tile,
+    // nothing saying why. Once per process per clip, behind the answer.
+    docs.forEach((x) => {
+      if (statusOf(x.d) !== 'done' || !x.d.video || x.d.poster || posterTried.has(x.id)) return;
+      posterTried.add(x.id);
+      bakePoster(x.id, x.d.video).catch(() => {});
+    });
     res.set('Cache-Control', 'no-store');
     res.json({ ok: true, jobs: docs.map((x) => cardOf(x.id, x.d)), more, folders });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -1931,6 +2091,11 @@ function shelfOf(rows) {
 }
 const SHELF_MS = 60 * 1000;
 let shelfCache = { at: 0, out: null };
+// A MOVE, A HIDE, A SEND AND A POSTER ALL CHANGE A TILE (2026-09-14, found
+// auditing the module): the minute-long cache served the old count and the
+// old face right after each of them, on the sheet whose four rules are all
+// about the tile not lying. Emptied by the writes, not by a clock.
+function shelfBust() { shelfCache = { at: 0, out: shelfCache.out }; }
 router.get('/shelf', async (req, res) => {
   try {
     if (!shelfCache.out || Date.now() - shelfCache.at > SHELF_MS || req.query.fresh) {
@@ -1954,11 +2119,20 @@ router.get('/shelf', async (req, res) => {
 router.get('/jobs/:id/kin', async (req, res) => {
   try {
     const id = String(req.params.id);
-    const snap = await coll().get();
-    const cards = snap.docs.map((d) => cardOf(d.id, d.data()));
-    const j = cards.find((c) => c.id === id);
-    if (!j) { res.status(404).json({ error: 'no such clip' }); return; }
-    const k = clipDiff.kinOf(j, cards);
+    // ONE PROJECT, NOT THE WHOLE LOG REBUILT AS CARDS (2026-09-14, found
+    // auditing the module): `kinOf` only ever looks at older clips in the same
+    // project, and this read every doc and ran `cardOf` — a refusal-table walk
+    // each — over all of them on every panel open. And it was the one whole-
+    // collection read with no `hidden` filter, so the panel could diff against
+    // a clip she had put away. `projectSlug` is applied to both sides, so a
+    // clip filed under a raw spelling still finds its siblings.
+    const own = await coll().doc(id).get();
+    if (!own.exists) { res.status(404).json({ error: 'no such clip' }); return; }
+    const j = cardOf(own.id, own.data());
+    const snap = j.project ? await coll().where('project', '==', own.data().project).get() : await coll().get();
+    const cards = snap.docs.filter((d) => !d.data().hidden || d.id === id).map((d) => cardOf(d.id, d.data()));
+    if (!cards.some((c) => c.id === id)) cards.push(j);
+    const k = clipDiff.kinOf(j, cards.filter((c) => !j.project || c.project === j.project));
     res.set('Cache-Control', 'no-store');
     res.json({ ok: true, job: k ? k.job : null, kin: k ? k.kin : false, back: k ? k.back : 0 });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -1986,9 +2160,12 @@ router.post('/jobs/:id/vote', async (req, res) => {
   try {
     const v = String((req.body && req.body.vote) || '');
     const vote = v === 'like' || v === 'dislike' ? v : '';
-    await coll().doc(String(req.params.id)).set({ vote }, { merge: true });
+    // `update`, never `set(…, {merge})` — a merge on a wrong id CREATED a doc
+    // holding only `{vote}`, which read as a clip drawing since forever at
+    // the end of `… older` and could never age out (2026-09-14)
+    await coll().doc(String(req.params.id)).update({ vote });
     res.json({ ok: true, vote });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { if (e && e.code === 5) return res.status(404).json({ error: 'no such clip' }); res.status(500).json({ error: e.message }); }
 });
 // POST /jobs/:id/project { project, folder? } — MOVE a clip to a project, or
 // off one with ''; `folder` puts it in a sub-folder of that project (absent
@@ -2001,16 +2178,18 @@ router.post('/jobs/:id/project', async (req, res) => {
   try {
     const project = projectSlug(req.body && req.body.project);
     const folder = project ? folderSlug(req.body && req.body.folder) : '';
-    await coll().doc(String(req.params.id)).set({ project, folder }, { merge: true });
+    await coll().doc(String(req.params.id)).update({ project, folder });
+    shelfBust();
     res.json({ ok: true, project, folder });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { if (e && e.code === 5) return res.status(404).json({ error: 'no such clip' }); res.status(500).json({ error: e.message }); }
 });
 router.post('/jobs/:id/hide', async (req, res) => {
   try {
     const hidden = Boolean(req.body && req.body.hidden);
-    await coll().doc(String(req.params.id)).set({ hidden }, { merge: true });
+    await coll().doc(String(req.params.id)).update({ hidden });
+    shelfBust();
     res.json({ ok: true, hidden });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { if (e && e.code === 5) return res.status(404).json({ error: 'no such clip' }); res.status(500).json({ error: e.message }); }
 });
 
 // POST /jobs/:id/trim — the ONE door onto her parts, and every shape of it
@@ -2071,7 +2250,11 @@ router.post('/jobs/:id/trim', async (req, res) => {
     const replacing = body.replace ? String(body.replace) : '';
     const kept = replacing ? parts.filter((t) => t.key !== replacing) : parts;
     const already = kept.find((t) => t.key === plan.key);
-    if (already) return res.json({ ok: true, job: cardOf(id, { ...d, trims: kept, trim: null }) });
+    // A REPLACE ONTO A SPAN ANOTHER PART ALREADY HOLDS STILL WRITES (2026-09-14,
+    // found auditing the module): this answered the shortened list and wrote
+    // nothing, so the replaced part came straight back on the next poll — her
+    // edit discarded and a part flickering in and out of the trimmer.
+    if (already && !replacing) return res.json({ ok: true, job: cardOf(id, { ...d, trims: kept, trim: null }) });
     if (kept.length >= TRIM_MAX_PARTS) return res.status(400).json({ error: `that is ${TRIM_MAX_PARTS} parts already — take one off first` });
     const part = { start: plan.start, end: plan.end, seconds: plan.span, key: plan.key,
       source: plan.source, at: new Date().toISOString(), status: 'baking', url: '', poster: '', error: '' };
@@ -2082,7 +2265,10 @@ router.post('/jobs/:id/trim', async (req, res) => {
     const r = await trimTx(id, (now) => {
       const live = trimsOf(now);
       const kept2 = replacing ? live.filter((t) => t.key !== replacing) : live;
-      if (kept2.find((t) => t.key === plan.key)) return { already: true, next: kept2, now };
+      if (kept2.find((t) => t.key === plan.key)) {
+        const shrank = replacing && live.length !== kept2.length;
+        return { already: true, next: kept2, now, ...(shrank ? { write: { trims: kept2, trim: admin.firestore.FieldValue.delete() } } : {}) };
+      }
       if (kept2.length >= TRIM_MAX_PARTS) return { code: 400, error: `that is ${TRIM_MAX_PARTS} parts already — take one off first` };
       const next2 = replacing && live.some((t) => t.key === replacing)
         ? live.map((t) => (t.key === replacing ? part : t))
@@ -2118,6 +2304,6 @@ module.exports = {
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf, atlasCacheBust,
   drawStats, drawTimeFor, drawTimeFrom, drawKeyOf, medianOf,
   startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf, pausedNow,
-  canvasFrom, pageJobs, hayOf, foldersOf, shelfOf, folderSlug, statusOf, staleJob, STALE_MS, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
+  canvasFrom, pageJobs, hayOf, foldersOf, shelfOf, folderSlug, statusOf, staleJob, STALE_MS, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, frameSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
   framePlan, framePath, pullFrame, grabFrame, FRAME_FOLDER, FRAME_END_PAD,
 };

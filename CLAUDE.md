@@ -180,8 +180,9 @@ still every time the work wraps up.
 3h. **FIXED A BUG? LINK HER TO WHERE SHE CAN SEE IT — EXAMPLES, NOT A PR
    (2026-09-03, Sophie: "link me to examples that showcase changes · make this
    a rule for bug fixes").** A bug fix is described in words and checked with
-   her eyes, so the reply that reports one ends with the **exact surface the
-   fix shows on**, full clickable url — the page, the chat's tab, the deck,
+   her eyes, so the reply that reports one **OPENS with the exact surface the
+   fix shows on** (2026-09-14: links pin to the top, never the bottom) —
+   full clickable url — the page, the chat's tab, the deck,
    the tool — and one short line per link saying what to look at ("the header
    is gone on the swipe view"). On her phone an ordinary page url opens the
    app on that tool, so nothing about the link has to look special.
@@ -194,8 +195,8 @@ still every time the work wraps up.
      OLD thing, which reads as the fix not working. Deploy first when she has
      said to, or write in one line that the link shows the change once it is
      deployed (the *ASK BEFORE YOU DEPLOY* rule is unchanged).
-   - **THE PR IS NOT THE LINK.** It is the record and it still goes at the
-     bottom; it is not a place she can see anything.
+   - **THE PR IS NOT THE LINK.** It is the record and it rides last in the
+     link block; it is not a place she can see anything.
    - **Nothing to point at?** Say so plainly — a fix to a script, a hook or a
      server rule may have no surface, and inventing one is worse than the
      sentence.
@@ -682,21 +683,46 @@ LIST ITEMS in your replies, `kind:'item'`; answer those with `POST
   what let six of them pile up (2026-09-14).
 - **Measure, never reason, about other sessions or the environment.**
 
-**Writing the reply** — **SHORT BY DEFAULT** (a few short paragraphs; only
-what changes what she does next — detail goes behind "want the long version?"
-or into the PR description) · TLDR first · answer her questions before
-anything else, **each answered ONCE** · **did she MARK a question ("i have a
-question" / "quick question" / "file this")? then repeat THAT question in bold
-on its own line and answer under it — otherwise never echo a question back**
-(see *Answering a question*; the bare word alone is not the mark) · small
-question, short answer · **asking HER something? plain text, never the
-questions/option-picker UI** (2026-08-28, her rule) · full clickable links · no markdown tables · times in 12-hour
-Pacific · files and images LAST · working links at the very bottom ·
-**fixed a bug? the last thing in the reply is a link to the surface it shows
-on** (3h) ·
-**briefing her on OTHER chats? every chat you name gets a
-`/chats?chat=<slug>` link back to it at the bottom** (see *BRIEFING HER ON
-OTHER CHATS* in Design rules).
+**WRITING THE REPLY — A CAP, NOT A MOOD (2026-09-14, Sophie: "we need more
+concise messages · the example is wayyy too long · no link to pr either · make
+it more strict").** Measured the hour she said it, over the 175 newest replies
+in her feed: **median 601 characters, 56 over 1,000; 74 replies said "merged"
+and 22 of them linked the PR.** The rules, in order of how often they are
+broken:
+1. **NO WORDS BETWEEN TOOL CALLS.** The hook posts the joined text of EVERY
+   assistant block in the turn as ONE reply (`post-to-feed.sh`: "each turn =
+   the joined text of every assistant text block"), so "Now the JS…",
+   "Green. Now a test…", "Pushing and opening the PR." all land in front of
+   her, above the answer. Write nothing until the work is done, then one
+   message. This overrides the harness's own "brief updates while you work".
+2. **THE CAP IS 600 CHARACTERS — about five short lines — and only SHE lifts
+   it** ("long version", "explain", "details", "why"). Aim under 400. A reply
+   that needs more is a reply carrying something from the OUT list below.
+3. **THE SHAPE, and nothing that is not one of these lines:**
+   - **the links FIRST, full and clickable** (2026-09-14, her rule: pinned at
+     the top, never the bottom): the surface the change shows on (3h), then
+     **the PR, last in that block — on EVERY reply that opened, pushed to or
+     merged one**, no exceptions (that is the 22-of-74 above). **Never a
+     `/chats?chat=` link**, to any chat, yours included;
+   - what changed, in her words, one or two sentences;
+   - her questions answered, each ONCE (a question she MARKED — "i have a
+     question" / "quick question" / "file this" — is repeated in bold on its
+     own line and answered under it; otherwise never echo one back);
+   - money spent this turn — only if any;
+   - what you need from her — only if anything, one line, with the size of
+     the ask;
+   - the state, one line: merged or not, deployed or not.
+4. **OUT, always** — it goes in the PR description, the commit or this file
+   (*DON'T HAND HER YOUR FINDINGS*): what you left alone and why, how it
+   works, what you measured, test counts, the alternatives, "two things to
+   know", a "where to look" list when one link does it, restated plans,
+   closing recaps, next-step menus, offers she did not ask for.
+5. **A WAKE THAT WAS YOUR OWN PR's ECHO (CI green, your merge landing) gets
+   ONE line at most** — three replies saying "nothing to do" in a minute is
+   what she reads as a chat talking to itself.
+Still standing, unchanged: no markdown tables · times in 12-hour Pacific ·
+files and images LAST · **asking HER something? plain text, never the
+questions/option-picker UI** · small question, short answer.
 
 ## Where everything is
 
@@ -2713,9 +2739,10 @@ them off the reference sheet, not off the old filenames.
   (2026-08-24, Sophie: "are there any extra instructions for if I tag a chat
   waiting for a response? Since I'm waiting for it I'd like a chat that's
   tagged like that to come with some extra indication").** The pin was the
-  whole of the rule, and a pin only exists on the Update tab — so on the home
+  whole of the rule, and a pin only existed on the Update tab — so on the home
   list, and inside the thread itself, a chat she was owed an answer from
-  looked like every other chat. It is a Lucide **`watch`** — a wristwatch — in
+  looked like every other chat. **The mark is the WHOLE rule now** (the tab
+  went on 2026-09-14, and the pin with it). It is a Lucide **`watch`** — a wristwatch — in
   the marks' red at the front of the row, beside the star and the bookmark (the
   slot for a state with no control of its own), and in the thread's `<h1>`.
   **THERE IS NO "SOMEONE POINTING AT THEIR WATCH" ICON, and that is measured**
@@ -2726,11 +2753,11 @@ them off the reference sheet, not off the old filenames.
   with a MAGNIFYING GLASS blown up. So the watch alone carries it: the object
   out of her own picture, legible small. It shipped as an hourglass for one
   afternoon. Three things
-  worth not undoing: it follows the **TAG**, not the Update tab's card — her ✓
-  there settles the CARD and the debt is over when the word comes off, the
-  same rule the sibling `Waiting for:` line has always followed; it reads the
-  rule off `TAG_RULES` rather than off the string, so the mark and the pin can
-  never disagree about which word means this; and it is a `<span>`, because a
+  worth not undoing: it follows the **TAG**, not a card — the debt is over when
+  the word comes off (or when her reply stamps `notifSeenAt`, which is what
+  `seenFloor` reads), the same rule the sibling `Waiting for:` line has always
+  followed; it reads the rule off `TAG_RULES` rather than off the string, so
+  nothing can disagree about which word means this; and it is a `<span>`, because a
   row is a `<button>` and a nested button would eat the tap. `waitMarkHtml` is
   the one renderer and `syncWaitMark` repaints the thread header, which is
   built once — the Organize sheet opens from inside that same thread, so
@@ -3009,53 +3036,62 @@ them off the reference sheet, not off the old filenames.
     say anything about it. Its own `<button>`, a sibling of the row's, never
     nested: a button inside a button is invalid and the tap would bubble into
     the player.
-  - **THE UPDATE TAB LIVES ON THE ACCOUNT ROW**, so it is one toggle-tap away
-    while the lists are showing — and entering any other view (Update, the
-    archive, bookmarks, the to-do) puts the account row back whatever mode she
-    left this in. `paintListTabs` speaks ONLY for the live chat list; anywhere
-    else `paintHomeChrome`'s answer stands, and it hides that row with
-    `style.display`, which beats the `hidden` attribute (the house rule).
+  - **THE ACCOUNT ROW COMES BACK ON EVERY OTHER VIEW** whatever mode she left
+    this in — the archive, bookmarks, the to-do. `paintListTabs` speaks ONLY
+    for the live chat list; anywhere else `paintHomeChrome`'s answer stands,
+    and it hides that row with `style.display`, which beats the `hidden`
+    attribute (the house rule).
   - Tests: `node scripts/test-deliverables-feed.js` (the bursts and the
     exclusions, pure) and `node scripts/test-chats-list-tabs.js` (the real
     page, headless — verified failing against the pre-fix page).
-  **ALL THREE UPDATE BOXES WEAR A CHIP ON THIS ROW (Aug 2026, Sophie: "'maybe
-  never' isn't on the tag list in the account area" → "give them both a
-  chip").** `come back to` had one because it was already a folder of hers;
-  `in a minute` and `maybe never` were invented as boxes and had no door
-  outside the Update tab. `QUEUE_CATS` in `chats.html` is the join, and the
-  two new words appear ONLY while their box holds something — they are not
-  seeded into her vocabulary and leave the row when she empties it. Filing is
-  unchanged: deferring one update still leaves the chat on the main list.
-  Full rules in `docs/chats-app.md`; tests `node
-  scripts/test-chats-labels.js`, `node scripts/test-chats-queue-chips.js` and
-  the same file as the tags above.
-  **AND `IN A MINUTE` STAYS ON THE SCREEN, IN MINT (2026-08-29, Sophie: "can u
-  turn chats green tint if in a minute filed / stay on scre[en]" · "mint").**
-  The one box of the three that is not a deferral: `come back to` is later
-  today or this week and `maybe never` is probably not at all, but IN A MINUTE
-  is something she is coming straight back to — and a card that vanished into
-  a box the instant she said so was one she then had to go and find again. So
-  `soon` is the deliberate exception to *an item is in exactly one place*: the
-  card stays on the main Update list wearing a mint wash (`.nwcard.soon`,
-  `--mint`/`--mintline`) AND its box still holds it, because the box is what
-  she opens to see only those. Four things not to undo: the **BACKGROUND**
-  carries the tint and never the border, since `picked` is a 2px border and
-  she picks a card in order to file it — the two marks have to show at once;
-  **inside the open box nothing is tinted**, where every card is one and the
-  mint would say nothing; the **badge counts the mint cards**, because the
-  number has to be exactly what she finds when she opens the tab; and the
-  other two boxes are **untouched** — a card filed there still leaves the
-  list. This is the Update CARD only; the chat's own row on the home list is
-  unchanged. Test: `node scripts/test-chats-news-mint.js` (the colour MEASURED
-  off the real computed background — a class name says nothing about what
-  renders; verified failing pre-fix).
-  **AND TEN HEADLESS TESTS COULD NOT REACH THE UPDATE TAB AT ALL** — the row
-  that carries it takes turns with the three lists (2026-08-28) and opens on
-  the LISTS, so `#accrow` is hidden and every `click('.acctab[data-acct=
-  "new"]')` timed out. They tap `#rowtog` first now; a new test on that screen
-  must too. (Four went green with that one line; `test-chats-come-back-to.js`,
-  `test-chats-news.js` and `test-chats-tags-button.js` still fail for their
-  own unrelated reasons, measured identical before and after this change.)
+- **THE UPDATE TAB IS GONE — SHE HAD IT TAKEN OFF (2026-09-14, Sophie: "get
+  rid of the updates tab in chats").** It LED the account row from Aug 2026 as
+  a whole VIEW rather than an account, and everything that screen owned went
+  with it: **the one card per chat** carrying its newest Compare page and its
+  last three pictures, **the ✓** that checked one off, **the three sections**
+  (urgent · important · the rest) and the triage that picked them, **the two
+  red boxes**, **the three queue boxes** — Come back to · In a minute · Maybe
+  never, with the mint wash on `soon` — **the picking-and-filing gesture**, the
+  tag sheet over a selection, the **Update** (`/brief`), **Review** and **To
+  read** doors above the tabs, and the **TAG_RULES pin** that put a `waiting
+  for a response` chat at the top of it. ~1,000 lines of `chats.html` and its
+  whole stylesheet; 12 test files went with them. **This is history now, not a
+  rule — do not rebuild any of it from git without her.**
+  - **WHAT SURVIVED, and why:** the **Update CARD** a chat posts
+    (`POST /api/chatfeed/update`) is untouched and still matters — the archive
+    wrap-up falls back to it, and `sumRows`/`UPD_LABELS` still draw its three
+    answers there. `notifSeenAt` is still stamped by the SERVER on her reply
+    and is still what settles the `waiting for a response` **wristwatch mark**
+    on the chat list (`seenFloor`, the old `newsFloor` renamed). `reviewHeld`
+    still suppresses the pop-out for a chat already holding a `reviewHoldAt`.
+  - **WHAT LOST ITS ONLY DOOR, named rather than quietly kept:** the
+    **Instagram mockups** icon moved to the CHAT LIST (the bug button's rule)
+    because `/instagram` is reachable from nowhere else. The **To read** door
+    was the ONLY thing that ever set `bmkTag`, so the keep-pile grew its own
+    **tag chip row** (`bmkTagRow` — the row that already drew the lit clear
+    chip now draws the unlit ones, and a word nothing is wearing is not
+    offered); without it she could mark a thing `to read` and never ask for
+    the ones she had. The **Update** door to `/brief` went with the screen and
+    nothing links `/brief` now — the page still works, and seating that door
+    somewhere is hers to ask for. **Review** kept its own iOS tile and
+    `/review`.
+  - **AND THE SECOND HALF OF THE `to be reviewed` RULE DIED WITH IT** — the
+    hold on her account lists was written by dismissing a card from that tab
+    ("IF i dismiss manually from update tab"), and there is no dismissal now.
+    Existing `reviewHoldAt` stamps still clear normally; nothing writes a new
+    one.
+  - **The queue chips are gone from the category row** — `come back to` is one
+    of her ordinary labels again, and `in a minute` / `maybe never` only ever
+    appeared while a box held something, so they simply stop appearing. Every
+    chat's `newsQueue` field is left on its registry doc, untouched and unread:
+    nothing is destroyed.
+  - **The server routes are left in place** (`POST /news-queue`,
+    `/notif-seen`, `GET /to-read`) — unreachable from the page, harmless, and
+    the safe direction while a phone may still hold a cached copy.
+  - `?view=news` / `?view=update` is still SWALLOWED by the page (an older
+    push, an older iOS build, a saved link) and lands her on the chat list.
+    iOS: `pendingUpdateTab` → `pendingChatList`, `forgePushOpenUpdate` →
+    `forgePushOpenChats`, and a push naming no chat opens `/chats`.
 - **STATUS CARDS — every chat keeps one, updated at the END of every turn
   (Aug 2026, Sophie's ask: "a line on what they need and a summary of what
   that chat is currently working on").** The card shows under the chat's name
@@ -5033,27 +5069,18 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
       (her rule — an undo instead of a confirm). Taking the FIRST block off
       moves the words below UP into `#prompt`, because every reader expects
       that node to stay the first block.
-    - **A SECOND STAR APPENDS EVERY WRITTEN BLOCK INTO ONE CLIP — NOT N JOBS
-      (her note on the card the same hour: "u misunderstood. not separate
-      jobs. i want them to append to each other").** One job whose prompt is
-      every written block joined, blank line between them — the join mark's
-      own shape, without destroying her blocks, which keep their words and
-      their structure through the send. **It shipped for an hour as N
-      sequential jobs** (N scenes, N times the price, stopping at the first
-      refusal, the refused block taking the gold line); that is HISTORY, and
-      the walk, its tally toast and the `batch` flag are gone with it. Three
-      things not to undo: **CHAINING IS NOT THIS BUTTON** — a clip that
-      continues another one is still separate jobs, which is the half she
-      ruled out, and it is the keyframe marks' job; **the price is ONE clip's**
-      (`allCents`, never × the count) and is ON the button, her "approve the
-      prompt and references" rule answered at the tap, with **over $3 the
-      first tap ASKS and the second sends** and any change disarming it; and
-      **the gold line is left exactly where she put it**, since with one job
-      there is no "which block was refused" and moving her active block would
-      be the page deciding where she types next. A refusal's **door words
-      carry the job's own text** (`offerDoors(door, box, text)`) — without it
-      "those words re-send THAT exact job" breaks the moment the prompt is a
-      joined one, and only the active block would go (pinned, verified failing).
+    - **THE ALL STAR IS GONE — SHE HAD IT TAKEN OFF (2026-09-14, on the note
+      she left on the checklist item about it: "button is stipid get it
+      out").** It shipped 2026-09-13 at her own ask ("sending two boxes at
+      once"), corrected the same hour to ONE appended clip rather than N jobs,
+      and lived a day. **This is HISTORY now, not a rule — do not build it
+      back without her.** What went with it: the second star and its gold
+      arm, the union strip (`allStrip`/`allJob`), its own priced estimate
+      (`shapeKey`/`askAllCost`/`allFigure`), the over-$3 two-tap arm
+      (`ARM_MS`/`ASK_CENTS`/`armed`/`disarm`) and the `job` override that
+      threaded a whole job through `sendJob`/`postJob`/`offerDoors`. **The
+      star sends the block she is in, and that is the only send on the
+      page.** `refCounts` STAYS — the refusal's door words price off it too.
     - **THE PROMPT ROW IS STICKY**, so a long scene folds away from wherever
       she is standing. MEASURED at 390pt on a 40-line scene: at scrollY 600
       the row sat **521px above the viewport** with 1,836px of box below it
@@ -5302,8 +5329,63 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     pinning the drop, and the two page pins in `test-footage-audit-3.js` plus
     one in `test-footage-blocks-audit.js` quoted the page code that moved into
     `cast-line.js`.
-    **NAMED AND NOT FIXED — hers to pick from** (the three reports in full are
-    in this chat): the server's search does not fill `projectName`, so
+    **THE FOURTH ROUND (2026-09-14, Sophie: "audit footage for bugs and
+    missing features") FIXED ALL BUT ONE OF THE FOURTEEN NAMED BELOW AND
+    THIRTY-FOUR MORE — three read-only sweeps again (the server, the prompt
+    panel, the feed and player).** The ones that cost money or drew the wrong
+    clip: **a put-back doubled CHARACTERS and SETTING** — `j.prompt` is the
+    text that WENT, heads on top, and `copyBack` landed it in the scene block
+    while the two head boxes still held their own copy, so every "Try again"
+    and every re-roll since the heads landed sent the cast and the room twice
+    (the current heads' prefix comes off on the way back in); **the All star's
+    price ignored the reference COUNTS** and **sent with no figure at all**
+    when the estimate had not landed (both fixed, then the button itself was
+    removed a day later at her word — see THE ALL STAR IS GONE above);
+    **a refusal's door words outlived the job** (nothing hid `#err` on clear, undo, a put-back or a project switch,
+    so a word tapped later re-sent words no longer on the page, and priced
+    off the LIVE controls) — the line has a ✕, dies with the job, and a door
+    word re-sends the exact BODY that was refused; **`reslotPlan` forgot one
+    vanished slot name** where a join can take two; **a lone block could be
+    left `shut`** with no heading to open it (the page showed no box at all);
+    **"New folder…" from a project she was only looking at** made it in the
+    one she was standing in; **the heads are per PROJECT now**
+    (`footage_heads`, keyed by project — switching films rode the last film's
+    cast onto every clip). Server: `/status` handed out her three balances
+    unauthenticated (only with the token now); **a trim REPLACE onto a span
+    another part already held wrote nothing** and told the page the part was
+    gone; **a poster that missed its one bake was never baked again** (tried
+    once per process on every read now, and the bake rides `gateTrim` — it
+    decoded outside the queue); vote/project/hide on a wrong id CREATED a doc
+    that read as drawing forever (they `update` and 404); a pair of long
+    reference videos on AUTO died on Atlas's 15.2s cap with two doors open
+    (walks off Atlas, card says so); a failed OpenRouter discount read wrote
+    full list over a good sale (merges, `null` for "could not read"); the
+    pause is checked inside `startJobInner` and, like every refusal footage
+    raises itself, LOGGED; a door whose log write fails retries once and
+    answers `logged:false`, which rides the card's note; kin reads one
+    project; the shelf cache empties on every write; balances keep the last
+    good figure per door; `pageJobs` breaks a `sentAt` tie by id and takes
+    `beforeId`. Page: a pick opens the NEWER clip as "this clip"; the server's
+    search hits are a floor, not a ceiling; a `baking` part over 15 minutes
+    old is dead, not working (the poll stopped re-reading the whole
+    collection over it); the compare panel never diffs against a hidden or
+    failed clip and holds the self-heal; a refused move or mark goes back; the
+    emptied line counts the VIEW; the save bank holds one clip's parts and
+    revokes its object urls; her notes are in the client-side hay;
+    `cleanFootage` passes `firstFrame`/`lastFrame`/`blocks`/`project`/
+    `folder`. Test: `node scripts/test-footage-audit-5.js` (67 checks, pure +
+    source pins + the two money bugs headless). **STILL NAMED AND NOT FIXED**:
+    `caretkeep`'s blind-keyboard band; footage's player keeps native
+    `controls` under `/filmnote.js`, so a tap on the native scrubber toggles
+    play (the other two hosts use `/filmbar.js` — a transport decision, hers);
+    no cancel for a drawing clip, no delete (only `hidden`, and no control on
+    this page sets or clears it), no spend by project, no compare mark on the
+    tile wall, `… older` walks the feed not the funnel. `test-timeline.js`
+    and `test-atlascloud-video.js` are RED ON MAIN independent of this
+    (an embedded header-band measurement; a `retry` pin tripped by the
+    billing reader's `Retry-After`).
+    **The fourteen as they were named on 2026-09-13** (thirteen fixed above;
+    `caretkeep` stands): the server's search does not fill `projectName`, so
     searching a
     project's display name shows hits and then blanks them;
     `… older` skips clips that share a `sentAt` to the millisecond;
@@ -5355,14 +5437,13 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     since the shield is per clip. A ♥ ends it too — un-marking a clip is her
     deciding as deliberately as marking one. Pinned by
     `node scripts/test-footage-just-sent.js` (verified failing 2 pre-fix).
-    **AND TWO MORE FROM THE SAME PASS.** The All star stayed at FULL STRENGTH
-    while a send was in flight and did nothing on a tap — `#go` is the gate and
-    greys itself (`button[disabled]{opacity:.45}`), and a live-looking button
-    that answers nothing is the shape of every "it didn't work" report; both
-    stars go down together now. And an armed **"send all · $x?"** survived a
-    FOLDER switch, so the second tap would have filed the clip in the folder
-    she left — `setFolder` disarms (`setProject` needs no line: it repaints the
-    controls and `paintWipe` disarms from there). Test:
+    **AND TWO MORE FROM THE SAME PASS**, both on the All star and both gone
+    with it a day later (see THE ALL STAR IS GONE): it stayed at full
+    strength while a send was in flight and did nothing on a tap, and an
+    armed "send all · $x?" survived a FOLDER switch. **The live-looking
+    button is the lesson that outlives them** — `#go` is the gate and greys
+    itself (`button[disabled]{opacity:.45}`), and a button that looks alive
+    and answers nothing is the shape of every "it didn't work" report. Test:
     `node scripts/test-footage-just-sent.js` (verified failing 4, then 2, on
     the pre-fix page).
     **AND `test-footage.js` IS FLAKY — MEASURED, so do not read one red run as
@@ -5418,10 +5499,31 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     types in most). `GET /api/footage/build` + `ftBuildCheck` in footage.html:
     the Playground's block, with this page's own guards — a field under her
     caret, a tap in 10s, a send or an upload in flight, a refusal on screen,
-    the seed box, the model/size/seconds off default (deliberately unsticky,
-    so a reload would put Fast back to Mini), a search, the trimmer, the
-    character sheet, Recent, a note box, an expanded clip. Her words and
-    references ride `footage_draft` and come back. **A page loaded BEFORE
+    the seed box, a search, the trimmer, the character sheet, Recent, a note
+    box, an expanded clip. Her words and references ride `footage_draft` and
+    come back.
+    **AND THE MODEL, THE SIZE AND THE SECONDS RIDE IT TOO SINCE 2026-09-14 —
+    THEY HELD THE HEAL FOREVER, AND THAT IS WHY A FIX THAT SHIPPED THAT
+    MORNING WAS NOT THERE (Sophie, about the empty-block divide: "it doesn't
+    work" · "neither. doesn't work").** All three are deliberately UNSTICKY,
+    so the first cut of the guard refused to reload over them — a reload
+    would silently put Fast back to Mini and 15s back to 4s. MEASURED on the
+    real page: picking **15 seconds** (or 720p, or any model but Mini) made
+    `ftHolding()` answer "the seconds off their default" and `ftBuildCheck`
+    never reloaded, through any number of new builds — and the ward draft is
+    cut at 15s, so **her footage page could never heal at all** and every
+    deploy since stopped at her screen with nothing on it saying why. They
+    are CARRIED ACROSS the reload now (`healPickStash` / `healPickTake`)
+    rather than blocking it. Three things not to undo: it is **SESSION**
+    storage, so a cold open still lands on Mini · 480p · 4s and the unsticky
+    rule is exactly what it was — only a heal carries them; the key is
+    **TAKEN ONCE** as it is read, so a reload she makes later cannot
+    resurrect last hour's pick; and the values are **NOT validated at the
+    take** — `paintControls` clamps all three against the SERVED table, so a
+    build that dropped a model or a size lands on a real value. **The lesson
+    beyond this page: a guard that holds on a SETTING rather than on unsaved
+    work is a guard that never lets go** — the setting comes with her, it
+    does not get to veto the update. **A page loaded BEFORE
     this ships cannot heal itself** — the once-more force-quit is the one
     cure, and after that every fix reaches her on the next return to the
     tool. `ftHolding()` answers the REASON (`window.__ftHeal.holding()`), so
@@ -6035,35 +6137,25 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   fits *that* product rather than reaching for the studio tokens by reflex.
 - **Always use full clickable links** in updates — app pages, the deployed URL,
   PRs — never bare text the user has to assemble.
-- **BRIEFING HER ON OTHER CHATS? EVERY CHAT YOU NAME GETS A LINK BACK TO IT, AT
-  THE BOTTOM (Aug 2026, Sophie: "i've been asking a couple of chats to give me
-  briefings on other chats where they give me status updates … they should
-  always have a link back to the chat that they're talking about at the bottom
-  of their analysis").** Any reply that reports on OTHER chats — a status
-  sweep, a roundup, "what's happening in X", a comparison across threads, an
-  audit naming which chat did what — ends with one link per chat you talked
-  about, under your analysis. The point is that reading about a chat and
-  GOING to it are one tap apart; without the links she has to hunt each name
-  down her list.
-  - **The link is the chat in Deck Factory, never a claude.ai session url** —
-    `https://imageforge-q125.onrender.com/chats?chat=<slug>` — the same rule
-    the morning brief already follows. On her phone that is a universal link
-    and opens the app on that thread.
-  - **Label it with what she calls the chat**, not the slug:
-    `[Water reel](https://imageforge-q125.onrender.com/chats?chat=water-reel-v16)`.
-    Her `displayName` is on `GET /api/chatfeed/status?chat=&session=` (as
-    `note`'s neighbour) and on `GET /api/chatfeed/name?chat=&session=`; the
-    feed read you did to write the briefing already carries it, so this costs
-    no extra request.
-  - **The SLUG must be the effective one** — a chat's identity is its session,
-    so a thread can be forked to `<slug>-<sid6>`. Use the slug the feed/registry
-    gives you for that thread, never one you reconstructed from a branch name,
-    or the link opens nothing.
-  - **One link per chat, deduped**, at the very bottom with the rest of the
-    working links — the house *files and links last* order, unchanged. Mention
-    a chat inline in prose all you like; the links still collect at the end.
-  - This is about chats you REPORT ON. A reply about your own work does not
-    link to itself.
+- **NEVER LINK HER TO A CHAT — AND EVERY LINK PINS TO THE TOP OF THE REPLY
+  (2026-09-14, Sophie: "links now pin to page top" · "never link to chat").**
+  Two rules, both replacing what stood here.
+  - **NO `/chats?chat=<slug>` LINK, EVER** — not in a briefing, not in a
+    roundup, not beside a chat you are reporting on, not to your own chat.
+    Name the chat in words; she gets to it her own way. **THE AUG 2026 RULE IS
+    HISTORY, NOT A RULE**: it said any reply reporting on other chats ends with
+    one link per chat named ("they should always have a link back to the chat
+    that they're talking about at the bottom of their analysis"), and she
+    retired it. Don't put one back.
+  - **LINKS GO AT THE TOP.** The working links — the page, the deploy, the
+    surface a bug fix shows on, the PR last — sit at the head of the reply, not
+    the end of it. Everything else about them is unchanged: full clickable
+    urls, never bare text she has to assemble, one short line each saying what
+    to look at. **FILES AND IMAGES ARE STILL LAST** — that order is a separate
+    rule and it did not move.
+  - Where this reaches: the reply-format line in the checklist, rule **3h**
+    (a bug fix's example links), and anything that used to collect links "at
+    the very bottom".
 - **Always include clickable testing links** when something is ready to test:
   the deployed page for the feature plus the PR link.
 - **Copy-paste / handoff messages = one code block.** When the user asks for a
@@ -6088,7 +6180,10 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   like "file this", earns the bold echo; everything else is answered plainly).
   This bullet used to restate the gate and drifted a day behind it — the rule
   is there, this is the pointer.
-- **SHORT REPLIES BY DEFAULT — every reply, not just small questions (Aug
+- **SHORT REPLIES BY DEFAULT — and since 2026-09-14 a HARD CAP: 600
+  characters, no words between tool calls, the PR link on every reply that
+  touched one. The cap and the shape live in ONE place, *WRITING THE REPLY*
+  in the checklist at the top; this bullet is the history.** (Aug
   2026, Sophie: "a lot of my responses are really long and it's actually
   annoying cause I don't wanna read through it all").** The default reply is a
   few short paragraphs: the TLDR, her questions answered, and only the facts
@@ -7706,6 +7801,34 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `node scripts/test-playground-hide-x.js` (headless — including the
   placeholder measured against the room the input actually has, because a
   clipped field passes both `isVisible()` and a width assertion).
+  **AND IT IS ON BY DEFAULT SINCE 2026-09-14 (Sophie: "default to hide x") —
+  ON ALL FIVE SURFACES THAT HAVE IT**: the Playground, Footage, Freeform,
+  Voice Studio and Stitch. The ♥/✕ pair is ONE pattern ported across those
+  five, so a default that differed per page would be two meanings for two
+  identical-looking controls — the drift the house rule about measuring a
+  shared thing against every CALLER exists to stop. Four things not to undo:
+  - **ABSENT IS THE DEFAULT, AND HER TAP IS NOT.** Each reader asks ABSENT
+    FIRST — `null` takes the default, `'1'` is on, `''` is off — and the write
+    still stores `'1'`/`''` exactly as before, so a phone that had already
+    turned it on, or deliberately off, keeps what she chose and only an
+    untouched one changes. The bell's own default-on shape (OFF is the thing
+    that gets stored), spelled with the value's own presence.
+  - **THE CHIP IS LIT ON A FRESH PAGE**, which is the whole of what keeps a
+    default-on filter from being the silent filter this app keeps getting
+    burned by — and it is why this is safe where the Assets tab and Meta
+    Assets are not.
+  - **THE ASSETS TAB AND META ASSETS ARE DELIBERATELY NOT THIS.** Their
+    New · ♥ · Hide ✕ mark filter stores nothing on purpose ("those are places
+    she arrives to look at everything, and a filter left on from last week
+    silently hiding most of her library is what the chip's state-wearing
+    exists to stop"), so it still opens showing everything.
+  - **HEARTS-ONLY IS UNTOUCHED** and still opens OFF — it KEEPS only what it
+    names, where this one only ever DROPS a ✕.
+  Test: `node scripts/test-hide-x-default.js` — every check RUNS the real
+  reader lifted out of the real page against a fake store, since a reader that
+  reads perfectly and answers the old default looks identical in the source
+  (verified failing 5 pre-fix). A test that needs to see a crossed-out picture
+  stores her own explicit `''` and says why.
   **PICK SEVERAL AT ONCE — THE SELECT CHIP (2026-09-02, Sophie: "add a select
   button to playground so i can x a bunch of things at once").** A fourth chip
   in the filter box; lit, a tap on a picture PICKS it instead of opening it,
@@ -8169,7 +8292,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
   marks on each picture's top corners on the card AND in the lightbox (one
   reader, `runsById`, so a mark cast anywhere shows everywhere), tapping the
   lit one clears it, and the ♥-only / hide-✕'d pair over the feed, sticky
-  (`freeform_liked` / `freeform_hidex`). **Both directions with the Assets
+  (`freeform_liked` / `freeform_hidex`). **Hide-the-✕'d opens ON since 2026-09-14** (her "default to hide x" — the rule and its four guards are in the Playground's ✕-filter note). **Both directions with the Assets
   tab**: the route calls server.js's `syncVoteToAssets` (handed in at init —
   a Freeform output is a My Creations picture, so the my-creations rule reaches
   `/freeform/out/` too) and the Assets vote route calls `freeform.voteFromAssets`
@@ -8568,6 +8691,64 @@ before working on that module. Nothing was deleted — the moved text is verbati
   times to end with N cells (measured on a first load of 40 clips: 39 wipes,
   820 cells created for the 40 that stayed). Only a BATCH is deferred — a
   vote, a new job and a view switch still paint on the spot.
+  **AND THE BAR IT LIVES ON IS ALWAYS ON SCREEN (2026-09-14, Sophie: "tiles/
+  list bar shud be always visible - either under the prompt, or sticky/pinned
+  in gallery").** It sat in the flow between the panel and the feed, so the
+  one row that says how the gallery is READ — the switch, the ♥/✕ marks, the
+  glass and the project picker — scrolled away the moment she was reading the
+  gallery: switching to tiles or narrowing to a folder meant scrolling the
+  whole feed back up first. It is `position:sticky` at `--headtop`, the second
+  of her two seats and the only one that is true all the way down (under the
+  prompt leaves with the panel). Four things not to undo: **it needs no offset
+  and no script to clear the panel's own sticky fold row**, because a sticky
+  element is constrained by its containing block — the panel carries that row
+  up and off with it, so by the time the bar reaches the top the row's bottom
+  is already at or above it (MEASURED across the whole transition: the gap
+  never goes negative); the background is the PAGE's cream, not the panel's
+  white, or the clips scroll through the row, and the 10px that was a bottom
+  MARGIN is padding (`.panelrow`'s own lesson — a sticky element holds its
+  margin edge at `top`); the **FUNNEL CHIP now reserves the pill's 58px** like
+  the drawer beside it always has, UNCONDITIONALLY rather than while pinned,
+  because pinned its line sits in the pill's band at every scroll position
+  (MEASURED at 390pt with the search open: x 344-378 against a pill starting
+  at 324) and a reserve that comes and goes with the scroll is the
+  narrow/full-width bug; and **`goToCard` subtracts the pinned bar** —
+  `stuckH()` — or a tapped tile lands its card BEHIND the controls, which
+  reads as the tap going to the wrong clip. Test:
+  `node scripts/test-footage-feedbar-sticky.js` (every assertion a
+  MEASUREMENT, since a sticky that never pins, one the clips show through, one
+  whose own controls sit under the pill, and one that leaves a card behind it
+  all look identical in the source; verified failing 12 pre-fix).
+  **AND IT IS STICKY AT BOTH ENDS — IT IS THE DIVIDER (2026-09-14, her
+  correction the same day: "i want the tiles bar as a middle · in prompt block
+  mode its pinned to bottom · gallery its top (as now) · textblock / bar /
+  gallery · bar always visible").** Pinning at the top alone answers only half
+  of "always visible": with a long scene, the big box open or a strip of
+  references, the prompt block is taller than the screen and the bar sits
+  below the fold the whole time she is up in it (MEASURED at 390x844 on a
+  22-line scene with the big box open: the panel is 1,988px and the bar's
+  natural spot is y=2054, two screens down). `bottom:0` beside the `top` is
+  the whole fix — a sticky element sticks to whichever edge its natural
+  position is pushed past, so the bar is at the bottom while she is in the
+  prompt block, at the top once the gallery has reached it, and in the flow
+  for the stretch in between. It needs no script and keeps no copy of its own
+  height; the containing block is the page, which spans both halves.
+  Two things not to undo. **A box's pinned corner buttons sit ABOVE it** —
+  `stickybox.js` pins the bigger-box and divide buttons at the bottom of
+  caretkeep's band and the bar is bottom-pinned at the bottom of the same
+  band, so without this they land on each other on exactly the long scene
+  that makes the bar bottom-pin at all (MEASURED: the buttons' bottom 812
+  against a bar top of 793). The bar carries `data-pagechrome` and
+  `chromeBottom()` reads it LIVE on every pass, never cached — the bar is at
+  the bottom for one stretch of the scroll, in the flow for the next and at
+  the top after that, and a set remembered at find time would reserve a band
+  that is no longer there. **`band()` itself is still NOT narrowed** (the
+  2026-09-13 ratchet), because this is a row stickybox does not move. And
+  **nothing was added to `caretkeep`**: the bar is a body-level sticky row, so
+  `findStuck` already finds it and `caretBand` lifts her caret line clear by
+  itself. Pinned by sections 7 of
+  `node scripts/test-footage-feedbar-sticky.js` (verified failing 4 against
+  the top-only CSS, and 1 more with the stickybox half reverted).
   **AND THE FEED PAGES BACK PAST TODAY (2026-09-11, Sophie: "I can't go back
   farther than today in footage").** The read was the newest 40 clips and
   nothing else — at ~70 Mini clips a day that IS today, so everything before
@@ -8667,7 +8848,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
   SERVED** (`GET /estimate`, the model table on `GET /status`) — the page holds
   no cost figure at all, and a test pins that. Seconds and resolution open at
   the minimum on every load; the model and the shape are remembered. Nothing is
-  deleted — ♥/✕ marks, `hidden` is the verb. **A chat's clips do NOT go here**
+  deleted — ♥/✕ marks, `hidden` is the verb. **Hide-the-✕'d opens ON since 2026-09-14** (her "default to hide x" — the rule and its four guards are in the Playground's ✕-filter note). **A chat's clips do NOT go here**
   — this is her feed, the Playground's rule; a chat's clips are tagged with the
   chat's own slug. Test: `node scripts/test-footage.js`.
   **A BELT SCENE HANDS ITS WHOLE JOB TO THIS PAGE — ONE localStorage KEY,
@@ -8794,6 +8975,48 @@ before working on that module. Nothing was deleted — the moved text is verbati
   really POSTs — a clip's poster and a still reference are the same markup,
   and a lit thumb says nothing about what left the phone; verified failing 5
   against the page that listed them).
+  **AND IT PAGES, AND IT ORGANIZES — `… older references` AND A PENCIL
+  (2026-09-14, Sophie: "add a more / see older references / and organize
+  button mode / to delete and add recent references without using them").**
+  Two complaints in one: the drawer was the newest 24 references with nothing
+  behind them reachable at all, and every tap on it meant ATTACH, so the only
+  thing she could do with a tile was use it. Now the drawer is a column — its
+  own little line (the organize mark, what a tap means, the undo), the tiles,
+  and `… older references` at the end, which widens it 24 at a time and is
+  drawn only while there really is something behind that page. **LIT, A TAP NO
+  LONGER ATTACHES**: every tile wears a ✕ that takes it OFF, tapping the tile
+  OPENS IT BIGGER (`openRef`'s own two doors — she is deciding whether to keep
+  it, and a 52px thumb does not answer that), and **the picture button on the
+  buttons row ADDS to the drawer instead of to the job**, which is the "add …
+  without using them" half. Six things not to undo:
+  - **NOTHING IS DESTROYED.** The file is in the Dump and on every clip it
+    already rode; a ✕ is only this drawer forgetting it. The last removal is
+    banked (`footage_recundo`) so one `undo` puts it back — the page's own
+    clear/undo rule, **an undo instead of a confirm**.
+  - **THE TWO CURATION LISTS ARE HER PHONE'S** (`footage_rechide` /
+    `footage_reckeep`), like every other setting here: the drawer is DERIVED
+    from the feed, so they say only what to leave out of it and what to stand
+    in front of it. A reference she ADDS leads the drawer — she put it there
+    to find it again.
+  - **A ✕ HIDES WHETHER THE TILE WAS KEPT OR DERIVED**, and adding un-hides —
+    or a kept tile with a job behind it walks straight back in as a derived
+    one, and a tile taken off could never be put back by hand.
+  - **THE MODE AND THE WIDENED LIST DIE WITH THE SCREEN** (memory only, and
+    `recClose` is the one door): the Playground's SELECT rule and the deck's
+    lane rule, one drawer over. Reopening is the calm 24 again.
+  - **THE PICTURE BUTTON SAYS WHICH IT IS ABOUT TO DO**, set BEFORE the
+    signature check — it is the one control the mode reaches outside the
+    drawer, and a label that still said "Add a reference" would be the tap's
+    meaning changing invisibly.
+  - **AN EMPTY DRAWER STAYS REACHABLE WHILE THERE IS AN UNDO IN IT** — taking
+    the last tile off would otherwise close the drawer over the one control
+    that could put it back, and the history icon would go with it.
+  Test: `node scripts/test-footage-recent-organize.js` (every assertion a
+  MEASUREMENT of the rendered drawer, of what the send really POSTs, or of
+  what is really in localStorage — a tile that wears a ✕ and attaches anyway,
+  an opener that widens nothing, a removal that never reached storage and an
+  upload that lands on the job as well as the drawer all look identical in the
+  source; it CRASHES against the pre-fix page, which has no opener at all).
   **A CHOSEN REFERENCE OPENS BIGGER — TAP ITS THUMB (2026-09-12, Sophie:
   "make clicking on a chosen reference open it bigger").** A 72px tile is too
   small to check that the picture riding as `[Image2]` is the one she meant,
@@ -8826,8 +9049,39 @@ before working on that module. Nothing was deleted — the moved text is verbati
   in the gap puts them back with a blank line between. **THE STAR SENDS THE
   BLOCK SHE IS IN** — the one she last tapped into, wearing the star's gold
   line once there are two or more; the model, the seconds and the size are
-  the job and are shared, the block is the words; a slot tap, a character's
-  line and a put-back land in the active block. Both corner buttons pin
+  the job and are shared, the block is the words; a slot tap and a
+  character's line land in the active block, and a **PUT-BACK MAKES A BLOCK
+  OF ITS OWN** (2026-09-14, Sophie: "copy back from finished job shud make a
+  new text block · not replace the selected block") — see the paragraph after
+  next. **A CARET AT THE END MAKES AN
+  EMPTY BLOCK, AND IT TAKES THE GOLD LINE AND THE CARET WITH IT (2026-09-14,
+  Sophie: "divide here in footage should allow a divide with nothing after it
+  to make a new empty block")** — the old refusal there is HISTORY (an empty
+  block is an ordinary state here, and writing shot two means asking for a box
+  before there are words for it); a caret at the START is still refused (her
+  words would jump down the screen) and an empty box divides into nothing.
+  **AND PUTTING A FINISHED CLIP BACK MAKES A BLOCK RATHER THAN OVERWRITING
+  ONE (2026-09-14, Sophie: "copy back from finished job shud make a new text
+  block · not replace the selected block").** A card's copy button used to
+  write its words straight into the box she was standing in, so putting a clip
+  back cost her whatever was in that block — the scene she was part way
+  through, or the shot she had just divided out — and the only way back was the
+  `undo` `copyBack` had to bank the WHOLE job for. One block is one clip, so a
+  clip she puts back is another block. Five things not to undo: it lands at
+  the **END**, never inserted beside her (an insert renumbers the shots she is
+  reading in order); **except into a TRAILING EMPTY block**, which is the box
+  she already has — a fresh page IS one empty block and a divide at the end is
+  her asking for somewhere to write, so adding beside either would strand an
+  empty block she then has to take off (empty means no words AND no pictures);
+  the new block **takes the gold line and the card's own strip**, so the star
+  sends what she just put back and the references under the panel are its;
+  **nothing is banked**, because nothing is overwritten — an `undo` left on
+  the row by an earlier `clear` goes on meaning that clear; and **the
+  SETTINGS are still the job and are still replaced** (model, seconds, size,
+  shape, seed), only what the record knows, exactly as before. The window is
+  walked to the new block — never `scrollIntoView`, and never simply to the
+  top of the page, which on a panel of several blocks is not where it is.
+  Both corner buttons pin
   together (`stickybox.js` v2 — buttons on one box are a group; the divide is
   `nofollow`, since it shrinks the box from the bottom and the seam is
   already where her eyes are). **`fitBox` holds the wrap's height while a box
@@ -8880,13 +9134,9 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (the toast names the block when it is not the one she is standing in); the
   **✕ renames the active
   block's words alone**, since no other block's pictures moved; a **put-back**
-  replaces that block's strip and touches no other; a **hand-off gives every
-  block the same strip** (one job's references, however many parts its scene
-  came over in); and **the All star sends the union** with every block's
-  names renumbered onto it, priced by its OWN free estimate whenever the
-  union's shape (a reference video, a keyframe, anything attached at all)
-  differs from the active block's — the figure on a button has to be the
-  price of the clip that button sends. **AND FOLDING A BLOCK AWAY NO LONGER
+  brings the card's strip in on the NEW block it makes and touches no
+  other; a **hand-off gives every block the same strip** (one job's references, however many parts its scene
+  came over in). **AND FOLDING A BLOCK AWAY NO LONGER
   MAKES IT THE ONE THE STAR SENDS** — the document click handler makes any
   button on a block active, which was invisible while the strip was shared and
   is wrong now: folding block 2 away moved the gold line onto it AND swapped
@@ -8909,9 +9159,8 @@ before working on that module. Nothing was deleted — the moved text is verbati
   blocks at the top of footage: characters, then setting").** Who is in the
   scene and where it is do not change from shot to shot, so they are two
   blocks of their own above the scene and **what is written in them rides at
-  the TOP of the prompt of every clip she sends** — the star's own block and
-  the appended All alike, in that order, blank line between. Six things not to
-  undo: **they are not `blocks()`** (a head is `.headwrap`/`.hblock`, never
+  the TOP of the prompt of every clip she sends** — in that order, blank
+  line between. Six things not to undo: **they are not `blocks()`** (a head is `.headwrap`/`.hblock`, never
   `.promptwrap`/`.pblock`, so the numbering, the gold line, the join marks,
   the ✕, the divide, `setBlocks`, the draft and every test are untouched by
   construction rather than by remembering to skip two; the draft carries them
@@ -9148,9 +9397,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
     the door's own `params`, so the optimistic card carries it without waiting
     for the first poll, and `cardOf` reads `params.seed` off the log. A clip
     with none shows no seed row at all (the Assets tab's silence rule).
+  - **CLEARING IT NEVER OPENS THE KEYBOARD (2026-09-14, Sophie: "exing seed
+    shud not trigger keyboard").** The ✕ used to `focus()` the box after
+    emptying it — the home search bar's rule, where she is mid-hunt and about to
+    type again. Here the ✕ means *no seed on this clip*, which is the END of
+    typing, and this box sits in the CONTROLS row, so the keyboard rose over the
+    star and the price. The focus is gone, and the button's pointer press is
+    `preventDefault`ed so the tap can never land in the field (the ✕ is
+    absolutely positioned INSIDE the input's padding, so a tap at its edge lands
+    on the input itself).
   - Test: `node scripts/test-footage.js` (the seed section — the box ships
     empty, nothing sticky, the card's line, the copy filling the box, what the
-    job REALLY receives, and copyBack filling then clearing).
+    job REALLY receives, copyBack filling then clearing, and the ✕ MEASURED as
+    leaving the caret out of the box — a `focus()` left in the handler and one
+    taken out look identical in every assertion about the box's value).
   **A REFERENCE UNDER BYTEDANCE'S PIXEL FLOOR IS UPSCALED BEFORE IT IS SENT —
   AND THE CARD SAYS SO (2026-09-10, Sophie: "the first was just an iPhone ·
   why failed").** Her first video reference was refused at validation, free,
@@ -9472,11 +9732,28 @@ before working on that module. Nothing was deleted — the moved text is verbati
   THAT ROW (2026-09-12, Sophie: "the last frame doesn't have the curtains" ·
   "it shouldn't file to the dump. It should give me a way to use it
   immediately as a reference for my next film").** Playhead on the frame, tap
-  the word, and it is `[ImageN]` in the references strip — the last-frame
-  tile's `reference` landing, for any second of the clip. `POST
+  the word, and the frame is pulled out for any second of the clip. `POST
   /api/footage/jobs/:id/frame {at}`: a PNG at the clip's own size out of the
   SOURCE, content-addressed under `footage/frames/`, one decode at a time in
   the trims' queue, the clip's doc untouched, NOTHING to the Dump (her word).
+  The player stays open and her in and out marks stay with it (2026-09-13).
+  **AND IT OFFERS, IT NO LONGER DECIDES (2026-09-14, Sophie: "grab frame shud
+  offer to save or add as reference").** It used to land the frame in the strip
+  by itself, so SAVING one meant taking on a reference she may not have wanted
+  and then hunting it down in the strip to open it big — and she never saw the
+  frame before it committed, on the one button whose whole reason for existing
+  is that the baked last frame has the wrong thing in it. The pull draws a row
+  under the trimmer's buttons — the frame itself, the second it came from, and
+  two underlined words: **save** (the three-path ladder) and **reference**
+  (`useShot`, the last-frame tile's own landing). Neither fires on its own.
+  Four things not to undo: the two are **NOT exclusive**, so the row stays
+  until she grabs another, taps its ✕, or closes the player; `reference`
+  **lights off the STRIP** (repainted in `paintRefs`, the one place it
+  changes), so a ✕ on that reference puts the word out and a second grab of the
+  same second opens already lit; the thumb is **`contain`, never `cover`** (a
+  cover crop takes a third off a 16:9 frame's sides, which is the half the
+  question is usually about); and there is **no "open it bigger"** — the player
+  directly above is paused on that very frame at full size.
   Full note: *GRAB FRAME* in `docs/modules/audio-and-film.md`; test
   `node scripts/test-footage-grab-frame.js`.
   **THE FIRST FRAME OF THE NEXT CLIP IS THE LAST FRAME OF THIS ONE — WIRED ON
@@ -9832,7 +10109,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
     (`pickables`, pure): a drawing, failed or hidden clip is out, a part
     still baking is out, the whole of a trimmed clip is the SOURCE (never
     the first part), a part with no poster takes the clip's, newest first,
-    the title is the prompt's first words and never the url.
+    the title is the prompt's first words and never the url. **And a clip she
+    crossed out is not offered either — hide-the-✕'d opens ON since
+    2026-09-14** (her "default to hide x"; the rule and its four guards are in
+    the Playground's ✕-filter note), which on her real shelf is 103 of 174
+    pickables the picker used to offer exactly like the rest.
   - **THE ORDER IS SAVED WHOLE** (`POST /:id/clips`, debounced 500ms,
     flushed on pagehide) — order and membership change together, so a
     partial write could never be right (Assembly's rule). The page keeps a
@@ -10342,7 +10623,8 @@ before working on that module. Nothing was deleted — the moved text is verbati
   what it names, ✕ drops only what it names, and they stack. Five things not to
   undo:
   - **ONE SETTING ACROSS BOTH TABS** (her call): Text and Voice are two views
-    of one state (`voicelab_liked` / `voicelab_hidex`), so `paintFilt`
+    of one state (`voicelab_liked` / `voicelab_hidex`; hide-the-✕'d opens ON
+    since 2026-09-14 — the Playground's ✕-filter note has the rule), so `paintFilt`
     repaints every copy. A filter lit on the tab she is not looking at is the
     silent-filter failure this app keeps getting burned by.
   - **THE TWO LIT COLOURS MUST DIFFER** — the heart takes the rose and the ✕
@@ -10755,6 +11037,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `SHELF_DEFAULT` in `gen-scratchpad.py` is the one place it lives: the filter
   and the opening chip both read it, so moving the default is that line. The
   shelf opens on Unsorted because that is where a story she just made lands.
+  **AND THE + MAKES ITS STORY IN THE PILE SHE IS LOOKING AT (2026-09-14,
+  Sophie: "story room shud add to current lu selected category").** The chip
+  is lit on screen at the moment she taps +, so filing the new story anywhere
+  else leaves it off the shelf she just made it on — and **nothing in this
+  page files a story at all** (`POST /pads/category` has no caller here), so
+  it stayed unsorted until a chat moved it. Three things not to undo: the
+  **DEFAULT pile sends NOTHING** — an untagged story falls into Unsorted by
+  itself, so a plain new story is written byte-for-byte the doc it always
+  was; **inside a FOLDER it sends nothing either**, because the chips come
+  off in there (a folder gathers a character's stories wherever they were
+  filed) and `shelfCat` is then the pile she came in from, on no screen —
+  filing by a chip she cannot see is the hidden-ingredient failure; and the
+  route **cleans it exactly as `/pads/category` does** (lowercased, 24), so
+  one word means one thing wherever it is written. Test:
+  `node scripts/test-storyroom-new-in-category.js` (the real page headless —
+  every assertion a reading of what the server REALLY received, since a page
+  that reads `shelfCat` correctly and never puts it in the body, one that
+  sends the default as a real field, and one that files by an off-screen chip
+  all look identical in the source; verified failing 7 pre-fix).
   **The chip row now ends before the autoscroll pill** — the sheet's pill is
   fixed at x 328-374, y 14-154 and the row sits at y 52-85, so with three chips
   it simply stopped short and with five the last one was UNREACHABLE.
@@ -11834,6 +12135,61 @@ before working on that module. Nothing was deleted — the moved text is verbati
   release). Run the metadata workflow with `dry_run` ON first. The two things that
   still need Sophie are the reviewer's rejection text and any Resolution Center
   reply — Apple exposes neither.
+  **BUYER PHOTOS — THE SHOP'S OWN CUSTOMERS, ABOVE THE SHELVES (2026-09-14,
+  Sophie: "photo reviews with [wit]ch website").** `etsy-reviews.js` has
+  mirrored the shop's Etsy reviews since July 2026 and every one of them
+  carries a `photo` field — **measured that day, 962 of the 7,800 mirrored
+  reviews have one, across 94 listings** — and the only place any of them ever
+  showed was inside ONE product's Reviews tab, 88px wide and not tappable. So
+  the Shop tab now leads with a strip of them (newest first, 24, `.pwall`
+  above the category chips), and tapping one opens it big with the review it
+  came from and a way into that product.
+  - **THE MIRROR IS FLAT ON PURPOSE — `forge-etsy-review-photos/{txnId}`.**
+    The photos are scattered one listing at a time across 173 subcollections,
+    so "the newest photos, whatever they are of" had nowhere to come from; a
+    collectionGroup query would need a hand-made composite index (photo +
+    created), where a flat collection ordered by `created` rides Firestore's
+    automatic single-field index — the same reasoning that shaped the
+    subcollection in the first place. Written in the SAME batch as the review
+    (`upsertPage`), so a review and its photo can never disagree, and only
+    ever written, never deleted. `node scripts/backfill-etsy-reviews.js
+    --photos-only` fills it from the reviews already on file — no Etsy call,
+    no Shopify call, free, `--dry` first.
+  - **`GET /api/witch/shop/reviews/photos?handles=` IS WHAT MAKES A PHOTO A
+    DOOR.** The map doc is handle → listingId and only covers about two thirds
+    of the photos (609 of 962); the page already holds the shelf's handles, so
+    it sends them and `resolveListingId` — which knows the explicit map AND
+    the Shuttle suffix — is read backwards for everything currently on sale.
+    **A photo whose product cannot be named still shows and carries no
+    handle**: it is somebody's photo of her work either way, and its viewer
+    simply offers no button (the Assets tab's silence rule).
+  - **TWO THINGS ON THAT PAGE WERE ALREADY WRONG and are fixed with it.**
+    Etsy hands review text back with HTML entities in it — **measured, 66 of
+    400 sampled** — and `esc()` escaped the ampersand a second time, so buyers
+    read *"I didn&#39;t know"* on the live site; `unent()` decodes once at the
+    DISPLAY and the stored text stays exactly what Etsy sent (*nothing stands
+    between the source and the output*). And a review's inline photo was not
+    tappable at all, which is the whole reason 962 of them were invisible.
+  - **THE VIEWER'S STAGE IS THE ONLY THING THAT GIVES** (the Playground
+    lightbox's own lesson): the card is `flex:none` and the WORDS are what
+    scroll, because capping the card instead cut the way into the product off
+    its own bottom on a long review — MEASURED at 390x700, the app's own web
+    view: card bottom 684, button bottom 699. The stage also carries a 38vh
+    floor and a 60vw minimum, or a photo still downloading collapses it to 0x0
+    and takes the invisible step zones down with it.
+  - **NOTHING IS CURATED YET** — the strip is the newest 24, whatever they are
+    of. A way to hide one is hers to ask for.
+  - **AND THE GLOBAL ROLLUP IS STALE — the page says 4,733 reviews and the
+    mirror holds 7,800** (measured 2026-09-14). `recomputeSummaries()` with no
+    arguments walks every listing and fixes it, free, and would raise the
+    number she shows buyers; deliberately NOT run, because it changes a public
+    figure and that is hers.
+  - Test: `node scripts/test-etsy-review-photos.js` (the mirror's shape and
+    the no-index rule pure, then the real page headless at 390x844 and
+    390x700 — every assertion a MEASUREMENT, since a strip rendered under the
+    shelves, step zones with no height because the photo hasn't loaded, a
+    button hanging past its own card and an entity that only reads wrong once
+    a browser has drawn it all look fine in the source).
   **Writing a Witch School lesson? `docs/witch-school-lessons.md` FIRST.**
   **Full details: `docs/modules/apps.md`.**
 - **Sticker Day** (`public/selfcare.html`, `/selfcare`, **ungated/public**) —
@@ -12595,8 +12951,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
   mirror pinned against the REAL expressions in both files, since a drifted key
   is invisible — it just pays twice).
   **Full details: `docs/modules/inbox-and-misc.md`.**
-- **THE UPDATE BUTTON** (`brief.js`, `/api/brief`, page at `/brief`, the
-  **Update** row at the top of the Chats app's UPDATE tab) — Aug 2026,
+- **THE UPDATE BUTTON** (`brief.js`, `/api/brief`, page at `/brief`) —
+  **ITS DOOR WENT WITH THE UPDATE TAB (2026-09-14)**: the **Update** row that
+  opened it lived at the top of that tab and nothing in the app links `/brief`
+  now. The page still works at
+  https://imageforge-q125.onrender.com/brief — seating the door somewhere else
+  is hers to ask for. Aug 2026,
   Sophie: "an update button that I can just click and then
   it does an API call that gives me the top five things I might want to be
   updated on, and then maybe some lower priority things, and ideally images
@@ -12696,8 +13056,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
     `node scripts/test-brief-page.js` (the real page + the real injected pill,
     headless — the cache-first open counted in API calls, Refresh, the pill
     palette, the pill's corner over the top card, the lightbox contract, the
-    ⌄) and `node scripts/test-chats-update-row.js` (the row on the real
-    Update tab — first, her word, no icon, and still there when caught up).
+    ⌄). `test-chats-update-row.js` went with the Update tab.
 - **THE MORNING BRIEF — a Compare page, twice a day, on a Routine
   (`scripts/morning-brief.js` + `.tpl.html`, Aug 2026).** Sophie asked for her
   briefing as a page rather than a reply ("this would be more helpful as a
@@ -13380,9 +13739,10 @@ before working on that module. Nothing was deleted — the moved text is verbati
     whether the pill is sitting on it).
 - **Push notifications** (`push.js`, `/api/push`) — real APNs lock-screen
   notifications, raw HTTP/2 straight to Apple, no Firebase Messaging. Sent on a
-  **finished reply** (never a draft) and on a new Compare page. They are the
-  Update tab's **doorbell, not its replacement**, so a dropped push is never
-  lost news. A tap opens THE CHAT IT CAME FROM.
+  **finished reply** (never a draft) and on a new Compare page. They were the
+  Update tab's **doorbell, not its replacement** — that tab is gone
+  (2026-09-14) and a dropped push is still never lost news: the chat's own row
+  says it answered. A tap opens THE CHAT IT CAME FROM.
   **THE BANNER SHOWS WITH THE APP OPEN TOO, SILENTLY (Aug 2026, Sophie:
   "notifications that come down into the app and appear at the top of the
   screen while I'm in the app").** `willPresent` returned `[]` until then — the
@@ -13493,7 +13853,8 @@ before working on that module. Nothing was deleted — the moved text is verbati
   forever); and **a 15-minute fallback timer**, because a hookless session, a
   chat killed mid-turn or a script filing a film never posts a finished reply
   and a doorbell that waits forever never rings. A deploy drops a held buzz,
-  which is fine — the deliverables list and the Update tab are the catch-all.
+  which is fine — the deliverables list and the chat's own row are the
+  catch-all.
   Test: `node scripts/test-push-pending.js`.
   **THE BODY IS NEVER HER OWN WORDS (`pushBody`, found live 2026-08-15 from
   her screenshot — this, not the timing, is what she was actually reporting).**
@@ -13547,8 +13908,9 @@ before working on that module. Nothing was deleted — the moved text is verbati
     real token; the undeployed-count mark lives in the same doc and had the
     same hole.
   - **IT NAMES NO CHAT, deliberately** — `PushDelegate` opens the chat a push
-    names and there is no chat here; with none it lands on the Update tab,
-    which is the right room and needs no TestFlight build. It carries its own
+    names and there is no chat here; with none it lands on the chat list (the
+    Update tab until 2026-09-14), which is the right room and needs no
+    TestFlight build. It carries its own
     `thread` instead (a new `sendAll` case), so "Back up" replaces "Server
     update starting" in her shade rather than stacking.
   - Tests: `node scripts/test-deploy-notify.js` (the marker's whole decision

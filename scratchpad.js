@@ -1026,14 +1026,23 @@ router.post('/pads', async (req, res) => {
     // while a folder is open). Absent everywhere else, so a plain new story
     // still lands loose on the shelf.
     const folder = String(req.body.folder || '').slice(0, FOLDER_MAX).trim();
+    // IT IS BORN INTO THE PILE SHE IS LOOKING AT (2026-09-14, Sophie: "story
+    // room shud add to current lu selected category"). Same shape as `folder`
+    // and the same cleaning as /pads/category, so one word means one thing
+    // wherever it is written; absent — which is what the shelf's + sends on
+    // the default pile and inside a folder — writes no field at all, so a
+    // plain new story is the doc it always was and still falls into unsorted.
+    const category = String(req.body.category || '').toLowerCase().slice(0, 24).trim();
     // A story can be born SQUARE (see THE STORY'S SHAPE). Absent — which is
     // what the shelf's + sends unless she picked one — writes no field at
     // all, so a plain new story is portrait exactly as it always was.
     const shape = SHAPE_KEYS.includes(req.body.shape) ? req.body.shape : null;
     const ref = db().collection(COL).doc();
     await ref.set({ title, beats: [], updatedAt: Date.now(),
-      ...(folder ? { folder } : {}), ...(shape ? { shape } : {}) });
-    res.json({ ok: true, pad: ref.id, title, folder: folder || null, shape: shape || SHAPE_KEYS[0] });
+      ...(folder ? { folder } : {}), ...(category ? { category } : {}),
+      ...(shape ? { shape } : {}) });
+    res.json({ ok: true, pad: ref.id, title, folder: folder || null,
+      category: category || null, shape: shape || SHAPE_KEYS[0] });
   } catch (e) { fail(res, e); }
 });
 

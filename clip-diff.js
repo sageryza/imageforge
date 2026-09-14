@@ -209,7 +209,10 @@
     var f = String(url || '').split('?')[0].split('/').pop() || '';
     try { f = decodeURIComponent(f); } catch (e) { /* keep as is */ }
     f = f.replace(/\.[a-z0-9]{2,5}$/i, '');
-    if (!f || /^[a-f0-9-]{16,}$/i.test(f) || /^[A-Za-z0-9_-]{20,}$/.test(f)) return '';
+    // a HASH is one unbroken run of letters and digits; a readable name has
+    // separators in it — `sophie-blue-pajamas-front` is not a hash however
+    // long it is (2026-09-14; the old rule blanked any name over 20 characters)
+    if (!f || /^[a-f0-9-]{16,}$/i.test(f) || /^[A-Za-z0-9]{20,}$/.test(f)) return '';
     return f.slice(0, 40);
   }
   function nameOf(r, resolve) {
@@ -282,7 +285,11 @@
   function older(j, jobs) {
     var at = String(j.sentAt || '');
     return (jobs || []).filter(function (o) {
-      return o && o.id !== j.id && (o.project || '') === (j.project || '') && String(o.sentAt || '') && String(o.sentAt || '') < at;
+      // never a clip she put away, and never one that did not draw — a refused
+      // twin of the same words is a perfect kin and the panel would open on a
+      // clip that never existed saying "nothing changed" (2026-09-14)
+      return o && o.id !== j.id && !o.hidden && o.status !== 'failed'
+        && (o.project || '') === (j.project || '') && String(o.sentAt || '') && String(o.sentAt || '') < at;
     }).sort(function (a, b) { return String(b.sentAt || '').localeCompare(String(a.sentAt || '')); });
   }
   function kinOf(j, jobs) {

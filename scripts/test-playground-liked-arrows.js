@@ -99,7 +99,10 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
     .find(p => fs.existsSync(p));
   const browser = await chromium.launch(preinstalled ? { executablePath: preinstalled } : {});
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });   // iPhone 13
-  await page.addInitScript(() => localStorage.setItem('promptlab_view', 'tiles'));
+  // Hide-the-✕'d is ON by default since 2026-09-14 ("default to hide x"), and
+  // this pass is about the lightbox and its step zones — so it stores her own explicit
+  // OFF ('' is what her tap writes) rather than measuring the filter.
+  await page.addInitScript(() => { localStorage.setItem('promptlab_view', 'tiles'); localStorage.setItem('promptlab_hidex', ''); });
   await page.goto(base + '/playground');
   await page.waitForFunction(() => document.querySelectorAll('#tiles .cell').length > 0);
 

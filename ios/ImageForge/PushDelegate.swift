@@ -43,11 +43,14 @@ final class PushDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCen
     /// always opened the Update tab, on the reasoning that the push is that
     /// tab's doorbell — but iOS consumes the banner on tap, so landing on a
     /// LIST left her with no way to tell which chat had just spoken. The
-    /// payload has always carried the chat; now it is used. The Update tab is
-    /// still one tap away, and it is the fallback when a push predates this
-    /// (no `chat` in its payload).
+    /// payload has always carried the chat; now it is used.
+    ///
+    /// THE UPDATE TAB IS GONE (2026-09-14), so a push that names no chat
+    /// lands on the CHAT LIST — which is what the page does with the old
+    /// `?view=news` anyway: it swallows the param and shows the list, so an
+    /// older build already behaves this way.
     static var pendingChat: String?
-    static var pendingUpdateTab = false
+    static var pendingChatList = false
 
     /// THE WIDGET'S DECK (2026-09-02, Sophie: "make it 4 icons / decks to
     /// swipe"). A tap on one of the home-screen widget's icons arrives as
@@ -109,18 +112,18 @@ final class PushDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCen
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
         let chat = response.notification.request.content.userInfo["chat"] as? String
         // "push-test" is the /api/push/test send, which belongs to no chat —
-        // that one still lands on the Update tab.
+        // that one lands on the chat list.
         Self.pendingChat = (chat == "push-test") ? nil : chat
-        Self.pendingUpdateTab = (Self.pendingChat == nil)
-        NotificationCenter.default.post(name: .forgePushOpenUpdate, object: nil)
+        Self.pendingChatList = (Self.pendingChat == nil)
+        NotificationCenter.default.post(name: .forgePushOpenChats, object: nil)
         completionHandler()
     }
 }
 
 extension Notification.Name {
-    /// A push was tapped — RootView switches to the Chats screen, ChatFeedView
-    /// reloads onto the Update tab.
-    static let forgePushOpenUpdate = Notification.Name("forgePushOpenUpdate")
+    /// A push was tapped — RootView switches to the Chats screen and
+    /// ChatFeedView reloads its page onto the chat it names (or the list).
+    static let forgePushOpenChats = Notification.Name("forgePushOpenChats")
 
     /// A widget icon was tapped — RootView switches to the Review Queue and
     /// ReviewQueueView recreates its web view, whose URL builder consumes

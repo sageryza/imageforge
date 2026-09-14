@@ -299,6 +299,18 @@ async function pageHalf() {
     await page.waitForSelector('#open:not([hidden])');
     ok('a new stitch opens on its own page, the url carrying it', /[?&]s=s1/.test(await page.evaluate(() => location.search)));
     await page.waitForSelector('#tiles .cell');
+    // DEFAULT ON (2026-09-14, Sophie: "default to hide x") — measured on the
+    // untouched picker, then put DOWN for the rest of this pass: JOB_B is ✕'d
+    // and everything below is about picking and ordering its parts. The
+    // filter's own section turns it back on.
+    {
+      const start = await page.evaluate((id) => ({
+        lit: document.getElementById('v-hidex').classList.contains('on'),
+        xed: [...document.querySelectorAll('#tiles .cell')].some((c) => c.dataset.id.indexOf(id) === 0) }), JOB_B);
+      ok('the picker opens with the ✕\'d clip and its parts already gone, and the box lit', start.lit && !start.xed);
+      await page.click('#v-hidex');
+      await page.waitForTimeout(250);
+    }
     ok('the picker shows every pickable as a tile — both parts and both wholes', (await page.locator('#tiles .cell').count()) === 5);
     ok('and opens on TILES, three across — MEASURED off the real cells', await page.evaluate(() => {
       const cells = [...document.querySelectorAll('#tiles .cell')];

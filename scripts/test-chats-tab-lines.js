@@ -147,19 +147,20 @@ async function checkRow(page, sel, what, widths) {
   await page.goto(base + '/chats', { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#grid .crow[data-chat="alpha"]', { timeout: 8000 });
 
-  // ── 1. the account row — four tabs, and every one of them ───────────────
-  //     (Update · 1 · 2 · 3 since a third Claude account arrived, Aug 2026 —
-  //     the sliding line measures the lit tab, so the count is only asserted
-  //     here to keep the loop below honest about what it walked)
+  // ── 1. the account row — one tab per account, and every one of them ─────
+  //     (1 · 2 · 3 since a third Claude account arrived, Aug 2026; UPDATE led
+  //     the row until 2026-09-14, when she had that tab taken off — the
+  //     sliding line measures the lit tab, so the count is only asserted here
+  //     to keep the loop below honest about what it walked)
   const accTabs = await page.$$eval('#accrow .acctab', ns => ns.length);
-  ok(accTabs === 4, 'the account row still has four tabs (Update · 1 · 2 · 3)');
+  ok(accTabs === 3, 'the account row still has one tab per account (1 · 2 · 3)');
   for (let i = 0; i < accTabs; i++) {
     await page.$$eval('#accrow .acctab', (ns, j) => ns[j].click(), i);
     await page.waitForTimeout(340);
     await checkRow(page, '#accrow', 'account row, tab ' + (i + 1), WIDTHS);
   }
   // back to a list view
-  await page.$$eval('#accrow .acctab', ns => ns[1].click());
+  await page.$$eval('#accrow .acctab', ns => ns[0].click());
   await page.waitForTimeout(250);
 
   // ── 2. Bookmarks — three tabs ───────────────────────────────────────────

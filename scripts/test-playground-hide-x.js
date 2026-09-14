@@ -102,21 +102,28 @@ const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
   const NOX = '#v-hidex';
   const openFilt = async () => {};
 
-  console.log('THE FILTER');
-  ok(same(await list(), ALL_SIX), 'off, every picture is on the page');
-  await page.click(NOX);
-  ok(same(await list(), NO_X), 'lit, the ✕\'d ones are gone from the list');
-  ok(await boxes() === 2, 'the run with both pictures ✕\'d dropped out of the list too');
-  await page.click('#v-tiles');
-  await page.waitForFunction(() => document.querySelectorAll('#tiles .cell img').length > 0);
-  ok(same(await wall(), NO_X), 'and gone from the tile wall');
-
-  console.log('STICKY');
-  await page.reload();
-  await page.waitForFunction(() => document.querySelectorAll('#tiles .cell img').length > 0);
-  ok(same(await wall(), NO_X), 'a reload comes back with it still lit');
+  // DEFAULT ON (2026-09-14, Sophie: "default to hide x"). A fresh page has
+  // stored nothing, so this IS the untouched state — and the button is lit,
+  // which is what keeps a default-on filter from being a silent one.
+  console.log('THE FILTER — ON BY DEFAULT');
+  ok(same(await list(), NO_X), 'a fresh page opens with the ✕\'d ones already gone');
   ok(await page.locator(NOX).evaluate(e => e.classList.contains('on')),
     'and the button says so');
+  ok(await boxes() === 2, 'the run with both pictures ✕\'d is not in the list either');
+  await page.click('#v-tiles');
+  await page.waitForFunction(() => document.querySelectorAll('#tiles .cell img').length > 0);
+  ok(same(await wall(), NO_X), 'the tile wall opens the same way');
+  await page.click(NOX);
+  ok(same(await wall(), ALL_SIX), 'tapping it brings the crossed-out ones back');
+
+  console.log('STICKY — AND HER OFF IS HERS');
+  await page.reload();
+  await page.waitForFunction(() => document.querySelectorAll('#tiles .cell img').length > 0);
+  ok(same(await wall(), ALL_SIX), 'a reload keeps it OFF — the default never comes back over her tap');
+  ok(!(await page.locator(NOX).evaluate(e => e.classList.contains('on'))),
+    'and the button says so');
+  await page.click(NOX);
+  ok(same(await wall(), NO_X), 'and tapping it again hides them');
 
   console.log('WITH THE HEART');
   await page.click(HEART);

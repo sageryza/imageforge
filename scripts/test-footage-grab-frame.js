@@ -19,6 +19,15 @@
       the strip afterwards, the draft carrying it, and nothing posted to the
       Dump.
 
+   IT OFFERS, IT NO LONGER DECIDES (2026-09-14, Sophie: "grab frame shud offer
+   to save or add as reference"). The pull used to land the frame in the strip
+   by itself; now it shows the frame with `save` and `reference` beside it and
+   neither fires on its own. Both halves are asserted: nothing in the strip or
+   the draft until she taps, and the whole strip landing when she does. A row
+   that renders with no picture in it, one whose words are off the screen, and
+   one that lands the reference anyway are the same markup, so every one of
+   those is measured.
+
    THE PLAYER STAYS OPEN SINCE 2026-09-13, and this asserts it: closing
    dropped `TR` and threw away the in and out marks she had just placed, so
    the marks are set BEFORE the grab and read back after it. Verified against
@@ -271,23 +280,95 @@ if (FF) {
   ok('the player STAYS open — the frame is taken on the spot', await page.$eval('#player', (el) => el.hidden === false));
   const spanNow = (await page.textContent('#tspan')).trim();
   ok('and her marks are exactly where she put them (' + spanNow + ')', spanNow === spanWas);
+
+  // ── IT OFFERS, IT DOES NOT DECIDE (2026-09-14, Sophie: "grab frame shud
+  // offer to save or add as reference"). The pull used to land the frame in
+  // the strip by itself. Every assertion here is a MEASUREMENT: a row that
+  // renders with no picture in it, one whose words are pushed off the screen,
+  // and one that lands the reference anyway all look identical in the source.
+  const offer = await page.evaluate(() => {
+    const row = document.getElementById('tgrabbed');
+    const r = row.getBoundingClientRect();
+    const im = document.getElementById('tgim');
+    const hit = (id) => {
+      const el = document.getElementById(id);
+      const b = el.getBoundingClientRect();
+      const at = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+      return { w: b.width, inside: b.left >= 0 && b.right <= window.innerWidth, hit: at === el || el.contains(at),
+        text: (el.textContent || '').trim(), lit: el.classList.contains('on') };
+    };
+    return { shown: !row.hidden && r.width > 0 && r.height > 0, top: r.top, bottom: r.bottom,
+      picture: { src: im.src, drawn: im.naturalWidth > 0 },
+      at: (document.getElementById('tgat').textContent || '').trim(),
+      save: hit('tgsave'), ref: hit('tgref'), x: hit('tgx') };
+  });
+  ok('the offer row is on screen', offer.shown && offer.bottom <= 844 && offer.top >= 0);
+  ok('SHOWING the frame she grabbed, really decoded', /\/frame\.png$/.test(offer.picture.src) && offer.picture.drawn);
+  ok('and saying which second it is (' + offer.at + ')', /2\.5s/.test(offer.at));
+  ok('the save word is there and takes its own tap', offer.save.text === 'save' && offer.save.inside && offer.save.hit);
+  ok('the reference word is there and takes its own tap', offer.ref.text === 'reference' && offer.ref.inside && offer.ref.hit);
+  ok('and a way to put the offer away', offer.x.inside && offer.x.hit);
+  ok('neither is lit yet — nothing has been done with it', !offer.ref.lit);
+  // and it SAYS the offer — the two words are small and underlined at the
+  // bottom of the screen, and "Grabbing that frame…" stops being true here
+  ok('the toast names both doors', /save it, or add it as a reference/.test(await page.textContent('#toast')));
+  // THE HALF THAT MATTERS: nothing landed on its own.
+  ok('the pull landed NOTHING in the strip', (await page.$$eval('#refs .ref', (els) => els.length)) === refsBefore);
+  const draft0 = await page.evaluate(() => { try { return JSON.parse(localStorage.getItem('footage_draft') || '{}'); } catch (e) { return {}; } });
+  ok('and nothing in the draft either', !(draft0.refs || []).some((r) => /\/frame\.png$/.test(r.url)));
+  await page.screenshot({ path: path.join(process.env.SHOT_DIR || tmp, 'grab-frame-offered.png') }).catch(() => {});
+
+  // ── her tap on `reference` ─────────────────────────────────────────────
+  await page.click('#tgref');
+  await page.waitForTimeout(250);
   const strip = await page.$$eval('#refs .ref', (els) => els.map((el) => ({
     src: (el.querySelector('img') || {}).src || '', slot: (el.querySelector('.slot') || {}).textContent || '',
   })));
   ok('the frame is a reference in the strip now', strip.length === refsBefore + 1 && strip.some((r) => /\/frame\.png$/.test(r.src)));
   ok('as a plain slot, not a keyframe', strip.some((r) => /\/frame\.png$/.test(r.src) && /^\[Image\d\]$/.test(r.slot.trim())));
   ok('and it says so', /reference now/.test(await page.textContent('#toast')));
+  ok('the player is STILL open and the marks are still hers',
+    (await page.$eval('#player', (el) => el.hidden === false)) && (await page.textContent('#tspan')).trim() === spanWas);
+  ok('the offer stays up — save is still one tap away', await shown('#tgrabbed'));
+  ok('and the word is lit now', await page.$eval('#tgref', (el) => el.classList.contains('on')));
   ok('nothing went to the Dump', dumpPosts === 0);
   const draft = await page.evaluate(() => { try { return JSON.parse(localStorage.getItem('footage_draft') || '{}'); } catch (e) { return {}; } });
   ok('the draft carries it, so a reload keeps it', Array.isArray(draft.refs) && draft.refs.some((r) => /\/frame\.png$/.test(r.url)));
+  await page.screenshot({ path: path.join(process.env.SHOT_DIR || tmp, 'grab-frame-offer.png') }).catch(() => {});
+
+  // taking that reference off puts the word out by itself — the strip is what
+  // the light is read from, so the two can never disagree
+  const offIdx = await page.$$eval('#refs .ref', (els) => els.findIndex((el) => /\/frame\.png$/.test(((el.querySelector('img') || {}).src) || '')));
+  await page.$$eval('#refs .ref', (els, i) => els[i].querySelector('.x').click(), offIdx);
+  await page.waitForTimeout(200);
+  ok('a ✕ on that reference puts the word out', await page.$eval('#tgref', (el) => !el.classList.contains('on')));
 
   // a second grab of the same second is the same reference, not a twin —
   // straight from the player, which is still open (no re-opening needed now)
+  await page.click('#tgref');
+  await page.waitForTimeout(200);
   await seek(2.5);
   await page.click('#tgrab');
   await page.waitForFunction(() => !document.getElementById('tgrab').disabled, null, { timeout: 5000 }).catch(() => {});
   await page.waitForTimeout(250);
+  ok('a frame already in the strip opens the offer already lit',
+    await page.$eval('#tgref', (el) => el.classList.contains('on')));
+  await page.click('#tgref');
+  await page.waitForTimeout(200);
   ok('the same frame twice is ONE reference', (await page.$$eval('#refs .ref', (els) => els.length)) === refsBefore + 1);
+
+  // ── save, and the way out of the offer ─────────────────────────────────
+  // it hands the url to the SAVE ladder, never to the Dump — outside the app
+  // and with no bytes in hand yet that is the "tap save again" answer, which is
+  // exactly what proves the tap reached `saveMedia` rather than doing nothing
+  await page.click('#tgsave');
+  await page.waitForTimeout(200);
+  ok('save reaches the save ladder', /tap save again|Saving|Getting the picture/.test(await page.textContent('#toast')));
+  ok('and still nothing to the Dump', dumpPosts === 0);
+  await page.click('#tgx');
+  await page.waitForTimeout(150);
+  ok('the ✕ puts the offer away', !(await shown('#tgrabbed')));
+  ok('and leaves the reference she already added alone', (await page.$$eval('#refs .ref', (els) => els.length)) === refsBefore + 1);
   ok('no page errors at the end', errors.length === 0);
 
   await browser.close();

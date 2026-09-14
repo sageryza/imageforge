@@ -561,8 +561,8 @@ struct RootView: View {
             if let url = note.object as? URL { handleDeepLink(url) }
         }
         // A tapped push lands on the Chats screen; ChatFeedView hears the same
-        // notification and reloads its page onto the Update tab (?view=news).
-        .onReceive(NotificationCenter.default.publisher(for: .forgePushOpenUpdate)) { _ in
+        // notification and reloads its page onto the chat it names.
+        .onReceive(NotificationCenter.default.publisher(for: .forgePushOpenChats)) { _ in
             if screen != .tool(.chats) { setScreen(.tool(.chats)) }
         }
         // CI screenshot hook: launch with FORGE_SCREEN=<dest> to open straight
@@ -598,18 +598,20 @@ struct RootView: View {
         let q = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
         if dest == "chats" {
             let chat = q.first(where: { $0.name == "chat" })?.value ?? ""
+            // `?view=news` opened the Update tab and no longer means anything
+            // (2026-09-14) — a saved link still carrying it lands on the list.
             let view = q.first(where: { $0.name == "view" })?.value ?? ""
             if !chat.isEmpty {
                 PushDelegate.pendingChat = chat
-                PushDelegate.pendingUpdateTab = false
-            } else if view == "news" {
+                PushDelegate.pendingChatList = false
+            } else if view == "news" || view == "update" {
                 PushDelegate.pendingChat = nil
-                PushDelegate.pendingUpdateTab = true
+                PushDelegate.pendingChatList = true
             }
-            if !chat.isEmpty || view == "news" {
+            if !chat.isEmpty || view == "news" || view == "update" {
                 // ChatFeedView reloads its page onto the pending destination,
                 // and RootView's own listener brings the Chats screen up.
-                NotificationCenter.default.post(name: .forgePushOpenUpdate, object: nil)
+                NotificationCenter.default.post(name: .forgePushOpenChats, object: nil)
                 return
             }
         }

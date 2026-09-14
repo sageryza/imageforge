@@ -652,14 +652,70 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       mark (`fold-vertical`) in the gap to put them back. A 15-second shot on
       Mini is two clips, and until this she cut the scene in two by hand:
       copy the tail out, send the head, paste the tail back in.
+      - **AND A CARET AT THE END MAKES AN EMPTY BLOCK (2026-09-14, Sophie:
+        "divide here in footage should allow a divide with nothing after it to
+        make a new empty block").** It used to refuse — "put the cursor where
+        the second block should start" — on the reasoning that there was
+        nothing to cut, and that reasoning is HISTORY: an empty block is an
+        ordinary state on this page (a restored draft can hold one,
+        the star refuses one with "say what the clip
+        is first"), and writing shot two means asking for a box before there
+        are words to put in it. Three things not to undo: **the new empty
+        block takes the gold line AND the caret** (the tap means "give me
+        somewhere to write", so leaving the star pointing at the block she
+        just left would cost her a tap into a box she asked for) — which
+        needed a second carve-out in the document click handler beside the
+        fold's, since that handler runs AFTER the button's own and would drag
+        the line straight back onto the block the button sits in; **a caret at
+        the START is still refused**, because there her words all move DOWN
+        into a new block and the empty one lands above them — a long scene
+        jumping down the screen, which is not what the mark says it does (the
+        way to an empty block above is a divide at the end of the block
+        before); and **an empty box divides into nothing** and says so, since
+        two empty blocks is not a state worth a tap. The strip is copied into
+        the empty block like any other divide — one rule, and the pictures are
+        what shot two is usually drawn against.
       - **THE STAR SENDS THE BLOCK SHE IS IN** — the last one she tapped into,
         wearing the star's own gold line once there are two or more; one
         block wears nothing and the page looks exactly as it did. The model,
         the seconds and the size are the JOB and are shared across the
         blocks; the block is the words AND its own pictures (below). A slot
-        tap, a character's line and a card's put-back land in that same
-        block. Every block keeps its words after a send (the box's own rule)
-        and the toast says which block went.
+        tap and a character's line land in that same block. Every block keeps
+        its words after a send (the box's own rule) and the toast says which
+        block went.
+      - **A CARD'S PUT-BACK MAKES A BLOCK OF ITS OWN (2026-09-14, Sophie:
+        "copy back from finished job shud make a new text block · not replace
+        the selected block").** It used to write the card's words straight
+        into the active box, so putting a finished clip back cost her whatever
+        was in that block — the scene she was part way through, or the shot
+        she had just divided out — and the only way back was the `undo`
+        `copyBack` had to bank the WHOLE job for. One block is one clip, so a
+        clip she puts back is another block. Five things not to undo:
+          - **IT LANDS AT THE END**, never inserted beside the block she is
+            standing in: an insert would renumber the shots she is reading in
+            order, which is a change to her scene she did not ask for.
+          - **…EXCEPT INTO A TRAILING EMPTY BLOCK**, which is the box she
+            already has — a fresh page IS one empty block, and a divide at the
+            end of the last one is her asking for somewhere to write. Adding
+            beside either would strand an empty block she then has to take
+            off. Empty means no words AND no pictures: a block carrying a
+            strip is one she set up.
+          - **THE NEW BLOCK TAKES THE GOLD LINE AND THE CARD'S OWN STRIP**, so
+            the star sends what she just put back and the references under the
+            panel are its. The block she was in keeps its words and its
+            pictures exactly as they were — the whole of her ask — and there is
+            nothing of any other block's to renumber, since none of them moved.
+          - **NOTHING IS BANKED, because nothing is overwritten.** An `undo`
+            left on the row by an earlier `clear` goes on meaning that clear.
+          - **THE SETTINGS ARE STILL THE JOB and are still replaced** — the
+            model, the seconds, the size, the shape and the seed belong to the
+            clip whichever block sends it, and only what the record knows (a
+            card with no seed clears the box, one with no keyframe brings no
+            marks, a model this page does not offer leaves the picker alone).
+          The window is walked to the block it landed in — never
+          `scrollIntoView` (the caret keeper's and `goToCard`'s rule), and
+          never simply to the top of the page, which on a panel of several
+          blocks is not where the new block is.
       - **AND EVERY BLOCK KEEPS ITS OWN PICTURES (2026-09-14, Sophie: "blocks
         in footage that have images attached shud keep attached images and the
         images return when block is selected").** The strip under the panel is
@@ -689,14 +745,10 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         picture uploads used to drop it there, on a scene that never asked
         for it, and the toast now names the block when it is not the one she
         is standing in; the **✕ renames the active block's words alone**, since no other
-        block's pictures moved; a **card's put-back** replaces that block's
-        strip and touches nothing else; a **hand-off gives EVERY block the
+        block's pictures moved; a **card's put-back** brings the card's strip in
+        on the new block it makes and touches nothing else; a **hand-off gives EVERY block the
         same strip**, since its scenes are one job's references however many
-        parts they came over in; the **All star sends the union** with each
-        block's names renumbered onto it, and asks its OWN free `/estimate`
-        whenever the union's shape (a reference video, a keyframe, anything
-        attached at all) differs from the active block's — the figure on a
-        button has to be the price of the clip that button sends; **each
+        parts they came over in; **each
         heading carries a picture glyph and a count**, so a block she is not
         standing in can never ride with pictures on no screen at all (a glyph
         and a digit rather than the word: the heading's room belongs to her
@@ -809,9 +861,8 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       this they were retyped into every block or re-tapped off the cast shelf
       per clip. So the panel opens with two blocks of its own above the scene,
       and **what is written in them rides at the TOP of the prompt of every
-      clip she sends** — the star's own block and the appended All alike, in
-      that order, blank line between, exactly the shape the join mark and the
-      All star already give her words. Six things not to undo:
+      clip she sends** — in that order, blank line between, exactly the shape
+      the join mark already gives her words. Six things not to undo:
       - **THEY ARE NOT `blocks()`.** A head is `.headwrap`/`.hblock`, never
         `.promptwrap`/`.pblock`, so "the blocks" goes on meaning her SCENE
         blocks in every reader there is: the numbering, the gold line, the
@@ -849,8 +900,8 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       Test: `node scripts/test-footage-heads.js` (every assertion a
       MEASUREMENT of what really renders or a reading of what the stub server
       really received — a head that never folds, one that quietly joins
-      `blocks()` and renumbers her scene, one that rides twice on an appended
-      send, one that rides at the BOTTOM, and one whose words never reach the
+      `blocks()` and renumbers her scene, one that rides at the BOTTOM, and one
+      whose words never reach the
       door all look identical in the source; it CRASHES against the pre-fix
       page, where there are no head blocks at all).
     - **WHAT CHANGED — THE COMPARE PANEL (2026-09-11, Sophie: "is there an
@@ -1116,20 +1167,45 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       the real page headless with a seekable VP8 fixture, every assertion a
       measurement of the rendered strip, the loop's own `currentTime`, or what
       the server really received).
-    - **GRAB FRAME — THE FRAME UNDER THE PLAYHEAD BECOMES A REFERENCE, ON THE
-      SPOT (2026-09-12, Sophie: "I need to cut one out. I said the last frame
+    - **GRAB FRAME — THE FRAME UNDER THE PLAYHEAD, PULLED OUT ON THE SPOT
+      (2026-09-12, Sophie: "I need to cut one out. I said the last frame
       doesn't have the curtains" · "it shouldn't file to the dump. It should
       give me a way to use it immediately as a reference for my next film").**
       The last frame Atlas hands back is the END of what the door drew, and
       the frame that carries continuity is often somewhere in the middle. A
       third word on the trimmer's row, beside Start here / End here: tap the
-      strip to put the playhead on the frame, tap **Grab frame**, and the
-      frame is `[ImageN]` in the references strip with the player closed and
-      the page at the top — the same landing the last-frame tile's
-      `reference` door makes (`useShot`). `POST /api/footage/jobs/:id/frame
-      { at }` answers `{ url, at }` synchronously — a download plus one
-      decoded frame is a few seconds and the url is what she is waiting for.
-      Four things not to undo:
+      strip to put the playhead on the frame, tap **Grab frame**.
+      `POST /api/footage/jobs/:id/frame { at }` answers `{ url, at }`
+      synchronously — a download plus one decoded frame is a few seconds and
+      the url is what she is waiting for. **The player stays open and her in
+      and out marks stay with it** (2026-09-13): it used to close, scroll to
+      the top and drop `TR`, so grabbing a frame mid-cut threw the marks away.
+      - **AND IT OFFERS, IT NO LONGER DECIDES (2026-09-14, Sophie: "grab frame
+        shud offer to save or add as reference").** It used to land the frame
+        in the strip by itself, so SAVING one meant taking on a reference she
+        may not have wanted and then hunting it down in the strip to open it
+        big — and she never saw the frame before it committed, on the one
+        button whose whole reason for existing is that the baked last frame has
+        the wrong thing in it. The pull now draws a row under the trimmer's
+        buttons: **the frame itself**, the second it came from, and her two
+        underlined words — `save` (the three-path ladder: the app's bridge, the
+        share sheet, a download) and `reference` (`useShot`, the last-frame
+        tile's own landing — one entry, no upload, no download, the draft
+        carrying it). Neither fires on its own, so the reference path costs one
+        more tap and buys the look at what she grabbed. Five things not to
+        undo: the two are **NOT exclusive** — a frame worth keeping is often
+        both — so the row stays until she grabs another, taps its ✕, or closes
+        the player; `reference` **lights once the frame really is in the
+        strip**, read off `refs` in `paintRefs` (the one place the strip
+        changes), so a ✕ on that reference puts the word out by itself and a
+        second grab of the same second opens the offer already lit; the thumb
+        is **`contain`, never `cover`** (a cover crop takes a third off a 16:9
+        frame's sides, which is the half of the picture the question is usually
+        about); there is **no "open it bigger"** and none is needed, since the
+        player directly above is paused on that very frame at full size; and
+        the row sits **above the parts list**, which is the thing that scrolls,
+        so the offer is on screen whatever the clip's shape.
+      Four things not to undo about the pull itself:
       - **HER CLIP IS NEVER TOUCHED and NOTHING GOES TO THE DUMP** (her
         word). The frame is a new PNG under `footage/frames/`,
         content-addressed by the source url and the second, so the same
@@ -1151,8 +1227,11 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       `node scripts/test-footage-grab-frame.js` (the rules pure, a REAL pull
       measured with ffprobe and its pixels, and the real page headless — the
       row measured as one line at 390pt with every word taking its own tap,
-      the second the stub really received against the playhead, the strip
-      and the draft afterwards, and zero Dump posts).
+      the second the stub really received against the playhead, the offer row
+      MEASURED with its picture really decoded and its words really tappable,
+      **nothing in the strip or the draft until she taps**, the strip and the
+      draft after she does, the light going out with a ✕ on that reference,
+      and zero Dump posts throughout).
     - **THE PRICE IS EXACT (2026-09-09, measured off 113 OpenRouter jobs, 44
       APIFRAME jobs and ffprobe on the clips).** `tokens = w × h × (24·s + 1)
       / 1024`, × the SKU, × `(1 − the live discount)` — Mini renders on the

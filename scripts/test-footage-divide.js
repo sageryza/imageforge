@@ -325,6 +325,41 @@ const setCaret = ({ sel, at }) => {
   s = await page.evaluate(read);
   ok('and tapping back gives the first block its one back', s.strip.length === 1);
 
+  // ── 11. A DIVIDE AT THE END MAKES AN EMPTY BLOCK ────────────────────────
+  // 2026-09-14, Sophie: "divide here in footage should allow a divide with
+  // nothing after it to make a new empty block". Every assertion a
+  // MEASUREMENT or a reading of the live page: a divide that adds a block and
+  // leaves the gold line behind, one that adds a block she is not in, and one
+  // that quietly sends an empty prompt all look identical in the source.
+  const before11 = posted.length;
+  const had11 = s.values[0];
+  await page.evaluate(() => { const el = document.getElementById('prompt'); el.focus(); el.setSelectionRange(el.value.length, el.value.length); });
+  await page.click('#divide');
+  await page.waitForTimeout(200);
+  s = await page.evaluate(read);
+  ok('a caret at the END divides: three blocks now', s.n === 3);
+  ok('the words she had are untouched — "' + s.values[0] + '"', s.values[0] === had11);
+  ok('and the new one is EMPTY — ' + JSON.stringify(s.values[1]), s.values[1] === '');
+  ok('it sits directly under the block she divided (' + Math.round(s.bottoms[0]) + ' < ' + Math.round(s.tops[1]) + ')', s.bottoms[0] < s.tops[1]);
+  ok('a join mark sits in every gap', s.rows.length === 2);
+  ok('the EMPTY block takes the gold line — she asked for somewhere to write',
+    s.active[1] && !s.active[0] && !s.active[2] && s.ring[1] && !s.ring[0]);
+  const foc = await page.evaluate(() => {
+    const ws = Array.from(document.querySelectorAll('.panel > .promptwrap'));
+    return ws.indexOf(document.activeElement.closest('.promptwrap'));
+  });
+  ok('and the caret is in it (block ' + foc + ')', foc === 1);
+  ok('it carries a copy of the strip the scene was written against — ' + JSON.stringify(s.counts), s.counts[1] === '1');
+  await page.click('#go');
+  await page.waitForTimeout(300);
+  s = await page.evaluate(read);
+  ok('the star will not send an empty block — "' + s.toast + '"', /say what the clip is/i.test(s.toast) && posted.length === before11);
+  await page.evaluate(() => { const ws = document.querySelectorAll('.panel > .promptwrap'); const b = ws[1].querySelector('.pblock'); b.focus(); b.setSelectionRange(0, 0); });
+  await page.click(':nth-match(.panel > .promptwrap, 2) .divide');
+  await page.waitForTimeout(150);
+  s = await page.evaluate(read);
+  ok('an EMPTY box divides into nothing, and says so — "' + s.toast + '"', s.n === 3 && /cursor/i.test(s.toast));
+
   ok('no page errors', errors.length === 0);
   if (errors.length) console.log(errors.join('\n'));
 

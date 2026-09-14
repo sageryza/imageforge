@@ -46,13 +46,13 @@ struct ChatFeedView: View {
                     .ignoresSafeArea(edges: .bottom)
             }
         }
-        // A tapped push reloads the page onto the Update tab. Bumping the key
-        // recreates the web view, whose URL builder consumes the pending flag
-        // (?view=news — the page strips the param after reading it, so a later
-        // natural reload can't drag her back there). Covers warm AND cold
-        // starts: on a cold start the flag is set before this view first
-        // builds, and the URL builder checks it directly.
-        .onReceive(NotificationCenter.default.publisher(for: .forgePushOpenUpdate)) { _ in
+        // A tapped push reloads the page onto the chat it names. Bumping the
+        // key recreates the web view, whose URL builder consumes the pending
+        // flag (the page strips ?chat= after reading it, so a later natural
+        // reload can't drag her back there). Covers warm AND cold starts: on a
+        // cold start the flag is set before this view first builds, and the
+        // URL builder checks it directly.
+        .onReceive(NotificationCenter.default.publisher(for: .forgePushOpenChats)) { _ in
             reloadKey += 1
         }
     }
@@ -77,18 +77,18 @@ private struct ChatFeedWebView: UIViewRepresentable {
         // A pending push tap opens THE CHAT it came from (Sophie: tapping the
         // banner consumed it, so landing on a list left her with no way to
         // tell which chat had spoken). A push that names no chat — the
-        // /api/push/test send — still lands on the Update tab. Both flags are
-        // one-shot, and chats.html strips either query param after honouring
-        // it, so a later reload can't re-open the same thread.
+        // /api/push/test send — lands on the chat list, which is all the flag
+        // does now that the Update tab is gone (2026-09-14). Both are
+        // one-shot, and chats.html strips ?chat= after honouring it, so a
+        // later reload can't re-open the same thread.
         var path = "/chats"
         if let chat = PushDelegate.pendingChat, !chat.isEmpty {
             PushDelegate.pendingChat = nil
-            PushDelegate.pendingUpdateTab = false
+            PushDelegate.pendingChatList = false
             let slug = chat.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? chat
             path = "/chats?chat=" + slug
-        } else if PushDelegate.pendingUpdateTab {
-            PushDelegate.pendingUpdateTab = false
-            path = "/chats?view=news"
+        } else if PushDelegate.pendingChatList {
+            PushDelegate.pendingChatList = false
         }
         if let url = URL(string: MovieService.serverURL + path) {
             web.load(URLRequest(url: url, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 30))

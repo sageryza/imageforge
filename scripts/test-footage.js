@@ -62,7 +62,8 @@ function report() {
     const line = (src.match(/const tucked = .*cast\.tuckedFilms\(\).*/) || [''])[0];
     ok('the feed reads the tucked slugs off the cast shelf — ' + line, /cast\.tuckedFilms\(\)/.test(line));
     ok('and only under All, never under a project or a search', /!project/.test(line) && /req\.query\.q/.test(line));
-    ok('and the filter really drops those clips', /tucked\.indexOf\(projectSlug\(x\.d\.project\)\) < 0/.test(src));
+    // both sides through `projectSlug` (2026-09-14): the shelf's slug is 60 characters and this page's 40
+    ok('and the filter really drops those clips', /tuckedSlugs\.indexOf\(projectSlug\(x\.d\.project\)\) < 0/.test(src));
   }
   ok('pinning OpenRouter on 1.5 Pro is refused with a reason', /only on APIFRAME/.test(F.doorFor({ model: '1.5', door: 'openrouter', resolution: '480p' }, both).error || ''));
   // THE APIFRAME DOOR STAYS IN THE MODULE — the page stopped offering it, a
@@ -786,7 +787,9 @@ async function pillSweep(pg, where) {
   // `await` is not legal in the pure block above, so the one asynchronous
   // pure check rides here: a read that cannot happen answers 0 — full list —
   // rather than throwing or leaving a sale in place.
-  ok('a failed endpoints read answers 0 rather than throwing', (await F.endpointDiscount('bytedance/nope')) === 0);
+  // "could not read" is NULL since 2026-09-14 — `discounts()` keeps the last good
+  // figure for it, where a 0 would have written full list over a real sale
+  ok('a failed endpoints read answers null rather than throwing', (await F.endpointDiscount('bytedance/nope')) === null);
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   const port = server.address().port;
   jobs = JSON.parse(JSON.stringify(jobs).replace(/PORT/g, String(port)));
@@ -883,7 +886,8 @@ async function pillSweep(pg, where) {
   ok('the resolution is a <select>', sel.rTag === 'SELECT');
   ok('the native chrome is off and the box is the house 6px', sel.appearance === 'none' && sel.radius === '6px');
   // the project picker is a folder ICON since the folders landed (2026-09-11) and draws no chevron
-  ok('the four text drop-downs (model, size, shape, seconds) each draw our own inline chevron', sel.chevs === 4);
+  // FIVE SINCE 2026-09-14 — the door picker joined them ("add api door dropdown")
+  ok('the five text drop-downs (model, size, shape, seconds, door) each draw our own inline chevron', sel.chevs === 5);
   ok('the resolution opens at Mini\'s minimum', sel.rvalue === '480p' && sel.reses.join(',') === '480p,720p');
   // PICKING FAST REALLY REACHES THE PRICE AND THE JOB — a select whose change
   // handler never fires looks identical to one that works
@@ -1167,7 +1171,7 @@ async function pillSweep(pg, where) {
       && /sendFile\(__dirname \+ '\/footage-hay\.js'\)/.test(fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8'))
       && /root\.FootageHay = factory\(\)/.test(hayHead));
     ok('the route searches the whole log with the grammar BEFORE the page is cut',
-      /grammar\.feedMatches\(hayOf\(cardOf\(x\.id, x\.d\)\), groups\)/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
+      /const c = cardOf\(x\.id, x\.d\);[\s\S]{0,200}?return grammar\.feedMatches\(hayOf\(c\), groups\)/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
     ok('the pure half: a card says its model, its seconds, its shape and its parts',
       (() => { const h = F.hayOf({ prompt: 'a dog', modelLabel: '2.0 Mini', model: 'mini', seconds: 4, resolution: '480p', ratio: '3:4', trims: [{}], refs: [{ kind: 'video' }] });
         return /a dog/.test(h) && /2\.0 Mini/.test(h) && /\b4s\b/.test(h) && /480p/.test(h) && /3:4/.test(h) && /trimmed/.test(h) && /video ref/.test(h); })());
@@ -1360,8 +1364,12 @@ async function pillSweep(pg, where) {
     const kids = [...row.children].map((k) => { const r = k.getBoundingClientRect(); return { id: k.id || k.className, y: Math.round(r.y), h: Math.round(r.height) }; }).filter((k) => k.h);
     return { lines: new Set(kids.map((k) => Math.round(k.y / 8))).size, n: kids.length, picker: !!row.querySelector('#projwrap'), kids };
   });
+  // SEVEN SINCE 2026-09-14: the three icons that attach a reference moved into
+  // the references block's own bar ("three relevant icons move to reference
+  // block"), and the door picker and its ? arrived on the same row ("add api
+  // door dropdown options w (?) info").
   ok('the controls row is three lines at most, and carries no picker — ' + JSON.stringify(ctlRow),
-    ctlRow.lines <= 3 && ctlRow.n === 8 && !ctlRow.picker);
+    ctlRow.lines <= 3 && ctlRow.n === 7 && !ctlRow.picker);
 
   // ── a reference through the Dump door, and its slot into the prompt ──────
   await page.setInputFiles('#file', { name: 'mayra.png', mimeType: 'image/png', buffer: PNG });
@@ -1465,8 +1473,37 @@ async function pillSweep(pg, where) {
     resent.length === 1 && resent[0].door === 'atlascloud' && resent[0].prompt === refusedBody.prompt
     && JSON.stringify(resent[0].refs) === JSON.stringify(refusedBody.refs));
 
+  // ── A PUT-BACK MAKES A NEW BLOCK (2026-09-14, Sophie: "copy back from
+  // finished job shud make a new text block · not replace the selected
+  // block") ──────────────────────────────────────────────────────────────
+  // Every assertion here is a MEASUREMENT of the rendered blocks: a put-back
+  // that lands in a block of its own and one that writes over the box she is
+  // standing in look identical in the source, and the whole of her ask is
+  // which of the two it did.
+  const blockState = () => page.evaluate(() => {
+    const ws = Array.from(document.getElementById('prompt').closest('.panel').children)
+      .filter((k) => k.classList.contains('promptwrap'));
+    return { n: ws.length, texts: ws.map((w) => w.querySelector('.pblock').value),
+      active: ws.findIndex((w) => w.classList.contains('active')),
+      refs: document.querySelectorAll('#refs .ref').length };
+  });
+  await page.evaluate(() => {
+    const el = document.getElementById('prompt');
+    el.value = 'the scene i am still writing';
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.focus();
+  });
+  await page.waitForTimeout(150);
+
   // ── putting a prompt back brings its seed, and clearing means clearing ───
   await page.click('#job-old1 .copy');
+  await page.waitForTimeout(250);
+  const put1 = await blockState();
+  ok('a put-back lands in a NEW block and leaves the one she was writing in alone ' + JSON.stringify(put1.texts),
+    put1.n === 2 && put1.texts[0] === 'the scene i am still writing'
+    && /a dog on a beach/.test(put1.texts[1]));
+  ok('…and the new block takes the gold line and the card\'s own references ' + JSON.stringify({ a: put1.active, r: put1.refs }),
+    put1.active === 1 && put1.refs === 4);
   ok('copying a clip back puts its seed in the box with its words',
     (await page.$eval('#seedbox', (e) => e.value)) === '4242');
   await page.click('#job-f0 .copy');
@@ -1478,9 +1515,11 @@ async function pillSweep(pg, where) {
   // The box opens at the model's minimum, so this is measured against a clip
   // that is deliberately NOT four seconds.
   await page.click('#job-f6 .copy');
+  // the words land in the block the put-back made, which is the one wearing
+  // the gold line — never `#prompt`, which is block 1 and is hers
   const back = await page.evaluate(() => ({ secs: document.getElementById('secs').value,
     res: document.getElementById('res').value, ratio: document.getElementById('ratio').value,
-    prompt: document.getElementById('prompt').value }));
+    prompt: document.querySelector('.promptwrap.active .pblock').value }));
   ok('copying a 15-second clip brings its seconds, its size and its shape back with its words ' + JSON.stringify(back),
     back.secs === '15' && back.res === '720p' && back.ratio === '9:16' && /socks on the line 6/.test(back.prompt));
   // AND IT WINS EVEN WITH THE SECONDS PICKER FOCUSED — on iOS that control
@@ -1500,6 +1539,11 @@ async function pillSweep(pg, where) {
   await page.click('#seedclear');
   ok('the clear empties the box and takes itself off again',
     (await page.$eval('#seedbox', (e) => e.value)) === '' && (await page.$eval('#seedclear', (e) => e.hidden)));
+  // 2026-09-14, Sophie: "exing seed shud not trigger keyboard". MEASURED as the
+  // focus, because a focus() left in the handler and one taken out look
+  // identical in every assertion about the box's value.
+  ok('exing the seed never puts the caret in the box (no keyboard)',
+    !(await page.evaluate(() => document.activeElement && document.activeElement.id === 'seedbox')));
 
   // ── A ROW ONLY PAYS FOR A COLLISION IT REALLY HAS ───────────────────────
   // With four references attached the strip is two rows tall, which puts the
@@ -1550,8 +1594,10 @@ async function pillSweep(pg, where) {
   await page.waitForTimeout(120);
   const bothShut = await page.evaluate(() => ({ refs: (() => { const r = document.getElementById('refs').getBoundingClientRect(); return !!(r.width && r.height); })(),
     lab: document.getElementById('reffoldlab').textContent, n: document.querySelectorAll('#refs .ref').length }));
+  // the label names the block whose strip is showing once there is more than
+  // one of them, so the COUNT is what this asserts — never the whole string
   ok('the references fold separately, and the shut row counts them: ' + bothShut.lab,
-    !bothShut.refs && bothShut.n === 4 && /References · 4/.test(bothShut.lab));
+    !bothShut.refs && bothShut.n === 4 && /References ·( block \d+ ·)? 4/.test(bothShut.lab));
   await page.reload();
   await page.waitForFunction(() => document.querySelectorAll('#ratio option').length > 0);
   await page.waitForTimeout(500);
@@ -1630,10 +1676,19 @@ async function pillSweep(pg, where) {
   await page.waitForTimeout(150);
   const noRefs = await page.evaluate(() => ({ hidden: document.getElementById('reffold').hidden,
     disp: getComputedStyle(document.getElementById('reffold')).display,
+    nofold: document.getElementById('reffold').classList.contains('nofold'),
+    dis: document.getElementById('reffold').disabled,
+    barOn: document.getElementById('refbar').getBoundingClientRect().height > 0,
     left: document.querySelectorAll('#refs .ref').length,
     refsH: Math.round(document.getElementById('refs').getBoundingClientRect().height) }));
-  ok('with nothing attached the references fold is not drawn at all — never a dead control ' + JSON.stringify(noRefs),
-    noRefs.hidden && noRefs.disp === 'none' && noRefs.left === 0);
+  // THIS REVERSED ON 2026-09-14 and the reversal is the point: the heading used
+  // to come off with nothing attached, and the bar that attaches the FIRST
+  // reference lives under it now — a hidden row would be a block with no way
+  // in. There is still nothing to FOLD, so the chevron stands down instead.
+  ok('with nothing attached the references heading is still drawn — the bar under it is the way in ' + JSON.stringify(noRefs),
+    !noRefs.hidden && noRefs.disp !== 'none' && noRefs.left === 0);
+  ok('…with the chevron down and the bar reachable ' + JSON.stringify(noRefs),
+    noRefs.nofold && noRefs.dis && noRefs.barOn);
   await page.click('#job-f0 .copy');
   const beforeBlank = posted.filter((p) => p.prompt).length;
   await page.click('#go');
@@ -1736,15 +1791,29 @@ async function pillSweep(pg, where) {
     };
     requestAnimationFrame(tick);
   }));
+  // AND IT LANDS UNDER THE PINNED BAR, NOT BEHIND IT (2026-09-14). The feed
+  // bar is sticky, so the top of the screen is not the top of the gallery:
+  // the card is measured against the bar's own bottom edge and asked with
+  // `elementFromPoint`, because a card scrolled to y=12 is "on screen" by
+  // every rect assertion and is sitting behind the controls.
   const landed = await page.evaluate(() => {
-    const r = document.getElementById('job-old1').getBoundingClientRect();
+    const el = document.getElementById('job-old1');
+    const r = el.getBoundingClientRect();
+    const bar = document.getElementById('feedbar');
+    const br = bar && !bar.hidden ? bar.getBoundingClientRect() : null;
     const doc = document.documentElement;
+    const hit = document.elementFromPoint(Math.round(r.x + r.width / 2), Math.round(r.top + 6));
     return { top: Math.round(r.top), view: window.innerHeight, y: Math.round(window.scrollY),
+      barBottom: br ? Math.round(br.bottom) : 0,
+      clear: !!(hit && hit.closest('#job-old1')),
       atEnd: Math.round(window.scrollY + window.innerHeight) >= doc.scrollHeight - 2,
-      found: document.getElementById('job-old1').classList.contains('found') };
+      found: el.classList.contains('found') };
   });
   ok('the window lands ON the card she tapped ' + JSON.stringify(landed),
-    landed.top >= -2 && landed.top < landed.view - 40 && (landed.top <= 40 || landed.atEnd));
+    landed.top >= -2 && landed.top < landed.view - 40
+    && (landed.top <= landed.barBottom + 40 || landed.atEnd));
+  ok('and its top edge is clear of the pinned bar, not behind it',
+    landed.atEnd || (landed.top >= landed.barBottom && landed.clear));
   ok('and it flashes so she can see which one it is', landed.found);
   ok('the flash then leaves the card alone',
     await page.evaluate(() => new Promise((res) => setTimeout(

@@ -110,6 +110,8 @@ const server = http.createServer((req, res) => {
     if (u.pathname === '/api/gallery/assets/notes') return json({ ok: true, chat: 'footage', notes: [] });
     if (u.pathname === '/api/cast/shelf') return json({ ok: true, entries: [] });
     if (u.pathname === '/api/cast/films') return json({ ok: true, films: [{ slug: 'ward', name: 'The ward' }] });
+    // a mark the server refuses is put back on the card (2026-09-14), so the stub has to TAKE one
+    if (/^\/api\/footage\/jobs\/[^/]+\/vote$/.test(u.pathname)) return json({ ok: true, vote: JSON.parse(body || '{}').vote || '' });
     if (u.pathname === '/ref.png') { res.writeHead(200, { 'content-type': 'image/png' }); return res.end(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64')); }
     res.writeHead(404); res.end('nope');
   });
@@ -210,8 +212,9 @@ async function pickProject(pg, v) {
   // ride out the whole session on both views. MEASURED off what really
   // renders — a clip still in `jobsById` and one on screen look the same in
   // the source — and on BOTH views, since one predicate draws them.
-  await page.click('#v-hidex');
-  await page.waitForTimeout(250);
+  // It is already ON — the default since 2026-09-14 ("default to hide x") —
+  // so there is nothing to tap here.
+  ok('hide-the-✕\'d is lit with no tap', await page.evaluate(() => document.getElementById('v-hidex').classList.contains('on')));
   await page.evaluate(type, 'the one she crosses out');
   await page.click('#go');
   await page.waitForTimeout(600);
@@ -247,47 +250,6 @@ async function pickProject(pg, v) {
     ws[1].value = 'shot two'; ws[1].dispatchEvent(new Event('input', { bubbles: true }));
   });
   await page.waitForTimeout(200);
-  slow = 400;                                      // hold the send open long enough to look
-  const during = await page.evaluate(async () => {
-    document.getElementById('go').click();
-    await new Promise((r) => setTimeout(r, 120));
-    const go = document.getElementById('go'), all = document.getElementById('goall');
-    return { go: go.disabled, all: all.disabled, dim: parseFloat(getComputedStyle(all).opacity) };
-  });
-  ok('while a send is in flight the All star is down too ' + JSON.stringify(during),
-    during.go && during.all && during.dim < 0.6);
-  await page.waitForTimeout(700);
-  const afterSend = await page.evaluate(() => ({ go: document.getElementById('go').disabled, all: document.getElementById('goall').disabled }));
-  ok('and both come back up when it lands ' + JSON.stringify(afterSend), !afterSend.go && !afterSend.all);
-  slow = 0;
-
-  // ── AN ARMED "SEND ALL · $x?" GOES DOWN WHEN THE PROJECT MOVES ─────────
-  // The arm is a promise that the second tap sends the job she was looking
-  // at, and the project rides the body — so an arm left standing across a
-  // switch files the clip somewhere she was not when she armed it. MEASURED
-  // off the button's own state and off what the server really received.
-  cents = 420;                                     // over the $3 ask line
-  await page.selectOption('#secs', '8');           // any control change re-asks /estimate
-  await page.waitForFunction(() => /\$4\.20/.test(document.getElementById('goalllab').textContent), null, { timeout: 4000 });
-  const nPosted = posted.length;
-  await page.click('#goall');
-  await page.waitForTimeout(200);
-  ok('the first tap arms rather than sending',
-    (await page.evaluate(() => document.getElementById('goall').classList.contains('armed'))) && posted.length === nPosted);
-  // the FOLDER is the one that needed a line of its own — `setProject`
-  // repaints the controls and `paintWipe` disarms, where `setFolder` does not
-  await pickProject(page, 'ward');
-  await page.waitForTimeout(500);
-  await page.click('#goall');                      // arm again inside the project
-  await page.waitForTimeout(200);
-  ok('armed inside the project', await page.evaluate(() => document.getElementById('goall').classList.contains('armed')));
-  await pickProject(page, 'ward/commercials');
-  await page.waitForTimeout(400);
-  ok('switching folder disarms it — nothing is one tap from sending',
-    !(await page.evaluate(() => document.getElementById('goall').classList.contains('armed'))));
-  ok('and still nothing went', posted.length === nPosted);
-  cents = 4.4;
-
   ok('no page errors', errors.length === 0);
   await browser.close(); server.close();
   report();

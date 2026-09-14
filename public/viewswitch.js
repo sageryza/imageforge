@@ -73,10 +73,21 @@
     var bList = box.querySelector('#v-list'), bTiles = box.querySelector('#v-tiles'), bCols = box.querySelector('#v-cols');
     if (!bList || !bTiles || !bCols) throw new Error('viewswitch: the box needs #v-list, #v-tiles and #v-cols');
 
-    function view() { var v = store(key + '_view'); return v === 'tiles' ? 'tiles' : (v === 'list' ? 'list' : initial); }
+    // THE VALUE LIVES HERE; STORAGE ONLY REMEMBERS IT (2026-09-14). Read back
+    // off localStorage alone, a tap did nothing at all wherever storage is
+    // blocked (a private window, cleared site data) — a dead switch.
+    var curView = null, curCols = null;
+    function view() {
+      if (curView) return curView;
+      var v = store(key + '_view');
+      curView = v === 'tiles' ? 'tiles' : (v === 'list' ? 'list' : initial);
+      return curView;
+    }
     function cols() {
+      if (curCols) return curCols;
       var n = parseInt(store(key + '_cols'), 10);
-      return COLS.indexOf(n) >= 0 ? n : COLS[0];
+      curCols = COLS.indexOf(n) >= 0 ? n : COLS[0];
+      return curCols;
     }
     function applyCols() {
       var n = cols(), next = COLS[(COLS.indexOf(n) + 1) % COLS.length];
@@ -92,8 +103,8 @@
       bTiles.classList.toggle('on', tiles);
       onView(tiles ? 'tiles' : 'list');
     }
-    function setView(v) { keep(key + '_view', v === 'tiles' ? 'tiles' : 'list'); applyView(); }
-    function setCols(n) { if (COLS.indexOf(n) < 0) return; keep(key + '_cols', String(n)); applyCols(); }
+    function setView(v) { curView = v === 'tiles' ? 'tiles' : 'list'; keep(key + '_view', curView); applyView(); }
+    function setCols(n) { if (COLS.indexOf(n) < 0) return; curCols = n; keep(key + '_cols', String(n)); applyCols(); }
 
     bList.addEventListener('click', function () { setView('list'); });
     bTiles.addEventListener('click', function () { setView('tiles'); });
