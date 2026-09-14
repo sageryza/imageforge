@@ -683,19 +683,46 @@ LIST ITEMS in your replies, `kind:'item'`; answer those with `POST
   what let six of them pile up (2026-09-14).
 - **Measure, never reason, about other sessions or the environment.**
 
-**Writing the reply** — **SHORT BY DEFAULT** (a few short paragraphs; only
-what changes what she does next — detail goes behind "want the long version?"
-or into the PR description) · TLDR first · answer her questions before
-anything else, **each answered ONCE** · **did she MARK a question ("i have a
-question" / "quick question" / "file this")? then repeat THAT question in bold
-on its own line and answer under it — otherwise never echo a question back**
-(see *Answering a question*; the bare word alone is not the mark) · small
-question, short answer · **asking HER something? plain text, never the
-questions/option-picker UI** (2026-08-28, her rule) · full clickable links · no markdown tables · times in 12-hour
-Pacific · files and images LAST · **WORKING LINKS PINNED AT THE TOP of the
-reply, never the bottom** (2026-09-14, her rule) · **NEVER LINK HER TO A CHAT**
-— no `/chats?chat=<slug>`, in a briefing or anywhere else (same day) ·
-**fixed a bug? the link to the surface it shows on is at the TOP** (3h).
+**WRITING THE REPLY — A CAP, NOT A MOOD (2026-09-14, Sophie: "we need more
+concise messages · the example is wayyy too long · no link to pr either · make
+it more strict").** Measured the hour she said it, over the 175 newest replies
+in her feed: **median 601 characters, 56 over 1,000; 74 replies said "merged"
+and 22 of them linked the PR.** The rules, in order of how often they are
+broken:
+1. **NO WORDS BETWEEN TOOL CALLS.** The hook posts the joined text of EVERY
+   assistant block in the turn as ONE reply (`post-to-feed.sh`: "each turn =
+   the joined text of every assistant text block"), so "Now the JS…",
+   "Green. Now a test…", "Pushing and opening the PR." all land in front of
+   her, above the answer. Write nothing until the work is done, then one
+   message. This overrides the harness's own "brief updates while you work".
+2. **THE CAP IS 600 CHARACTERS — about five short lines — and only SHE lifts
+   it** ("long version", "explain", "details", "why"). Aim under 400. A reply
+   that needs more is a reply carrying something from the OUT list below.
+3. **THE SHAPE, and nothing that is not one of these lines:**
+   - **the links FIRST, full and clickable** (2026-09-14, her rule: pinned at
+     the top, never the bottom): the surface the change shows on (3h), then
+     **the PR, last in that block — on EVERY reply that opened, pushed to or
+     merged one**, no exceptions (that is the 22-of-74 above). **Never a
+     `/chats?chat=` link**, to any chat, yours included;
+   - what changed, in her words, one or two sentences;
+   - her questions answered, each ONCE (a question she MARKED — "i have a
+     question" / "quick question" / "file this" — is repeated in bold on its
+     own line and answered under it; otherwise never echo one back);
+   - money spent this turn — only if any;
+   - what you need from her — only if anything, one line, with the size of
+     the ask;
+   - the state, one line: merged or not, deployed or not.
+4. **OUT, always** — it goes in the PR description, the commit or this file
+   (*DON'T HAND HER YOUR FINDINGS*): what you left alone and why, how it
+   works, what you measured, test counts, the alternatives, "two things to
+   know", a "where to look" list when one link does it, restated plans,
+   closing recaps, next-step menus, offers she did not ask for.
+5. **A WAKE THAT WAS YOUR OWN PR's ECHO (CI green, your merge landing) gets
+   ONE line at most** — three replies saying "nothing to do" in a minute is
+   what she reads as a chat talking to itself.
+Still standing, unchanged: no markdown tables · times in 12-hour Pacific ·
+files and images LAST · **asking HER something? plain text, never the
+questions/option-picker UI** · small question, short answer.
 
 ## Where everything is
 
@@ -6153,7 +6180,10 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   like "file this", earns the bold echo; everything else is answered plainly).
   This bullet used to restate the gate and drifted a day behind it — the rule
   is there, this is the pointer.
-- **SHORT REPLIES BY DEFAULT — every reply, not just small questions (Aug
+- **SHORT REPLIES BY DEFAULT — and since 2026-09-14 a HARD CAP: 600
+  characters, no words between tool calls, the PR link on every reply that
+  touched one. The cap and the shape live in ONE place, *WRITING THE REPLY*
+  in the checklist at the top; this bullet is the history.** (Aug
   2026, Sophie: "a lot of my responses are really long and it's actually
   annoying cause I don't wanna read through it all").** The default reply is a
   few short paragraphs: the TLDR, her questions answered, and only the facts
