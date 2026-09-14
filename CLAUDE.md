@@ -8106,10 +8106,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
   side, `ensureVideoFloor` PROBED and DOWNLOADED every reference video on
   every send despite the "baked once" promise — the decision is banked now
   (`floorDecided` in memory, a sidecar under `footage/upscaled/<sha1(url)>.json`
-  across restarts). The **seconds are typed** into a real number
-  field, clamped to the model's own range on the way OUT — on change and on
-  blur, never on every keystroke, or a "1" on its way to "12" becomes 4 under
-  her. **Sound is always on**, sent explicitly rather than left to the model's
+  across restarts). **THE SECONDS ARE A DROP-DOWN OF FOUR —
+  4 · 8 · 12 · 15 (2026-09-14, Sophie: "seconds drop down · 4,8,12,15
+  only").** A typed number with a -/+ stepper made every length in the range
+  reachable and none of the four is where she actually cuts. `SEC_STEPS` is
+  the one list and the rows are it NARROWED to the model's served `secs`
+  range, never a hardcoded 4-15, so a model with a tighter range offers fewer
+  rows rather than a length the server would clamp. `clampSec` SNAPS to the
+  nearest offered row rather than clamping to the range — a stored 9, or a
+  belt hand-off naming one, has to land on a row the picker really has or the
+  box shows one number while `S.seconds` holds another (the hand-off
+  fixture's 9 lands on 8). Typing, the stepper and the clamp-on-blur rule
+  that protected a "1" on its way to "12" are HISTORY. **Sound is always on**, sent explicitly rather than left to the model's
   default. And **what is left lives behind the "?"**, read live when the card
   opens — it is a fact about the account, not a control, and it was sitting
   where the price of the tap belongs; OpenRouter's balance only, since APIFRAME

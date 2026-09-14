@@ -165,8 +165,8 @@ const server = http.createServer((req, res) => {
     () => page.evaluate(() => { const m = document.getElementById('model'); m.value = m.options[1].value; m.dispatchEvent(new Event('change', { bubbles: true })); }),
     () => page.evaluate(() => { const m = document.getElementById('model'); m.value = m.options[0].value; m.dispatchEvent(new Event('change', { bubbles: true })); }));
   await guard('the seconds moved off the minimum',
-    () => page.evaluate(() => { document.getElementById('secup').click(); }),
-    () => page.evaluate(() => { document.getElementById('secdn').click(); }));
+    () => page.evaluate(() => { const b = document.getElementById('secs'); b.value = b.options[1].value; b.dispatchEvent(new Event('change', { bubbles: true })); }),
+    () => page.evaluate(() => { const b = document.getElementById('secs'); b.value = b.options[0].value; b.dispatchEvent(new Event('change', { bubbles: true })); }));
   await guard('the resolution moved off 480p',
     () => page.evaluate(() => { const r = document.getElementById('res'); r.value = r.options[1].value; r.dispatchEvent(new Event('change', { bubbles: true })); }),
     () => page.evaluate(() => { const r = document.getElementById('res'); r.value = r.options[0].value; r.dispatchEvent(new Event('change', { bubbles: true })); }));
