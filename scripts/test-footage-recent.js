@@ -213,6 +213,20 @@ const server = http.createServer((req, res) => {
   await page.keyboard.type('b');
   await page.waitForTimeout(120);
   ok('typing outside a block leaves it alone', await shown());
+
+  // AND FOLDING THE WHOLE PANEL AWAY TAKES IT WITH IT (2026-09-13, from her
+  // screenshot of a shut panel with the drawer still drawn under it). The
+  // drawer is a direct child of the panel and `.panel.shut > *` sweeps it —
+  // but `#recent{display:flex}` is an ID and out-specified that sweep, so it
+  // went on rendering with no control left on screen to close it. MEASURED
+  // off the real box, since the markup is identical either way.
+  ok('the drawer is open before the fold', await shown());
+  await page.click('#panelfold');
+  await page.waitForTimeout(200);
+  ok('a shut panel takes the drawer with it', !(await shown()));
+  await page.click('#panelfold');
+  await page.waitForTimeout(200);
+  ok('and reopening the panel brings it back as she left it', await shown());
   await page.click('#rectog');
 
   await page.fill('#prompt', 'the same room, one shot later');

@@ -393,8 +393,16 @@
      real and is paid rather than worked around: with the panel shut the
      picker is gone, and the HEADER is what still names the project she is
      filtering by. */
-  .panel.shut > *{display:none}
-  .panel.shut > .panelrow{display:flex}
+  /* AND IT IS `!important` BECAUSE AN ID BEATS TWO CLASSES (2026-09-13, from
+     her screenshot of a SHUT panel with the Recent drawer still drawn under
+     it). `#recent{display:flex}` is (1,0,0) and `.panel.shut > *` is (0,2,0),
+     so the drawer — a direct child of the panel, hidden by that sweep like
+     everything else — went on rendering with the panel folded away and no
+     control left on screen to close it. Any child styled by its ID would do
+     the same, silently, so the rule that says "nothing under this draws" says
+     it outright rather than being fixed one id at a time. */
+  .panel.shut > *{display:none!important}
+  .panel.shut > .panelrow{display:flex!important}
   .panel.shut{padding-bottom:6px}
   /* AND IT FOLDS FROM WHEREVER SHE IS STANDING (2026-09-13, Sophie:
      "collapsing the prompt from partway down"). The fold row is the panel's

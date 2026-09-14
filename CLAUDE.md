@@ -8681,6 +8681,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `saveDraft`**, which is the one signal every path that changes the job sends,
   so **attaching leaves it open for the second reference**; and the character
   sheet beside it is untouched (she named the Recent drawer).
+  **AND FOLDING THE PANEL AWAY TAKES IT WITH IT — AN ID BEAT THE FOLD'S OWN
+  SWEEP (2026-09-13, her screenshot of a SHUT panel with the drawer still
+  drawn under it).** `#recent` is a direct child of the panel, so
+  `.panel.shut > *{display:none}` was meant to hide it like everything else —
+  but that selector is two classes (0,2,0) and `#recent{display:flex}` is an
+  ID (1,0,0), so the drawer went on rendering with the panel folded away and
+  **no control left on screen to close it** (`#rectog` hides with the Buttons
+  row). MEASURED headless: shut panel, `display:flex`, 52px tall. The fold's
+  two rules carry `!important` now rather than being fixed one id at a time —
+  any child styled by its own id would have done the same, silently. Reopening
+  the panel brings the drawer back exactly as she left it; `paintFolds` still
+  really CLOSES both drawers when the BUTTONS row folds, since there the
+  toggles go and the drawers would otherwise stay. Pinned by
+  `node scripts/test-footage-recent.js` (verified failing 1 pre-fix).
   **THE CLIPS AND THEIR LAST FRAMES ARE HISTORY, NOT A RULE — DON'T PUT THEM
   BACK.** For a few hours that morning the box also listed a job's own
   FINISHED CLIP ahead of its references, at her ask ("make the recent box
