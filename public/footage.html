@@ -2541,7 +2541,17 @@ function paintSeedClear() {
   $('seedwrap').classList.toggle('hasseed', has);
 }
 $('seedbox').addEventListener('input', function () { paintSeedClear(); paintWipe(); });
-$('seedclear').addEventListener('click', function () { $('seedbox').value = ''; paintSeedClear(); paintWipe(); $('seedbox').focus(); });
+// AND CLEARING IT NEVER OPENS THE KEYBOARD (2026-09-14, Sophie: "exing seed
+// shud not trigger keyboard"). The home search bar's ✕ keeps the focus because
+// she is mid-hunt and about to type again; here the ✕ means "no seed on this
+// clip", which is the END of typing — and this box sits in the CONTROLS row, so
+// a keyboard rising over the star and the price is the opposite of what the tap
+// asked for. `preventDefault` on the pointer press is what keeps the focus from
+// ever landing in the field (the button is absolutely positioned INSIDE the
+// input's padding, so a tap at its edge lands on the input itself).
+$('seedclear').addEventListener('pointerdown', function (e) { e.preventDefault(); });
+$('seedclear').addEventListener('mousedown', function (e) { e.preventDefault(); });
+$('seedclear').addEventListener('click', function () { $('seedbox').value = ''; paintSeedClear(); paintWipe(); });
 
 // ── THE TWO FOLDS ────────────────────────────────────────────────────────
 // Remembered, and OPEN until she says otherwise: shut is a state she has to
