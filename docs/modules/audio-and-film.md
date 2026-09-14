@@ -981,6 +981,62 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
           prompt — nothing to line up word for word"** and shows this clip's
           words plain instead of a hash; the walk and the pick are the way
           to a real twin. "‹ older" walks twin-first too.
+      - **ONLY WHAT CHANGED, AND THE WHOLE PROMPT BEHIND AN OPENER
+        (2026-09-14, Sophie: "default ONLY shows diff - expand button to see
+        whole prompt").** The panel painted the WHOLE prompt with the moved
+        words lit, which on her ward scenes is six lines of prose to find one
+        green word in. It now draws only the lines that moved, with
+        `… the whole prompt (2 more lines)` under them — an underlined word,
+        never a button with a box (the house `.moretxt` rule) — and the state
+        is a module var, so it holds while she walks clip to clip and opens
+        folded again on a reload. Three things: `promptLines` in
+        `clip-diff.js` cuts the diff back into lines (it re-joins byte for
+        byte, so this is exact rather than a second parse) and each line is
+        marked by its OWN text — **the newline an added paragraph brings in
+        belongs to the END of the line above it**, so counting the break would
+        light an untouched line every time she added one underneath; a changed
+        line carries its unchanged words too, so what she reads is the
+        sentence in place rather than a bare word; and the opener is drawn
+        only when something is really behind it (a clip where every line moved
+        has nothing to open, and a dead control there reads as a broken fold).
+        The **"a different prompt" case folds too** — a prompt that is not a
+        comparison must not fill the panel by default.
+      - **EVERY CLIP LIKE THIS ONE — THE STRIP UNDER THE PAIR (2026-09-14,
+        Sophie: "shows ALL clips with similar prompt, including parts of
+        it").** `kinOf` answers ONE clip and is the right thing to OPEN on;
+        it is the wrong answer to "which other clips are this shot". So the
+        panel carries a row of tiles — poster, how much of it that clip
+        carries, when it was sent — the current other side lit, and a tap
+        seats that clip as "before" (the newer of the two is always "this
+        clip", the pick's own rule, or her added words paint as struck-out
+        deletions). `relatives()` is the rule, and it is measured TWO ways
+        with the better number ranking:
+        - **`alike`** — the whole prompt's Jaccard: a redo of the same words.
+        - **`part`** — the share of this clip's WORDS sitting in a line the
+          other clip also carries, which is what finds a clip holding one
+          paragraph of it ("including parts of it") where the whole-prompt
+          number is far under any bar.
+        **A LINE EVERY CLIP CARRIES IS DISCOUNTED TO NOTHING** (plain IDF over
+        the candidates themselves): every ward prompt ends "camera at eye
+        level", and weighing lines by their words alone makes that a quarter
+        of a short prompt — so without it every unrelated clip in the film
+        clears the bar and the list IS the project. Measured on a six-clip
+        fixture: the redo and the clip sharing a real paragraph are listed,
+        the three sharing only boilerplate are not. **AND THE GATE IS EITHER
+        BAR, never the better number against one bar** (`alike >= KIN ||
+        part >= PART`): the whole-prompt Jaccard carries the boilerplate too,
+        so one bar over `max()` lists the project again however well `part` is
+        weighted. Newer clips are in as well as older — she may be standing on
+        an older clip asking what it became — and another project never is.
+        The list is asked of the SERVER (`GET /api/footage/jobs/:id/relatives`,
+        the kin route's own reads and rules, capped at 40) because the feed
+        holds the newest 40 of the view she is on, so the redo from three days
+        ago is not on the page to be found; it lands in the side pool, never
+        on the feed, so the `… older` cursor is untouched, and the same rule
+        over what the page holds fills the strip until it arrives. **The WORD
+        on a tile comes off `alike`, never off the ranking score** — `part`
+        saturates at 1 for any redo, so a score-read word called every
+        one-word redo "the same words".
       - Tests: `node scripts/test-clip-diff.js` (the rules pure — the diff
         re-joins to either prompt byte for byte in both shapes, unrelated
         prompts come out as one line out and one line in, a reworded twin

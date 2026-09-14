@@ -2138,6 +2138,28 @@ router.get('/jobs/:id/kin', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET /jobs/:id/relatives — EVERY CLIP LIKE THIS ONE (2026-09-14, Sophie:
+// "shows ALL clips with similar prompt, including parts of it"). `kinOf`
+// above answers ONE clip and is a different question; this is the list she
+// picks the other side off. Asked of the server rather than run over the
+// page, for the reason the kin route exists: the feed holds the newest 40 of
+// the view she is on, and the redo from three days ago is not on it.
+// Same reads and the same rules as /kin — one project, never a clip she put
+// away — and capped, since a long-running film's project is hundreds of clips.
+router.get('/jobs/:id/relatives', async (req, res) => {
+  try {
+    const id = String(req.params.id);
+    const own = await coll().doc(id).get();
+    if (!own.exists) { res.status(404).json({ error: 'no such clip' }); return; }
+    const j = cardOf(own.id, own.data());
+    const snap = j.project ? await coll().where('project', '==', own.data().project).get() : await coll().get();
+    const cards = snap.docs.filter((d) => !d.data().hidden && d.id !== id).map((d) => cardOf(d.id, d.data()));
+    const list = clipDiff.relatives(j, cards, { limit: 40 });
+    res.set('Cache-Control', 'no-store');
+    res.json({ ok: true, list });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // GET /jobs/:id — ONE CLIP, so the page can resolve something its own page
 // no longer holds (2026-09-13, found auditing the page). The poll reads the
 // newest 40 of the view she is on, so a clip she reached through `… older` or
