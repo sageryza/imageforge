@@ -4852,13 +4852,45 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     (padding on the scrolling element, given back when the keyboard goes):
     below the last line there is only the card's padding, so without it the
     one place she types most cannot be lifted over the keyboard at all.
+  - **AND THE KEYBOARD IS NOT THE ONLY THING COVERING THE BOTTOM OF THE BAND
+    — A PINNED BUTTON IS TOO (2026-09-13, Sophie's screenshot of a footage
+    block: the ✕, the divide and the bigger-box buttons sitting ON the line
+    she was writing, with "appearing on" unreadable behind them).**
+    `stickybox.js` floats a tall box's corner buttons at the bottom of
+    caretkeep's band — it ASKS caretkeep for it — and caretkeep lifts the
+    caret line to the bottom of that same band, so the two landed on each
+    other on every surface that carries both. MEASURED on the real footage
+    page with the keyboard up: caret line 382–404, the pinned buttons
+    372–398, `elementFromPoint` on the caret's own line answering the divide
+    button, and **90 of 90 keystrokes** at the end of a scene typed under a
+    control. Now `caretBand(el)` is the caret's own band — the visible one
+    minus anything pinned over that box's column — and the two stack: the
+    caret sits above the buttons, and at the END of a scene that lift brings
+    the buttons' own corner back into view so they let go entirely. Three
+    things not to undo: **`band()` itself is NOT narrowed** (stickybox reads
+    it to decide where to pin, and a band that moved under it would ratchet
+    the buttons up the screen a row per pass — that is why this is a second
+    function rather than an edit to the first); **only a control in the
+    BOX'S OWN COLUMN narrows it**, since a button floating elsewhere covers
+    none of her words; and **stickybox tells the keeper when the pinned row
+    MOVES** (`nudgeCaret`), because a button that pins in this pass lands on
+    a line the keeper had already decided was safe — measured, without it a
+    new line at the end of a scene left the caret 16px under the divide
+    button until something else happened, and an unchanged row says nothing,
+    which is what ends the loop.
   - **compare.js loads it on the first focus**, so every Compare page ever
     posted has it with nothing re-posted; chats.html, the Playground, the
     Story Room, Freeform, Voice Studio and the Story Timeline link it. A new
     page with a box she writes in adds the one line. `data-nocaret` opts a box
-    out. Test: `node scripts/test-caret-keep.js` (the real belt shape headless
+    out. Tests: `node scripts/test-caret-keep.js` (the real belt shape headless
     — the caret measured against a stubbed keyboard, the deck proved not to
-    have moved, and a caret already in view proved to move nothing).
+    have moved, and a caret already in view proved to move nothing) and
+    `node scripts/test-caret-under-button.js` (the real footage page — every
+    assertion a MEASUREMENT, since a caret lifted to the right number and one
+    lifted onto a button look identical in the source; every keystroke and
+    every new line counted rather than one settled reading, and the buttons
+    proved still pinned and still tappable mid-scene; verified failing 7
+    pre-fix).
 - **THE WAY OUT OF A BIG BOX STAYS ON SCREEN — `/stickybox.js`, ONE FILE,
   EVERY PAGE (2026-09-10, Sophie: "can we get a floating or sticky/pinned
   contract button for text boxes esp in footage so i can close with out having
@@ -4879,7 +4911,11 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   - **THE VISIBLE BAND IS caretkeep's**, when caretkeep is on the page — one
     definition of what the keyboard is covering rather than two, and it
     carries the blind-keyboard guess for the web views that never report
-    `visualViewport`. Without it: visualViewport, else the window.
+    `visualViewport`. Without it: visualViewport, else the window. **It must
+    stay `band()` and never `caretBand()`** — the keeper's own band is
+    narrowed by whatever is pinned, so asking for that one here would walk
+    these buttons up the screen a row per pass (2026-09-13; the caret half
+    of that fix is the bullet above, and every move here tells the keeper).
   - **IT STAYS INSIDE ITS OWN REGION.** A box inside a sheet or any other
     scroller pins to the bottom of THAT box, never to the bottom of the
     screen, so a Story Room caption's button can never float below the card it

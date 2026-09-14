@@ -43,6 +43,21 @@
    higher than needed is a much smaller failure than leaving it under the
    keyboard.
 
+   AND THE KEYBOARD IS NOT THE ONLY THING COVERING THE BOTTOM OF IT
+   (2026-09-13, Sophie, typing at the end of a footage block: the ✕, the
+   divide and the bigger-box buttons sitting ON the line she was writing).
+   `stickybox.js` floats a tall box's corner buttons at the bottom of this
+   same band — that is their whole design, the way out of a box she cannot
+   scroll to the end of — so the two aimed at the same pixels and the caret
+   line landed underneath the button row. Measured on the real footage page
+   with the keyboard up: caret line 382–404, the pinned buttons 372–398, and
+   `elementFromPoint` on the caret's own line answering the divide button.
+   So a control pinned over the box she is typing in narrows the caret's
+   band exactly as the keyboard does, and the two stack instead of
+   overlapping. `band()` itself is NOT narrowed — stickybox reads it to
+   decide where to pin, and a band that moved under it would ratchet the
+   buttons up the screen a row at a time.
+
    Include it once, anywhere: `<script src="/caretkeep.js"></script>`. It
    wires itself to every text box on the page, present and future, and takes
    `data-nocaret` on a box (or any ancestor) as an opt-out. compare.js loads
@@ -54,6 +69,8 @@
 
   var MARGIN = 26;          // air under the caret line, above the keyboard
   var TOP = 10;             // air above it
+  var CHROME = 6;           // air between the caret line and a control pinned over it
+  var FLOOR = 44;           // a band this narrow is no band at all
   var mirror = null;
   var focused = null;
   var timers = [];
@@ -88,6 +105,33 @@
   }
   function touch() {
     try { return window.matchMedia('(hover: none)').matches; } catch (_) { return false; }
+  }
+
+  // ── the band the CARET aims at: the visible one, minus anything pinned over
+  //    the box she is typing in ──
+  // stickybox.js floats a tall box's corner buttons at the bottom of the very
+  // band above (its own `bandBottom` asks for it), so without this the caret
+  // line and the button row are the same pixels — she types under a control.
+  // Only a pinned control in the box's OWN COLUMN can cover its words, so a
+  // button floating somewhere else on the page narrows nothing. `band()` is
+  // left alone on purpose: stickybox reads it, and narrowing it there would
+  // walk the buttons up the screen a row per pass.
+  function caretBand(el) {
+    var b = band();
+    if (!el || !el.getBoundingClientRect) return b;
+    var r = el.getBoundingClientRect();
+    var over;
+    try { over = document.querySelectorAll('[data-stickybox].sbx-pin'); } catch (_) { return b; }
+    for (var i = 0; i < over.length; i += 1) {
+      if (over[i] === el || over[i].contains(el)) continue;
+      var q = over[i].getBoundingClientRect();
+      if (!q.width || !q.height) continue;
+      if (q.right <= r.left || q.left >= r.right) continue;   // another column entirely
+      if (q.bottom <= b.top || q.top >= b.bottom) continue;   // not over the band at all
+      if (q.top - CHROME < b.bottom) b.bottom = q.top - CHROME;
+    }
+    if (b.bottom < b.top + FLOOR) b.bottom = b.top + FLOOR;
+    return b;
   }
 
   // ── where the caret really is ──
@@ -168,7 +212,7 @@
     if (!el || el !== document.activeElement || !boxy(el)) return 0;
     var h = host(el);
     if (h === false) return 0;
-    var b = band();
+    var b = caretBand(el);
     var c = caretRect(el);
     var d = 0;
     if (c.bottom > b.bottom) d = c.bottom - b.bottom;
@@ -273,7 +317,8 @@
     // stale caret, which is the scroll she reported
     focus: function (el) { if (boxy(el)) { focused = el; arm(el); } },
     caretRect: caretRect,
-    band: band,
+    band: band,              // what the keyboard leaves — stickybox pins against THIS
+    caretBand: caretBand,    // that, minus anything pinned over the box she is in
     // the test's hands on a keyboard a headless browser has not got
     vv: null,
   };
