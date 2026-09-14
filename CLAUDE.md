@@ -7782,6 +7782,34 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `node scripts/test-playground-hide-x.js` (headless — including the
   placeholder measured against the room the input actually has, because a
   clipped field passes both `isVisible()` and a width assertion).
+  **AND IT IS ON BY DEFAULT SINCE 2026-09-14 (Sophie: "default to hide x") —
+  ON ALL FIVE SURFACES THAT HAVE IT**: the Playground, Footage, Freeform,
+  Voice Studio and Stitch. The ♥/✕ pair is ONE pattern ported across those
+  five, so a default that differed per page would be two meanings for two
+  identical-looking controls — the drift the house rule about measuring a
+  shared thing against every CALLER exists to stop. Four things not to undo:
+  - **ABSENT IS THE DEFAULT, AND HER TAP IS NOT.** Each reader asks ABSENT
+    FIRST — `null` takes the default, `'1'` is on, `''` is off — and the write
+    still stores `'1'`/`''` exactly as before, so a phone that had already
+    turned it on, or deliberately off, keeps what she chose and only an
+    untouched one changes. The bell's own default-on shape (OFF is the thing
+    that gets stored), spelled with the value's own presence.
+  - **THE CHIP IS LIT ON A FRESH PAGE**, which is the whole of what keeps a
+    default-on filter from being the silent filter this app keeps getting
+    burned by — and it is why this is safe where the Assets tab and Meta
+    Assets are not.
+  - **THE ASSETS TAB AND META ASSETS ARE DELIBERATELY NOT THIS.** Their
+    New · ♥ · Hide ✕ mark filter stores nothing on purpose ("those are places
+    she arrives to look at everything, and a filter left on from last week
+    silently hiding most of her library is what the chip's state-wearing
+    exists to stop"), so it still opens showing everything.
+  - **HEARTS-ONLY IS UNTOUCHED** and still opens OFF — it KEEPS only what it
+    names, where this one only ever DROPS a ✕.
+  Test: `node scripts/test-hide-x-default.js` — every check RUNS the real
+  reader lifted out of the real page against a fake store, since a reader that
+  reads perfectly and answers the old default looks identical in the source
+  (verified failing 5 pre-fix). A test that needs to see a crossed-out picture
+  stores her own explicit `''` and says why.
   **PICK SEVERAL AT ONCE — THE SELECT CHIP (2026-09-02, Sophie: "add a select
   button to playground so i can x a bunch of things at once").** A fourth chip
   in the filter box; lit, a tap on a picture PICKS it instead of opening it,
@@ -8245,7 +8273,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
   marks on each picture's top corners on the card AND in the lightbox (one
   reader, `runsById`, so a mark cast anywhere shows everywhere), tapping the
   lit one clears it, and the ♥-only / hide-✕'d pair over the feed, sticky
-  (`freeform_liked` / `freeform_hidex`). **Both directions with the Assets
+  (`freeform_liked` / `freeform_hidex`). **Hide-the-✕'d opens ON since 2026-09-14** (her "default to hide x" — the rule and its four guards are in the Playground's ✕-filter note). **Both directions with the Assets
   tab**: the route calls server.js's `syncVoteToAssets` (handed in at init —
   a Freeform output is a My Creations picture, so the my-creations rule reaches
   `/freeform/out/` too) and the Assets vote route calls `freeform.voteFromAssets`
@@ -8771,7 +8799,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
   SERVED** (`GET /estimate`, the model table on `GET /status`) — the page holds
   no cost figure at all, and a test pins that. Seconds and resolution open at
   the minimum on every load; the model and the shape are remembered. Nothing is
-  deleted — ♥/✕ marks, `hidden` is the verb. **A chat's clips do NOT go here**
+  deleted — ♥/✕ marks, `hidden` is the verb. **Hide-the-✕'d opens ON since 2026-09-14** (her "default to hide x" — the rule and its four guards are in the Playground's ✕-filter note). **A chat's clips do NOT go here**
   — this is her feed, the Playground's rule; a chat's clips are tagged with the
   chat's own slug. Test: `node scripts/test-footage.js`.
   **A BELT SCENE HANDS ITS WHOLE JOB TO THIS PAGE — ONE localStorage KEY,
@@ -9981,7 +10009,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
     (`pickables`, pure): a drawing, failed or hidden clip is out, a part
     still baking is out, the whole of a trimmed clip is the SOURCE (never
     the first part), a part with no poster takes the clip's, newest first,
-    the title is the prompt's first words and never the url.
+    the title is the prompt's first words and never the url. **And a clip she
+    crossed out is not offered either — hide-the-✕'d opens ON since
+    2026-09-14** (her "default to hide x"; the rule and its four guards are in
+    the Playground's ✕-filter note), which on her real shelf is 103 of 174
+    pickables the picker used to offer exactly like the rest.
   - **THE ORDER IS SAVED WHOLE** (`POST /:id/clips`, debounced 500ms,
     flushed on pagehide) — order and membership change together, so a
     partial write could never be right (Assembly's rule). The page keeps a
@@ -10491,7 +10523,8 @@ before working on that module. Nothing was deleted — the moved text is verbati
   what it names, ✕ drops only what it names, and they stack. Five things not to
   undo:
   - **ONE SETTING ACROSS BOTH TABS** (her call): Text and Voice are two views
-    of one state (`voicelab_liked` / `voicelab_hidex`), so `paintFilt`
+    of one state (`voicelab_liked` / `voicelab_hidex`; hide-the-✕'d opens ON
+    since 2026-09-14 — the Playground's ✕-filter note has the rule), so `paintFilt`
     repaints every copy. A filter lit on the tab she is not looking at is the
     silent-filter failure this app keeps getting burned by.
   - **THE TWO LIT COLOURS MUST DIFFER** — the heart takes the rose and the ✕

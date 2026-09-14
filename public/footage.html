@@ -4371,7 +4371,12 @@ function offerDoors(refused, box, body) {
 
 // ── The feed ──────────────────────────────────────────────────────────────
 function likedOnly() { try { return localStorage.getItem('footage_liked') === '1'; } catch (e) { return false; } }
-function hideX() { try { return localStorage.getItem('footage_hidex') === '1'; } catch (e) { return false; } }
+// DEFAULT ON (2026-09-14, Sophie: "default to hide x") — absent means HIDE, so
+// a fresh page opens with the crossed-out ones already gone. Stored '1'/'' as
+// before, and the reader asks ABSENT FIRST: null takes the default, '1' is on,
+// '' alone is off — so a phone that had already turned it on, or deliberately
+// off, keeps exactly what she chose. The bell's default-on shape.
+function hideX() { try { var v = localStorage.getItem('footage_hidex'); return v === null ? true : v === '1'; } catch (e) { return true; } }
 function paintFilt() {
   $('v-liked').classList.toggle('on', likedOnly()); $('v-liked').setAttribute('aria-pressed', likedOnly() ? 'true' : 'false');
   $('v-hidex').classList.toggle('on', hideX()); $('v-hidex').setAttribute('aria-pressed', hideX() ? 'true' : 'false');
