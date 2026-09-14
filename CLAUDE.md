@@ -10731,6 +10731,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `SHELF_DEFAULT` in `gen-scratchpad.py` is the one place it lives: the filter
   and the opening chip both read it, so moving the default is that line. The
   shelf opens on Unsorted because that is where a story she just made lands.
+  **AND THE + MAKES ITS STORY IN THE PILE SHE IS LOOKING AT (2026-09-14,
+  Sophie: "story room shud add to current lu selected category").** The chip
+  is lit on screen at the moment she taps +, so filing the new story anywhere
+  else leaves it off the shelf she just made it on — and **nothing in this
+  page files a story at all** (`POST /pads/category` has no caller here), so
+  it stayed unsorted until a chat moved it. Three things not to undo: the
+  **DEFAULT pile sends NOTHING** — an untagged story falls into Unsorted by
+  itself, so a plain new story is written byte-for-byte the doc it always
+  was; **inside a FOLDER it sends nothing either**, because the chips come
+  off in there (a folder gathers a character's stories wherever they were
+  filed) and `shelfCat` is then the pile she came in from, on no screen —
+  filing by a chip she cannot see is the hidden-ingredient failure; and the
+  route **cleans it exactly as `/pads/category` does** (lowercased, 24), so
+  one word means one thing wherever it is written. Test:
+  `node scripts/test-storyroom-new-in-category.js` (the real page headless —
+  every assertion a reading of what the server REALLY received, since a page
+  that reads `shelfCat` correctly and never puts it in the body, one that
+  sends the default as a real field, and one that files by an off-screen chip
+  all look identical in the source; verified failing 7 pre-fix).
   **The chip row now ends before the autoscroll pill** — the sheet's pill is
   fixed at x 328-374, y 14-154 and the row sits at y 52-85, so with three chips
   it simply stopped short and with five the last one was UNREACHABLE.

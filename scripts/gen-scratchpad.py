@@ -2937,9 +2937,23 @@ document.getElementById('shelfback').onclick=function(ev){
 };
 document.getElementById('newstory').onclick=function(ev){
   ev.stopPropagation();
+  /* IT LANDS IN THE PILE SHE IS LOOKING AT (2026-09-14, Sophie: "story room
+     shud add to current lu selected category"). The chip is lit on screen at
+     the moment she taps +, so filing it anywhere else means the story she
+     just made is not on the shelf she just made it on — and nothing else in
+     this page files a story at all, so it would stay unsorted until a chat
+     moved it. The DEFAULT pile sends NOTHING: an untagged story falls into
+     unsorted by itself (SHELF_DEFAULT), so a plain new story is written
+     byte-for-byte the doc it always was.
+     INSIDE A FOLDER IT SENDS NOTHING EITHER — the chips come off in there
+     (a folder gathers a character's stories wherever they were filed), so
+     shelfCat is the pile she came in from and is on no screen; filing by a
+     chip she cannot see is exactly the hidden ingredient this rule exists to
+     avoid. */
+  var cat = (!shelfFolder && shelfCat!==SHELF_DEFAULT) ? shelfCat : '';
   // Started from inside a folder → it joins that folder. Anywhere else the
   // field is absent and the story lands loose on the shelf, exactly as before.
-  api('/pads',{method:'POST',body:JSON.stringify({pad:null,title:'',folder:shelfFolder||''})})
+  api('/pads',{method:'POST',body:JSON.stringify({pad:null,title:'',folder:shelfFolder||'',category:cat})})
     .then(function(r){return r.json()})
     .then(function(d){ if(d.pad) openPad(d.pad); });
 };
