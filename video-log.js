@@ -40,9 +40,18 @@ function sentRecord({ jobId, prompt, model, params, tag }) {
     status: 'sent',
     sentAt: new Date().toISOString(),
   };
-  for (const k of ['chat', 'scene', 'title', 'session', 'note', 'project', 'folder']) {
+  // `story` and `unit` are a Story Timeline story's id and the FIRST moment id
+  // of the part this clip was sent from (2026-09-14, Sophie: "replace footage
+  // blocks w story blocks, next and back to see old prompts") — what lets a
+  // block walk every prompt already sent for that part, newest first.
+  for (const k of ['chat', 'scene', 'title', 'session', 'note', 'project', 'folder', 'story', 'unit']) {
     if (t[k] != null && String(t[k]).trim()) doc[k] = String(t[k]).slice(0, 300);
   }
+  // THE BLOCK'S OWN WORDS, before the two permanent heads were put in front of
+  // them. `prompt` is the exact text sent (the exact-prompt rule); `words` is
+  // what goes back into the block, since a put-back of the whole prompt would
+  // carry the heads into a box the heads are prepended to again.
+  if (t.words != null && String(t.words).trim()) doc.words = String(t.words).slice(0, 4000);
   return doc;
 }
 

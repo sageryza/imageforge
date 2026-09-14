@@ -482,11 +482,29 @@
       var bl = footBlocks();
       if (!bl.length) return;
       try {
+        // AND THE STORY ITSELF RIDES WITH THE WORDS (2026-09-14, Sophie:
+        // "replace footage blocks w story blocks, next and back to see old
+        // prompts"). `story` is this story by id; `units` is one entry per
+        // connected part, keyed by its FIRST moment id — a key that survives a
+        // reorder and a join (a join keeps the first id), while a split makes
+        // a new part with a new key, which is right: a new part is a new
+        // block. Footage binds its blocks to these, so a second send of the
+        // same story MERGES onto the prompts she has written there rather
+        // than replacing them, and every clip sent from a block is tagged with
+        // its part so the block can walk its old prompts. `prompt` and
+        // `blocks` still ride for a Footage page cached from before.
+        var units = UNITS.map(function (g) {
+          var text = g.map(function (id) { return ((MOM[id] || {}).text || '').trim(); })
+            .filter(Boolean).join('\n');
+          return { key: String(g[0] || ''), ids: g.slice(), text: text };
+        }).filter(function (u) { return u.key && u.text; });
         localStorage.setItem('footage_handoff', JSON.stringify({
           prompt: bl[0],            // one scene is what an older Footage page reads
           blocks: bl,
           from: 'timeline',
           title: $('title').value || 'A story',
+          story: { id: ID, title: $('title').value || 'A story' },
+          units: units,
           at: Date.now(),
         }));
       } catch (e) {}

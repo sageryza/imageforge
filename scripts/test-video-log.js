@@ -11,6 +11,15 @@ const d = v.sentRecord({ jobId: 'j1', prompt: 'her words', model: 'seedance-2.5'
 ok('the literal prompt and the exact params ride the doc', d.prompt === 'her words' && d.params === params && d.model === 'seedance-2.5');
 ok('every reference is pulled out by kind', d.references.videos[0] === 'https://x/v.mp4' && d.references.images[0] === 'https://x/i.jpg' && d.references.audio.length === 0);
 ok('the tag is whitelisted', d.chat === 'c' && d.scene === 'b1' && d.title === 't' && !('ignored' in d));
+// WHICH STORY PART SENT IT (2026-09-14, "next and back to see old prompts") —
+// the story id and the part's key ride the whitelist; the block's own words
+// before the heads ride as `words`, capped, and only when sent.
+const sp = v.sentRecord({ jobId: 'j4', prompt: 'HEAD\n\nher words', model: 'm', params, tag: { story: 'st1', unit: 'm4', words: 'her words' } });
+ok('story, unit and words ride the record', sp.story === 'st1' && sp.unit === 'm4' && sp.words === 'her words');
+ok('a record with none carries none', !('story' in d) && !('unit' in d) && !('words' in d));
+ok('words are capped at 4000', v.sentRecord({ jobId: 'j5', prompt: 'p', model: 'm', params, tag: { words: 'x'.repeat(5000) } }).words.length === 4000);
+const rp = v.refusedRecord({ jobId: 'j6', prompt: 'p', model: 'm', params, tag: { story: 'st1', unit: 'm4', words: 'w' }, door: 'atlascloud', refusal: 'content', error: 'e' });
+ok('a refused send keeps its part too, so it is still a row in the walk', rp.story === 'st1' && rp.unit === 'm4' && rp.words === 'w' && rp.status === 'failed');
 // THE TWO KEYFRAMES ARE ON FILE TOO (2026-09-11) — `start_image` / `end_image`
 // is the ONE vocabulary every door writes into `params`, whatever it calls
 // them on the wire (Atlas `image`/`last_image`, OpenRouter `frame_images`,

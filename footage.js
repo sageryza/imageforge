@@ -748,6 +748,17 @@ function buildJob(b) {
   // and the sub-folder, only ever inside a project
   const folder = project ? folderSlug(b.folder) : '';
   if (folder) body.folder = folder;
+  // AND WHICH STORY PART THIS IS (2026-09-14): the Story Timeline story's id,
+  // the part's key (its first moment id) and the block's own words before the
+  // heads. They ride the body the way `project` does, so the door files them
+  // on the log doc and the block can walk its old prompts. A chat sending a
+  // plain job carries none and nothing changes for it.
+  const story = String(b.story || '').trim().slice(0, 300);
+  if (story) body.story = story;
+  const unit = story ? String(b.unit || '').trim().slice(0, 300) : '';
+  if (unit) body.unit = unit;
+  const words = story ? String(b.words || '').trim().slice(0, 4000) : '';
+  if (words) body.words = words;
   return { body, refs, m, res, ratio, seconds, audio, first: kfFirst, last: kfLast };
 }
 function titleOf(prompt) {
@@ -1052,6 +1063,10 @@ function cardOf(id, d) {
     // other, since a chat's clip in her feed with nothing saying so reads as
     // one she drew and forgot
     chat: String(d.chat || ''),
+    // WHICH STORY PART SENT IT (2026-09-14) — a Story Timeline story id and the
+    // part's key, and the block's own words before the heads; '' for a clip
+    // sent from no story. The page's block walks its old prompts off these.
+    story: String(d.story || ''), unit: String(d.unit || ''), words: String(d.words || ''),
   };
 }
 
@@ -1679,7 +1694,8 @@ async function logRefusal({ body, refs, m, res, ratio, seconds, first, last, doo
     // or 2.5 scene put back from its own card silently drew on MINI (the model
     // is deliberately not sticky, so after any reload that is what is showing).
     jobId: crypto.randomUUID(), prompt: body.prompt, model: (m && m.id) || '', params,
-    tag: { chat: body.chat || CHAT, title: titleOf(body.prompt), project: body.project, folder: body.folder },
+    tag: { chat: body.chat || CHAT, title: titleOf(body.prompt), project: body.project, folder: body.folder,
+      story: body.story, unit: body.unit, words: body.words },
     door, refusal: err && err.refusal, error: (err && err.message) || '',
     why: (err && err.why) || (ex && ex.line) || '',
   });
@@ -1757,6 +1773,11 @@ async function startJobInner(b) {
   if (notes.length) extra.note = notes.join(' ');
   if (body.project) extra.project = body.project;
   if (body.folder) extra.folder = body.folder;
+  // the story part rides onto the doc through `extra` exactly as the project
+  // does — the doors' own tag whitelist only knows the keys it was built with
+  if (body.story) extra.story = body.story;
+  if (body.unit) extra.unit = body.unit;
+  if (body.words) extra.words = body.words;
   const mod = getDoors()[d.door];
   // THE LAST FRAME RIDES ALONG ON ATLAS, AND ONLY THERE (2026-09-10,
   // Sophie: "on"). It is FREE — measured 2026-09-09, billed to the token
@@ -1959,6 +1980,14 @@ router.get('/jobs', async (req, res) => {
     const folder = project ? folderSlug(req.query.folder) : '';
     const rows = snap.docs.map((d) => ({ id: d.id, d: d.data() }));
     let all = rows.filter((x) => (!project || projectSlug(x.d.project) === project) && (!folder || folderSlug(x.d.folder) === folder));
+    // ONE STORY'S CLIPS, AND ONE PART'S (2026-09-14, "next and back to see old
+    // prompts") — filtered over the whole log before the page is cut, like the
+    // project, so a block's history reaches every prompt ever sent for that
+    // part and not the forty newest clips. Asking for a story is asking by
+    // name, so a tucked project does not narrow it (the search's own rule).
+    const story = String(req.query.story || '').trim().slice(0, 300);
+    const unit = story ? String(req.query.unit || '').trim().slice(0, 300) : '';
+    if (story) all = all.filter((x) => String(x.d.story || '') === story && (!unit || String(x.d.unit || '') === unit));
     // A TUCKED PROJECT IS LEFT OUT OF ALL (2026-09-13, Sophie: "can u hide
     // the ward, the boyfriend one and the pee wheel ones if i'm not in those
     // folders"). Measured that morning: ward alone is 220 of her 506 clips,
@@ -1968,7 +1997,7 @@ router.get('/jobs', async (req, res) => {
     // that project shows every clip in it, and a SEARCH reaches the whole log
     // whatever is tucked (a search is her asking for something by name — the
     // ALL tab's own carve-out for the bug-fix pile).
-    const tucked = (!project && !String(req.query.q || '').trim()) ? await cast.tuckedFilms() : [];
+    const tucked = (!project && !story && !String(req.query.q || '').trim()) ? await cast.tuckedFilms() : [];
     // THE SHELF'S SLUG IS 60 CHARACTERS AND THIS PAGE'S IS 40 (2026-09-14) —
     // compared raw, a film with a long name could never be tucked
     const tuckedSlugs = tucked.map(projectSlug);
