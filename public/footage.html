@@ -564,7 +564,30 @@
   #cast .lk em{font-style:normal;color:#9a8f7d;font-size:11.5px}
   #cast .none{font-size:13px;color:#8b8175;padding:6px 2px}
   /* Feed */
-  .feedbar{display:flex;align-items:center;gap:8px;margin:0 0 10px;flex-wrap:wrap}
+  /* THE LIST/TILES BAR IS ALWAYS ON SCREEN (2026-09-14, Sophie: "tiles/list
+     bar shud be always visible - either under the prompt, or sticky/pinned in
+     gallery"). It sat in the flow between the panel and the feed, so the one
+     row that says how the gallery is read — the view switch, the ♥/✕ marks,
+     the glass and the project picker — scrolled away the moment she was
+     actually reading the gallery: switching to tiles or narrowing to a folder
+     meant scrolling the whole feed back up first. It is `position:sticky` at
+     the header's own top, which is the second of the two seats she offered
+     and the only one that is true all the way down (the first — under the
+     prompt — leaves with the panel).
+     Four things. It pins at `--headtop` exactly like `.panelrow` and the two
+     can NEVER overlap or gap: a sticky element is constrained by its
+     containing block, so as the panel scrolls off, its fold row is carried up
+     with the panel's bottom edge — by the time this bar reaches the top, that
+     row's bottom is already at or above it. So no offset is measured and no
+     script is needed. The background is the PAGE's cream, not the panel's
+     white, or the clips scroll through the row. The 10px that was a bottom
+     MARGIN is padding now (`.panelrow`'s own lesson: a sticky element holds
+     its margin edge at `top`, so her clips would show through a transparent
+     band). And its z-index is under the pinned corner buttons' 8 and the
+     pill's 9 — it never meets either, one rides the top of the band and they
+     ride the bottom and the corner. */
+  .feedbar{display:flex;align-items:center;gap:8px;margin:0;padding:6px 0 10px;flex-wrap:wrap;
+           position:sticky;top:var(--headtop,4px);z-index:5;background:#f6f2ea}
   /* THE LIST · TILES · 3/4 SWITCH IS /viewswitch.css + /viewswitch.js — the
      one shell, linked in the head, never copied here (2026-09-12). */
   /* `minmax(0,1fr)` is load-bearing: a bare `1fr` is `minmax(auto,1fr)`, and a
@@ -722,20 +745,32 @@
      shows with it, so the feed bar carries ONE main button. The mount is
      `display:contents` so the funnel chip and the drawer are both items of
      the feed bar — the chip stands at the end of the field's line and the
-     drawer takes a whole line under it, IN FLOW (the Meta Assets call — this
-     bar is not sticky and nothing hangs under it). The tokens still reach
-     both: custom properties inherit through display:contents. */
+     drawer takes a whole line under it, IN FLOW (the Meta Assets call: the
+     drawer is part of the bar, so it pins with it rather than hanging off
+     it). The tokens still reach both: custom properties inherit through
+     display:contents. */
   #feedfilters{display:contents;--fsf-ink:#2b2620;--fsf-ink2:#6f675e;--fsf-line:#d8cfc0;--fsf-paper:#fdfbf7;--fsf-on:#c25a72}
   /* The field comes first under the controls (it belongs to the glass), the
      funnel at its right end, the drawer under both on a whole line. The
      funnel STRETCHES to the field it stands beside rather than keeping the
      shell's 34 (the door stretches to the row it stands on, and its row here
-     is the field's). The drawer keeps the pill's column
-     clear — the bar is not sticky, but a drawer she opens is usually at the
-     top of the screen, right where the pill sits (PHOTOgraphed: the third
-     chip ran under it), so its chips wrap short of that column. */
+     is the field's).
+     BOTH THE FUNNEL AND THE DRAWER KEEP THE PILL'S COLUMN CLEAR — 58px, the
+     same reserve. The drawer always needed it (a drawer she opens is usually
+     at the top of the screen, right where the pill sits; PHOTOgraphed, the
+     third chip ran under it). The FUNNEL needed it the day the bar went
+     sticky (2026-09-14): pinned, the field's line sits inside the pill's band
+     at every scroll position, and the chip is the last thing on that line —
+     MEASURED at 390pt with the search open, it ran x 344-378 against a pill
+     starting at 324, i.e. a door under the rail. It is UNCONDITIONAL rather
+     than applied only while pinned, because a reserve that comes and goes
+     with the scroll is the "switches back and forth between narrow and full
+     width" bug; the field gives up the 58 and is still 266px wide. Nothing to
+     the LEFT of the chip is a control, so the field's own tail may pass under
+     the rail exactly as the Playground's does. */
   .feedsearch{order:1}
-  #feedfilters .filtchip{order:2;align-self:stretch;min-height:0;min-width:32px;padding:0 8px}
+  #feedfilters .filtchip{order:2;align-self:stretch;min-height:0;min-width:32px;padding:0 8px;
+                         margin-right:58px}
   #feedfilters .filtdrawer{flex:1 1 100%;margin:0 0 2px;order:3;padding-right:58px}
   .job{background:#fff;border:1px solid #e0d8ca;border-radius:6px;padding:10px;margin-bottom:11px}
   .job.nay{opacity:.45}
@@ -4808,6 +4843,19 @@ function tileCell(j) {
 // plays it. So a tile hands her the card rather than the trimmer, and the
 // list is the detail view this page already has: one of them, not a second
 // copy of it behind a second overlay.
+// HOW MUCH OF THE TOP OF THE SCREEN THE PINNED FEED BAR OWNS — its own
+// height plus where it pins, or 0 while it is hidden or not sticky at all.
+// Anything that scrolls the window to a clip has to clear it.
+function stuckH() {
+  var bar = $('feedbar');
+  if (!bar || bar.hidden) return 0;
+  var cs = window.getComputedStyle(bar);
+  if (cs.position !== 'sticky') return 0;
+  var r = bar.getBoundingClientRect();
+  if (!r.height) return 0;
+  return r.height + (parseFloat(cs.top) || 0);
+}
+
 function goToCard(id) {
   setView('list');                       // unhides #feed and re-decides the clamps
   var el = document.getElementById('job-' + id);
@@ -4828,7 +4876,14 @@ function goToCard(id) {
       // one row of controls). `fitPillGap` is synchronous, so asking for it
       // here settles the panel first.
       if (window.__fitPillGap) window.__fitPillGap();
-      var top = el.getBoundingClientRect().top + (window.scrollY || 0) - 12;
+      // AND UNDER THE PINNED BAR, NOT BEHIND IT (2026-09-14). The feed bar is
+      // sticky, so the top of the screen is not the top of the gallery any
+      // more: a card landed at y=12 sits BEHIND the bar, which is the tap
+      // reading as "it went to the wrong clip". `stuckH` is the bar's own
+      // pinned height (0 when it is hidden, or when it is not sticky on an
+      // older cached stylesheet), read live because the search and the filter
+      // drawer make it two and three rows tall.
+      var top = el.getBoundingClientRect().top + (window.scrollY || 0) - 12 - stuckH();
       window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
       el.classList.add('found');
       clearTimeout(el.__found);
