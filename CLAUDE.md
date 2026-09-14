@@ -13355,17 +13355,72 @@ before working on that module. Nothing was deleted — the moved text is verbati
     which is the right room and needs no TestFlight build. It carries its own
     `thread` instead (a new `sendAll` case), so "Back up" replaces "Server
     update starting" in her shade rather than stacking.
-  - **STILL OPEN, and hers to ask for: the guard does not wait for a footage
-    SEND.** `/inflight` is `drawingNow`/`cuttingNow`, which are the Playground's
-    runs only — `footage.js` touches neither — so a clip's POST to the door is
-    not something the deploy waits out. The window is seconds (once the door
-    has answered and the log is written the poll resumes from any phone), but
-    a send caught inside it is drawn, paid for and unrecorded.
   - Tests: `node scripts/test-deploy-notify.js` (the marker's whole decision
     table against a fake Firestore — the half that can silently be wrong — plus
     the wirings by source) and `node scripts/test-deploy-guard.js` (that only
     the FINAL pause carries the flag, and that a refused or called-off deploy
     carries none).
+  **AND THE DEPLOY WAITS FOR A FOOTAGE SEND, AND FOR EVERYTHING ELSE —
+  `inflight.js`, ONE REGISTER (2026-09-14, Sophie: "make sure the deploy guard
+  waits for footage sends and anything else that would cause a problem").**
+  `/inflight` answered `drawingNow`/`cuttingNow` and nothing else — the
+  Playground's own two sets — so the guard, the hand deploy and the SIGTERM
+  hold all said "nothing drawing or cutting" over a box that was in the middle
+  of a **footage send**: the one piece of work here that is CHARGED AT THE DOOR
+  BEFORE ANYTHING IS WRITTEN DOWN, so a restart inside it loses her prompt, her
+  references and the money at once. Now work registers itself
+  (`inflight.track('name', fn)`) and the three readers ask that one register,
+  which `GET /api/promptlab/inflight` reports as `work` beside the two arrays.
+  Six things not to undo:
+  - **A SEND IN THE SWAP WINDOW IS REFUSED, NOT DRAWN.** The guard pauses the
+    box once it has decided to let the swap through, and the old instance dies
+    about a minute later. The Playground QUEUES a tap; a video job has no queue
+    to stand in, so `POST /api/footage/jobs` answers 503 `refusal:'paused'` with
+    the note in her own words. **It only ever reaches the OLD instance** — the
+    new one boots with no pause at all — so the wait is seconds.
+  - **THE COUNT IS IN MEMORY AND PER PROCESS, deliberately.** The question both
+    readers ask is *would killing THIS process lose something*, which is a fact
+    about this process. A doc saying `running` may belong to an instance that
+    is already gone — that is what every module's own stale sweep is for — and
+    reading those back would hold a deploy for a job nobody is holding.
+  - **`track` CAN NEVER FAIL THE WORK IT WRAPS**: it returns exactly what the
+    function returns, rethrows exactly what it throws, and decrements in a
+    `finally`, so a throw cannot leave a phantom holding the deploy for ever.
+  - **AN OLDER SERVER ANSWERING NO `work` READS AS CLEAR.** A box that cannot
+    say is not a reason to hold a deploy — the guard's own long-standing rule.
+  - **WHAT IS REGISTERED:** a footage SEND (`footage-send`) and its trim /
+    frame-grab / poster bakes (`footage-bake`); every ffmpeg render — the Film
+    Editor, Stitch, Assembly and the Story Room pad's film (`render`); the
+    Movies pipeline's two job runners (`movies`); a Voice Studio render or
+    conversion (`voice`, already billed at ElevenLabs by the time it writes
+    back); and the chat-icons sweep (`icons`, ~6c a sheet). **A new kind of
+    work is ONE line where it starts**, never a counter threaded through
+    server.js.
+  - The cap is unchanged: still 25 minutes, and still a FAILED deploy rather
+    than a killed job — nothing ships, nothing dies, the next merge carries it.
+  Test: `node scripts/test-inflight.js` (the register measured, a throw proved
+  to leave nothing, the guard proved to really HOLD on a send alone, and every
+  wiring pinned; verified failing 5 against the pre-fix guard).
+  **AND SHE IS TOLD WHEN FIVE CHANGES ARE WAITING (2026-09-14, Sophie: "I
+  would like a notification when there are five changes undeployed").** A merge
+  no longer deploys by itself — the house rule is merge with `[skip render]`,
+  then ask — so main runs ahead of the live box for hours and the only way to
+  know by how much was to go and count. **It is DERIVED, not filed**: Render
+  stamps every instance with the commit it was built from
+  (`RENDER_GIT_COMMIT`) and GitHub's compare API says how many commits main
+  carries on top of it, so nothing has to be recorded when a PR merges and a
+  chat that forgets to file something cannot make the number wrong. Hourly, one
+  free unauthenticated GitHub read, no model call, skipped entirely off Render.
+  Three things not to undo: **one buzz per RUNG, never one per tick** — it
+  fires at five, then again at ten and fifteen, because a number that keeps
+  climbing is worth hearing again and the same number every hour is not; **the
+  rung is marked BEFORE the push is sent** (a push that lands with no mark
+  buzzes her every hour, which is the one failure this exists to avoid); and
+  **a deploy resets it by construction** — the mark is keyed by the commit, so
+  the new instance finds a mark that is not its own and starts at zero.
+  `behindPlan` / `readBehind` / `behindCheck` in `push.js`; test
+  `node scripts/test-behind-push.js` (the rule pure, then the whole check
+  against a fake Firestore — the mark is the half that can silently be wrong).
   **THE HOME-SCREEN WIDGET IS FOUR DECKS TO SWIPE (2026-09-02, Sophie: "the
   widget / make it 4 icons / decks to swipe / currently / the dream factory
   deck / the wallpapers")** — the top four decks still waiting in the Review

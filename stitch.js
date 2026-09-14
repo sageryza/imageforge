@@ -394,7 +394,10 @@ async function startJob(id, kind, fn) {
       }
     };
     try {
-      await fn(progress);
+      // A DEPLOY WAITS FOR THIS (2026-09-14, Sophie: "anything else that
+      // would cause a problem"). An ffmpeg render is minutes of work on our
+      // own box; a restart in the middle of it loses the whole thing.
+      await require('./inflight').track('render', () => fn(progress));
       Object.assign(job, { status: 'done', label: 'done' });
     } catch (err) {
       console.warn(`stitch: job ${kind} failed —`, err.message);

@@ -446,4 +446,88 @@ async function deployBootCheck() {
   return { pushed: true };
 }
 
-module.exports = { router, notifyChat, queueChat, flushChat, notifyDeploy, deployBootCheck, _internals: { providerJwt, apnsKey, apnsSend, sendAll, jwtCache, pending, PENDING_MS, wire } };
+
+// ─── FIVE CHANGES WAITING ──────────────────────────────────────────────
+// 2026-09-14, Sophie: "I would like a notification when there are five
+// changes undeployed." A merge no longer deploys by itself — the house rule
+// is merge with `[skip render]`, then ask — so main runs ahead of the live
+// box for hours, and the only way to know by how much was to go and count.
+//
+// IT IS DERIVED, NOT FILED. Render stamps every instance with the commit it
+// was built from (`RENDER_GIT_COMMIT`), and GitHub's compare API says how
+// many commits main carries on top of it. Nothing has to be recorded when a
+// PR merges, so a chat that forgets to file something cannot make this
+// number wrong, and a deploy resets it by construction: the new instance is
+// built from a newer commit and starts at zero.
+//
+// ONE BUZZ PER RUNG, NEVER ONE PER TICK. It fires at five, then again at ten
+// and fifteen — a number that keeps climbing is worth hearing again, and the
+// same number every hour is not. The rung it last pushed rides on the same
+// `__deploy` doc KEYED BY THE COMMIT, so a deploy clears it without anything
+// having to remember to.
+//
+// FREE: one unauthenticated GitHub read an hour (60/hr is the limit and this
+// is 1), no model call, and it is skipped entirely off Render.
+const BEHIND_STEP = 5;
+const BEHIND_REPO = process.env.FORGE_REPO || 'sageryza/imageforge';
+const BEHIND_BRANCH = process.env.FORGE_BRANCH || 'main';
+
+/** How far the live commit is behind the branch. -> { ahead, sha } or null. */
+async function readBehind(fetchFn, sha) {
+  const f = fetchFn || fetch;
+  const head = String(sha || process.env.RENDER_GIT_COMMIT || '').trim();
+  if (!head) return null;
+  const url = `https://api.github.com/repos/${BEHIND_REPO}/compare/${head}...${BEHIND_BRANCH}`;
+  const r = await f(url, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'imageforge' } });
+  if (!r.ok) throw new Error(`compare ${r.status}`);
+  const j = await r.json();
+  const ahead = Number(j.ahead_by);
+  if (!Number.isFinite(ahead)) throw new Error('no ahead_by');
+  return { ahead, sha: head };
+}
+
+/** The whole rule, pure: given how far behind and what was last pushed for
+ *  THIS commit, should it buzz, and about what rung? */
+function behindPlan(ahead, last, step) {
+  const n = Number(ahead) || 0;
+  const s = Number(step) || BEHIND_STEP;
+  const rung = Math.floor(n / s) * s;           // 0, 5, 10, 15…
+  if (rung < s) return { push: false, rung, why: 'under' };
+  if (Number(last) >= rung) return { push: false, rung, why: 'said' };
+  return { push: true, rung, ahead: n };
+}
+
+function behindWords(n) {
+  return [`${n} changes waiting`, n === 1 ? 'One change is merged and not live.' : `${n} changes are merged and not live yet.`];
+}
+
+/** The hourly tick. Never throws — a GitHub hiccup must not be a log full of
+ *  stack traces, and a number nobody can read is not a reason to say
+ *  anything. */
+async function behindCheck(opts) {
+  const o = opts || {};
+  if (!admin.apps.length) return { pushed: false, why: 'no-firestore' };
+  let st;
+  try { st = await readBehind(o.fetch, o.sha); } catch (e) { return { pushed: false, why: e.message }; }
+  if (!st) return { pushed: false, why: 'no-commit' };
+  let last = 0;
+  try {
+    const snap = await deployRef().get();
+    if (snap.exists && snap.get('behindSha') === st.sha) last = Number(snap.get('behindRung')) || 0;
+  } catch (e) { return { pushed: false, why: e.message }; }
+  const plan = behindPlan(st.ahead, last, o.step);
+  if (!plan.push) return { pushed: false, why: plan.why, ahead: st.ahead, rung: plan.rung };
+  // Mark BEFORE sending: a push that lands and a mark that did not would buzz
+  // her again every hour, which is the one failure this rule exists to avoid.
+  await deployRef().set({ behindSha: st.sha, behindRung: plan.rung, behindAt: Date.now() }, { merge: true })
+    .catch(() => {});
+  const w = behindWords(st.ahead);
+  if (configured()) {
+    sendAll(w[0], w[1], { thread: DEPLOY_THREAD, behind: st.ahead })
+      .then((r) => console.log(`push: ${st.ahead} undeployed -> ${r.length} device(s)`))
+      .catch((e) => console.log('push: behind notify failed — ' + e.message));
+  }
+  return { pushed: true, ahead: st.ahead, rung: plan.rung };
+}
+
+module.exports = { router, notifyChat, queueChat, flushChat, notifyDeploy, deployBootCheck, behindCheck, readBehind, behindPlan, BEHIND_STEP, _internals: { providerJwt, apnsKey, apnsSend, sendAll, jwtCache, pending, PENDING_MS, wire } };
