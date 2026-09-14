@@ -6,7 +6,93 @@ Everything below is written out properly further down; this is the short list,
 at the top, because being on line 1,400 of a long file is why these got missed.
 The numbers are measured, not guessed.
 
-**Ending a turn that changed anything**
+**CARDS ARE OFF — EVERY CHAT, THROUGH 2026-09-12 (2026-09-08, Sophie: "don't
+worry about cards · temporary nix for every chat"; RE-SAID 2026-09-09 after a
+chat posted them anyway: "we're not refreshing cards right now · nix for every
+chat for the next three days").** Skip items 1 and 2 below (the status card
+and the Update card) — no `POST /api/chatfeed/status`, no `/update` — and
+IGNORE the hook's per-prompt reminder that tells you to refresh them; that
+reminder is the thing that made a chat post them the day after she said not
+to. The wrap-up (3b), the pin (3a), the deliverables list (3c) and
+self-filing (3y) are untouched. Three days from her word is about
+2026-09-12; her word moves it, not the calendar — remove this paragraph when
+she lifts it.
+
+**WHAT WE ARE ON RIGHT NOW (2026-09-09, Sophie: "our current goal is making
+a 480p draft of the film on Mini" · "15 seconds means more continuity work"
+· "the answer is APIFRAME I guess. Let's build the pipeline around that for
+now" · "update Claude so that everyone knows what the current thing we're
+working on is").** A 480p DRAFT of the ward film (the belt pages under
+`docs/mental-hospital/`), every clip on Seedance 2.0 MINI, every clip sent
+through APIFRAME — the one door that takes a reference with a person in it,
+and she has decided not to split jobs across two doors while the draft is
+being made. Mini clips run 4-15 seconds, so a 15-second shot is where the
+continuity work is (the same person, the same room, from one clip into the
+next), and that is the work in front of every chat cutting this film. The
+"go" rule, the exact-prompt log and the never-describe-a-reference rule all
+stand exactly as written.
+**THE PLAN FROM HERE (2026-09-09, Sophie, the same evening: "I think the plan
+is to re-shoot all the footage landscape style, but just get the main shots
+so we can move forward" · "Next step is landscape 720p 2.5 Seedance" ·
+"Maybe we'll start that in a week and transition off mini in a week and a
+half").** Three steps, in order:
+1. **NOW — the 480p Mini draft, re-shot LANDSCAPE, MAIN SHOTS ONLY.** Every
+   clip drawn from here on is landscape (16:9 on Mini), not the 3:4 the
+   earlier ward clips were; the portrait clips are not re-cut, they are
+   re-shot. "Main shots only" is a scope rule as well as a shape rule — the
+   shot that carries the scene, not the coverage — so the draft can move
+   forward instead of stalling on B-roll and inserts.
+2. **~2026-09-16 — landscape 720p on Seedance 2.5**, still through APIFRAME.
+   A 2.5 clip is $3-5 each, so the "go" rule matters more, not less, and a
+   prompt and its references go on the belt page for her approval before
+   anything is sent. The exact-prompt log is what makes this step a REDO
+   rather than a rewrite: every Mini clip's prompt and references are on
+   file to be re-sent at the new size.
+3. **~2026-09-19 — off Mini.** From about a week and a half out, nothing new
+   is drawn on Mini; 2.5 at 720p landscape is the model. The dates are her
+   "in a week" and "a week and a half" counted from 2026-09-09 and are
+   approximate — her word moves them, not the calendar.
+Hers to move; replace this paragraph when she does.
+**"A program you feed the script and it makes the movie" EXISTS — about a
+dozen of them, most running Seedance underneath — and what each does with a
+REAL face and what the belt would cost through it is measured in
+`docs/mental-hospital/script-to-movie-2026-09-11.md` (Sophie, 2026-09-11:
+"must exist … research"). Read it before proposing a platform; the short
+answer is that they are a UI over our engine, refuse or approximate a
+private person, and cost 6–200x the Mini door. Sora 2 is shut down
+(API off 2026-09-24). Wan 3.0 takes a script FILE + 20 references in one
+30s pass at 5¢/s with no face rule in its docs — unmeasured on our cast.
+**WAN 3.0 RIDES THE ATLAS DOOR SINCE 2026-09-11** (`atlascloud.js`, model
+`wan-3.0` → `alibaba/wan-3.0/reference-to-video`, 4¢/s at 480p on Atlas's
+sale, one mixed `refers` array, Alibaba's slot words `Image 1` / `Video 1`;
+from a container `node scripts/atlascloud-send.js --job job.json [--dry]`
+sends THROUGH the module so the job is logged the moment it is sent). The
+first job — her md-31b climax, every reference off the cast shelf — is
+written up in `docs/mental-hospital/wan-test/` and was SENT on her go
+2026-09-11 (Atlas job `27fcbe6e73354f0599715eb38dee352f`, 15s · 480p ·
+16:9) — **AND IT DREW: 15s in 4m16s for 60¢ (Atlas's own `price` field on
+the job), four person references accepted without a word, and the whole
+four-beat scene landed in order** — the office, the close-up going blank,
+the ghost against the ceiling tiles, the walk out the door, Sophie in the
+pajamas from the still throughout (`climax3b-wan-v1.result.md`). **THE ONE
+MISS IS A RULE: A "does NOT appear" LINE DOES NOT KEEP A PERSON OUT.** The
+red-haired assistant is in both office references, the prompt's fourth line
+ruled her out by name, and she stands in the doorway for the whole first
+shot anyway. A person is kept out of a Wan clip by not sending a reference
+that holds her (a solo still, a crop), never by a negation.
+**AND SOPHIE'S PAJAMA REFERENCE IS ONE FULL-BODY STILL FROM
+THAT GO ON (Sophie: "just the full body pajama, no tape pocket or second,
+and note that everywhere")** — "A — Sophie alone" (`52a036…`) alone; "C —
+teacher cropped out" and the tape pocket are off her line and off the cast
+shelf's `blue-pajamas:sophie` look (the head-off pair the OTHER patients
+wear still carries the pocket — hers to drop). A belt card that still
+names three pajama stills is out of date, not a rule.**
+
+**Every FIVE turns, not every turn (2026-09-07, Sophie: "change the rule to
+every 5 turns")** — the hook's reminder fires on every fifth prompt of a
+session, and that is when the two cards below get refreshed; a turn that
+changes nothing she would read off the card can skip it. Wrapping up (3b) is
+still every time the work wraps up.
 1. **Refresh your STATUS CARD** — `POST /api/chatfeed/status {chat, session,
    need, doing}`. Telegraphic fragments, ~30-60 chars, the way she writes her
    own notes. `need` = what you need from her AND how big the ask is; send `""`
@@ -147,7 +233,322 @@ asking for the LIST — the stills, the shots, the model, the size, the price
 clips drawing before she saw a single shot. When in doubt, the page with the
 plan costs nothing; the batch is what cannot be taken back. **And banked
 credits are dollars: 930 APIFRAME credits is $9.30, three times the $3
-ask line.**
+ask line — and SAY DOLLARS, never credits, in a reply (2026-09-07, Sophie:
+"can u call it dollars not credits").**
+
+**A VIDEO CLIP IS NEVER SENT WITHOUT HER "GO" FOR THAT EXACT JOB (2026-09-07,
+Sophie: "this footage is v expensive · never run without asking · note that
+somewhere" · "new policy — double check before sending a job · have me
+approve the prompt and references etc").** A Seedance 2.5 clip is $3-5 each,
+and a refused one still costs a round trip. Before EVERY job: show the model,
+seconds, resolution, the exact prompt, and every reference (which video, which
+picture) — then wait for her word. "go" is her code word for send. A watcher
+that fires on its own when credits land, a retry with the prompt changed, a
+probe with made-up text: all three happened that day and all three are out.
+Read back what the API really received after sending, and say it.
+
+**A SEEDANCE JOB WITH NO VIDEO REFERENCE GOES THROUGH OPENROUTER, NOT
+APIFRAME (2026-09-08, Sophie: "make a note so any reference w no video uses
+open router instead").** **PARKED 2026-09-09 — EVERYTHING GOES THROUGH
+APIFRAME WHILE THE 480p MINI DRAFT IS MADE (Sophie: "the answer is APIFRAME
+I guess. Let's build the pipeline around that for now").** Two things
+decided it the same day: OpenRouter stopped passing on the Mini sale (its
+discount reads 0 and today's jobs billed full list) and every other
+reseller carries the same face filter, so a film full of person references
+has one door anyway. The OpenRouter route, its log and its price reader stay
+built; the `/footage` page still sends `door:'openrouter'` and is NOT
+changed by this note — flipping it is hers to ask for. The rest of this
+paragraph is how the two doors work, kept for when she lifts this. OpenRouter bills ByteDance's list price; the ~5%
+top-up fee is paid when credit is BOUGHT, not per job. **SUPERSEDED
+2026-09-09 — the "480p Seedance 2.5 is 10.9¢/s all in against APIFRAME's 13¢,
+a 4s clip 44¢ against 52¢" figure was list × the fee on the WRONG CANVAS and
+is wrong.** The measured formula (Mini renders on the 2.5 canvases, a clip is
+24·s + 1 frames, no fee in the shown price, the sale read live off
+OpenRouter) is in the Footage bullet under *THE PRICE IS EXACT*.
+**BUT BYTEDANCE'S OWN DOOR REFUSES REFERENCE VIDEOS
+WITH PEOPLE THAT APIFRAME ACCEPTS (measured 2026-09-08, scene 36a1 of the
+ward film):** the two untouched Seedance clips APIFRAME drew that scene from
+came back from OpenRouter as `InputVideoSensitiveContentDetected.
+PrivacyInformation` — "may contain real person" — before anything drew, while
+the three pajama pictures on the same job passed. OpenRouter forwards to
+ByteDance directly, so BytePlus direct would refuse the same; APIFRAME is
+running with something looser (unmeasured — its own backend or ByteDance's
+paid "advanced creation rights"). **MEASURED THE SAME NIGHT ON THE
+CHEAPEST MINI JOB (refusals are free, an accepted one ~5¢): a PERSON-FREE
+reference video — the socks B-roll, a Seedance output — PASSED and drew
+(6.5¢), and an AI-GENERATED face STILL (a frame of the Mini clip itself) was
+REFUSED (`InputImageSensitiveContentDetected.PrivacyInformation`).** So the
+line is the PERSON, not the video.
+**BUT THE FILTER IS PER MODEL, NOT PER DOOR, AND THAT RETIRES "BYTEPLUS DIRECT
+WOULD REFUSE THE SAME" ABOVE (measured 2026-09-12 on her own two jobs).** The
+SAME photoreal AI-made still — the priest-uniform Sophie png, a face, plainly
+photographic — was **refused on 2.0** (`InputImageSensitiveContentDetected.
+PrivacyInformation`, "may contain real person", free, before drawing) and
+**accepted and drawn on 2.5, twice**, through the identical OpenRouter door
+minutes apart. Across all 8 of her OpenRouter jobs carrying an image
+reference, **6 drew and 2 were refused**, and the split is the MODEL every
+time. So "OpenRouter refuses a photoreal face" is wrong as it was written
+here: 2.5's input gate is looser than 2.0's, and a doubtful face is worth one
+free 2.5 attempt before assuming a door is closed. What is NOT known is
+whether 2.5's gate is merely looser or genuinely probabilistic — ByteDance's
+own filters are documented as probabilistic rather than binary, so two
+acceptances are not a guarantee. The refusal is free either way, so try it.
+The older reading below stands for 2.0 and for reference VIDEOS:
+- **text, pictures, audio, and person-free videos → OpenRouter**: `POST
+  /api/openrouter/video` (`openrouter.js`) takes the APIFRAME route's exact
+  body (`prompt, model?, duration, resolution, aspectRatio, generateAudio,
+  referenceImageUrls, referenceVideoUrls, referenceAudioUrls, chat, scene,
+  title, session`), answers 202 `{jobId, poll, sent}` — `sent` is the
+  literal body OpenRouter received, the read-back her rule asks for — poll
+  `GET /api/openrouter/video-job/:id`, and **files the SAME
+  `forge-video-jobs` log** stamped `provider:'openrouter'`, so `GET
+  /api/apiframe/video-log` reads both doors. `GET /api/openrouter/credits`
+  is the balance in dollars. From a container with no server:
+  `scripts/openrouter-video.js`.
+- **any reference with a FACE or a PERSON in it, still or video → APIFRAME.**
+  ByteDance's refusal is free and comes back before drawing as 400
+  `{refusal:'content'}` with a `hint` naming APIFRAME — so sending a doubtful
+  job to OpenRouter first costs nothing. **AN ILLUSTRATED FACE PASSES
+  (measured the same night, Sophie: "would it take an illustration face?
+  make varying degrees"): three Sandy-mirror ink-and-wash portraits — the
+  loosest, a finished painting, the most rendered — each sent as the only
+  reference, all three accepted and drawn (5.4¢ each, Mini 1:1), while the
+  photoreal frame of a Seedance clip was refused.** So the line is
+  PHOTOREAL: a drawn face rides, a photographic one (real or generated) does
+  not. Two things about the drawn face: it also sets the LOOK of the clip
+  (the loosest reference drew an illustrated clip, the most rendered a
+  photoreal one), and the watercolor parents were refused on both doors
+  earlier — a drawn face is likelier to pass, not certain to; the refusal is
+  free, so try it. **AND A REAL PHOTO WITH ONLY THE EYES BLURRED PASSES
+  (measured the same night, Sophie: "blue just the eyes / real still"):**
+  Mayra's real portrait was refused whole, and the identical photo with one
+  soft-blurred band over the eyes (`sharp` extract → blur(14) → composite,
+  everything else untouched) was accepted and drawn (job
+  `aY9LbIGMe9T5lEcA984a`, 5.4¢, Mini 1:1). So the filter is an EYES check,
+  not a face check — the mouth, the hair, the skin all rode through. It
+  drew O'Hara, not her, because the prompt describes O'Hara; a likeness
+  from a real photo needs the "the woman in [Image1]" wording and is
+  untested. **THE STILL TRICK DOES NOT CARRY TO VIDEO (same night, Sophie:
+  "also try blur eyes in a movie"):** the scale audition clip with every
+  face's eyes blurred on every frame (YuNet face landmarks → a Gaussian band
+  over the eyes, `blur-eyes-video.py`) was still refused,
+  `InputVideoSensitiveContentDetected.PrivacyInformation`. So a video is
+  screened for a PERSON, not a face; a person video goes through APIFRAME
+  whatever is done to its eyes. **And the likeness half is measured too:**
+  card 45a's words with "Mayra is the woman in [Image1]" over the
+  eyes-blurred photo drew HER (job `OudXGDf91uEk1um3pZUt`, Mini 3:4, 5.6¢) —
+  the eyes are the filter's key and not the model's; the likeness rides on
+  the rest of the face. Mini has no 2:3; its portrait shapes are 3:4 and 9:16.
+  **AND A HARD BLACK BAR PASSES THE INPUT FILTER TOO — BUT A FAMOUS FACE
+  THEN HITS A SECOND GATE ON THE OUTPUT (measured 2026-09-09, Sophie: "i
+  wanna test black bar over danielle radcliffe eyes").** A press photo of
+  Daniel Radcliffe, whole, was refused at validation like every real photo
+  (`InputImageSensitiveContentDetected.PrivacyInformation`, free, in twelve
+  seconds); the identical photo with a solid black rectangle over both eyes
+  (PIL, nothing else touched) was **ACCEPTED and drew for a full minute**,
+  then died at the far end with a refusal nothing here had seen before:
+  `status:'failed'`, *"the output video may be related to copyright
+  restrictions"* (job `3SL74kD3vCOePxCzjgh4`, Mini 480p 3:4 4s, the "the man
+  in [Image1]" wording). So the bar defeats the eyes check exactly as the
+  blur does — **and there are TWO filters, not one**: an INPUT check that
+  reads the reference's eyes, and an OUTPUT check on the drawn video that the
+  Mayra rounds never reached. No `generation_id` record exists for the failed
+  job, so it reads as unbilled; the shared key had another chat's batch
+  running, so the charge could not be isolated exactly. **Which half of that
+  photo tripped the output gate is UNMEASURED** — Radcliffe's own likeness,
+  or the branded premiere step-and-repeat filling the background. The cheap
+  next test is the same bar on a tight crop of the face with no backdrop in
+  frame: it still fails on copyright → the likeness; it draws → the
+  backdrop. **MEASURED THE SAME HOUR AND IT IS THE FACE:** the identical bar
+  on a tight crop of his face with the branded backdrop cropped OUT was
+  accepted, drew for a full minute, and failed with the same copyright line
+  (job `YMyKELvY54v87oTEhVG8`). So the output gate is reading HIM, not the
+  step-and-repeat behind him. **WHY IT EXISTS, from the public record:**
+  Seedance 2.0 took a Disney cease-and-desist on 2026-02-13 ("a virtual
+  smash-and-grab") with Paramount Skydance, Netflix, Warner Bros. Discovery,
+  Sony and Universal behind it, and ByteDance said on 02-15 it would stop
+  generating realistic human faces and IP-protected characters — this gate is
+  that promise. Three things worth knowing before designing around it: every
+  published guide documents the INPUT face filter and barely mentions an
+  output check, and the output-copyright error they DO document is about
+  AUDIO (we sent `generate_audio:false`, so that reading is ruled out here);
+  the filters are described as PROBABILISTIC rather than binary, so one job
+  is not a measurement and a near-threshold input can pass once and fail
+  next; and a failed generation is not billed, which matches our own two
+  blocked jobs leaving no `generation_id` record. **WHERE THE LINE SITS
+  BETWEEN FAMOUS AND NOT IS UNMEASURED AND IS THE OBVIOUS NEXT PASS** (Sophie's
+  own idea, 2026-09-09: "you could use progressively less famous people to
+  see where the bar is") — nobody has published one. Both ends are already
+  on file: Radcliffe blocked, Mayra drawn. Hold the bar constant on every
+  rung, since it is what reaches the output gate at all.
+- **WHY APIFRAME IS LOOSER, from ByteDance's own docs:** a face is only ever
+  allowed as a `asset://` from its trusted asset library — a VIRTUAL portrait
+  (a drawn or AI-made character that "must not resemble any real human
+  person", uploaded once under a signed commitment letter) or a REAL person
+  who face-verifies on their phone, every upload face-matched to that check.
+  Both need a BytePlus account with BUSINESS verification (a corporate
+  registration certificate); the entry tier is free (50 assets), the paid
+  tiers $1,400/mo and up. The ChatGPT-character workflow is exactly the
+  virtual-portrait door. NOT BUILT — hers to decide (Cod God Inc?).
+- **OTHER RESELLERS CARRY THE SAME FACE FILTER — RESEARCHED 2026-09-09
+  (Sophie: "research other platforms like OpenArt and Atlas Cloud and see if
+  they have the same restrictions as OpenRouter").** The face check runs
+  INSIDE ByteDance's model service, so every door that forwards to
+  Volcengine/BytePlus gets the identical `PrivacyInformation` refusal: Atlas
+  Cloud, fal, Kie, WaveSpeed, PiAPI (standard mode), OpenArt, Higgsfield,
+  Dreamina. Read off the vendors' own pages, not guides: **Atlas Cloud's June
+  blog says "supports realistic human faces … does not have this
+  limitation", and its CURRENT model FAQ says the opposite** ("Can I upload a
+  real person's face photo? No"), with the Mini page naming "the restriction
+  on uploading real human faces" across the family — the marketing line is
+  stale, the FAQ is live. OpenArt's own pages say nothing either way; every
+  third-party guide lists it among the standard-model doors. Kie's
+  "realistic human support" means GENERATED humans. **The doors that do take
+  a real photo are the ones with their own consent layer or a different
+  backend**: Runway's Seedance 2.0 (its API is documented as having no
+  real-face input filter and lighter moderation — Runway's ToS still bans
+  public figures and non-consenting people and it monitors output), PiAPI's
+  "Less Restriction" mode (consented images), HeyGen (a verified digital
+  twin of YOURSELF, her own face only), EvoLink (after verification), and
+  the official Volcengine liveness route above. **Reddit is unreadable from
+  this container by every door tried (2026-09-09: reddit.com answers a block
+  page, the pullpush archive refuses automated readers, the redlib mirrors
+  are down) and the web searches surfaced no thread** — so whether Atlas
+  Cloud quietly accepts a real face in practice, the way APIFRAME does, is
+  UNMEASURED beyond its own FAQ saying no. The only honest test is one 5¢
+  Mini job there with the eyes-blurred photo, which needs an account. **THE
+  DOOR IS BUILT FOR THAT TEST (2026-09-09, her API reference):
+  `atlascloud.js` at `/api/atlascloud` — the same body and the same
+  `forge-video-jobs` log as the other two doors, `provider:'atlascloud'`,
+  `ATLASCLOUD_API_KEY` set on Render by API (live on the next deploy).
+  **MEASURED THE SAME NIGHT — ATLAS TAKES A PERSON VIDEO (Sophie: "try the
+  hardest thing first · try the video reference with a person"):** the
+  O'Hara stretcher clip, three people in frame, the very clip OpenRouter
+  refused, went through as the only reference on Mini · 4s · 480p · 16:9
+  and DREW HER — accepted on the POST, done in 80s, 864x496 (job
+  `2b0b451548d84902988d01faf8bbcf99`). So Atlas is a second door for a
+  person reference, and **the 80% Mini sale is REAL**: its own `GET /models`
+  says Mini is 1.1¢/s (list 5.6¢) — 4.4¢ for that clip against ~16¢ on
+  APIFRAME — 2.5 13.4¢/s, 2.0 9¢/s, Fast 2.7¢/s; `footage.js` reads it live
+  (`atlasPrices()`). **AND A REAL UNTOUCHED PHOTO PASSES — Mayra's real
+  portrait, the one OpenRouter refused whole, drew her near-exactly (job
+  `1341e19bf73f44bd9e038c9b15c35286`, ~4¢); a reference image is not even
+  billed as tokens (a reference video is). Radcliffe is refused on the POST,
+  free, as COPYRIGHT — with the black bar too: Atlas's gate is a famous-face
+  check that sees through the bar, not a real-person check.** So Atlas takes
+  every person reference the film has except a public figure. **AND FAST'S OUTPUT GATE FIRES ON A PLAIN TEXT PROMPT (measured
+  2026-09-09, Sophie: "go on the fast vs mini dialogue test"):** the same
+  4s · 480p · 16:9 dialogue prompt — a woman at a kitchen table speaking one
+  line to camera, NO reference of any kind — was refused TWICE on 2.0 Fast
+  with the copyright line (`error_code 1012004`, `price "0"`, ~110s each,
+  unbilled) and drawn once on Mini (job `0fae510554ad4dbea977d4484990f716`,
+  ~4¢). So the output gate is per MODEL and probabilistic, and Fast is the
+  strict one; a plain prompt is not safe from it. Page: "Dialogue test — 2.0
+  Fast vs Mini" in this chat's Compare tab. The console is
+  the only billing read (no API), and Atlas's slot word is `video 1` /
+  `image 1`. **AND ATLAS IS THE ONE DOOR THAT HANDS BACK A LAST FRAME —
+  `return_last_frame` works there, is FREE, and beats an ffmpeg decode
+  (measured 2026-09-09; a no-op on OpenRouter, measured the day before).** A
+  job sent `returnLastFrame: true` answers a second output, `…_last-frame.png`,
+  billed at the clip's own token price to the token — and against the decoded
+  final frame it is 1.18x sharper with **118x the horizontal chroma detail**,
+  i.e. rendered before the h264 encode rather than pulled out of it. That is
+  the shot-to-shot chaining tool this film keeps needing. Mirrored to Storage
+  and filed on the log as `lastFrame`. **ON FOR EVERY FOOTAGE JOB SINCE
+  2026-09-10 (Sophie: "on")** — the page asks for it on the Atlas door alone
+  (OpenRouter's flag is a no-op and APIFRAME builds its own body) and the card
+  carries it. **AND SINCE 2026-09-11 IT IS ON THE CLIP'S OWN CARD, WHICH IS THE
+  ONLY PLACE SHE CAN REACH ONE (Sophie: "how do i get these last frames").**
+  It was being baked and banked on every Atlas job and the page drew it
+  NOWHERE: the only door it ever had was the RECENT drawer, and she took the
+  outputs out of there the same day it shipped ("recents is recent UPLOADED"),
+  so for a day every clip carried a picture with no way to see it — the "?"
+  card still pointed at the drawer, which is how it stayed invisible. Now it is
+  a small tile in the card's own picture row, **beside the references rather
+  than under them** (her word: "next to the references" — one grid, so it takes
+  the next free column and the card is no taller); tapping it opens it big in
+  the clip's own player, with a **save** that goes to Photos through the same
+  three-path ladder the clip's does. Its label says **`last frame · whole
+  clip`** on a TRIMMED clip, because the frame is the end of what the DOOR drew
+  and not the end of the part she kept — the one thing worth knowing before
+  chaining off it. A clip that went out through another door has none and shows
+  no tile at all (the Assets tab's silence rule). **CHAINING FROM IT IS STILL
+  SAVE-AND-RE-ATTACH — there is no "use this as a reference" button, and that
+  is hers to ask for.** Off by default still for any other caller:
+  `returnLastFrame: true` is what asks. Full numbers:
+  *`return_last_frame`* in `docs/modules/audio-and-film.md`; test
+  `node scripts/test-atlas-lastframe.js`. **AND IT WAS THE FOOTAGE PAGE'S ONLY DOOR
+  FROM THAT EVENING TO 2026-09-11 (Sophie: "make atlas the default and only
+  route through footage")** — it rode for an afternoon as its own "2.0 Mini ·
+  Atlas" row, then every 2.x row carried an Atlas id and the page pinned
+  `door:'atlascloud'`. **SUPERSEDED 2026-09-11 by "choose cheapest"**: auto
+  ranks the three doors by what the tap really costs, which keeps Mini and
+  Fast on Atlas (its 80%/70% sale) and moves 2.0 and 2.5 to OpenRouter (only
+  20% off there) — so a 2.0 or 2.5 clip gets NO last frame, since that rides
+  on Atlas alone. Full note: *ATLAS CLOUD — THE THIRD DOOR* in
+  `docs/modules/audio-and-film.md`.
+  The "go" rule applies word for word.** Likeliest
+  reading of APIFRAME's looseness is a Runway-style backend rather than a
+  ByteDance key — unmeasured; APIFRAME calls itself an "official partner"
+  and says nothing about faces. Whether any of those doors also skip the
+  OUTPUT copyright gate (the Radcliffe failure) is unmeasured everywhere.
+  **PRICED THE SAME DAY (Sophie: "check on the pricing compared to
+  OpenRouter, APIFRAME and ByteDance itself"), one 4s 480p 3:4 clip, no
+  reference video, off each vendor's own price page:** BytePlus direct and
+  OpenRouter share ByteDance's per-token list (OpenRouter's `orTok` IS the
+  SKU) — Mini 14¢ · Fast 17¢ · 2.0 28¢ · 2.5 ~43¢ (2.0/Fast/2.5 canvases
+  unmeasured) — **but OpenRouter is NOT the same price: its card fee is 5.5%
+  ($0.80 minimum) on every top-up, 5% by crypto, so a job costs list × 1.055
+  (Sophie's correction, 2026-09-09; this line first said "~5%" and "the same
+  list").** Measured the same hour: OpenRouter's `pricing.discount` on every
+  Seedance model reads **0**, and both of the day's `/footage` Mini jobs
+  billed $0.1396 — full list. **Atlas Cloud's "-80%" Mini banner is
+  UNVERIFIED and probably stale**: its own deal pages date the Seedance sale
+  window to "May 7, 2026, 23:59 UTC" and "June 15", its June Mini post says
+  $0.056/s with no sale, and its lowest-price page stacks a TOP-UP bonus
+  (up to +30% credit at $50,000) into the headline. At its undiscounted
+  $0.056/s Atlas is 22¢ for the 4s Mini clip — DEARER than OpenRouter — and
+  only 4.4¢ if the banner is real; a real charge needs an account and is
+  hers. Same face filter either way. APIFRAME: Mini ~16¢ · Fast 28¢
+  · 2.0 32¢ · 2.5 52¢. The doors that take a real photo are all dearer:
+  PiAPI less-restriction Mini 31¢ · 2.0 44¢ · 2.5 66¢ (a +10% markup, AND
+  the face still has to go through its asset library with the person
+  verified — the official route with a fee on it, not a loose door); EvoLink
+  2.0 37¢ · Fast 30¢ (no Mini); Runway Mini 64¢ (16¢/s with a 64-credit
+  minimum) · 2.0 $1.44 · 2.5 80¢ minimum (20¢/s plus 10¢ per second of input
+  video). So APIFRAME stays the cheapest door for a reference with a person
+  in it by 2-4x; for a person-free job OpenRouter at list + 5.5% is the
+  measured floor, and Atlas Cloud only beats it if its banner discount is
+  real.
+The "go" rule above applies to both doors word for word. A no-video job
+sent to APIFRAME is not wrong, it is 16% dearer. Full note: *OpenRouter for
+Seedance* in `docs/modules/audio-and-film.md`.
+
+**AND A REFERENCE IS NEVER DESCRIBED IN THE PROMPT (2026-09-08, Sophie:
+"never describe what's in an image").** A person or thing that rides as a
+reference is named by its slot and nothing more — `her mother is the woman in
+[Image1].` — no hair, no clothes, no age. The words argue with the picture
+and the picture is the point. Describe only what NO reference carries. And
+the shot is named plainly: `camera at eye level` when she wants a normal shot
+(her words: "not from the bottom").
+
+**AND EVERY CLIP'S EXACT PROMPT AND EVERY REFERENCE IS LOGGED, BY THE
+SERVER, THE MOMENT IT IS SENT (2026-09-07, Sophie: "you're saving every
+single exact prompt, including the reference … eventually we will redo all
+this footage at 1080p once it's perfect and we need the prompts and the
+references").** `POST /api/apiframe/video` files `forge-video-jobs/<jobId>`
+— the literal prompt, the model, the exact `seedanceParams` sent (duration,
+resolution, aspect, audio, every reference url), plus `chat`/`scene`/`title`
+when the caller sends them (SEND THEM — a log with no scene on it is a list
+of prompts nobody can put back on the map). The poll fills in the outcome
+and the clip's permanent url; `GET /api/apiframe/video-log?chat=` is the
+read. `video-log.js` is the shape. **A clip drawn outside the route, or made
+before this landed, is filed with `node scripts/apiframe-video-log-backfill.js
+--chat <slug> <jobId>:<scene>:<title>…` (`--file jobs.json` for a batch;
+reads the job back from APIFRAME, so nothing is reconstructed).** APIFRAME
+has no job-list endpoint, so a job id a chat did not keep is gone with its
+container — the ward chat's earlier clips are only recoverable from that
+chat's own `af-*-job.json` files. Test: `node scripts/test-video-log.js`.
 
 **Animating a still or generating a clip (Seedance, Wan, Kling, any model)**
 - **MINIMUM SECONDS UNLESS SHE SPECIFIES, and ASK BEFORE SPENDING THE
@@ -1221,6 +1622,33 @@ them off the reference sheet, not off the old filenames.
   `test-chats-viewer-escape`); a new one needs the same, or a message from her
   between the fillers. Test: `node scripts/test-chats-dribble-merge.js`
   (verified failing against the pre-merge page).
+  **AND EACH REPLY IN A RUN FOLDS ON ITS OWN (2026-09-11, Sophie: "messages w
+  two replies - make it so i can collapse each reply individually").** Nothing
+  above changed: a run is still ONE message with every part open, in the order
+  it was written — her 2026-09-02 correction stands and the parts are never
+  hidden until she taps one. What was missing is that four long turns are four
+  long turns of scrolling with no way to put any of them away. **THE HEADING IS
+  THE FOLD** — the part's own small time line, the whole of it, not a caret to
+  hit (the pinned heading's rule, and judge.js's piles before it) — so
+  `.m-partt` is a `<button>` wearing the class it already had. Four things not
+  to undo: **shut, the part shows its first line beside its time** (a column of
+  bare timestamps is a message she has to reopen to identify, and it is the
+  same line `.m-preview` leads the row with); the tap **stops propagation**,
+  because a tap on `.m-full` toggles the reading-aid autoscroll and pre-fix a
+  tap on that time line really did start the page walking (MEASURED, 72px in a
+  second); **the fold survives a repaint** — `partShut` is a module-level map
+  keyed by the part's own message id, since the thread rebuilds on every poll
+  and a fold living on the node alone springs open seconds later (the Story
+  Room caption's own bug); and it is **MEMORY, never localStorage** — a
+  reload opens everything, which is the safe direction, and this is how she is
+  reading the thread right now rather than a setting. A jump to a folded turn
+  OPENS it (`focusMessage` — landing on a collapsed reply is landing on
+  nothing), and a message that is not a run carries no fold at all. Test:
+  `node scripts/test-chats-part-fold.js` (the real page headless — every
+  assertion a MEASUREMENT, since a heading with the right markup that folds
+  nothing, a fold whose CSS never landed, one that springs open on the next
+  poll, and a tap that also starts the autoscroll all look identical in the
+  source; verified failing 11 pre-fix).
 - **A REPLY CAN BE BLOCKED BY THE SANDBOX EGRESS FILTER, and the symptom is a
   reply stuck as its partial draft (found live 2026-08-10).** The cloud
   environment's proxy scores outbound POST bodies and answered one with a 403
@@ -1784,6 +2212,30 @@ them off the reference sheet, not off the old filenames.
     `POST /page/:id/bookmark`) take `note`, `tags`, `level` and `read`, and
     carry no keep-flag unless one is sent — so tagging can never un-keep a
     thing, naming one can never drop its tags, and a tick can never do either.
+- **A BLOCK IN THE THREAD THAT COST NO OUTPUT TOKENS — `node
+  scripts/chat-block.js post --chat <slug> --file scene.txt` (2026-09-08,
+  Sophie: "could chats put an editable text block inserted into their chat,
+  but NOT as output tokens").** A run of `> ` lines in a message is already
+  ONE editable block with a pencil (`quoteBlocks`, 2026-09-07; her edit lives
+  on the message doc under `blockedits[key]`, 4000 chars, autosaved). What was
+  missing was putting one there without the model WRITING it. The script
+  reads a FILE — a scene from the repo, a prompt, her own words back to her —
+  quotes it and POSTs it through the ordinary feed route, so the bytes go disk
+  → server and never through the model: nothing to post, verbatim by
+  construction. `read --chat <slug>` prints every block with her edit where
+  she made one (`--out file` writes the newest), which is how a chat gets her
+  version back for the cheap input price. **THE BLOCK IS NOT PART OF THE
+  CONVERSATION — that is the whole point (her words, the same hour: "so they
+  don't have to read it back every turn").** When she edits one, the thread
+  gets ONE LINE as her message, `Block <msgId>/<key> "…" was edited`, never
+  the text; a chat that sees that line runs `read --id <msgId> --key <key>`
+  and reads the words once, when it wants them. Three things: it is its OWN message
+  (a separate doc, never inside the hook's reply — a run of the chat's rows
+  merges on the page, so it still reads in place); a blank line rides as a
+  bare `>` so the scene stays one block; and a file over the edit cap is
+  REFUSED rather than posted as a block she could not save whole (split it,
+  or post a Compare page). The key it prints is the page's own `tickKey`,
+  pinned equal by `node scripts/test-chat-block.js`.
 - **A LIST IN A REPLY WEARS A BOX ON EVERY ITEM, AND THE BOX HAS THREE STOPS
   (2026-09-03, Sophie: "could message lists automatically have a tick in the
   app" · 2026-09-04: "do a three way toggle so two press is an x three press
@@ -1792,7 +2244,7 @@ them off the reference sheet, not off the old filenames.
   bold-led paragraphs draws a box at the head of each item (`tickList` in
   chats.html). One press ticks (red), two crosses out (the dislike badge's
   grey, the item struck), three opens a NOTE BOX under the item, four clears.
-  A press CYCLES here on purpose — a 19px box has nothing to aim at, unlike
+  A press CYCLES here on purpose — the box has nothing to aim at, unlike
   the three-way TRACK the house rule forbids cycling on. The state is
   `ticks[key]` on the MESSAGE doc (`true` · `'x'` · `'note'`, keyed by a hash
   of the item's words), `POST /api/chatfeed/tick {id, key, state, note?, to?}`.
@@ -1813,6 +2265,33 @@ them off the reference sheet, not off the old filenames.
     and `msgId` + `key`. **Answer it ON THE NOTE**, the picture-note rule:
     `POST /api/chatfeed/tick/reply {id: msgId, key, text}` — it reads back
     under her note in the app. A just-for-me note is in no inbox.
+  - **THE WORDS OF A LIST ITEM ARE STILL THE PAGE — ONLY A NEAR MISS IS
+    EXEMPT (2026-09-11, Sophie: "tapping chats no longer scrolls screen -
+    only pill").** The 09-09 fix below took the whole item — its words
+    included — off the tap gesture, and a reply here is mostly list items (a
+    markdown list of 2+, or 3+ bold-led paragraphs, both wrap every item's
+    words in `.mtitem`), so there was nothing left on most replies to tap.
+    `tickNearMiss` is the rule now: a tap inside the first 16px of the item's
+    own first line, right beside the box (whose invisible hit area already
+    reaches ~5px into the gap), is the tap she aimed at the box and moves
+    nothing; anything further along the words toggles the reading-aid like
+    prose. The saved note and the open note box stay off the gesture. Pinned
+    by `node scripts/test-chats-list-ticks.js` (a near miss MEASURED still,
+    the words MEASURED moving).
+  - **THE TARGET IS BIGGER THAN THE BOX, AND A MISS NEVER MOVES THE PAGE
+    (2026-09-09, Sophie: "can you make the targets for the message X checklist
+    bigger or make it so it doesn't also scroll the page").** Both halves,
+    because they are one complaint: the box was 19px in a line of 16.5px
+    prose — a **20×20 tap area, measured** — and a MISS landed on `.m-full`,
+    whose tap toggles the autoscroll, so missing set the page moving under her
+    thumb (measured: 54px on one tap). The box is 22px and carries an
+    INVISIBLE hit area around it (`.mtick::before`) — **38×30 now** — which
+    buys the size without making the mark heavier or moving a line of her
+    words; it reaches LEFT into the indent and only ~5px right, so the words
+    stay the words, and its vertical reach is held inside the line box so two
+    boxes in a run never fight over the same pixel. The whole item — its
+    words, its saved note, its open note box — is off the tap gesture beside
+    `pre`/`code`; the rest of the message still toggles.
   - **The words live in `ticknotes[key]`, a SEPARATE map**, so cycling the box
     past the note stop never deletes a sentence she wrote; the box ships
     EMPTY. `forge-item-notes` is the inbox's copy (`node
@@ -1937,6 +2416,40 @@ them off the reference sheet, not off the old filenames.
   - Tests: `node scripts/test-filmshots.js` (the map, the join and the
     detector's refusals — pure) and `node scripts/test-film-prompt.js` (the
     real page + the real filmnote.js, headless).
+- **THE FILM WEARS OUR OWN TRANSPORT — `/filmbar.js`, and that is what ended
+  the TINT (2026-09-10, Sophie: "the way a movie tints when it starts" · "how
+  hard would that be?" · "go").** The grey wash over a film the moment it
+  starts is **iOS's own controls overlay**, painted over any
+  `<video controls>` — nothing in this repo draws it, and there is no flag
+  that keeps the controls and loses the wash. So the film drops native
+  `controls` and `window.__filmBar({wrap, video})` draws the bar: play/pause,
+  the elapsed and total time, and a strip that seeks. Two players carry it —
+  the Chats app's PINNED FILM and compare.js's VIDEO LIGHTBOX.
+  - **WHAT IT COSTS, named:** AirPlay, picture-in-picture and the native
+    fullscreen button are gone with the overlay. **An AUDIO pin keeps native
+    controls** — there is no picture to tint.
+  - **THE SCRIM WORKAROUND IS DELETED, NOT DISABLED** — `SCRIM_MS`,
+    `scrimAt`, `scrimMs()` and the 64px "scrub bar exemption" band in
+    `filmnote.js` all existed ONLY to coexist with an overlay no API reports.
+    The exemption is now `e.target !== v`: the bar is a SIBLING of the video,
+    so a tap on it simply is not a tap on the film. Not a rule to bring back.
+  - **THE BAR IS ALWAYS ON SCREEN, deliberately.** A bar that fades
+    reintroduces the exact tap ambiguity the scrim code papered over — a tap
+    on a control that is not there yet.
+  - **THE TRANSPORT IS THE FOOTAGE TRIMMER'S, LIFTED** — a 34px band around a
+    6px bar (the `.mtick` rule: the band is the target, the bar is the
+    picture), the fraction measured off the BAR's own rect, `‹ ›`-free because
+    she is watching rather than marking. Unlike the trimmer a strip tap does
+    NOT pause: nothing here is being marked.
+  - **`destroy()` removes every listener** — compare.js reuses one
+    `.cmp-vlb` wrap across opens, so a leak there is a bar per film.
+  - **compare.js loads the module and only falls back to `controls` if the
+    fetch fails** — a Compare page's film with no chat gets no filmnote, so
+    the bar cannot ride on that load.
+  - Tests: the transport section of `node scripts/test-chats-film-note.js`
+    (the real page headless — the film asserted to carry NO `controls`, the
+    bar's play really toggling, and a strip tap MEASURED as `currentTime`
+    landing in the middle of the clip).
 - **A SECOND, UNRELATED PIN — the PUSHPIN keeps a CHAT at the top of her list
   (Aug 2026, Sophie: "an option to pin chat to the top so they always show
   first when they come out of hiding and they never disappeared to the bottom
@@ -2795,10 +3308,32 @@ them off the reference sheet, not off the old filenames.
 - **Naming a chat: the Chats app is the source of truth (July 2026).** Sophie
   renames a chat with the pencil in its thread header; that writes `displayName`
   on the registry doc and is the name she sees everywhere. **The Claude app's own
-  session title cannot be synced** — nothing exposes a session's title to the
-  outside and nothing can push a rename back into claude.ai (checked July 2026,
-  no API and no MCP tool for it), so the two names are separate by necessity and
-  hers wins. A chat reads what she calls it with
+  session title CAN BE READ, one direction only — the July 2026 claim that
+  "nothing exposes a session's title" is STALE (re-measured 2026-09-08:
+  `list_sessions` answers a `title` per session, and her renames are in it).
+  So a rename she makes in the Claude app CAN be mirrored into Deck Factory;
+  nothing can push one the other way, and hers wins either way.
+  **Mirroring one: `list_sessions {mine:true, limit:100}` → id + title, join to
+  the registry through each chat's `url` (`session_…`), and rename with
+  `POST /api/chatfeed/rename {chat, name}`. TWO RULES.** (1) **Most titles are
+  the HARNESS's auto-title, not a rename** — it writes one from her first
+  message, so it near-twins the branch slug ("playground-back-to-top" →
+  "Back to top button in Playground"). Measured 2026-09-08 over 96 account-3
+  chats: 74 titles differ from the Deck Factory name and only **5** share no
+  words with the slug. Word overlap against the slug is the tell — a rename of
+  hers is short, lowercase and unrelated ("tape montage", "ms o hara",
+  "stills"); mirroring all 74 would rename her whole app with machine
+  sentences. (2) **A session's title is only listable from its OWN account** —
+  an account-3 chat cannot read an account-1 session — so a sweep covers one
+  account and must say so. (3) **NEVER write over a `displayName` she already
+  set, and judge "recent" by `startedAt`, not by `lastSeen`** (2026-09-08,
+  Sophie: "oops no just from today · undo others"). Two registry docs can
+  point at ONE session — a re-bound or forked thread — so a title lands on
+  both, and the older doc is the one carrying a name of hers: the sweep
+  renamed a chat started two days earlier from her own `seedance` to today's
+  title. Rename only the docs whose `startedAt` is inside the window you were
+  asked for, leave a doc that already has her name alone, and name it in the
+  reply instead. A chat reads what she calls it with
   `GET /api/chatfeed/name?chat=<slug>&session=<your session id>` →
   `{ chat, displayName, name }` — ALWAYS pass `session` (the
   `CLAUDE_CODE_REMOTE_SESSION_ID` without `cse_`): the returned `chat` is your
@@ -2806,6 +3341,22 @@ them off the reference sheet, not off the old filenames.
   the branch slug), and that's the slug to use for pages, asset prompts,
   notes, and any other chat-keyed POST. Renaming is cosmetic and never re-keys
   a chat's history.
+- **THE OPEN BUTTON'S LINK IS THE OWNER'S, AND IT WAS NOT GUARDED (2026-09-08,
+  Sophie: "that's a bug, right?").** `sessionId` on a registry doc is the
+  chat's OWNER and `resolveChat` guards it; `url` — the orange Open button —
+  was written from whatever posted, unchecked, so the two could disagree and
+  the button opened SOMEONE ELSE'S Claude session. Found live on
+  `severance-api-multiple-frames`: all 872 of its messages are from session
+  `018fYFNh…` while its url pointed at `01XwF5s…`. **Scope measured before
+  anything was changed: 1 of 870 chats** — repaired by hand (there is no route
+  that writes `url`, so a repair needs the Admin SDK). `keepsDeepLink` in
+  `chatfeed.js` is the rule now — an unowned chat takes the poster's link, an
+  owner keeps its own, and a post naming no session may not move one. The
+  shape that does it is a post that skips session-first resolution (an
+  explicit `FORGE_CHAT`, or a draft whose final post re-patched its `chat` and
+  left the crumb behind). **`reg.account` has the same unguarded shape and was
+  deliberately left alone** — a wrong account is a filing label, not a broken
+  door. Test: `node scripts/test-chat-deeplink-owner.js`.
 - **Assets curation (♥/✕ + notes, July 2026):** Sophie hearts/rejects images
   in a chat's Assets tab (tiles AND the lightbox), and the lightbox has a note
   box (under the image) she can send per image. Votes + notes live in
@@ -3473,6 +4024,25 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   `window.__compareNotes({chat, sheet})`, one line. Answer her on the note
   itself; it renders as a thread. Never post to `/api/chatfeed/reply` from a
   page — the server reroutes it onto the page's verdict doc.
+- **AN ITEM'S `text` ON THE VERDICT DOC IS ITS NOTE THREAD — A PAGE'S OWN
+  TEXT NEVER SHARES THE data-item KEY (2026-09-07, Sophie: "the whole point
+  was my edit" · "audit elsewhere to see if it happens or could happen
+  anywhere else").** A b-roll page saved each scene's editable text under its
+  item id, the slot `__compareNotes` writes to; her "go" note replaced the
+  scene edit she had just made, and the chat — having read "— me: go" in the
+  slot — sent its own draft anyway, $1.20 of her money on words she had not
+  approved. Own text rides its own key (`<id>.t`, `ord-<id>`) or its own
+  sheet. Audited the same hour: every other page in the repo and all 24
+  posted pages that write their own text already do (the dominoes games,
+  the Evan running orders, the timelines, Head Games, the shoebox timing) —
+  none clashed. Three things now: `POST /page` warns on the shape (a bare
+  `item:` beside `text:` on a page that wires notes), the verdict route
+  keeps the text it writes over as `textsWas[item]` (`verdict-text.js`,
+  read back on `GET /verdict`) so this class is recoverable once, and the
+  shell says the rule. And the rule under the rule: **a "go" is a go for the
+  text SHE approved — when the slot she edited reads as anything but her
+  words, stop and ask, never send the draft.** Tests:
+  `node scripts/test-verdict-text.js`, `node scripts/test-page-kit-warnings.js`.
 - **A new VERSION is a NEW page**, never an edit of the old one, and the title
   says which version it is. Supersede the one it replaces
   (`POST /page/:id/supersede`) instead of deleting it. A verdict sheet's name
@@ -3480,6 +4050,61 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   re-points her saved answers at different content.
 - **`POST /page` answers `warnings`** when a page skips the kit. If yours comes
   back with one, fix the page and re-post before you finish the turn.
+- **A FIX TO A PAGE BUILDER REACHES NOTHING ALREADY POSTED — SWEEP THE LIVE
+  PAGES (2026-09-08, Sophie: "are chats importing wrong versions · check every
+  version · see maybe some even have additional features i asked for that
+  didn't reach all of them").** A posted page is FROZEN, and a builder is
+  COPIED by the next chat that wants one — so a fix lands in one copy and the
+  other four go on shipping the bug. Measured that morning across her five
+  live belt pages: the read-back saver written the day before ("a stupid error
+  that's gonna lose my edits") was on two of them, and **three pages she types
+  her scenes into were still slicing every save to 1,900 characters** — the
+  main belt among them. The whole drift matrix, feature by feature, is in
+  `docs/mental-hospital/belt/VERSIONS.md`.
+  - **REPAIR THE LIVE PAGE, DON'T REBUILD IT.** Rebuilding from the repo
+    loses whatever the owning chat has in its own container: measured against
+    the live belt v9, a rebuild dropped 9 stills, a video and seven of her
+    reference-line edits. `scripts/fix-belt-truncation.js` patches the POSTED
+    html — byte for byte, only the saver swapped — re-posts it as the next
+    version and supersedes the old (dry by default; `--file` does a committed
+    snapshot in place). Her edits live on the verdict sheet and never move.
+  - **NOTHING MAY CUT HER WORDS ON THE WAY OUT**, ever: over the limit the box
+    REFUSES and says by how much, and every save is read back off the sheet.
+    `node scripts/test-belt-save-guard.js` sweeps every page builder in the
+    repo and fails on a truncating save, so the next copy cannot lose the fix
+    quietly.
+  - **The features a patch cannot carry** (a box that is not in the markup —
+    the redo-notes fold, the model's-pick seconds) stay for the owning chat's
+    next build. Name them rather than half-porting them.
+  - **AND THE SCENES-INDEX PAGES ABOVE THE BELTS DRIFTED THE SAME WAY — THE
+    ANSWER IS A SERVED FILE, `public/scene-index.js` (2026-09-10, Sophie: "add
+    send to footage button · and chapter buttons etc · so light blue ward,
+    nautch and ticky tack all have all features").** A scenes index is the wall
+    of little 3-D keys — one key a scene, a tap opening that scene's card on
+    its belt page — and there are three (the ward film in light blue, the
+    Nautchaug Boyfriend's in beige, Ticky Tack in red). Measured on the live
+    html: the **Send-to-Footage key** was on the ward only, the **chapter rail**
+    and **folding a chapter away** on the nautch only, and Ticky Tack had
+    neither. So the three behaviours moved into ONE SERVED FILE and a page opts
+    in with one line after `/compare.js` —
+    `<script src="/scene-index.js"></script>` — which is what makes the NEXT fix
+    reach all three the day it deploys, with nothing re-posted. It reads the
+    markup all three already share (`.grid`, `.ep` headings, a tile whose href
+    is `/api/chatfeed/page/<belt>#j-<key>`) and **builds only the halves that
+    page does not already have**, so it can be added to a live page without
+    taking anything away. **The belt names itself** — every belt page carries
+    `var CHAT='…', SHEET='…'` — so the hand-off needs no map, and it is HER
+    EDIT that rides: the posted html holds the words as the chat wrote them and
+    the verdict sheet holds what she has typed since, which is what the key
+    reads. `scripts/level-scene-pages.js` added the line to the four live page
+    docs (the nautch page is posted into two chats) the same way
+    `fix-belt-truncation.js` does — the posted html, byte for byte, re-posted
+    and superseded, **never rebuilt**. Full matrix and the three measurements
+    behind it (the keys go on BEFORE the fold; a page with its own fold hides
+    the tile, so `.cell:has(> .b.hid)` follows it down; a 56px rail key holds
+    about one word, so a long phrase is boiled down to its longest word) are in
+    `docs/mental-hospital/belt/VERSIONS.md`. Test:
+    `node scripts/test-scene-index.js` (`--live` also checks the posted pages).
 - **Picking spans of a recording is `public/picker-shell.html` +
   `window.__cutPicker`** — required, not optional. Four chats hand-rolled their
   own in one week and each re-shipped the same bugs.
@@ -3987,7 +4612,15 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   `docs/design-rules.md`, pinned by `node scripts/test-back-to-top.js`.
   **Its twin, TO THE BOTTOM, sits under it since 2026-09-03** (Sophie: "add a
   scroll to bottom arrow playground") — `#pbot`, lit while there is page
-  below, injected pill only; `node scripts/test-scroll-to-bottom.js`.
+  below; `node scripts/test-scroll-to-bottom.js`. **It was the INJECTED pill's
+  alone until 2026-09-13 (Sophie, on a Compare page in the app: "why is there
+  no scroll to bottom arrow")** — a page opened in the app runs in an IFRAME
+  and the pill she taps there is `mkPagePill`'s, the parent's copy, which had
+  grown the back-to-top in Aug 2026 and never this one. So the jump existed on
+  every page except inside the app, which is where she reads them. It is
+  `.pbot` there (class only — chats.html's own pill owns the ids), the scroller
+  learned an `end()` beside its `home()`, and one `syncTop` lights both off the
+  same 150. Pinned by `node scripts/test-page-viewer-pill.js`.
   - **"IT'S NOT THERE" CAN MEAN THE PAGE IS OLD, NOT THAT THE ARROW IS
     MISSING (2026-08-27, Sophie about the Playground, twice).** Measured that
     hour before changing anything: the bytes Render answers with carry the
@@ -4032,6 +4665,24 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     box move and the back-to-top would stay dark. Test:
     `node scripts/test-page-viewer-piles.js` (the real `mkPagePill` over the
     real rendered deck template in a real iframe; verified failing 3 pre-fix).
+  - **A LINK FROM ONE SERVED PAGE TO ANOTHER STAYS AN EMBED — THAT WAS THE
+    DOUBLE PILL (2026-09-11, Sophie: "pill is double pill in some places · it
+    was in light blue 3d button ward etc · y dies that happen always").** The
+    viewer opens a page at `?embed=1` (no injected pill; `mkPagePill` in the
+    parent drives the frame), and its click interceptor let a link to
+    `/api/chatfeed/page/<x>` load in place AS WRITTEN — a scenes-index key is
+    `/api/chatfeed/page/<belt>#j-<key>`, no embed — so the server dressed the
+    belt for a browser and pill-inject ran INSIDE the frame under the
+    viewer's own pill. Every page-to-page link did it, which is her
+    "always". Two nets in `openPage` (chats.html): the click is rewritten
+    onto the embed url with the hash kept (a hash-only hop on the page she is
+    on is made on the frame's own url, no reload), and the load handler,
+    finding `#vtop` in the frame anyway (a script navigation, an old cached
+    page), stops the frame's scroller and HIDES its capsule with an
+    `!important` stylesheet — never a removal, the injected script keeps
+    painting those nodes — and blanks its hooks; the bar retitles to the page
+    she is on. Test: `node scripts/test-chats-viewer-page-link.js` (verified
+    failing 7 pre-fix).
   - **A RESUME GOES DOWN — SHE REVERTED THE `dir` VERSION (2026-08-26, Sophie:
     "it used to go down after I stopped it even if it was going up before. now
     it doesn't seem to do that" → "can you just revert that one change for the
@@ -4073,6 +4724,18 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     never scrolls) and `.movie` while the Story Room is pushed inside it.
     **The fix ships with a TestFlight build, not a deploy** — until she
     installs one, the five above still show two.
+  - **`.ptop` IS THE PILL'S OWN CLASS AND IT IS GLOBAL AND UNSCOPED — A PAGE
+    THAT NAMES SOMETHING `.ptop` GETS A CREAM 38px CIRCLE (measured 2026-09-11
+    on `/footage`).** Its back-to-top button is styled as a bare `.ptop{}` rule
+    in `pill-inject.html`, so the Footage player's own top row — `.ptop`, a
+    full-width strip holding the ✕ — drew as a **cream ellipse across the
+    screen behind the ✕ on every clip she opened**. The page's own
+    `#player .ptop` rule out-specified the width and the display and said
+    nothing about the paint, so nothing on either side was wrong to look at:
+    only a reading of the COMPUTED background found it, and no assertion about
+    that row had ever looked. The row is `.pbar` now. **PHOTOGRAPH a page that
+    injects the pill, and don't name anything `.ptop`, `.float`, `.vseg` or
+    `#spd`.**
   - **The app's copy has no `id="ptop"` on purpose** — `chats.html`'s own pill
     owns that id and the sweep above counts exactly one per file; the viewer's
     button is `class="ptop"` only.
@@ -4164,6 +4827,563 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   page renders perfectly either way. Test:
   `node scripts/test-grid-oneup-tour.js` (the real grid.js, the tour opened,
   the words read off the screen; verified failing 2 pre-fix).
+- **THE CARET STAYS WHERE SHE CAN SEE IT — `/caretkeep.js`, ONE FILE, EVERY
+  PAGE (2026-09-08, Sophie editing a scene on the soap belt: "when i edit the
+  text, the scroll position moves, so the cursor is under the textbox").**
+  Every box she writes in is fitted to its own words and never scrolls itself
+  (the Playground's bigger box, the belt's `fit`, the Chats app's script-block
+  editor) — which is right for reading and is exactly what loses the caret: a
+  2,000-character scene is a 1,500px-tall textarea, so WebKit scrolls the TOP
+  of the box into view and the line she is typing sits under the keyboard,
+  with nothing on screen saying why. Measured on her real soap page at 390x844
+  with an iPhone 13's keyboard: the caret at the end of the scene sat at y=805
+  under a keyboard starting at 430; with the keeper it lands at 380-404, just
+  above it.
+  - **IT ONLY EVER CORRECTS** — a caret already in the band moves nothing, and
+    it never fires on a scroll event (that is her finger).
+  - **THE WINDOW, NEVER `scrollIntoView`** — that walks every scrollable
+    ancestor, and a belt card lives in a horizontally snapping deck, so one
+    call would page her to another scene. The nearest box that really scrolls
+    wins, else the window; a fixed sheet with nothing scrollable is left alone.
+  - **THE CARET IS MEASURED**, in a hidden mirror wearing the box's own font,
+    padding, border and width — counting characters is wrong on the first
+    wrapped line.
+  - **AT THE END OF A SCENE THE PAGE BORROWS THE ROOM IT IS SHORT OF**
+    (padding on the scrolling element, given back when the keyboard goes):
+    below the last line there is only the card's padding, so without it the
+    one place she types most cannot be lifted over the keyboard at all.
+  - **AND THE KEYBOARD IS NOT THE ONLY THING COVERING THE BOTTOM OF THE BAND
+    — A PINNED BUTTON IS TOO (2026-09-13, Sophie's screenshot of a footage
+    block: the ✕, the divide and the bigger-box buttons sitting ON the line
+    she was writing, with "appearing on" unreadable behind them).**
+    `stickybox.js` floats a tall box's corner buttons at the bottom of
+    caretkeep's band — it ASKS caretkeep for it — and caretkeep lifts the
+    caret line to the bottom of that same band, so the two landed on each
+    other on every surface that carries both. MEASURED on the real footage
+    page with the keyboard up: caret line 382–404, the pinned buttons
+    372–398, `elementFromPoint` on the caret's own line answering the divide
+    button, and **90 of 90 keystrokes** at the end of a scene typed under a
+    control. Now `caretBand(el)` is the caret's own band — the visible one
+    minus anything pinned over that box's column — and the two stack: the
+    caret sits above the buttons, and at the END of a scene that lift brings
+    the buttons' own corner back into view so they let go entirely. Three
+    things not to undo: **`band()` itself is NOT narrowed** (stickybox reads
+    it to decide where to pin, and a band that moved under it would ratchet
+    the buttons up the screen a row per pass — that is why this is a second
+    function rather than an edit to the first); **only a control in the
+    BOX'S OWN COLUMN narrows it**, since a button floating elsewhere covers
+    none of her words; and **stickybox tells the keeper when the pinned row
+    MOVES** (`nudgeCaret`), because a button that pins in this pass lands on
+    a line the keeper had already decided was safe — measured, without it a
+    new line at the end of a scene left the caret 16px under the divide
+    button until something else happened, and an unchanged row says nothing,
+    which is what ends the loop.
+  - **compare.js loads it on the first focus**, so every Compare page ever
+    posted has it with nothing re-posted; chats.html, the Playground, the
+    Story Room, Freeform, Voice Studio and the Story Timeline link it. A new
+    page with a box she writes in adds the one line. `data-nocaret` opts a box
+    out. Tests: `node scripts/test-caret-keep.js` (the real belt shape headless
+    — the caret measured against a stubbed keyboard, the deck proved not to
+    have moved, and a caret already in view proved to move nothing) and
+    `node scripts/test-caret-under-button.js` (the real footage page — every
+    assertion a MEASUREMENT, since a caret lifted to the right number and one
+    lifted onto a button look identical in the source; every keystroke and
+    every new line counted rather than one settled reading, and the buttons
+    proved still pinned and still tappable mid-scene; verified failing 7
+    pre-fix).
+- **THE WAY OUT OF A BIG BOX STAYS ON SCREEN — `/stickybox.js`, ONE FILE,
+  EVERY PAGE (2026-09-10, Sophie: "can we get a floating or sticky/pinned
+  contract button for text boxes esp in footage so i can close with out having
+  to scroll all the way down").** The corner toggle that opens a box is the
+  same one that closes it and it lives in the box's BOTTOM-RIGHT corner — so
+  the taller the box, the further the way out is from where she is standing.
+  On `/footage`, where the big box has no ceiling at all (2026-09-10, "text
+  box doesn't extend enough"), a 70-line scene put the contract button
+  **1,649px down an 844px screen — measured on the real page** — so closing it
+  meant scrolling the whole scene first. A marked button pins itself to the
+  bottom of what she can actually see; the page's own toggle is untouched, so
+  the same tap still means expand or contract.
+  - **IT ONLY EVER CORRECTS.** While the button's own corner is on screen it
+    is not touched at all, so a short box behaves exactly as it did — and it
+    lets go the moment the corner is reachable again, and again once she has
+    scrolled PAST the box, since a control floating over a page whose box is
+    nowhere near it is worse than one she has to scroll to.
+  - **THE VISIBLE BAND IS caretkeep's**, when caretkeep is on the page — one
+    definition of what the keyboard is covering rather than two, and it
+    carries the blind-keyboard guess for the web views that never report
+    `visualViewport`. Without it: visualViewport, else the window. **It must
+    stay `band()` and never `caretBand()`** — the keeper's own band is
+    narrowed by whatever is pinned, so asking for that one here would walk
+    these buttons up the screen a row per pass (2026-09-13; the caret half
+    of that fix is the bullet above, and every move here tells the keeper).
+  - **IT STAYS INSIDE ITS OWN REGION.** A box inside a sheet or any other
+    scroller pins to the bottom of THAT box, never to the bottom of the
+    screen, so a Story Room caption's button can never float below the card it
+    belongs to.
+  - **AND WHERE `position:fixed` WOULD NOT MEAN THE VIEWPORT IT DOES
+    NOTHING** — an ancestor carrying a transform, a filter or `will-change`
+    makes itself the containing block for a fixed child, so the arithmetic
+    would put the button somewhere arbitrary. Bailing leaves the page exactly
+    as it is today, which is the safe direction.
+  - **IT KEEPS THE BUTTON'S OWN COLUMN** (footage's 56px in from the box's
+    right edge, the injected pill's reservation) rather than hugging the box's
+    corner: nothing jumps sideways as it pins, and a pinned button can never
+    land in the pill's rail on a short viewport.
+  - **CLOSING FROM A PINNED BUTTON BRINGS THE BOX BACK WITH HER** — she is
+    standing at the bottom of a box whose top is a screen above, and shrinking
+    it would otherwise leave her looking at whatever was underneath. The
+    WINDOW only, never `scrollIntoView` (the caret keeper's own rule), and
+    only when the page itself is what scrolls.
+  - **Where it is:** footage, the Playground, Freeform, Voice Studio and the
+    Story Room's caption and drawing-prompt boxes. A new box adds
+    `<script src="/stickybox.js"></script>` and `data-stickybox` on its
+    toggle — picked up present and future, so a button built in script needs
+    only the attribute.
+  - **THE FOOTAGE BOX KEEPS ONE WIDTH WHETHER THE PILL IS DRAWN OR NOT
+    (2026-09-11, Sophie: "issue w footage textbox. switches back and forth
+    between narrow (viewport - scroll pill), and full width. whyyy · related?
+    cursor often covered by keyboard").** The pill is CONDITIONAL — its own
+    sync hides it while the page is under one screen tall — and footage's
+    `fitPillGap` reserved the pill's column only while the pill had a rect,
+    so the box's WIDTH tracked the page's HEIGHT: a short feed, the caret
+    keeper borrowing room under the keyboard and giving it back, the keyboard
+    itself, a draft growing past the fold — each flipped the box 49px
+    (MEASURED on the real page: 340 → 291 → 340) and re-wrapped the line she
+    was typing, which is also how her caret landed under the keyboard after
+    `caretkeep.js` had put it above (the two reports are one bug). `pillRect`
+    measures the pill where it WOULD sit — shown for one synchronous
+    measurement, invisible, put back before anything paints — so a row in its
+    band keeps its width whether the pill is drawn this second or not. Still
+    the pill's REAL rect (its top rides the safe-area inset), never a
+    hardcoded band, and a page served with no pill still reserves nothing.
+    The same shape lives in Freeform's and the Character page's `fitPillGap`
+    and is NOT ported there — neither has a box she writes a scene into; port
+    it the day one flickers. Test: `node scripts/test-footage-box-width.js`
+    (every assertion a MEASUREMENT of the rendered box across the pill coming
+    and going; verified failing 4 pre-fix).
+  - **THE AUDIT SHE ASKED FOR — HER THREE GAPS AND FOURTEEN BUGS (2026-09-13,
+    Sophie: "did u or could u do a good clean audit - any other bugs you find,
+    or features that shud exist but dont now · ex, clearing individual
+    separated boxes, sending two boxes at once, collapsing the prompt from
+    partway down").** Three parallel read-only audits over the page, then the
+    fixes. Her three:
+    - **A ✕ IN EVERY BLOCK'S CORNER takes that block off** (`right:120`, drawn
+      only with two or more — CSS off the same `.many` class the gold line
+      rides). **This RETIRES the 2026-09-11 "there is no ✕ on a block on
+      purpose" line**, which is history now, not a rule. It asks nothing: it
+      banks the job exactly as `clear` does and the `undo` word puts it back
+      (her rule — an undo instead of a confirm). Taking the FIRST block off
+      moves the words below UP into `#prompt`, because every reader expects
+      that node to stay the first block.
+    - **A SECOND STAR APPENDS EVERY WRITTEN BLOCK INTO ONE CLIP — NOT N JOBS
+      (her note on the card the same hour: "u misunderstood. not separate
+      jobs. i want them to append to each other").** One job whose prompt is
+      every written block joined, blank line between them — the join mark's
+      own shape, without destroying her blocks, which keep their words and
+      their structure through the send. **It shipped for an hour as N
+      sequential jobs** (N scenes, N times the price, stopping at the first
+      refusal, the refused block taking the gold line); that is HISTORY, and
+      the walk, its tally toast and the `batch` flag are gone with it. Three
+      things not to undo: **CHAINING IS NOT THIS BUTTON** — a clip that
+      continues another one is still separate jobs, which is the half she
+      ruled out, and it is the keyframe marks' job; **the price is ONE clip's**
+      (`allCents`, never × the count) and is ON the button, her "approve the
+      prompt and references" rule answered at the tap, with **over $3 the
+      first tap ASKS and the second sends** and any change disarming it; and
+      **the gold line is left exactly where she put it**, since with one job
+      there is no "which block was refused" and moving her active block would
+      be the page deciding where she types next. A refusal's **door words
+      carry the job's own text** (`offerDoors(door, box, text)`) — without it
+      "those words re-send THAT exact job" breaks the moment the prompt is a
+      joined one, and only the active block would go (pinned, verified failing).
+    - **THE PROMPT ROW IS STICKY**, so a long scene folds away from wherever
+      she is standing. MEASURED at 390pt on a 40-line scene: at scrollY 600
+      the row sat **521px above the viewport** with 1,836px of box below it
+      and `elementFromPoint` answered nothing. It is `stickybox.js`'s
+      complaint one direction round — those pin to the bottom of the band
+      because the way out of a box is below her; this pins to the top because
+      the way out of the panel is above her — which is plain `position:sticky`.
+      **AND `fitPillGap` NOW JUDGES A STICKY ROW AT ITS STUCK POSITION**: the
+      walk normalises rects into PAGE coordinates so a row does not change
+      width as it scrolls past the rail, which for a sticky row put it at
+      scrollY+10 — far below the pill's band — and REMOVED the reserve at the
+      one moment the row was sitting in the pill's corner (caught by the test,
+      not by reading). Judging it at its stuck top instead swapped the bug for
+      its mirror — at rest the row is lower than that band, so the reserve was
+      dropped standing still (caught by `test-footage.js`) — so **the band
+      test does not apply to a sticky row at all**: a row pinned to the top of
+      the viewport is inside a rail fixed to the top of the viewport for every
+      scroll position that matters, and it reserves whenever it reaches into
+      that column.
+    The bugs, worst first — each one a state that really desyncs or words that
+    really go: **a card's PUT-BACK overwrote her scene with no bank** (and an
+    `undo` left from an earlier clear then restored a different job — the one
+    visible control lying about what it does) **and replaced the whole strip
+    without renumbering the other blocks' slot names**, so block 2's
+    `[Image1]` named a picture that was no longer there and the clip still
+    drew, of the wrong reference; **a TRIM orphaned every note on that clip**
+    (`cardOf` repoints `video` at the first baked part, and both note doors
+    keyed off it — her thread vanished off the card and the player and the
+    card then wrote two different threads, against a comment claiming they
+    were one); **the OPTIMISTIC CARD read the live `S` a round trip after the
+    tap**, so switching project mid-send filed the clip under the new one,
+    where a project-scoped poll could never fetch it — "drawing…" forever;
+    **a TRIM on a clip reached through `… older` or the search never resolved**
+    (the poll reads the newest 40 of the view, so the part stayed `baking`,
+    its `save` never appeared, and the page re-read the whole collection every
+    7s for its life) — fixed by `GET /api/footage/jobs/:id` and asking for the
+    unfinished ones by name; **one failed read killed the poll outright** (it
+    sat inside the `then`); **an EMPTY PROJECT hid `#feedbar`, which is the
+    only project picker**, so naming a new project left her with no control to
+    get back to All and a reload reopened the same empty one; **switching
+    FOLDER left the previous folder's search answer standing**, so the page
+    said "Nothing matches that." over clips that matched; **a card first drawn
+    while a filter hid it got no "… more"** (the Playground's `resyncClamps`
+    lesson through a filter rather than a view); **GRAB FRAME closed the
+    trimmer and threw away her marks**, against its own "on the spot" promise;
+    **the CHARACTER SHEET counted a keyframe**, so from the moment she marked
+    a first frame every slot its line named was one too high (and `withLine`'s
+    dedupe then missed, inserting the line twice); **a HAND-OFF left the
+    previous seed in the box**, pinning a belt scene to another clip's seed;
+    **a JOIN moved the gold line off a third block she was standing in**; **the
+    boot never called `paintControls`**, so with `/status` slow or refused a
+    restored draft's references were attached and INVISIBLE and a banked job's
+    `undo` was hidden; plus the empty-feed line naming the wrong filter, the
+    remove toast promising the whole clip back with parts still on it,
+    `stepHead` leaving `#tall` lying about the mode, a cancelled "New folder…"
+    sticking in the card's Move row, `#tgo` re-enabling mid-flight, the upload
+    tally counting uploads rather than attachments, `ftUploading` having no
+    `finally` (a throw there would have disabled the self-heal for the life of
+    the page), and the folder being unsearchable.
+    **AND THE SEVEN THAT WERE NAMED AND LEFT ARE FIXED TOO (2026-09-13,
+    Sophie: "good. real bugs. can u fix them all? use agents if u want / then
+    find more").** Worst first:
+    - **`mark → unmark` NEVER PUT THE RETURNING PICTURE'S NAME BACK** — the
+      only one that could send a job she did not mean. A keyframe leaves the
+      reference list, so the mark deletes its `[ImageN]` out of her words and
+      the POSITION of that name goes with it; unmarking renumbered the others
+      and left nothing naming the one that came back, so the clip drew a
+      reference short with its thumb still on screen. Inserting the name at
+      the end of the box would be writing words where she did not put them, so
+      **the words are BANKED at the mark** (the Playground prompt-extra box's
+      rule): the text before the rewrite, the text after it, and the strip as
+      it stood, renumbered back through `reslotBlocks`'s own arithmetic. The
+      restore fires only while the block is **byte-for-byte what the rewrite
+      produced** — anything she typed since wins outright — and the bank is
+      spent either way, so a stale one can never fire later.
+    - **THE WALL'S SIGNATURE IS PER CELL** (`tileSig`). It was one string for
+      the whole list, so one clip finishing re-decoded every other poster; a
+      cell whose poster, status and ratio are unchanged is REUSED now, and
+      putting it back in order MOVES the node, which never re-decodes the
+      picture in it. The list signature stays as the fast path.
+    - **`… older` HAS ITS OWN CURSOR, `walkAt`** — the bottom of the contiguous
+      walk, never the oldest thing in memory. A search ADDS up to 300 hits
+      from anywhere on the log, so after searching and clearing, the cursor
+      was a clip from months back and the next tap skipped every page between.
+      And the cursor is the **smallest sentAt in an answer** (`minSentAt`),
+      never its last element.
+    - **A SEARCH PAST THE CAP IS PAGEABLE** — the door stays and says `… more
+      matches`, walking the search's own pages off the oldest hit's sentAt
+      (`qAt`), unioned into `qHits` so nothing already shown leaves. The route
+      has always answered `more`; the page hid the door on the reasoning that
+      "a search already read the whole log", true only while it fits.
+    - **AN EXPANDED PROMPT SURVIVES A REBUILD** — `openPrompt`, in memory,
+      keyed by the clip's own id (the chats part-fold's rule) and never
+      localStorage, so a reload collapses everything.
+    - **AND SO DOES HER CARET** — removing a node blurs what was focused in it,
+      so a rebuild mid-sentence left the box on screen with the keyboard gone;
+      the focus and the selection are carried across with the node. And
+      **Cancel clears the mark she can SEE** (`noteMark(el)` asked when it is
+      needed, never captured — the captured one is detached after a rebuild,
+      so Cancel put `on` out on a dead node and the live mark stayed lit).
+    - **FOUR ACROSS: THE ♥ AND THE ▶ ARE OFF EACH OTHER.** MEASURED at 390pt:
+      four across is ~86px wide, so a 16:9 clip is 50px tall and the 26px
+      marks at `bottom:4` ran y 18-44 while the 28px doors sat centred at y
+      10-38 — 71% overlap both ways, and a tap on either was a coin toss
+      (`elementFromPoint` answered `tmark heart` at the ▶'s own centre). Four
+      controls cannot share one row at that width, so **a measured `.short`
+      class (under 64px) puts the doors in the TOP band and keeps the marks in
+      the bottom**, both at 22px: doors y 1-23, marks y 25-47. **The note's
+      WORDS give up their band** — they would sit under the doors, and at 86px
+      the strip showed about eight characters; the whole note is on the card.
+      **The scissors stays**, because "even in the tile view" is her own ask by
+      name: the strip moves to the bottom and centres, into the 38px between
+      the two marks. **And 21:9 gets a 52px FLOOR** (measured 38px),
+      because no geometry fits two bands in 38. The alternatives were shrinking
+      every control under the tap floor, or a min-height that crops a third off
+      every landscape poster. `SHORT_TILE` is MEASURED rather than derived from
+      the ratio and the column count, since the height falls out of the page's
+      own width.
+    **AND THREE READ-ONLY AUDITS FOUND 36 MORE (2026-09-13, her "then find
+    more") — the server module, the page's player/trimmer/cast areas, and the
+    shared slot-name and search files. The ones that cost money or draw the
+    wrong clip are fixed; the rest are named at the end of this bullet.**
+    - **2.0 AT 1080p WAS PRICED OFF THE 480p CANVAS — a 5x under-quote that
+      read CHEAPER than 720p.** 2.0 moved onto the 2.5 canvas table on
+      2026-09-12 (a real charge measured 560x752), and that table has no
+      1080p row, so `canvasOf`'s `fam[res] || fam['480p']` fell through: a 4s
+      2.0 1080p 16:9 clip quoted **~30¢ against a real ~151¢**, and $1.11
+      against ~$5.67 at 15s. 2.0 is the one row that offers 1080p and only
+      OpenRouter takes it, which bills on the real canvas. A resolution its
+      own table lacks falls back to the FAMILY's now (`canvasFrom` says
+      which), and a borrowed canvas can never answer `exact`.
+    - **A REFERENCE THE MODULE WILL NOT SEND REFUSES THE JOB — it is never
+      dropped.** The http filter ran BEFORE `slotsOf`, so a url failing it
+      vanished and every slot after it renumbered while her prompt named the
+      old numbers: the clip drew, of the wrong picture. A keyframe was worse —
+      a url that failed the test simply stopped being a keyframe, so the
+      picture she marked as the first frame rode as an ordinary slotted
+      reference and the job went out references-only.
+    - **A REFUSED JOB SPOKE A SECOND VOCABULARY.** It was filed under the
+      model's LABEL and under `params.ratio` where every door writes its own
+      model id and `aspect_ratio` — so `cardOf` found no model row, and the
+      page gates its own "Try again" on `modelOf(j.model)`: **a refused Fast or
+      2.5 scene put back from its own card silently drew on MINI** (the model
+      is deliberately unsticky, so after any reload that is what is showing).
+      `cardOf` matches our own id as well as the doors' three spellings now.
+    - **A JOB THE DOOR NEVER ANSWERS FOR STOPS BEING "DRAWING".** Nothing aged
+      one out — `pollOne` swallows every error — so a job with an expired id or
+      an unmapped answer said "drawing… 4h" forever. That is not only a wrong
+      card: `/jobs` reads the WHOLE collection (~500 docs) and the page
+      re-arms every 7s while anything is drawing, so **one stuck clip cost ~70
+      document reads a second** for as long as the page was open. Two hours
+      with no answer reads as failed and the poll stops asking, `whyOf` says
+      so in her words, and **nothing is written** — the doc is left as the
+      door left it, so a job that lands later is still the record.
+    - **A PARTIAL ATLAS PRICE READ dropped that model to the table's LIST rate
+      for ten minutes** — the guard protected an EMPTY answer, not an
+      incomplete one — and since the door is chosen by price that is a door
+      change as well as a figure: every Mini tap billed ~3x (13.59¢ against
+      4.40¢), silently. Merged onto the last good map now.
+    - **EVERY TRIM WRITE IS PINNED TO THE READ IT WAS PLANNED FROM.** The route
+      read the doc, planned, and wrote the whole `trims` list, so a bake
+      landing its own `ready` in between put that part back to `baking` for
+      good: its mp4 and poster in Storage, the card saying "trimming…" for
+      ever, its save and play never appearing. One transaction per call.
+    - **AN OVERSIZE REFERENCE VIDEO WAS DIAGNOSED AS "TOO SMALL".** ByteDance
+      sends the SAME sentence for both ends of the range, and the one row said
+      "too small … the page upscales these by itself now; send it again" — so a
+      4K reference was told the fix was already in and re-sent forever
+      (nothing downscales, and `planUpscale` returns null above the floor by
+      design). Three rows now: the floor, the ceiling, and the bare range
+      sentence naming both ends.
+    - **THE REFUSAL TABLE'S `code` COLUMN WAS DEAD** — the reader asked for
+      `d.errorCode` and the doors' field is `error_code`, so an unmatched
+      wording showed raw door text with no line in her words. Either spelling.
+    - **A LOOK THAT OWNS A MARKED PICTURE ATTACHED IT TWICE.** The planner is
+      fed `slotRefs()` (marked pictures excluded, which is what keeps the slot
+      numbers right), so a look whose own references include the still she had
+      marked as the first frame got it appended as an ordinary `[ImageN]` and
+      her marked copy spliced back in on top: two tiles for one picture, and
+      the line named a slot `slotsOf` gives to a DIFFERENT one. Her mark wins,
+      and the line is re-resolved against the strip that really rides — a
+      `{n}` pointing at a keyframe names the END ("in the first frame")
+      rather than leaving a raw `{2}` in her prompt.
+    - **`newer ›` STEPPED PAST THE CLIP THE PANEL WAS OPENED ON**, so the whole
+      diff rendered backwards: her added words read as struck-out deletions
+      and the settings rows read `12s → 8s` when she went the other way. The
+      stop is b's own index.
+    - **SAVE-ALL WAS A DEAD BUTTON AFTER ONE FAILED FETCH** (a resolved-null
+      promise cached forever, while the toast said "tap again in a moment"),
+      and outside the app its first tap always failed and blamed the share
+      sheet — `navigator.share` was called after awaiting the bytes, which
+      spends the tap's transient activation, the trap `primeSave` was written
+      for. Not-ready is answered before the await now.
+    **NAMED AND NOT FIXED — hers to pick from** (the three reports in full are
+    in this chat): `/api/cast/plan` hands `cast-line.js` a RAW strip, so a
+    chat's line names the wrong slots when a keyframe is marked; a renamed
+    wardrobe look key makes the wardrobe silently not ride and ships a literal
+    `{2}`; the server's search does not fill `projectName`, so searching a
+    project's display name shows hits and then blanks them; `doorTakes` does
+    not model Atlas's own caps (>9 pictures, >3 videos, audio alone), so
+    `auto` sends a job to the one door that must refuse it and the page offers
+    no other; `… older` skips clips that share a `sentAt` to the millisecond;
+    the draw-time buckets double-count a clip with no ratio; a 40+ character
+    film slug can never be tucked (two truncation lengths); footage's own
+    shape refusals are the ones that leave no log; taking a part off resets
+    her trim marks; an armed "pick a clip" survives a project switch and
+    swallows the next tap; the trim marks are the only playhead controls that
+    do not pause; no `error` listener on the player leaves a whole dead trim
+    row; a note on a reference VIDEO is filed where no card shows it;
+    `viewswitch` is a dead control with localStorage blocked; `caretkeep`'s
+    blind-keyboard band can scroll a caret that is already visible;
+    `clip-diff`'s `tail()` blanks any readable filename over 20 characters;
+    Atlas's spend cache key includes `fresh`, so `?fresh=1` writes a key
+    nothing reads. Tests: `node scripts/test-footage-audit-3.js` (34 checks;
+    it CRASHES against the pre-fix module, where `canvasFrom` does not exist).
+    Tests: `node scripts/test-footage-blocks-audit.js` (55 checks; it CRASHES
+    against the pre-fix page, where `#goall` does not exist) and
+    `node scripts/test-footage-audit-2.js` (71 checks for the seven — every
+    assertion a MEASUREMENT or a reading of what the stub really received,
+    since an unmark that renumbers the others and names nothing, a wall that
+    re-decodes every poster, a cursor taken from memory, a capped answer, a
+    prompt springing shut, a box with its keyboard gone and two controls
+    sitting on each other all look identical in the source; verified failing
+    30 pre-fix).
+    **AND A CLIP SHE JUST SENT IS NEVER FILTERED AWAY (2026-09-13, found on her
+    "check for more bugs").** The search's `qHits` is a set of ids the SERVER
+    answered with, so a clip that did not exist when it answered can never be
+    in it: with a search standing, a send was posted, charged and drawn while
+    the feed went on showing only the old hits — **nothing on screen said a job
+    had started**, which is how a clip gets paid for twice. The ♥/✕ marks and
+    the funnel do it too (a brand-new clip has no vote, and its model may not be
+    the one she is filtering on). A clip THIS PAGE sent now rides through the
+    search, the marks and the funnel until she next MOVES the view — any change
+    to the search or a filter is her re-deciding what the list is, and from then
+    on it obeys like everything else. The PROJECT and the folder still apply:
+    the card carries the ones it was sent under, so it passes them by
+    construction, and a clip must never show in another project's feed. And it
+    is **SAID, not done quietly** — the toast adds "shown here though it is
+    outside your search", since a card in a feed her own search says nothing
+    matches would otherwise read as the filter broken.
+    **AND HER OWN MARK ON A CLIP ENDS ITS SHIELD (2026-09-13, Sophie: "exed
+    clips in list view don't disappear when no x is selected").** The shield is
+    for while she WAITS; a ✕ is her deciding. Only a search or a filter tap
+    dropped it, so with "hide the ✕'d" lit she crossed out the clip she had
+    just sent and it stayed on screen — in BOTH views, for the rest of the
+    session (MEASURED). `castVote` drops that clip's shield, so the mark and
+    the filter agree at once; **every other clip she just sent still rides**,
+    since the shield is per clip. A ♥ ends it too — un-marking a clip is her
+    deciding as deliberately as marking one. Pinned by
+    `node scripts/test-footage-just-sent.js` (verified failing 2 pre-fix).
+    **AND TWO MORE FROM THE SAME PASS.** The All star stayed at FULL STRENGTH
+    while a send was in flight and did nothing on a tap — `#go` is the gate and
+    greys itself (`button[disabled]{opacity:.45}`), and a live-looking button
+    that answers nothing is the shape of every "it didn't work" report; both
+    stars go down together now. And an armed **"send all · $x?"** survived a
+    FOLDER switch, so the second tap would have filed the clip in the folder
+    she left — `setFolder` disarms (`setProject` needs no line: it repaints the
+    controls and `paintWipe` disarms from there). Test:
+    `node scripts/test-footage-just-sent.js` (verified failing 4, then 2, on
+    the pre-fix page).
+    **AND `test-footage.js` IS FLAKY — MEASURED, so do not read one red run as
+    a regression (2026-09-13).** Run on clean main it failed one assertion
+    twice and passed twice, and the failing assertion DIFFERED between runs
+    ("picking the ward re-asks the feed FOR the ward", "bare words AND a
+    -\"phrase\" take one clip out"). Re-run before diagnosing anything, and
+    check whether the same assertion fails twice. Which of its 425 is timing-
+    dependent is unfound; re-measured 2026-09-13 the rotating one is any of
+    three, all in the project/search area ("bare words AND a -\"phrase\" take
+    one clip out", "picking the ward re-asks the feed FOR the ward", "on All
+    the ward's clips are gone from the list and the wall"), which is what
+    makes the same-assertion-twice check the honest test. **The MECHANISM is found (2026-09-13), even if the
+    exact set is not: the search and project assertions wait with
+    `waitForFunction` on a COUNT of visible cards, which is true for a moment
+    of the CLIENT-filtered view — and the server's own answer over the whole
+    log (the older pool included) lands a beat later and can change the set, so
+    the read after the wait catches whichever state it finds. A wait that
+    settles on the server's answer rather than on a transient count is the
+    fix; not done here.**
+  - **AN ORDINARY KEYSTROKE IN THAT BOX TOUCHES NO STYLE (2026-09-12, Sophie:
+    "every other character moves textbox").** Two things ran on every
+    character with nothing on screen changing: `fitBox` rewrote the focused
+    box's height (`auto` → px) and its wrap's min-height on every input, and
+    `fitPillGap` — on every document resize, i.e. every wrapping keystroke
+    and the caret keeper borrowing room — zeroed every row's reserve and
+    forced a layout to measure it, laying the box she was typing in out at
+    full width and back inside one task. iOS WebKit answers a relayout of the
+    focused textarea by revealing the caret (a scroll), the caret keeper
+    corrects it a frame later, and the two settle into a jump on alternate
+    keystrokes. **Headless Chromium never shows the jump** (437 keystrokes
+    measured, the box moved only where a line wrapped), so the test pins the
+    CAUSE: a plain insertion takes a grow-only road and writes nothing while
+    the words still fit (the `auto` pass runs only where a shrink is possible
+    — a deletion, a paste, a keystroke over a selection marked at
+    `beforeinput`, a programmatic refit, and once on blur), and a row already
+    wearing the right reserve is skipped by arithmetic (`right + the margin
+    it wears`) with no write and no forced layout. Not measured on a phone —
+    the mechanism is the one the public iOS autogrow-textarea reports name,
+    and it is the churn every one of them removes. Test:
+    `node scripts/test-footage-typing.js` (style writes and off-width
+    relayouts COUNTED per keystroke on the real page; verified failing 4
+    pre-fix, 52 writes for 12 characters).
+  - **FOOTAGE HEALS ITS OWN STALENESS — AND THAT IS WHY A FIX "STILL DIDN'T
+    WORK" (2026-09-12, Sophie, a day after the width fix above was LIVE:
+    "switch between narrow/full screen for example").** Measured before
+    touching anything: the served page carried the fix and headless Chromium
+    held the box at one width through every transition (keyboard, the pill
+    coming and going, the big box, the fold, a divide, a scroll). What she was
+    looking at was an OLD PAGE — the app keeps a tool's web view alive for
+    the whole app process, and footage had no self-heal, so no deploy could
+    reach it (the Playground's and the Chats app's finding, at the page she
+    types in most). `GET /api/footage/build` + `ftBuildCheck` in footage.html:
+    the Playground's block, with this page's own guards — a field under her
+    caret, a tap in 10s, a send or an upload in flight, a refusal on screen,
+    the seed box, the model/size/seconds off default (deliberately unsticky,
+    so a reload would put Fast back to Mini), a search, the trimmer, the
+    character sheet, Recent, a note box, an expanded clip. Her words and
+    references ride `footage_draft` and come back. **A page loaded BEFORE
+    this ships cannot heal itself** — the once-more force-quit is the one
+    cure, and after that every fix reaches her on the next return to the
+    tool. `ftHolding()` answers the REASON (`window.__ftHeal.holding()`), so
+    a held reload is never a silent one. Found on the way: `stickybox.js`
+    re-pinned the corner buttons on EVERY keystroke (class + every inline
+    style rewritten with nothing moving — 18 writes for nine characters); a
+    pin already where it wants to be writes nothing now. Tests:
+    `node scripts/test-footage-selfheal.js` (every guard driven both ways
+    on the real page, the reload judged by a new document) and section 7 of
+    `test-footage-typing.js` (verified failing 1 pre-fix).
+  - **A TAP INTO A BOX MEASURES NOTHING UNTIL THE CARET IS DOWN — `caretkeep.js`
+    (2026-09-12, Sophie: "putting the cursor down also scrolls").** A tap
+    focuses the box on the PRESS and places the caret on the RELEASE, so at
+    `focusin` `selectionEnd` is the OLD caret — WebKit keeps it where she last
+    typed (the end of the scene, a screen or more below), Chromium resets it to
+    0 (which is why headless never showed it). The keeper ran its first `keep`
+    synchronously on focus, measured that old caret, scrolled the page toward
+    it, and the 90ms retry scrolled back: the lurch on every tap. **And
+    compare.js calls `__caretKeep.focus(t)` on EVERY focusin**, so every belt
+    page took the same road. A focus now ARMS the keeper and the first keep
+    waits for the tap's CLICK (with a 150ms fallback for a focus no tap made —
+    the pencil, a Tab); `focus()` arms the same way; `selectionchange` keeps
+    the caret wherever a tap or a drag really puts it, ignored only while a
+    focus is still armed. Measured: with the selection moved during `focus`,
+    Chromium places the tap's caret at the CLICK, a task after mouseup — so
+    the release is the click, never mouseup. Pinned by 6b of
+    `node scripts/test-caret-keep.js`, which restores WebKit's stale-caret shape
+    inside `focus` and counts every scroll the keeper asks for (verified
+    failing 2 pre-fix: `[1237, 167]` on a tap at a line in plain view).
+  - **AND AN EXPANDED CLIP IN THE FOOTAGE FEED CARRIES ONE TOO (2026-09-11,
+    Sophie: "add a floating collapse button for expanded list view videos in
+    footage").** The house `.moretxt` opener REMOVED ITSELF on the tap that
+    opened it, so an expanded clip had no way back at all — measured on one
+    70-line scene at 390x844: a **209px card becomes 4,690px**, six screens of
+    prose with no control anywhere in it. It is a TOGGLE now (`… more` /
+    `… less`, the same underlined word, never a boxed button) and it is
+    marked `data-stickybox`, so from the middle of an expanded card the way
+    out is at the bottom of the band and collapsing brings the card's top
+    back with her. Pinned it takes a little padding and a radius for the
+    shadow to sit on (`.moretxt.sbx-pin`) — floating over her words it is a
+    control, not a word riding the last line.
+  - **ONE PINNED BUTTON AT A TIME — the box she is actually inside.** A page
+    can now carry several marked buttons (footage's own box, plus a `… less`
+    on every expanded clip), and two boxes can both end below the fold for a
+    scroll position or two; two floating words stacked in the same spot reads
+    as a broken control. `sync` scores each by how much of its box is inside
+    the band and pins the winner.
+  - **THE PINNED PLACEMENT IS CORRECTED OFF THE REAL RECT.** The insets are
+    measured while the button sits in the page, so any `.sbx-pin` styling that
+    changes its box (footage's padding) would push it off its own column — one
+    correction after it lands, never a second guess.
+  - **TWO BUTTONS ON ONE BOX PIN TOGETHER, AND `nofollow` KEEPS THE PAGE STILL
+    (2026-09-11, footage's corner grew DIVIDE HERE beside the bigger-box
+    toggle).** "One pinned button at a time" is about two different BOXES;
+    buttons sharing a box are one control row, and a row that pinned one and
+    put the other away reads as half a control — whichever box wins, every
+    marked button on it pins. `data-stickybox="nofollow"` opts a button out
+    of the follow-back: a tap that shrinks the box from its BOTTOM (a divide
+    at the cursor) leaves the seam where her eyes are, and bringing the box's
+    top back would walk the page away from it. Measured by the pinned-pair
+    and pinned-divide blocks of `node scripts/test-footage-divide.js`.
+  - Tests: `node scripts/test-footage-collapse.js` (the expanded clip — every
+    assertion a MEASUREMENT, since an opener that removes itself, one that
+    stays but sits six screens down, and one that collapses the card and
+    leaves her staring at the page below all look identical in the source;
+    verified failing 13 pre-fix) and `node scripts/test-sticky-box.js` (the real footage page headless —
+    every assertion a MEASUREMENT, since a marked button that never pins, one
+    pinned somewhere she cannot tap, and one that shrinks the box and leaves
+    her staring at the page below all look identical in the source; the tap is
+    asked with `elementFromPoint`. Verified failing 5 pre-fix, the button
+    1,649px down the page).
 - **TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD, NEVER A BUTTON (Aug 2026,
   Sophie: "the ... button for longer than two line prompt is huge … truncated
   text shud always just be a ...with a line under it that links to open
@@ -4259,6 +5479,22 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     a test of this**: playwright aims at an element's centre, which on a
     three-way toggle is the middle stop, so a cycling toggle and an aimed one
     look identical. Click a POSITION.
+- **LIST · TILES · 3/4 = THE ONE VIEW SWITCH, `/viewswitch.js` +
+  `/viewswitch.css` (2026-09-12, Sophie, on Stitch: "could you reuse the
+  shell so I can switch between tiles and list view?").** The Playground's
+  switch had been hand-copied onto Footage and Stitch would have been the
+  third copy — the tritoggle shape. ONE file now: `window.__viewSwitch({
+  mount, key, cols:[3,4], view, onView })` builds the box (or ADOPTS a
+  `.viewtog` the page already carries — the ids `#v-list` · `#v-tiles` ·
+  `#v-cols` are what two dozen headless tests tap, so they never moved),
+  keeps the view and the columns under the page's OWN key (`<key>_view` /
+  `<key>_cols`, byte-for-byte the old Playground and Footage keys), sets
+  `--cols` on the root, and calls the page back to swap its two surfaces.
+  The Playground and Footage read it (their `curView`/`curCols`/`setView`
+  are thin wrappers now); a new feed links both halves and never copies
+  either. Two stops on the number segment is not the cycle the house rule
+  forbids. Test: `node scripts/test-viewswitch.js` (nobody keeps a second
+  copy; the built and the adopted box measured in a browser).
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   **AND A CIRCLE IS NOT THE DEFAULT FOR AN ICON EITHER (2026-08-24, Sophie: "i
   prefer rounded squares for buttons, or plain icons, rather than circles").**
@@ -4472,6 +5708,34 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
       already are. The guard is only safe because the doors are MEASURED on
       the real page by `node scripts/test-asset-doors.js`; without that, "no
       doors" would be the thing every harness silently passed.
+    - **AN UNCUT SHEET'S PLAYGROUND DOOR SLOTS ITS PANELS INTO THE BOXES
+      (2026-09-06, Sophie, on the 3x3 in her Assets tab: "when i press copy on
+      the original uncut grid it shud slot all 9 into panels").** The sheet's
+      content half is all N panels, and `?prompt=` put the whole wall in the
+      single box. `sheetGrid.panelParse({style, content, label, caption})`
+      reads the RECORD and the door sends `?panels=<json>&grid=N` instead
+      (seedPanelsFromLink lands them on the Panels tab); style, `sameref`,
+      quality and the cast ride exactly as before. Three markers, none of
+      them the shape of the text: a `1/9 (4K)` caption is a CUT panel and
+      goes to the single box (her 2026-08-27 rule); the grid sentence in the
+      style half (a server-filed sheet — sheetSeam puts it in the prefix) says
+      N; and for a sheet filed WITHOUT the sentence — the
+      mental-hospital-storyboard chat's shape, measured on the live records:
+      wrapper + `[content]`, the panels joined by a blank line — the label's
+      own `3x3` says N, only when that is a grid the module knows. Labeled
+      `Panel k (…):` lines or the blank-line join come apart; anything short
+      of exactly N is null and the door sends the one prompt it always did —
+      **never dropped, never padded**. The honest fix at the source is to
+      file the exact sent text, grid sentence included. **AND THE BACK-CRUMB
+      BLOCK USED TO WIPE THE SEED**: promptlab spent the WHOLE query one tick
+      after load, and the seed is read only once the styles fetch lands, so
+      every sheet that walked in with `&back=` arrived to nine empty boxes;
+      `panels`/`grid` now survive that spend and the seed spends them itself
+      (a reload is still a plain Playground). Pinned by
+      `node scripts/test-sheet-grid.js` (the parser against panelBlock) and
+      the sheet half of `test-asset-doors.js` (the REAL Playground behind the
+      door — the url read off the browser, then the nine boxes counted and
+      read; a cut panel still on the Picture tab).
     - Test: `node scripts/test-asset-doors.js` (both real pages headless —
       the set, the row measured, the Playground door's real url read off the
       browser AFTER it navigates, the no-prompt picture riding as a photo
@@ -4528,8 +5792,15 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
       index she held IS the next one. It heals the moment the picture is back
       on screen, and it can only ever be one tile out, because the only thing
       that re-filters while the box is open is a mark she just cast.
-      **The Playground has the same shape and is NOT fixed here** — its own
-      `lbAt()` returns -1 the same way once `loadRuns` re-filters under it.
+      **The Playground had the same shape and is FIXED since 2026-09-05**
+      (Sophie: "tap left right doesn't always work in the playground") —
+      worse there, because its re-render REPAINTS the lightbox (`renderFeed`
+      → `showLB`) and so both zones were not merely dead but GONE. `lbIdx`
+      is her place and `lbNext` is the one reader, for the zones AND the
+      step; `node scripts/test-playground-tap-next-vote.js` (verified
+      failing 11 pre-fix, against a STATEFUL stub — the vote has to come
+      back in the next feed read or the re-render restores the picture and
+      the bug cannot be reproduced).
     - **THE CACHED THUMB PAINTS FIRST, the original swaps in behind it** (the
       Playground's 2026-08-26 rule, which these two never had). They painted
       `it.url` — 1-3MB at the 2K and 4K tiers — so the box sat EMPTY through
@@ -4569,10 +5840,13 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     - `node scripts/test-asset-lightbox.js` carries the sweep: every surface
       that opens a feed hands over a nav hook, and a new picture surface joins
       it by linking the shared file.
-- **THE BOTTOM BAR'S THREE ARE PERMANENT — Story Room · Story Timeline ·
-  Playground (2026-08-26, Sophie: "right now the bottom real icons switch off
-  can you change it so they're permanent I want the story room, the story
-  timeline and the playground").** The three middle slots used to rotate by
+- **THE BOTTOM BAR'S SLOTS ARE PERMANENT — Story Room · Story Timeline ·
+  Playground · Footage (2026-08-26, Sophie: "right now the bottom real icons
+  switch off can you change it so they're permanent I want the story room, the
+  story timeline and the playground"; **Footage joined them 2026-09-11**, "make
+  footage rotate w the three bottom nav buttons" — a FOURTH slot, not a swap:
+  she named the other three herself, so nothing came off to make room).** The
+  middle slots used to rotate by
   most-recently-used, so the tools under her thumb moved every time she opened
   anything else from Home — a bar that can never be learned. `barTools` in
   `RootView.swift` is the whole list and the ONE place the order is written
@@ -4582,8 +5856,8 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   - **THE ALIVE SET IS NOT THE BAR ANY MORE, and that is the half that breaks
     if it is "tidied".** The ZStack used to keep exactly the bar's three tools
     alive, which only worked because opening a tool from Home promoted it INTO
-    that three; with the slots fixed, a tool opened from Home is in neither, so
-    `alive` = the three + the currently-open tool + the ONE most recent tool
+    that set; with the slots fixed, a tool opened from Home is in neither, so
+    `alive` = the bar's tools + the currently-open tool + the ONE most recent tool
     from outside the bar. Drop the first and a tool opened from Home renders as
     a blank screen; drop the second and Home → Playground → Home silently
     throws away her half-typed prompt.
@@ -5333,7 +6607,13 @@ before working on that module. Nothing was deleted — the moved text is verbati
   is what lets the Prompt panel print the REAL clause instead of keeping a
   second copy of the wording. Tests: `node scripts/test-sheet-grid.js` (the
   clause, pure) and `node scripts/test-playground-panels.js` (the wiring, and
-  that the Sophie card and the photo are still off).
+  that the Sophie card is still off). **HER PHOTO RIDES A SHEET SINCE
+  2026-09-06 (Sophie: "i can add a photo reference in playground but not in
+  panels")** — same seat as a single run, after the style refs and before her
+  cast, on a grid sheet and a story sheet; the button stays on the Panels tab
+  and the Prompt panel prints the line there. The Sophie card is the only
+  attachment still off on a sheet. Full note: *HER PHOTO RIDES A SHEET* in
+  `docs/modules/pictures.md`; test `node scripts/test-playground-panels-photo.js`.
   **THE GREEN TANK TOP — a named ban at the very end of the tail (2026-08-27,
   Sophie: "the woman w the green tank top appears nowhere. if text asks for a
   woman, invent a different woman, with different clothing").** `dream-mystery.jpg`
@@ -5404,6 +6684,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
     the LIVE VALUE that will be sent, the way reopening her waiting-for box
     shows the sentence she already wrote. Her own words go in the main box,
     which still ships empty.
+  - **THE "ALSO ADDED BEFORE YOUR WORDS" BLOCK IS A THIRD BOX SINCE 2026-09-06
+    (Sophie, circling it: "why is there no way to edit this??").** It was
+    printed read-only because every line in it is DERIVED and tied to an
+    attachment — the Sophie card's line, the photo line, the picked cards'
+    sentence, her typed cast's clause, the story line. It edits like the two
+    halves now, with one rule that keeps a derived block safe to edit:
+    **her edit is stored beside the text it replaced (`extraOf`) and a run
+    sends `extra` only while the derived block is byte-for-byte that text.**
+    Change the cast or the photos and the box shows the house lines again
+    and the run sends none — an edit written for one cast never rides the
+    next run silently; the same cast again brings her edit back. Server:
+    a STRING `extra` stands in for the whole block on all three assemblies
+    (single, grid, story); absent keeps every line as it was, so an ordinary
+    run is byte-for-byte what it always was. `extraBlock()` is the one
+    derivation (the panel's box and `extraSent()` both read it). The GRID
+    sentence stays read-only under its own label — it WRAPS the panel lines
+    server-side and is not a block an edit can stand in for. Test:
+    `node scripts/test-playground-prompt-extra.js`.
   - **EITHER HALF OPENS BIGGER (2026-08-31, Sophie: "add extend textbox button
     to both halves of style prompt playground").** These two boxes hold the
     longest text on the page — Dreamy's tail is a paragraph — and the compact
@@ -5635,6 +6933,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
       headless — the row's names, its faces really decoding, the tap that must
       still close, and the restore read off the button's count and the
       picker's lit cards; verified failing 7 pre-fix).
+  - **THE LIBRARY IS RE-READ ON EVERY OPEN (2026-09-06, Sophie, after saving
+    her own picture in Characters: "i uploaded but don't see my pic in
+    character … in panels").** It was fetched ONCE per page life, and the app
+    keeps the Playground alive for the whole app process — so a character
+    saved five minutes ago could not reach the picker until a force-quit,
+    while the server listed it first the whole time. `loadChars` is a
+    THROTTLE now (`charsAt` / `CHAR_RESWEEP`, 20s — the panels sweep's own
+    shape): the old list paints instantly, the fresh one repaints when it
+    lands, and a visibility flip with the sheet open asks past the throttle.
+    Test: `node scripts/test-playground-chars-refresh.js` (the stub's library
+    GROWS between two opens; verified failing 9 pre-fix).
   - **The sheet opens into the pill's corner**, so both card rows reserve a
     MEASURED `--charpill` column (`fitCharPill`): pre-fix the pill's own
     `Fast` label sat on the fifth recent card, and her 47px safe-area inset
@@ -6210,38 +7519,43 @@ before working on that module. Nothing was deleted — the moved text is verbati
     first line and nothing rendered. It calls `scripts/lib/public-asset.js`
     now, like its siblings — a harness that hand-lists shared files is one
     shared file away from a silent timeout.
-  **✕ ON A SHEET IS ✕ ON ITS PANELS (2026-09-06, Sophie: "when i x a uncut
-  panels sheet it shud x every panel in it unless i hearted it or heart it
-  after or unex").** A panels run is ONE paid picture cut into pieces, so a
-  sheet she crosses out in the Sheets view is a sheet whose pieces she has
-  crossed out — until this she had to ✕ the sheet and then ✕ every panel again
-  in the panel view, or live with a run saying two different things about
-  itself on two screens. `sheet-cascade.js` is the ONE rule (pure, served to
-  the page); the vote routes turn it into a patch through `votePatchFor`.
-  Four things not to undo:
-  - **A CASCADED ✕ IS TAGGED — `voteFrom.<i> = 'sheet'` beside the vote it
+  **A MARK ON A SHEET IS A MARK ON ITS PANELS (2026-09-06, Sophie: "when i x a
+  uncut panels sheet it shud x every panel in it unless i hearted it or heart
+  it after or unex", then — looking at a hearted sheet whose panels had not
+  moved — "it shud work both ways - heart or x").** A panels run is ONE paid
+  picture cut into pieces, so a sheet she marks in the Sheets view is a sheet
+  whose pieces she has marked — until this she had to mark the sheet and then
+  mark every panel again in the panel view, or live with a run saying two
+  different things about itself on two screens. `sheet-cascade.js` is the ONE
+  rule (pure, served to the page); the vote routes turn it into a patch through
+  `votePatchFor`. **THREE CASES PER PANEL, and that is the whole of it:** the
+  cascade's own mark follows the sheet wherever it goes, a mark of HERS is
+  never touched, and a panel with no mark takes the sheet's. Four things not to
+  undo:
+  - **A CASCADED MARK IS TAGGED — `voteFrom.<i> = 'sheet'` beside the vote it
     explains — and that is what makes "unex" possible at all.** Without it the
-    release could only be all-or-nothing and would wipe the ✕ she cast on a
-    panel herself. The release only ever lifts a mark this cascade wrote and
-    nobody has touched since.
+    release could only be all-or-nothing and would wipe the mark she cast on a
+    panel herself. It is also what lets ✕ → ♥ on the sheet flip those panels
+    with it, which is her "both ways".
   - **A DIRECT MARK ON A PANEL MAKES IT HERS** — any vote at `i >= 0` DROPS
     that tag, which is her "or heart it after": once she has decided a panel,
-    un-✕'ing the sheet later has no claim on it. A panel already ✕'d when the
-    sheet is crossed out is left as it is and never tagged, for the same
-    reason.
-  - **A ♥ ON A PANEL IS NEVER TOUCHED, and a ♥ on the sheet hearts nothing** —
-    ending the sheet's ✕ (clearing it or hearting it) RELEASES, and that is
-    all; hearting everything under a sheet is a rule she never asked for.
+    the sheet has no claim on it. A panel already marked when the sheet is
+    marked is left as it is and never tagged, for the same reason.
   - **THE PAGE APPLIES THE SAME PLAN OPTIMISTICALLY, and it has to.** A vote
     is followed by `loadRuns()`, which asks `kind=single` — a panels run's real
     votes never come back from that read; they wait on the panels sweep and its
-    20s throttle. Without `markLocal` she crosses out a sheet, steps to the
-    panel view and finds the panels unmarked, which reads as the rule not
-    working.
-  It also reaches the two doors that are not the Sheets view: a sheet ✕'d while
-  it is still CUTTING marks the panels the cut lands seconds later
-  (`planForCut`, applied at the end of `finishPanelsCut`), and a ✕ cast on the
-  sheet in Meta Assets comes back through `syncVoteToPlayground`, which now
+    20s throttle. Without `markLocal` she marks a sheet, steps to the panel
+    view and finds the panels unmarked, which reads as the rule not working.
+  - **IT SHIPPED ✕-ONLY FOR AN HOUR AND SHE CAUGHT IT IN ONE LOOK.** The first
+    cut read "unless i hearted it" as *a ♥ is only ever hers*, so hearting a
+    sheet released the ✕ and did nothing else — and this file recorded that as
+    a rule ("hearting everything under a sheet is a rule she never asked for").
+    That reasoning is HISTORY: a mark is a mark, both directions, and the
+    asymmetry is the thing not to bring back.
+  It also reaches the two doors that are not the Sheets view: a sheet marked
+  while it is still CUTTING marks the panels the cut lands seconds later
+  (`planForCut`, applied at the end of `finishPanelsCut`), and a mark cast on
+  the sheet in Meta Assets comes back through `syncVoteToPlayground`, which now
   finds a run by `sheetUrl` as well as by `images` (the sheet is not in
   `images`, so that door used to reach nothing at all). A cut-FAILED run IS its
   sheet and has no panels, so it cascades to nothing by construction. Tests:
@@ -6251,6 +7565,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
   really received, since a cascade that plans correctly and never reaches the
   page, one that never reaches the doc, and one that wipes her ♥ all look
   identical in markup; verified failing 2 pre-fix).
+  **A ♥ ON A PANEL USED TO COME OFF ON THE NEXT TAP — THE SCAN CACHE NEVER
+  HEARD ABOUT THE VOTE (2026-09-06, Sophie: "when i heart individual panels the
+  heart gets removed 😡").** The Panels tab reads its whole gallery through
+  `promptlabScan()`, the same 60s cache a search takes, and a vote wrote the run
+  DOC and never the cache — so the sweep the NEXT tap arms (pointerdown,
+  throttled 20s) handed back the run as it stood before her heart, `mergeRuns`
+  let the fresh copy win, and the mark she had just cast was gone. The page's
+  optimistic mark was right the whole time; the server was handing back the
+  past. Two halves, and both stand: **every run-vote write applies its own patch
+  to the cached copy** (`plScanApply` → `pl-scan-patch.js`, pure; the single
+  route, the batch route, the Assets→Playground sync and the cut landing — a
+  source pin counts four), and **the page shields a mark cast in the last 90s
+  from a stale read** (`recentMarks`/`shieldRun` in `mergeRuns`), for the sweep
+  already in flight when she tapped and for any cache a vote cannot reach.
+  After the shield the server's word stands, as it always did. Test:
+  `node scripts/test-playground-panel-heart.js` (the stub's kind=panels answer
+  is DELIBERATELY the pre-heart copy; verified failing 2 pre-fix).
   **THE ✕ FILTER BESIDE THE HEART (Aug 2026, Sophie: "can u also add a button
   next to the heart that hides anything i've 'exed'").** The heart's opposite
   and its twin — a filter over PICTURES in whichever view she is in, sticky,
@@ -6757,6 +8088,1549 @@ before working on that module. Nothing was deleted — the moved text is verbati
   session. **Full details: `docs/modules/pictures.md`.**
 
 ### Audio & film
+- **Footage** (`footage.js`, `/api/footage`, page at `/footage`, iOS tile
+  under the FILM filter's pictures stage — 2026-09-09, Sophie: "the next step
+  is to build a point so I can just make things on my own time by describing
+  them or uploading references") — **she sends a Seedance clip herself.** The
+  chat ritual as a page: her words in the box, references through the Dump
+  (each wearing its slot name — tap `[Image1]` and it lands in the prompt, so
+  a reference is named by its slot and never described), the model, the
+  seconds, the size, the shape, the price of the tap, and **the star, which is
+  the one button and sends on its tap**.
+  **HER OWN LIST THE SAME DAY IS WHY THE PAGE LOOKS LIKE THIS (2026-09-09).**
+  "no button word labels above (eg seconds)" — every uppercase section label is
+  gone and the controls stand on their own. "consolidate buttons. same row
+  unless it bleeds over" — every row is flex-wrap, so a group wraps only where
+  it genuinely does not fit, and nothing declares a row count (MEASURED at
+  390pt with the pill's 62px column reserved: the six shapes are 267px of the
+  278 the panel has, so they are one row; with no pill on screen the whole
+  control set is one row). The Add word is a **picture icon** (Lucide `image`
+  in a rounded square at the house 6px, never a circle). Resolution and shape
+  are **drop-downs** with the platform's chrome off (`appearance:none`) and our
+  own inline chevron drawn in. **THE MODEL IS A DROP-DOWN OF THE WHOLE 2.x
+  FAMILY — MINI · FAST · 2.0 · 2.5 (2026-09-11, Sophie: "ok add 2.0 and
+  2.5"; Fast came back 2026-09-10, "add 2.0 fast back as an option").** It was
+  pinned to Mini alone one morning ("get rid of the model choice · just mini
+  for now"): **`PAGE_MODELS` in `footage.html` is the one line**, Mini leads
+  and is the default, and taking a row off again is that array. **1.5 Pro
+  stays off — it is on APIFRAME only.** The list is still DERIVED (a model
+  must be in `PAGE_MODELS` AND on at least one live door — it used to require
+  ATLAS specifically, which with the door chosen by price would take a row off
+  the page for being missing from a door that is not even the cheapest one for
+  it), a belt
+  hand-off's `model` is honoured when the page offers it and falls to Mini when
+  it does not, and the seconds and the size re-validate against whichever model
+  is picked. **THE MODEL IS NOT STICKY, and that is a change from before the
+  pin:** Fast is ~8x Mini a second on Atlas (36¢ against 4.4¢ for a 4s 480p
+  clip), so a Fast left over from last week silently drawing today's clip is
+  the hidden ingredient the seconds and the resolution are already kept
+  unsticky for — the page opens on Mini every load and Fast is her own tap
+  (sticky is hers to ask for). **And Fast is the STRICTER of the two** — its
+  output gate has refused a plain reference-free prompt with the copyright line
+  (free, unbilled, measured 2026-09-09) where the same words drew on Mini — so
+  the "?" card says so. The controls row wraps to two lines at 390pt with the
+  model back on it, which is `flex-wrap` doing what her "same row unless it
+  bleeds over" asks. **Same
+  day, bugs fixed on this page:** a slot tapped with the caret at the start of
+  the box landed at the END (a null `selectionStart` check, not a 0 check);
+  the references strip, the folds and the seed box were hidden until `/status`
+  answered; the draft was WIPED on send while the words stayed in the box (a
+  reload then lost them — the words stay, so the draft stays);
+  `resize:vertical` fought `fitBig`; and a card first drawn in TILES view
+  never got its "… more" (the Playground's own `resyncClamps` rule). Server
+  side, `ensureVideoFloor` PROBED and DOWNLOADED every reference video on
+  every send despite the "baked once" promise — the decision is banked now
+  (`floorDecided` in memory, a sidecar under `footage/upscaled/<sha1(url)>.json`
+  across restarts). **THE SECONDS ARE A DROP-DOWN OF FOUR —
+  4 · 8 · 12 · 15 (2026-09-14, Sophie: "seconds drop down · 4,8,12,15
+  only").** A typed number with a -/+ stepper made every length in the range
+  reachable and none of the four is where she actually cuts. `SEC_STEPS` is
+  the one list and the rows are it NARROWED to the model's served `secs`
+  range, never a hardcoded 4-15, so a model with a tighter range offers fewer
+  rows rather than a length the server would clamp. `clampSec` SNAPS to the
+  nearest offered row rather than clamping to the range — a stored 9, or a
+  belt hand-off naming one, has to land on a row the picker really has or the
+  box shows one number while `S.seconds` holds another (the hand-off
+  fixture's 9 lands on 8). Typing, the stepper and the clamp-on-blur rule
+  that protected a "1" on its way to "12" are HISTORY. **Sound is always on**, sent explicitly rather than left to the model's
+  default. And **what is left lives behind the "?"**, read live when the card
+  opens — it is a fact about the account, not a control, and it was sitting
+  where the price of the tap belongs; OpenRouter's balance only, since APIFRAME
+  is not this page's door.
+  **WHICHEVER DOOR IS CHEAPEST, CHOSEN BY THE SERVER (2026-09-11, Sophie,
+  adding 2.0 and 2.5: "are they cheapest through router, atlas or frame?
+  choose cheapest").** This SUPERSEDES the 2026-09-09 "make atlas the default
+  and only route through footage" — which was right while the page offered
+  Mini and Fast, because Atlas IS far the cheapest for those two and simply
+  wins the ranking. It is not the cheapest for the two big rows, so with them
+  on the page the pin would be spending her money to keep a rule that was only
+  ever about price. **Measured live 2026-09-11, one 4s 480p 16:9 clip, off all
+  three doors' own prices:** Mini **4.4¢ Atlas** · 13.6¢ OpenRouter · 16¢
+  APIFRAME; Fast **10.8¢ Atlas** · 16.3¢ · 28¢; 2.0 **27.2¢ OpenRouter** · 32¢
+  APIFRAME · 36¢ Atlas; 2.5 **41.6¢ OpenRouter** · 52¢ APIFRAME · 53.6¢ Atlas.
+  The split is Atlas's sale: 80% off Mini and 70% off Fast against only 20% off
+  2.0 and 2.5. So the page sends `door:'auto'` and `doorFor` ranks the doors by
+  what THIS tap costs — the shape, the resolution, the seconds and a reference
+  video all move the answer, so nothing is written down.
+  - **AND THE OTHER DOORS ARE ONE TAP, PRICED (2026-09-12, Sophie, on an
+    OpenRouter refusal: "my job got refused. send it through atlas").** The
+    refusal named the doors that would take it and the page had no way to DO
+    that — it pins `auto` and nothing else — so the only route through was
+    retyping a fifteen-second scene somewhere else. The refusal line grows an
+    underlined door word per door that can still take THAT exact job, with
+    what the tap costs beside it; tapping one re-sends the same job pinned to
+    it. **Still always HER tap, never a walk** — the rule below stands word
+    for word. Offered on a CONTENT refusal only (a shape refusal is refused
+    wherever that shape is; a door being down says nothing about this job),
+    the doors read off free `/estimate` calls so one is never offered that
+    would only refuse her again, and the server returns which door refused it
+    so that one is not offered back (an older cached page falls back to the
+    door the price line named).
+  - **AND A REFUSED JOB IS LOGGED (2026-09-12, Sophie, after an OpenRouter
+    refusal cost her a fifteen-second scene: "can you log refuse jobs?").**
+    It was the one thing that left no trace anywhere: every door throws
+    inside `startVideo` BEFORE `forge-video-jobs` is written, so her prompt
+    and her references lived only in the box she typed them in — which is
+    why a chat could not re-send one for her, and why closing the page lost
+    the scene. `startJob`'s catch files it now through
+    `videoLog.refusedRecord` — the same prompt, the same references, the
+    same project and folder tags — so the 1080p redo reads it like any other
+    clip and the card's own **Try again** puts her words back. Three things
+    not to undo: the status is **`failed`, never a new word** (every reader
+    already knows that one, and a page cached on her phone draws an unknown
+    status as a clip that draws forever), `refused`/`refusal`/`door` ride
+    beside it so the card can tell a refusal from a failure and offer the
+    other doors, and the write is **best-effort and caught** — a log that
+    fails must still let the door's own words reach her, unchanged. Test:
+    `node scripts/test-footage-refusal-log.js` (every assertion a
+    MEASUREMENT of what really landed in the store; verified failing 14
+    pre-fix).
+  - **A REFUSED JOB FAILS. IT IS NEVER SENT THROUGH ANOTHER DOOR, AND NEVER
+    DRAWN WITHOUT ITS REFERENCES (2026-09-11 evening, Sophie, looking at three
+    APIFRAME clips: "i think these r being sent without references" · "if a
+    job refuses references it should just fail … never sent without
+    references ever ever ever" · "when I send a job through a chat, it just
+    says that it was refused if the references didn't go through — why can't
+    the same thing happen through footage?").** Footage does what a chat does
+    now: auto picks the cheapest door, ONE send, and a content refusal is the
+    card's answer ("refused, nothing drawn or charged"); which door to try
+    next is hers. **The WALK that shipped that morning is history** — a
+    chain of every other door on the POST, and `walk`/`walkPlan`/`walkOn`
+    re-sending on the poll. It put all six of the day's APIFRAME jobs there,
+    and **on 2.0 APIFRAME does not refuse a real face — it SILENTLY DROPS
+    EVERY REFERENCE, draws a stranger, reports COMPLETED with our urls echoed
+    on its own record, and bills (~32¢ each).** Measured on all three 2.0
+    jobs: with an AI-drawn face and a dress as references (18:13) it honoured
+    both; with her real jazz VIDEO among them (06:43) it drew a blonde
+    stranger; with her real PHOTO among them (21:14) it drew a stranger and a
+    box matching neither box picture, while Atlas Fast drew the identical
+    three references exactly. On 2.5 the same check refuses on the poll
+    instead. There is nothing on an APIFRAME job to catch — so a chat pinning
+    APIFRAME with a real person in a reference on 2.0 gets a clip that looks
+    done and is not; Atlas is the door for a person. **And the first two
+    readings of this were wrong the same way:** the page log, the server's
+    own params and APIFRAME's job record all said the references were sent,
+    and they were — a record of what was POSTED says nothing about what the
+    model was given. **Compare the clip to the reference before saying a
+    reference rode.** Tests: the refusal blocks of `node scripts/test-footage.js`.
+  - **A PINNED DOOR NEVER FALLS BACK** — a refusal on a door a chat named is a
+    measurement, not a reason to spend elsewhere. Only `auto` ranks and walks.
+  - **THE PRICE LINE NAMES THE DOOR AGAIN.** It came off 2026-09-09 only
+    because one door was left to name; which door a tap goes to is a fact about
+    the CLIP as well as the bill — **the last frame rides on Atlas alone**, so
+    a 2.0 or 2.5 clip has none.
+  - **A FAILED ATLAS PRICE READ KEEPS THE LAST GOOD PRICES** (`atlasPrices`).
+    It used to fall back to the table's LIST rate, which was only a high figure
+    on screen when Atlas was the one door and is now a DOOR CHANGE: every Mini
+    job would go to OpenRouter at 3x the real price (13.59¢ against 4.40¢) for
+    the ten minutes the cache holds, silently.
+  - **AN OPENROUTER PRICE IS `exact` ONLY WHERE THE CANVAS IS MEASURED**
+    (`canvasMeasured`, Mini alone). The token count is w × h × frames, so the
+    price is only as pinned as the canvas — and the published table has been
+    wrong once already, which is how Mini's was found. Fast, 2.0 and 2.5 answer
+    "about" until a real charge is read against one.
+  The "?" card quotes no balance (Atlas has none to read — the console is the
+  only billing read) and says "2.0 Mini is 80% off right now" while there is a
+  sale. A content refusal that reaches HER has been through every door, so the
+  page says so rather than naming one to try next. **720p IS THE PIXEL RATIO DEARER THAN 480p, AND THE PAGE QUOTED
+  THEM THE SAME UNTIL 2026-09-10 (Sophie: "check 720p prices in footage").**
+  Atlas's `GET /models` publishes ONE flat `base_price` per model, so the
+  Atlas branch priced purely per second, ignored the resolution it was handed
+  and marked it `exact` — measured wrong three ways: Atlas's own model readme
+  says "final billing follows the active model pricing configuration for the
+  selected **resolution**, duration, account, and environment"; the one 720p
+  job on file (12s Mini 3:4, one reference video) spent **435,628 tokens
+  against 197,811** for the identical 480p job, i.e. **2.20x**; and APIFRAME,
+  which does publish per resolution, prices its own 720p at the pixel ratio on
+  every row (Mini 4→9¢/s, Fast 7→16, 2.0 8→18, 2.5 13→29). So Atlas's rate is
+  read as a **480p rate** and scaled by the canvas (`resFactor`, per SHAPE —
+  16:9 is 854×480 → 1280×720 = 2.2482x, 3:4 is 560×752 → 834×1112 = 2.2021x,
+  which is what the token count is made of). What that moves, at Atlas's live
+  sale: a 4s Mini 720p clip 4.4¢ → **~9.7¢**, and **2.5 at 720p ~$1.21 for 4s
+  / ~$4.52 for 15s** against 53.6¢ / $2.01 before — so for step 2 of the plan
+  **APIFRAME is slightly CHEAPER than Atlas at 720p on 2.5** ($1.16 / $4.35),
+  because the 80%-off sale is Mini's and 2.5 only gets 20% off there.
+  **AND NOTHING ON ATLAS IS PINNED — the price wears a "~", at BOTH
+  resolutions (2026-09-10, Sophie: "add ~ to both").** Atlas has no billing
+  API (her console is the only read), so every Atlas figure answers `about`.
+  **THAT IS WRONG AS OF 2026-09-12 — ATLAS DOES PUBLISH A BILLING API, AND
+  SHE FOUND IT (Sophie: "I checked, and Atlas Cloud does have a proper
+  Billing Public API. I was wrong in my previous answer").** Read off its own
+  docs the same day: base `https://api.atlascloud.ai/public/v1`, the same
+  `Authorization: Bearer apikey-…` header, three reads — `GET /balance`
+  (`{value:"125.500000", currency:"usd"}`, money as fixed six-decimal
+  strings), `GET /model-usage` and `GET /model-costs` (daily buckets;
+  `start_date` inclusive and `end_date` exclusive, YYYY-MM-DD, up to 180
+  days; optional `scope` self|account, `group_by[]` model_type|model|api_key,
+  `model_types[]` text|image|video, `model_ids[]`, `api_key_ids[]`, `limit`
+  1-1000 and a `page` cursor from `next_page`; 429 carries `Retry-After`).
+  **BUILT 2026-09-12 ON HER GO** — `atlascloud.js` carries the reader on its
+  own `BILL_BASE` (`/public/v1`, deliberately a SECOND constant: pointing it at
+  the generation prefix 404s every read and that is invisible in the source).
+  `GET /api/atlascloud/balance` (60s cache), `/spend` and `/usage` (5 min;
+  `?days=7`, `?model=`, `?group=`, `?fresh=1`). The walk PAGES on `next_page`
+  — a read that stops at `has_more` under-reports what she has spent — and the
+  180-day range is refused HERE rather than at Atlas, free and in the rule's
+  own words; a 429 hands its `Retry-After` on rather than being retried inside
+  the reader.
+  **THE TWO SHAPES ARE MEASURED OFF HER OWN LIVE ANSWER, AND BOTH DIFFER
+  STRUCTURALLY FROM ATLAS'S PUBLISHED EXAMPLES (2026-09-12, read back the hour
+  the reader deployed).** Written from the docs alone it answered
+  `left:null` and `total:0, rows:1, priced:0` against two 200s — the prefix and
+  the key were right and every figure was a confident zero. Both are pinned by
+  fixtures lifted verbatim now:
+  - **MONEY IS A NESTED OBJECT IN NAMED POCKETS, not a top-level string.**
+    `/balance` answers `{available, cash, bonus, subscription_bonus, frozen,
+    credit_grant}`, each `{value:"23.555722", currency:"usd"}`. **`available`
+    is the pocket she can spend** — `cash` alone misses a bonus, and totalling
+    them all counts frozen money she cannot spend. `String({value})` is
+    `"[object Object]"`, which is exactly what the first wiring filed as her
+    balance.
+  - **A `/model-costs` ROW IS A DAY BUCKET, NOT A CHARGE.**
+    `{object:'model_cost.bucket', date, start_at, end_at, covered_until,
+    partial, results:[{model:{id,name,type}, amount:{value,currency}}]}` — so
+    a reader that priced the ROW found nothing, and the model's own NAME lives
+    one level in. One row can hold a whole day's models (hers held five).
+  - **TODAY IS `partial:true` WITH A `covered_until` A FEW MINUTES BEHIND
+    NOW**, so the figure is honest-but-behind while she is still drawing —
+    the "?" card says **"so far"** rather than a timestamp.
+  **WHAT ONE DAY REALLY COST, the first real read (2026-09-12): $20.12** —
+  Mini reference-to-video $13.83, 2.5 $4.02, 2.0 $1.35, Mini image-to-video
+  $0.60, Fast $0.33 — against $23.56 left. A money field is hunted across
+  `BAL_KEYS`/`COST_KEYS` and one level into a wrapper rather than trusting one
+  spelling, the whole `/balance` body rides back as `body`, and any row nobody
+  could price rides back as `unpriced`: a total of zero beside rows that really
+  came back is the one wrong answer this must never give quietly. **`money(null)`
+  is a finite ZERO** (`Number(null) === 0`), so an absent field is refused
+  before it is read as a real charge of nothing.
+  On `/footage` the "?" card's top line is now **what is left on every door
+  plus what today really cost** (`GET /api/footage/spend` — Atlas only, and it
+  says so, because the other two publish a balance and no history), so the
+  2026-09-09 note that "Atlas has no balance to read" is WRONG and is corrected
+  in the page, in `balances()` and in `test-footage.js`. **A DAY TOTAL IS EXACT
+  WHERE A CLIP'S IS NOT** — Atlas stamps no job id on a charge — so the
+  per-tap figure keeps its `~`. Still not built: `cost` filled in per job on
+  `forge-video-jobs` (it cannot be joined exactly), and cost per PROJECT, which
+  needs a key per project first. Test: `node scripts/test-atlas-billing.js`.
+  **AND THE PRICE LINE SAYS HOW LONG THIS SHAPE USUALLY TAKES (2026-09-12,
+  Sophie: "also make it say the average time it has taken for things to draw at
+  that exact size and length, etc.").** `drewMs` — the DOOR's own latency, on
+  every card since 2026-09-10 — existed nowhere she could use it BEFORE a tap,
+  and a 15s 2.5 clip and a 4s Mini clip are minutes apart. `GET /estimate`
+  answers `drew` beside the price (one read of the log, cached 5 min, grouped
+  by door · model · resolution · ratio · seconds) and the page draws *usually
+  ~1m 10s* on its own small line under the price — a block inside `#cost`, so
+  the row grows in HEIGHT and never in width (MEASURED at 390pt: a fifth thing
+  ON that line wraps `clear`/`undo` onto a line of their own). Four things not
+  to undo: it is the **MEDIAN, not the mean** — the one deviation from her
+  word, because one clip that sat in a queue drags a mean minutes off what the
+  next tap will do (the mean rides along on the answer and in the tooltip, so
+  nothing is hidden); the **ladder loosens one fact at a time and SAYS which
+  rung answered** (exact → ratio → door → size), a borrowed figure adding
+  "· similar clips" rather than claiming to be this shape's; **a rung with
+  fewer than three clips yields to a fuller one** and is used only as a last
+  resort, since one clip is not a "usually"; and **a shape nothing has drawn
+  says NOTHING at all** (the Assets tab's silence rule) rather than showing the
+  last shape's figure. `drawKeyOf` refuses a doc with no `model` — `x.or ===
+  d.model` on a doc with none matches undefined against undefined and buckets
+  that clip under a model it was never drawn on. Test:
+  `node scripts/test-footage-draw-time.js`.
+  **AND APIFRAME HAS NOTHING TO BUILD (checked the same day, her ask: "check if
+  API frame has something and build that if it does").** Its own docs publish
+  `GET /v2/me` and no billing, credits, usage or history endpoint at all — and
+  `/me` has been wired since 2026-08-27 as `GET /api/apiframe/me` (that
+  module's own comment: "every other billing read 404s, measured 2026-08-27").
+  So its balance is already on the "?" card and there is no spend history to
+  read. OpenRouter is the same shape: a balance
+  (`GET /api/openrouter/credits`), no history.
+  **HER "~" STAYS, BUT THE ESTIMATE HAS NOW BEEN READ AGAINST REAL CHARGES
+  AND IT IS RIGHT (2026-09-11, she exported her Atlas cost history).** 117
+  charges over 40 hours, joined to `forge-video-jobs` by time, 106 of them
+  paid: the page's number lands within a few percent on every shape with
+  enough jobs to trust — Mini 12s 480p 3:4 real/estimated **1.008** (n=7),
+  Mini 15s 480p 16:9 **1.025** (n=12), Fast 15s 480p 3:4 **0.992** (n=6),
+  2.5 at 15s and at 30s **1.02** each. **And the pixel scaling is confirmed
+  to 0.2%**: Mini 3:4 billed 1.11¢/s at 480p and 2.44¢/s at 720p (an 8s and
+  a 12s clip agreeing), a factor of 2.198 against `resFactor`'s 2.2022 — so
+  the 2026-09-10 reasoning that resolution is a billing dimension Atlas does
+  not publish was correct. **A refusal is free, confirmed again:** 10 of the
+  117 rows are $0.00. The shapes that read 1.4-2.3x are all single jobs whose
+  charge could not be matched to the right job — **Atlas stamps no job id on
+  a charge**, so a burst inside one minute cannot be joined exactly, which is
+  also why this can never be pinned to `exact` from the console alone.
+  **WHAT THE 40 HOURS ACTUALLY COST: $24.75** — Mini 99 jobs $14.07, 2.5
+  **3 jobs $6.17** (two drawn clips, a quarter of the bill), Fast 14 jobs
+  $3.92, Wan 3.0 one job 60¢. **The bill is SECONDS, not the model**: 15s is
+  Mini's max and **69 of the 99 Mini jobs are at it — $10.85, 77% of the
+  Mini spend and 44% of everything** — 16.6¢ a clip against 4.5¢ at 4s. The tilde is the
+  compact form of the WORD she cut the day before ("just see the price not
+  'about'" — it fired on nearly every job and spent a line saying the same
+  thing every time); one character costs nothing and still says the number is
+  not a promise. **ONE RULE ABOUT THE PRICE ON THIS PAGE: a real charge is a
+  number, an estimate wears a `~`** — so the card marks one too (falling back
+  to `estimate` because the door reported no `cost` IS the unpinned case, and
+  it is the standing case on Atlas), or the send line and the card under it
+  would print two different things for the same clip. `#cost`
+  `dataset.about` still carries the flag, pinned by a test. **What would
+  settle the factor is one console read**: the 12s 720p Mini clip of
+  2026-09-10 was quoted 13.2¢ and should read ~29¢ beside the 480p ones.
+  **NOT BUILT and hers to ask for: Atlas's SR tiers** — `720p-SR` /
+  `1080p-SR` / `1440p-SR` generate one rung down and upscale with FlashVSR,
+  which its own docs call a lower-cost HD option; the page offers native
+  480p/720p only, and 1080p is not native on Mini at all. **OpenRouter and APIFRAME
+  are still doors and `footage.js` keeps them** — a chat pins either by hand,
+  and the module's own AUTO is Atlas first with APIFRAME behind it for a
+  refused face (re-sent with a note saying so on the card), OpenRouter for a
+  shape Atlas does not price (2.0 at 1080p).
+  **PLAN BEFORE GO IS HISTORY (2026-09-09, "no plan button").** She asked for
+  it the day before — "plan before go" — and retired it within the day: the
+  first button used to open a read-back card under the controls (her words
+  verbatim, every reference by its slot, model · seconds · resolution · shape ·
+  sound · door, "This tap: about N¢") and Go was a second tap. Now the star is
+  the one button, the price sits beside it and her words are in the box above
+  it, so the read-back is on screen AT the moment of the tap rather than behind
+  an extra one. **Don't build the card back** — and nothing else may send
+  either: the failed card's "Try again" puts the clip back in the box and stops
+  there. (A second chat built the same tool as `/motion` the same hour — PR
+  #2231, tag `motion-page-3f0fce9` — and it was NOT merged: one ask, one tile.)
+  **THE FEED HAS THE PLAYGROUND'S SEARCH AND ITS FILTER DRAWER (2026-09-11,
+  Sophie: "add a search button and filter like playground" · "single
+  magnifying glass button that expands" · "yea footage" · "filter is sub menu
+  of glass · only one main button").** A GLASS in its own box beside the ♥/✕
+  pair, and it is the ONLY main button this row grew: a tap opens the field
+  (beside it, or on its own line when the row is full) **and the FUNNEL at the
+  field's right end**, and lights the glass in INK — a door, not a mark;
+  shutting it takes the funnel with it and CLEARS the words, since a query she
+  cannot see must never go on hiding clips. The ✕ inside the field wipes the
+  words and keeps her in it. **A FILTER IS STICKY AND SURVIVES THE GLASS
+  SHUTTING, so the GLASS WEARS THE COUNT the funnel chip wears on the rows
+  below** (lit, with the digit beside the glyph) — tucking the funnel behind
+  the glass with nothing on screen saying a filter is on is exactly the silent
+  filter this app keeps getting burned by. The funnel STRETCHES to the field
+  beside it rather than keeping the shell's 34px (the door stretches to the row
+  it stands on), and the drawer she left open is left open. The house grammar, searched as she dictates (`/feedkit.js`); the loaded
+  feed is narrowed AT ONCE and a beat later the server answers over the WHOLE
+  log — `GET /jobs?q=` filters before the page is cut, up to 300 hits, and a
+  hit the feed never paged in lands as a card like any other (the Assets
+  tab's truncate lesson). **ONE haystack, `footage-hay.js`** — loaded by
+  footage.js and served to the page (the clip-diff.js pattern), so the client
+  filter and the server search read the same words: the prompt, the model's
+  label and id, the door, `4s`, the size, the shape, the project, `seed N`,
+  the status, `trimmed`, `video ref`, `first frame`. The `… older` door is
+  off while a search stands (there is no page under a whole-log answer). The
+  funnel is `/searchfilters.js`, the one shell, with this page's two rows —
+  MODEL (the four `PAGE_MODELS`, several at once) and WHEN (the shell's own
+  days-back chips) — sticky under `footage_filt_*` like the ♥ and ✕ beside
+  them; an emptied feed names which of them emptied it. Both stay OUT of the
+  drawer (her 2026-09-02 word). Test: the search block of
+  `node scripts/test-footage.js` (every assertion a MEASUREMENT of what is on
+  screen or of what the stub server really received — a word only an older
+  clip says has to reach the server and come back as a card).
+  **THE FEED HAS THE PLAYGROUND'S SWITCH (same list: "add tile/list/3/4 grid
+  feature from playground")** — LIST is a box per clip, TILES is the posters
+  `--cols` across, and the third segment is the NUMBER, 3 or 4, never bars (at
+  16px two bar counts are one grey smudge). ONE variable on the root drives the
+  wall AND a card's own reference row, so the segment is never a dead control
+  in list view; all three choices are sticky under `footage_*` keys. The ✕ mark
+  rides as a CLASS, out of the wall's signature, so hearting a clip cannot
+  rebuild the wall and re-decode every poster — **and a whole page of clips
+  paints the wall ONCE**: `loadJobs` hands every clip to `jobCard` in turn and
+  the signature changes on each one, so a paint per card rebuilt the wall N
+  times to end with N cells (measured on a first load of 40 clips: 39 wipes,
+  820 cells created for the 40 that stayed). Only a BATCH is deferred — a
+  vote, a new job and a view switch still paint on the spot.
+  **AND THE FEED PAGES BACK PAST TODAY (2026-09-11, Sophie: "I can't go back
+  farther than today in footage").** The read was the newest 40 clips and
+  nothing else — at ~70 Mini clips a day that IS today, so everything before
+  it sat on the log with no door (the Assets tab's hard-truncate lesson,
+  arriving at the page she draws in most). An underlined **… older** under
+  both views asks `GET /jobs?before=<sentAt>` for the page under the OLDEST
+  clip on screen; the route answers `more` beside the jobs (`pageJobs`,
+  pure). Two things not to undo: the cursor is a **sentAt, never a count** (a
+  clip landing while she reads would shift a count and repeat a page), and
+  **the newest-page poll's `more` is ignored once she has walked past it** —
+  that read runs every few seconds and always says "there is a page under the
+  first 40", which says nothing about the pages she already holds; it only
+  ever ADDS to `jobsById`, so a page she walked back to stays put. Pinned by
+  the walk block of `node scripts/test-footage.js` (the cursor read off what
+  the stub really received, the order off the DOM).
+  **THE PRICE IS EXACT, AND THE 60% SALE IS OPENROUTER'S TO PASS ON
+  (2026-09-09 — measured off 113 completed OpenRouter jobs' own `usage.cost`,
+  44 APIFRAME jobs' `creditCost`, and ffprobe on the output clips).** Four
+  things were wrong at once, and each hid the others:
+  - **MINI RENDERS ON THE 2.5 CANVASES**, not the 2.0 ones — 480p 1:1 is
+    640x640, 480p 3:4 is 560x752, 720p 3:4 is 834x1112, on every clip
+    (`sizes` on a model row names the canvas table it really renders on).
+    **AND SO DOES 2.0 — measured 2026-09-12, and it was UNDER-QUOTING her.**
+    The one 2.0 job that has gone through OpenRouter (4s 480p 3:4) was quoted
+    **$0.2037** off the published 2.0 canvas and **BILLED $0.2792** — a factor
+    of 1.371, which is 560x752 / 480x640 = 1.3708, the 2.5 canvas to four
+    figures. So `sizes:'2.5'` is on the 2.0 row too; it stays `about`, since
+    one job at one shape fixes a canvas and does not pin every rung. The door
+    ranking is unchanged (OpenRouter still wins 2.0 on every shape).
+    **ONLY FAST HAS NEVER GONE THROUGH OPENROUTER NOW**, so only Fast keeps
+    the published table unverified — and that table has now been wrong TWICE,
+    which is why the bar is a real charge rather than a vendor page.
+  - **2.5's CANVAS IS MEASURED AND THE `~` IS OFF IT (2026-09-12).** Not by
+    ffprobe but by the better evidence: OpenRouter hands its REAL charge back
+    on every job, and across four distinct shapes the estimate and the charge
+    agree **to the cent** — 480p 9:16 30s $3.0883, 720p 9:16 15s $3.4764
+    (twice), 720p 9:16 30s $6.9432, 720p 3:4 4s $0.9400. A 2.5 job with a
+    reference VIDEO still answers `about`: that surcharge is measured on one
+    job and nothing else.
+  - **A CLIP IS 24·s + 1 FRAMES**, not 24·s — the billed count fits 97 exactly
+    on a 4s ask, and that +1 is what makes the formula land on the cent.
+  - **THE 5% TOP-UP FEE IS NOT IN THE PRICE.** It is paid when credit is
+    bought; OpenRouter's balance and its per-job charge are both in list
+    dollars, so a price with the fee folded in does not subtract from the
+    balance she is looking at. `OR_FEE` is still exported, and the "?" card
+    says once that credits cost 5% more to buy than they show.
+  - **THE SALE IS READ, NEVER WRITTEN DOWN.** Mini was billed at 0.40 × list —
+    a real 60% off — on all 111 jobs from 2026-09-08 21:13 UTC to 2026-09-09
+    06:39 UTC, and the two jobs since (18:09 and 18:22 UTC, both from
+    `/footage`) at FULL LIST: **13.96¢ for a 4s 3:4 480p Mini against 5.58¢.**
+    ByteDance's own campaign is still running (Seedance 2.0 mini at 40% of list
+    and 2.0 fast at 75%, both to 2026-10-07 14:00 UTC+8; 2.5 at 1080p only at
+    72%, to 2026-09-17; plain 2.0 is not in it), so it is OPENROUTER that
+    stopped passing it on. It exposes the factor per model as
+    `pricing.discount` on `GET /models/<id>/endpoints` — 0 right now, and its
+    cached page used to advertise mini "from $0.01345/second" (= 0.40 ×
+    $0.03363). So `footage.js` FETCHES it (`discounts()`, cached ten minutes),
+    prices at `list × (1 − discount)`, and **a failed read is 0 — full list,
+    the safe direction — never a stale sale**. `GET /status` carries it per
+    model and the "?" card says "2.0 Mini is 60% off right now" only while
+    there is one. **RE-SWEPT 2026-09-12: no new sale on any door, and
+    nothing ended that day.** OpenRouter's `discount` reads 0 on all four
+    Seedance rows — checked against its own API rather than our cache, since
+    a failed read also answers 0 and the two look identical from inside;
+    Atlas's sale is live and unchanged (Mini 1.1¢/s = 80% off, Fast 2.7¢/s =
+    70%, 2.0 and 2.5 only 20%); APIFRAME has no sale mechanism at all. **The
+    cheap way to detect one is the REAL CHARGES, not a vendor page**: divide
+    each job's `usage.cost` by its own token count and a sale starting or
+    ending shows as a step. Over the whole log there is exactly one step —
+    Mini going 1.4e-6 → 3.5e-6 at 2026-09-09 18:09 UTC, this sale ending —
+    and 2.5 has billed a flat 1.07e-5 from 09-11 through today. The old hardcoded `sale: 0.72 / 0.75` are gone: wrong numbers
+    that only looked right on 1:1, where the canvas was wrong too. (`orTok`
+    stays the OpenRouter-LISTED figures, which is what it bills against — its
+    Fast price is already ByteDance's discounted one; don't try to reconcile
+    that in code.)
+  So the formula is **tokens = w × h × (24·s + 1) / 1024, × the SKU, × (1 − the
+  live discount)**, in list-credit cents to the hundredth. An estimate answers
+  `exact:true` where it is pinned and `about:true` where it is not, and the page
+  prints "about" only for the second. **A REFERENCE VIDEO IS THE ONE SHAPE
+  STILL UNPINNED** — one job only (1:1 480p 4s Mini: 6.48¢ with against 5.43¢
+  without, under the sale), i.e. ~19% MORE rather than the discount the
+  published SKU advertises — so it is estimated at the same rate and marked
+  "about"; the published `orVidTok` figures are deleted rather than left lying
+  around wrong. **APIFRAME is per second and has its own rate with a reference
+  video** (`afVid`): 2.5 at 480p is 15¢/s with one and 13 without — 44 jobs,
+  every one exact (4s = 60 or 52, 15s = 225, 30s = 450); Mini at 480p with a
+  video is 5¢/s. 720p is unmeasured on every model there, as is Mini with no
+  video, so those still answer "about". (A FAILED APIFRAME job still shows a
+  `creditCost` — 60-450 on the refused 2.5 jobs — and the team total sits
+  ~1,100 credits UNDER the sum of them, so some failures are refunded; which
+  ones is unmeasured.)
+  **One log**: both doors are called in process (`startVideo`/`pollVideo`,
+  exported from `openrouter.js` and `apiframe.js`) and file the same
+  `forge-video-jobs` doc, `chat:'footage'`, so the 1080p redo reads it like any
+  chat's. The server polls the unfinished jobs itself (12s throttle per job)
+  and bakes a poster, so the feed resumes from any phone. **The price is
+  SERVED** (`GET /estimate`, the model table on `GET /status`) — the page holds
+  no cost figure at all, and a test pins that. Seconds and resolution open at
+  the minimum on every load; the model and the shape are remembered. Nothing is
+  deleted — ♥/✕ marks, `hidden` is the verb. **A chat's clips do NOT go here**
+  — this is her feed, the Playground's rule; a chat's clips are tagged with the
+  chat's own slug. Test: `node scripts/test-footage.js`.
+  **A BELT SCENE HANDS ITS WHOLE JOB TO THIS PAGE — ONE localStorage KEY,
+  `footage_handoff` (2026-09-10, Sophie: "add a button to each scene that
+  automatically puts all the right references in the same text to footage so I
+  can edit it or press go myself").** Her belt pages are served from this same
+  origin, so the hand-off needs no route and no doc: the belt writes
+  `{ prompt, refs:[{url, kind:'image'|'video'|'audio', poster?, name?}],
+  model?, seconds?, res?, ratio?, seed?, from?, title?, at: Date.now() }` and the page
+  CONSUMES it — reads, applies, **removes the key** — which is what makes it
+  land exactly once and never come back on a later load. It only fills the box:
+  **nothing is sent, the star is still her tap**, which is the whole of what she
+  asked for.
+  - **IT IS READ AT FOUR MOMENTS, AND LOAD IS ONLY ONE OF THEM**, because the
+    app keeps a tool's web view alive for the whole app process (*A WRAPPED PAGE
+    CAN BE DAYS STALE*) and walking to this page from the belt fires no load at
+    all: on **load** right after `loadCtl()` (the order is what makes the
+    hand-off beat the restored draft), on **`visibilitychange`→visible**
+    (coming back to the tool inside the app — the ordinary case), on
+    **`pageshow`** (the back-forward cache hands the page over with neither),
+    and on the **`storage` event** for that key (another same-origin DOCUMENT
+    writing it while this one is on screen — the only moment the page can act
+    immediately).
+  - **A hand-off REPLACES the draft** (it is a button she pressed; her words
+    were going into `footage_draft` all along), refs are deduped by url and an
+    unknown `kind` rides as a picture (`slotsOf` counts per kind and would
+    otherwise name a slot `[AudioNaN]`), and the model/res/ratio/seconds are
+    set live on `S` so **`paintControls` is what validates them** against the
+    served table — an unknown model falls to the first row, 99 seconds clamps
+    to the model's max. Nothing here holds a copy of that table.
+  - **Older than a day is dropped** (she has moved on) and **a malformed value
+    is dropped silently** — a belt page with a bug must not throw a page error
+    here. Either way the key is taken off the shelf rather than re-read at
+    every one of the four moments.
+  - Test: `node scripts/test-footage-handoff.js` (the real page headless, every
+    assertion a MEASUREMENT — a hand-off that parses and never reaches the box,
+    one that leaves the key behind, and one whose seconds skip the clamp all
+    look identical in the source; the `storage` moment is driven by a SECOND
+    page in the same context, which is the only honest way to ask. Verified
+    failing 20 pre-fix.)
+  **THE CARD'S LINE CARRIES NO `sound` TAG (2026-09-10, Sophie: "get rid of
+  sound since they all have sound").** The page sends `sound: true` on every
+  job, so the word was on every card and told her nothing. **`silent` is KEPT**
+  for a clip that genuinely has none — it can never render for a clip drawn
+  here, and a silent one saying nothing about it would be the card lying. The
+  card's price dropped its "about" in the same breath, for the reason above.
+  **EVERY CLIP SAYS HOW LONG IT TOOK TO DRAW (2026-09-10, Sophie: "can you
+  make it say the number of seconds or minutes each clip took to draw on the
+  clip?").** A `drew in 2m 34s` tag at the end of the card's own line, from
+  `drewMs` on the log doc. **`doneAt` CANNOT ANSWER THAT AND NEVER COULD — it
+  is when the SERVER NOTICED, and the poll only runs when someone reads the
+  feed.** Measured on two of her real Atlas clips: both stamped done within
+  0.7s of each other because one `/jobs` read polled them together, one having
+  really finished 13s earlier and the other 3m37s earlier — close the app for
+  an hour and `doneAt` is an hour late. So the figure is read from the DOOR's
+  own record and the shapes live in ONE place, `video-log.js`'s `drewMsOf`
+  (Atlas's `latency_ms`, else a `created_at`→`completed_at` pair, else the
+  other doors' timestamp names); all three doors hand `finishPatch` their raw
+  record. Three things not to undo: **a door that does not say writes NOTHING
+  and the card draws no tag** (the Assets tab's silence rule — a number that is
+  really "how long until she next opened the page" is worse than none); a span
+  that is **backwards or over six hours is refused** rather than shown, since a
+  clock skew must leave the figure absent, not wrong; and the page has **one
+  `dur(ms)`** which `ago()` also reads, so the drawing line and the finished
+  tag can never format a span two ways. The clips already drawn were filled in
+  by `node scripts/footage-drew-backfill.js` (dry by default, free — a read per
+  job on the door, one field written; 33 of her 41 finished clips recovered,
+  8 whose door does not say left alone and counted). Tests:
+  `node scripts/test-video-log.js` (the rule pure) and the drew-time block of
+  `node scripts/test-footage.js` (MEASURED off the rendered tag — a card that
+  computes the span and never paints it, and one that paints sentAt→doneAt
+  instead, are the same markup to any source check; verified failing 2 pre-fix).
+  **THE RECENT BOX IS WHAT SHE UPLOADED — NOTHING THE DOOR DREW (2026-09-10,
+  Sophie: "take out trimmed clips from recents" → "recents is recent
+  UPLOADED" → "uploaded videos").** The drawer lists the REFERENCES off
+  earlier cards — her stills and her uploaded videos alike, newest job first,
+  one tile per url — so re-attaching one is a tap instead of a hunt through
+  Photos. Three things not to undo: the dedupe is **by url across both
+  kinds** (a clip that was also a reference is one tile, and it is listed as
+  the REFERENCE); a video with a poster wears a small film mark in its corner
+  (one with none already draws the film glyph, so it needs no mark); and the
+  drawer is DERIVED from the feed, so it repaints with it and nothing is
+  stored.
+  **AND TYPING SHUTS IT (2026-09-13, Sophie: "recent references closes when i
+  start typing" → "it shud close").** The drawer is open to ATTACH; the moment
+  she is writing the scene it is a row of thumbnails between her words and the
+  buttons — and on a phone it is already under the keyboard, so it costs a
+  scroll to reach and a scroll to put away (MEASURED at 390pt: an empty box
+  puts it at y=362, a scene at y=480, under a keyboard starting at ~430). So
+  the first character in a prompt block closes it, exactly as her tap would.
+  Three things not to undo: it is **TYPING, never focus** — a tap to place the
+  caret is not writing; it hangs off the block's own `input` and **not
+  `saveDraft`**, which is the one signal every path that changes the job sends,
+  so **attaching leaves it open for the second reference**; and the character
+  sheet beside it is untouched (she named the Recent drawer).
+  **THE CLIPS AND THEIR LAST FRAMES ARE HISTORY, NOT A RULE — DON'T PUT THEM
+  BACK.** For a few hours that morning the box also listed a job's own
+  FINISHED CLIP ahead of its references, at her ask ("make the recent box
+  keep videos, not just stills" — her references really are mostly stills, and
+  the shot before is what this draft keeps needing), and then that clip's
+  baked LAST FRAME right behind it ("on"). She retired both the same day, in
+  three messages: first the trimmed ones ("take out trimmed clips from
+  recents" — a trimmed clip's `video` points at its FIRST part, so the tile
+  offered a piece of a shot rather than the shot), then the whole idea. **The
+  outputs belong to the WALL**; a clip is chained from by putting its prompt
+  back, and its last frame from its own card. `return_last_frame` is still
+  asked for on every Atlas job and `lastFrame` is still on the log — only the
+  drawer stopped listing it. Test: `node scripts/test-footage-recent.js`
+  (every assertion a MEASUREMENT of the rendered drawer or of what the send
+  really POSTs — a clip's poster and a still reference are the same markup,
+  and a lit thumb says nothing about what left the phone; verified failing 5
+  against the page that listed them).
+  **A CHOSEN REFERENCE OPENS BIGGER — TAP ITS THUMB (2026-09-12, Sophie:
+  "make clicking on a chosen reference open it bigger").** A 72px tile is too
+  small to check that the picture riding as `[Image2]` is the one she meant,
+  and the strip was the one place on this page a picture could not be looked
+  at. It opens in the SAME overlay the clip and the last frame use — one
+  lightbox on this page, so the way out is the one she knows (the backdrop,
+  the ✕, the app's chevron). Four things not to undo: a PICTURE is the still
+  view with **save** and **no "use this frame" doors** (`openShot(url,
+  {use:false})` — "reference" would do nothing at all, since it already is
+  one, and "first frame" is the flag on its own tile); a VIDEO is the ordinary
+  player with **no trim bar** (`openPlayer(url, null)` — a reference is a file
+  she attached, not a clip this page drew, so there is nothing to cut); an
+  AUDIO tile stays a plain `<div>` with no control at all (nothing to open
+  bigger — the Assets tab's silence rule); and `.ref .im` needs `padding:0`
+  now that it is a `<button>`, or the page's base button rule (7/11) insets
+  the picture inside its own tile. The tap is wired BY POSITION like the ✕
+  beside it, so a copy-back that replaces every object in the strip cannot
+  strand it. Test: `node scripts/test-footage-ref-big.js` (every assertion a
+  MEASUREMENT — a tile carrying a handler that opens nothing, one that opens
+  the overlay still showing the 72px thumb, and one that opens the trim bar
+  over a reference all look identical in the source; verified failing 9
+  pre-fix).
+  **DIVIDE HERE — ONE BLOCK IS ONE CLIP (2026-09-11, Sophie: "can u add the
+  feature from story timeline that allows me to divide into two text blocks
+  where my cursor · a button · says divide here · pinned or sticky in footage
+  · icon this time").** The Story Timeline's divide on the prompt box: a mark
+  beside the bigger-box toggle (Lucide `separator-horizontal` — her "icon this
+  time") cuts the block at the cursor, the words after it become a SECOND
+  block right under the first, and the timeline's join mark (`fold-vertical`)
+  in the gap puts them back with a blank line between. **THE STAR SENDS THE
+  BLOCK SHE IS IN** — the one she last tapped into, wearing the star's gold
+  line once there are two or more; the references, model, seconds and size
+  are the job and are shared, the block is the words; a slot tap, a
+  character's line and a put-back land in the active block, and the ✕ on a
+  reference renames the slot in EVERY block. Both corner buttons pin
+  together (`stickybox.js` v2 — buttons on one box are a group; the divide is
+  `nofollow`, since it shrinks the box from the bottom and the seam is
+  already where her eyes are). **`fitBox` holds the wrap's height while a box
+  is measured** — at `height:auto` the box collapses for one layout and the
+  browser clamps a deep scroll to the shorter page (measured: scrollY 654 →
+  0 on a pinned divide at line 40; the same shape flickered under every
+  keystroke in a tall big box). Nothing is sent by dividing, nothing is lost
+  by joining, no ✕ on a block on purpose; a hand-off naming no `blocks` is one
+  scene and collapses to one block (**since 2026-09-13 one naming them lands
+  as several — see the next paragraph**); the draft keeps `prompt` as the first block for an
+  older page and the rest under `blocks`; a block is a direct child of the
+  panel or the pill-gap fitter would shorten them all.
+  **AND EACH BLOCK FOLDS ON ITS OWN (2026-09-13, Sophie: "make each text block
+  in footage collapsible")** — a heading row per block, drawn only with two or
+  more, and THE HEADING IS THE FOLD (the chats part-fold's rule). Shut it says
+  that block's first words and its box is DISPLAY-hidden, so a folded block
+  still sends its words and still renames its slots; the gold line moves to
+  the heading when the block she is in is folded away; anything that puts
+  words in a block OPENS it; and it is MEMORY, never localStorage — a reload
+  opens everything. A box is never fitted while it is folded (`scrollHeight`
+  on a `display:none` box is 0, so it would come back one line tall), and the
+  first divide gives back the height its own heading adds above the seam.
+  Full note: *DIVIDE
+  HERE* in `docs/modules/audio-and-film.md`; tests
+  `node scripts/test-footage-divide.js` and
+  `node scripts/test-footage-block-fold.js`.
+  **AND TWO PERMANENT BLOCKS SIT ABOVE THEM — CHARACTERS, THEN SETTING, SHUT
+  BY DEFAULT (2026-09-13, Sophie: "i envision two permanent default collapsed
+  blocks at the top of footage: characters, then setting").** Who is in the
+  scene and where it is do not change from shot to shot, so they are two
+  blocks of their own above the scene and **what is written in them rides at
+  the TOP of the prompt of every clip she sends** — the star's own block and
+  the appended All alike, in that order, blank line between. Six things not to
+  undo: **they are not `blocks()`** (a head is `.headwrap`/`.hblock`, never
+  `.promptwrap`/`.pblock`, so the numbering, the gold line, the join marks,
+  the ✕, the divide, `setBlocks`, the draft and every test are untouched by
+  construction rather than by remembering to skip two; the draft carries them
+  under their own names); **the gold line never moves to one** (`setActive` is
+  reached through `closest('.promptwrap')`, which a head is not, so tapping
+  into Characters leaves the star pointing where she left it — the star cannot
+  send a head on its own); **an empty head adds nothing**, and with both empty
+  the prompt is byte-for-byte the words in her box; **permanent means no ✕ and
+  no divide**, so emptying the box is how one stops riding; **`clear` does not
+  touch them** — it wipes the JOB and the cast and the room are the standing
+  thing above it, and a clear that retyped them would be "permanent" meaning
+  nothing; and **shut is where they START, every load** — the one place this
+  page folds by default, safe only because **shut, the heading says its
+  words** (a value riding every clip with nothing on screen saying so is the
+  hidden ingredient the price beside the star exists to prevent). Named
+  `paintHeadBlock` because the page header already has a `paintHead`, and a
+  duplicate function DECLARATION is not an error — the last one in the file
+  wins, silently, which is how the first cut folded correctly and painted
+  nothing at all. Full note: *CHARACTERS, THEN SETTING* in
+  `docs/modules/audio-and-film.md`; test
+  `node scripts/test-footage-heads.js`.
+  **AND A STORY TIMELINE STORY COPIES OVER, ONE CONNECTED PART PER BLOCK
+  (2026-09-13, Sophie: "how do i copy a story to footage · each connected part
+  its own section · lines breaks back").** A **Send to Footage** link on an open
+  story writes the ordinary `footage_handoff` key — same origin, no route, no
+  doc — with one entry in a new `blocks` array **per UNIT**, since a unit is
+  what she joined together there and so is the part that belongs in one clip,
+  and the moments inside a unit joined by a **newline each** (her "lines breaks
+  back" — never run together into a paragraph). Four things not to undo: the
+  link is a **REAL link** to `/footage` (on her phone that opens the app on the
+  tool — the scene-index keys' own pattern) and **NOTHING IS SENT**, the star is
+  still her tap; `blocks[0]` also rides as `prompt`, so a Footage page cached
+  from before this reads the first part as it always did; **a blank entry is
+  dropped** rather than becoming an empty block the star could send; and
+  `setBlocks(list)` is the ONE writer on the Footage side — `collapseBlocks` is
+  a call to it with one string, so a belt scene's hand-off is byte-for-byte what
+  it was. The button is drawn only once the story has something to send. Tests:
+  `node scripts/test-timeline.js` and `node scripts/test-footage-handoff.js`
+  (verified failing 5 pre-fix).
+  **WHAT CHANGED BETWEEN TWO CLIPS — THE COMPARE MARK ON EVERY CARD
+  (2026-09-11, Sophie: "is there an easy way I can diff video clips like I
+  can't remember what I changed … sometimes it's a single line or a reference
+  for the model the timing etc · It's always been Sophie clips since they're
+  pretty similar").** One tap opens a paper sheet on this clip against the
+  clip BEFORE it in the same project and draws only what moved: a word diff
+  of the prompt (in = underlined on green, out = struck on rose), one row per
+  setting that changed (`seconds 8s → 12s`), and the references slot by slot
+  — a different picture in `[Image2]` is ONE `swapped` row, named off the
+  cast library ("Sophie · the blue pajamas"), never a Storage hash. `‹ older`
+  / `newer ›` walk the other side along the project, `pick a clip` lets her
+  tap any card's mark instead, and a clip older than the page holds is read
+  off the server one at a time into a side pool (the `… older` cursor is
+  untouched). **Nothing new is stored** — every card already carries the
+  prompt, the settings and every reference, and `clip-diff.js` (pure, served
+  at `/clip-diff.js`) is the one rule the panel and the test drive. **LINES
+  FIRST, AND THE OTHER SIDE IS THE NEAREST TWIN (the same evening, her
+  screenshot of the live panel: "text looks wrong. It should call out
+  exactly what changed")** — a whole-prompt word LCS against the clip merely
+  before it in time lined up every "the" in two unrelated paragraphs and
+  painted a hash. Now the prompt is diffed as LINES (a near-twin line is
+  word-diffed against its twin, anything else is a whole line out or in),
+  `kinOf` picks the nearest older clip in the project sharing 0.4 of its
+  words (the page over what it holds, `GET /api/footage/jobs/:id/kin` over
+  the whole project when the twin is further back), and with no twin the
+  panel says "a different prompt" and shows the words plain rather than a
+  hash. Full note: *WHAT CHANGED — THE COMPARE PANEL* in
+  `docs/modules/audio-and-film.md`; test `node scripts/test-clip-diff.js`.
+  **CLEAR, AND THE UNDO BESIDE IT (2026-09-11, Sophie: "add a clear button to
+  footage · with an undo · make a draft save automatically").** Two underlined
+  words at the end of the star's row — the house inline opener's paint, never a
+  boxed button — each drawn only while it means something. **Clear wipes the
+  JOB**: every block, the references, the two keyframe marks and the seed. It
+  leaves the SETTINGS alone — the model, the size, the shape, the seconds and
+  the project are hers and sticky, and a clear that reset them would be the
+  shape rule running backwards once a day. Five things not to undo:
+  - **IT ASKS NOTHING.** She asked for an undo INSTEAD of a confirm, and that
+    is the cheaper direction: a confirm costs a tap on every clear, an undo
+    costs one only on the clears she regrets. The Playground's panel Clear asks
+    over unseen work; this one never does, because nothing here is lost.
+  - **THE CLEARED JOB IS SAVED AUTOMATICALLY — the third line of her ask.** Her
+    words and her references have gone into `footage_draft` on every keystroke
+    since the blocks landed; what was missing is the one moment that
+    deliberately EMPTIES that draft. The cleared job is banked in its own key
+    (`footage_cleared`), so the undo survives a reload, an app restart and a
+    deploy rather than living for the life of one page — which matters here,
+    because the app keeps this web view alive for the whole app process.
+  - **UNDO IS A SWAP, so it can never lose anything**: the banked job comes
+    back and whatever was on screen takes its place in the bank. Tap it again
+    and you are where you started. The one asymmetry is deliberate — swapping
+    back an EMPTY job drops the bank rather than leaving an `undo` on screen
+    that would restore nothing.
+  - **THE SEED RIDES THE BANK, the one exception to "the seed is never sticky
+    across loads".** That rule is about a value that rides a job with nothing on
+    screen saying so; here the tap IS the saying, and the number lands back in
+    its own visible box. An ordinary reload still opens with the seed box empty.
+  - **A BELT HAND-OFF BANKS THE JOB IT REPLACES.** `takeHandoff` overwrites the
+    draft in the same breath it replaces the box, so a belt scene arriving on
+    top of a scene she was writing was the one silent loss left on this page —
+    and the comment there claimed the opposite. The undo is exactly the
+    mechanism for it.
+  **BOTH WORDS SIT ON THE STAR'S OWN LINE SINCE 2026-09-13 — THE SEED MOVED OFF
+  THIS ROW.** It used to wrap and her own rule said so ("same row unless it
+  bleeds over"): MEASURED with the Buttons fold open, the seed (130) + the star
+  (75) + the price (95) plus two 8px gaps left 24px of a 340px row against a
+  25px word, so a drawn word landed hard right on the line under the price
+  (40px → 69px). With the seed up in the BUTTONS row the four sit together and
+  the row costs no height at all. With neither word drawn the GROUP is
+  hidden outright, so an empty page is byte-for-byte the row it always was. `paintWipe` is called from `saveDraft`, which is the ONE signal
+  every path that changes the job already sends. Test:
+  `node scripts/test-footage-clear.js` (the real page headless — every
+  assertion a MEASUREMENT or a reading of what really landed in storage, since
+  a clear that empties the box and leaves the references attached, a bank that
+  never reached localStorage, and a word drawn where the pill covers it all
+  look identical in the source; verified failing pre-fix).
+  **THE WHOLE PROMPT AREA FOLDS, AND THAT IS THE ONE BUTTON TO THE GALLERY
+  (2026-09-11, Sophie: "make the whole prompt area collapse or one button to
+  get to the gallery at bottom").** A **PROMPT** row leads the panel; shut, the
+  panel IS that row and the feed rises to just under the header — MEASURED at
+  390pt on a two-line scene, the panel 491px → 70 and the first clip's card
+  491 → 185. So the fold and the jump are one tap, and it leaves her at the TOP
+  of the gallery rather than parachuting her into the middle. Six things not to
+  undo: it is **one class over the panel** (`.panel.shut`), never a list of rows
+  in script — a BLOCK is a direct child of the panel and blocks are made and
+  joined as she types, so a sweep would have to be re-run by everything that
+  touches one; what it hides is **DISPLAY-hidden and stays in the DOM**, so
+  every value is set the way she left it and `fitPillGap` sees a zero rect;
+  **opening re-fits every block** (a box measured while it was hidden reports no
+  `scrollHeight`, so without it a panel reopened after a reload comes back one
+  line tall); the **project picker moved onto that row** and is the one control
+  a shut panel still draws, because it narrows the FEED as well as the clip and
+  a filter she cannot see from the screen it is filtering is the failure this
+  app keeps getting burned by; **shut, the row says the first words of the block
+  she is in** (and how many blocks there are) in her own case, not the row's
+  caps — at 390pt a 10.5px caps line at .12em fits about four of her words and
+  reads shouted; and **anything that puts words or a reference back OPENS it**
+  (a belt hand-off, a clip's prompt copied back, a reference landing, a last
+  frame re-attached), so nothing can ride hidden. Remembered, and OPEN until she
+  says otherwise. The star goes with it — the whole prompt area, her word — so
+  there is no send from a screen that is showing her the gallery. Test:
+  `node scripts/test-footage-panel-fold.js` (the real page headless — every
+  assertion a MEASUREMENT, since a fold that sets a class and hides nothing, one
+  that leaves the feed where it was, one that folds the picker away with it and
+  one that reopens a box one line tall all look identical in the source;
+  verified failing pre-fix).
+  **THE SEED IS ON THE CARD AND IN A BOX SHE CAN TYPE IN (2026-09-10, Sophie:
+  "put a seed box that exposes the seed after the clip is drawn and put a copy
+  button next to it so I can reuse the seed … make it into a text box so I can
+  change it if I want to").** Every clip has always CARRIED a seed —
+  `video-seed.js` mints one per job when the caller sends none — and it was
+  reachable only from the job log: `cardOf` dropped it and the page never sent
+  one. Now `#seedbox` sits at the end of the controls row (its own row when the
+  row wraps), every finished clip's card carries a `seed <n>` line with a copy
+  button, and the card's put-the-prompt-back button fills the box too.
+  **AND IT IS REALLY IN THAT ROW SINCE 2026-09-13 (Sophie: "seed textbox shud
+  go on the same row as the other buttons above").** It had been living in the
+  STAR's row and folding away with the Buttons by hand — the same fold spelled
+  twice — while it is a SETTING like the model and the size. Three things came
+  with the move: the row is THREE lines inside the pill's reserved column
+  (MEASURED at 390pt, 563px of controls and their gaps against 291 — two is
+  arithmetically impossible, and her "same row unless it bleeds over" is what
+  allows the wrap), the STAR's row stopped wrapping so `clear`/`undo` sit
+  beside the price and **the panel is no taller than it was**, and `pillRect`
+  now measures the band the pill WOULD fill WITH ITS ARROWS — the back-to-top
+  and to-the-bottom arrows appear a screen into the scroll and grow the rail
+  ~92px, and this row sits 3px off the short band's edge (page y 276 against a
+  band ending at 273), so without that the reserve arrived only once she had
+  scrolled and the row re-wrapped under her: the 2026-09-11 "switches back and
+  forth between narrow and full width" complaint, one row down. `goToCard` asks
+  for `fitPillGap` before it measures for the same reason — the reserve lands a
+  frame or two behind a view change, and a card measured against a panel that
+  is about to grow leaves the window 42px short of the card she tapped.
+  - **BLANK MEANS A FRESH ONE, AND THAT IS WHY IT IS NOT STICKY** — nothing is
+    stored across loads and `copyBack` CLEARS the box for a clip that carries
+    no seed (an older clip, one drawn before the mint), the *only change what
+    the record knows* rule. A seed left in the box from last week silently
+    pinning tonight's clip is the Playground's hidden-ingredient failure.
+  - **AN UNUSABLE VALUE IS DROPPED, NOT SENT** — `videoSeed.okSeed` is the ONE
+    rule both sides ask, so the box and the door cannot disagree; `seedFor`
+    would replace a bad value at the door anyway and the card would then read
+    back a number she never typed. Digits are cleaned on BLUR, never while she
+    is still typing.
+  - **THE CARD'S SEED IS WHAT THE DOOR REALLY USED** — `startJob` reads it off
+    the door's own `params`, so the optimistic card carries it without waiting
+    for the first poll, and `cardOf` reads `params.seed` off the log. A clip
+    with none shows no seed row at all (the Assets tab's silence rule).
+  - Test: `node scripts/test-footage.js` (the seed section — the box ships
+    empty, nothing sticky, the card's line, the copy filling the box, what the
+    job REALLY receives, and copyBack filling then clearing).
+  **A REFERENCE UNDER BYTEDANCE'S PIXEL FLOOR IS UPSCALED BEFORE IT IS SENT —
+  AND THE CARD SAYS SO (2026-09-10, Sophie: "the first was just an iPhone ·
+  why failed").** Her first video reference was refused at validation, free,
+  with `InvalidParameter.PixelCountTooSmall: Pixel count must be between
+  407696 and 8295044` — the clip was **480×360 = 172,800 pixels**. **It really
+  was an iPhone recording (the file still carries Apple's `com.apple.quicktime`
+  camera keys) and NOTHING HERE SHRANK IT**: the page sends raw bytes and the
+  Dump stores video untouched (its one re-encode is HEIC stills, explicitly at
+  original size). iOS downscaled it on its way out of Photos through the web
+  file picker, so a reference she picked in good faith failed with an error
+  that reads like a bug in the tool. `video-floor.js` is the rule (the floor
+  and the ceiling are ByteDance's, so it is door-agnostic) and
+  `ensureVideoFloor` in footage.js bakes the copy. Four things not to undo:
+  **her original is never touched** (a new object under `footage/upscaled/`,
+  the webp rule applied to video), **it is baked once** (content-addressed by
+  the source url and the canvas, so a reference re-used on ten clips encodes
+  once and every later send is a HEAD), **it is best-effort and never blocks a
+  send** (no ffmpeg, no bucket, a probe that will not read, a failed encode —
+  every one answers the ORIGINAL url, so the job goes as it would have gone
+  and fails honestly at the door rather than the guard being what breaks it),
+  and **it is LOUD** — the card says what the clip was, what was sent, and
+  that her original is untouched, because a step that silently transforms what
+  she attached is exactly what *nothing stands between the source and the
+  output* forbids. **The probe reads DISPLAY dimensions**, so a phone clip
+  carrying a rotation matrix is measured the way the model will see it.
+  **IMAGES ARE DELIBERATELY NOT COVERED** — a reference still has its own floor
+  and nothing has measured it; applying this number to stills would be a guess
+  wearing a measurement's clothes. Test: `node scripts/test-video-floor.js`
+  (the rule pure, then a REAL encode measured with ffprobe — a plan that reads
+  perfect and a file still under the floor look identical to any source
+  assertion).
+  **A TILE CARRIES BOTH DOORS, AND THE NOTE ON IT ALONG THE TOP (2026-09-10,
+  Sophie: "can u have a play button, and a list view button on tiles · so both
+  options are available" · "i also wanted notes to show as the firs words that
+  fit on just the top of the tile" · "just my notes · not claude's").** Two chips in the MIDDLE of every tile —
+  **▶** plays it, the list mark opens its card — and **the poster itself is not
+  a button**: with two doors drawn on it, a third meaning hidden under the
+  picture is the thing that started this thread. The middle is the one place a
+  tap is never near another control at three across OR at four (the corners are
+  spoken for: the marks below, the note above), and the row they sit in is
+  `pointer-events:none` — a transparent strip across every tile would swallow
+  whatever it lies over (the toast's own lesson, one page down). A clip with no
+  url yet carries the CARD door alone rather than a play button that would do
+  nothing. Along the top: **HER newest note, never a chat's answer** — the strip
+  is what tells one poster from the next when she is scanning for the one SHE
+  said something about, and a chat's reply is the answer to a question she
+  already knows she asked (the whole exchange is on the card). It shipped as
+  the newest message whoever wrote it and she cut that within the hour; **a
+  clip only a chat has spoken on draws no strip at all.** "Hers" is anything
+  not stamped `chat`, which is exactly how `paintThread` draws the same thread
+  one function up — one page, one meaning of whose words those are, so a legacy
+  note carrying no `from` reads as hers in both places.
+  Four things not to undo: **"the words that fit" is the BROWSER's answer**
+  (one line, `text-overflow:ellipsis`) — a character count guesses at a width
+  that changes with the column count; **it wears the marks' own flat plate**,
+  because white text on a bright frame is unreadable and a scrim behind it may
+  not be a gradient (the house rule); **the scissors rides in the same row**
+  rather than under it, so the trim mark and the words can never sit on each
+  other; and it is painted in `paintTileNote`, **outside the wall's
+  signature** like the marks and the cut chip, so a note landing never
+  re-decodes a wall of posters. A clip nobody has said anything about draws no
+  strip at all — the Assets tab's silence rule.
+  **A TILE GOES TO ITS CARD, NOT TO THE TRIMMER (2026-09-10, Sophie: "clicking
+  on a tile in footage · scrolls to it in list view, or opens in a lightbox").**
+  The wall is for FINDING a clip; the CARD is where the clip lives — its words,
+  its tags and price, its seed and the button that puts it back, its
+  references, save, the note thread — and none of that was reachable from the
+  wall at all, because the tile's face went straight to the player. So a tap
+  switches to LIST, scrolls the window to that clip's card and flashes it, and
+  the card's own picture is what plays it. The list is the detail view this
+  page already has: one of them, never a second copy behind a second overlay.
+  Four things not to undo: **the play triangle came OFF a poster tile** — the
+  poster stopped being a button at all, and a play glyph on a picture that does
+  nothing is the tile lying (a clip with no poster still needs a face: the film
+  mark when it is finished, the ✕ when it failed). Play came back the same day
+  as its own chip, above; **the WINDOW is scrolled, never
+  `scrollIntoView`**, which walks every scrollable ancestor (the caret keeper's
+  and `__pagePlace`'s own rule); the measurement is **TWO frames out**, because
+  `#feed` was `hidden` a moment ago (every card reads y=0 in that frame) and
+  `resyncClamps` adds its "… more" openers in the first, which moves every card
+  under them; and **the flash is what says WHICH card** — a scroll that ends
+  silently on a page of near-identical boxes leaves her hunting the clip she
+  just tapped. **AND A CARD REBUILT UNDER HER KEEPS HER OPEN NOTE BOX AND THE
+  WORDS IN IT** — found by this test landing in the window where it happens.
+  The thread was already painted outside the card's signature so a note LANDING
+  never rebuilds the card, but anything the card PRINTS changing rewrites it
+  whole, and a vote coming back from the server is the ordinary one: she taps
+  the heart halfway through a note and the box went with it. The node is lifted
+  out and put back rather than re-made, so its own Send and Cancel keep working.
+  Test: the tile-to-card and rebuild blocks of `node scripts/test-footage.js`
+  (every assertion a MEASUREMENT — a tap that switches the view and never moves
+  the window, one that lands on some other card, and one that also opens the
+  trimmer are the same markup to any source assertion; the smooth scroll is
+  waited out by watching it SETTLE, since asking whether the card is on screen
+  answers true before the scroll has begun. Verified failing both ways pre-fix).
+  **SHE CAN NOTE ON A CLIP, AND IT IS THE HOUSE THREAD — TWO DOORS, ONE
+  CONVERSATION (2026-09-10, Sophie: "can you make it possible to add notes on
+  clips that come out of the footage module?").** A speech mark on every
+  finished clip's card opens an empty box, and PLAYING one gives her
+  `/filmnote.js` — tap to pause, note the SECOND she stopped on — the ONE
+  implementation, the same one the Chats app's pinned film and compare.js's
+  video lightbox use. **Nothing new is stored and no route was written:** both
+  doors POST `/api/gallery/assets/note` and the card reads
+  `GET /api/gallery/assets/notes?chat=<the chat /status serves>`, so a note on
+  a clip rings the wake doorbell, lands in the ONE inbox every chat sweeps,
+  and is answered ON the note (`from:'chat'`) rather than in a reply she has
+  to hunt for. Six things not to undo:
+  - **THE CHAT IS SERVED, NEVER TYPED** — `/status` already answers the
+    module's own `chat` (`footage`), so the page and `footage.js` cannot
+    disagree about where a note lands.
+  - **THE THREAD IS PAINTED OUTSIDE THE CARD'S SIGNATURE**, with its own — the
+    wall's own rule one card in: a note landing must never rebuild the card
+    and re-decode its poster.
+  - **NOT ON THE DRAWING POLL.** `loadJobs` runs every few seconds while a
+    clip draws and the notes route is two Firestore queries. The notes are
+    read on load, on `visibilitychange`→visible (inside the app that is the
+    only moment a stale page is about to be read), and when the player closes.
+  - **HER WORDS ARE NEVER LOST TO A REFUSAL** — the box empties only once the
+    server has the note, and an over-length one comes back REFUSED with the
+    count (the asset-note route's own rule) with her text still in the box.
+  - **A CLIP WITH NO URL CARRIES NO MARK** — the Assets tab's silence rule; a
+    drawing or failed job has nothing to note ON.
+  - **ONLY THE BACKDROP CLOSES THE PLAYER NOW** (chats.html's rule). It used
+    to close on "anything that is not a VIDEO", which would eat every tap on
+    filmnote's own Note button and inside its sheet.
+  Test: `node scripts/test-footage.js` (the note section — every assertion a
+  MEASUREMENT or a reading of what the stub server really received, since a
+  box that opens and posts nothing, a note filed under the wrong chat and a
+  thread that never reaches the card are the same markup).
+  Full note: *FOOTAGE* under the OpenRouter note in
+  `docs/modules/audio-and-film.md`.
+  **EVERY REFUSAL IS ONE TABLE AND THE CARD SAYS WHY (2026-09-10, Sophie:
+  "check for other refusal reasons, make sure they're documented and called
+  out").** `video-refusals.js` matches every reason the three doors have ever
+  sent (measured over all 238 jobs on the log) and answers a kind — `shape`
+  (the request: reference videos over 15.2s together, the pixel floor, 4-15
+  seconds, a lone reference video read as an extension, a picture outside
+  2:5-5:2) · `content` (an input gate — a person or a famous face, the one
+  kind a door falls back on) · `output` (drawn, then blocked: video
+  copyright 1012004, video sensitive content 1012006, AUDIO copyright
+  1012009 — unbilled, probabilistic, re-send) · `down` — and a line in her
+  words, which the footage card paints in red over the door's own text and a
+  refused tap answers as `why`. **The 15.2s reference-video total is checked
+  before the tap leaves** (Atlas only, from the floor probe's banked lengths).
+  **AND A REFUSED ATLAS JOB COMES BACK UNDER HTTP 400** with the record in
+  the body — read as the answer since #2283; before that a refused clip said
+  "drawing" forever. A reason the table has not met paints the raw text
+  alone: add a row. Full list: *EVERY REFUSAL A DOOR HAS SENT* in
+  `docs/modules/audio-and-film.md`; test `node scripts/test-video-refusals.js`.
+  **SAVE GOES TO PHOTOS, NOT TO A DOWNLOAD (2026-09-10, Sophie, on the card's
+  save link: "shud save directly to my photos").** It was an `<a>` at the
+  clip's own url — in the app that opens a player she then has to long-press
+  out of. It is a button now, and `saveVideo` is the Playground's own ladder
+  with a clip in place of a picture: the native `forgeSave` bridge in the app,
+  the share sheet ("Save Video") in Safari, a plain download on a desk.
+  - **THE BRIDGE ROUTES A VIDEO TO `VideoSaver`** (`ForgeSaveBridge.swift`) —
+    Photos takes a clip only as a FILE added as a `.video` resource, so the
+    raw `Data` `PhotoSaver` handles can never save one. **WHICH it is is asked
+    of the url and then of the server** (the extension, else a HEAD's
+    `Content-Type`), never of the page: the doors hand back their own urls (a
+    Storage object ending `.mp4`, an Atlas clip with no extension), and the
+    body stays a plain String so an older page posting an image url is
+    unchanged. A HEAD it cannot read answers "not a video" — the safe
+    direction, since the picture path reports Photos' own words.
+  - **AND `GatedWebTool` INSTALLS THE BRIDGE FOR EVERY PAGE IT HOSTS.** It had
+    been installed per tool (the Playground and Meta Assets), so any page
+    under that wrapper could offer nothing better than a download —
+    remembering to add it is exactly the kind of thing that gets missed, the
+    way `?embed=1` was. **The Swift half ships with a TestFlight build**; until
+    she installs one the page falls through to the share sheet, and an older
+    build reports Photos' refusal in its own words rather than saying nothing.
+  - **THE SHARE SHEET NEEDS THE BYTES ALREADY IN HAND**, so `primeSave` starts
+    the fetch on the button's `pointerdown` — a fetch inside the tap handler
+    spends the transient activation and `navigator.share` rejects silently
+    (asset-actions.js's own lesson). Not ready at the tap → "Getting the clip —
+    tap save again in a moment", never a silent nothing.
+  - **THE BUTTON IS A WORD, NOT A BOX** — the same paint the link wore
+    (underlined, hard right), so nothing on screen moved. PHOTOgraphed.
+  - Tests: `node scripts/test-save-to-photos.js` (the bridge's video route and
+    the wrapper's install, pure) and the save block of
+    `node scripts/test-footage-trim.js` (what the bridge REALLY receives on a
+    trimmed clip — an href assertion cannot follow a button).
+  **SHE TRIMS A CLIP AS IT COMES OUT — THE PLAYER IS THE TRIMMER (2026-09-10,
+  Sophie: "how hard would it be to make it possible to trim clips right as they
+  come out of the footage module?").** A Mini clip is 4-15 seconds and the shot
+  inside it is usually shorter — the model holds a beat before the move starts
+  and drifts at the tail — and the only way to lose either end was the Film
+  Editor, a tool away, so a clip she liked went into the draft carrying its
+  dead air. Tapping a clip opens the lightbox it always did, with two marks
+  under the picture: **Start here** / **End here** land at the playhead, `‹ ›`
+  walk the playhead a tenth of a second so a mark can be placed exactly, the
+  strip shows what is kept against the whole clip, and **Trim** bakes it.
+  `POST /api/footage/jobs/:id/trim {start,end}`; `{clear:true}` undoes it.
+  **IT COSTS NOTHING** — ffmpeg on our own box, no model call, no door; what
+  she paid for is the clip, and trimming and undoing are both free.
+  - **HER CLIP IS NEVER TOUCHED.** A part is a NEW object under
+    `footage/trims/` and `video` on the log doc — the clip the door drew — is
+    never written; `trims` is a list beside it, so the poll, the exact-prompt
+    log and the 1080p-redo list all go on seeing the original and taking a
+    part off is one entry off that list rather than a restore.
+  - **ONE CLIP HOLDS SEVERAL PARTS (2026-09-10, Sophie: "Can you also make it
+    possible to re-cut the same whole clip after I've cut it to also get a
+    second part").** `trims` is the shape; the singular `trim` this shipped
+    with is READ as a list of one, so nothing already on file needed
+    migrating, and `cardOf` still answers `trim` as the first part for a page
+    cached from before. `POST /jobs/:id/trim` is the one door: `{start,end}`
+    adds a part, `{start,end,replace:<key>}` swaps one span for another IN ITS
+    OWN PLACE in the order, `{remove:<key>}` takes one off, `{clear:true}`
+    takes them all off. The MARKS always open on the WHOLE clip — what she has
+    cut is the dim bands on the strip and a row each under it, so the next tap
+    is marking a different bit; a row's span puts its own marks back (the next
+    cut replaces that part) and its ✕ is the undo, the only one that can mean
+    the right part when there are several. **The player STAYS OPEN on a cut** —
+    she is taking a second part out of the same clip, and closing every time
+    would mean finding the clip and re-opening it between every one. `video`
+    (what save and a note key off) is the FIRST baked part; the bake guard
+    PATCHES ITS OWN ENTRY rather than writing back the list it planned, so a
+    part she cut while one was encoding is never dropped.
+  - **AND SHE CAN PLAY THE WHOLE CLIP TO CHECK THE CUT (2026-09-10, her first
+    ask that morning: "can you make it possible to play the whole clip to make
+    sure I cut the right part?").** *Play it all* is ONE PASS past the out
+    mark, never a mode: it ends when the clip does, and any mark she moves
+    ends it too; tapping it again goes back to the part and plays that. It is
+    drawn only while the span is narrower than the clip — with the marks at
+    the two ends, play already plays it all. **The label is short on purpose**
+    (PHOTOgraphed beside "Whole clip", which resets the MARKS: two long labels
+    there read as one thing said twice).
+  - **THE SPAN IS ALWAYS IN THE ORIGINAL'S OWN SECONDS**, so the player opens
+    the SOURCE even on a clip already trimmed — a trim can be widened back
+    out, re-cut or undone. Trimming a trim would move what the marks mean
+    every round and lose a generation of quality per pass.
+  - **BAKED ONCE** (content-addressed by the source url and the span, so a span
+    she has already cut is one HEAD and no encode) and **ONE DECODE AT A TIME**
+    (`gateTrim` — a decode is the one thing that has actually killed this 512MB
+    box, and a trim is never urgent).
+  - **A LATE BAKE NEVER SPEAKS FOR A TRIM SHE HAS MOVED ON FROM.** Trims
+    queue, so a second tap lands while the first is still encoding — and the
+    write that matters is the UNDO: without the guard a bake finishing after
+    `clear` puts the trim back on the doc by itself, with nothing on screen
+    saying why. The doc's own `trim.key` is the authority and a bake whose key
+    is no longer there stands down silently.
+  - **THE CUT IS `clips.js`'s OWN `chunkGraph`** — the recipe the Chunking
+    library already shares with Cut Marks, 12ms audio fades at each edge so an
+    exact cut never clicks — and **the FILE is the truth about its own length**
+    (a clip is 24·s + 1 frames), so the out-mark is CLAMPED to what ffprobe
+    reads rather than refused against the ask.
+  - **EVERYTHING IS A TAP** (Cut Marks' rule): nothing drags — the marks land
+    at the playhead, **TAPPING THE STRIP PUTS THE PLAYHEAD WHERE SHE TAPPED**
+    (2026-09-10, Sophie: "can you make it so I can tap where the play head
+    goes"), and the steppers walk it a tenth of a second at a time. **The
+    strip shipped as a READ-OUT and she overruled that the same morning** — the
+    reasoning was "the video's own scrubber already seeks, and a second
+    scrubber over it is one control saying two things", and it is HISTORY
+    rather than a rule now; don't turn it back. **The BAND is the target and
+    the BAR is the picture**: a 10px bar is far under any tap target, so the
+    button is 34px tall with the light mark drawn inside it (the `.mtick`
+    rule — buy the size without making the mark heavier), the fraction is
+    measured off the BAR's own rect so the band can grow without moving where
+    a tap lands, and it PAUSES like the steppers, because a tap on the strip
+    is her looking for a frame to mark. Playing
+    plays the SPAN and loops it — that is how a trim is judged before it is
+    committed — but **scrubbing is never yanked**. The button's meaning follows
+    the marks: **Trim** with nothing cut yet, **Add part** once something is,
+    **Replace** while a part's row is picked, and where it would do nothing it
+    is not drawn at all. **AND THE KEEP BAR IS NOT DRAWN AT ALL WHEN THE MARKS
+    SPAN THE WHOLE CLIP** (PHOTOgraphed): a bright band over the whole strip
+    covers the dim bands of the parts she has already cut, and the whole clip
+    is exactly the state the trimmer opens on now.
+  - **A TRIMMED CLIP SAYS SO ON THE WALL TOO (2026-09-10, Sophie: "can you
+    put a little icon on clips that have been trimmed even in the tile
+    view?").** A small scissors chip in the tile's TOP-LEFT corner — the two
+    marks own the bottom corners — carrying the NUMBER only when the clip
+    holds more than one part, the way the card's rows number themselves.
+    Three things not to undo: it counts only a part that really BAKED (one
+    still baking has cut nothing yet, and "trimming…" is said on the card's
+    own row); it rides as a CLASS toggled in `applyFilt`, out of the wall's
+    signature exactly like the ✕, so a trim landing can never rebuild the
+    wall and re-decode every poster; and its **15px at top:2 is MEASURED,
+    not picked** — at four across a 16:9 tile is 49px high and the heart's
+    26px box starts 19px down, so the first cut sat on it.
+  - **A TOAST IS A MESSAGE, NEVER A CONTROL — `pointer-events:none`, and that
+    was a LIVE BUG on this page, found by measurement.** Fading to opacity 0
+    does not stop an element hit-testing, so the toast box sat invisible at the
+    bottom-left for the life of the page and swallowed every tap that landed on
+    it — on the feed, the corner of a card. It also moves to the top while the
+    player is open: a refusal she cannot read over the two buttons it is
+    refusing is no refusal.
+  - **AND /filmnote.js IS HOSTED ON THE STAGE, NOT THE WHOLE PLAYER.** It
+    anchors everything it draws to its WRAP's bottom edge — the Note button,
+    the sheet, the prompt panel, the toast — so with `#player` as the wrap its
+    Note button landed ON the trim controls (PHOTOgraphed at 390x844, sitting
+    over the `›` stepper). `.pstage` is `position:relative` for it, and the
+    note UI now sits over the picture, where a note about the film belongs.
+    Pinned by a MEASUREMENT both ways round — no overlap, and every trim
+    control really takes its own tap.
+  - **PHOTOGRAPHED, and it changed the layout**: centred in its stage the
+    picture left ~270px of dead dimmed page between the clip and its own trim
+    bar, so the two read as unrelated things. The picture is bottom-aligned
+    now, its own scrubber directly above the marks.
+  - **THE WAY OUT IS ITS OWN ROW ABOVE THE PICTURE (2026-09-11, Sophie: "all
+    the stuff at the bottom in trim view, esp after a trim is added, makes it
+    impossible to close the player").** The ✕ shipped absolute in the top-left
+    corner, in the slack a bottom-aligned stage leaves — which a PORTRAIT clip
+    does not leave: MEASURED at 390x700 with a 3:4 clip, the video painted OVER
+    the button (later in the DOM, both positioned), `elementFromPoint` at its
+    centre answered VIDEO, and 0% of the screen was bare backdrop (6.9% with
+    parts listed) — no way out but the app's chevron, while
+    `test-footage.js`'s presence check on `.pclose` passed. `.ptop` is a
+    `flex:none` row the stage yields to, so the ✕ is on screen whatever the
+    clip's shape and clear of the video's own top-left controls; the row's
+    dead space closes too. **A control is TAPPED in a test, never merely
+    found** — with a positional `mouse.click`, since playwright's element
+    click refuses a covered target with a timeout, a crash rather than a
+    finding. Pinned by the portrait block of `test-footage-trim.js` (verified
+    failing 5 pre-fix).
+  Full note: *SHE TRIMS A CLIP AS IT COMES OUT* in
+  `docs/modules/audio-and-film.md`; test `node scripts/test-footage-trim.js`.
+  **AND SHE GRABS A FRAME OUT OF THE MIDDLE — GRAB FRAME, THE THIRD WORD ON
+  THAT ROW (2026-09-12, Sophie: "the last frame doesn't have the curtains" ·
+  "it shouldn't file to the dump. It should give me a way to use it
+  immediately as a reference for my next film").** Playhead on the frame, tap
+  the word, and it is `[ImageN]` in the references strip — the last-frame
+  tile's `reference` landing, for any second of the clip. `POST
+  /api/footage/jobs/:id/frame {at}`: a PNG at the clip's own size out of the
+  SOURCE, content-addressed under `footage/frames/`, one decode at a time in
+  the trims' queue, the clip's doc untouched, NOTHING to the Dump (her word).
+  Full note: *GRAB FRAME* in `docs/modules/audio-and-film.md`; test
+  `node scripts/test-footage-grab-frame.js`.
+  **THE FIRST FRAME OF THE NEXT CLIP IS THE LAST FRAME OF THIS ONE — WIRED ON
+  ALL THREE DOORS (2026-09-11).** Every door takes the same two fields,
+  `firstFrameUrl` / `lastFrameUrl`, and maps them onto its own shape: **Atlas
+  swaps the MODEL ID** to `…/image-to-video` (`image` required, optional
+  `last_image`, and NO reference lists at all, same price per second),
+  **OpenRouter sends `frame_images`** (`{type:'image_url', image_url:{url},
+  frame_type}`), **APIFRAME is unchanged** (`start_image`/`end_image` beside
+  the reference lists — the one door that takes both). **A FIRST FRAME AND
+  REFERENCES TOGETHER ARE REFUSED AT THE DOOR, NEVER HALF-SENT** — Atlas's
+  image-to-video has no reference lists and OpenRouter's own guide says
+  `frame_images` WINS and the references are dropped silently — so `doorFor`
+  ranks only the doors that can take the job's SHAPE, that job goes to
+  APIFRAME, and with no door open the send is refused with what to change. A
+  keyframe is NOT a slot: it leaves the reference lists, takes no `[ImageN]`,
+  and the pictures after it renumber (her prompt is renumbered, never
+  reworded). The log keeps ONE vocabulary — every door writes
+  `start_image`/`end_image` into `params`, which `video-log.js` already files
+  as `references.startImage`/`endImage`, so a chained clip is on the 1080p
+  reading list under the same name whatever door drew it. On the page: a small
+  flag on a picture's thumb cycles none → first → last → none, the slot line
+  says which, a line under the strip says plainly what the doors will do
+  BEFORE she taps, and a finished clip's **last-frame tile** opens big with
+  **first frame** / **reference** beside `save` (no save-and-re-attach). A belt
+  hand-off may carry `firstFrame`/`lastFrame`. **Measured 2026-09-12:** Atlas REFUSES a frame plus a reference on the
+  poll, free ("cannot be combined with reference media" — a row in
+  `video-refusals.js`); a frame ALONE on Atlas Mini drew and opened on the
+  exact still. **Unmeasured and named:**
+  whether ByteDance honours a keyframe and references together on APIFRAME
+  (the one try was refused by its content filter before drawing),
+  which Seedance models take `frame_images` on OpenRouter, whether a last
+  frame alone works there, and Atlas's image-to-video price against a real
+  charge. Full note: *THE FIRST FRAME, ON ALL THREE DOORS* in
+  `docs/modules/audio-and-film.md`; test
+  `node scripts/test-video-keyframes.js`.
+  **A CLIP BELONGS TO A PROJECT, AND THE PAGE SHOWS ONE PROJECT AT A TIME
+  (2026-09-11, Sophie: "group projects and character references so when I
+  switch between projects, I can only see those references offered to me and
+  only related files in the tiles list view area" · "good plan … go ahead for
+  now").** The cast library's FILMS are the projects — one vocabulary, never a
+  second list — and `project` is ONE field on the job doc read everywhere: the
+  picker (one drop-down on the **feed bar**, between the search and the funnel, remembered
+  as `footage_project`, replacing the sheet's own `footage_castfilm`), the feed
+  (`GET /jobs?project=`, filtered server-side over the whole collection before
+  the page is cut, and `shown()` on the page for a card a poll lands), the
+  Recent drawer (derived from the feed, so it narrows by itself), the character
+  sheet (opens on the project's shelf, no film chips while a project is
+  picked; a project with no shelf yet shows an empty one, never another film's
+  people), the Dump (an upload lands in an album named after the project), and
+  the star (every clip sent carries it, on all three doors' log tags). **All is
+  a real stop**: every clip shows, each card says its project. Switching
+  empties the feed and re-asks; her words and the references already attached
+  stay — only what is OFFERED narrows. **A belt hand-off switches the picker**
+  (the plan's first automatic case): a belt declaring `var PROJECT='…'` names
+  it, else its `from` chat is mapped through `HANDOFF_PROJECTS` in footage.js
+  (served on `/status`; every ward belt → `ward`, Ticky Tack → `ticky-tack`),
+  and a project the shelf lacks becomes a film on it (`POST /api/cast/films`).
+  **THE PICKER IS ON THE FEED BAR, BETWEEN THE SEARCH AND THE FUNNEL
+  (2026-09-12, Sophie marked the spot on a screenshot: "folders should go in
+  red spot").** It rode three seats in a night before landing there — the
+  Buttons FOLD row beside the word, the PANEL's fold row beside "Prompt", and
+  the Buttons row itself — and the seat she picked is the one the control was
+  always looking for: **the picker is a FILTER over the feed before it is a
+  setting on a clip**, so it belongs with the feed's other filters, and unlike
+  every panel seat it cannot be folded away from the feed it is filtering.
+  Three things not to undo: it is its NEIGHBOURS' height there (34x32, the
+  heart and the glass's own box) because a 34-tall box makes that hairline row
+  2px taller than every other one on the page; its lit box is the LIST
+  segment's dark fill, so a narrowed feed says so on the row that narrowed it;
+  and it sits at flex `order:0` while the funnel chip is `order:2`, which is
+  what keeps it between the glass and the funnel whatever the markup order
+  (the funnel is drawn only while the search is open). Its rows say "All" and
+  "New…" rather than anything longer because a select is as wide as its
+  longest row.
+  **AND A PROJECT'S FOLDERS FOLD (2026-09-12, Sophie: "make the commercials
+  collapsible in the drop-down").** Six witch commercials plus everyone
+  else's turns one drop-down into a list she has to read; shut, a project is
+  ONE row with a fold row under it saying how many folders are behind
+  (`▸ 6 folders`), and the folder rows are not in the list at all. **The fold
+  row is its own option** — a `<select>` has no other way to carry a control —
+  and picking it toggles and puts the value straight back, so folding never
+  moves the feed or a clip. Three things not to undo: **the project she is IN
+  is always open** whatever the memory says (its folder has to be an option or
+  the select cannot show where she is — same for a card, whose menu opens its
+  own clip's project); it is **REMEMBERED** (`footage_open`), because this is a
+  picker she opens all day and re-expanding the same project every time is the
+  fold not working, and the picker and every card's menu read the ONE set; and
+  **shut counts, open does not** (the archive summary's don't-say-it-twice
+  rule).
+  **AND SINCE 2026-09-13 THE PICKER IS A POSTER SHEET, FIVE ACROSS (Sophie,
+  after four mocked options: "i like poster" · "more per row so all fit" ·
+  "5!").** The folder icon opens a sheet of TILES instead of a native list —
+  every folder here already has a picture, the last clip drawn in it, and a
+  row of words threw that away. Six things not to undo:
+  - **FIVE IS THE FLOOR, NOT THE NUMBER.** `fitShelf` widens to 6, 7 or 8 when
+    five would push a row off the bottom, measured off the real grid, so "all
+    fit" stays true as folders pile up and the density never needs choosing
+    again. It NEVER narrows: a two-folder project would otherwise draw two
+    enormous tiles and the sheet would look like a different screen every time.
+    (Measured at 390x844 on the mocked page before the widening: five across
+    holds 34 folders, six 41.)
+  - **TWO LEVELS** — the films, then one film's folders. A project WITH folders
+    descends on a tap and its level-2 **Everything** tile is how the whole
+    project is picked; one without folders simply picks. Descending moves
+    nothing: it is a level of the sheet, not a pick.
+  - **THE FACES COME FROM THE SERVER AND HAVE TO** — `GET /api/footage/shelf`
+    (`shelfOf`, one pass over the log, cached 60s, asked when the SHEET OPENS
+    and never on the feed poll). The page's own feed is narrowed to the project
+    she is standing in, so it holds no clip from anywhere else to draw a face
+    from. The face is the NEWEST clip that really drew, a HIDDEN clip faces
+    nothing and is counted by nobody, a project counts its folders' clips too,
+    and **a folder nothing has finished in draws an EMPTY square** rather than a
+    neighbour's picture (the Assets tab's silence rule).
+  - **THE TILES ARE NOT REBUILT UNDER HER** — a signature skip over the labels,
+    faces and counts, since a recreated `<img>` decodes async and the whole
+    sheet strobes blank (the house repaint rule).
+  - **A FOLDER SLUG READS BACK AS WORDS** (`folderName`: hyphens out, first
+    letter up) on the tile, in the header, in the toasts and in the card's
+    rows, so a folder is spelled one way wherever she meets it. Display only —
+    `folderSlug` is still the only thing that writes.
+  - **THE CARD'S MOVE MENU IS STILL A `<select>` WITH ITS FOLDS**, deliberately:
+    moving one clip is a one-tap decision, not a shelf to look at. Everything
+    the fold note above says is about that menu now.
+  The tuck is a WORD in the sheet's own header, offered only inside a project;
+  `shelfPick` is the old `<select>`'s handler body, so `setProject` /
+  `setFolder` / New project… / New folder… mean exactly what they meant. Test:
+  `node scripts/test-footage-shelf.js` (the widening MEASURED off the real
+  boxes — a grid that sets `--c` and never reflows looks identical in the
+  source; verified failing with `fitShelf` stubbed out).
+
+  **EVERY CHAT'S CLIPS RIDE THE FEED SINCE THE SAME EVENING (Sophie: "most
+  of them made in chat. Are you adding them to footage? If so, good")** — the
+  read was `chat == footage`, the page's own 174, and ~200 clips the chats had
+  drawn for the same films were reachable from nowhere she looks; `/jobs`
+  reads the whole log now and a card that was not this page's says
+  `from <chat>`. **AND THE SORT WAS DONE BY READING THE PROMPTS, NOT BY ONE
+  WORD (her "lots of different projects … are you able to sort that out").**
+  The first backfill filed all 174 as `ward`, which was wrong for a third of
+  them — the page had drawn the Jonathan and Sean scenes, the witch
+  commercials, the train and the house under one picker. Every clip on the
+  log (369) was read and stamped from a `{id: project}` map
+  (`node scripts/footage-project-backfill.js --map sort.json --go`, the
+  whole log, overwriting; `--project` still only fills a blank): ward 220 ·
+  secretly-a-witch 66 (the kit commercials, the b-roll, the christmas and
+  "It's Sophie" voiceovers, the doctor-with-a-wand and pill-commercial
+  scenes) · jonathan-and-sean 17 · box-on-the-shelf 13 (the little-girl
+  kit-on-the-closet-shelf scene) · train 12 · nautchaug 10 (the bus, the
+  school library) · house 8 (the woods and the mansion) · ticky-tack 6 ·
+  none 17 (door probes, the dialogue test, the harry potter joke, the taxi,
+  the dunce-hat class, the therapy-with-ants clip — hers to place). The seven
+  new films are on the cast shelf (`POST /api/cast/films`), so the picker
+  lists them. **MOVING A CLIP IS THE DROP-DOWN ON ITS CARD** (her "add the
+  move project UI"): the same films, "No project" first, the clip's own lit;
+  a change POSTs `/jobs/:id/project`, the toast says where it went, and
+  inside a project view the card leaves. A wrong guess above is one tap.
+  **AND A PROJECT HAS SUB-FOLDERS SINCE THE SAME NIGHT (Sophie: "can we do
+  sub folders ex the witch commercials" · "make the drop down a folder icon
+  · the name of the current folder replaces footage in the header").** One
+  more field on the clip, `folder`, the same slug shape, meaningful only
+  beside a `project`. **The folders a project has are DERIVED, never
+  stored** — `foldersOf` in footage.js answers `folders: {project: [...]}`
+  on every `/jobs` read off the whole log — so a folder is exactly the clips
+  filed in it, an emptied one stops being offered, and there is no second
+  vocabulary to keep in step with the cast shelf. **The picker is ONE
+  `<select>` drawn as a Lucide `folder` icon** (34px rounded square, its own
+  text transparent, lit in ink while a project is picked — a narrowed feed
+  is never silent), its rows every project with its folders indented under
+  it (`project/folder` values), "New project…" always and "New folder…"
+  inside a project; **the header says where she is** — Footage · The ward ·
+  The ward › commercials. Every card's move drop-down is the same list, so
+  one control moves a clip anywhere; **a move to another project drops the
+  folder** (it belonged to the project the clip left), and a folder named on
+  a card joins the picker at once. The feed asks `?project=&folder=`,
+  remembered as `footage_folder` beside the project; a belt hand-off may
+  carry `folder`. The three doors and `video-log.js` file it on the log tag;
+  `footage-project-backfill.js --map` takes `project/folder` values — the 25
+  witch commercial clips are **one folder EACH, never one `commercials` pile**
+  (2026-09-12, Sophie: "I want each of the witch commercials to be in a
+  separate folder. I thought that was clear"), read off their own prompts:
+  `travel-kit` 11 · `christmas` 4 · `its-sophie` 4 · `pill` 3 · `huge-kit` 2 ·
+  `not-always-a-witch` 1. **A folder is one PIECE OF WORK, not a genre** —
+  that is the rule the first pass missed, and it is what makes a folder worth
+  opening.
+  Not built yet, deliberately: the evidence
+  rules (a job's references on one film's shelf, chaining off another job's
+  output) — they PROPOSE a project and belong to step 5 of
+  `docs/footage-projects-plan.md`. Tests: the project section of `node
+  scripts/test-footage.js` (the picker's rows, the feed read asked FOR the
+  project, only its clips on screen in both views, the send and the upload
+  carrying it, the sheet reading its shelf, a reload remembering, All
+  bringing the rest back, and a hand-off from a second page switching it —
+  every assertion a measurement) and the PROJECT line of
+  `node scripts/test-scene-index.js`.
+  **AND A PROJECT CAN BE TUCKED AWAY — LEFT OUT OF ALL AND OUT OF NOTHING
+  ELSE (2026-09-13, Sophie: "can u hide the ward, the boyfriend one and the
+  pee wheel ones if i'm not in those folders").** Measured that morning: the
+  ward alone is **220 of her 506 clips**, so All was mostly one film and
+  everything else was scrolled past. One flag on the cast shelf's film
+  (`tucked`) — the same one vocabulary the picker is drawn from, so both
+  phones agree and there is no second list — filtered SERVER-side over the
+  whole log before the page is cut, and by `shown()` too so a card a poll
+  lands stays off both views. Five things not to undo: it hides the project
+  from **All alone** (picking it shows every clip in it, its folders are
+  untouched, the character shelf is untouched); a **SEARCH reaches it
+  whatever is tucked**, because a search is her asking for something by name
+  (the ALL tab's own carve-out for the bug-fix pile); the picker still lists
+  it wearing **`· hidden`**, so the list never lies about why All is short;
+  the control is a **row in the picker offered only inside a project** (the
+  fold row's own pattern — `Hide from All` / `Show in All`), and picking it
+  puts the value straight back, so tucking never moves the feed or a clip;
+  and `POST /api/cast/films` **merges** now, so a rename cannot untuck a film
+  and a tuck cannot forget its name. Tucked on her word: `ward` ·
+  `nautchaug` · `pee-wheel`. **THE PEE WHEEL HAD NO PROJECT AT ALL** — nine
+  clips of one scene (the dunce hat, the classroom, the wheel) filed nowhere,
+  which is exactly why they sat on the front screen; `node
+  scripts/footage-tuck.js` (dry by default) names them by ID, never by a
+  word, and only ever fills a blank. Tests: the tuck block of `node
+  scripts/test-footage.js` (every assertion a MEASUREMENT of what really
+  renders and of what the stub really received — a picker row saying "hidden"
+  over a feed that still holds the clips, a toggle that never reached the
+  server, and one that also hides the project from its own view all look
+  identical in the source) and `node scripts/test-cast.js`.
+  **THE CHARACTER LIBRARY — ONE TAP PUTS A PERSON AND HER LINE IN THE PROMPT
+  (`cast.js`, `/api/cast`, the people icon on the controls row; 2026-09-11,
+  Sophie: "we need a version of 'characters' for footage so i can click a
+  button and it auto adds the line at the top, adding and referencing videos
+  and stills · characters w multiple outfits will have ex, sophie w pajamas vs
+  sophie street clothes · add character icon to footage and have it per film -
+  diff folders · some characters are just stills for now").** Until this, every
+  ward clip's references were hunted by hand — the jazz clip's url, three
+  pajama stills, the doctor's 4-second take, and the exact line naming each of
+  them by slot, retyped per shot, per chat, per belt page. **It spends nothing**
+  — it stores urls that already exist in the Dump and the clip log.
+  - **A LOOK IS A CHARACTER IN ONE OUTFIT** — its references, and the ONE LINE
+    the prompt opens with. `sophie · the blue pajamas` and `sophie · street
+    clothes` are two looks on one character, which is her own example.
+  - **THE LINE IS STORED AS A TEMPLATE AND RESOLVED AT THE TAP — `{1}`, `{2}`
+    … over the look's own references, NEVER a literal `[Video1]`.** That is the
+    load-bearing half: a line written when the pajamas were `[Image1..3]`
+    points at somebody else's stills the moment a second character rides along
+    — and the clip still draws, just of the wrong person. `cast-line.js` is
+    the ONE rule, loaded by `cast.js` on the server and served to the page (the
+    `pause-plan.js` pattern), so **the sheet shows the exact line the tap will
+    insert**, resolved against the strip as it stands. Every other look on
+    screen is re-resolved after an attach, or the sheet is quoting slots that
+    moved.
+  - **AND THE ✕ TAKES THAT NAME BACK OUT, RENUMBERING THE REST — `dropPlan`,
+    the same file (2026-09-11, Sophie: "if i delete an image, it shud remove
+    the tags associated w that image").** The template rule's own bug from the
+    other end: a slot is a POSITION, so taking the second of three images off
+    left `[Image2]` naming nothing AND `[Image3]` naming a picture that is now
+    `[Image2]`, and the clip still drew, of the wrong reference. ONE pass over
+    the prompt (a rename must never land on a token another rename is about to
+    read); **only the NAMES change** — the name takes the space it stood in
+    with it and nothing else, dangling commas included, because the slot names
+    are the page's vocabulary and the sentence is hers; and the TOAST says what
+    came out and how many moved, since a change to her prompt she cannot see is
+    the hidden-ingredient failure. `slotMap` is the one numbering rule now,
+    shared by the attach and the ✕. Full note in
+    `docs/modules/audio-and-film.md`; measured by
+    `node scripts/test-cast.js` (verified failing 5 pre-fix).
+  - **THE PAJAMAS FLOAT AND LIVE IN ONE PLACE** (her rule: "these pajamas float
+    w any patient so keep head off · ex francesca/anastasia gets pjs plus dance
+    photo · same for mayra"). A wardrobe entry is its own row and a look WEARS
+    it by slug — `blue-pajamas` takes the outfit's FIRST look, which is the
+    HEAD-OFF pair, and `blue-pajamas:sophie` names the three-still set her own
+    line counts. So swapping the pajama reference swaps it for every patient at
+    once. A still in two outfits rides ONCE and keeps one slot.
+  - **A LINE GOES TO THE TOP OF THE PROMPT, and never twice** — her word ("auto
+    adds the line at the top"); a second tap on the same look adds nothing.
+  - **SOME CHARACTERS ARE JUST STILLS and that is a normal entry**, not a
+    half-made one; a character with nothing on file is still listed, so she can
+    see who is waiting for a reference. **One look is one tap** — Nurse Edna has
+    one clip and one line, so the row IS the button; several looks open.
+  - **NOTHING IS DELETED** — `hidden` is the verb for an entry; a LOOK can be
+    removed, since its references are still in the Dump.
+  - **THE WARD SHELF IS SEEDED FROM HER OWN FILES** —
+    `node scripts/seed-cast-ward.js` (dry by default; `--go`; `--direct` writes
+    through the Admin SDK, which is what fills a shelf before the route is
+    deployed). Every url is out of `docs/mental-hospital/refs/cast.json` or
+    `belt/refs.json` and every clip carries the label the belt pages give it;
+    the lines are hers VERBATIM wherever a card had one, and the script prints
+    how many are mine. **20 entries, 66 references** (15 people, 2 outfits,
+    3 places).
+  - **A 4s TAKE PER CHARACTER WAS ALREADY DONE, MEASURED** (her "maybe done
+    already"): ffprobe on every person clip the belt pages name — Nurse Edna
+    4.00s, Ms. O'Hara 4.04, the doctor + assistant (office and hall) 4.04, the
+    parents 4.04, Michael 4s (560x752).
+  - **THE 4s JAZZ CLIP WAS ALREADY RIDING EVERY SOPHIE JOB, AND NO QUALITY IS
+    LOST (2026-09-11, Sophie: "it's on every sophie video in footage · is
+    quality lost? a chat gave it to me first / if lost quality, find og
+    chat").** The first pass hunted it in the video LOG and the Dump BY NAME
+    and reported it missing; it is on **24 of the 83 footage jobs** as a
+    REFERENCE VIDEO (`jazz-best4s.mp4`). Measured against the 15.1s original:
+    the last 4.06s of it (aligned at 11.04s frame by frame), same 560x752,
+    same 24fps, same H.264 High/L3.1, 2.15 Mb/s against 2.22, **PSNR 46-48 dB
+    — visually lossless**, so there is nothing to recover from the original
+    chat. A re-encode, not a stream copy (the decoded frames differ), and the
+    two copies on file are BYTE-IDENTICAL (md5 `042e7aaa…`). Sophie's four
+    clip looks carry it; the 15.1s take stays as its own `jazz-long` look.
+  - **AND ANOTHER CHAT'S CHARACTER PAGE HAD MORE THAN THE REPO DID (2026-09-11,
+    Sophie: "did u even look on the character page another chat created").**
+    It is **"The ward film — every reference (v7)"**, a grid page in the
+    `pajama-assets` chat, 47 items in seven groups — and the first seed, built
+    from `docs/mental-hospital/refs/cast.json` alone, missed **Juanita
+    entirely** plus eleven references (Mrs. Norbert's own two clips, Sophie's
+    other three faces and three jazz stills, the doctor's second still, the
+    assistant's intake still, the socks on her feet). **A chat's own reference
+    page is a SOURCE, not a duplicate — read it before seeding a library out
+    of the repo.** Her pajama stills stay the repo's ORIGINALS: the page's
+    optA/optC are the identical crops re-encoded smaller. Four photographs on
+    that page are attached to nobody and are deliberately left out — naming
+    them is hers. Full note in `docs/modules/audio-and-film.md`.
+  - Tests: `node scripts/test-cast.js` (the slot arithmetic pure — every plan
+    driven against a strip that ALREADY holds something, since a line that
+    resolves right on an empty box is the case that can never catch this — then
+    the real page headless, measuring what is in the prompt box and what the
+    strip really holds after a tap; verified failing against a sheet that does
+    not re-resolve).
+- **Stitch** (`stitch.js`, `/api/stitch`, page at `/stitch`, iOS tile under the
+  FILM filter's shelf stage — 2026-09-12, Sophie, after saying Assembly "never
+  really worked" and the Film Editor "was the one that never worked": "i'm
+  thinking something very simple. We're just select clips and then move them
+  around and ffmpeg stitches them together … it could be called stitch" ·
+  "could you reuse the shell so I can switch between tiles and list view?").
+  **Pick clips, put them in order, one button joins them — and nothing else.**
+  Her Footage clips are the picker (every finished clip on the log, whichever
+  chat drew it, narrowed by the project/folder drop-down; a TRIMMED clip
+  offers each PART beside the whole — the chamomile skipping clip is two parts
+  she cut, and the parts are what go in the film); a tap puts a clip in the
+  ORDER at the top and the tile wears its number; a second tap takes it out.
+  Every picked clip is a row: a number she can TYPE, ↑ ↓ arrows, ✕ — the
+  Story Timeline's controls, nothing drags. **Stitch** is a background job on
+  the doc (poll, resume from `stitch_pending`); every render is kept, newest
+  first, as a LINE with a play button and a `save` that goes to Photos
+  through the three-path ladder. **It costs nothing** — the clips are
+  already drawn, a stitch is ffmpeg on our own box. No trim (that is on
+  Footage), no sound lane, no stills, no timeline.
+  - **THE RENDER IS THE FILM EDITOR'S OWN `renderCut`, not a fourth copy of
+    the recipe.** A stitch doc IS a cut with one lane (cut-model's `clips`
+    shape: key · kind · url · title · poster · seconds · in 0 · out), so
+    `filmeditor.renderCut({clips, sounds:[]})` bakes it — the same
+    one-canvas concat-copy join, the same PCM-then-AAC-once audio, and the
+    SAME segment bank in Storage (`filmeditor/seg-cache/`): a clip stitched
+    twice encodes once, and a clip the Film Editor banked is a hit here.
+    Renders land at `stitch/<id>/film-<n>.mp4` under the Film Editor's own
+    numbering (`nextRenderIndex`, never overwriting), capped 12; `stitch/`
+    is on clips.js's SKIP_PREFIXES. **Measured the day it shipped, in this
+    container over the real log: her first stitch — the nine doctor's-office
+    takes, 2:15 — rendered end to end and published onto the doc.**
+  - **THE PICKABLES ARE `footage.cardOf` READ THE WAY FOOTAGE READS THEM**
+    (`pickables`, pure): a drawing, failed or hidden clip is out, a part
+    still baking is out, the whole of a trimmed clip is the SOURCE (never
+    the first part), a part with no poster takes the clip's, newest first,
+    the title is the prompt's first words and never the url.
+  - **THE ORDER IS SAVED WHOLE** (`POST /:id/clips`, debounced 500ms,
+    flushed on pagehide) — order and membership change together, so a
+    partial write could never be right (Assembly's rule). The page keeps a
+    MIRROR of the order arithmetic (`window.__stitchRules`) so a tap answers
+    on the spot; the test drives the mirror and the module over the same
+    fixture so the two cannot drift.
+  - **TWO LEVELS** — the shelf of stitches and one open (`?s=<id>`), a
+    history state per level, `window.__navBack` shelf-ward before it
+    leaves; the player closes first. Nothing is deleted — `hidden` is the
+    verb (`POST /:id/hide`).
+  - **THE PILL'S BAND IS RESERVED ROW BY ROW** — Footage's `fitPillGap`
+    over `[data-pillrow]`, judged at the TOP of the page (Freeform's rule),
+    the title INPUT shortening by width rather than margin (an input at
+    100% overflows rather than shrinks — PHOTO'd).
+  - Tests: `node scripts/test-stitch.js` (the pickables, the order
+    arithmetic, cut-model's cleaner, the wiring pins, then the real page
+    headless — three across MEASURED, the shared switch, a pick numbering
+    its tile, the arrows and the typed number, ✕, the order the stub really
+    received, Stitch's POST and the render row off the poll, the player, a
+    control in the pill's band asked with `elementFromPoint`, both levels)
+    and `node scripts/test-viewswitch.js`.
 - **Movies** (`movies.js`, `/api/movies`, iOS Movies tab — no web page) — story ->
   ~8-12 self-contained scenes -> gpt-image-2 panels -> Replicate image-to-video ->
   ffmpeg stitch, ~$1.35 for a 12-scene film.
@@ -8211,6 +11085,72 @@ before working on that module. Nothing was deleted — the moved text is verbati
   fine and never changes shape) and `node scripts/test-image-size.js` (every
   format driven from REAL encoded files, including the sharp-refuses-webp
   measurement, so the note above cannot go stale unnoticed).
+  **ONE TAKE OVER THE WHOLE STORY — `pad-take.js` (2026-09-06, Sophie: "i
+  wanna use the words i typed as voiceover … one continuous take · i want the
+  pictures to show as a movie during that", then, on the Story Room's own
+  film button reading every line separately in the clone voice: "yes my
+  take").** A story carrying a whole-take narration — `pad.voiceover.url`,
+  her own recording or one continuous read — renders as ONE audio track with
+  the pictures CUT TO ITS WORDS: the take is transcribed once (whisper-1 word
+  times, banked in Storage under `scratchpad/take-words/<sha1(url)>`), each
+  beat's line is found in it in order, and a shot runs from its line to the
+  next. A wordless beat between lines SHARES the span of the line before it
+  (nothing later moves off its words); one after the last line is a closer;
+  one before the first delays the take. The per-beat film (her recording on
+  the beat, else the line read aloud, else quiet) is unchanged for a story
+  with no take, for a story with a film CLIP among its shots (a clip's length
+  would walk every later picture off its line), and for a take that says
+  none of the lines. Filing a take onto a story is `voiceover: {url, text,
+  kind:'recording'|'tts'}` on the pad doc — no route writes it yet. Test:
+  `node scripts/test-pad-take.js` (her real night take as the fixture).
+  **THE TYPED CAST — PICTURES · DESCRIPTIONS BEHIND THE CHARACTER BUTTON
+  (2026-09-06, Sophie: "add the character description feature as an option
+  that's not character image, like playground").** The Playground's
+  Descriptions half on the beat card's character sheet: name + one-line
+  description rows, the clause from the served `sheetGrid.castBlock`,
+  stored on the PAD (`pad.cast`, `POST /cast`, no `updatedAt` bump, out of
+  `dirtySinceFilm`) because a story's cast is the same for every beat; the
+  SERVER writes the clause into every draw. Full rules: *The typed cast* in
+  `docs/modules/story.md`; tests `test-scratchpad-cast.js` +
+  `test-storyroom-cast.js`.
+  **CHAPTERS (2026-09-06, Sophie, on her hospital story: "i want the chapter
+  within a story. arrow buttons at the top, and a contents page w all the
+  stories and thumbnails").** A chapter is a STRING ON THE BEAT THAT OPENS IT
+  — `beat.chapter = 'The ER'`, `POST /api/scratchpad/chapter {id, title}`
+  ('' takes it off) — and nothing else is stored: the page walks the beats
+  in order and every beat carrying one starts a chapter that runs to the
+  next, so moving a beat moves its chapter and nothing is duplicated. Three
+  surfaces, NONE on the canvas: the **‹ chapter ›** row pinned in
+  `#topchrome` (shown only once the story has a chapter; the arrows scroll
+  the window to the previous/next chapter's first tile, the name is where
+  she is — compare.js's `__pagePlace` rule, the last chapter whose tile has
+  passed under the block; a jump remembers where it landed so a short last
+  chapter, which can never pass under the block, is still named); the
+  **CONTENTS** sheet behind the name (a sheet like the shelf — back chevron,
+  no ✕ — one row per chapter: its first beat's picture through the thumb
+  service, its name, its beat count; tap to jump); and the **bookmark on the
+  Caption line** of a beat's card, which swaps in an EMPTY box (Return/blur
+  saves, an emptied box clears — and here blur also CLOSES the box, unlike
+  the caption pencil, because this one-line slot cannot reshuffle the card).
+  **AND THE CANVAS SHOWS ONE CHAPTER AT A TIME (same day, Sophie: "is there
+  a view where i see just one chapter at a time. it's getting
+  overwhelming").** With a chapter on the story the canvas holds the chapter
+  she is in and nothing else; ‹ › swap which, a contents row swaps to that
+  one, and the chapter is remembered per story (`scratchpad_chap_<pad>` in
+  localStorage) so reopening lands where she was. **Whole story** leads the
+  contents sheet and is the one door back to the scroll-through canvas,
+  where the arrows scroll and the row names the chapter under the block as
+  before. Beats before the first marked beat belong to the first chapter
+  (`from`/`to` on `chapterList()`), or a chapter view could show them
+  nowhere. A remembered chapter that has gone falls back to the one holding
+  that beat now. Two things not to undo: `/chapter` bumps no `updatedAt` and
+  is out of the page's `dirtySinceFilm` (chapters are not cuts — the film is
+  untouched); and nothing is drawn between the beats. Seeding a story's chapters by her
+  words: `node scripts/seed-story-chapters.js` (dry; `--go`; refuses a story
+  already carrying one). Test: `node scripts/test-storyroom-chapters.js`
+  (the real page headless — the arrows MEASURED as the window moving and
+  the tile landing under the block, the sheet's thumbnails decoding, the
+  field's POSTs).
   **PHILOSOPHY — do not "improve" this: the pad is minimal, the frame
   colours are UNLABELLED everywhere but that drop-down, and no machinery
   lives on the canvas.**
@@ -8250,7 +11190,9 @@ before working on that module. Nothing was deleted — the moved text is verbati
     have an empty canvas with their pictures waiting unplaced and **the
     narration line that went under each picture carried nowhere**; nine pinned
     covers were lost, so the shelf derives a different face; Charlie's and
-    Evan's chapter headings have no field to live in; and Wormsicles, which had
+    Evan's chapter headings had no field to live in — **they do since
+    2026-09-06: `beat.chapter`, see CHAPTERS below** (porting theirs is still
+    hers to ask for); and Wormsicles, which had
     no voiceover to follow, had no pad at all until one was made. **The audio
     half IS fixed** — every pad carries its `description`/`descriptionAudio`/
     `voiceover` now, which is what finally lights the *About this story* button
@@ -8279,11 +11221,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
   can put in order. It started as one Compare page for one story (Aug 2026) and
   became a tool when she asked for it "for other stories". **It costs nothing —
   no model call, no background job**, so opening it and saving are both free.
-  **CHATS FILL THE SHELF — the page only lists and arranges (Aug 2026 v2,
-  Sophie: "it's for chats to fill themselves… I just wanna see a list of
-  stories and I can click on one and the chats will fill the stories").** The
-  page shipped first with a name box + paste box and she cut them: nothing on
-  `/timeline` creates a story. **When Sophie dictates a story's moments to
+  **CHATS FILL THE SHELF — AND SINCE 2026-09-13 SHE CAN START ONE HERSELF
+  (Sophie: "make it possible to add my own new story to story timeline").** The
+  shelf leads with a **New story** button: a name, and her moments one to a
+  line if she already has them. Three things not to undo: it goes through the
+  SAME `POST /stories` a chat uses, so her paste runs through the one parser
+  (`parseStory` — an ALL-CAPS line opens a sequence) and nothing new can drift
+  from it; **both boxes ship EMPTY** (the house rule) with the two labels above
+  them saying what goes in; and **the moments box is optional** — empty makes
+  an empty story, which opens saying "Empty — tap + to write the first moment",
+  since the gap's `+` is a 15px mark on an otherwise blank screen. Her 2026-08
+  word still stands for everything else — "it's for chats to fill themselves… I
+  just wanna see a list of stories and I can click on one and the chats will
+  fill the stories" — so the shelf is still a list, and a chat filing a
+  dictation for her is still the main door. **When Sophie dictates a story's moments to
   YOU, filing it is YOUR job**: `POST /api/timeline/stories { title, text }`
   (text = her dictation, one moment per line — the parser strips her numbers,
   takes wrapping quotes off, and turns her ALL-CAPS headers into sequences;
@@ -8292,6 +11243,10 @@ before working on that module. Nothing was deleted — the moved text is verbati
   the retired per-story Compare pages (`scripts/gen-story-timeline.js` and the
   `docs/story-timeline/timeline-v*.html` files are that history; her original
   story was migrated in by `scripts/seed-story-timeline.js`).
+  **SEND TO FOOTAGE — one connected part is one block (2026-09-13).** A link
+  on an open story hands the whole story to `/footage`: one block per UNIT, the
+  moments inside one joined by a newline each. Full rules under *DIVIDE HERE* in
+  the Footage bullet; nothing is sent, the star is still her tap.
   **HER WORDS GO ON THE TIMELINE EXACTLY AS SHE SENT THEM — NEVER ADD, DELETE,
   SPLIT, REGROUP OR REORDER A LINE (2026-09-06, Sophie: "did u add delete or
   change my words" · "if so undo" · "add to docs never do this").** The chat
@@ -8344,6 +11299,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   says. Both ends of that are pinned by `node scripts/test-timeline.js`.
   **The editor is behind a pencil and never a tap on the words** — tap-to-edit
   means every stray thumb on the way down the page opens an editor.
+  **SELECT — pick several cards and delete them together (2026-09-06, Sophie:
+  "can u add a select tool so i can mass delete", on the 172-card Mental
+  hospital story).** The Playground's SELECT chip ported: a Select button on
+  the open story's top row; lit, a tap on a card PICKS it (the pencil hides, a
+  folded middle picks rather than unfolds), and the mode bar under the row is
+  All/None · the count · Delete · Done. Delete drops every picked card out of
+  `units` exactly as the pencil's delete does — `moments` keeps the words, the
+  module's rule — then paints and saves once. Four things not to undo: **Delete
+  is TWO TAPS** (the first arms it, red, saying how many; the second deletes;
+  changing a pick disarms it) and never a browser `confirm()`, which a
+  WKWebView may swallow; **the mode is in memory only, never localStorage**
+  (the Playground's own call — it is something she is in the middle of doing);
+  the mode ends on Done, on leaving the story and on opening another; and it
+  is lit in INK, never the accent, which marks a sequence. **The number box is
+  `.tool input.no`, not `.no`** — tool.css's `.tool input[type=text]` out-
+  specifies a bare class, so its 10px padding won and every number past 9 read
+  as "1"; caught by PHOTOgraphing her live story at 390x844. Both pinned by
+  `node scripts/test-timeline.js`.
   Two bugs worth not repeating, both pinned by the test: a folded middle sets
   `white-space:nowrap`, so its grid track needs `minmax(0,1fr)` or the whole
   unit shoots off the right of the screen; and an editor that holds itself open
@@ -9372,6 +12345,28 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **FOLDERS CONTAIN ALBUMS — they never merge them** (a folder is the `track`
   field; filing an album moves nothing inside it). `photoIndex` comes from a
   transaction, never from counting — that is the bug that scrambled album order.
+  **WHAT A DUMPED CLIP SAYS IS TRANSCRIBED ONCE, EVER —
+  `node scripts/transcribe-media.js` (2026-09-14, Sophie: "transcribe w
+  whisper, cache it").** She shoots takes on her phone, dumps them, and then
+  wants to know what she said in each without opening every clip. whisper-1 is
+  ~0.6¢ a minute and a take gets read many times, so the answer is banked:
+  **`transcripts/<sha1(source url)>.json`** in Storage (text, word timestamps,
+  segments), and the Dump is content-addressed, so the same bytes in two albums
+  are ONE cache entry by construction. Asking twice costs nothing. **Two
+  mirrors, both deliberate:** the word list is ALSO written to
+  `scratchpad/take-words/<the same key>.json` — the Story Room's own take cache
+  — so a story whose voiceover IS that take renders with no transcription at
+  all; and `transcript`/`transcriptAt` go on the file's `forge-drops` doc so a
+  reader can SHOW what a clip says without fetching the cache (the words stay in
+  Storage — a long take is thousands of them and the doc rides a list read).
+  Her file is never touched: a throwaway 16k mono mp3 is what whisper gets. A
+  file with **no audio track caches as `silent`** rather than being retried
+  forever. `--session`/`--bundle` sweeps a whole album, `--dry` is free and says
+  what it would do, `--force` re-transcribes. Measured the day it landed: the
+  whole `footage` bundle — 14 clips, 113s — cost **1.1¢**. Test:
+  `node scripts/test-transcribe-media.js` (the cache key and the Story Room
+  mirror pinned against the REAL expressions in both files, since a drifted key
+  is invisible — it just pays twice).
   **Full details: `docs/modules/inbox-and-misc.md`.**
 - **THE UPDATE BUTTON** (`brief.js`, `/api/brief`, page at `/brief`, the
   **Update** row at the top of the Chats app's UPDATE tab) — Aug 2026,
@@ -10292,6 +13287,44 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **LIVE since Aug 2026 (measured 2026-08-27: `GET /api/push/status` answers
   `configured:true, devices:1`)** — the APNs key is in Render's secret files.
   This line used to say "dormant until the key exists"; that is history.
+  **A DEPLOY BUZZES HER PHONE, START AND END (2026-09-13, Sophie: "can i get a
+  notification when deploy starts and ends so i know when to stop making clips
+  and start again").** A deploy swaps the instance out and a footage SEND in
+  flight is a request the old instance dies holding, so the minute around a
+  deploy is the one minute not to tap the star. Both moments were already known
+  exactly and neither is a guess:
+  - **START is the deploy guard's LAST word, not its first.** `deploy-guard.js`
+    (Render's pre-deploy command) holds until nothing is drawing, pauses new
+    draws, reads once more, and only then lets the swap through — so it
+    re-affirms its pause carrying `deploy:true`, and `POST /api/promptlab/pause`
+    calls `push.notifyDeploy('start')` on that flag alone. A guard still
+    holding, one that lifted its pause because a draw snuck in, or one that
+    gives up at the cap never gets there, so a held deploy never buzzes her.
+  - **DONE is the new instance BOOTING** — nothing else knows the swap
+    finished, and a boot is exactly "you can send again".
+  - **THE MARKER IS WHAT KEEPS A CRASH RESTART QUIET.** `push.notifyDeploy
+    ('start')` writes `startedAt` on one doc; `push.deployBootCheck()` pushes
+    "back up" only if that mark exists and is under 30 minutes old, and clears
+    it on the way past — so an OOM kill or a Render recycle at 3am says
+    nothing, one deploy is one pair, and a mark nobody consumed goes stale
+    instead of buzzing her a week later. Gated on `RENDER_EXTERNAL_URL`, or a
+    dev container booting server.js eats her notification.
+  - **IT NAMES NO CHAT, deliberately** — `PushDelegate` opens the chat a push
+    names and there is no chat here; with none it lands on the Update tab,
+    which is the right room and needs no TestFlight build. It carries its own
+    `thread` instead (a new `sendAll` case), so "Back up" replaces "Server
+    update starting" in her shade rather than stacking.
+  - **STILL OPEN, and hers to ask for: the guard does not wait for a footage
+    SEND.** `/inflight` is `drawingNow`/`cuttingNow`, which are the Playground's
+    runs only — `footage.js` touches neither — so a clip's POST to the door is
+    not something the deploy waits out. The window is seconds (once the door
+    has answered and the log is written the poll resumes from any phone), but
+    a send caught inside it is drawn, paid for and unrecorded.
+  - Tests: `node scripts/test-deploy-notify.js` (the marker's whole decision
+    table against a fake Firestore — the half that can silently be wrong — plus
+    the wirings by source) and `node scripts/test-deploy-guard.js` (that only
+    the FINAL pause carries the flag, and that a refused or called-off deploy
+    carries none).
   **THE HOME-SCREEN WIDGET IS FOUR DECKS TO SWIPE (2026-09-02, Sophie: "the
   widget / make it 4 icons / decks to swipe / currently / the dream factory
   deck / the wallpapers")** — the top four decks still waiting in the Review

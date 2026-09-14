@@ -1,0 +1,50 @@
+{
+ "clips": [
+  {
+   "key": "aud",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3c1e96d9f2034fc6a6a496b25926746a.mp4",
+   "title": "the audition \u2014 Ms. O'Hara and the two nurses (4s)",
+   "seconds": 4.042,
+   "in": 0,
+   "out": 4.042
+  },
+  {
+   "key": "v1",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/aa3952b325a75554e0c13e850bbbe3a0.mp4",
+   "title": "36a v1 \u2014 Sophie at the window, no audition (25s)",
+   "seconds": 25.042,
+   "in": 0,
+   "out": 25.042
+  },
+  {
+   "key": "p1",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3269e1407973dfcc950b26f817b51ce6.mp4",
+   "title": "36a part 1 \u2014 the straps, where are they taking you (15s)",
+   "seconds": 15.072,
+   "in": 0,
+   "out": 15.072
+  },
+  {
+   "key": "A1",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/81fd1a8dc6b712cb562f30fb61414a9b.mp4",
+   "title": "clip A v1 \u2014 her rewrite, the wince at the end (30s)",
+   "seconds": 30.042,
+   "in": 0,
+   "out": 30.042
+  },
+  {
+   "key": "A2",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/50a45092dba8e9b8c47b81af58a5b035.mp4",
+   "title": "clip A v2 \u2014 the same, no nail bite (30s)",
+   "seconds": 30.042,
+   "in": 0,
+   "out": 30.042
+  }
+ ],
+ "sounds": []
+}

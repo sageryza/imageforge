@@ -32,6 +32,17 @@ PILL_CSS = """
    them, and add to this line whenever a new host reaches something. */
 .float, .float *{box-sizing:content-box; line-height:normal; letter-spacing:normal; text-transform:none;}
 .float{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:flex; flex-direction:column; gap:8px; align-items:center; transform:translateZ(0); will-change:transform;}
+/* THE RAIL FOLLOWS THE VISUAL VIEWPORT, AND IT IS THE CHILDREN THAT MOVE
+   (2026-09-13) — see the JS below for why it moves at all. It is the CHILDREN
+   because half a dozen pages reserve the pill's column by measuring
+   `body > .float`'s own rect (footage, Freeform, the Playground, the Character
+   page, Stitch, chats), and a rect that slid 115px down the moment the
+   keyboard opened would hand the reserve to a different row and flip the box's
+   width mid-sentence — the 2026-09-11 "switches back and forth between narrow
+   and full width" complaint arriving by another door. A child's transform
+   never moves its parent's border box, so every one of those readers is
+   correct with no edit, while the pill she can see and tap moves. */
+.float > *{transform:translateY(var(--vvtop, 0px));}
 /* THE FIVE TOKENS ARE READ FROM THE HOST, WITH A FALLBACK — never baked ON
    `.float` (Aug 2026). The injected copy used to carry its own palette plus a
    `prefers-color-scheme: dark` block, and an element's own custom property
@@ -109,6 +120,7 @@ if (document.querySelector('meta[name="forge-pill"][content="off"]') ||
   window.__pillInteractive=function(){ return false; };
   window.__pillSync=function(){};
   window.__pillTopSync=function(){};
+  window.__pillOffset=function(){ return 0; };
 } else {
 var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2],['Fastest',5.2]];
 var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
@@ -362,6 +374,44 @@ document.addEventListener('scroll',function(e){
   else if(boxOK(t)) useBox(t);
   syncPtop();
 },true);
+// ── THE RAIL FOLLOWS THE VISUAL VIEWPORT (2026-09-13, Sophie, on /footage:
+// "auto scroll bug") ──────────────────────────────────────────────────────
+// iOS does not resize the LAYOUT viewport when the keyboard opens — it
+// shrinks the VISUAL one and, to reveal the caret, OFFSETS it inside the
+// layout viewport. `position:fixed` pins to the layout viewport, so the whole
+// rail slides up out of the visible band by `visualViewport.offsetTop`,
+// top-first: measured off her screenshot (iPhone 13, the app's full-screen
+// web view, a block textarea focused) the fixed layer sat ~115pt above what
+// she could see, which left #vtop 0 of 52pt on screen, #vmid 3 of 52 and only
+// #vbot whole — and #vbot while playing means FASTER, which is why her speed
+// label read Fastest. Every other fixed thing here that has to survive the
+// keyboard already reads this (caretkeep, stickybox, filmnote, judge,
+// witchvideo); the pill was the one never taught.
+// IT ONLY EVER CORRECTS. Where no offset is reported — every desktop browser,
+// and the web views that never report one — the transform is left alone, so
+// the pill is byte-for-byte where it has always been.
+// AND THE RESERVE DOES NOT FOLLOW IT, WITHOUT A SINGLE HOST CHANGING — the
+// CSS above moves the CHILDREN, so `body > .float`'s own rect never moves and
+// the six pages that reserve its column off that rect are correct by
+// construction. `window.__pillOffset()` publishes the offset for anything
+// that genuinely wants it.
+var _vvOff=0;
+function placeRail(){
+  if(!_pill) return;
+  var vv=window.visualViewport;
+  var off=vv ? Math.max(0, Math.round(vv.offsetTop||0)) : 0;
+  if(off===_vvOff) return;
+  _vvOff=off;
+  // a custom property, NOT a transform on .float itself — see the CSS above:
+  // the children move, so the reserve readers keep measuring an unmoved rect.
+  if(off) _pill.style.setProperty('--vvtop', off+'px'); else _pill.style.removeProperty('--vvtop');
+}
+window.__pillOffset=function(){ return _vvOff; };
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize', placeRail, {passive:true});
+  window.visualViewport.addEventListener('scroll', placeRail, {passive:true});
+}
+placeRail();
 syncPtop();
 syncPill();
 paintPill();

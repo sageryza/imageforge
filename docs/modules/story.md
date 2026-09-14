@@ -60,6 +60,138 @@ All 12 NDE-category stories were linked to their montage episodes on
 "NDE · all the supercuts" carries all 11). Tests:
 `node scripts/test-storyroom-listen.js`.
 
+## Leaving a beat fills the empty half (2026-09-06)
+**Sophie: "caption and drawing prompt shud auto copy into each other if i
+leave the beat and one exists but the other doesn't."** `fillEmptyHalf()` runs
+first thing in `closeBeat()`: a beat with a drawing prompt and NO caption gets
+the prompt's words as its caption, through `saveNote()` → `POST /text`, so it
+is STORED — the tile's caption, the film's voice (`ttsFor` reads `text`) and
+the Caption box all carry the words. The other direction is deliberately NOT
+a write: an empty prompt already FOLLOWS the caption (`promptOf`, the hint
+line under the box), and `POST /prompt` deletes a stored prompt equal to the
+caption's drawable form, so copying it would be undone by the server. A beat
+with both, or neither, is left alone. Test:
+`node scripts/test-storyroom-caption-copy.js` (the real page against a stub
+that records what is POSTed).
+
+## The caption shows three lines, then `… more` (2026-09-06)
+**Sophie: "caption shud default to showing, but truncated if long, tap to
+show more."** The Caption fold still opens OPEN on arriving at a beat; the
+words (`#captext`) are now clamped to three lines behind the house `.moretxt`
+opener, MEASURED (`capClamp`, the `auClamp` pattern — a short caption carries
+no opener at all), and `setCapText()` is the one writer of the words so every
+path that changes them re-measures. Tapping the opener shows the whole
+caption and it reads `less`. Test: step 5 of
+`node scripts/test-storyroom-caption-copy.js`.
+## The typed cast — Pictures · Descriptions behind the character button (2026-09-06)
+**Sophie: "also add the character description feature as an option that's not
+character image, like playground. u can copy the code."** The Playground's
+Descriptions half, brought to the Story Room's character sheet: a hairline
+**Pictures · Descriptions** row (`#chartabs`, the same `.acctabs` measurer as
+the inbox's tabs — measured AFTER the sheet is shown, since a hidden row has
+no width), name + one-line description rows (`#castrows`; Enter refused, a
+pasted newline collapses to a space — `castBlock` writes one character per
+line), a bigger-box toggle per description, and the clause disclosed at the
+foot from the SERVED `window.__sheetGrid.castBlock`, so the page holds no copy
+of the wording. **The cast lives on the PAD** (`pad.cast = [{name,
+description}]`, `POST /api/scratchpad/cast {pad, cast}`, whitelisted, no
+`updatedAt` bump, out of `dirtySinceFilm`) — a story's cast is the same for
+every beat, unlike the Playground's per-run cast — and the server writes the
+clause into every draw's prompt itself (`artPrompt` reads `pad.cast`; the
+page sends no cast on `/generate`). An empty cast writes NO clause. The badge
+on the button counts pictures + descriptions; the tab she left it on is
+remembered. The rows reserve the pill's 56px column. Tests:
+`node scripts/test-scratchpad-cast.js` (the clause and the routes, pure) and
+`node scripts/test-storyroom-cast.js` (the real page headless).
+
+## Chapters (2026-09-06)
+**Sophie, on her hospital story ("nautchaug", ~50 beats): "i want the chapter
+within a story. arrow buttons at the top, and a contents page w all the
+stories and thumbnails".**
+
+**The data is one string on one beat.** `beat.chapter = 'The ER'` marks the
+beat that OPENS a chapter; the chapter runs until the next beat carrying one.
+Nothing stores a chapter list — `chapterList()` in the page derives it from
+beat order on every paint — so a beat she moves takes its heading with it, a
+beat she deletes takes the heading away, a duplicate story (`dupPad` deep-
+copies beats) carries them, and there is never a second copy of the order to
+drift. `POST /api/scratchpad/chapter {pad, id, title}` sets it; `title:''`
+clears it. **No `updatedAt` bump** (the /style, /pads/pin family) and the
+page's `api()` leaves `/chapter` out of `dirtySinceFilm`: chapters are not
+cuts, the film is made of the beats' pictures and words, and naming a chapter
+must not stale a fresh render or reshuffle the shelf.
+
+**The canvas shows ONE chapter at a time (2026-09-06, the same day, Sophie:
+"is there a view where i see just one chapter at a time. it's getting
+overwhelming").** `render()` filters the units to the chapter's span
+(`from`/`to` on each `chapterList()` entry — the first chapter's span starts
+at beat 0, so beats before the first marked one are shown somewhere), ‹ ›
+and a contents tap swap which chapter (`setChapView`, which re-renders and
+scrolls to the top), and `chapView` is remembered per story in localStorage
+(`scratchpad_chap_<pad>`) so reopening a story lands on the chapter she was
+reading; `openPad` resets it. A remembered chapter that has since gone (its
+beat renamed or moved) falls back to the chapter holding that beat now, never
+a blank canvas. **Whole story** is the first row of the contents sheet — the
+one way back to the scroll-through canvas, where the arrows scroll the window
+and the row names the chapter under the sticky block exactly as below. A
+placing slot at the END of a chapter view lands at `view.to`, the true index
+into `beats`, so a picture dropped after a chapter's last beat sits before the
+next chapter's first. A story with no chapters is byte-for-byte untouched.
+
+**Three surfaces, none of them on the canvas** (the pad's rule — no machinery
+between the beats; a chapter is never a label on the grid):
+- **The ‹ chapter › row**, inside `#topchrome` so it is pinned with the
+  chevron and the buttons, and only drawn once the story has a chapter. ‹ and
+  › scroll the WINDOW so the previous/next chapter's first tile sits just
+  under the sticky block (instant, after `__scrollStop`); the name between
+  them is the chapter she is IN, with its place (`The Matrix 4/10`).
+  "In" is compare.js's `__pagePlace` rule — the last chapter whose first
+  tile's top has passed the block's bottom, else the first — with one
+  addition: **the aim.** A short LAST chapter can never pass under the block
+  (the page runs out first), so by the top-edge rule alone › would scroll to
+  the end and the row would keep naming the chapter before it. A jump
+  remembers where it landed (`chapAim`), and while the window still sits
+  exactly there the row names the chapter she asked for; her first scroll
+  away hands the rule back. Tiles are found by `data-beats` on each
+  `.beatwrap` (a chunk is one wrap), which cannot go stale on a kept node
+  because a node is only kept on an identical `unitSig`.
+- **The CONTENTS sheet**, behind the name: a `.sheet` like the shelf — the
+  page's own header, back chevron, no ✕, its own pill (`sheetPill`). One row
+  per chapter: the first beat's picture through `/api/story/thumb` (or the
+  first beat in it that has one), the name, `N beats`; the row she is in is
+  lit; a tap closes the sheet and jumps. On `__navBack` it is a level like
+  the About sheet.
+- **The bookmark on the Caption line** of a beat's card (`.tlabrow`). A beat
+  that opens a chapter shows its name in the header caps beside a lit,
+  filled bookmark; every other beat shows the quiet outline alone. The
+  bookmark TOGGLES a small box that ships EMPTY (its placeholder names the
+  field and nothing more — reopening shows her own saved word, which is her
+  text). Return blurs; blur SAVES; an emptied box takes the chapter off.
+  **Blur also CLOSES the box here, unlike the caption pencil**: the pencil's
+  reason is a card that reshuffles between mousedown and mouseup, and this
+  one-line slot cannot reshuffle (words and box share it, the bookmark keeps
+  its place). The one tap blur could eat is the bookmark's own, so
+  `pointerdown` on it marks the blur as the button's and the tap closes the
+  box once instead of closing and reopening it. `closeBeat` saves it like
+  the caption and the prompt.
+
+**Seeding by her words:** `node scripts/seed-story-chapters.js` (dry by
+default, `--go` writes, `--pad`/`--plan` for another story) finds each opening
+beat by a phrase in its caption OR its drawing prompt — on the hospital pad the
+words live in the prompts — first match in beat order, refuses a phrase nothing
+carries, and **refuses a story already carrying a chapter** (by then she is
+naming them herself). Her hospital story's ten were seeded 2026-09-06 as a
+starting point: Before · The ER · The ward · The Matrix · The tag guy's wife ·
+The boys · Jake · The pills · The doctors · Getting out.
+
+**Not done, on purpose:** no chapter title card in the film (the render is
+unchanged), and Charlie's and Evan's old headings from `forge-story` are not
+ported — hers to ask for. Test: `node scripts/test-storyroom-chapters.js`
+(the real page headless: the row and its pill clearance measured, › and ‹ as
+the window really moving and the tile landing under the block, the hand
+scroll renaming the row, the sheet's rows/counts/thumbnails decoding and its
+tap, the field's POSTs and that none of it stales the film).
+
 ## Scratch Pad (stage ONE of a story — before the Story Room)
 - `scratchpad.js` (`/api/scratchpad`, page at `/scratchpad`, built by
   `scripts/gen-scratchpad.py`) — thinking with pictures before the Story Room

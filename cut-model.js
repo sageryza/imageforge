@@ -59,7 +59,13 @@
     c = c || {};
     var kind = c.kind === 'image' ? 'image' : 'video';
     var out = {
-      key: str(c.key, 40),
+      // 120, not 40: a Stitch piece's key is its PICKABLE's id, and a trimmed
+      // part's is `<job id>:<40-char sha1 trim key>` — 61-77 characters. At 40
+      // the key was truncated, so every dedupe that compared it against the
+      // full id missed and each tap appended another copy (2026-09-13). No key
+      // any caller stores today is near either number; the cap is a guard, not
+      // a shape.
+      key: str(c.key, 120),
       kind: kind,
       url: str(c.url, 500),
       title: str(c.title, 200),
@@ -118,7 +124,7 @@
     if (!(offset >= MIN_PIECE && offset <= dur - MIN_PIECE)) return null;
     var a = {}, b = {}, k;
     for (k in piece) { a[k] = piece[k]; b[k] = piece[k]; }
-    b.key = str(newKey, 40);
+    b.key = str(newKey, 120);
     if (piece.kind === 'image') {
       a.out = r3(offset);
       b.in = 0; b.out = r3(dur - offset);
@@ -232,7 +238,7 @@
     var a = {}, b = {}, k;
     for (k in sound) { a[k] = sound[k]; b[k] = sound[k]; }
     a.out = r3(sound.in + offset); a.fadeOut = 0;
-    b.key = str(newKey, 40); b.in = r3(sound.in + offset); b.fadeIn = 0;
+    b.key = str(newKey, 120); b.in = r3(sound.in + offset); b.fadeIn = 0;
     b.at = r3(sound.at + offset);
     if (b.anchor) b.anchor = { piece: b.anchor.piece, offset: r3(b.anchor.offset + offset) };
     return [a, b];

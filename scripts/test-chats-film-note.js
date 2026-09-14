@@ -4,11 +4,12 @@
 // mic and asserts her rules:
 //   1. a tap anywhere on the film PAUSES it (and raises the Note button —
 //      no sheet); a second tap plays it again and the button goes away,
-//   1b. a tap on a PLAYING film while iOS's tinted controls overlay is still
-//      up (the scrim window after any tap) only DISMISSES the overlay — it
-//      never pauses (2026-08-27, Sophie: "when i tap to get rid of the
-//      tinted pause screen, it also pauses the video"); the dismissing tap
-//      clears the window, so the very next tap pauses as always,
+//   1b. OUR OWN TRANSPORT, not iOS's (2026-09-10, Sophie: "the way a movie
+//      tints when it starts" -> "go"): the film carries no `controls`, the
+//      /filmbar.js bar is drawn instead, its play button toggles playback and
+//      its strip seeks — and NEITHER ever reaches the film's own tap toggle,
+//      which is what retired the scrim window and the 64px scrub-bar
+//      exemption that steps 1b/1c used to test,
 //   2. Note raises the sheet stamped m:ss with the mic ALREADY recording,
 //   3. ONE Done while recording: the sheet closes INSTANTLY, the video
 //      resumes, and the note goes out in the background (voice held with
@@ -184,9 +185,6 @@ if (!fs.readFileSync(path.join(PUB, 'compare.js'), 'utf8').includes('cmp-vlb-x::
       Object.defineProperty(v, 'paused', { get: () => paused, configurable: true });
       v.play = function () { paused = false; v.__played = true; v.dispatchEvent(new Event('play')); return Promise.resolve(); };
       v.pause = function () { paused = true; v.__paused = true; v.dispatchEvent(new Event('pause')); };
-      // the test taps faster than iOS's real scrim ever fades — the window is
-      // off by default here and raised only by the step that tests it (1b)
-      window.__filmNote.SCRIM_MS = 0;
       // the player waits for her tap since 2026-09-05 — this is the tap
       v.play();
     });
@@ -204,31 +202,35 @@ if (!fs.readFileSync(path.join(PUB, 'compare.js'), 'utf8').includes('cmp-vlb-x::
   if (await page.evaluate(() => document.querySelector('#pinfull video').paused)) fail('a second tap did not play the film again');
   if (!await page.$eval('#pinfull .notebtn', (n) => n.classList.contains('off'))) fail('playing did not put the Note button away');
 
-  // 1b. iOS's tinted overlay is up right after a tap — with the window at its
-  //     real width, the next tap only puts the overlay away, and the one
-  //     after THAT pauses (the dismissing tap cleared the window)
-  //     The film is PLAYING and step 1's last tap just armed the window —
-  //     exactly the state her report describes.
-  await page.evaluate(() => { window.__filmNote.SCRIM_MS = 3800; });
-  await tapFilm();   // overlay up on a playing film → dismiss only
-  if (await page.evaluate(() => document.querySelector('#pinfull video').paused)) fail('a scrim-dismiss tap paused the film');
-  await tapFilm();   // the dismiss cleared the window → this one pauses
-  if (!await page.evaluate(() => document.querySelector('#pinfull video').paused)) fail('the tap after dismissing the overlay did not pause');
-  await page.evaluate(() => { window.__filmNote.SCRIM_MS = 0; });
-
-  // 1c. the bottom band is the native scrub bar's own (2026-08-27, her ask):
-  //     a tap there never toggles, playing or paused
-  const bandTap = () => page.evaluate(() => {
+  // 1b. THE TRANSPORT IS OURS. The film carries no `controls` — that attribute
+  //     is what makes iOS paint the wash she asked to be rid of — and the bar
+  //     is drawn instead. Its play button and its strip are SIBLINGS of the
+  //     video, so neither is ever a tap on the film: that is what let the
+  //     scrim window and the 64px scrub-bar exemption be deleted rather than
+  //     kept switched off, and the two assertions below are the honest proof
+  //     (a tap on the bar that fell through would toggle playback here).
+  if (await page.$eval('#pinfull video', (n) => n.hasAttribute('controls'))) fail('the film still carries native controls — iOS will tint it');
+  if (!await page.$('#pinfull .filmbar')) fail('no transport bar was drawn on the film');
+  // step 1 left it PLAYING (its last tap started it again)
+  await page.click('#pinfull .filmbar .fbplay');
+  if (!await page.evaluate(() => document.querySelector('#pinfull video').paused)) fail('the bar\'s play button did not pause the film');
+  await page.click('#pinfull .filmbar .fbplay');
+  if (await page.evaluate(() => document.querySelector('#pinfull video').paused)) fail('the bar\'s play button did not start the film again');
+  // a tap on the STRIP seeks and leaves playback alone — and must not reach
+  // the film's toggle underneath it
+  await page.evaluate(() => {
     const v = document.querySelector('#pinfull video');
-    const r = v.getBoundingClientRect();
-    v.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + r.width / 2, clientY: r.bottom - 20 }));
+    Object.defineProperty(v, 'duration', { value: 100, configurable: true });
+    v.dispatchEvent(new Event('durationchange'));
   });
-  await tapFilm();   // paused → play
-  await bandTap();
-  if (await page.evaluate(() => document.querySelector('#pinfull video').paused)) fail('a scrub-bar tap paused the playing film');
-  await tapFilm();   // playing → pause
-  await bandTap();
-  if (!await page.evaluate(() => document.querySelector('#pinfull video').paused)) fail('a scrub-bar tap started playback from paused');
+  const bar = await page.$eval('#pinfull .filmbar .fbbar', (n) => { const r = n.getBoundingClientRect(); return { x: r.left, y: r.top + r.height / 2, w: r.width }; });
+  await page.mouse.click(bar.x + bar.w / 2, bar.y);
+  if (await page.evaluate(() => document.querySelector('#pinfull video').paused)) fail('a tap on the scrubber paused the film — it reached the toggle underneath');
+  const at = await page.evaluate(() => document.querySelector('#pinfull video').currentTime);
+  if (!(at > 40 && at < 60)) fail('a tap at the middle of the scrubber did not seek to the middle: ' + at);
+  // put the fixture's own position back — the steps below read the stamp
+  await page.evaluate(() => { document.querySelector('#pinfull video').currentTime = 41.4; });
+  await tapFilm();   // playing → paused, for step 2
 
   // 2. Note raises the stamped sheet with the mic already on (the film is
   //    already paused from 1b's last tap)

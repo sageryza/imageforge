@@ -1,0 +1,90 @@
+{
+ "clips": [
+  {
+   "key": "p1",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1788727159730-siy9j4.webp",
+   "title": "it was 10:00 at night",
+   "in": 0,
+   "out": 2.12
+  },
+  {
+   "key": "p2",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1788727161432-y5lgu9.webp",
+   "title": "the city gets very hot, at night, in the summer",
+   "in": 0,
+   "out": 3.55
+  },
+  {
+   "key": "p3",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1788727162361-dq6btt.webp",
+   "title": "there was nowhere to go, really, was there?",
+   "in": 0,
+   "out": 3.53
+  },
+  {
+   "key": "p4",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1788727163145-ukenew.webp",
+   "title": "i was walking around in circles",
+   "in": 0,
+   "out": 2.33
+  },
+  {
+   "key": "p5",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1788727163936-7bjpdy.webp",
+   "title": "trying to get my mind right",
+   "in": 0,
+   "out": 1.21
+  },
+  {
+   "key": "p6",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1788727164721-5gsosz.webp",
+   "title": "back and forth, back and forth. go this way, no go this way. no",
+   "in": 0,
+   "out": 5.86
+  },
+  {
+   "key": "p7",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1788727165648-ifcc61.webp",
+   "title": "what did it matter?",
+   "in": 0,
+   "out": 1.43
+  },
+  {
+   "key": "p8",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1788727166455-1hrjlt.webp",
+   "title": "which way i went",
+   "in": 0,
+   "out": 1.56
+  },
+  {
+   "key": "p9",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1788727167329-t06efp.webp",
+   "title": "closer",
+   "in": 0,
+   "out": 2.5
+  }
+ ],
+ "sounds": [
+  {
+   "key": "vo",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/scratchpad/voice/night-walk-take1.mp3",
+   "name": "voiceover \u2014 one take, morning voice",
+   "at": 0,
+   "in": 0,
+   "out": null,
+   "gain": 0,
+   "fadeIn": 0,
+   "fadeOut": 0.3,
+   "mute": false
+  }
+ ]
+}

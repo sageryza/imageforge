@@ -119,8 +119,13 @@ const srv = fs.readFileSync(path.join(__dirname, '..', 'scratchpad.js'), 'utf8')
 ok(srv.includes("require('./pad-characters')"), 'scratchpad.js reads the ONE copy of these rules');
 ok(srv.includes('characters: normalizeCharacters(v.characters)'), 'readPad serves the cast to the page');
 ok(/charLine\(picked\)/.test(srv), 'runArtJob discloses the picked characters in the sent prompt');
+// The LINE moved inside artPrompt when the typed cast landed (#2162's
+// refactor), so the pin is: the card is computed, it gates the attachment,
+// and it is what artPrompt is handed as `character` — which is the only
+// thing artPrompt's own `character ? ART.characterLine` ever sees.
 ok(/const card = houseCardRides\(character, picked\)/.test(srv) && /card \? \[\{ name: ART\.characterFile/.test(srv)
-  && /useCard \? ART\.characterLine/.test(srv) && !/character \? ART\.characterLine/.test(srv),
+  && /artPrompt\(\{ recipe, prompt, character: card, cline, cast: castRows \}\)/.test(srv)
+  && !/= artPrompt\(\{ recipe, prompt, character, /.test(srv),
   'the draw attaches the house card AND its line only when houseCardRides says so — her own Sophie wins');
 ok(/\.concat\(await charRefs\(picked\)\)/.test(srv), 'and attaches them LAST, behind the style refs');
 ok(srv.includes("router.post('/character'"), 'the add/rename route exists');

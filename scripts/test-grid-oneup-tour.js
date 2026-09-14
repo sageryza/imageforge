@@ -20,10 +20,10 @@ const IMG = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA
 let fail = 0, ran = 0;
 const ok = (c, m) => { ran++; console.log((c ? 'PASS: ' : 'FAIL: ') + m); if (!c) fail++; };
 
-const page = (groups) => `<!doctype html><meta charset="utf-8"><title>t</title>
+const page = (groups, extra) => `<!doctype html><meta charset="utf-8"><title>t</title>
 <link rel="stylesheet" href="/compare.css"><body><h1>t</h1><div id="grid"></div>
 <script src="/compare.js"></script><script src="/asset-view.js"></script><script src="/grid.js"></script>
-<script>window.__grid({ chat:'t', sheet:'s', mount:'#grid', tour:'auto', groups:${JSON.stringify(groups)} });</script>`;
+<script>window.__grid(Object.assign({ chat:'t', sheet:'s', mount:'#grid', tour:'auto', groups:${JSON.stringify(groups)} }, ${JSON.stringify(extra || {})}));</script>`;
 
 const one = (n) => Array.from({ length: n }, (_, i) => ({ items: [{ id: 'a' + i, img: '/i.gif', label: 'card ' + i }] }));
 const pairs = (n) => Array.from({ length: n }, (_, i) => ({ label: 'row ' + i, items: [
@@ -53,8 +53,8 @@ const catalogue = () => [{ label: 'everything', items: Array.from({ length: 12 }
     .concat(process.env.CHROMIUM_PATH ? [process.env.CHROMIUM_PATH] : [])
     .find((f) => fs.existsSync(f));
   const b = await chromium.launch(preinstalled ? { executablePath: preinstalled } : {});
-  const tourText = async (groups) => {
-    body = page(groups);
+  const tourText = async (groups, extra) => {
+    body = page(groups, extra);
     const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });  // its own storage: the tour plays once per key
     const p = await ctx.newPage();
     await p.goto('http://127.0.0.1:8742/', { waitUntil: 'load' });
@@ -66,6 +66,21 @@ const catalogue = () => [{ label: 'everything', items: Array.from({ length: 12 }
     });
     await ctx.close();
     return t;
+  };
+  const tourStepCount = async (groups, extra) => {
+    body = page(groups, extra);
+    const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
+    const p = await ctx.newPage();
+    await p.goto('http://127.0.0.1:8742/', { waitUntil: 'load' });
+    await p.waitForTimeout(1400);
+    // "1 of N" — the count the tour prints for itself
+    const n = await p.evaluate(() => {
+      const el = document.querySelector('.cmp-tour');
+      const m = el ? (el.innerText.match(/\b\d+\s+of\s+(\d+)\b/) || []) : [];
+      return m[1] ? Number(m[1]) : 0;
+    });
+    await ctx.close();
+    return n;
   };
   const oneUpText = await tourText(one(4));
   const pairText = await tourText(pairs(3));
@@ -83,6 +98,19 @@ const catalogue = () => [{ label: 'everything', items: Array.from({ length: 12 }
     `a catalogue says what it is — got "${listText.slice(0, 90)}"`);
   // and it must not borrow the 1-up wording either: these rows are not one apiece
   ok(!/one picture a row/i.test(listText), 'a catalogue is not described as one-up');
+  // A PAGE MAY NAME ITS OWN FIRST LINE (2026-09-08, PHOTOgraphed on a page of
+  // three ranked STILLS per clip). Shape cannot tell three candidates for one
+  // shot from three one-variable variants, so a page that knows says so — and
+  // derivation stays the default, which the pair case above still proves.
+  const INTRO = 'Three stills off one clip, the top pick first.';
+  const introText = await tourText(pairs(3), { intro: INTRO });
+  ok(introText === INTRO, `intro: the page's own first line is used verbatim — got "${introText.slice(0, 90)}"`);
+  ok(!/differ by exactly one thing/i.test(introText), 'intro: the stock comparison line is gone');
+  // it replaces ONLY the first step — the rest of the tour is untouched
+  const introSteps = await tourStepCount(pairs(3), { intro: INTRO });
+  const plainSteps = await tourStepCount(pairs(3));
+  ok(introSteps === plainSteps && introSteps > 1,
+    `intro: only the first step changes (${introSteps} steps with, ${plainSteps} without)`);
   await b.close(); srv.close();
   console.log(fail ? `\n${fail} of ${ran} FAILED` : `\nall ${ran} checks passed`);
   process.exit(fail ? 1 : 0);

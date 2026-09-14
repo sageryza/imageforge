@@ -106,6 +106,7 @@ const SKIP_PREFIXES = [
   'assembly/',       // Assembly renders — films MADE OF these clips; harvesting
                      // one back onto the shelf would nest the library in itself
   'filmeditor/',     // Film Editor renders — finished cuts, same reason
+  'stitch/',         // Stitch renders — films made OF Footage clips, same reason
 ];
 
 // Fields a client may write. Everything else — url, poster, seconds, kind,

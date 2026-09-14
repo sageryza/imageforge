@@ -1,0 +1,1160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Stitch</title>
+<!-- THE LIST · TILES · 3/4 SWITCH — the one shell (/viewswitch.js), linked, never copied -->
+<link rel="stylesheet" href="/viewswitch.css">
+<!-- THE FILTER DRAWER — the one shell, the same funnel the Playground, Meta
+     Assets and Footage open (2026-09-13) -->
+<link rel="stylesheet" href="/searchfilters.css">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  [hidden]{display:none !important}
+  body{background:#f6f2ea;color:#2b2620;font:16px/1.45 -apple-system,BlinkMacSystemFont,Georgia,serif;
+       padding:14px 12px 40px;-webkit-text-size-adjust:100%}
+  /* THE PAGE OWNS ITS HEADER (Footage's row): one line, caps, the pill's
+     corner reserved; pagehead.js seats the chevron in it on the new build and
+     ?embed=1 hides it on the old one — never two titles. */
+  .app-header{display:flex;align-items:center;min-height:34px;padding-right:64px;margin:0 0 8px;gap:10px}
+  .app-header h1{font:400 11px/1 -apple-system,'Helvetica Neue',sans-serif;letter-spacing:.34em;
+                 text-transform:uppercase;color:#6f675e;margin:0;flex:1;
+                 white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #help{width:26px;height:26px;border-radius:6px;border:1px solid #c9a96a;background:#fff;color:#a0803a;
+        font:600 14px -apple-system,sans-serif;padding:0;flex:none}
+  .helpcard{position:fixed;left:12px;right:12px;top:80px;z-index:60;background:#fff;border:1px solid #e0d8ca;
+            border-radius:6px;padding:14px;font-size:14px;line-height:1.5;box-shadow:0 8px 30px rgba(0,0,0,.12);
+            max-height:70vh;overflow:auto}
+  .helpcard p{margin:0 0 8px}
+  .helpcard b{font-weight:600}
+  button{font:inherit;color:inherit;cursor:pointer}
+  /* A ROW THAT CAN SIT IN THE PILL'S BAND SHORTENS — measured against the
+     pill's real rect (Footage's fitPillGap), never a hardcoded column; a row
+     below the band keeps its whole width. */
+  [data-pillrow]{margin-right:var(--pillgap,0px)}
+  /* the house button: a rounded rectangle that hugs its words */
+  .btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border:1px solid #d8cfc0;border-radius:6px;
+       background:#fdfbf7;color:#2b2620;font-size:14px}
+  .btn.ink{background:#2b2620;border-color:#2b2620;color:#f6f2ea}
+  .btn:disabled{opacity:.45}
+  /* an icon control: a 34px rounded square, the glyph inside */
+  .ib{width:34px;height:34px;padding:0;border:1px solid #d8cfc0;border-radius:6px;background:#fdfbf7;color:#2b2620;
+      display:inline-flex;align-items:center;justify-content:center;flex:none}
+  .ib svg{width:17px;height:17px;display:block}
+  .ib.bare{border:0;background:none}
+  .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  /* an underlined word, never a boxed button (the house inline opener) */
+  .wd{border:0;background:none;padding:0;color:#2b2620;text-decoration:underline;text-underline-offset:2px;font-size:14px}
+  .quiet{font-size:13px;color:#8b8175}
+
+  /* ── the shelf ── */
+  #shelf .slist{margin-top:12px}
+  /* THE ROW IS A DIV WITH THE FACE INSIDE IT, never a <button> — the hide ✕
+     is its SIBLING (Footage's tile rule): a button nested in a button is
+     invalid and the ✕'s tap would bubble into opening the stitch. */
+  .srow{position:relative;display:flex;align-items:center;gap:10px;padding:8px;margin:0 0 8px;border:1px solid #e0d8ca;
+        border-radius:6px;background:#fff}
+  .srow .open{flex:1;min-width:0;display:flex;align-items:center;gap:10px;text-align:left;
+              border:0;background:none;padding:0;color:inherit}
+  .srow .th{width:56px;height:56px;flex:none;border-radius:4px;background:#2b2620;object-fit:cover;display:block}
+  .srow .th.none{background:#e6dfd2}
+  .srow .tt{flex:1;min-width:0}
+  .srow .tt b{display:block;font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .srow .tt i{display:block;font-style:normal;font-size:12.5px;color:#8b8175}
+  .srow .shide{flex:none;width:30px;height:30px;color:#8b8175}
+
+  /* ── one open stitch ── */
+  .panel{background:#fff;border:1px solid #e0d8ca;border-radius:6px;padding:12px;margin-bottom:14px}
+  /* the width, not a margin: an input at width:100% overflows its box rather than shrinking */
+  .ttl{width:calc(100% - var(--pillgap,0px));border:0;border-bottom:1px solid #e0d8ca;background:none;font:600 17px/1.3 inherit;padding:2px 0 6px;color:#2b2620}
+  .ttl:focus{outline:none;border-color:#a89a80}
+  /* THE ORDER: one row per picked clip. The number is typed (the Story
+     Timeline's), the arrows step one, ⧉ uses the shot again, ✕ takes it out.
+     Nothing drags. */
+  #order{margin-top:10px}
+  /* THE ROW WRAPS, IT DOES NOT CRUSH THE TITLE (PHOTOgraphed at 390pt: with
+     the number, the thumb and four icon buttons on one line the title column
+     got ~40px and every row read "sop…" over "6s …" — and the mark line is
+     the ONE thing that tells two takes of a scene apart, which is the whole
+     reason it exists). The controls are their own group: they sit on the line
+     while there is room and drop to a line of their own when there is not,
+     which is also what keeps them clear on a row the pill's band shortens. */
+  .orow{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid #efe9de;flex-wrap:wrap}
+  .orow .ctl{display:flex;align-items:center;gap:2px;margin-left:auto;flex:none}
+  .orow:first-child{border-top:0}
+  .orow .num{width:40px;height:34px;flex:none;border:1px solid #d8cfc0;border-radius:6px;background:#fdfbf7;text-align:center;
+             font:600 15px -apple-system,sans-serif;color:#2b2620;-moz-appearance:textfield}
+  .orow .num::-webkit-outer-spin-button,.orow .num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .orow .th{width:48px;height:48px;flex:none;border-radius:4px;background:#2b2620;object-fit:cover;display:block;
+            padding:0;border:0}
+  .orow .tt{flex:1 1 140px;min-width:0;font-size:14px;line-height:1.3}
+  .orow .tt span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* WHICH TAKE IS THIS — seconds · model · the day. 372 of her 484 pickables
+     wear a title another one also wears (53 read identically), so without
+     this line nine takes of the doctor's office are nine identical rows. */
+  .orow .tt i{font-style:normal;font-size:12px;color:#8b8175;display:block;
+              white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .orow .tt i.again{color:#a0803a}
+  .orow .ib{width:30px;height:30px}
+  .orow .ib:disabled{opacity:.3}
+  .empty{font-size:13.5px;color:#8b8175;padding:8px 0}
+  .stitchrow{margin-top:12px}
+  .stitchrow .st{font-size:13px;color:#6f675e}
+  .stitchrow .st.bad{color:#a23b2e}
+  .stitchrow .wds{margin-left:auto;display:flex;gap:12px;flex:none}
+  /* WHAT SHAPE THE FILM WILL BE — the first clip decides the canvas and every
+     project mixes shapes (ward alone holds 16:9, 3:4, 9:16, 1:1), so
+     reordering silently changes what the rest is letterboxed onto. Said once,
+     quietly, and only when the order really mixes. */
+  .shapenote{font-size:12.5px;color:#8b8175;margin-top:6px;line-height:1.35}
+  /* the renders: a LINE with a play button, never an embedded video */
+  #renders{margin-top:8px}
+  .rrow{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid #efe9de;font-size:14px}
+  .rrow .ib.play{background:#2b2620;border-color:#2b2620;color:#f6f2ea}
+  .rrow .ib.play svg{width:14px;height:14px;margin-left:2px}
+  .rrow .lab{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rrow .lab i{font-style:normal;color:#8b8175;font-size:12.5px}
+
+  /* ── the picker ── */
+  .feedbar{display:flex;align-items:center;gap:8px;margin:0 0 10px;flex-wrap:wrap}
+  .selwrap{position:relative;display:inline-flex;flex:none}
+  .selwrap select{-webkit-appearance:none;-moz-appearance:none;appearance:none;border:1px solid #d8cfc0;border-radius:6px;
+        background:#fdfbf7;color:#2b2620;font:14px -apple-system,Georgia,serif;height:32px;padding:0 26px 0 10px;margin:0;max-width:52vw}
+  .selwrap select:focus{outline:none;border-color:#a89a80}
+  .selwrap.on select{background:#2b2620;border-color:#2b2620;color:#f6f2ea}
+  .selwrap .chev{position:absolute;right:8px;top:0;height:32px;display:flex;align-items:center;pointer-events:none;color:#6f675e}
+  .selwrap.on .chev{color:#f6f2ea}
+  .selwrap .chev svg{width:13px;height:13px;display:block}
+  /* THE PROJECT PICKER IS A FOLDER ICON (Footage's own). Still a real
+     <select> — the native picker is the right control on her phone — drawn as
+     a rounded square with the glyph over it and its own text hidden. The LIST
+     keeps its ink: `option` does not inherit a transparent colour. */
+  .iconsel select{width:34px;padding:0;color:transparent;text-shadow:none}
+  .iconsel select option{color:#2b2620}
+  .iconsel .ico{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:#2b2620}
+  .iconsel .ico svg{width:18px;height:18px;display:block}
+  .iconsel.on select{background:#2b2620;border-color:#2b2620}
+  .iconsel.on .ico{color:#f6f2ea}
+  /* the mark filters and the glass, in the house segmented boxes */
+  .filttog{display:inline-flex;flex:none;border:1px solid #d8cfc0;border-radius:6px;overflow:hidden;background:#fdfbf7}
+  .filttog .lf{width:34px;height:32px;padding:0;border:0;background:none;color:#2b2620;
+        display:inline-flex;align-items:center;justify-content:center}
+  .filttog .lf + .lf{border-left:1px solid #d8cfc0}
+  .filttog .lf svg{width:16px;height:16px;display:block}
+  /* THE TWO LIT COLOURS MUST DIFFER — the heart keeps only what it names and
+     the ✕ drops only what it names; two rose buttons side by side read as two
+     of the same thing (the Playground's own rule). */
+  .filttog .lf.on{background:#c96a5e;color:#fff}
+  .filttog .lf.xf.on{background:#3a3530;color:#fff}
+  .filttog .lf.qf.on{background:#2b2620;color:#f6f2ea}
+  .filttog .lf.qf{gap:5px;width:auto;padding:0 8px}
+  .qcount{font:600 11px -apple-system,sans-serif;letter-spacing:.04em}
+  .feedsearch{flex:1 1 150px;min-width:0;position:relative;display:flex}
+  /* 16px is a FLOOR: under it iOS zooms the page on focus and ignores
+     user-scalable=no. */
+  .feedsearch input{width:100%;min-width:0;font:inherit;font-size:16px;color:#2b2620;background:#fdfbf7;
+        border:1px solid #d8cfc0;border-radius:6px;padding:6px 9px}
+  .feedsearch input.hasq{padding-left:28px}
+  .feedsearch input:focus{outline:none;border-color:#a89a80}
+  .feedsearch input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+  /* the ✕ at the LEFT end — her caret and dictated text grow at the right */
+  .qclear{position:absolute;left:0;top:0;height:100%;width:28px;border:0;background:none;color:#8a8177;font-size:18px;line-height:1;padding:0}
+  /* display:contents so the funnel chip and its drawer become items of the
+     bar itself; order puts field · funnel · a full-width drawer row. The
+     drawer's own right pad clears the injected pill's fixed column. */
+  #feedfilters{display:contents;--fsf-ink:#2b2620;--fsf-ink2:#6f675e;--fsf-line:#d8cfc0;--fsf-paper:#fdfbf7;--fsf-on:#c25a72}
+  .feedsearch{order:1}
+  #feedfilters .filtchip{order:2;align-self:stretch;min-height:0;min-width:32px;padding:0 8px}
+  #feedfilters .filtdrawer{flex:1 1 100%;margin:0 0 2px;order:3;padding-right:58px}
+  #feedbar .quiet{margin-left:auto}
+  /* `minmax(0,1fr)` is load-bearing (the Playground's wall): a bare 1fr lets
+     one 16:9 cell on a row of portraits blow its column out. */
+  #tiles{display:grid;grid-template-columns:repeat(var(--cols,3),minmax(0,1fr));align-items:start;gap:5px}
+  /* A CELL IS A DIV WITH THE FACE INSIDE IT, never a <button> — the play door
+     and the pick are its SIBLINGS (Footage's rule): a button nested in a
+     button is invalid and the inner tap would bubble into the outer. */
+  #tiles .cell{position:relative;border:1px solid #e0d8ca;border-radius:6px;overflow:hidden;background:#2b2620;color:#f6f2ea;
+        aspect-ratio:var(--ar,3/4)}
+  #tiles .cell .face{position:absolute;inset:0;width:100%;height:100%;padding:0;margin:0;border:0;border-radius:0;
+        background:none;color:inherit;display:flex;align-items:center;justify-content:center}
+  #tiles .cell img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+  #tiles .cell .face svg{width:22px;height:22px;opacity:.8;position:relative;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
+  /* PLAY IT BEFORE YOU PICK IT (2026-09-13, her first ask) — BOTTOM-LEFT,
+     not the middle. Footage puts its doors in the middle of a tile because
+     there the poster is not a button at all; here the poster IS the pick, so
+     the middle is the primary gesture and a chip on it would eat most of the
+     target. The other three corners are spoken for: the place number
+     top-left, the part label bottom-right. It is a SIBLING of the face,
+     never nested — a button inside a button is invalid and its tap would
+     bubble into picking the clip. */
+  #tiles .tdoor{position:absolute;left:4px;bottom:4px;width:28px;height:28px;padding:0;border-radius:6px;
+        display:inline-flex;align-items:center;justify-content:center;color:#fff;
+        background:rgba(20,17,14,.5);border:1px solid rgba(255,255,255,.28)}
+  #tiles .tdoor svg{width:15px;height:15px;display:block}
+  /* THE NUMBER IS THE PICK — a picked tile wears its place in the order,
+     top-left, on the marks' flat plate (never a scrim: a gradient is out).
+     A shot used twice says "2, 5". */
+  .pn{position:absolute;left:4px;top:4px;min-width:24px;height:24px;padding:0 6px;border-radius:6px;background:#2b2620;color:#f6f2ea;
+      font:600 13px/24px -apple-system,sans-serif;text-align:center;display:none;border:0}
+  .picked .pn{display:block}
+  #tiles .cell.picked{outline:2px solid #2b2620;outline-offset:-2px}
+  .pl{position:absolute;right:4px;bottom:4px;padding:0 6px;border-radius:6px;background:rgba(43,38,32,.85);color:#f6f2ea;
+      font:11px/20px -apple-system,sans-serif}
+  /* a crossed-out clip is dimmed wherever it shows, so a ✕ reads the same on
+     the wall and in the list */
+  #tiles .cell.nay{opacity:.45}
+  .crow.nay{opacity:.55}
+  /* list view: a box per clip */
+  .crow{position:relative;display:flex;align-items:center;gap:10px;padding:8px;margin:0 0 8px;
+        border:1px solid #e0d8ca;border-radius:6px;background:#fff;color:#2b2620}
+  .crow.picked{border-color:#2b2620}
+  .crow .pick{flex:1;min-width:0;display:flex;align-items:center;gap:10px;text-align:left;
+              border:0;background:none;padding:0;color:inherit}
+  .crow .th{width:64px;height:64px;flex:none;border-radius:4px;background:#2b2620;object-fit:cover;display:block}
+  .crow .tt{flex:1;min-width:0;font-size:14px;line-height:1.35}
+  .crow .tt span{display:block;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .crow .tt i{display:block;font-style:normal;font-size:12px;color:#8b8175}
+  .crow .cplay{flex:none;width:32px;height:32px}
+  .crow .pn{position:static;flex:none}
+  .crow .pn.off{display:block;background:#fdfbf7;color:#8b8175;border:1px solid #d8cfc0;line-height:22px}
+  .olderbtn{margin:10px auto 0;display:block}
+  .emptynote{font-size:13px;color:#8a8177;padding:18px 0;text-align:center}
+
+  /* ── the player ── */
+  #player{position:fixed;inset:0;background:rgba(20,17,14,.94);z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  /* THE WAY OUT IS ITS OWN ROW ABOVE THE PICTURE, never a button over it: a
+     portrait clip fills the stage to the top and paints over a corner-
+     positioned ✕ (Footage measured it — elementFromPoint answers VIDEO and
+     0% of the screen is bare backdrop). `flex:none` in the column the stage
+     yields to, so the picture shrinks by one row instead.
+     AND THE ROW IS `.pbar`, NEVER `.ptop` — the injected pill styles `.ptop`
+     globally as its own 38px round back-to-top button, so a row wearing that
+     class draws as a cream ellipse behind the ✕. */
+  #player .pbar{flex:none;width:100%;display:flex;align-items:center;gap:8px;
+                padding:calc(8px + env(safe-area-inset-top)) 14px 8px}
+  #player .pclose{width:34px;height:34px;padding:0;border-radius:6px;flex:none;
+                  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#fff}
+  #player .pclose svg{width:16px;height:16px}
+  #player .psave{margin-left:auto;flex:none;background:rgba(255,255,255,.12);
+                 border:1px solid rgba(255,255,255,.3);color:#fff;font-size:13px;padding:6px 12px;border-radius:6px}
+  /* AND THE STAGE IS FILMNOTE'S AND FILMBAR'S HOST, so `position:relative` is
+     load-bearing: everything either draws is absolute against its wrap and
+     anchored to that wrap's BOTTOM. With `#player` as the wrap the Note
+     button lands on the page's own controls. */
+  #player .pstage{position:relative;flex:1;min-height:0;width:100%;display:flex;align-items:flex-end;justify-content:center}
+  /* THE PICTURE SITS ON THE TRANSPORT (PHOTOgraphed: centred in the stage, the
+     film floated in the middle of the screen while /filmbar.js's bar — which
+     anchors to its WRAP's bottom — sat at the very bottom, and filmnote's Note
+     button floated over the page below it, so the three read as unrelated
+     things). Bottom-aligned, the bar lands directly under the clip and the
+     slack goes to the top, where only the way out lives. The 44px is the
+     bar's own height, reserved so it never covers the picture's last band. */
+  #player .pstage video{max-width:100%;max-height:calc(100% - 44px);display:block;background:#000;margin-bottom:44px}
+  /* A TOAST IS A MESSAGE, NEVER A CONTROL — pointer-events:none, or it swallows taps for the life of the page */
+  #toast{position:fixed;left:12px;bottom:calc(20px + env(safe-area-inset-bottom));max-width:80vw;z-index:90;background:#2b2620;color:#f6f2ea;
+         padding:8px 12px;border-radius:6px;font-size:13.5px;opacity:0;transition:opacity .2s;pointer-events:none}
+  #toast.on{opacity:1}
+  #player:not([hidden]) ~ #toast{bottom:auto;left:56px;right:12px;max-width:none;top:calc(14px + env(safe-area-inset-top))}
+</style>
+</head>
+<body>
+<header class="app-header"><h1 id="title">Stitch</h1><button id="help" type="button" aria-label="How this works" title="How this works">?</button></header>
+<div class="helpcard" id="helpcard" hidden>
+  <p><b>Pick clips.</b> Your Footage clips are below &mdash; tap one and it joins the order at the top. A clip you trimmed offers each part beside the whole. Tap it again to take it out.</p>
+  <p><b>Play one first.</b> The &#9654; in the middle of a tile plays it without picking it, so you can check which take it is.</p>
+  <p><b>Put them in order.</b> Every picked clip is a row: type its number, or tap the arrows to step it up or down. &times; takes it out, and the two-squares button uses that shot again further along. Nothing drags.</p>
+  <p><b>Find one.</b> The glass searches every clip on the log &mdash; words from the prompt, the model, the seconds, the project. The funnel behind it filters by model and by when it was drawn, and the heart and &times; keep or drop the ones you have marked in Footage.</p>
+  <p><b>Stitch.</b> One button joins them in that order, in the background &mdash; leave the page and come back. Every stitch is kept, newest first; play it, note on it, or save it to Photos.</p>
+  <p><b>It costs nothing.</b> The clips are already drawn; a stitch is ffmpeg on our own box, the same join the Film Editor bakes.</p>
+</div>
+
+<div id="shelf">
+  <div class="row" data-pillrow><button type="button" class="btn ink" id="newstitch">New stitch</button></div>
+  <div class="slist" id="slist"></div>
+  <div class="emptynote" id="shelfempty" hidden>Nothing stitched yet.</div>
+</div>
+
+<div id="open" hidden>
+  <div class="panel">
+    <input type="text" class="ttl" id="ttl" aria-label="Name" autocomplete="off" data-pillrow>
+    <div id="order"></div>
+    <div class="row stitchrow" data-pillrow>
+      <button type="button" class="btn ink" id="stitch">Stitch</button>
+      <span class="quiet" id="total"></span>
+      <span class="st" id="status"></span>
+      <span class="wds"><button type="button" class="wd" id="clear" hidden>clear</button><button type="button" class="wd" id="undo" hidden>undo</button></span>
+    </div>
+    <div class="shapenote" id="shapenote" hidden></div>
+    <div id="renders"></div>
+  </div>
+
+  <div class="feedbar" id="feedbar" data-pillrow>
+    <div class="filttog" role="group" aria-label="Marks">
+      <button type="button" class="lf hf" id="v-liked" aria-label="Only the ones you hearted" title="Hearted only"></button>
+      <button type="button" class="lf xf" id="v-hidex" aria-label="Hide the ones you crossed out" title="Hide crossed out"></button>
+    </div>
+    <div class="filttog"><button type="button" class="lf qf" id="v-search" aria-label="Search the clips" title="Search" aria-expanded="false" aria-controls="feedsearch"></button></div>
+    <span class="selwrap iconsel" id="projwrap"><select id="project" aria-label="Project and folder" title="Project and folder"></select><span class="ico"></span></span>
+    <div id="feedfilters" hidden></div>
+    <div class="feedsearch" id="feedsearch" hidden>
+      <input id="q" type="search" placeholder="Search" aria-label="Search your clips"
+             autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
+      <button type="button" class="qclear" id="qclear" aria-label="Clear search" hidden>&times;</button>
+    </div>
+    <span class="quiet" id="pickcount"></span>
+  </div>
+  <div id="feed"></div>
+  <div id="tiles" hidden></div>
+  <button type="button" class="btn olderbtn" id="older" hidden>&hellip; older</button>
+  <div class="emptynote" id="feedempty" hidden>No finished clips here yet.</div>
+</div>
+
+<div id="player" hidden><div class="pbar"><button class="ib pclose" type="button" aria-label="Close"></button><button class="psave" type="button" hidden>save</button></div><div class="pstage"></div></div>
+<div id="toast" role="status"></div>
+
+<!-- THE SHARED HALVES, LINKED, NEVER COPIED: the house search grammar and its
+     two live-box helpers, the filter drawer's one shell, the list/tiles/3-4
+     switch, the film's own transport (so a clip is not tinted by iOS's
+     controls overlay) and tap-to-note on a paused film. -->
+<script src="/feedkit.js"></script>
+<script src="/searchfilters.js"></script>
+<script src="/viewswitch.js"></script>
+<script src="/filmbar.js"></script>
+<script src="/filmnote.js"></script>
+<script>
+(function () {
+'use strict';
+var $ = function (id) { return document.getElementById(id); };
+var TOKEN = '__STUDIO_TOKEN__';
+function api(path, opts) {
+  opts = opts || {};
+  var h = { 'content-type': 'application/json' };
+  if (TOKEN && TOKEN.indexOf('__') !== 0) h['x-studio-token'] = TOKEN;
+  return fetch('/api/stitch' + path, { method: opts.method || 'GET', headers: h, body: opts.body ? JSON.stringify(opts.body) : undefined })
+    .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status)); return j; }); });
+}
+function castApi(path) {
+  var h = {};
+  if (TOKEN && TOKEN.indexOf('__') !== 0) h['x-studio-token'] = TOKEN;
+  return fetch('/api/cast' + path, { headers: h }).then(function (r) { return r.json(); });
+}
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function fsec(s) { s = Math.round(Number(s) || 0); var m = Math.floor(s / 60); return m + ':' + String(s % 60).padStart(2, '0'); }
+var ICONS = {
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+  play: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>',
+  film: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>',
+  up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>',
+  down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>',
+  again: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
+  chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
+  folder: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>',
+  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+};
+document.querySelector('#projwrap .ico').innerHTML = ICONS.folder;
+document.querySelector('#player .pclose').innerHTML = ICONS.x;
+$('v-liked').innerHTML = ICONS.heart;
+$('v-hidex').innerHTML = ICONS.x;
+$('v-search').innerHTML = ICONS.search + '<span class="qcount" hidden></span>';
+
+var toastT = null;
+function toast(msg) { var t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove('on'); }, 2600); }
+
+// ── THE "?" ──────────────────────────────────────────────
+$('help').addEventListener('click', function (e) { e.stopPropagation(); $('helpcard').hidden = !$('helpcard').hidden; });
+document.addEventListener('click', function () { if (!$('helpcard').hidden) $('helpcard').hidden = true; });
+
+// ── THE ORDER ARITHMETIC — mirrors stitch.js (pinned by the test) ────────
+// THE KEY IS THE WHOLE PICKABLE ID. It used to be `p.id.slice(0,40)` while
+// every compare used the full id, so a trimmed part (61-77 chars) could never
+// match: the tile never lit, the second tap never removed it, and each tap
+// appended another copy. `#n` is a shot riding again.
+var MAX_CLIPS = 60;
+function keyOf(pickId, n) { return Number(n) > 1 ? (pickId + '#' + Math.floor(n)) : String(pickId); }
+function pickIdOf(key) {
+  var s = String(key || ''), i = s.lastIndexOf('#');
+  return i > 0 && /^\d+$/.test(s.slice(i + 1)) ? s.slice(0, i) : s;
+}
+function nextInstance(list, pickId) {
+  var keys = {}; list.forEach(function (c) { keys[c.key] = 1; });
+  var n = 1; while (keys[keyOf(pickId, n)]) n++;
+  return n;
+}
+function placesOf(list) {
+  var out = {};
+  list.forEach(function (c, i) { var p = pickIdOf(c.key); (out[p] = out[p] || []).push(i + 1); });
+  return out;
+}
+function moveBy(list, i, delta) {
+  var n = list.length, from = Math.floor(i);
+  if (from < 0 || from >= n) return list.slice();
+  var to = Math.max(0, Math.min(n - 1, from + delta));
+  if (to === from) return list.slice();
+  var out = list.slice(); var it = out.splice(from, 1)[0]; out.splice(to, 0, it); return out;
+}
+function moveTo(list, i, number) {
+  var to = Math.max(1, Math.min(list.length, Math.floor(Number(number) || 1))) - 1;
+  return moveBy(list, i, to - Math.floor(i));
+}
+function dropAt(list, i) { var f = Math.floor(i); if (f < 0 || f >= list.length) return list.slice(); return list.slice(0, f).concat(list.slice(f + 1)); }
+function dupAt(list, i) {
+  var f = Math.floor(i);
+  if (f < 0 || f >= list.length || list.length >= MAX_CLIPS) return list.slice();
+  var src = list[f], pid = pickIdOf(src.key);
+  var copy = Object.assign({}, src, { key: keyOf(pid, nextInstance(list, pid)) });
+  return list.slice(0, f + 1).concat([copy], list.slice(f + 1));
+}
+function clipOf(p, n) {
+  var sec = Number(p.seconds) > 0 ? Number(p.seconds) : null;
+  return { key: keyOf(p.id, n || 1), kind: 'video', url: p.url, title: p.title || '', poster: p.poster || null,
+    seconds: sec, in: 0, out: sec || 0 };
+}
+function addPick(list, p, opts) {
+  if (!p || !p.id || list.length >= MAX_CLIPS) return list.slice();
+  var id = String(p.id), again = Boolean(opts && opts.again);
+  if (!again && list.some(function (c) { return pickIdOf(c.key) === id; })) return list.slice();
+  return list.concat([clipOf(p, nextInstance(list, id))]);
+}
+function dropPick(list, pickId) {
+  var id = String(pickId);
+  return list.filter(function (c) { return pickIdOf(c.key) !== id; });
+}
+function totalSeconds(list) { return list.reduce(function (a, c) { return a + Math.max(0, (Number(c.out) || 0) - (Number(c.in) || 0)); }, 0); }
+window.__stitchRules = { moveBy: moveBy, moveTo: moveTo, dropAt: dropAt, dupAt: dupAt, addPick: addPick, dropPick: dropPick, clipOf: clipOf, keyOf: keyOf, pickIdOf: pickIdOf, placesOf: placesOf };
+
+// ── STATE ────────────────────────────────────────────────
+var S = { id: '', doc: null, clips: [] };
+var PICKS = [];                 // the pickables the picker is showing
+var PICKBY = {};                // id → pickable, for a tap on a kept node
+var FILMS = [], FOLDERS = {};
+var pollT = null, shelfT = null;
+var wiped = null;               // the cleared order, for the undo
+
+// ── TWO LEVELS: the shelf, and one open stitch ───────────────────────────
+// THE WAY BACK UNWINDS, IT DOES NOT PUSH (2026-09-13). `showShelf(true)`
+// pushed a shelf entry ON TOP of the open one, so the stitch stayed in
+// history: the next chevron found nothing left on the page, fell through to
+// `history.back()`, and walked her straight back INTO the stitch she had just
+// left. `pushed` says whether the open level is ours to unwind.
+function keepQuery(s) {
+  var q = new URLSearchParams(location.search); q.delete('s');
+  if (s) q.set('s', s);
+  var str = q.toString(); return str ? '?' + str : '';
+}
+function setLevel(st, url, replace) {
+  var cur = history.state || {};
+  var next = Object.assign({}, st);
+  // pagehead.js stamps the entry's depth on history.state; a replaceState
+  // that dropped it would make its chevron think this page was navigated to.
+  if (replace && typeof cur.__forgeDepth === 'number') next.__forgeDepth = cur.__forgeDepth;
+  history[replace ? 'replaceState' : 'pushState'](next, '', url);
+}
+function showShelf(push) {
+  S.id = ''; S.doc = null; S.clips = []; wiped = null;
+  clearTimeout(pollT);
+  $('open').hidden = true; $('shelf').hidden = false;
+  $('title').textContent = 'Stitch';
+  if (push) setLevel({ level: 'shelf' }, location.pathname + keepQuery(''), true);
+  loadShelf();
+  fitPillGap();
+}
+function leaveStitch() {
+  var st = history.state || {};
+  if (st.pushed && history.length > 1) { history.back(); return; }   // popstate shows the shelf
+  showShelf(true);
+}
+function openStitch(id, push) {
+  S.id = id; wiped = null;
+  $('shelf').hidden = true; $('open').hidden = false;
+  clearTimeout(shelfT);
+  if (push) setLevel({ level: 'open', id: id, pushed: true }, location.pathname + keepQuery(id), false);
+  api('/' + encodeURIComponent(id)).then(function (d) {
+    if (S.id !== id) return;
+    S.doc = d; S.clips = (d.clips || []).slice();
+    $('ttl').value = d.title || '';
+    $('title').textContent = d.title || 'Stitch';
+    paintOrder(); paintRenders(d.renders || []); paintStatus(d.job);
+    if (d.job && d.job.status === 'running') poll();
+    paintPicks();
+    fitPillGap();
+  }).catch(function (e) { toast(e.message); showShelf(false); });
+}
+window.addEventListener('popstate', function () {
+  var id = new URLSearchParams(location.search).get('s');
+  if (id) openStitch(id, false); else showShelf(false);
+});
+
+// ── THE SHELF ────────────────────────────────────────────
+function loadShelf() {
+  api('/').then(function (d) {
+    if (S.id) return;                       // she opened one while this was in flight
+    var el = $('slist'), list = d.stitches || [];
+    // A REPAINT NEVER REBUILDS WHAT DID NOT CHANGE — the poll runs while a
+    // render is baking, and recreating every poster strobes the list blank.
+    var sig = list.map(function (s) { return [s.id, s.title, s.clips, s.seconds, s.renders, s.poster || '', s.job ? 1 : 0].join(' '); }).join('|');
+    $('shelfempty').hidden = list.length > 0;
+    if (el.__sig === sig) { armShelfPoll(list); return; }
+    el.__sig = sig; el.innerHTML = '';
+    list.forEach(function (s) {
+      var r = document.createElement('div'); r.className = 'srow';
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'open';
+      b.innerHTML = (s.poster ? '<img class="th" src="' + esc(s.poster) + '" alt="" loading="lazy" decoding="async">' : '<span class="th none"></span>')
+        + '<span class="tt"><b>' + esc(s.title || 'Stitch') + '</b><i>' + s.clips + (s.clips === 1 ? ' clip' : ' clips')
+        + (s.seconds ? ' · ' + fsec(s.seconds) : '') + (s.renders ? ' · stitched ' + s.renders + (s.renders === 1 ? ' time' : ' times') : '')
+        + (s.job ? ' · stitching…' : '') + '</i></span>';
+      b.addEventListener('click', function () { openStitch(s.id, true); });
+      r.appendChild(b);
+      // PUT IT AWAY — nothing is deleted, `hidden` is the verb. Without this
+      // the shelf grew forever and every stray "New stitch" tap left a
+      // permanent empty row on it.
+      var h = document.createElement('button'); h.type = 'button'; h.className = 'ib bare shide';
+      h.innerHTML = ICONS.trash; h.setAttribute('aria-label', 'Put this stitch away'); h.title = 'Put it away';
+      h.addEventListener('click', function (e) {
+        e.stopPropagation();
+        api('/' + encodeURIComponent(s.id) + '/hide', { method: 'POST', body: { hidden: true } })
+          .then(function () { toast('Put away'); loadShelf(); }).catch(function (er) { toast(er.message); });
+      });
+      r.appendChild(h);
+      el.appendChild(r);
+    });
+    armShelfPoll(list);
+  }).catch(function (e) { toast(e.message); });
+}
+// A RENDER THAT FINISHES WHILE SHE IS ON THE SHELF SAYS SO. The open stitch's
+// poll is cleared when she steps back, and nothing else ever refreshed the
+// shelf — so a film baked while she was looking at the list was silent until
+// she reloaded.
+function armShelfPoll(list) {
+  clearTimeout(shelfT);
+  if (S.id || !list.some(function (s) { return s.job; })) return;
+  shelfT = setTimeout(function () { if (!S.id) loadShelf(); }, 5000);
+}
+$('newstitch').addEventListener('click', function () {
+  api('/', { method: 'POST', body: { project: projectSaved().split('/')[0] } })
+    .then(function (d) { openStitch(d.id, true); })
+    .catch(function (e) { toast(e.message); });
+});
+
+// ── THE ORDER ────────────────────────────────────────────
+var saveT = null, saveSeq = 0, inFlight = null;
+function saveOrder() { clearTimeout(saveT); saveT = setTimeout(flushOrder, 500); }
+// Returns a PROMISE — Stitch awaits it, so a reorder in the half second
+// before the tap can never be rendered stale.
+function flushOrder() {
+  clearTimeout(saveT); saveT = null;
+  if (!S.id) return Promise.resolve();
+  var id = S.id, clips = S.clips.slice(), seq = ++saveSeq;
+  inFlight = api('/' + encodeURIComponent(id) + '/clips', { method: 'POST', body: { clips: clips } })
+    .then(function (r) {
+      if (seq !== saveSeq || id !== S.id) return r;   // she edited again meanwhile
+      // NOTHING VANISHES QUIETLY: the server drops a piece it cannot measure,
+      // and the page used to go on showing the row. It says so and re-syncs.
+      if (r && r.dropped && r.dropped.length) {
+        toast(r.dropped.length === 1 ? 'That clip could not be read — it is not in the stitch' : r.dropped.length + ' clips could not be read and are not in the stitch');
+      }
+      if (r && Array.isArray(r.saved)) { S.clips = r.saved.slice(); paintOrder(); paintPicks(); }
+      return r;
+    })
+    .catch(function (e) { toast('Not saved — ' + e.message); });
+  return inFlight;
+}
+window.addEventListener('pagehide', function () { if (saveT) flushOrder(); });
+function setClips(next) { S.clips = next; paintOrder(); paintPicks(); saveOrder(); }
+// WHAT SHAPE THE FILM WILL BE. renderCut normalizes every piece onto the
+// FIRST clip's frame, so a mixed order is letterboxed onto whatever leads it
+// and reordering changes that silently.
+function paintShape() {
+  var el = $('shapenote');
+  var shapes = [];
+  S.clips.forEach(function (c) {
+    var p = PICKBY[pickIdOf(c.key)];
+    var r = p && p.ratio ? p.ratio : '';
+    if (r && shapes.indexOf(r) < 0) shapes.push(r);
+  });
+  if (shapes.length < 2) { el.hidden = true; el.textContent = ''; return; }
+  var lead = null;
+  for (var i = 0; i < S.clips.length && !lead; i++) { var q = PICKBY[pickIdOf(S.clips[i].key)]; if (q && q.ratio) lead = q.ratio; }
+  el.hidden = false;
+  var said = shapes.length > 2 ? shapes.slice(0, -1).join(', ') + ' and ' + shapes[shapes.length - 1] : shapes.join(' and ');
+  el.textContent = 'These are ' + said + '. The film takes the first clip’s shape' + (lead ? ' — ' + lead : '') + ', and the rest are letterboxed onto it.';
+}
+function paintOrder() {
+  var el = $('order'); el.innerHTML = '';
+  if (!S.clips.length) {
+    var e = document.createElement('div'); e.className = 'empty'; e.textContent = 'Tap clips below to add them.'; el.appendChild(e);
+  }
+  var places = placesOf(S.clips);
+  S.clips.forEach(function (c, i) {
+    var r = document.createElement('div'); r.className = 'orow'; r.setAttribute('data-pillrow', '');
+    var num = document.createElement('input'); num.type = 'number'; num.className = 'num'; num.value = String(i + 1);
+    num.min = '1'; num.max = String(S.clips.length); num.inputMode = 'numeric';
+    num.setAttribute('aria-label', 'Place in the order');
+    num.addEventListener('change', function () { setClips(moveTo(S.clips, i, num.value)); });
+    num.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); num.blur(); } });
+    r.appendChild(num);
+    // the thumb PLAYS it — checking a take in the order should not mean
+    // finding it again in the picker
+    var th = document.createElement('button'); th.type = 'button'; th.className = 'th';
+    th.setAttribute('aria-label', 'Play this clip'); th.title = 'Play';
+    if (c.poster) th.innerHTML = '<img src="' + esc(c.poster) + '" alt="" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:4px;display:block">';
+    else th.innerHTML = '<span style="color:#f6f2ea;display:flex;align-items:center;justify-content:center;height:100%">' + ICONS.play + '</span>';
+    th.addEventListener('click', function () { openPlayer(c.url, c.title); });
+    r.appendChild(th);
+    var pid = pickIdOf(c.key), twice = (places[pid] || []).length > 1;
+    var p = PICKBY[pid];
+    var tt = document.createElement('div'); tt.className = 'tt';
+    // ONE ellipsis: titleOf already ends in … when it cut the prompt, and the
+    // row's own text-overflow adds its own — "her… …" reads as a typo.
+    tt.innerHTML = '<span>' + esc(String(c.title || 'clip').replace(/\u2026$/, '')) + '</span><i class="' + (twice ? 'again' : '') + '">'
+      + esc((p && p.mark) || (c.out ? fsec(c.out) : ''))
+      + (twice ? ' · also at ' + (places[pid] || []).filter(function (n) { return n !== i + 1; }).join(', ') : '') + '</i>';
+    r.appendChild(tt);
+    var ctl = document.createElement('div'); ctl.className = 'ctl';
+    [['up', -1, 'Earlier'], ['down', 1, 'Later']].forEach(function (a) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'ib bare';
+      b.innerHTML = ICONS[a[0]]; b.setAttribute('aria-label', a[2]); b.title = a[2];
+      b.disabled = (a[1] < 0 && i === 0) || (a[1] > 0 && i === S.clips.length - 1);
+      b.addEventListener('click', function () { setClips(moveBy(S.clips, i, a[1])); });
+      ctl.appendChild(b);
+    });
+    // USE THIS SHOT AGAIN — the one way a cutaway rides twice; the tile stays
+    // a plain toggle.
+    var ag = document.createElement('button'); ag.type = 'button'; ag.className = 'ib bare';
+    ag.innerHTML = ICONS.again; ag.setAttribute('aria-label', 'Use this shot again'); ag.title = 'Use it again';
+    ag.disabled = S.clips.length >= MAX_CLIPS;
+    ag.addEventListener('click', function () { setClips(dupAt(S.clips, i)); });
+    ctl.appendChild(ag);
+    var x = document.createElement('button'); x.type = 'button'; x.className = 'ib bare';
+    x.innerHTML = ICONS.x; x.setAttribute('aria-label', 'Take it out'); x.title = 'Take it out';
+    x.addEventListener('click', function () { setClips(dropAt(S.clips, i)); });
+    ctl.appendChild(x);
+    r.appendChild(ctl);
+    el.appendChild(r);
+  });
+  var t = totalSeconds(S.clips);
+  $('total').textContent = S.clips.length ? S.clips.length + (S.clips.length === 1 ? ' clip' : ' clips') + ' · ' + fsec(t) : '';
+  $('stitch').disabled = !S.clips.length;
+  paintShape(); paintWipe();
+  fitPillGap();
+}
+// CLEAR, AND THE UNDO BESIDE IT — a word each, drawn only while it means
+// something (the house inline opener's paint, never a boxed button). It asks
+// nothing: an undo costs a tap only on the clears she regrets.
+function paintWipe() {
+  $('clear').hidden = !S.clips.length;
+  $('undo').hidden = !(wiped && wiped.length);
+}
+$('clear').addEventListener('click', function () {
+  if (!S.clips.length) return;
+  wiped = S.clips.slice();
+  setClips([]);
+  toast('Cleared');
+});
+$('undo').addEventListener('click', function () {
+  if (!(wiped && wiped.length)) return;
+  var back = wiped.slice(), now = S.clips.slice();
+  wiped = now.length ? now : null;       // a swap, so it can never lose anything
+  setClips(back);
+});
+$('ttl').addEventListener('change', function () {
+  var t = $('ttl').value.trim(); if (!S.id || !t) return;
+  api('/' + encodeURIComponent(S.id) + '/title', { method: 'POST', body: { title: t } })
+    .then(function () { $('title').textContent = t; }).catch(function (e) { toast(e.message); });
+});
+
+// ── STITCH — a background job on the doc; the page polls and resumes ─────
+$('stitch').addEventListener('click', function () {
+  if (!S.id || !S.clips.length) return;
+  var id = S.id;
+  $('stitch').disabled = true;
+  // THE SAVE FIRST, AWAITED. It used to be fired and forgotten one line above
+  // the render POST, so a reorder in the last half second could be rendered
+  // stale — the render re-reads the doc.
+  flushOrder().then(function () {
+    if (id !== S.id) return null;
+    return api('/' + encodeURIComponent(id) + '/render', { method: 'POST' });
+  }).then(function (r) {
+    if (!r) return;
+    try { localStorage.setItem('stitch_pending', id); } catch (e) {}
+    paintStatus({ status: 'running', label: 'starting' }); poll();
+  }).catch(function (e) { toast(e.message); $('stitch').disabled = !S.clips.length; });
+});
+function poll() {
+  clearTimeout(pollT);
+  if (!S.id) return;
+  var id = S.id;
+  api('/' + encodeURIComponent(id) + '/job').then(function (d) {
+    if (id !== S.id) return;
+    paintStatus(d.job);
+    paintRenders(d.renders || []);
+    if (d.job && d.job.status === 'running') pollT = setTimeout(poll, 2000);
+    else { try { localStorage.removeItem('stitch_pending'); } catch (e) {} if (d.job && d.job.status === 'done') toast('Stitched'); }
+  }).catch(function () { pollT = setTimeout(poll, 4000); });
+}
+function paintStatus(job) {
+  var el = $('status'); el.className = 'st';
+  if (!job) { el.textContent = ''; $('stitch').disabled = !S.clips.length; return; }
+  if (job.status === 'running') { el.textContent = 'stitching… ' + (job.label || ''); $('stitch').disabled = true; return; }
+  // A JOB THE SERVER CALLS STALE IS A DEAD ONE — the instance that held it was
+  // swapped out by a deploy. The button comes back rather than reading
+  // "stitching…" for good.
+  $('stitch').disabled = !S.clips.length;
+  if (job.status === 'error') { el.className = 'st bad'; el.textContent = job.stale ? (job.error || 'that render was interrupted') : ('that did not stitch — ' + (job.error || '')); return; }
+  el.textContent = '';
+}
+function paintRenders(list) {
+  var el = $('renders');
+  var sig = list.map(function (r) { return r.url; }).join('|');
+  if (el.__sig === sig) return;
+  el.__sig = sig; el.innerHTML = '';
+  list.forEach(function (r, i) {
+    var row = document.createElement('div'); row.className = 'rrow';
+    var pb = document.createElement('button'); pb.type = 'button'; pb.className = 'ib play'; pb.innerHTML = ICONS.play;
+    pb.setAttribute('aria-label', 'Play'); pb.title = 'Play';
+    pb.addEventListener('click', function () { openPlayer(r.url, 'Stitch ' + (list.length - i)); });
+    row.appendChild(pb);
+    var n = list.length - i;
+    var lab = document.createElement('span'); lab.className = 'lab';
+    lab.innerHTML = 'Stitch ' + n + ' <i>· ' + r.clips + (r.clips === 1 ? ' clip' : ' clips') + ' · ' + fsec(r.seconds) + '</i>';
+    row.appendChild(lab);
+    var sv = document.createElement('button'); sv.type = 'button'; sv.className = 'wd'; sv.textContent = 'save';
+    sv.addEventListener('pointerdown', function () { primeSave(r.url); });
+    sv.addEventListener('click', function () { saveMedia(r.url); });
+    row.appendChild(sv);
+    el.appendChild(row);
+  });
+}
+
+// ── THE PICKER: Footage's clips, its search, its funnel, its folders ─────
+function projectSaved() { try { return localStorage.getItem('stitch_project') || ''; } catch (e) { return ''; } }
+function projectSave(p) { try { localStorage.setItem('stitch_project', p || ''); } catch (e) {} }
+// A PROJECT'S FOLDERS FOLD — Footage's own rows, because her projects really
+// do carry six folders each (the witch commercials are one folder per ad) and
+// one drop-down of everything is a list she has to read. The fold row is its
+// OWN option (a select has no other way to carry a control) and picking it
+// toggles and puts the value straight back, so folding never moves the feed.
+// The project she is IN is always open — its folder has to be an option or
+// the select cannot show where she is — and shut counts while open does not.
+var FOLD = '__fold:';
+var OPEN = {};
+function openSaved() { try { var v = JSON.parse(localStorage.getItem('stitch_open') || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
+function openSave() { try { localStorage.setItem('stitch_open', JSON.stringify(Object.keys(OPEN).filter(function (k) { return OPEN[k]; }))); } catch (e) {} }
+openSaved().forEach(function (k) { OPEN[k] = true; });
+function foldersIn(p) { return p && FOLDERS[p] ? FOLDERS[p] : []; }
+function viewRows(cur) {
+  var rows = [{ id: '', label: 'All projects' }];
+  var films = FILMS.slice();
+  var curP = String(cur || '').split('/')[0], curF = String(cur || '').split('/')[1] || '';
+  if (curP && !films.some(function (f) { return f.slug === curP; })) films.push({ slug: curP, name: curP });
+  Object.keys(FOLDERS).forEach(function (p) { if (!films.some(function (f) { return f.slug === p; })) films.push({ slug: p, name: p }); });
+  films.forEach(function (f) {
+    rows.push({ id: f.slug, label: (f.name || f.slug) + (f.tucked ? ' \u00b7 hidden' : '') });
+    var fl = foldersIn(f.slug).slice();
+    if (curF && curP === f.slug && fl.indexOf(curF) < 0) fl.push(curF);
+    if (!fl.length) return;
+    var open = OPEN[f.slug] || curP === f.slug;
+    rows.push({ id: FOLD + f.slug, label: '\u2003' + (open ? '\u25be folders' : '\u25b8 ' + fl.length + ' folder' + (fl.length === 1 ? '' : 's')) });
+    if (!open) return;
+    fl.forEach(function (x) { rows.push({ id: f.slug + '/' + x, label: '\u2003\u2003\u203a ' + x }); });
+  });
+  return rows;
+}
+// A SELECT IS FILLED ONLY WHEN ITS OPTIONS REALLY CHANGED — rebuilding the
+// list on every paint drops the open picker on iOS and loses the value
+// mid-tap (the house repaint rule).
+function fillSel(el, items, cur) {
+  var sig = items.map(function (i) { return i.id + '\u0000' + i.label; }).join('|');
+  if (el.__sig !== sig) {
+    el.__sig = sig; el.innerHTML = '';
+    items.forEach(function (i) { var o = document.createElement('option'); o.value = i.id; o.textContent = i.label; el.appendChild(o); });
+  }
+  if (el.value !== cur) el.value = cur;
+}
+function paintProject() {
+  var cur = projectSaved();
+  fillSel($('project'), viewRows(cur), cur);
+  $('projwrap').classList.toggle('on', Boolean(cur));
+}
+$('project').addEventListener('change', function () {
+  var v = $('project').value;
+  // a control row is not a place: toggle and put the value straight back
+  if (v.indexOf(FOLD) === 0) { var slug = v.slice(FOLD.length); OPEN[slug] = !OPEN[slug]; openSave(); $('project').value = projectSaved(); paintProject(); return; }
+  projectSave(v); paintProject(); loadPicks();
+});
+function loadFilms() {
+  return castApi('/films').then(function (d) { if (d && d.ok && Array.isArray(d.films)) { FILMS = d.films; paintProject(); } }).catch(function () {});
+}
+
+// ── THE SEARCH — the house grammar (/feedkit.js), the same words the server
+// reads. Every pickable carries its own `hay` from the server, so the instant
+// filter that runs while the server's answer is in flight and the server's
+// own search over the whole log read ONE haystack, never two copies.
+var qparse = window.FeedKit ? window.FeedKit.qparse : function () { return []; };
+var qmatch = window.FeedKit ? window.FeedKit.qmatch : function () { return true; };
+var searchQ = '', qGroups = [], qTimer = null, qSeq = 0;
+function readSearch() {
+  var box = $('q');
+  searchQ = (box.value || '').trim();
+  qGroups = qparse(searchQ);
+  $('qclear').hidden = !searchQ;
+  box.classList.toggle('hasq', !!box.value);
+  clearTimeout(qTimer);
+  paintPicks();
+  if (searchQ) qTimer = setTimeout(loadPicks, 350); else { qSeq++; loadPicks(); }
+}
+var qLive = window.FeedKit ? window.FeedKit.liveInput($('q'), readSearch) : { sync: function () {} };
+if (window.FeedKit) window.FeedKit.enterSubmits($('q'), function () { readSearch(); qLive.sync(); });
+$('qclear').addEventListener('click', function () { var b = $('q'); b.value = ''; qLive.sync(); readSearch(); b.focus(); });
+function searchOpen() { return !$('feedsearch').hidden; }
+function filtCount() {
+  if (!FILT) return 0;
+  return ((FILT.get('model') || []).length ? 1 : 0) + (FILT.get('when') ? 1 : 0);
+}
+function paintSearchBtn() {
+  var n = filtCount(), g = $('v-search'), c = g.querySelector('.qcount');
+  g.classList.toggle('on', searchOpen() || !!n);
+  if (c) { c.textContent = n ? String(n) : ''; c.hidden = !n; }
+  g.setAttribute('aria-label', 'Search the clips' + (n ? ' — ' + n + ' filter' + (n > 1 ? 's' : '') + ' on' : ''));
+}
+function setSearchOpen(open) {
+  $('feedsearch').hidden = !open;
+  $('feedfilters').hidden = !open;
+  // the drawer is left as she left it — nothing here may clear a filter of
+  // hers, and the glass keeps wearing the count so one is never silent
+  $('v-search').setAttribute('aria-expanded', open ? 'true' : 'false');
+  paintSearchBtn();
+  fitPillGap();
+  var box = $('q');
+  if (open) { box.focus(); return; }
+  if (box.value) { box.value = ''; qLive.sync(); readSearch(); }
+}
+$('v-search').addEventListener('click', function () { setSearchOpen(!searchOpen()); });
+
+// THE FUNNEL — the one shell. Model and when; the ♥/✕ stay OUT of the drawer
+// (her 2026-09-02 word: they are marks she casts, and the row above the
+// pictures is where she casts them).
+var SF = window.ForgeSearchFilters || null;
+var FILT_MODELS = { mini: 'Mini', fast: 'Fast', '2.0': '2.0', '2.5': '2.5' };
+function readList(k) { try { return (localStorage.getItem(k) || '').split(',').filter(Boolean); } catch (e) { return []; } }
+var FILT = SF ? SF.build($('feedfilters'), [
+  { key: 'model', kind: 'chips', multi: true, label: 'Model',
+    vals: ['mini', 'fast', '2.0', '2.5'], words: ['mini', 'fast', '2.0', '2.5'].map(function (id) { return FILT_MODELS[id] || id; }),
+    get: function () { return readList('stitch_filt_model'); },
+    set: function (v) { try { localStorage.setItem('stitch_filt_model', v.join(',')); } catch (e) {} } },
+  { key: 'when', kind: 'chips', label: SF.WHEN.label, vals: SF.WHEN.vals, words: SF.WHEN.words,
+    get: function () { try { return localStorage.getItem('stitch_filt_when') || ''; } catch (e) { return ''; } },
+    set: function (v) { try { localStorage.setItem('stitch_filt_when', v || ''); } catch (e) {} } },
+], function () { paintPicks(); paintSearchBtn(); }, { label: 'Filters' }) : null;
+paintSearchBtn();
+
+// HER ♥ AND ✕, WHICH THE PICKER USED TO CARRY AND IGNORE — 174 of her
+// pickables wear one (71 hearts, 103 crosses) and every crossed-out clip was
+// offered exactly like the rest.
+function markState(k) { try { return localStorage.getItem(k) === '1'; } catch (e) { return false; } }
+function markSet(k, v) { try { localStorage.setItem(k, v ? '1' : ''); } catch (e) {} }
+var onlyLiked = markState('stitch_liked'), hideX = markState('stitch_hidex');
+function paintMarks() {
+  $('v-liked').classList.toggle('on', onlyLiked);
+  $('v-hidex').classList.toggle('on', hideX);
+}
+$('v-liked').addEventListener('click', function () { onlyLiked = !onlyLiked; markSet('stitch_liked', onlyLiked); paintMarks(); paintPicks(); });
+$('v-hidex').addEventListener('click', function () { hideX = !hideX; markSet('stitch_hidex', hideX); paintMarks(); paintPicks(); });
+paintMarks();
+
+function passes(p) {
+  if (onlyLiked && p.vote !== 'like') return false;
+  if (hideX && p.vote === 'dislike') return false;
+  if (FILT) {
+    var ms = FILT.get('model') || [];
+    if (ms.length && ms.indexOf(String(p.model || '')) < 0) return false;
+    var since = SF ? SF.sinceMs(FILT.get('when')) : 0;
+    if (since && !(Date.parse(p.sentAt || '') >= since)) return false;
+  }
+  if (qGroups.length && !qmatch(String(p.hay || p.prompt || ''), qGroups)) return false;
+  return true;
+}
+
+var picksMore = false, picksTotal = 0, loadSeq = 0;
+function pickQuery(offset) {
+  var cur = projectSaved(), p = cur.split('/')[0], f = cur.split('/')[1] || '';
+  return '?limit=60&offset=' + (offset || 0)
+    + (p ? '&project=' + encodeURIComponent(p) + (f ? '&folder=' + encodeURIComponent(f) : '') : '')
+    + (searchQ ? '&q=' + encodeURIComponent(searchQ) : '');
+}
+function loadPicks(more) {
+  var seq = ++loadSeq, offset = more ? PICKS.length : 0;
+  return api('/clips' + pickQuery(offset)).then(function (d) {
+    if (seq !== loadSeq) return;
+    var got = d.clips || [];
+    PICKS = more ? PICKS.concat(got) : got;
+    PICKS.forEach(function (p) { PICKBY[p.id] = p; });
+    picksMore = Boolean(d.more); picksTotal = Number(d.total) || PICKS.length;
+    if (d.folders) { FOLDERS = d.folders; paintProject(); }
+    paintPicks(!more);
+    paintShape();
+  }).catch(function (e) { toast(e.message); });
+}
+$('older').addEventListener('click', function () { loadPicks(true); });
+function pickPlaces(id) { return placesOf(S.clips)[id] || []; }
+function togglePick(p) {
+  var at = pickPlaces(p.id);
+  if (at.length) setClips(dropPick(S.clips, p.id));
+  else { if (S.clips.length >= MAX_CLIPS) { toast('That is the most a stitch holds'); return; } setClips(addPick(S.clips, p)); }
+}
+function arOf(r) { var m = { '1:1': '1', '3:4': '3/4', '9:16': '9/16', '4:3': '4/3', '16:9': '16/9', '21:9': '21/9' }; return m[r] || '3/4'; }
+// A REPAINT NEVER REBUILDS WHAT DID NOT CHANGE: the wall and the list are
+// rebuilt only when the SHOWN pickables change; a pick, a ✕ and the places
+// toggle a class and a number on the node they already have.
+function paintPicks(rebuild) {
+  var tiles = $('tiles'), feed = $('feed');
+  var shown = PICKS.filter(passes);
+  var sig = shown.map(function (p) { return p.id + ' ' + (p.poster || ''); }).join('|');
+  if (rebuild || tiles.__sig !== sig) {
+    tiles.__sig = sig; tiles.innerHTML = ''; feed.innerHTML = '';
+    shown.forEach(function (p) {
+      // ── the tile ──
+      var c = document.createElement('div'); c.className = 'cell'; c.dataset.id = p.id;
+      c.style.setProperty('--ar', arOf(p.ratio)); c.title = p.prompt || p.title || '';
+      var face = document.createElement('button'); face.type = 'button'; face.className = 'face';
+      face.setAttribute('aria-label', (p.title || 'clip') + ' — add to the order');
+      face.innerHTML = p.poster ? '<img src="' + esc(p.poster) + '" alt="" loading="lazy" decoding="async">' : ICONS.film;
+      face.addEventListener('click', function () { togglePick(PICKBY[p.id] || p); });
+      c.appendChild(face);
+      // PLAY IT BEFORE YOU PICK IT — a sibling of the face, in the one corner
+      // nothing else uses
+      var pb = document.createElement('button'); pb.type = 'button'; pb.className = 'tdoor';
+      pb.setAttribute('aria-label', 'Play this clip'); pb.title = 'Play';
+      pb.innerHTML = ICONS.play;
+      pb.addEventListener('click', function (e) { e.stopPropagation(); openPlayer(p.url, p.title); });
+      c.appendChild(pb);
+      var pn = document.createElement('span'); pn.className = 'pn';
+      c.appendChild(pn);
+      if (p.part) { var pl = document.createElement('span'); pl.className = 'pl'; pl.textContent = 'part ' + p.part; c.appendChild(pl); }
+      else if (p.parts) { var pw = document.createElement('span'); pw.className = 'pl'; pw.textContent = 'whole'; c.appendChild(pw); }
+      tiles.appendChild(c);
+      // ── the list row ──
+      var r = document.createElement('div'); r.className = 'crow'; r.dataset.id = p.id;
+      var pk = document.createElement('button'); pk.type = 'button'; pk.className = 'pick';
+      pk.innerHTML = (p.poster ? '<img class="th" src="' + esc(p.poster) + '" alt="" loading="lazy" decoding="async">' : '<span class="th"></span>')
+        + '<span class="tt"><span>' + esc(p.prompt || p.title || 'clip') + '</span><i>' + esc(p.mark || '')
+        + (p.part ? ' · part ' + p.part + ' of ' + p.parts : (p.parts ? ' · whole clip' : ''))
+        + (p.chat && p.chat !== 'footage' ? ' · from ' + esc(p.chat) : '') + '</i></span>';
+      pk.addEventListener('click', function () { togglePick(PICKBY[p.id] || p); });
+      r.appendChild(pk);
+      var cp = document.createElement('button'); cp.type = 'button'; cp.className = 'ib bare cplay';
+      cp.innerHTML = ICONS.play; cp.setAttribute('aria-label', 'Play this clip'); cp.title = 'Play';
+      cp.addEventListener('click', function (e) { e.stopPropagation(); openPlayer(p.url, p.title); });
+      r.appendChild(cp);
+      var rn = document.createElement('span'); rn.className = 'pn off'; rn.textContent = '+';
+      r.appendChild(rn);
+      feed.appendChild(r);
+    });
+  }
+  var places = placesOf(S.clips), n = 0;
+  shown.forEach(function (p) {
+    var at = places[p.id] || [];
+    if (at.length) n++;
+    [tiles, feed].forEach(function (host) {
+      var node = host.querySelector('[data-id="' + p.id.replace(/"/g, '\\"') + '"]'); if (!node) return;
+      node.classList.toggle('picked', at.length > 0);
+      node.classList.toggle('nay', p.vote === 'dislike');
+      var pn = node.querySelector('.pn');
+      pn.textContent = at.length ? at.join(', ') : '+';
+      pn.classList.toggle('off', !at.length);
+    });
+  });
+  $('feedempty').hidden = shown.length > 0;
+  // AN EMPTIED FEED SAYS WHICH FILTER EMPTIED IT — a silent empty wall reads
+  // as the clips being gone.
+  $('feedempty').textContent = searchQ ? 'Nothing here matches that.'
+    : (PICKS.length
+      ? (onlyLiked ? 'Nothing hearted here yet.' : (filtCount() ? 'Nothing here passes those filters.' : 'Everything here is crossed out.'))
+      : 'No finished clips here yet.');
+  $('older').hidden = !picksMore || Boolean(searchQ);
+  $('pickcount').textContent = picksTotal ? (shown.length === picksTotal ? picksTotal + ' clips' : shown.length + ' of ' + picksTotal) : '';
+  fitPillGap();
+}
+var VS = window.__viewSwitch({
+  mount: '#feedbar', key: 'stitch', cols: [3, 4], view: 'tiles',
+  onView: function (v) { var tiles = v === 'tiles'; $('feed').hidden = tiles; $('tiles').hidden = !tiles; },
+});
+
+// ── THE PLAYER, and the three-path save (Footage's ladder, lifted) ────────
+var savedY = 0, fnote = null, fbar = null;
+function noteChat() { return CFG.chat || 'stitch'; }
+function openPlayer(url, label) {
+  var pl = $('player');
+  if (window.__scrollStop) window.__scrollStop();
+  savedY = window.scrollY || 0;
+  document.body.style.overflow = 'hidden';
+  var v = document.createElement('video');
+  v.src = url; v.playsInline = true; v.autoplay = true; v.setAttribute('playsinline', '');
+  if (label) v.setAttribute('aria-label', label);
+  var stage = pl.querySelector('.pstage');
+  stage.appendChild(v);
+  var sv = pl.querySelector('.psave'); sv.hidden = false;
+  sv.onpointerdown = function () { primeSave(url); };
+  sv.onclick = function () { saveMedia(url); };
+  pl.hidden = false;
+  // OUR OWN TRANSPORT, so iOS does not wash the picture with its controls
+  // overlay; native controls back if the module did not load.
+  try { fbar = window.__filmBar ? window.__filmBar({ wrap: stage, video: v }) : null; } catch (e) { fbar = null; }
+  if (!fbar) v.controls = true;
+  // TAP TO PAUSE, NOTE THE SECOND — the ONE implementation, hosted on the
+  // STAGE (everything it draws is absolute against its wrap's bottom edge).
+  try { if (window.__filmNote) fnote = window.__filmNote({ wrap: stage, video: v, chat: noteChat(), url: url }); } catch (e) {}
+  v.play().catch(function () {});
+}
+function closePlayer() {
+  var pl = $('player'); if (pl.hidden) return;
+  if (fnote) { try { fnote.destroy(); } catch (e) {} fnote = null; }
+  if (fbar) { try { fbar.destroy(); } catch (e) {} fbar = null; }
+  pl.querySelectorAll('video').forEach(function (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (e) {} v.remove(); });
+  pl.hidden = true;
+  document.body.style.overflow = '';
+  window.scrollTo(0, savedY);
+}
+// ONLY THE BACKDROP CLOSES — an allow-list, never a deny-list. "Anything that
+// is not the VIDEO" would close the player on filmnote's own Note button and
+// on every tap inside its sheet. The STAGE counts as backdrop, and so does
+// the `.pbar` row: on a portrait clip it is the only margin there is.
+$('player').addEventListener('click', function (e) {
+  if (e.target === $('player') || e.target.classList.contains('pstage') || e.target.classList.contains('pbar')
+    || (e.target.closest && e.target.closest('.pclose'))) closePlayer();
+});
+window.__navBack = function () {
+  if (!$('player').hidden) { closePlayer(); return true; }
+  if (!$('open').hidden) { leaveStitch(); return true; }
+  return false;
+};
+
+var saveBlob = null;
+function nativeSaver() { try { return window.webkit.messageHandlers.forgeSave; } catch (e) { return null; } }
+window.__saveResult = function (ok, msg) { toast(msg || (ok ? 'Saved to Photos' : 'Couldn’t save that')); };
+function primeSave(url) {
+  if (nativeSaver()) return;
+  if (saveBlob && saveBlob.url === url) return;
+  saveBlob = null;
+  fetch(url).then(function (r) { return r.blob(); }).then(function (b) { saveBlob = { url: url, blob: b }; }).catch(function () {});
+}
+function saveName(url) { var n = String(url).split('?')[0].split('/').pop() || ''; return /\.\w{2,4}$/.test(n) ? n : 'stitch.mp4'; }
+function saveMedia(url) {
+  var native = nativeSaver();
+  if (native) { native.postMessage(url); toast('Saving…'); return; }
+  if (!(saveBlob && saveBlob.url === url)) { primeSave(url); toast('Getting the film — tap save again in a moment'); return; }
+  var blob = saveBlob.blob, name = saveName(url), file = null;
+  try { file = new File([blob], name, { type: blob.type || 'video/mp4' }); } catch (e) {}
+  if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({ files: [file] }).catch(function (err) { if (err && err.name !== 'AbortError') toast('Couldn’t open the share sheet'); });
+    return;
+  }
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+// ── THE PILL'S COLUMN, RESERVED ROW BY ROW (Footage's fitPillGap) ─────────
+function pillRect() {
+  var pill = document.querySelector('body > .float');
+  if (!pill) return null;
+  if (pill.getClientRects().length) return pill.getBoundingClientRect();
+  var d = pill.style.display, v = pill.style.visibility, r = null;
+  try { pill.style.visibility = 'hidden'; pill.style.display = ''; if (pill.getClientRects().length) r = pill.getBoundingClientRect(); } catch (_) {}
+  pill.style.display = d; pill.style.visibility = v;
+  return r;
+}
+function setGap(el, val) { if (el.style.getPropertyValue('--pillgap') !== val) el.style.setProperty('--pillgap', val); }
+function fitPillGap() {
+  var rows = document.querySelectorAll('[data-pillrow]');
+  var p = pillRect(), y = window.scrollY || 0, i;
+  if (!p) { for (i = 0; i < rows.length; i++) setGap(rows[i], '0px'); return; }
+  for (i = 0; i < rows.length; i++) {
+    var el = rows[i];
+    setGap(el, '0px');
+    var r = el.getBoundingClientRect();
+    if (!r.width || !r.height) continue;
+    // JUDGED AT THE TOP OF THE PAGE (Freeform's rule): a row is shortened
+    // only where it sits in the pill's band when the page is at rest, so a
+    // row passing under the rail as she scrolls never changes width under her
+    var top = r.top + y, bot = r.bottom + y;
+    if (bot <= p.top || top >= p.bottom) continue;
+    if (r.right <= p.left) continue;
+    setGap(el, Math.max(0, Math.ceil(r.right - p.left) + 8) + 'px');
+  }
+}
+window.__fitPillGap = fitPillGap;
+(function () {
+  var q = false;
+  function soon() { if (q) return; q = true; requestAnimationFrame(function () { q = false; fitPillGap(); }); }
+  window.addEventListener('resize', soon, { passive: true });
+  window.addEventListener('load', soon);
+  setTimeout(soon, 400); setTimeout(soon, 1500);
+  if (window.ResizeObserver) { var ro = new ResizeObserver(soon); ro.observe(document.documentElement); if (document.body) ro.observe(document.body); }
+  (function waitForPill(tries) {
+    var f = document.querySelector('body > .float');
+    if (f) { if (window.ResizeObserver) new ResizeObserver(soon).observe(f); soon(); return; }
+    if (tries > 0) setTimeout(function () { waitForPill(tries - 1); }, 120);
+  })(20);
+})();
+
+// ── THE PAGE HEALS ITS OWN STALENESS ─────────────────────────────────────
+// The app keeps a tool's web view alive for the whole app process, so without
+// this no deploy can reach this page (the Playground's, the Chats app's and
+// Footage's own finding). It reloads ONLY when nothing would be lost.
+var CFG = { chat: 'stitch' };
+function stHolding() {
+  if (!$('player').hidden) return 'a clip is open';
+  if (!$('helpcard').hidden) return 'the card is open';
+  if (inFlightSave()) return 'saving';
+  var a = document.activeElement;
+  if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) return 'she is typing';
+  if ($('q').value) return 'a search';
+  if (Date.now() - lastTap < 10000) return 'a tap in the last ten seconds';
+  if (S.doc && S.doc.job && S.doc.job.status === 'running') return 'a render is going';
+  return '';
+}
+function inFlightSave() { return Boolean(saveT); }
+var lastTap = 0;
+document.addEventListener('pointerdown', function () { lastTap = Date.now(); }, true);
+var stBuild = null, stTimer = null;
+function stBuildCheck() {
+  // READ THE STAMP LAZILY — serveGated APPENDS it after the page, so at parse
+  // time window.__forgeBuild does not exist yet and caching it in a const
+  // leaves the check permanently disabled (and every "same build" assertion
+  // would still pass, vacuously).
+  var mine = window.__forgeBuild;
+  if (!mine) return Promise.resolve(false);
+  return api('/build').then(function (d) {
+    if (!d || !d.build || d.build === mine) return false;
+    if (stHolding()) return false;
+    location.reload();
+    return true;
+  }).catch(function () { return false; });
+}
+// The test's hands on the closure — this script is one IIFE. `reset()` clears
+// the ten-second touch clock, or a synthetic tap makes a reload unobservable.
+window.__stHeal = { check: stBuildCheck, holding: stHolding, reset: function () { lastTap = 0; } };
+document.addEventListener('visibilitychange', function () {
+  if (document.hidden) return;
+  if (S.id) poll(); else loadShelf();
+  stBuildCheck();
+});
+stTimer = setInterval(stBuildCheck, 5 * 60 * 1000);
+
+// ── BOOT ─────────────────────────────────────────────────
+fetch('/api/stitch/status').then(function (r) { return r.json(); }).then(function (d) { if (d && d.chat) CFG.chat = d.chat; }).catch(function () {});
+loadFilms().then(function () { return loadPicks(); });
+(function () {
+  var id = new URLSearchParams(location.search).get('s');
+  var pending = null; try { pending = localStorage.getItem('stitch_pending'); } catch (e) {}
+  setLevel({ level: id ? 'open' : 'shelf', id: id || '', pushed: false }, location.href, true);
+  if (id) openStitch(id, false);
+  else if (pending) openStitch(pending, true);
+  else showShelf(false);
+})();
+})();
+</script>
+</body>
+</html>

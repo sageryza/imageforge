@@ -323,7 +323,7 @@ const CAST = ['doug', 'sophie', 'jonathan', 'mommy', 'shayna', 'penny', 'evan', 
   console.log('the disclosure');
   await page.click('#promptbtn');
   await page.waitForTimeout(200);
-  const added = await page.evaluate(() => document.querySelector('#promptpanel .added').textContent);
+  const added = await page.evaluate(() => { const e = document.querySelector('#promptpanel textarea[data-part="extra"]') || document.querySelector('#promptpanel .added'); return e.value != null ? e.value : e.textContent; });
   // The REAL sentence, from the real shared rule — pick order, so the names
   // line up with the pictures they attach as.
   const want = padChars.charLine([{ name: 'jonathan' }, { name: 'doug' }]).trim();
@@ -333,7 +333,7 @@ const CAST = ['doug', 'sophie', 'jonathan', 'mommy', 'shayna', 'penny', 'evan', 
   console.log('the photo line, re-anchored');
   await page.setInputFiles('#photofile', { name: 'p.png', mimeType: 'image/png', buffer: PNG });
   await page.waitForTimeout(300);
-  const both = await page.evaluate(() => document.querySelector('#promptpanel .added').textContent);
+  const both = await page.evaluate(() => { const e = document.querySelector('#promptpanel textarea[data-part="extra"]') || document.querySelector('#promptpanel .added'); return e.value != null ? e.value : e.textContent; });
   ok(both.indexOf(PHOTO_LINE_CHARS.trim()) > -1,
     'with characters riding, the photo line is the re-anchored one');
   ok(both.indexOf('The LAST attached image is a photo reference') === -1,

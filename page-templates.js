@@ -93,7 +93,7 @@ function esc(s) {
 // blocks-s96 lesson). Prefer the storage filename; fall back to the label.
 function deriveId(item, taken, fallback) {
   let base = '';
-  const src = item.url || item.img || '';
+  const src = item.url || item.img || item.video || '';
   const m = /\/([^/?#]+?)(?:\.[a-z0-9]+)?(?:[?#]|$)/i.exec(src);
   if (m) base = m[1].toLowerCase().replace(/[^a-z0-9_-]+/g, '-').slice(0, 40);
   if (!base && item.label) base = STR(item.label, 40).toLowerCase().replace(/[^a-z0-9_-]+/g, '-');
@@ -117,16 +117,65 @@ function cleanLink(raw) {
   return { url, label: STR(bare ? '' : raw.label, 60) || 'Open' };
 }
 
+// THE FOOTAGE HAND-OFF (2026-09-10, Sophie, on the Ticky Tack scene deck:
+// "can u add a 'footage' button that sends those words to footage module").
+// A Compare page runs same-origin, so the hand-off needs no route: the button
+// writes `footage_handoff` in localStorage and walks the TOP window to
+// /footage, which CONSUMES the key on arrival (its own four moments). This is
+// the SAME contract the belt pages write — see *A BELT SCENE HANDS ITS WHOLE
+// JOB TO THIS PAGE* in CLAUDE.md — so the shape is copied, never invented.
+//
+// It only ever FILLS THE BOX. Nothing is sent, the star is still her tap, and
+// the item carries no door of its own — which is why this is safe to put on
+// every card where `applyArchive` had to be one declared action per page.
+const FOOTAGE_REF_KINDS = new Set(['image', 'video', 'audio']);
+function cleanFootage(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const prompt = STR(raw.prompt, 4000);
+  if (!prompt) return null;                     // no words, no hand-off
+  const out = { prompt };
+  const title = STR(raw.title, 200); if (title) out.title = title;
+  const from = STR(raw.from, 200); if (from) out.from = from;
+  const model = STR(raw.model, 60); if (model) out.model = model;
+  const res = STR(raw.res, 20); if (res) out.res = res;
+  const ratio = STR(raw.ratio, 20); if (ratio) out.ratio = ratio;
+  const seed = STR(raw.seed, 24); if (seed) out.seed = seed;
+  const secs = Number(raw.seconds);
+  if (Number.isFinite(secs) && secs > 0) out.seconds = Math.round(secs);
+  if (Array.isArray(raw.refs)) {
+    const refs = [];
+    for (const r of raw.refs.slice(0, 12)) {
+      const url = STR(r && (typeof r === 'string' ? r : r.url), 500);
+      if (!LINK_URL.test(url)) continue;        // http(s) only, like cleanLink
+      const ref = { url };
+      const kind = STR(r && r.kind, 12).toLowerCase();
+      ref.kind = FOOTAGE_REF_KINDS.has(kind) ? kind : 'image';
+      const poster = STR(r && r.poster, 500);
+      if (LINK_URL.test(poster)) ref.poster = poster;
+      const name = STR(r && r.name, 120); if (name) ref.name = name;
+      refs.push(ref);
+    }
+    if (refs.length) out.refs = refs;
+  }
+  return out;
+}
+
 function cleanItem(raw, taken, fallback) {
   if (!raw || typeof raw !== 'object') return null;
   const it = {};
   const img = STR(raw.img, 500);
   const text = STR(raw.text, 1500);
+  // A clip is a first-class item (2026-09-10, Sophie: "make the page take
+  // movies also"). It plays INLINE wherever a picture would sit — never a
+  // link, which on her phone is a download rather than a play.
+  const video = STR(raw.video, 500);
+  const poster = STR(raw.poster, 500);
   // an item is a picture, words, or the moment card's PARTS (a date card may
   // carry only an eyebrow and its sections — no single `text` at all)
   const parts = ['who', 'eyebrow', 'caption'].some((k) => STR(raw[k], 200))
     || (Array.isArray(raw.sections) && raw.sections.length);
-  if (!img && !text && !parts) return null;
+  if (!img && !text && !parts && !video) return null;
+  if (video) { it.video = video; if (poster) it.poster = poster; }
   if (img) it.img = img;
   if (text) it.text = text;   // a moment card may carry BOTH words and a picture
   const full = STR(raw.full, 500);
@@ -199,6 +248,10 @@ function cleanItem(raw, taken, fallback) {
   // a template page needs a non-http link, so the narrow rule is the safe one.
   const link = cleanLink(raw.link);
   if (link) it.link = link;
+  // …and the card's way OUT INTO THE FOOTAGE PAGE, same reasoning: the words
+  // are a field and the renderer decides what the button is (cleanFootage).
+  const footage = cleanFootage(raw.footage);
+  if (footage) it.footage = footage;
   // WHICH CHAT THIS CARD IS ABOUT (Aug 2026) — set only on a page that also
   // declares `applyArchive`, where her verdict on the card archives the chat
   // itself. See applyArchive in validateTemplate below for why this is a slug
@@ -335,6 +388,16 @@ function validateTemplate(template, data) {
   // note:'small' — a two-line note box under a picture card (2026-09-03,
   // "note section can be smaller — modify template if necessary")
   if (data.note === 'small') out.note = 'small';
+  // intro — the tour's FIRST sentence, when the page's own shape cannot be
+  // derived (2026-09-08, found by PHOTOgraphing a page of three ranked STILLS
+  // per clip: grid.js already derives `oneUp` and `listing` from the real
+  // groups, but three candidates for one shot and three one-variable variants
+  // are structurally identical, so the stock line — "the things on it differ
+  // by exactly one thing" — was a sentence about a page she is not looking
+  // at). Derivation stays the default and every other step is untouched; this
+  // only lets a page that KNOWS say so. Same family as the two findings in
+  // grid.js's tourSteps().
+  { const v = STR(data.intro, 200); if (v) out.intro = v; }
   // asks — questions the deck puts to her on every card, answered in their
   // own boxes and saved under `<item>:q:<key>` (2026-09-03, Sophie: "modify
   // tinder compare w those two questions so i answer them"). judge.js draws
@@ -499,6 +562,10 @@ function renderTemplatePage({ template, title, heading, chat, sheet, data, clean
     // The port script is what lets the Playground door say which tile made
     // the picture instead of guessing.
     + '<script src="/playground-port.js"></script>\n'
+    // sheet-grid.js is what the door reads a sheet's panels and a panel's
+    // cast out of (panelParse / castParse); without it the Playground door
+    // here sent an uncut sheet as one wall of text and no cast at all.
+    + '<script src="/sheet-grid.js"></script>\n'
     + '<script src="/asset-actions.js"></script>\n'
     + '<script src="/asset-view.js"></script>\n'
     + '<script src="/judge.js"></script>\n'

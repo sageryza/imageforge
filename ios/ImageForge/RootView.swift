@@ -2,10 +2,10 @@ import SwiftUI
 import UIKit   // UIImage(systemName:) — the SF Symbol existence check in ToolGlyph
 
 /// Every tool in the app. The bottom bar shows five of them and they are all
-/// fixed: Home (the grid) and Gallery at the ends, and the three in `barTools`
+/// fixed: Home (the grid) and Gallery at the ends, and the tools in `barTools`
 /// between them. Everything else is reached from the home grid or a deep link.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, pausing, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, assembly, filmeditor, timeline, review, crop, shoebox
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, pausing, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, assembly, filmeditor, timeline, review, crop, shoebox, footage, stitch
     var id: String { rawValue }
 
     var title: String {
@@ -48,6 +48,8 @@ enum Tool: String, CaseIterable, Identifiable {
         case .review:    return "Review Queue"
         case .crop:      return "Squaring"
         case .shoebox:   return "Shoebox"
+        case .footage:   return "Footage"
+        case .stitch:    return "Stitch"
         }
     }
 
@@ -91,6 +93,8 @@ enum Tool: String, CaseIterable, Identifiable {
         case .review:    return "Everything still waiting on your swipe — one pile."
         case .crop:      return "Crop pictures square with arrows — nothing to drag."
         case .shoebox:   return "Every polaroid in your Memory Library — one shelf."
+        case .footage:   return "Describe a clip, add references — Seedance draws it."
+        case .stitch:    return "Pick clips, put them in order — one button joins them."
         }
     }
 
@@ -140,6 +144,11 @@ enum Tool: String, CaseIterable, Identifiable {
         // An archive box — a shoebox of kept things. Distinct from the Dump's
         // tray-with-arrow (an inbox) and Product Creator's shippingbox.
         case .shoebox:   return "archivebox"
+        // A clapperboard — footage being shot.
+        case .footage:   return "movieclapper"
+        // Three frames in a row — clips put in order and joined. Distinct from
+        // Assembly's two landing rectangles and the Film Editor's selected span.
+        case .stitch:    return "rectangle.3.group"
         // A stack of playable pieces — the library of PARTS you already own.
         //
         // It was `rectangle.split.3x1`, which is the SAME symbol .blocks wears
@@ -240,6 +249,14 @@ enum Tool: String, CaseIterable, Identifiable {
         // its own header via pagehead.js — no Apple bar (the Aug 2026 rule).
         case .shoebox:   GatedWebTool(path: "/shoebox", name: "the Shoebox", icon: "archivebox",
                                       navTitle: "Shoebox")
+        // Footage: Seedance clips by her own hand. The page owns its header.
+        case .footage:   GatedWebTool(path: "/footage", name: "Footage", icon: "movieclapper",
+                                      navTitle: "Footage")
+        // Stitch: pick Footage clips, order them with arrows, one button joins
+        // them. Two levels (the shelf of stitches, one open) — the page answers
+        // window.__navBack, so the chevron goes shelf-ward before it leaves.
+        case .stitch:    GatedWebTool(path: "/stitch", name: "Stitch", icon: "rectangle.3.group",
+                                      navTitle: "Stitch")
         // Chunking: the clip library. A shelf + a search box, so the native
         // bar carries the name and the page never repeats it (?embed=1).
         case .chunking:  GatedWebTool(path: "/chunking", name: "Chunking", icon: "play.square.stack",
@@ -308,6 +325,8 @@ enum Tool: String, CaseIterable, Identifiable {
         case .review:     return "/review"
         case .crop:       return "/crop"
         case .shoebox:    return "/shoebox"
+        case .footage:    return "/footage"
+        case .stitch:     return "/stitch"
         // Native screens — nothing to collide with.
         case .movie, .sticker, .coloring, .storybook, .greeting, .instagram,
              .ads, .test, .dump:
@@ -330,9 +349,9 @@ let forgePillPages: Set<String> = [
     "/assembly", "/assets", "/audio", "/blocks", "/blog", "/brief", "/character",
     "/chunking", "/clips", "/crystals", "/crystalsplit", "/cutmarks", "/cuttingroom",
     "/deliverables", "/desktop", "/dreams", "/dreams-archive", "/dump", "/editor",
-    "/films", "/freeform", "/import", "/instagram", "/pausing", "/photo", "/playground",
+    "/films", "/footage", "/freeform", "/import", "/instagram", "/pausing", "/photo", "/playground",
     "/promptlab", "/report", "/review", "/scratchpad", "/search", "/shoebox", "/song",
-    "/storyroom", "/studio", "/timeline", "/vector", "/voice",
+    "/stitch", "/storyroom", "/studio", "/timeline", "/vector", "/voice", "/worklog",
     // baked in-page from scripts/pill.py, not injected
     "/chats", "/gallery", "/wall", "/writing",
 ]
@@ -452,7 +471,7 @@ extension EnvironmentValues {
     }
 }
 
-/// THE THREE MIDDLE BAR SLOTS ARE FIXED (2026-08-26, Sophie: "right now the
+/// THE MIDDLE BAR SLOTS ARE FIXED (2026-08-26, Sophie: "right now the
 /// bottom real icons switch off can you change it so they're permanent I want
 /// the story room, the story timeline and the playground"). They used to
 /// rotate by most-recently-used, so the three tools under her thumb changed
@@ -461,7 +480,11 @@ extension EnvironmentValues {
 ///
 /// Nothing else about `Recents` changed: it still tracks use order, because
 /// the HOME GRID ranks its cards by it. Only the bar stopped reading it.
-let barTools: [Tool] = [.story, .timeline, .playground]
+/// FOOTAGE JOINED THEM 2026-09-11 (Sophie: "make footage rotate w the three
+/// bottom nav buttons") — a FOURTH fixed slot, not a swap: she named the other
+/// three herself, so nothing comes off the bar to make room. The slots still
+/// never move; adding one is this line.
+let barTools: [Tool] = [.story, .timeline, .playground, .footage]
 
 /// Tracks most-recently-used tools — the HOME GRID's card order. The bottom
 /// bar no longer reads this (see `barTools` above).
@@ -637,8 +660,8 @@ struct RootView: View {
         screen = history.popLast() ?? .home
     }
 
-    // The tools kept ALIVE in the stack: the three permanent bar tools, plus
-    // whatever tool is open right now. The bar's three used to be the whole
+    // The tools kept ALIVE in the stack: the permanent bar tools, plus
+    // whatever tool is open right now. The bar's tools used to be the whole
     // list — which only worked because opening anything from Home promoted it
     // INTO that list. With the slots fixed (see `barTools`) a tool opened from
     // Home belongs to neither, so it has to be added here or its screen would
@@ -734,10 +757,10 @@ struct RootView: View {
     }
 }
 
-/// The custom bottom bar: 🏠 · Story Room · Story Timeline · Playground · 🖼️.
-/// The three middle slots are PERMANENT (see `barTools`) — they used to rotate
-/// by most-recent use, so the tools under her thumb moved every time she opened
-/// something else.
+/// The custom bottom bar: 🏠 · Story Room · Story Timeline · Playground ·
+/// Footage · 🖼️. The middle slots are PERMANENT (see `barTools`) — they used to
+/// rotate by most-recent use, so the tools under her thumb moved every time she
+/// opened something else.
 private struct BottomBar: View {
     @Binding var screen: Screen
 
@@ -747,7 +770,7 @@ private struct BottomBar: View {
                 Image(systemName: "house").font(.system(size: 21, weight: screen == .home ? .semibold : .regular))
             }
             ForEach(barTools) { t in
-                // Tapping a slot just switches to it — the three never move.
+                // Tapping a slot just switches to it — the slots never move.
                 slot(active: screen == .tool(t), { screen = .tool(t) }) {
                     ToolGlyph(tool: t, size: 21, weight: screen == .tool(t) ? .semibold : .regular)
                 }
@@ -842,9 +865,10 @@ private struct HomeGrid: View {
     /// tab in Aug 2026 ("move everything onto the movies page like the story
     /// boards…") and the film filter's hide-from-home rule then took its home
     /// card away as a side effect — which is not what she asked for either
-    /// time. It is the ONE named exception to that rule (`homeAlso` below);
-    /// the flat movies chip still drops it, on her own reasoning that it is
-    /// "already on the home screen".
+    /// time. It is one of the named exceptions to that rule (`homeAlso`
+    /// below — Footage joined it 2026-09-09); the flat movies chip still drops
+    /// Story Room, on her own reasoning that it is "already on the home
+    /// screen", and keeps Footage, which she has not asked to move.
     private static let pipeline: [MovieStage] = [
         MovieStage(n: 1, name: "The story",
                    line: "What it is about, and what order it happens in.",
@@ -860,10 +884,10 @@ private struct HomeGrid: View {
                    tools: [.cutroom, .pausing]),
         MovieStage(n: 5, name: "The pictures",
                    line: "Faces first, so they stay the same — then the film.",
-                   tools: [.character, .movie, .dreams]),
+                   tools: [.character, .movie, .dreams, .footage]),
         MovieStage(n: 6, name: "The shelf",
                    line: "What is already made — to cut from, or to watch.",
-                   tools: [.chunking, .assembly, .filmeditor, .films]),
+                   tools: [.chunking, .stitch, .assembly, .filmeditor, .films]),
     ]
 
     /// The film filter's set — everything that makes or cuts moving pictures
@@ -877,10 +901,12 @@ private struct HomeGrid: View {
     /// them off the home screen and in the movie tab, not in both places.
     private static let movieTools: [Tool] = HomeGrid.pipeline.flatMap { $0.tools }
 
-    /// Pipeline tools that ALSO keep a card on the default home. One entry,
-    /// Story Room — see the note in `tools` below. Keep this tiny: the film
-    /// chip's whole point is that its tools are not also on the home screen.
-    private static let homeAlso: Set<Tool> = [.story]
+    /// Pipeline tools that ALSO keep a card on the default home. Story Room —
+    /// see the note in `tools` below — and, since 2026-09-09, Footage (Sophie:
+    /// "add to home grid", the day after asking where its tile was; the film
+    /// chip hid it). Keep this tiny: the film chip's whole point is that its
+    /// tools are not also on the home screen.
+    private static let homeAlso: Set<Tool> = [.story, .footage]
 
     /// THE SECOND MOVIES CHIP — the same tools as one flat pile (Aug 2026,
     /// Sophie: "add a second movies icon but choose a different icon for it …
@@ -958,7 +984,7 @@ private struct HomeGrid: View {
         // two tiles would be the same tool twice; its case and view stay for
         // deep links and history.
         //
-        // STORY ROOM IS THE ONE EXCEPTION TO THE FILM-FILTER HIDE (`homeAlso`,
+        // STORY ROOM AND FOOTAGE ARE THE EXCEPTIONS TO THE FILM-FILTER HIDE (`homeAlso`,
         // Sophie 2026-08-24: "someone took the story room module out of the
         // default icons on the homepage… can you add it back"). It is stop 1
         // of the pipeline AND a card here — losing the card was a side effect

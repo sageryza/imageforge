@@ -22,6 +22,15 @@
 //   node scripts/filmcut.js pin <id> --chat <slug> --session <sid> --title "v8 — …"
 //                                                    → pins the newest render WITH the cut id (the
 //                                                      editor door) — the checklist's 3a + 3c in one
+//   node scripts/filmcut.js export <id> [--dir <d>] [--no-upload]
+//                                                    → the cut for ANOTHER editor (cut-export.js): one
+//                                                      zip — media/ named in timeline order, the CUT
+//                                                      SHEET, an FCPXML — built here, uploaded to
+//                                                      filmeditor/<id>/export-<n>.zip, recorded on the
+//                                                      doc (`exports`) and on the deliverables list.
+//                                                      LumaFusion imports no timeline (its FCPXML is
+//                                                      export-only), so the numbered names ARE the
+//                                                      order there; Resolve / Final Cut read the xml.
 //
 // cut.json is the two lanes exactly as cut-model.js reads them:
 //   { "clips":[{key,kind?,url,title,poster?,seconds?,in,out}…],
@@ -94,11 +103,7 @@ function layout(doc) {
 async function renderHere(id) {
   const os = require('os');
   const path = require('path');
-  const admin = require('firebase-admin');
-  const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-  if (!admin.apps.length) {
-    admin.initializeApp({ credential: admin.credential.cert(sa), storageBucket: `${sa.project_id}.firebasestorage.app` });
-  }
+  initAdmin();
   const fe = require('../filmeditor');
   const doc = await fe.loadDoc(id);
   if (!doc) die('no such cut');
@@ -126,6 +131,92 @@ async function renderHere(id) {
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+}
+
+function initAdmin() {
+  const admin = require('firebase-admin');
+  const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  if (!admin.apps.length) {
+    admin.initializeApp({ credential: admin.credential.cert(sa), storageBucket: `${sa.project_id}.firebasestorage.app` });
+  }
+}
+
+// fps and the audio stream's rate/channels — what probeFile leaves out and
+// the FCPXML asset needs. Best-effort: an unreadable stream leaves the field
+// unset and cut-export writes its fallback.
+async function probeStreams(file) {
+  const fe = require('../filmeditor');
+  if (!fe.FFPROBE) return {};
+  const { execFile } = require('child_process');
+  const out = await new Promise((resolve) => execFile(fe.FFPROBE, ['-v', 'error', '-show_entries',
+    'stream=codec_type,r_frame_rate,sample_rate,channels', '-of', 'json', file], { maxBuffer: 1 << 20 },
+    (err, stdout) => resolve(err ? '' : stdout)));
+  let info; try { info = JSON.parse(out || '{}'); } catch { info = {}; }
+  const r = {};
+  for (const st of info.streams || []) {
+    if (st.codec_type === 'video' && st.r_frame_rate && !r.fps) {
+      const [a, b] = String(st.r_frame_rate).split('/').map(Number);
+      if (a > 0 && b > 0) r.fps = Math.round((a / b) * 1000) / 1000;
+    }
+    if (st.codec_type === 'audio' && !r.audioRate) { r.audioRate = Number(st.sample_rate) || undefined; r.channels = Number(st.channels) || undefined; }
+  }
+  return r;
+}
+
+// The export: every source downloaded ONCE into media/ under its timeline
+// name, probed, the sheet and the xml written beside it, zipped, uploaded.
+async function exportCut(id, opts) {
+  const os = require('os');
+  const path = require('path');
+  const { execFileSync } = require('child_process');
+  const E = require('../cut-export');
+  const upload = opts.upload && process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (upload) initAdmin();
+  const fe = require('../filmeditor');
+  const doc = await loadDoc(id);
+  const lanes = M.readDoc(doc);
+  const names = E.mediaNames(doc);
+  const folder = E.slugTitle(doc.title || 'Cut') || 'Cut';
+  const base = opts.dir || fs.mkdtempSync(path.join(os.tmpdir(), 'filmcut-export-'));
+  const root = path.join(base, folder);
+  const media = path.join(root, 'media');
+  fs.mkdirSync(media, { recursive: true });
+  const urls = Object.keys(names);
+  const assets = {};
+  let bytes = 0;
+  process.stderr.write(`  ${urls.length} sources → ${media}\n`);
+  for (const url of urls) {
+    const file = path.join(media, names[url]);
+    if (!fs.existsSync(file)) await fe.downloadSource(url, file);
+    bytes += fs.statSync(file).size;
+    try {
+      const p = await fe.probeFile(file);
+      assets[url] = { ...p, ...(await probeStreams(file)) };
+    } catch (e) { process.stderr.write(`  probe failed, written from the doc: ${names[url]} — ${e.message}\n`); }
+  }
+  fs.writeFileSync(path.join(root, 'CUT SHEET.txt'), E.cutSheet(doc, names));
+  fs.writeFileSync(path.join(root, `${folder}.fcpxml`), E.fcpxml(doc, assets, { names }));
+  const zip = path.join(base, `${folder}.zip`);
+  if (fs.existsSync(zip)) fs.unlinkSync(zip);
+  execFileSync('zip', ['-q', '-r', '-X', zip, folder], { cwd: base, stdio: 'inherit' });
+  const zipBytes = fs.statSync(zip).size;
+  const summary = `${lanes.clips.length} pieces (${lanes.clips.filter((c) => c.kind === 'video').length} clips, ${lanes.clips.filter((c) => c.kind === 'image').length} stills) · ${lanes.sounds.length} sounds · ${urls.length} files · ${Math.round(zipBytes / 1048576)}MB`;
+  if (!upload) { console.log(`${zip}\n${summary} · not uploaded`); return { zip, summary }; }
+  const editor = require('../editor');
+  const n = ((doc.exports || []).length || 0) + 1;
+  const url = await editor.uploadPublic(zip, `filmeditor/${id}/export-${n}.zip`, 'application/zip');
+  const rec = { url, at: Date.now(), by: 'chat', bytes: zipBytes, files: urls.length, pieces: lanes.clips.length, sounds: lanes.sounds.length };
+  await fe.txField(id, 'exports', (cur) => [rec].concat(Array.isArray(cur) ? cur : []).slice(0, 12));
+  const chat = flag('chat') || doc.chat;
+  const session = flag('session') || (process.env.CLAUDE_CODE_REMOTE_SESSION_ID || '').replace(/^cse_/, '');
+  if (chat) {
+    const title = flag('title') || `${doc.title || 'Cut'} — for another editor (zip: media in order + cut sheet + FCPXML)`;
+    const { status, json } = await call(BASE + '/api/deliverables', { method: 'POST', body: { chat, session, url, title, kind: 'link', cut: id } });
+    if (status !== 200) process.stderr.write(`  deliverables → ${status} ${json.error || ''}\n`);
+  }
+  console.log(`${url}\n${summary}`);
+  if (!opts.dir) fs.rmSync(base, { recursive: true, force: true });
+  return { url, summary };
 }
 
 async function loadDoc(id) {
@@ -243,6 +334,10 @@ if (require.main === module) (async () => {
     console.log(json.text || M.describeDiff(json.changes));
     return;
   }
+  if (cmd === 'export') {
+    await exportCut(id, { dir: flag('dir'), upload: !has('no-upload') });
+    return;
+  }
   if (cmd === 'pin') {
     const doc = await loadDoc(id);
     const newest = (doc.renders || [])[0];
@@ -255,5 +350,5 @@ if (require.main === module) (async () => {
     console.log(`pinned on ${json.chat}: ${title}\n${newest.url}`);
     return;
   }
-  die('commands: create · get · set · render · diff · pin');
+  die('commands: create · get · set · render · diff · pin · export');
 })().catch((e) => die(e.message));

@@ -66,6 +66,1068 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
   and **the `APIFRAME_KEY` in the cloud environment answered "Invalid or
   expired token" on `GET /v2/me` that day**, so the banked credits are not
   reachable from a session until she re-pastes a key.
+  **STILL TRUE 2026-09-06, AND IT IS A BAD COPY, NOT AN EXPIRY:** the
+  environment's key and the server's share the prefix `afk_4691` and the
+  length, the server's answers `/me` (2,681 credits), the container's 401s.
+  **So a chat spends the credits THROUGH THE SERVER — `POST
+  /api/apiframe/video` takes `referenceImageUrls` / `referenceVideoUrls` /
+  `referenceAudioUrls` now** (the Seedance 2.x multi-reference door: nine
+  panels as one clip, the prompt naming them `[Image1]`…`[Image9]`), poll
+  `GET /api/apiframe/video-job/:id`. Test: `node scripts/test-apiframe-refs.js`.
+  **OPENROUTER FOR SEEDANCE — THE SECOND DOOR, FOR JOBS WITH NO VIDEO
+  REFERENCE (2026-09-08, Sophie: "make a note so any reference w no video
+  uses open router instead").** OpenRouter added video generation
+  2026-04-15 and carries Seedance 2.0 Mini / 2.0 Fast / 2.0 / 2.5 at
+  ByteDance's own list price with no markup on the clip; the only fee is
+  ~5% when credit is bought ($2.52 on $50, measured). Billing is per VIDEO
+  TOKEN: `(width × height × 24 × seconds) / 1024` tokens, 2.5 at $10.70/M
+  ($6.40/M when a reference video rides), so **480p 2.5 is 10.3¢/s and 720p
+  23.1¢/s before the fee; APIFRAME's own page says 29¢/s at 720p**. 2.5 on
+  OpenRouter tops out at 720p (4-30s); 2.0 goes to 1080p/4K at 37¢/s for
+  1080p. Mini's 1.3¢/s is a 60% promo over a $3.50/M list.
+  - **THE REQUEST SHAPE (undocumented, measured):** `POST
+    https://openrouter.ai/api/v1/videos` `{model:"bytedance/seedance-2.5",
+    prompt, duration, resolution:"480p", aspect_ratio:"3:4",
+    generate_audio:true, input_references:[{type:"image_url",
+    image_url:{url}}, {type:"video_url", video_url:{url}}, {type:"audio_url",
+    audio_url:{url}}]}` — the validator names exactly those three types.
+    Poll `GET /api/v1/videos/:id` (pending → in_progress → completed),
+    download `GET /api/v1/videos/:id/content?index=0` with the key. There is
+    NO cancel (POST …/cancel and DELETE both 404), and the charge lands the
+    moment a job is accepted. References are named `[Image1]` / `[Video1]`
+    in the prompt exactly as on APIFRAME.
+  - **THE CATCH, AND WHY THIS IS A SECOND DOOR RATHER THAN THE DOOR:
+    ByteDance's own filter refuses reference VIDEOS with people that
+    APIFRAME accepts.** Scene 36a1's two untouched Seedance clips (the dress
+    clip, the stretcher hallway) — which APIFRAME drew that scene from hours
+    earlier — came back `InputVideoSensitiveContentDetected.PrivacyInformation`
+    "may contain real person" at validation, unbilled, while the three pajama
+    PICTURES on the same job passed. OpenRouter forwards to ByteDance directly
+    (one provider, no routing), so BytePlus direct is the same door. What
+    APIFRAME has that lets those clips through is unmeasured (its own
+    backend, or ByteDance's paid "Dreamina Seedance Advanced Creation Rights").
+    The C2PA-signature idea from the same day (every Seedance output carries
+    a signed `uuid` box that any ffmpeg trim or remux strips — measured on
+    the dress clip: 18 `c2pa` markers whole, 0 after a stream-copy trim, 0
+    after a plain remux) does NOT explain this: the signed, untouched clips
+    were refused here.
+    - **"APIFRAME REFUSES TRIMMED VIDEOS" IS A MYTH AND IT STARTED IN THIS
+      SENTENCE (2026-09-11, Sophie: "every chat last week said apiframe
+      couldn't take trimmed videos · i'm so confused").** This clause used to
+      read "explains APIFRAME's own trim refusals", stated as established
+      fact with NO measurement, no job id and no refusal text behind it
+      anywhere in the repo — and every later chat inherited the sentence.
+      **Measured 2026-09-11 and it is false:** the ward film's Sophie
+      reference (`ward-refs/jazz-best4s-…mp4`) IS a trim — 4.06s cut out of
+      the 15.1s take, re-encoded, `strings | grep -c c2pa` = **0** — and
+      APIFRAME drew from it that morning (job
+      `2ac60876-4718-43b6-8208-3bfad391a882`, 2.0 · 15s, done), as did Atlas
+      on 2.5 (`d0ad22fd…`). Swept all 46 APIFRAME jobs on the video log:
+      **zero trim refusals** — they are real-person checks, output copyright,
+      an aspect ratio, a pixel count, a `ratio` read as a video extension.
+      **The nearest REAL finding underneath it is about the MODEL, not the
+      door** (2026-09-09, the mini-video-references chat: "2.5 refuses a
+      trimmed Seedance clip mini accepts"), and that one is itself
+      contradicted by her own 6:45am 2.5 clip drawing from the same trim. So
+      a trimmed reference is not a known blocker on any door; if one is ever
+      refused, file the job id and the refusal text here rather than the
+      conclusion. The C2PA measurement itself stands and is worth keeping —
+      a trim really does strip every marker.
+    - **THE 2.5 FACE CHECK IS STRICTER THAN 2.0's ON THE SAME DOOR
+      (measured 2026-09-11).** The identical three references — the
+      face-blocked pajamas still, the assistant's UNBLOCKED photoreal face,
+      the trimmed jazz clip — drew on APIFRAME 2.0 at 06:43 and were refused
+      by APIFRAME 2.5 at 07:31 in ten seconds, at validation, free:
+      `the input image 'content[2]' may contain real person`. Not the video,
+      the assistant's still. The eyes-blur / black-bar trick that already
+      rides the Sophie reference is the documented fix.
+  - **AND THE LINE IS THE PERSON, NOT THE VIDEO (measured the same night on
+    the cheapest Mini 4s jobs — a refusal is free, an accepted one ~5¢):** a
+    PERSON-FREE reference video (the socks B-roll, a Seedance output,
+    `drops/_/f899742c…mp4`) passed and drew for 6.5¢ (job
+    `9afVS72Yq3S5Ss4BRo07`), and an AI-generated face STILL (a frame of the
+    Mini clip itself) was refused `InputImageSensitiveContentDetected.
+    PrivacyInformation` — so "AI faces pass" (every third-party blog) is
+    false for a photoreal generated face. ByteDance's own docs say why: a
+    face is only allowed as an `asset://` from the trusted asset library —
+    a virtual portrait ("must not resemble any real human person", signed
+    commitment letter) or a face-verified real person — behind a BytePlus
+    account with business verification; entry tier free, paid tiers
+    $1,400/mo+ (docs 2377608 · 2333565 · 2333589 · 2275638). That is what
+    APIFRAME evidently holds.
+  - **THE LINE IS PHOTOREAL EYES, measured in two more rounds the same
+    night (all Mini 480p 1:1 4s, the O'Hara audition prompt, one reference
+    each, ~5.4¢ an accepted job, a refusal free).** (1) Three Sandy-mirror
+    portraits of an invented older woman — loose ink, a finished painting,
+    near-photographic — ALL accepted and drawn (jobs `O6ALzDiy8gHXMkHUn2vq`
+    · `H0xjmpXRVCe97LhOWR0s` · `uSG0ZN2yLFlr6rF1EytL`); the looseness of the
+    reference set the LOOK of the clip. (2) Two drawn portraits of a REAL
+    person (Mayra) — loose ink and most rendered — both accepted
+    (`uRmoqfuAZVxGYHlKPhAD` · `kxsivm8ZJgtzuCZrJ592`), while her real photo
+    was refused whole. (3) Her real photo with ONLY a soft-blurred band over
+    the eyes (`sharp` extract → blur(14) → composite; mouth, hair, skin
+    untouched) — ACCEPTED and drawn (`aY9LbIGMe9T5lEcA984a`). All three
+    rounds drew O'Hara, because the prompt describes O'Hara; a likeness test
+    needs "the woman in [Image1]" wording — and (4) that wording over the same
+    eyes-blurred photo, card 45a's scale scene, DREW HER LIKENESS
+    (`OudXGDf91uEk1um3pZUt`, Mini 3:4, 5.6¢). (5) The video half of the
+    trick FAILS: the scale audition clip with every face's eyes blurred on
+    every frame (`scratchpad blur-eyes-video.py`: YuNet landmarks → a
+    Gaussian band per face, `drops/_/6c88c11a…mp4`) was refused
+    `InputVideoSensitiveContentDetected.PrivacyInformation` — a video is
+    screened for a person, not a face. Every job is in `forge-video-jobs`
+    under `provider:'openrouter'`, chat `openrouter-vs-apiframe`; the clips
+    and stills are on that chat's Compare pages.
+  - **TWO FILTERS, NOT ONE — a black bar clears the INPUT check and a famous
+    face is then stopped on the OUTPUT (measured 2026-09-09, Sophie: "i wanna
+    test black bar over danielle radcliffe eyes"; both jobs Mini 480p 3:4 4s,
+    `no-audio`, one reference each, the prompt `The man in [Image1] sits at a
+    kitchen table and looks up. Camera at eye level.`).** The control — a
+    Wikimedia press photo of Daniel Radcliffe, untouched — was refused at
+    validation in twelve seconds, free, `InputImageSensitiveContentDetected.
+    PrivacyInformation` "may contain real person", exactly as Mayra's real
+    photo was. The same file with a solid black rectangle painted over both
+    eyes (PIL `ImageDraw.rectangle`, x 390-900 / y 725-825 of the 1280x1924
+    original, quality 95, nothing else touched) was **ACCEPTED** — `accepted
+    3SL74kD3vCOePxCzjgh4`, four `pending` polls over a full minute, i.e. it
+    really drew — and then came back `failed` with a refusal no round before
+    this had produced: *"The request failed because the output video may be
+    related to copyright restrictions."* So the bar is as good as the blur at
+    the eyes check, and the eyes check is not the only gate: something reads
+    the DRAWN VIDEO afterwards. The Mayra rounds never met it because nothing
+    about her is famous or branded. **UNMEASURED, and the reason to stop
+    rather than guess: which half of that photo did it** — Radcliffe's
+    likeness (the prompt asked for it by slot, and the blur round proved a
+    likeness rides through an obscured-eyes reference), or the studio
+    step-and-repeat filling the frame behind him. One more Mini job settles
+    it: the same bar on a tight face crop with no backdrop in shot. Billing:
+    OpenRouter holds no `generation_id` record for the failed job, so it
+    reads as unbilled, and the key had another chat's Mini batch running at
+    the same time, so the delta could not be attributed — treat an accepted
+    Mini job as ~5.6¢ and an output failure as unknown-but-small.
+  - **IT IS HIS FACE, NOT THE BACKDROP — measured the same hour.** The same
+    bar on a tight crop of the face (`crop((300,420,990,1290))` of the
+    original, so the studio step-and-repeat is out of frame entirely, then
+    `bar-eyes.py 90 305 600 405`) was ACCEPTED, drew for four polls, and
+    came back with the identical refusal: *"the output video may be related
+    to copyright restrictions"* (job `YMyKELvY54v87oTEhVG8`). Two independent
+    photos of one man, one with branded background and one without, both
+    reach the output gate and both are stopped there. So the gate reads the
+    LIKENESS.
+  - **THE PUBLIC RECORD, so the gate is not mistaken for a bug (researched
+    2026-09-09).** Seedance 2.0 drew a Disney cease-and-desist on
+    2026-02-13 calling it "a virtual smash-and-grab", with Paramount
+    Skydance, Netflix, Warner Bros. Discovery, Sony Pictures and Universal
+    following; Douyin VP Li Liang said on 02-15 that Seedance 2.0 would
+    temporarily stop generating realistic human faces and IP-protected
+    characters, and the API access that reopened in April carries those
+    filters. What the guides do NOT cover is the half we hit: they all
+    document the INPUT face filter (real photographic faces refused, AI or
+    illustrated ones passing — which is our own drawn-face measurement
+    arrived at from the other side) and mention a post-generation rejection
+    only in passing, and the output-copyright error they DO document is an
+    AUDIO match. **Ours had `generate_audio:false`, so the audio reading is
+    ruled out by construction.** Two more things from the same reading, both
+    load-bearing for any test designed here: the filters are described as
+    scoring PROBABILISTICALLY rather than pass/fail, so a single job near
+    the threshold can pass once and fail the next run — one job is an
+    anecdote, not a measurement — and a failed generation is not billed,
+    which is exactly what both blocked jobs look like from our side.
+  - **THE FAME LADDER IS UNBUILT AND IS THE NEXT PASS (Sophie's own idea,
+    2026-09-09: "you could use progressively less famous people to see where
+    the bar is").** Nobody has published where the output gate's threshold
+    sits, and both ends of the ladder are already on file here: Radcliffe
+    (global) blocked twice, Mayra (not famous) drawn. The design: the black
+    bar stays on EVERY rung — without it nothing reaches the output gate at
+    all, so fame is the only variable — same prompt, same Mini 480p 3:4 4s,
+    free-licensed Wikimedia photos, and MORE THAN ONE run per rung because
+    of the probabilistic scoring above. Cheap by construction: a blocked
+    rung costs nothing and only a rung that draws bills ~5.6¢.
+  - **SO: text, pictures, audio and person-free videos → OpenRouter; any
+    reference with a person in it → APIFRAME.** A reference video rides
+    through as `video_url` and ByteDance decides; a content refusal answers
+    400 `{refusal:'content', hint}` naming APIFRAME. The door is **`openrouter.js`, `POST
+    /api/openrouter/video`** (Sophie, the same day: "logs yes"): the APIFRAME
+    route's body word for word, a 202 carrying `sent` (the literal body
+    OpenRouter received), `GET /video-job/:id` to poll (the clip is behind the
+    key, so the poll downloads it WITH the bearer, mirrors it to
+    `openrouter-video/` once — the log doc is read first — and writes the
+  - **THE SEED IS A NUDGE, NOT A PIN — MEASURED 2026-09-09 on 2.0 Mini, and
+    ByteDance says the same.** Both doors pass `seed` (`buildRequest` in
+    `openrouter.js`; `apiframe.js` hands the whole body to `seedanceVideo`,
+    which reads `opts.seed`) and all four Seedance models declare seed
+    support — but the same seed with the IDENTICAL prompt still draws a
+    different take. Four 4s clips, `ffmpeg psnr` on the luma (identical video
+    would be infinite, and every md5 differed):
+    **same seed + same prompt 27.1 dB · different seed + same prompt 21.5 dB ·
+    same seed + ONE sentence changed 16.8 dB · no seed + different prompts
+    16.1 dB · same seed + same prompt at 720p instead of 480p 16.2 dB.**
+    **AND THE GRIP FALLS OFF HARD WITH LENGTH (2026-09-09).** The same test
+    at **15 seconds** — two clips sent byte-identical, seed 7, verified field
+    by field before either went — is **17.8 dB at t=0 and 13.5 overall**,
+    against 33.2 and 27.1 on the 4s pair and 16.1 for two unrelated runs. The
+    two takes open on different framings and are on different shots by 0:08.
+    So the seed holds a SHORT clip's opening and does close to nothing at the
+    lengths this film actually shoots: mint it for the record, never plan a
+    shot around it. Page: "Same seed at 15 seconds v1" (`erZTQLqTs3Ys5bkQbsKy`).
+    **BUT A WHOLE-CLIP AVERAGE HIDES THE STRUCTURE, and Sophie read the clips
+    better than the number did (2026-09-09: "the same seeds are identical,
+    other markedly different").** Measured per 0.5s window, the same-seed pair
+    starts at **33.2 dB and decays to 24.5** by 4s, while the different-seed
+    pair starts already apart at **29.7 and decays to 18.8**. At frame 0 the
+    same-seed pair really is near-identical to the eye and the different-seed
+    one is visibly another take. **So the seed reproduces the OPENING and then
+    drifts** — it is worth more than the average says, and it is worth most on
+    a SHORT clip. A changed sentence at the same seed opens at 27.1 dB, i.e.
+    between the two: the seed still helps at the start, but the prompt change
+    breaks it early, which is why a difference appearing 7 seconds in (the
+    pill-bottle insert) still cannot be attributed to a changed line. Consequences: **you cannot isolate one prompt line with
+    a seed** (an A/B needs several takes a side and a judgement over the set),
+    and **you cannot block a shot cheaply at 480p and re-render the keeper at
+    720p** — that is a fresh take, not the same shot larger.
+  - **EVERY 2.x CLIP CARRIES A SEED NOW, MINTED IF THE CALLER DID NOT PASS ONE
+    (2026-09-09, Sophie: "random seed yes but make it enforced and
+    widespread").** `video-seed.js` is the ONE rule, used by both doors:
+    `seedFor(given)` keeps a caller's usable seed and mints a fresh
+    `randomSeed()` (1…2^31-1, never 0 — several APIs read 0 as "unset")
+    otherwise, and `takesSeed(model)` scopes it to the **2.x family only** —
+    the 1.x models have no seed control and APIFRAME refuses an unknown param
+    rather than ignoring it, so a `seedance-1-lite` job is untouched. The seed
+    rides `params`, so it lands in `forge-video-jobs` by itself, and
+    APIFRAME's 202 now answers `seed` (and `sent`) so a chat can report the
+    number. **A FRESH ONE PER CLIP, never a house constant** — a fixed seed
+    reproduces openings, so one number across a film would give every clip the
+    same family resemblance at the start. Test:
+    `node scripts/test-video-seed.js`.
+  - **`return_last_frame` IS A NO-OP ON OPENROUTER AND WORKS ON ATLAS — BOTH
+    MEASURED, AND IT IS FREE (2026-09-08 and 2026-09-09).** The flag is on
+    Mini's card and both doors ACCEPT it with no shape error; what comes back
+    is where they differ, so the door decides whether it is worth sending.
+    - **OpenRouter: nothing.** The completed job answers one `unsigned_urls`
+      entry and `content?index=1` replies *"Video index 1 out of range (1
+      videos available)"*. Cost of finding out: one 5.6¢ probe.
+    - **Atlas Cloud: a SECOND OUTPUT, and it is the real frame.** Job
+      `83d5d715da794a58ad3c1334e690dd33` (Mini, 480p 16:9, 4s, no references)
+      came back with `outputs` holding the mp4 **and**
+      `…_last-frame.png` — 864x496 RGB, the same canvas as the clip.
+    - **IT COSTS NOTHING EXTRA.** Atlas billed **40,594 tokens** and the
+      video-only formula is `864 × 496 × 97 / 1024 = 40,594.5` — the clip's
+      own price to the token, so the PNG rides free.
+    - **AND IT IS BETTER THAN A DECODE, MEASURED AGAINST THE SAME FRAME.**
+      The PNG vs the ffmpeg-decoded frame 96 of that clip: **PSNR 38.6 dB**
+      (the same picture, genuinely different data), **1.18x the sharpness**
+      (variance of Laplacian 67.8 against 57.5), **35,125 unique colours
+      against 26,661**, and the one that settles it — **horizontal chroma
+      detail 0.1421 against 0.0012, a factor of 118.** The decoded frame's
+      chroma is flat between adjacent column pairs, which is exactly what
+      4:2:0 does; the PNG has real per-pixel chroma, so it is rendered
+      BEFORE the h264 encode rather than pulled out of it.
+    - **It is the LAST frame, not a nearby one** — PSNR against the decoded
+      tail climbs 19.9 · 21.4 · 23.7 · 27.0 · **38.6** over frames 92-96.
+    - **Wired 2026-09-09, OFF by default** (`returnLastFrame: true` on
+      `POST /api/atlascloud/video`): the PNG is mirrored to Storage under
+      `atlascloud-lastframe/` and filed on the job's log as `lastFrame`. The
+      two outputs are told apart **by name, never by position** — the signed
+      url carries `.mp4` and `.png` inside its own query string, so a naive
+      extension test matches the clip too. Test:
+      `node scripts/test-atlas-lastframe.js`.
+  - **THE "LAST FRAME IS THE WORST FRAME" RULE WAS HALF WRONG — MEASURED ON
+    SIX OF HER REAL WARD CLIPS (2026-09-09).** The note that stood here said
+    the last frame is a P-frame at the tail of a prediction chain "where the
+    encoder spends fewest bits". The first half is true and the second is
+    false, and it matters because it was the argument against chaining.
+    - **Every one of the six ends on a P-frame** — true, and the gap back to
+      the last keyframe runs 1 to 199 frames.
+    - **The bits claim is FALSE.** The final packet is at or ABOVE the clip's
+      median on four of the six (annie2 28,361 against a 11,306 median;
+      intakeB3 23,563 / 10,130; s39a3 20,916 / 17,747; ext at the median),
+      and only meaningfully below it on one (doc 14,250 / 16,759). A P-frame
+      after motion is often one of the biggest frames in the file.
+    - **What is real is CONTENT, about one clip in six.** Sharpness of the
+      last frame as a share of the best frame in the last 25: **100% · 100% ·
+      94.8% · 91.4% · 88.9%** — and then **27.5%** (intakeB3), a smooth
+      monotone decay over the last eight frames (17.2 → 4.7) with brightness
+      flat at 109, i.e. **the shot itself going soft**, not an encode
+      artifact. A clip that ends mid-move or ends on a light change is the
+      same story (annie2's tail brightens 30 → 55).
+    - **So the rule is not "never chain the last frame", it is "never chain
+      it blind".** Score the last half-second and take the crispest frame —
+      `ward-pullstills.py` already does exactly this scoring — which costs
+      nothing and turns the one bad case into a frame eight frames earlier.
+      On Atlas, ask for the PNG instead and the question mostly goes away.
+  - **NO SEED IS EVER RETURNED, so the seeds of clips already made are gone.**
+    APIFRAME echoes back only the `seedanceParams` that were SENT (a job sent
+    without one has none) and OpenRouter's completed response carries id,
+    status and usage and nothing else. Passing a seed and recording it costs
+    nothing and is worth doing — it is the only handle that exists and a later
+    model may honour it better — but do not promise it gets a clip back.
+  - **READ `usage.cost` OFF THE JOB, NEVER THE BALANCE DELTA.** OpenRouter's
+    completed job carries its own exact price, and the account balance is
+    shared: a delta measured while another chat was spending gave 0.93¢/s when
+    the true figure was 1.39¢/s. **Measured exactly, 2.0 Mini 3:4: 480p =
+    1.39¢/s (560x752), 720p = 3.07¢/s (834x1112, 2.20x the pixels).**
+  - **THE AUDIO PATH DOES NOT CHANGE WITH RESOLUTION OR MODEL** — 480p Mini,
+    720p Mini and 2.5 all come back 32kHz stereo AAC at ~128 kb/s. So 720p
+    buys picture only; it is very unlikely to clean up dialogue.
+  - **SUPERSEDED 2026-09-11 — THE KEYFRAMES ARE WIRED ON ALL THREE DOORS.**
+    The paragraph below is the state of it before that day and is kept as the
+    record; the line that mattered — "APIFRAME's route already wires them, the
+    OpenRouter route deliberately does not" — is no longer true. See *THE
+    FIRST FRAME, ON ALL THREE DOORS* immediately under this bullet.
+  - **FEATURES ON EVERY SEEDANCE 2.x THAT NOTHING HERE USES YET** (off the
+    served model cards, `GET /api/openrouter/models`): **`first_frame` /
+    `last_frame` keyframes** — APIFRAME's route already wires them
+    (`imageUrl` → `start_image`, `endImageUrl` → `end_image`), the OpenRouter
+    route deliberately does not, and forcing a clip to END on the next clip's
+    first frame is the continuity tool this film keeps needing
+    (`return_last_frame` is measured and wired — see the bullet above);
+    **`camera_fixed`** (`cameraFixed`
+    on the APIFRAME route) locks the camera off. And **a job carrying a
+    reference VIDEO is billed at a LOWER rate** —
+    `video_tokens_with_video_input` is $2.10/M against $3.50/M on Mini and
+    $6.40/M against $10.70/M on 2.5.
+  - **THE 1080p REDO IS AN UPSCALE PASS, NOT A RE-SHOOT (2026-09-09).** The
+    standing plan — "eventually we will redo all this footage at 1080p once
+    it's perfect" — would DESTROY the takes: measured the same night, the same
+    prompt and seed at 720p instead of 480p is a different performance
+    (16.2 dB), so re-generating throws away every shot she picked. What
+    studios do with AI footage is upscale in post. Topaz Video AI is the
+    standard tool and is on Replicate pay-per-use (no $299/yr subscription);
+    for AI-generated footage specifically, SeedVR2 is now preferred over the
+    older CNN upscalers, and the rule of thumb is 2x at a time rather than one
+    4x jump on a low-res source. **Her 480p 3:4 is 560x752, so a single 2x
+    pass is 1120x1504 — already past 1080p on the short edge.** So the whole
+    plan is one post pass over clips that already exist, and the prompts and
+    references are worth keeping for re-cuts and pickups rather than for a
+    wholesale redraw. Price not yet measured — run one of her clips through
+    and read it off the prediction.
+  - **THE ATLAS DOOR'S SECONDS CHECK IS PER MODEL SINCE 2026-09-11 (Sophie:
+    "it says too long but 2.5 allows 30s").** `atlascloud.js` clamped EVERY
+    Seedance model to 4-15, so a 30s 2.5 job that `/footage` had accepted
+    (its own table says 4-30) walked OpenRouter → refused (a person in
+    [Video1]) → Atlas, and Atlas's OWN door refused it with "duration is 4-15".
+    Atlas's schema files (`static.atlascloud.ai/model/schema/bytedance-seedance-
+    *-reference-to-video.json`) say 2.5 is 4-30 and Mini / Fast / 2.0 are
+    4-15; `secondsRange(model)` reads that. Pinned by
+    `node scripts/test-atlascloud-video.js`.
+  - **2.5 CANNOT DO 1080p OR 4K — only `seedance-2.0` can.** The served cards:
+    2.5 is 480p/720p and 4-30s; 2.0 is 480p/720p/1080p/4K but 4-15s; Mini and
+    2.0-fast are 480p/720p, 4-15s. So the eventual 1080p redo of the ward film
+    is a different MODEL, not a bigger setting on the one it was shot with —
+    worth knowing before more footage is locked.
+    permanent url and the job's real `cost`), and **the same
+    `forge-video-jobs` doc APIFRAME's route files**, stamped
+    `provider:'openrouter'`, with OpenRouter's statuses mapped onto the log's
+    vocabulary (`apiframeStatus`). A ByteDance content refusal answers 400
+    `{refusal:'content'}` and nothing is billed or logged; a short model name (`seedance-2.0-mini`, `2.5`) maps onto
+    OpenRouter's id and an unknown one is refused, never guessed. `GET
+    /credits` is the balance in dollars, `GET /models` the served SKUs.
+    `OPENROUTER_API_KEY` is a managed key (config-loader). Test: `node
+    scripts/test-openrouter-video.js`. From a container with no server,
+    `node scripts/openrouter-video.js` sends one job the same way (prints the
+    exact body first, never retries or reshapes, `--video` rides through) — but it
+    files NO log, so a clip drawn that way is written up by hand in the reply.
+  - **ATLAS CLOUD — THE THIRD DOOR, AND IT TAKES A PERSON VIDEO (2026-09-09,
+    Sophie handed over Atlas Cloud's `bytedance/seedance-2.0-mini/
+    reference-to-video` API reference the same day the reseller research
+    landed; measured the same night on her "try the hardest thing first").**
+    **MEASURED — one job, `2b0b451548d84902988d01faf8bbcf99`, logged in
+    `forge-video-jobs` under chat `seedance-reference-to-video`:** the
+    O'Hara stretcher clip (`drops/_/3c1e96d9f2034fc6a6a496b25926746a.mp4`,
+    three people in frame, the clip OpenRouter REFUSED as
+    `InputVideoSensitiveContentDetected`) as the ONLY reference, prompt
+    `the woman in video 1 looks up at the ceiling, camera at eye level`,
+    Mini · 4s · 480p · 16:9 · sound on → ACCEPTED on the POST, `completed`
+    in 80s, and it drew HER (a likeness, in landscape). So Atlas's FAQ ("no
+    real faces") is not what its Mini door does with a Seedance-made person
+    video — the person filter did not fire. The output url is on
+    `volces.com` under `dreamina-seedance-2-0-mini/`, i.e. ByteDance's own
+    storage on the Dreamina route, not a Runway-style backend.
+    **THREE MORE THE SAME HOUR (Sophie: "try radcliffe · try a human still
+    not ai"):**
+    - **A REAL, UNTOUCHED PHOTO PASSES AND DRAWS THE LIKENESS** — Mayra's
+      real portrait (`drops/_/0a72c8a0a425afbff32e2c1dccbe74ea.jpg`, the
+      photo OpenRouter refused WHOLE — no blur, no bar) as the only
+      reference, `the woman in image 1 looks up, camera at eye level`, Mini ·
+      4s · 480p · 16:9 → accepted, `completed` in 110s, and the clip is HER,
+      near-exact (job `1341e19bf73f44bd9e038c9b15c35286`). So Atlas runs NO
+      real-person check on a still at all — the eyes trick is unnecessary
+      there. **A reference IMAGE is not billed as tokens** (40,594 = the
+      output alone) where a reference VIDEO is (job 1 above, 80,770).
+    - **A FAMOUS FACE IS REFUSED ON THE POST, FREE, AS COPYRIGHT — WITH OR
+      WITHOUT THE BAR.** Radcliffe's untouched press photo
+      (`drops/_/ff6f86e35eb4e6b3da3d69902d3324d6.jpg`) and the same photo
+      with the black bar over both eyes
+      (`drops/_/1c78121dc1631b8c0ad8b4256d91e1cd.jpg`) both came back 400
+      `InputImageSensitiveContentDetected.PolicyViolation … may be related
+      to copyright restrictions` in under a second, nothing drawn, nothing
+      billed. **So Atlas's gate is a FAMOUS-FACE (copyright) check on the
+      INPUT, not the `PrivacyInformation` real-person check ByteDance's own
+      door runs** — and it recognises him THROUGH the bar, where
+      ByteDance's input gate let the bar through and its output gate caught
+      him (CLAUDE.md, the Radcliffe rounds). Where the famous line sits is
+      still the open question, now on this door too.
+    So for the ward film Atlas is a second door for EVERY person reference
+    she has — her own, her family's, a Seedance-drawn person, a clip with
+    people — and only a recognisable public figure is refused.
+    **THE CANVAS:** 864x496 at 480p 16:9 (a 16px taller frame than the 2.5
+    table's 864x480). **THE TOKENS:** 80,770 — the output (864·496·97/1024
+    ≈ 40.6k) plus the reference video (560·752·97/1024 ≈ 39.9k), so a
+    reference video is billed as input tokens on top. **THE PRICE — THE 80%
+    SALE IS REAL, read off Atlas's own `GET /models`:** `price.actual.
+    base_price` is dollars per SECOND with the sale applied and
+    `price.discount` is the percent she PAYS — Mini `0.011` (origin 0.056,
+    pays 20 → 4.4¢ for the 4s clip against APIFRAME's ~16¢ and OpenRouter's
+    14¢ at full list); 2.5 `0.134` (origin 0.167, pays 80); 2.0 `0.09`
+    (origin 0.112); Fast `0.027` (origin 0.09). `footage.js` reads it live
+    (`atlasPrices()`, ten-minute cache, the list rate as the fallback) and
+    the estimate stays "about" until her console pins dollars to the token
+    count — Atlas has NO balance or billing endpoint (every path probed
+    answers 404; only https://console.atlascloud.ai). Whether `base_price`
+    changes with resolution is unmeasured (the readme says billing follows
+    "the selected resolution"). `atlascloud.js`, mounted at `/api/atlascloud`, takes the SAME
+    body as the OpenRouter and APIFRAME routes (`POST /video` → 202 `{jobId,
+    poll, sent}`, `GET /video-job/:id` to poll, the clip mirrored to Storage
+    under `atlascloud-video/`) and files the SAME `forge-video-jobs` doc,
+    stamped `provider:'atlascloud'`. `ATLASCLOUD_API_KEY` is a managed key
+    (config-loader), set on the Render service by API 2026-09-09 (live on
+    the next deploy). From a container: `node scripts/atlascloud-video.js` (prints the
+    exact body, `--dry` sends nothing, files no log). Test: `node
+    scripts/test-atlascloud-video.js`. What the first job settled is above;
+    what it was built to measure, as written before it ran:
+    - **THE PRICE.** Atlas bills in TOKENS (`completion_tokens` /
+      `total_tokens` on the prediction) and its Mini deal banner is
+      unverified (CLAUDE.md); the poll files the token counts on the log and
+      invents no dollar figure. Read the charge off the console after the
+      first job, then put it in footage.js's table.
+    - **THE FACE FILTER.** Atlas forwards to ByteDance, its FAQ says no real
+      faces, and the one honest test is the eyes-blurred Mayra photo on a
+      Mini job here. A refusal on the POST throws `{refusal:'content'}` and
+      logs nothing; a prediction that FAILS with the refusal text patches
+      `refusal:'content'` onto the log — which of the two Atlas does is
+      unknown, and both are handled.
+    - **THE SLOT WORD.** Atlas names references `image 1` / `@image1` in
+      order; the house says `[Image1]`. Nothing rewrites her prompt. The first
+      job should carry Atlas's spelling; whether the bracket form lands is a
+      second cheap clip.
+    - **THE OTHER MODELS.** Only the Mini id is on file. A full
+      `bytedance/seedance-…/reference-to-video` id is passed through as
+      given and Atlas decides; a short name other than Mini's is refused
+      rather than guessed. Its resolutions are `480p · 720p · 720p-SR ·
+      1080p-SR · 1440p-SR`, seconds 4-15 (or -1), ratios the six plus
+      `adaptive`, up to 9 images / 3 videos / 3 audios (audio needs a
+      picture or video beside it — refused before sending).
+    **THE FOOTAGE PAGE'S ONLY DOOR AND THE AUTO DEFAULT FROM 2026-09-09 TO
+    2026-09-11 (Sophie, that evening: "make atlas the default and only route
+    through footage"; superseded by "choose cheapest" — see *THE CHEAPEST
+    DOOR* below, which keeps Mini and Fast here and moves 2.0 and 2.5 off).** It rode for an afternoon as its own model row ("2.0 Mini ·
+    Atlas", her "did you add it to the footage tile?") beside the OpenRouter
+    Mini; by the evening the two measurements above — a person video and a
+    real photo both pass, a famous face is refused free — plus the real 80%
+    Mini sale made it the door. So: every 2.x row in footage.js's `MODELS`
+    carries an Atlas id (`atlas`) and Atlas's LIST rate per second
+    (`atlasCents`: Mini 5.6¢ · Fast 9¢ · 2.0 11.2¢ · 2.5 16.7¢, off its own
+    `GET /models` `price.origin`; 2.0 at 1080p is unpriced there and null);
+    the page pinned `door:'atlascloud'` on every job (it sends `auto` now),
+    its model list was the rows Atlas carries (1.5 Pro stays off), its "?"
+    card quotes NO balance (Atlas has none to read — the console is the only
+    billing read), and its sale line reads `atlasPays` ("2.0 Mini is 80% off
+    right now" while Atlas charges 20% of list). `doorFor`'s AUTO order is
+    Atlas first with APIFRAME as the content-refusal fallback (a famous face
+    — `startJob` re-sends there with a note saying so), OpenRouter for a
+    shape Atlas does not price, APIFRAME last; a PINNED door never falls
+    back, so a refusal on a door a chat named is a measurement it reads.
+    **NOTHING ON ATLAS IS `exact`** — it publishes no billing API, her
+    console is the only read, and no Atlas charge has ever been read against
+    an estimate (2026-09-10, her "add ~ to both").
+
+    **THE CHEAPEST DOOR (2026-09-11, Sophie, adding 2.0 and 2.5 to the page:
+    "are they cheapest through router, atlas or frame? choose cheapest").**
+    `doorFor`'s AUTO ranks every configured door by `priceOn` — the same
+    per-door price `estimate` answers with, split out so the two cannot call
+    each other forever — and sends to the cheapest. Measured live that day,
+    one 4s 480p 16:9 clip: Mini **4.4¢ Atlas** · 13.6¢ OpenRouter · 16¢
+    APIFRAME; Fast **10.8¢ Atlas** · 16.3¢ · 28¢; 2.0 **27.2¢ OpenRouter** ·
+    32¢ APIFRAME · 36¢ Atlas; 2.5 **41.6¢ OpenRouter** · 52¢ APIFRAME · 53.6¢
+    Atlas. The split is Atlas's own sale — 80% off Mini and 70% off Fast
+    against 20% off the two big rows — so nothing about the order is written
+    down: the shape, the resolution, the seconds and a reference video all
+    move it (2.5 WITH a video is the one row where Atlas beats APIFRAME, 53.6¢
+    against 60¢, because APIFRAME charges its own dearer video rate).
+    - **THE CHAIN IS EVERY OTHER DOOR, NONE SKIPPED (2026-09-11 afternoon —
+      this REPLACES the morning's "the walk only ever gets looser").**
+      `DOOR_LOOSENESS` (OpenRouter refuses any person, Atlas a famous face,
+      APIFRAME the loosest) is a preference, never a pruning rule: on 2.5 the
+      price order is OpenRouter · APIFRAME · Atlas, so the old rule pushed
+      APIFRAME first and dropped Atlas as "less loose" — and APIFRAME
+      accepted Sophie's witchcraft-kit job and refused the real face ten
+      seconds later ON THE POLL, twice, while Atlas drew the same three
+      pictures (Mini ×2 that hour, then 2.5 from a container, same seed:
+      3m32s, job `0eab8ac88bf740cbae9793c184b192b8`). `chain` is now the
+      remaining doors with the ones whose refusal is free on the POST first
+      (`DOOR_REFUSAL_FREE`: OpenRouter, Atlas), each group cheapest first;
+      APIFRAME's refusal lands on the poll and whether it bills is
+      unmeasured. **THE WALK IS HISTORY (2026-09-11 evening, Sophie: "if a job refuses
+      references it should just fail"):** `chain` is always empty, `walk`
+      never rides the log doc, `walkPlan`/`walkOn` are gone, and `startJob`
+      makes ONE send — a refusal throws with `refusal`/`door` on it and
+      `pollOne` returns a poll-time refusal as the failure it is. Why: the
+      walk put every APIFRAME job of the day there, and on 2.0 APIFRAME
+      silently drops every reference when one holds a real person, draws a
+      stranger, reports COMPLETED and bills — measured on all three of the
+      day's 2.0 jobs against the identical references drawn exactly on Atlas.
+      The card's `why` line is door-aware (`explain(text, code, door)`) and
+      says "refused, nothing drawn or charged"; it no longer sends her to
+      APIFRAME.
+    - **A FAILED ATLAS PRICE READ KEEPS THE LAST GOOD PRICES.** It used to
+      fall back to the table's LIST rate, which was only a high number on
+      screen while Atlas was the one door and is now a DOOR CHANGE — every
+      Mini job to OpenRouter at 3x the real price, silently, for the ten
+      minutes the cache holds.
+    - **`exact` NEEDS THE CANVAS MEASURED, not only the formula**
+      (`canvasMeasured`, Mini alone). The token count is w × h × frames, so an
+      OpenRouter price is only as pinned as the canvas — and the published
+      table has been wrong once already, which is how Mini's 2.5 canvases were
+      found. Fast, 2.0 and 2.5 answer "about" there until a charge is read.
+    - **THE LAST FRAME RIDES ON ATLAS ALONE**, so a 2.0 or 2.5 clip has none.
+      The page's "?" card says so. With no key set the page answers a
+    plain error naming `ATLASCLOUD_API_KEY`. OpenRouter and APIFRAME stay
+    built and a chat pins either by hand (`door:'openrouter'` /
+    `'apiframe'`).
+  - **A probe that went wrong, so it is not repeated:** the first probe
+    script treated every 400 as a shape error and, after ByteDance's real
+    refusal, tried a passthrough envelope that dropped the videos silently;
+    ByteDance accepted THAT one and drew the scene from the pictures alone —
+    41¢ for a clip she never approved. A content refusal (`…SensitiveContent…`)
+    is terminal; only a ZodError from OpenRouter's own validator is a shape
+    error.
+  - **FOOTAGE — SHE SENDS A SEEDANCE CLIP HERSELF (2026-09-09, Sophie: "the
+    next step is to build a point so I can just make things on my own time by
+    describing them or uploading references").**
+    **THE FEED PAGES BACK PAST TODAY (2026-09-11, Sophie: "I can't go back
+    farther than today in footage")** — `… older` under the feed asks
+    `GET /api/footage/jobs?limit=40&before=<sentAt of the oldest clip on
+    screen>`; the answer carries `more`. `pageJobs` in footage.js is the walk,
+    pure; the CLAUDE.md Footage bullet has the two rules.
+ `footage.js` +
+    `public/footage.html` at `/footage` (the film tab's pictures stage in the
+    app): a prompt box, references uploaded through the Dump (`bundle=
+    Footage`, md5-deduped, each shown with its slot name — tapping `[Image1]`
+    drops it into the prompt so a reference is named, never described), a
+    picture icon to attach one, drop-downs for the model and the size, a typed
+    seconds field, the shape chips, the price of the tap, and **the star,
+    which is the one button and sends on its tap**. Both doors are called IN
+    PROCESS (`startVideo` / `pollVideo`, exported from openrouter.js and
+    apiframe.js; the routes are thin calls now) and file the SAME
+    `forge-video-jobs` doc tagged `chat:'footage'`, so the 1080p redo list
+    covers what she makes here. `GET /api/footage/jobs` polls the unfinished
+    ones itself, throttled 12s per job, and bakes a poster frame into
+    `footage/posters/` on completion — so the feed resumes from any phone with
+    nothing in localStorage. Seconds and resolution open at the minimum on
+    every load (the length and the size are the bill); the model and the shape
+    are remembered. Test: `node scripts/test-footage.js`.
+    - **HER OWN LIST, THE SAME DAY, IS WHY IT LOOKS LIKE THIS.** No section
+      labels; the controls on as few rows as they fit on (flex-wrap, nothing
+      declares a row count); **ONE DOOR** — OpenRouter that morning, **ATLAS
+      CLOUD since the same evening** (see *ATLAS CLOUD — THE THIRD DOOR*
+      above) — so the door row is gone, the page always sends
+      `door:'atlascloud'` and **1.5 Pro is off the model list** (APIFRAME-only)
+      — OpenRouter and APIFRAME are still doors in the module and a chat
+      pins either by hand, and a content refusal (a famous face, on Atlas) is
+      free and shows on the page with its own line saying so;
+      **sound always on**, sent explicitly; **no Plan step** (she asked for
+      one the day before and retired it within the day — the price sits
+      beside the star instead); the sale and the words behind the **"?"**,
+      read live when the card opens (Atlas has no balance to read); and the Playground's **List / Tiles /
+      3-4** switch on the feed, one `--cols` driving the tile wall and a
+      card's own reference row. Full rules: the *Footage* bullet in CLAUDE.md.
+    - **DIVIDE HERE — ONE BLOCK IS ONE CLIP (2026-09-11, Sophie: "can u add
+      the feature from story timeline that allows me to divide into two text
+      blocks where my cursor · a button · says divide here · pinned or sticky
+      in footage · icon this time").** The Story Timeline's divide, on the
+      box she types a scene into: a mark beside the bigger-box toggle — Lucide
+      `separator-horizontal`, the icon she asked for in place of the
+      timeline's word — cuts the block at the cursor, and the words after it
+      become a SECOND block right under the first, with the timeline's join
+      mark (`fold-vertical`) in the gap to put them back. A 15-second shot on
+      Mini is two clips, and until this she cut the scene in two by hand:
+      copy the tail out, send the head, paste the tail back in.
+      - **THE STAR SENDS THE BLOCK SHE IS IN** — the last one she tapped into,
+        wearing the star's own gold line once there are two or more; one
+        block wears nothing and the page looks exactly as it did. The
+        references, the model, the seconds and the size are the JOB and are
+        shared across the blocks; the block is the words. A slot tap, a
+        character's line and a card's put-back land in that same block; the
+        ✕ on a reference renames the slot in EVERY block, since the strip is
+        shared and a second block left naming `[Image3]` would draw the wrong
+        picture as surely as the first would have. Every block keeps its
+        words after a send (the box's own rule) and the toast says which
+        block went.
+      - **BOTH CORNER BUTTONS PIN TOGETHER.** `stickybox.js` v2: buttons on
+        ONE box are one control row and pin as a group (the one-at-a-time
+        rule is about two different boxes), and the divide is
+        `data-stickybox="nofollow"` — a divide shrinks the box from its
+        BOTTOM, so the seam is already where her eyes are, and the
+        follow-back that is right for a contract would walk the page away
+        from it.
+      - **THE WRAP HOLDS THE ROOM WHILE A BOX IS MEASURED.** `fitBox` locks
+        the `.promptwrap`'s min-height for the length of the `height:auto`
+        measurement: at `auto` the box collapses to its floor for one layout,
+        and if that layout leaves the document shorter than where she is
+        scrolled the browser CLAMPS the scroll — measured, a divide from the
+        pinned button at line 40 of a 70-line scene threw the page from
+        scrollY 654 to 0 with no script scrolling anything. The same shape
+        sat under every keystroke in a tall big box, where caretkeep pulled
+        the caret back a frame later, so it read as a flicker.
+      - **NOTHING IS SENT BY DIVIDING, NOTHING IS LOST BY JOINING** (the join
+        is the two texts with a blank line between). A block DOES have a ✕ of
+        its own since 2026-09-13 (the audit), so the line that used to sit
+        here saying it never would is history. A caret at either end divides
+        nothing and says so. A belt hand-off is
+        one scene, so it is one block again. The draft keeps `prompt` as the
+        first block for an older cached page and the rest under `blocks`.
+      - **AND EACH BLOCK FOLDS ON ITS OWN — ITS OWN HEADING ROW (2026-09-13,
+        Sophie: "make each text block in footage collapsible").** Four blocks
+        of a 15-second scene is four screens of prose with no way to put any
+        of them away, and the panel fold is all-or-nothing — so reading block
+        4 against block 1 meant scrolling past two she had already settled.
+        **THE HEADING IS THE FOLD** — the whole row, not a caret to hit (the
+        chats app's part fold and judge.js's piles before it) — so it is the
+        page's own `.fold` row, chevron and all, sitting INSIDE the wrap: the
+        wrap stays the panel's direct child, which is what keeps the pill-gap
+        fitter judging one rect per block. Seven things not to undo:
+        it is drawn **only with two or more blocks** (the same `.many` class
+        the ✕ and the gold line already ride), so a one-block page is
+        byte-for-byte what it was; **shut, the row says that block's first
+        words** (a column of rows reading "Block 2" is a scene she has to
+        reopen to identify — the panel fold's own line) and open it says
+        nothing, since the words are right there; what it hides is
+        **DISPLAY-hidden and stays in the DOM**, so a folded block still
+        sends its words, still renames its slots and reserves nothing for the
+        pill; the **gold line moves to the heading** when the block she is in
+        is folded away, because the box that wears it is not on screen and the
+        star must never point at a block with nothing on screen saying so;
+        **anything that puts words in a block OPENS it** (a slot tap, a
+        character's line, a put-back, a hand-off — each writes into the block
+        and then FOCUSES it, and focusing a box that is not on screen does
+        nothing at all; a slot RENAME inside words she already wrote is not
+        this, exactly as it is not on the panel fold); it is **MEMORY, never
+        localStorage** — a reload opens everything, the safe direction, and
+        this is how she is reading the panel right now rather than a setting;
+        and **a box is never fitted while it is folded** (`scrollHeight` on a
+        `display:none` box is 0, so it would come back one line tall — every
+        path that reopens one refits it). **THE FIRST DIVIDE NOW COSTS HEIGHT
+        ABOVE THE SEAM** — it turns the panel `.many` and draws that block's
+        heading above the box — so `divideBlock` measures the head box's top
+        before and after and gives the difference back, which is what keeps
+        the seam exactly where her eyes are (the caret keeper was papering
+        over it a frame later, close enough to read as still and never
+        exact). PHOTOGRAPHED, and it caught both real bugs: a `<button>` is
+        inline-level and shrinks to fit, so the shut row ran off the right of
+        the phone instead of ellipsizing, and the ✕'s own rule carries one
+        class more than the blanket hide, so it floated alone over a folded
+        block's heading. Test:
+        `node scripts/test-footage-block-fold.js` (every assertion a
+        MEASUREMENT — a heading that folds nothing, a fold whose CSS never
+        landed, a block that comes back one line tall, a folded block whose
+        words silently stop being sent, and a heading drawn on a one-block
+        page all look identical in the source; it CRASHES against the pre-fix
+        page, where there is no heading at all).
+      - **A BLOCK IS A DIRECT CHILD OF THE PANEL**, never inside a wrapper,
+        or the pill-gap fitter would shorten every block for a pill only the
+        first one touches. `#prompt` / `#bigprompt` stay on the first block,
+        so the hand-off, the tests and every older reader see the box they
+        always did. Test: `node scripts/test-footage-divide.js` (every
+        assertion a MEASUREMENT — the icon with no words, the two buttons
+        pinned side by side and both tappable, the ring's real colour, what
+        the stub really received from the star, the SEAM not moving on a
+        pinned divide — the head box's own top on the glass, since the head
+        shrinks from the bottom and setting `.value` drops the caret to 0 —
+        the slot renamed in the second block).
+    - **CHARACTERS, THEN SETTING — TWO PERMANENT BLOCKS AT THE TOP, SHUT BY
+      DEFAULT (2026-09-13, Sophie: "i envision two permanent default collapsed
+      blocks at the top of footage: characters, then setting").** Who is in
+      the scene and where it is do not change from shot to shot, and until
+      this they were retyped into every block or re-tapped off the cast shelf
+      per clip. So the panel opens with two blocks of its own above the scene,
+      and **what is written in them rides at the TOP of the prompt of every
+      clip she sends** — the star's own block and the appended All alike, in
+      that order, blank line between, exactly the shape the join mark and the
+      All star already give her words. Six things not to undo:
+      - **THEY ARE NOT `blocks()`.** A head is `.headwrap`/`.hblock`, never
+        `.promptwrap`/`.pblock`, so "the blocks" goes on meaning her SCENE
+        blocks in every reader there is: the numbering, the gold line, the
+        join marks, the ✕, the divide, `setBlocks`, the draft (`prompt` first,
+        `blocks` after it), the belt hand-off and every test are untouched by
+        construction rather than by remembering to skip two. The heads ride
+        the draft under their own names (`heads: {characters, setting}`),
+        written only when one of them holds something.
+      - **THE GOLD LINE NEVER MOVES TO ONE.** `setActive` is reached through
+        `closest('.promptwrap')`, which a head is not, so tapping into
+        Characters leaves the star pointing where she left it — right,
+        because the star cannot send a head on its own: it is a head, not a
+        shot. For the same reason the scene box, not a head, is what "say
+        what the clip is first" is about.
+      - **AN EMPTY HEAD ADDS NOTHING**, and with both empty the prompt is
+        byte-for-byte the words in her box. Emptying one is how it stops
+        riding: **permanent means no ✕ and no divide** — nothing takes one off
+        the page and nothing turns one into two.
+      - **`clear` DOES NOT TOUCH THEM.** It wipes the JOB — the blocks, the
+        references, the marks, the seed — and the cast and the room are the
+        standing thing above it, so the next shot of the same scene keeps
+        them. A clear that retyped them would be "permanent" meaning nothing.
+        A belt hand-off leaves them alone for the same reason.
+      - **SHUT IS WHERE THEY START, EVERY LOAD** — the one place this page
+        folds by default, and the opposite of a block's own fold (memory for
+        the life of the page, open on a reload). It is only safe because
+        **shut, the heading SAYS ITS WORDS**: a value riding every clip with
+        nothing on screen saying so is the hidden ingredient the price beside
+        the star exists to prevent.
+      - **`paintHeadBlock`, NOT `paintHead`** — the page header has a
+        `paintHead` of its own hundreds of lines down, and a duplicate
+        function DECLARATION is not an error: the last one in the file wins,
+        silently. The first cut of this folded correctly and painted nothing
+        at all, which is invisible in the source and is what the test caught.
+      Test: `node scripts/test-footage-heads.js` (every assertion a
+      MEASUREMENT of what really renders or a reading of what the stub server
+      really received — a head that never folds, one that quietly joins
+      `blocks()` and renumbers her scene, one that rides twice on an appended
+      send, one that rides at the BOTTOM, and one whose words never reach the
+      door all look identical in the source; it CRASHES against the pre-fix
+      page, where there are no head blocks at all).
+    - **WHAT CHANGED — THE COMPARE PANEL (2026-09-11, Sophie: "is there an
+      easy way I can diff video clips like I can't remember what I changed for
+      example sometimes it's a single line or a reference for the model the
+      timing etc … It's always been Sophie clips since they're pretty similar.
+      I can't remember what I was trying to fix").** A compare mark on every
+      card (Lucide `git-compare`) opens a paper sheet — the same ✕ in the same
+      corner as the player — on THIS clip against the one BEFORE it in the
+      same project, and draws only what moved: a **word diff of the prompt**
+      (what she put in underlined on a green wash, what she took out struck
+      on rose — her Sophie clips share ~90% of their words, so a plain
+      side-by-side hides the one line), **one row per setting that changed**
+      (`seconds 8s → 12s`; the seed, the model, the size, the shape, the door
+      and the project — never `sound`, which every clip here has), and the
+      **references matched slot by slot** in the doors' order, so a different
+      picture in `[Image2]` is ONE `swapped` row rather than a removal and an
+      addition, with the keyframes on their own lane. A one-line summary sits
+      over it (`1 word · seconds 8s → 12s · [Image1] swapped`), which is also
+      what a chat can print off `summary()`.
+      - **NOTHING NEW IS STORED.** Every card already carries the exact
+        prompt, the settings and every reference url; the panel is a READ of
+        two cards through `clip-diff.js` — pure, at the repo root, loaded by
+        the test and served to the page at `/clip-diff.js` (the
+        `pause-plan.js` pattern), so the panel and the test drive one rule.
+      - **A REFERENCE IS NAMED, NEVER SHOWN AS A HASH.** The name is resolved
+        off the CAST LIBRARY (`castNames`: url → "Sophie · the blue pajamas",
+        the character alone on a one-look entry; the wardrobe entry itself for
+        a floating outfit), then the ref's own `name`, then the url's filename
+        — and a Storage id (random hex) is refused as a name, so the slot and
+        the thumb stand alone rather than a string that says nothing. The
+        shelf is read once per film (`cmpCast`), lazily, when the panel opens.
+      - **THE OTHER SIDE DEFAULTS TO THE CLIP BEFORE, IN THE PROJECT**
+        (`previousOf`: next older by `sentAt`, same project; an unfiled clip
+        is compared against the unfiled ones, never against another
+        project's). Most redos are one clip chained off the last, so one tap
+        answers "what did I change". `‹ older` / `newer ›` walk the other
+        side along the project; **`pick a clip`** closes the panel, lights the
+        mark on the clip the pick is for, and the next compare mark she taps
+        is the other side (tapping the lit one again cancels). A clip with
+        nothing before it on the page goes straight to a pick with a toast.
+      - **A CLIP OLDER THAN THE PAGE HOLDS IS ASKED OF THE SERVER**, one at a
+        time, off the feed's own cursor (`/jobs?limit=1&before=<sentAt>` in
+        the project) — and kept in a SIDE POOL (`cmpPool`), never landed on
+        the feed, so the `… older` walk's cursor is untouched and a page she
+        has not walked to is not skipped.
+      - **The pill still owns its column.** `#cmp` sits over the pill in
+        z-order, but the pill adopts a nearly-full-screen scroller and lifts
+        itself above it — which is right, the body scrolls — so the panel
+        reserves the 64px on its right like every other sheet here. The
+        page is locked behind it and put back on close; `__navBack` closes it
+        first, the way it closes the player.
+      - **LINES FIRST, WORDS SECOND — AND THE OTHER SIDE IS THE NEAREST
+        TWIN, NOT THE CLIP BEFORE IT IN TIME (2026-09-11, the same evening,
+        Sophie with a screenshot of the live panel: "text looks wrong. It
+        should call out exactly what changed").** The first cut ran one word
+        LCS over the WHOLE prompt and opened on the clip immediately older
+        in the project — so a 15s 9:16 Sophie clip was diffed against a 4s
+        failed 3:4 clip about something else, and every "the" and "a" the
+        two shared was lined up and the rest painted as a hash of green and
+        rose. Two changes, one rule each in `clip-diff.js`:
+        - **The prompt is diffed as LINES.** A line that is the same is
+          same; a line replaced by a near-twin (`LINE_TWIN`, half its
+          distinct words shared) is word-diffed against that twin so the
+          one changed word lights; anything else is a whole line struck or
+          a whole line in. The newline after a line belongs to the side
+          that has a line after it, which is what lets the diff still
+          re-join byte for byte to BOTH prompts (an added last paragraph
+          brings its own break in as an add).
+        - **`kinOf` picks the other side** — the nearest OLDER clip in the
+          project whose prompt shares `KIN` (0.4) of its distinct words, a
+          redo. The page runs it over the clips it holds and, when the twin
+          is further back than the feed has loaded, asks
+          `GET /api/footage/jobs/:id/kin`, which runs the same function over
+          the whole project. With no twin anywhere the plain previous clip
+          answers, marked `kin:false`, and the panel says **"A different
+          prompt — nothing to line up word for word"** and shows this clip's
+          words plain instead of a hash; the walk and the pick are the way
+          to a real twin. "‹ older" walks twin-first too.
+      - Tests: `node scripts/test-clip-diff.js` (the rules pure — the diff
+        re-joins to either prompt byte for byte in both shapes, unrelated
+        prompts come out as one line out and one line in, a reworded twin
+        line lights only its word, kin skips an unrelated older clip and
+        answers `kin:false` with none, a swapped slot is one row, the names,
+        a pasted scene past the size cap — then the real page headless: the
+        panel opened on the nearest ward TWIN and NOT the unrelated ward clip
+        right before it nor the other project's, the added word MEASURED as
+        a painted span, the settings row, the cast name on the swapped
+        reference, the walk, the server's kin route asked for the clip under
+        the page, a no-twin clip saying "a different prompt" with no lit
+        span, the pick landing on the tapped card, ✕ and `__navBack` closing
+        it).
+    - **SHE TRIMS A CLIP AS IT COMES OUT (2026-09-10, Sophie: "how hard
+      would it be to make it possible to trim clips right as they come out of
+      the footage module?").** A Mini clip is 4-15 seconds and the shot inside
+      it is usually shorter — the model holds a beat before the move starts
+      and drifts at the tail — and until this the only way to lose either end
+      was the Film Editor, a tool away, so a clip she liked went into the
+      draft carrying its dead air. Tapping a clip opens the lightbox it always
+      did, now with two marks under the picture: **Start here** / **End here**
+      land at the playhead, `‹ ›` walk the playhead a tenth of a second so a
+      mark can be placed exactly, the strip shows what is kept against the
+      whole clip, and **Trim** bakes it. `POST /api/footage/jobs/:id/trim
+      { start, end }`; `{ clear: true }` undoes it.
+      **IT COSTS NOTHING** — ffmpeg on our own box, no model call, no door;
+      what she paid for is the clip, and trimming and undoing are both free.
+      The rules, none of them optional:
+      - **HER CLIP IS NEVER TOUCHED.** A part is a NEW object under
+        `footage/trims/` and `video` on the log doc — the clip the door drew —
+        is never written. `trims` is a list beside it, so the poll, the
+        exact-prompt log and the 1080p-redo reading list all go on seeing the
+        original, and taking a part off is one entry off that list rather than
+        a restore.
+      - **ONE CLIP HOLDS SEVERAL PARTS (2026-09-10, Sophie: "Can you also make
+        it possible to re-cut the same whole clip after I've cut it to also get
+        a second part").** `trims` is the shape, and the singular `trim` this
+        shipped with is READ as a list of one (`trimsOf`), so nothing already
+        on file needed migrating and `cardOf` still answers `trim` as the first
+        part for a page cached from before. `POST /jobs/:id/trim` is the one
+        door: `{start,end}` ADDS a part, `{start,end,replace:<key>}` swaps one
+        span for another IN ITS OWN PLACE in the order, `{remove:<key>}` takes
+        one off, `{clear:true}` takes them all off; re-adding a span already
+        cut is a no-op. Four things not to undo:
+        - **THE MARKS OPEN ON THE WHOLE CLIP.** What she has cut is the dim
+          bands on the strip and a row each under it, so the next tap is
+          marking a different bit rather than editing the last one. A row's
+          span puts its own marks back (and the next cut REPLACES that part);
+          its ✕ is the undo — the only one that can mean the right part once
+          there are several, which is why the single "Undo the trim" button
+          is history.
+        - **THE PLAYER STAYS OPEN ON A CUT.** She is taking a second part out
+          of the same clip; closing every time would mean finding the clip on
+          the wall and re-opening it between every one.
+        - **`video` — what Save and a note key off — is the FIRST baked part**,
+          and `source` is always the original the marks are measured in.
+        - **THE BAKE GUARD PATCHES ITS OWN ENTRY** rather than writing back the
+          list it planned, or a part she cut while another was encoding is
+          dropped when the slower bake lands.
+      - **AND SHE CAN PLAY THE WHOLE CLIP TO CHECK THE CUT (2026-09-10, her
+        first ask that morning: "can you make it possible to play the whole
+        clip to make sure I cut the right part?").** *Play it all* is ONE PASS
+        past the out mark, never a mode: it ends when the clip does, and any
+        mark she moves ends it too; tapping it again goes back to the part and
+        plays that. It is drawn only while the span is narrower than the clip
+        — with the marks at the two ends, play already plays it all. **The
+        label is short on purpose** (PHOTOgraphed beside "Whole clip", which
+        resets the MARKS: two long labels there read as one thing said twice).
+      - **A TRIMMED CLIP SAYS SO ON THE WALL TOO (2026-09-10, Sophie: "can
+        you put a little icon on clips that have been trimmed even in the tile
+        view?").** A small scissors chip in the tile's TOP-LEFT corner — the
+        heart and the ✕ own the bottom corners — carrying the NUMBER only when
+        the clip holds more than one part, the way the card's rows number
+        themselves. Three things not to undo: it counts only a part that
+        really BAKED (one still baking has cut nothing yet, and "trimming…" is
+        said on the card's own row, where there is room for it); it rides as a
+        CLASS toggled in `applyFilt`, OUT of the wall's signature exactly like
+        the ✕, so a trim landing can never rebuild the wall and re-decode
+        every poster; and its **15px at top:2 is MEASURED** — at four across a
+        16:9 tile is 49px high and the heart's 26px box starts 19px down, so
+        the first cut sat on it (measured at three AND four across, both ways
+        round: the mark drawn, the mark off the heart, and every control still
+        taking its own tap).
+      - **THE SPAN IS ALWAYS IN THE ORIGINAL'S OWN SECONDS,** so the player
+        opens the SOURCE even on a clip that is already trimmed: a trim can be
+        widened back out, re-cut or undone. Trimming a trim would make the
+        marks mean something different every round and lose a generation of
+        quality per pass.
+      - **IT IS BAKED ONCE** — content-addressed by the source url and the
+        span, so re-cutting a span she has already cut is one HEAD and no
+        encode, and an undo followed by the same trim is free.
+      - **ONE DECODE AT A TIME** (`gateTrim`). A video decode is the one thing
+        that has actually killed this 512MB box (the panels-cut ledger in
+        CLAUDE.md), and a trim is never urgent.
+      - **A LATE BAKE NEVER SPEAKS FOR A TRIM SHE HAS MOVED ON FROM** — the
+        doc's own `trim.key` is the authority. Trims queue, so a second tap
+        lands while the first is still encoding; the write that matters is the
+        UNDO, since without this a bake finishing after `clear` puts the trim
+        back on the doc by itself.
+      - **THE CUT IS `clips.js`'s OWN** — `chunkGraph`, the recipe the Chunking
+        library already shares with Cut Marks: trim + setpts with 12ms audio
+        fades at each edge so an exact cut never clicks. A second copy of that
+        would be a second set of edges to debug. **The FILE is the truth about
+        its own length**, not the seconds she asked the door for (a clip is
+        24·s + 1 frames), so the out-mark is CLAMPED to what ffprobe reads
+        rather than refused against the ask.
+      - **EVERYTHING IS A TAP** — Cut Marks' rule. Nothing drags: the marks
+        land at the playhead, **tapping the strip puts the playhead where she
+        tapped** (2026-09-10, Sophie: "can you make it so I can tap where the
+        play head goes"), and the steppers walk it a tenth of a second at a
+        time. The strip shipped as a READ-OUT — "the video's own scrubber
+        already seeks" — and she overruled it the same morning, so that is
+        HISTORY, not a rule. The BAND is the target and the BAR is the
+        picture: 34px tall with the 10px mark drawn inside it, the fraction
+        measured off the BAR's own rect so the band can grow without moving
+        where a tap lands, and it pauses like the steppers. Playing plays the SPAN and loops it — that is how a trim is judged
+        before it is committed — but **scrubbing is never yanked**, or finding
+        the out-mark would be a fight with the loop. The button's meaning
+        follows the marks: **Trim** with nothing cut yet, **Add part** once
+        something is, **Replace** while a part's row is picked, and where it
+        would do nothing it is not drawn at all. **AND THE KEEP BAR IS NOT
+        DRAWN AT ALL WHEN THE MARKS SPAN THE WHOLE CLIP** (PHOTOgraphed): a
+        bright band over the whole strip covers the dim bands of the parts she
+        has already cut, and the whole clip is exactly the state the trimmer
+        opens on now.
+      - **/filmnote.js IS HOSTED ON THE STAGE, NOT THE WHOLE PLAYER.** It
+        anchors everything it draws to its wrap's BOTTOM edge, so with
+        `#player` as the wrap its Note button landed ON the trim controls
+        (PHOTOgraphed, over the `›` stepper). `.pstage` carries
+        `position:relative` for it and the note UI sits over the picture,
+        where a note about the film belongs — pinned by a measurement both
+        ways round.
+      **AND THE LAST FRAME IS IN PLAY SINCE 2026-09-10 (Sophie: "on").**
+      Every Atlas job asks for `return_last_frame`, so a finished clip carries
+      the frame it really ends on — the door's own render rather than a decode
+      of the mp4, and free. A TRIM MOVES THAT END: the baked frame belongs to
+      the SOURCE clip, so the card answers it whatever the trims say (it is a
+      fact about the source).
+      **AND IT IS ON THE CARD SINCE 2026-09-11, WHICH IS THE ONLY DOOR IT HAS
+      (Sophie: "how do i get these last frames").** The RECENT drawer was the
+      only place it had ever shown and she took the outputs out of that drawer
+      the same day it shipped ("recents is recent UPLOADED"), so for a day
+      every Atlas clip carried a picture with nothing on the page drawing it —
+      and the "?" card still said it was in the drawer, which is how it stayed
+      invisible. It is a tile in the card's own picture row now, BESIDE the
+      references (one grid: it takes the next free column, so the card is no
+      taller — a row of its own read as a second reference stacked under the
+      first, PHOTOGRAPHED both ways). Tapping it opens it big in the clip's own
+      player — no trim bar, no filmnote, there is nothing to mark and no second
+      to note — with a **save** in the way-out row that goes to Photos through
+      the same three-path ladder the clip's save uses (`saveMedia`, which
+      sniffs a picture off the url for the name and the share-sheet type; the
+      native bridge already routes a picture to PhotoSaver and a clip to
+      VideoSaver, so nothing on the Swift side moved). A tap ON the picture
+      does not close it, the house rule the player already keeps.
+      **THE LABEL SAYS `last frame · whole clip` ON A TRIMMED CLIP** — the
+      frame is the end of what the DOOR drew, never the end of the part she
+      kept, and that is the one thing worth knowing before chaining a shot off
+      it. Re-pulling the frame from the trim is the fix if she ever wants both;
+      nothing does it yet, and there is no "use this as a reference" button
+      either — chaining is still save, then attach.
+      **THE WAY OUT IS ITS OWN ROW ABOVE THE PICTURE (2026-09-11, Sophie:
+      "all the stuff at the bottom in trim view, esp after a trim is added,
+      makes it impossible to close the player").** The ✕ shipped absolute in
+      the player's top-left corner — the slack a bottom-aligned stage leaves,
+      which a PORTRAIT clip does not leave. Measured at the app's 390x700
+      with a 3:4 clip: the stage fills to the top, the video paints over the
+      button (later in the DOM, both positioned), `elementFromPoint` at the
+      ✕'s centre answers VIDEO, and 0% of the screen is bare backdrop (6.9%
+      with parts listed — two thin side strips). So the trim view of every
+      ward clip had no way out but the app's chevron, and the main test's
+      presence check on `.pclose` passed throughout. `.ptop` is a `flex:none`
+      row in the column the stage yields to, so the ✕ is on screen whatever
+      the clip's shape (the picture is one row shorter), clear of the video's
+      own top-left controls, and the row's dead space closes like the stage.
+      Pinned by the portrait block of the test (verified failing 5 pre-fix):
+      the ✕ asked with `elementFromPoint`, the video's rect proved to start
+      under it, and the tap a positional `mouse.click` — playwright's element
+      click refuses a covered target with a timeout, a crash rather than a
+      finding.
+      Test: `node scripts/test-footage-trim.js` (the rules pure, then a REAL
+      encode measured with ffprobe — a recipe that reads perfectly and a file
+      that is the wrong length look identical to any source assertion — then
+      the real page headless with a seekable VP8 fixture, every assertion a
+      measurement of the rendered strip, the loop's own `currentTime`, or what
+      the server really received).
+    - **GRAB FRAME — THE FRAME UNDER THE PLAYHEAD BECOMES A REFERENCE, ON THE
+      SPOT (2026-09-12, Sophie: "I need to cut one out. I said the last frame
+      doesn't have the curtains" · "it shouldn't file to the dump. It should
+      give me a way to use it immediately as a reference for my next film").**
+      The last frame Atlas hands back is the END of what the door drew, and
+      the frame that carries continuity is often somewhere in the middle. A
+      third word on the trimmer's row, beside Start here / End here: tap the
+      strip to put the playhead on the frame, tap **Grab frame**, and the
+      frame is `[ImageN]` in the references strip with the player closed and
+      the page at the top — the same landing the last-frame tile's
+      `reference` door makes (`useShot`). `POST /api/footage/jobs/:id/frame
+      { at }` answers `{ url, at }` synchronously — a download plus one
+      decoded frame is a few seconds and the url is what she is waiting for.
+      Four things not to undo:
+      - **HER CLIP IS NEVER TOUCHED and NOTHING GOES TO THE DUMP** (her
+        word). The frame is a new PNG under `footage/frames/`,
+        content-addressed by the source url and the second, so the same
+        frame grabbed twice is a HEAD and no decode; the clip's doc is not
+        written at all — the frame lives in the strip she dropped it into
+        and in her draft.
+      - **IT IS READ OUT OF THE SOURCE**, never a trim — the player always
+        opens the source, so the second she sees is the second she gets.
+        `-ss` before `-i` seeks to the keyframe and decodes forward to the
+        exact frame; the test pulls a frame 0.98s past a keyframe out of a
+        clip whose colour changes every second and reads the pixels back.
+      - **PNG AT THE CLIP'S OWN SIZE, never scaled** — a continuity reference
+        is judged by the model at whatever it is, and a jpeg's ringing on a
+        hairline is what such a frame must not carry.
+      - **ONE DECODE AT A TIME** — it stands in `gateTrim`, the trims' own
+        queue. A playhead parked on the clip's end is clamped to the last
+        frame rather than refused.
+      Nothing is sent: the star is still her tap. Test:
+      `node scripts/test-footage-grab-frame.js` (the rules pure, a REAL pull
+      measured with ffprobe and its pixels, and the real page headless — the
+      row measured as one line at 390pt with every word taking its own tap,
+      the second the stub really received against the playhead, the strip
+      and the draft afterwards, and zero Dump posts).
+    - **THE PRICE IS EXACT (2026-09-09, measured off 113 OpenRouter jobs, 44
+      APIFRAME jobs and ffprobe on the clips).** `tokens = w × h × (24·s + 1)
+      / 1024`, × the SKU, × `(1 − the live discount)` — Mini renders on the
+      **2.5 canvases**, a clip is **24·s + 1 frames**, and the 5% top-up fee
+      is NOT in the shown price. The sale is READ from OpenRouter's
+      `pricing.discount` (cached ten minutes; a failed read is 0, full list,
+      never a stale sale) rather than written down: ByteDance's 60%-off
+      campaign on mini runs to 2026-10-07 but OpenRouter stopped passing it on
+      this morning, so a 4s 3:4 480p Mini went 5.58¢ → **13.96¢**. A reference
+      video is the one shape still unpinned and answers "about"; everything
+      else answers exact. APIFRAME is per second with its own rate when a
+      video rides (2.5 at 480p: 15¢/s with, 13 without). Full numbers and
+      dates: *THE PRICE IS EXACT* in CLAUDE.md's Footage bullet.
+    - **NOTES ON A CLIP — THE HOUSE THREAD, TWO DOORS (2026-09-10, Sophie:
+      "can you make it possible to add notes on clips that come out of the
+      footage module?").** A speech mark on every finished clip's card opens
+      an empty box; playing a clip gives her `/filmnote.js` — tap to pause,
+      note the second she stopped on — the ONE implementation, the same one
+      the Chats app's pinned film and compare.js's video lightbox use.
+      **No new route and nothing new stored:** both doors POST
+      `/api/gallery/assets/note` (`chat` = whatever `/status` serves, i.e.
+      `footage`) and the card reads `GET /api/gallery/assets/notes?chat=`,
+      so a note rings the wake doorbell, lands in the one inbox every chat
+      sweeps, and is answered ON the note (`from:'chat'`) — which reads back
+      under hers on the card. The thread is painted OUTSIDE the card's
+      signature (a note landing must not rebuild the card and re-decode its
+      poster), the notes are read on load / on `visibilitychange`→visible /
+      when the player closes and never on the drawing poll, an over-length
+      note is refused with her words still in the box, and a clip with no url
+      yet carries no mark. **The player's tap-out is the backdrop only** now
+      (chats.html's rule) — the old "anything that is not a VIDEO" would have
+      closed the player on filmnote's own button and sheet. Full rules and
+      the six things not to undo: the Footage bullet in CLAUDE.md.
   **THE COLLECTION PAGE UNDER-LISTS — PROBE THE MODEL NAMES (same day,
   Sophie: "why did u skip 2.5 etc").** Replicate's image-to-video collection
   page showed six Seedance models; `GET /v1/models/bytedance/<name>`
@@ -80,6 +1142,254 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
   only until that changes; `wan-2.7-i2v` is the proven 3s image route. Probed and
   absent: 2.5-fast, 2.5-lite, 2.5-pro, 2.0-lite, 2.0-pro, 1.5-lite. A
   catalogue page is a hint; the model endpoint is the measurement.
+- **THE CHARACTER LIBRARY — `cast.js`, `/api/cast`, the people icon on the
+  footage controls row (2026-09-11, Sophie: "we need a version of 'characters'
+  for footage so i can click a button and it auto adds the line at the top,
+  adding and referencing videos and stills · characters w multiple outfits will
+  have ex, sophie w pajamas vs sophie street clothes · add character icon to
+  footage and have it per film - diff folders · some characters are just stills
+  for now").** One shelf per FILM. A tap on a character — or on one of their
+  outfits — puts that look's references into the strip and the line that names
+  them BY SLOT at the top of the prompt.
+
+  **WHY IT EXISTS.** Every ward clip's references were hunted by hand: the jazz
+  clip's url, three pajama stills, the doctor's 4-second take, and the exact
+  line naming each of them by slot, retyped per shot, per chat, per belt page.
+  That is where the wrong-slot and wrong-outfit bugs came from, and neither
+  shows as an error — the clip draws, of the wrong person, in the wrong
+  clothes. **It spends nothing:** no model call anywhere, and the urls already
+  exist in the Dump and the clip log.
+
+  - **A DOC IS AN ENTRY**, keyed `<film>__<slug>` so two films may both have a
+    `sophie` and neither can reach the other's:
+    `{ film, slug, name, kind: 'person'|'wardrobe'|'setting', note, order,
+    hidden, looks: [ { key, name, line, refs, wear, note } ] }`.
+  - **A LOOK IS A CHARACTER IN ONE OUTFIT** — the references that carry it and
+    the ONE LINE the prompt opens with. `sophie · the blue pajamas` and
+    `sophie · street clothes` are two looks on one character; that is her own
+    example, and it is why a look rather than a character is what a tap lands
+    on.
+  - **THE LINE IS A TEMPLATE OVER THE LOOK'S OWN REFERENCES — `{1}`, `{2}` …
+    — NEVER a literal `[Video1]`, and that is the load-bearing rule.** A slot
+    is decided by what else is already attached, so her ward line
+    `sophie is the woman in [Video1].  she wears the blue hospital pajamas in
+    [Image1], [Image2] and [Image3], NOT the dress in [Video1]` is stored with
+    `{1}` for the clip and `{2} {3} {4}` for the pajamas, and resolves to
+    `[Image2] [Image3] [Image4]` the moment it is attached beside a still she
+    already had. Stored literally it would point at somebody else's stills as
+    soon as a second character rode along.
+  - **`cast-line.js` IS THE ONE RULE** — pure, loaded by `cast.js` on the
+    server and served to the page at `/cast-line.js` (the `pause-plan.js`
+    pattern). So **the sheet shows the exact line the tap will insert**,
+    resolved against the strip as it stands, and the page and the `/plan`
+    route cannot disagree about a slot. It computes the WHOLE strip after the
+    attach — deduped, then ordered images → videos → audio, which is what
+    `footage.slotsOf` numbers and what `orderedRefs` paints — and reads each
+    slot off that. **A test pins it against `footage.slotsOf` directly.**
+  - **EVERY OTHER LOOK ON SCREEN IS RE-RESOLVED AFTER AN ATTACH.** The
+    previews are computed against the strip, so the slot a look would take
+    moved the instant another one landed; a sheet quoting the old ones is the
+    one thing this disclosure must never do. (Verified failing without the
+    repaint.)
+  - **AND TAKING A REFERENCE OFF TAKES ITS NAME OUT OF THE PROMPT AND
+    RENUMBERS THE REST — `dropPlan`, the same file (2026-09-11, Sophie: "if i
+    delete an image, it shud remove the tags associated w that image").** The
+    ✕ on the strip used to remove the reference and leave her words alone,
+    which is the template rule's own bug arriving from the other end: a slot
+    is a POSITION, so taking the second of three images off left `[Image2]`
+    naming nothing AND `[Image3]` naming a picture that is now `[Image2]` —
+    and the clip still draws, of the wrong reference. Four things not to undo:
+    - **ONE PASS over the prompt**, so a rename can never land on a token
+      another rename is about to read — `[Image3]` → `[Image2]` beside
+      `[Image2]` → gone is the ordinary case, and two sequential passes eat
+      it, leaving her prompt naming one picture in two places.
+    - **HER WORDS ARE NOT REWRITTEN, only the names.** The slot names are the
+      page's own vocabulary (she taps them in; she never types them) and the
+      whitespace a name stood in belongs to the name — so a removal leaves no
+      double space and no space in front of punctuation, and leaves the
+      dangling comma in `[Image1], and [Image2]` exactly where it is. A prompt
+      that reads a little wrong is hers to fix; one that reads fine and names
+      the wrong picture is not.
+    - **THE TOAST SAYS WHAT MOVED** (`[Image2] came out of the box · 1 name
+      renumbered`) — a change to her prompt she cannot see is the
+      hidden-ingredient failure the price line exists to prevent. A prompt
+      that never named the reference is left byte-for-byte as she typed it and
+      says nothing.
+    - **BY POSITION when an index is given**, because that is the row the
+      strip drew: a copy-back makes NEW objects at the same urls, so an
+      identity filter removes nothing (`footage.html`'s own finding). A token
+      nothing maps — a name she typed pointing past the end — is left VERBATIM
+      rather than quietly changed.
+    Matching is tolerant of her typing (`[image 1]`, `[IMAGE2]`) and the
+    replacement is canonical. `slotMap` is the ONE numbering rule now, shared
+    by `stripAfter` (the attach) and `dropPlan` (the ✕), so the two halves can
+    never disagree about a slot. MEASURED on the real page in
+    `node scripts/test-cast.js` (verified failing 5 pre-fix) — a ✕ that
+    removes the row and leaves her words alone, one that removes the wrong
+    row, and one that renumbers nothing all look identical in the source.
+  - **THE PAJAMAS FLOAT AND LIVE IN ONE PLACE** (her rule the same message:
+    "these pajamas float w any patient so keep head off · ex
+    francesca/anastasia gets pjs plus dance photo · same for mayra"). A
+    wardrobe entry is its own row, and a look WEARS it by slug: bare
+    `blue-pajamas` takes the outfit's FIRST look, which is the HEAD-OFF pair,
+    and `blue-pajamas:sophie` names her own set. Swapping the pajama
+    reference swaps it for every patient at once, and a still in two outfits
+    rides ONCE and keeps one slot. **SOPHIE'S SET IS ONE FULL-BODY STILL
+    SINCE 2026-09-11 (her call on the first Wan job: "just the full body
+    pajama, no tape pocket or second, and note that everywhere")** — "A —
+    Sophie alone" (`52a036…`, head to shin, eyes blurred) rides alone, and
+    her line reads `she wears the blue hospital pajamas in {2}` where it
+    counted `{2}, {3} and {4}` (A, "C — teacher cropped out" and the tape
+    pocket) on every ward clip before. The head-off pair for the OTHER
+    patients still carries the tape pocket; taking it off there is hers to
+    say. Changed on the live shelf, in `scripts/seed-cast-ward.js`, and in
+    the wan-test job.
+  - **THE LINE GOES TO THE TOP, AND NEVER TWICE** — her word ("auto adds the
+    line at the top"), never at the caret; a second tap on the same look adds
+    nothing, because she taps a character, types, and taps it again to check.
+  - **SOME CHARACTERS ARE JUST STILLS** (her words) and that is a normal entry
+    — a look whose references are all images works exactly as one carrying a
+    clip. A character with NOTHING on file is still listed, saying so, because
+    that is how she sees who is waiting for a reference.
+  - **ONE LOOK IS ONE TAP.** Opening a row to reveal a single chip decides
+    nothing — Nurse Edna has one clip and one line, so the row IS the button.
+    Several looks open.
+  - **NO LINE, NO INVENTED WORDING.** A look she has not written a line for
+    gets the barest true sentence there is — the name, then the slots
+    (`Nurse Edna: [Video1].`) — because anything fuller would be a
+    DESCRIPTION of a reference, which is the one thing a prompt here must
+    never carry.
+  - **NOTHING IS DELETED** — `hidden` is the verb for an entry. A LOOK can be
+    removed, because a look is one entry in a list and its references are
+    still in the Dump.
+  - **A READ WITH NO FILM ANSWERS THE FIRST FOLDER**, never every film at once
+    — a shelf is one film, two Sophies on it is a bug, and it saves the page a
+    round trip to find out which one it is looking at. The folder she picked
+    is remembered per phone; one that has gone falls back to the first, which
+    is the only case that re-reads.
+  - **SEEDING: `node scripts/seed-cast-ward.js`** — dry by default, `--go`
+    writes, `--only <slug>` repairs one, `--direct` writes through the Admin
+    SDK (which is what fills a shelf BEFORE the route it feeds is deployed,
+    and is immune to a deploy restart). Every url is out of
+    `docs/mental-hospital/refs/cast.json` or `belt/refs.json`, every clip
+    carries the LABEL the belt pages give it, and the lines are hers VERBATIM
+    wherever a card had one — the script prints how many are mine. Re-running
+    repairs rather than duplicates, but it OVERWRITES a look she has since
+    edited, which is what `--only` is for.
+  - **A 4s TAKE PER CHARACTER WAS ALREADY DONE — MEASURED, not assumed** (her
+    "maybe done already"): ffprobe on every person clip the belt pages name —
+    Nurse Edna 4.00s, Ms. O'Hara 4.04, the doctor + assistant (office and
+    hall) 4.04, the parents 4.04, Michael 4s, all 560x752.
+  - **AND SO WAS THE 4s JAZZ CLIP — IT WAS ALREADY RIDING EVERY SOPHIE JOB
+    (2026-09-11, Sophie: "it's on every sophie video in footage · is quality
+    lost? a chat gave it to me first. / if lost quality, find og chat").** The
+    first pass looked for it in the video LOG and the Dump by name and
+    reported it missing; it is on **24 of the 83 footage jobs**, as a
+    REFERENCE VIDEO called `jazz-best4s.mp4` — which is a different question
+    from the one that was asked, and the reason the answer came back wrong.
+    **Quality is NOT lost, measured rather than eyeballed:** it is the last
+    4.06s of the 15.1s original (aligned at 11.04s by a frame-by-frame
+    search), same 560x752 canvas, same 24fps, same H.264 High / level 3.1,
+    2.15 Mb/s against 2.22 — and **PSNR 46-48 dB against the original span**,
+    which is visually lossless (anything over ~45 dB is imperceptible). The
+    decoded frames are not byte-identical, so it IS a re-encode and not a
+    stream copy; at 48 dB that costs nothing worth going back to the original
+    chat for. **And the two copies on file are BYTE-IDENTICAL** (md5
+    `042e7aaa…`): `ward-refs/jazz-best4s-1789011108116.mp4` off the ward
+    references page and `drops/_/042e7aaa….mp4` in the Dump are one clip.
+    Sophie's four clip looks carry it now; the 15.1s original stays as its own
+    `jazz-long` look, since 15.2s is the whole reference-video budget and it
+    leaves room for nothing else.
+  - **AND THE SHELF WAS FILLED FROM HER OWN FILES ALONE — THE OTHER CHAT'S
+    CHARACTER PAGE HAD MORE (2026-09-11, Sophie: "did u even look on the
+    character page another chat created").** It is **"The ward film — every
+    reference (v7)"**, a grid page in the `pajama-assets` chat — 47 items in
+    seven groups, and the first seed (built from
+    `docs/mental-hospital/refs/cast.json` + `belt/refs.json`) missed a
+    person and eleven references. Folded in: **Juanita**, who was not in the
+    library at all (her still, her scenes-only cut, her five pulled frames);
+    Mrs. Norbert's own two clips beside her 25s origin take; Sophie's other
+    three faces and her three jazz stills (a door that refuses a person VIDEO
+    still takes a frame of one); the doctor's second still, the assistant's
+    intake still, and the socks on her feet. **A chat's own reference page is
+    a source, not a duplicate — read it before seeding a library from the
+    repo.** Live: **20 entries, 66 references.**
+    - **HER PAJAMA STILLS ARE THE REPO'S COPIES, ON PURPOSE.** The page
+      carries its own optA/optC at the identical 392x932 and 319x752 but
+      smaller on disk (467KB vs 734KB, 305KB vs 326KB) — re-encodes of the
+      same crop — so the seed keeps `cast.json`'s originals, the house
+      *nothing stands between the source and the output* rule. The headless
+      still and the tape pocket are the same file on both.
+    - **The page's first group — "People — photographs" — has four
+      photographs attached to nobody** (Grey sweater, Blonde studio, Blazer
+      portrait, Blazer full length). They are not in the library because
+      there is no character to attach them to; naming one is hers.
+  - Tests: `node scripts/test-cast.js` — the slot arithmetic pure, every plan
+    driven against a strip that ALREADY holds something (a line that resolves
+    right on an empty box is exactly the case that can never catch this), then
+    the real `public/footage.html` headless, MEASURING what is in the prompt
+    box and what the strip really holds after a tap. An attach that computes
+    the right line and never reaches the box, one that reaches it with the
+    library's own stale slots, and one that writes the same sentence twice all
+    look identical in the source.
+
+- **EVERY REFUSAL A DOOR HAS SENT, IN ONE TABLE, CALLED OUT ON THE CARD
+  (`video-refusals.js`, 2026-09-10, Sophie: "check for other refusal
+  reasons, make sure they're documented and called out").** Measured that
+  day over all 238 jobs on the log (48 Atlas · 45 APIFRAME · 145 OpenRouter)
+  plus a read of every Atlas prediction record. The three doors forward to
+  the same ByteDance model service, so the SAME refusals arrive through each,
+  worded a little differently; the table matches the text (and Atlas's
+  `error_code`) and answers a KIND and a LINE in her words. The footage card
+  paints the line in red with the door's own text under it (`why` on the
+  card, derived on every read, never stored), a refused tap answers `why` on
+  the POST, and `atlascloud.js`'s `refusalKind` reads the table first. A
+  reason the table has not met paints the raw text alone — add a row.
+  - **`shape` — the request. Free, at validation; another door changes
+    nothing.**
+    - **Reference videos over 15.2s together** (Atlas 1013030, ×4 on
+      2026-09-10 — two 12-15s clips on one job). **Checked BEFORE the tap
+      leaves now**: the floor probe's sidecar banks each reference's length
+      (`seconds`), `refVideoTotalRefusal` sums them and refuses on Atlas with
+      the total, only when every length is known (a sidecar banked before
+      this carries none — the next new reference does). Unmeasured on the
+      other doors, so they are not checked.
+    - **A reference video under ByteDance's pixel floor** (`PixelCountTooSmall`
+      — upscaled by itself now, *A REFERENCE UNDER BYTEDANCE'S PIXEL FLOOR*
+      above).
+    - **Seconds outside 4-15** (`Duration must be between`).
+    - **One reference video and no picture reads as a VIDEO EXTENSION** and
+      `ratio` is refused (APIFRAME ×2).
+    - **A reference picture outside 2:5-5:2** (`expected the aspect ratio to
+      be between 0.40 and 2.50`, APIFRAME ×1).
+  - **`content` — an INPUT gate, before anything draws. Free. The one kind a
+    door falls back on** (Atlas → APIFRAME for a famous face; OpenRouter →
+    APIFRAME for a person): `InputVideoSensitiveContentDetected` /
+    `InputImageSensitiveContentDetected.PrivacyInformation` / "may contain
+    real person" (OpenRouter and APIFRAME, on a video and on a picture), and
+    Atlas's famous-face refusal on the POST (Radcliffe, 2026-09-09).
+  - **`output` — DRAWN, THEN BLOCKED. Unbilled everywhere measured
+    (`price:"0"`, no `generation_id`) but it cost the wait, and it is
+    PROBABILISTIC — the same words drew on the next try more than once.**
+    - **1012004 output video copyright** — Atlas ×2 (both on 2.0 Fast, a
+      plain reference-free dialogue prompt; Mini drew the same words),
+      APIFRAME ×2, OpenRouter ×1 (the Radcliffe bar).
+    - **1012006 output video sensitive content** — Atlas ×1 (2026-09-10,
+      a 15s Mini with no reference). NEW that day; nothing here had seen it.
+    - **1012009 output AUDIO copyright** — the clip drew but its sound was
+      blocked (a song, a known voice): Atlas ×1, APIFRAME ×2 ("output audio
+      may be related to copyright"). NEW on Atlas that day. Say in the prompt
+      what the sound should be, or send again.
+  - **`down` — the door did not answer** (APIFRAME "Polling timed out after
+    1200s" ×1; Atlas's gateway 2026-09-10). Nothing sent or charged.
+  - **AND A REFUSED ATLAS PREDICTION COMES BACK UNDER HTTP 400** — the same
+    record a running one comes back under 200 with, `data.status:'failed'`
+    and the text. `pollVideo` reads it out of the error body (`failedRecord`);
+    before #2283 it threw, `pollOne` swallowed it, and a refused clip said
+    "drawing" on her page forever (the four 15.2s refusals sat 20 minutes).
+    Test: `node scripts/test-atlascloud-failed-poll.js`.
+  Tests: `node scripts/test-video-refusals.js` (every text on the log, the
+  kinds, the card's `why`, the pre-send total).
 - **A model's INPUT KEYS ride its `shape`, never its tier name** — `wan22`
   (`image`/`last_image`, counts frames), `wan27` (`first_frame`/`last_frame`,
   counts seconds), `kling` (`start_image`/`end_image`, fixed 5s). One builder,
@@ -1655,3 +2965,114 @@ never letterbox it.** Black bars would shrink the picture inside the same
 center-crops (~4:5 and the grid's 3:4) — that is how every reel behaves, and
 opening the reel shows the full frame. Keep anything that must survive the
 preview crop near the vertical center; do not "fix" the crop with bars.
+
+### THE FIRST FRAME, ON ALL THREE DOORS (2026-09-11)
+
+The last frame of one clip, pinned as the frame the next one starts on — the
+continuity tool this draft keeps needing, and until this day it existed only
+as `start_image` on APIFRAME, which the Footage page never sent. Every door
+now takes the SAME two fields, **`firstFrameUrl` / `lastFrameUrl`**, and maps
+them onto whatever it calls them on the wire. Read off each vendor's own docs
+on the day; NOTHING here has been SENT — every check is a unit test or a dry
+build of the request body, no clip was drawn and no money spent.
+
+- **ATLAS CLOUD — a keyframe is a DIFFERENT MODEL ID.**
+  `bytedance/seedance-2.0-mini/image-to-video` beside the
+  `…/reference-to-video` this door has always used (the same pattern per
+  family: `…/seedance-2.5/image-to-video` and so on). It takes `image` (the
+  first frame, **required**) and an optional `last_image`, and takes **no
+  `reference_images` / `reference_videos` / `reference_audios` at all**. Same
+  price per second as reference-to-video, so nothing about the estimate moves
+  — only which door can take the job. `atlascloud.js` swaps the id itself
+  (`imageToVideoOf`) when a first frame rides.
+- **OPENROUTER — `frame_images`**, each entry an `input_references` entry plus
+  a `frame_type`: `{ type:'image_url', image_url:{url},
+  frame_type:'first_frame'|'last_frame' }` (its own guide's example,
+  verbatim). Its guide is explicit: *"If both fields are provided,
+  `frame_images` takes precedence and the request is treated as
+  image-to-video"* — i.e. `input_references` is **dropped, with nothing in the
+  answer saying so**.
+- **APIFRAME — unchanged.** `start_image` / `end_image` beside the reference
+  lists, exactly as it always has; the shared names are read as aliases of its
+  own `imageUrl` / `endImageUrl`. It is the one door that takes a keyframe AND
+  references on one job.
+
+**MEASURED 2026-09-12 (Sophie: "we're trying atlas"): ATLAS REFUSES A FIRST
+FRAME PLUS A REFERENCE, ON THE POLL, FREE.** A raw probe from a container —
+`…/seedance-2.0-mini/image-to-video` with `image` (her hooded still) AND
+`reference_images` (a mansion still), 4s · 480p · 9:16 — was ACCEPTED on the
+POST (`status:'processing'`, job `42bf07d7888b4e9885362198afc7dc87`) and came
+back `failed` on the first poll with Atlas's own line: *"First/last frame
+images cannot be combined with reference media (reference images, videos, or
+audio) in the same request."* No `price`, nothing drawn. So the schema
+reading above is the truth and the module's refusal at the door is right; the
+line is a row in `video-refusals.js` now. **The same shape on APIFRAME the
+same hour (job `1bbfdf17-271c-4555-9a80-7dbbf8958f6e`, `seedance-2-mini`,
+`start_image` + one `reference_image_urls`) failed as "The input or output was
+flagged as inappropriate"** — an AI-drawn hooded woman as the first frame and
+a mansion as the reference — so whether APIFRAME honours a frame AND a
+reference together is STILL unmeasured; its filter answered first. **A first
+frame ALONE on Atlas Mini drew and opened on the exact upload** (job
+`03d4d2afb6f5419b9c8b086b2d17ce89`, opening frame a 2.2/255 mean pixel
+difference from the still she marked, 88s, image-to-video id, last frame
+returned) — and, worth knowing, the identical still sent as a plain
+REFERENCE seven seconds earlier also opened near-verbatim on it (3.3/255),
+so on Mini a lone still reference already tends to start the clip; the flag
+is what guarantees it.
+
+**THE TWO SILENT DROPS ARE REFUSED AT THE DOOR, NEVER HALF-SENT.** A job
+carrying a first frame AND references is refused on Atlas (its image-to-video
+schema has no reference lists) and on OpenRouter (its own guide says the
+references go), each with a line naming APIFRAME as the door that takes both.
+A LAST frame with no first frame is refused on Atlas alone — its `image` is
+required — and is sent as asked on the other two.
+
+**THE DOOR CHOICE ASKS THE SHAPE BEFORE IT ASKS THE PRICE.** `doorTakes` in
+`footage.js` is the rule and `doorFor` ranks only the doors that can take the
+job at all, so auto can never send a keyframe job to a door that must refuse
+it; with no door open for a shape the send is refused with **what to change**
+("take the references off, or take the first frame off") rather than sent
+half-dropped. `GET /estimate` carries `first` / `last` / `refs` so the price
+and the DOOR she reads before the tap are the ones the tap really gets.
+
+**A KEYFRAME IS NOT A SLOT.** A picture marked as the first or last frame
+does not ride the reference lists, takes no `[ImageN]`, and the pictures after
+it renumber as if it were not there — the ✕'s own rule from the other end,
+through the same `cast-line.js` primitives, so a slot means one thing on that
+page. Her prompt is renumbered, never reworded, and the toast says what moved.
+
+**THE LOG KEEPS ONE VOCABULARY.** Every door writes `start_image` /
+`end_image` into `params`, which is what `video-log.js` already reads into
+`references.startImage` / `endImage` — so a chained clip is on the
+1080p-redo reading list under the same name whatever door drew it, and the
+exact-prompt rule is satisfied with no new field.
+
+**ON THE PAGE** (`/footage`): a small flag on a picture reference's thumb
+marks it — a press cycles none → first frame → last frame → none (the
+tick-list's rule: a mark with nothing to aim at may cycle; it is not the
+three-way TRACK the house rule forbids cycling on) — and the slot line under
+the thumb says `first frame` / `last frame` in place of its name. A first
+frame WITH other references draws a line under the strip saying plainly, in
+her words, what the doors will do with it, BEFORE she taps; the line is not
+drawn at all until the server has said which door, because a wrong line is
+worse than a beat with none. A finished clip's **last-frame tile** opens the
+frame big, and the two doors onto the next clip live there beside `save` —
+**first frame** and **reference** — so chaining is two taps and no
+save-and-re-attach. A belt hand-off may carry `firstFrame` / `lastFrame` urls,
+and a url that is not among the references it handed over is ignored rather
+than attached invisibly.
+
+**WHAT IS UNMEASURED, PLAINLY:** whether ByteDance honours a `start_image`
+and a reference list together on APIFRAME (unchanged from before, and the
+reason APIFRAME is the fallback for that shape rather than a promise); which
+Seedance models accept `frame_images` on OpenRouter (its guide's example is a
+Wan model and it names no model list); whether a `last_frame` alone is
+accepted there; and Atlas's image-to-video price against a real charge — it is
+assumed equal per second to reference-to-video, off its own model list. Wan
+3.0's image-to-video sibling is unmeasured on the Atlas door, so a keyframe on
+Wan is refused rather than sent under a key nothing has read back.
+
+Tests: `node scripts/test-video-keyframes.js` (the three build functions, the
+shape rules, the log and the send — pure, nothing sent; verified failing 45 of
+57 pre-fix), plus the keyframe blocks of `node scripts/test-footage.js`,
+`node scripts/test-footage-handoff.js` and `node scripts/test-video-log.js`.

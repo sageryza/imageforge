@@ -178,7 +178,7 @@ const setY = (p, y) => p.evaluate(v => document.querySelector('.pv-frame').conte
   await p.evaluate(() => window.__pill._stop());
 
   console.log('THE APP’S PILL HAS A BACK-TO-TOP');
-  const pt = p.locator('.pageview .ptop');
+  const pt = p.locator('.pageview .ptop:not(.pbot)');
   if (await pt.count() === 1) ok('the button is in the rail');
   else fail('no back-to-top in the page viewer’s pill');
   if (await pt.count() === 1) {
@@ -197,6 +197,32 @@ const setY = (p, y) => p.evaluate(v => document.querySelector('.pv-frame').conte
       if (home < 5) ok('a tap jumps home (' + home + ')');
       else fail('the jump home left her at ' + home);
     }
+  }
+
+  // TO THE BOTTOM (2026-09-13, Sophie, on a Compare page in the app: "why is
+  // there no scroll to bottom arrow"). pill.py has had #pbot since
+  // 2026-09-03; this parent copy is the pill she taps inside the app.
+  console.log('AND A TO-THE-BOTTOM UNDER IT');
+  const pb = p.locator('.pageview .pbot');
+  if (await pb.count() === 1) ok('the button is in the rail');
+  else fail('no to-the-bottom in the page viewer’s pill');
+  if (await pb.count() === 1) {
+    await setY(p, 0);
+    await p.waitForTimeout(200);
+    if (await pb.isVisible()) ok('shown at the top, where there is page below');
+    else fail('never appears, however much page is below');
+    await pb.click();
+    await p.waitForTimeout(1400);
+    const end = await Y(p);
+    const far = await p.evaluate(() => {
+      const w = document.querySelector('.pv-frame').contentWindow;
+      return w.document.documentElement.scrollHeight - w.innerHeight;
+    });
+    if (end > far - 20) ok('a tap jumps to the end (' + end + '/' + far + ')');
+    else fail('the jump to the end left her at ' + end + ' of ' + far);
+    await p.waitForTimeout(200);
+    if (!(await pb.isVisible())) ok('and hides at the bottom, where it has nothing to do');
+    else fail('still showing at the very bottom');
   }
 
   console.log('AND THE SHARED PILL’S OWN TAP GESTURE, SAME RULE');

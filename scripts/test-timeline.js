@@ -239,8 +239,10 @@ const DRIVE = `<script>
   var realFetch = window.fetch.bind(window);
   window.fetch = function (u, o) {
     if (o && o.method === 'PUT') { try { PUTS.push(JSON.parse(o.body)); } catch (e) {} }
+    if (o && o.method === 'POST') { try { POSTS.push(JSON.parse(o.body)); } catch (e) {} }
     return realFetch(u, o);
   };
+  var POSTS = [];
   var ORDER = ${JSON.stringify(ORDER)};
 
   setTimeout(function () {
@@ -284,6 +286,11 @@ const DRIVE = `<script>
       tap(a, '.bot');
       ok(ids()[ids().length - 1] === a, 'the other sends it to the bottom', '');
       var box = unitOf(a).querySelector('.no');
+      // two digits must FIT the box — tool.css's input padding once left 8px
+      // for them and every number past 9 read as "1" (2026-09-06)
+      box.value = '12';
+      ok(box.scrollWidth <= box.clientWidth, 'a two-digit number fits its box',
+         box.scrollWidth + ' > ' + box.clientWidth);
       box.value = '3'; box.dispatchEvent(new FocusEvent('blur'));
       ok(ids()[2] === a, 'typing 3 lands it on 3', ids().slice(0, 5).join(' / '));
 
@@ -349,6 +356,36 @@ const DRIVE = `<script>
 
           ok(nums() === run(), 'the numbers are still 1..N after all of it', nums());
 
+          // ---- SEND TO FOOTAGE (2026-09-13): one connected part is one
+          // block, its moments one to a line. Every assertion is a
+          // MEASUREMENT of what really landed in localStorage — a button that
+          // writes nothing, one that runs a sequence together into a
+          // paragraph, and one that writes one block for the whole story all
+          // look identical in the source.
+          var fb = document.getElementById('tofoot');
+          ok(!!fb && !fb.hidden, 'a story offers Send to Footage', '');
+          ok(!!fb && fb.tagName === 'A' && fb.getAttribute('href') === '/footage',
+             'and it is a real link to the tool', fb && fb.getAttribute('href'));
+          try { localStorage.removeItem('footage_handoff'); } catch (e) {}
+          // the link is a REAL link, so hold the navigation — the question is
+          // what the tap wrote, not where the browser went
+          fb.addEventListener('click', function (ev) { ev.preventDefault(); });
+          fb.click();
+          var H = null;
+          try { H = JSON.parse(localStorage.getItem('footage_handoff') || 'null'); } catch (e) {}
+          ok(!!H && Array.isArray(H.blocks) && H.blocks.length,
+             'the tap writes a hand-off carrying blocks', H && H.blocks && H.blocks.length);
+          ok(!!H && H.blocks.length === units().length,
+             'one block per connected part', (H && H.blocks.length) + ' vs ' + units().length + ' units');
+          ok(!!H && H.prompt === H.blocks[0],
+             'the first block rides as prompt for an older Footage page', '');
+          ok(!!H && H.blocks.some(function (t) { return t.indexOf(String.fromCharCode(10)) >= 0; }),
+             'a sequence keeps its line breaks', '');
+          ok(!!H && H.blocks.every(function (t) { return typeof t === 'string' && t.trim(); }),
+             'no empty block is ever handed over', '');
+          ok(!!H && H.from === 'timeline' && typeof H.at === 'number',
+             'and it names where it came from, stamped', H && H.from);
+
           // embedded under the native bar, the header band goes compact
           // (Sophie: "a lot of space at the top") — static, unbordered, and
           // no taller than the ? needs. NOT floated: a floated ? landed on
@@ -364,6 +401,49 @@ const DRIVE = `<script>
              'and loses the sticky border band', '');
           document.body.classList.remove('embed');
 
+          // SELECT — pick several, delete them together (2026-09-06)
+          var selC = count();
+          var selbar = document.getElementById('selbar');
+          ok(selbar.hidden, 'the mode bar is hidden until she taps Select', '');
+          // MEASURE THE DELTA, never an empty store: main's own Send-to-Footage
+          // step above leaves footage_handoff behind, so "localStorage is
+          // empty" stopped being a question about the SELECT mode.
+          var lsBefore = Object.keys(localStorage).slice().sort().join(',');
+          document.getElementById('select').click();
+          ok(!selbar.hidden && document.body.classList.contains('selmode'), 'Select opens the mode bar', '');
+          ok(getComputedStyle(card(a).querySelector('.pencil')).display === 'none',
+             'the pencil hides while she is picking', '');
+          ok(Object.keys(localStorage).slice().sort().join(',') === lsBefore,
+             'the mode lives in memory, never localStorage', Object.keys(localStorage).join('|'));
+          var host = unitOf(mid);
+          ok(!host.classList.contains('open'), 'the folded unit starts shut', '');
+          card(mid).click();
+          ok(card(mid).classList.contains('picked') && !host.classList.contains('open'),
+             'a tap on a folded middle PICKS it rather than unfolding', '');
+          card(fid).click();
+          ok(card(fid).classList.contains('picked'), 'a tap on a card picks it', '');
+          ok(document.getElementById('selcount').textContent === '2 picked', 'the bar counts them',
+             document.getElementById('selcount').textContent);
+          card(fid).click();
+          ok(!card(fid).classList.contains('picked'), 'a second tap unpicks it', '');
+          card(fid).click();
+          var del = document.getElementById('sel-del');
+          del.click();
+          ok(count() === selC && del.classList.contains('armed') && /2/.test(del.textContent),
+             'the first Delete tap only ARMS it and says how many', del.textContent + ' / ' + count());
+          del.click();
+          ok(count() === selC - 2, 'the second tap deletes both', count() + ' vs ' + selC);
+          ok(!card(mid) && !card(fid), 'the picked cards are gone from the page', '');
+          ok(document.body.classList.contains('selmode'), 'she is still picking afterwards', '');
+          document.getElementById('sel-all').click();
+          ok(document.querySelectorAll('#tl .mcard.picked').length === count(), 'All picks every card', '');
+          document.getElementById('sel-all').click();
+          ok(document.querySelectorAll('#tl .mcard.picked').length === 0, 'None clears them', '');
+          document.getElementById('sel-done').click();
+          ok(selbar.hidden && !document.body.classList.contains('selmode')
+             && getComputedStyle(card(a).querySelector('.pencil')).display !== 'none',
+             'Done leaves the mode and the pencils come back', '');
+
           setTimeout(function () {
             var last = PUTS[PUTS.length - 1];
             ok(!!last && Array.isArray(last.units), 'it saves the arrangement to the server', '');
@@ -371,7 +451,55 @@ const DRIVE = `<script>
                'and the words with it', last && Object.keys(last.moments || {}).length);
             ok(!!last && last.units.every(function (u) { return u.length; }),
                'no empty unit is ever sent', '');
-            realFetch('/result?r=' + encodeURIComponent(L.join(' | ')));
+            var flat = last ? [].concat.apply([], last.units) : [];
+            ok(!!last && flat.indexOf(mid) < 0 && flat.indexOf(fid) < 0,
+               'the PUT no longer carries the deleted cards in its units', '');
+            ok(!!last && !!last.moments[mid] && !!last.moments[fid],
+               'but their words are still in moments — the undo', '');
+            // ---- HER OWN NEW STORY (2026-09-13). Every assertion here is a
+            // MEASUREMENT of what is on screen or of what the server really
+            // received: a Create that opens the box and posts nothing, and one
+            // that posts her title with the moments box dropped, look
+            // identical in the source.
+            var nb = document.getElementById('newbox'), nbtn = document.getElementById('newb');
+            document.getElementById('back').click();
+            setTimeout(function () {
+              ok(!document.getElementById('lvShelf').hidden, 'back returns to the shelf', '');
+              ok(!!nb && !!nbtn && nb.hidden && !nbtn.hidden,
+                 'the shelf offers New story, box shut', '');
+              if (!nb || !nbtn) return realFetch('/result?r=' + encodeURIComponent(L.join(' | ')));
+              nbtn.click();
+              ok(!nb.hidden && nbtn.hidden, 'New story opens the box', '');
+              ok(document.getElementById('ntitle').value === ''
+                 && document.getElementById('ntext').value === '',
+                 'both boxes ship EMPTY — no pre-written text', '');
+              document.getElementById('ncancel').click();
+              ok(nb.hidden && !nbtn.hidden, 'Cancel puts it away', '');
+
+              nbtn.click();
+              document.getElementById('ntitle').value = 'A new one';
+              document.getElementById('ntext').value = 'first thing' + String.fromCharCode(10) + 'second thing';
+              var before = POSTS.length;
+              document.getElementById('ncreate').click();
+              setTimeout(function () {
+                var p = POSTS[POSTS.length - 1];
+                ok(POSTS.length === before + 1 && p && p.title === 'A new one',
+                   'Create posts her name to the server', JSON.stringify(p || null));
+                ok(!!p && String(p.text).indexOf('first thing') >= 0
+                   && String(p.text).indexOf('second thing') >= 0,
+                   'and her whole dictation with it, unparsed by the page',
+                   JSON.stringify((p || {}).text || ''));
+                ok(!document.getElementById('lvStory').hidden
+                   && document.getElementById('title').value === 'A new one',
+                   'and it opens the story it just made', '');
+                ok(document.querySelectorAll('#tl .mcard').length === 0
+                   && !!document.querySelector('#tl .addb'),
+                   'an empty new story still has the + to write the first moment', '');
+                ok(nb.hidden && !nbtn.hidden,
+                   'the box is put away behind it, empty for next time', '');
+                realFetch('/result?r=' + encodeURIComponent(L.join(' | ')));
+              }, 500);
+            }, 400);
           }, 900);
         }, 260);
       }, 260);
@@ -383,6 +511,7 @@ const DRIVE = `<script>
 const page = fs.readFileSync(path.join(ROOT, 'public/timeline.html'), 'utf8') + DRIVE;
 const toolcss = fs.readFileSync(path.join(ROOT, 'public/tool.css'), 'utf8');
 
+const NEW = { title: 'Untitled' };
 let finish = null;
 const server = http.createServer((req, res) => {
   const [route, qs] = req.url.split('?');
@@ -394,8 +523,24 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/css' }); return res.end(toolcss);
   }
   if (route === '/api/timeline/stories') {
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      return req.on('end', () => {
+        let b = {}; try { b = JSON.parse(body || '{}'); } catch (_) {}
+        NEW.title = String(b.title || 'Untitled');
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ id: 'new1', title: NEW.title, moments: {}, units: [] }));
+      });
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ stories: [{ id: 'story1', title: 'A story', moments: 10, units: 6 }] }));
+  }
+  if (route === '/api/timeline/stories/new1') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    // deliberately EMPTY: the stub is not the parser, and the empty story is
+    // the case with nothing on screen but the gap's +
+    return res.end(JSON.stringify({ id: 'new1', title: NEW.title, moments: {}, units: [] }));
   }
   if (route.indexOf('/api/timeline/stories/') === 0) {
     res.writeHead(200, { 'Content-Type': 'application/json' });

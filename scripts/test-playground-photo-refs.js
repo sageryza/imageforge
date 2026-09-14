@@ -150,7 +150,7 @@ const PNG2 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAIAAADZSiLo
   console.log('the disclosure');
   await page.click('#promptbtn');
   await page.waitForTimeout(150);
-  let added = await page.evaluate(() => (document.querySelector('#promptpanel .added') || {}).textContent || '');
+  let added = await page.evaluate(() => { const e = document.querySelector('#promptpanel textarea[data-part="extra"]') || document.querySelector('#promptpanel .added'); return e ? (e.value != null ? e.value : e.textContent) : ''; });
   ok(added.indexOf(LINEN.replace('{n}', 'two').trim()) > -1, 'the Prompt panel prints the plural line with "two" written in');
   ok(added.indexOf(LINE1.trim()) === -1, 'and not the singular one');
 
@@ -165,7 +165,7 @@ const PNG2 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAIAAADZSiLo
   await page.click('#photomore .photothumb .photox');
   await page.waitForTimeout(150);
   ok((await thumbs()).length === 0, 'the thumb is gone');
-  added = await page.evaluate(() => (document.querySelector('#promptpanel .added') || {}).textContent || '');
+  added = await page.evaluate(() => { const e = document.querySelector('#promptpanel textarea[data-part="extra"]') || document.querySelector('#promptpanel .added'); return e ? (e.value != null ? e.value : e.textContent) : ''; });
   ok(added.indexOf(LINE1.trim()) > -1 && added.indexOf('attached images') === -1, 'the panel is back to the singular line');
   posted = null;
   await page.click('#go');

@@ -139,7 +139,6 @@ const check = (cond, m) => (cond ? ok(m) : fail(m));
       v.pause = function () { paused = true; v.dispatchEvent(new Event('pause')); };
       // the player waits for her tap since 2026-09-05 — this is the tap
       v.play();
-      window.__filmNote.SCRIM_MS = 0;
     });
     // the map lands one fetch later
     await page.waitForTimeout(250);

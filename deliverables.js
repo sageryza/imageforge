@@ -116,6 +116,11 @@ function decideRecord(existing, input, nowIso) {
   }
   const patch = { updatedAt: nowIso, versions: (existing.versions || 1) + 1 };
   if (title) patch.title = title;           // a re-post may correct the title
+  // …and the chat (2026-09-08): a runner that sends a session id lands the
+  // row on THAT session's chat, since resolution is session-first; the chat
+  // that owns the film re-POSTs it under its own slug and the row follows —
+  // the backfill's own rule, "the row keeps the newest pin's chat".
+  if (input.chat && input.chat !== existing.chat) patch.chat = input.chat;
   if (cutIdOf(input.cut)) patch.cut = cutIdOf(input.cut);
   return { isNew: false, doc: patch };
 }

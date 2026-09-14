@@ -47,6 +47,12 @@
 //                          ('mustard'|'green'|'blue'|'pink'|null = back to gray)
 //   POST /text           → { id, text } — the beat's note (the popup's
 //                          three-line text box; 5000 chars max)
+//   POST /chapter        → { id, title } — this beat OPENS a chapter called
+//                          `title` ('' takes the chapter off). A chapter is a
+//                          MARKER ON A BEAT, nothing of its own: the page
+//                          derives the chapter list from beat order, so
+//                          moving a beat moves its chapter with it and
+//                          nothing is duplicated (see THE CHAPTERS below)
 //   GET  /shelf          → { clips } — the Chunking clip library (ready
 //                          clips only), newest first; ?q= speaks the house
 //                          search grammar (clips.js parses it — never a
@@ -324,6 +330,7 @@ const slotOff = (s) => Boolean(s && s.off);
 // its own dependency-free file so it can be tested without a node_modules,
 // and so /image and a finished draw share ONE copy of the rules.
 const { swapArt, forgetArt } = require('./pad-art');
+const { alignTake } = require('./pad-take');
 // One story becomes two — fresh beat ids, no renders carried, art optional.
 const { dupPad } = require('./pad-duplicate');
 // Which side a picture belongs on when nobody said — the pure decision
@@ -333,6 +340,10 @@ const { padSideOf, shouldReveal } = require('./pad-side');
 // (list shape, the pick, the disclosed prompt line) live in their own
 // dependency-free file so they have a test that needs no node_modules.
 const { normalizeCharacters, pickCharacters, charLine, MAX_CHARACTERS, houseCardRides } = require('./pad-characters');
+// THE TYPED CAST (2026-09-06) — the words half of a story's characters,
+// written into every draw's prompt by the ONE clause builder the Playground
+// sends (sheetGrid.castBlock); this module never writes the wording itself.
+const sheetGrid = require('./sheet-grid');
 
 // ── Deriving the side from the picture's own run record ─────────────
 // Only for a placement that named NO side (styleNamed → null). Best-effort
@@ -594,6 +605,9 @@ async function readPad(padId) {
     // The story's CAST — character reference cards a draw can pick from
     // (2026-08-26, Sophie). See pad-characters.js and POST /character.
     characters: normalizeCharacters(v.characters),
+    // The story's typed cast — name + description rows (2026-09-06). See
+    // artPrompt and POST /cast.
+    cast: castOf(v.cast),
     updatedAt: v.updatedAt || 0,
   };
 }
@@ -1682,7 +1696,43 @@ async function patchBeat(padId, id, fn) {
 // at once with the beat marked drawing, the page polls the pad, and leaving
 // the app can't lose the picture. Superseded art is never deleted — it goes
 // to beat.imageHistory.
-async function runArtJob(padId, id, { prompt, quality, character, style, chars, shape }) {
+// ── HER TYPED CAST ON A DRAW (2026-09-06, Sophie, in the chapter chat: "also
+// add the character description feature as an option that's not character
+// image, like playground. u can copy the code"). A story's cast in WORDS —
+// name + description rows, `pad.cast` — beside the picture cards it already
+// had. Unlike the Playground's per-run cast it lives on the PAD: a story's
+// people are the same on every beat, so she writes them once.
+//
+// THE CLAUSE IS sheetGrid.castBlock(cast, true), the single-picture opening,
+// and it rides as ITS OWN PARAGRAPH after the head — exactly where the
+// Playground's solo run puts it — so castParse can read it back out of a
+// filed prompt whichever surface wrote it. AN EMPTY CAST WRITES NOTHING (her
+// rule): with no rows every string below is byte-for-byte what it always was.
+//
+// `artPrompt` is the ONE assembler for both the sent prompt and the gallery's
+// promptPrefix, pure and exported so the clause's place is pinned by a test
+// that needs no Firestore (scripts/test-scratchpad-cast.js).
+const CAST_MAX = 12;      // the Playground's caps, one row = one prompt line
+const CAST_NAME = 60;
+const CAST_DESC = 300;
+function castOf(cast) {
+  return sheetGrid.castRows(cast).slice(0, CAST_MAX).map((c) => ({
+    name: c.name.slice(0, CAST_NAME), description: c.description.slice(0, CAST_DESC),
+  }));
+}
+function artPrompt({ recipe, prompt, character, cline, cast }) {
+  const castTxt = sheetGrid.castBlock(castOf(cast), true);
+  // Watercolor's head is the pad's original run-on sentence; a recipe style's
+  // head is its own prefix. The cast is a paragraph of its own under either.
+  const headLine = recipe ? recipe.prefix : `${ART.prefix}${character ? ART.characterLine : ''}${cline || ''}`;
+  const head = [headLine, castTxt].filter(Boolean).join('\n\n');
+  const full = recipe
+    ? `${head}\n\n${prompt}\n\n${recipe.suffix}${cline || ''}`
+    : `${head}\n\n${prompt}`;
+  return { full, head, castTxt };
+}
+
+async function runArtJob(padId, id, { prompt, quality, character, style, chars, shape, cast }) {
   // The STORY's canvas, not a per-draw one (see THE STORY'S SHAPE). An
   // unknown or absent shape lands on portrait, which is what every beat drawn
   // before this used.
@@ -1715,9 +1765,13 @@ async function runArtJob(padId, id, { prompt, quality, character, style, chars, 
     // "the attached image is a STYLE reference only" and the carve-out must
     // come after that sentence, not before it.
     const cline = charLine(picked);
-    const full = recipe
-      ? `${recipe.prefix}\n\n${prompt}\n\n${recipe.suffix}${cline}`
-      : `${ART.prefix}${useCard ? ART.characterLine : ''}${cline}\n\n${prompt}`;
+    // The story's typed cast rides as its own paragraph after the head (see
+    // artPrompt above); with no rows this is the string it always was.
+    const castRows = castOf(cast);
+    // ONE Sophie per draw: `card` (houseCardRides) stands in for `character`
+    // here, so a picked character who IS her takes the house card's line with
+    // it — artPrompt already drops that line on a recipe style.
+    const { full, head } = artPrompt({ recipe, prompt, character: card, cline, cast: castRows });
     const form = new FormData();
     form.append('model', 'gpt-image-2');
     form.append('prompt', full);
@@ -1764,9 +1818,17 @@ async function runArtJob(padId, id, { prompt, quality, character, style, chars, 
       swapArt(slot, url, {
         engine: 'gptimage', model: 'gpt-image-2', prompt, quality,
         character: useCard, style, promptUsed: full,
+        // The canvas it was drawn on — the MODEL · QUALITY · SIZE caption's
+        // third slot (the tier is DERIVED from it, size-tier.js). Recorded
+        // here because the story's shape can be corrected later and the
+        // picture already drawn keeps the canvas it really had.
+        canvas: canvas.size,
         // Provenance: WHICH characters rode this draw, by name — so a
         // picked-back version says who was in it.
         ...(picked.length ? { characters: picked.map((c) => c.name || '') } : {}),
+        // …and which typed rows: the clause is already verbatim in
+        // promptUsed; the rows are the same words in the shape she wrote them.
+        ...(castRows.length ? { cast: castRows } : {}),
       });
       slot.gen = { status: 'done', at: Date.now() };
     });
@@ -1786,7 +1848,9 @@ async function runArtJob(padId, id, { prompt, quality, character, style, chars, 
         body: JSON.stringify({ url, prompt,
           style: `Scratch Pad · ${style !== 'watercolor' ? `${style} · ` : ''}${quality}`,
           fullPrompt: full,
-          promptPrefix: recipe ? recipe.prefix : `${ART.prefix}${useCard ? ART.characterLine : ''}${cline}`,
+          // `head` carries the cast clause too, so the filed style half
+          // holds it verbatim (castParse's own contract).
+          promptPrefix: head,
           promptSuffix: recipe ? `${recipe.suffix}${cline}` : '' }),
         timeout: 30000,
       });
@@ -1965,7 +2029,8 @@ router.post('/generate', async (req, res) => {
       // Art here again un-deletes this side (see `off` above).
       delete slot.off;
     });
-    runArtJob(pid, id, { prompt, quality, character, style, chars: picked, shape: pad.shape });   // fire and forget
+    // The story's typed cast (pad.cast) rides every draw — see artPrompt.
+    runArtJob(pid, id, { prompt, quality, character, style, chars: picked, shape: pad.shape, cast: pad.cast });   // fire and forget
     res.json({ ok: true, beats });
   } catch (e) { fail(res, e); }
 });
@@ -2083,6 +2148,37 @@ async function clipSegment(dir, u, beat, job = null, size = FILM) {
   return { seg, wav, seconds, hasAudio };
 }
 
+// THE TAKE'S WORDS, once per recording. A story carrying a whole-take
+// narration (pad.voiceover.url) has its pictures cut TO THE WORDS (pad-take.js),
+// so the take is transcribed with word timestamps ONCE — whisper-1, ~$0.006 a
+// minute — and the words are banked in Storage keyed by the url, never on
+// the pad doc (a long take is thousands of words and the doc rides the page
+// load). A re-render of the same take costs nothing.
+async function takeWords(url, job) {
+  const key = crypto.createHash('sha1').update(String(url)).digest('hex');
+  const file = admin.storage().bucket().file(`scratchpad/take-words/${key}.json`);
+  try {
+    if ((await file.exists())[0]) {
+      const [buf] = await file.download();
+      const words = JSON.parse(buf.toString('utf8'));
+      if (Array.isArray(words) && words.length) return words;
+    }
+  } catch { /* a cache miss is just a transcription */ }
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sptake-'));
+  try {
+    const raw = await fetchTo(url, path.join(dir, 'take-raw'));
+    // Decode first (the fragmented-mp4 lesson below) and hand whisper a
+    // small mp3 rather than her 4-12MB m4a.
+    const mp3 = path.join(dir, 'take.mp3');
+    await run(FFMPEG, ['-y', '-i', raw, '-vn', '-ac', '1', '-ar', '16000', '-b:a', '48k', mp3], 300000, job);
+    const words = await require('./editor').whisperWords(mp3);
+    if (!words.length) throw new Error('the take transcribed to no words');
+    try { await file.save(JSON.stringify(words), { contentType: 'application/json' }); }
+    catch (e) { console.warn('take-words save:', e.message); }
+    return words;
+  } finally { try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* tmp */ } }
+}
+
 async function runFilmJob(padId) {
   // EVERYTHING fallible lives inside the try — measured 2026-08-24: with
   // mkdtempSync on this line, a throw here (a full disk, an unwritable tmp)
@@ -2117,11 +2213,41 @@ async function runFilmJob(padId) {
     const frame = shapeOf(pad).film;
     const shots = pad.beats.filter((b) => artSlot(b, style).url);
     if (!shots.length) throw new Error('draw some art first — the film is made of the pictures and clips');
-
     const segs = [];      // { file } per picture
     const auds = [];      // { file, seconds } per shot
     const notes = [];     // which audio each shot used — the render's receipt
     let total = 0;
+
+    // ONE TAKE OVER THE WHOLE STORY (pad-take.js). A story carrying a
+    // whole-take narration — her own recording, or one continuous read —
+    // is ONE audio track with the pictures cut to its words, not a shot per
+    // beat held for that beat's own sound. A story with a film CLIP among
+    // its shots keeps the per-beat shape (a clip's length is its own and
+    // would walk every later picture off its line); so does a take none of
+    // whose words match the beats.
+    const take = pad.voiceover && /^https?:\/\//.test(String(pad.voiceover.url || '')) ? pad.voiceover : null;
+    const hasClip = shots.some((b) => slotClip(artSlot(b, style)));
+    let plan = null, takeFile = null;
+    if (take && !hasClip) {
+      stop();
+      await beat('reading the take');
+      let words = null;
+      try { words = await takeWords(take.url, job); }
+      catch (e) { if (e.canceled) throw e; console.warn('film take:', e.message); }
+      if (words) plan = alignTake(shots.map((b) => ({ text: b.text })), words, { closer: FILM.silent, tail: FILM.tail });
+      if (plan) {
+        const raw = await fetchTo(take.url, path.join(dir, 'take-raw'));
+        takeFile = path.join(dir, 'take.wav');
+        // Decoded to PCM, the take is delayed by any leading wordless
+        // pictures, padded, and cut to the film's length at the mux.
+        await run(FFMPEG, ['-y', '-i', raw, '-vn', '-af', `adelay=${Math.round(plan.audioAt * 1000)}|${Math.round(plan.audioAt * 1000)},apad`,
+          '-t', plan.total.toFixed(3), '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', takeFile], 300000, job);
+        notes.push(`one take: ${take.kind === 'recording' ? 'your recording' : 'the read'} ${plan.takeEnd.toFixed(1)}s, ${plan.matched} of ${shots.length} pictures on their lines`);
+      } else if (words) {
+        notes.push('the take says none of the lines — made the film shot by shot instead');
+      }
+    }
+
     for (let u = 0; u < shots.length; u++) {
       stop();
       const lead = shots[u];
@@ -2137,6 +2263,14 @@ async function runFilmJob(padId) {
         await beat(`clip ${segs.length}`);
         continue;
       }
+      let seconds = FILM.silent;
+      let aFile = null;
+      if (plan) {
+        const sh = plan.shots[u];
+        seconds = Math.max(0.04, sh.hold);
+        notes.push(`shot ${u + 1}: ${sh.kind === 'line' ? 'on its line' : sh.kind} at ${sh.start.toFixed(1)}s, ${seconds.toFixed(1)}s`);
+        total += seconds;
+      } else {
       // The shot's voice: her take wins; then the line read aloud; else quiet.
       let audio = lead.voiceUrl || null;
       let audioKind = audio ? 'her voice' : 'quiet';
@@ -2145,13 +2279,12 @@ async function runFilmJob(padId) {
         catch (e) { console.warn('film tts:', e.message); }
       }
 
-      let seconds = FILM.silent;
       // The per-unit audio is PCM, not aac: concatenating aac adds a few ms of
       // encoder priming to EVERY file, and across a long story that drift
       // walks the voice out from under the pictures (measured: ~24ms per two
       // units). WAV concatenates sample-exact, and the whole track is encoded
       // once at the mux.
-      const aFile = path.join(dir, `a${u}.wav`);
+      aFile = path.join(dir, `a${u}.wav`);
       if (audio) {
         const raw = await fetchTo(audio, path.join(dir, `a${u}-raw`));
         // DECODE FIRST, MEASURE THE WAV. iOS MediaRecorder writes fragmented
@@ -2175,6 +2308,7 @@ async function runFilmJob(padId) {
       notes.push(`shot ${u + 1}: ${audioKind} ${seconds.toFixed(1)}s`);
       auds.push(aFile);
       total += seconds;
+      }
 
       // One picture per shot, held for its whole audio — the active style's.
       const pics = [{ url: slot.url }];
@@ -2222,10 +2356,15 @@ async function runFilmJob(padId) {
     const silentFilm = path.join(dir, 'v.mp4');
     await run(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', vList, '-c', 'copy', silentFilm], 600000, job);
 
-    const aList = path.join(dir, 'a.txt');
-    fs.writeFileSync(aList, auds.map((f) => `file '${f}'`).join('\n'));
-    const track = path.join(dir, 'a.wav');
-    await run(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', aList, '-c', 'copy', track], 600000, job);
+    // The track: the ONE take when the pictures were cut to it, else the
+    // per-shot wavs joined sample-exact.
+    let track = takeFile;
+    if (!track) {
+      const aList = path.join(dir, 'a.txt');
+      fs.writeFileSync(aList, auds.map((f) => `file '${f}'`).join('\n'));
+      track = path.join(dir, 'a.wav');
+      await run(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', aList, '-c', 'copy', track], 600000, job);
+    }
 
     const out = path.join(dir, 'film.mp4');
     await run(FFMPEG, ['-y', '-i', silentFilm, '-i', track, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
@@ -2251,7 +2390,9 @@ async function runFilmJob(padId) {
         // `style` on the record is how the page knows a watercolor render is
         // not the dreamy film — the toggle never bumps updatedAt, so this is
         // the freshness signal across a flip.
-        film: { status: 'done', url, seconds, at: Date.now(), pictures: segs.length, notes, style },
+        // `error: null` — a done record must not carry the last failed run's
+        // message (merge:true keeps it otherwise; seen live 2026-09-06).
+        film: { status: 'done', url, seconds, at: Date.now(), pictures: segs.length, notes, style, error: null },
         films: prev.concat(films).slice(0, 12),   // older cuts are kept, never overwritten
         updatedAt: Date.now(),
       }, { merge: true });
@@ -2491,6 +2632,64 @@ router.post('/text', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+// ── THE CHAPTERS ─────────────────────────────────────────────────────
+// (2026-09-06, Sophie, on her hospital story: "i want the chapter within a
+// story. arrow buttons at the top, and a contents page w all the stories and
+// thumbnails".) A chapter is a STRING ON THE BEAT THAT OPENS IT —
+// `beat.chapter = 'The ER'` — and that is the whole of the data. Nothing
+// stores a chapter list: the page walks the beats in order and every beat
+// carrying a `chapter` starts one, which runs until the next such beat. So
+// a beat she moves takes its chapter heading with it, a beat she deletes
+// takes it away, and there is never a second copy of the order to drift.
+// CLAUDE.md's "Charlie's and Evan's chapter headings have no field to live
+// in" — this is that field.
+//
+// DELIBERATELY NO updatedAt BUMP — the /style, /pads/pin family: the film is
+// made of the beats' pictures and words, and a chapter is neither (chapters
+// are not cuts), so naming one must not stale a fresh render or reshuffle the
+// shelf. The page's api() leaves `/chapter` out of dirtySinceFilm for the
+// same reason.
+router.post('/chapter', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const id = String(req.body.id || '');
+    if (!id) return res.status(400).json({ error: 'beat id required' });
+    const title = String(req.body.title ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
+    const beats = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef(pid));
+      const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
+      const b = cur.find((x) => x.id === id);
+      if (!b) throw new Error('no such beat');
+      if (title) b.chapter = title; else delete b.chapter;
+      tx.set(padRef(pid), { beats: cur }, { merge: true });
+      return cur;
+    });
+    res.json({ ok: true, beats, chapter: title });
+  } catch (e) { fail(res, e); }
+});
+
+// ── THE TYPED CAST ────────────────────────────────────────────────────
+// (2026-09-06, Sophie: "also add the character description feature as an
+// option that's not character image, like playground. u can copy the code".)
+// `pad.cast = [{name, description}]`, the Playground's own row shape and
+// caps (castOf), whitelisted like /text and /chapter: nothing else on the doc
+// is touched. The page saves as she types (debounced), so the whole array is
+// the write — an empty one is a real answer and stores [], which is also
+// what deletes the clause from the next draw.
+//
+// DELIBERATELY NO updatedAt BUMP — the /chapter, /style, /character family:
+// the film is made of the beats' pictures and words, and who the story's
+// people are is neither until a DRAW uses it, and /generate marks that. The
+// page's api() leaves `/cast` out of dirtySinceFilm for the same reason.
+router.post('/cast', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const cast = castOf(req.body.cast);
+    await padRef(pid).set({ cast }, { merge: true });
+    res.json({ ok: true, pad: pid, cast });
+  } catch (e) { fail(res, e); }
+});
+
 // The beat's DRAWING PROMPT — what its picture is asked for, apart from what
 // the film says. Saved automatically by the page (no save button, Sophie's
 // rule): the draw box POSTs here on blur/close/draw. A prompt that matches
@@ -2557,4 +2756,4 @@ async function attachVoiceUrl(padId, beatId, url) {
 
 // shoeboxUid is exported so shoebox.js (the Shoebox viewer) asks the SAME
 // discovery — one copy of "whose library is this", never a second guess.
-module.exports = { router, init, attachVoiceUrl, placeOnBeat, autoShapePatch, drawablePrompt, promptFor, clipsNeedingPoster, shoeboxUid };
+module.exports = { router, init, attachVoiceUrl, placeOnBeat, autoShapePatch, drawablePrompt, promptFor, clipsNeedingPoster, shoeboxUid, artPrompt, castOf };

@@ -227,21 +227,31 @@
     '.jg-mom figure{margin:0;}' +
     '.jg-mom figure img{width:100%;display:block;}' +
     '.jg-mom figure img.fill{height:100%;object-fit:cover;}' +
+    // A CLIP sits where a picture sits (2026-09-10). Black behind it, because
+    // a video paints nothing until its poster or first frame lands and the
+    // cream would flash through.
+    '.jg-mom figure .jg-vid{width:100%;display:block;background:#000;}' +
+    '.jg-mom figure .jg-vid.fill{height:100%;object-fit:cover;}' +
     // a picture with no card-face shape: the panel shrinks to it and the
     // height is capped, so the card stays one screen (Aug 2026 v3, when every
     // deck became hers). object-fit would letterbox inside a full-width box
     // and put cream margins inside her border — hugging avoids that entirely.
     '.jg-mom figure.hug{align-self:center;max-width:100%;}' +
     '.jg-mom figure.hug img{width:auto;height:auto;max-width:100%;max-height:56vh;}' +
+    '.jg-mom figure.hug .jg-vid{width:100%;height:auto;max-height:56vh;background:#000;}' +
     // THE CARD'S WAY OUT — an item's `link`, rendered as her rust text on a
     // white box like the others, and lifted above the browse zones (see
     // linkHtml). `align-self:center` keeps the hit area to the words: a
     // full-width anchor inside the card would swallow the taps that page it.
-    '.jg-momlink{position:relative;z-index:3;display:flex;justify-content:center;}' +
-    '.jg-momlink a{display:inline-block;background:#FFFDF8;border:1px solid #E7DECF;' +
+    '.jg-momlink{position:relative;z-index:3;display:flex;justify-content:center;' +
+    ' gap:8px;flex-wrap:wrap;}' +
+    // the FOOTAGE button is the link's twin, not a second look — one rule for
+    // both, so a card carrying each shows two of the same kind of door
+    '.jg-momlink a,.jg-momlink button{display:inline-block;background:#FFFDF8;' +
+    ' border:1px solid #E7DECF;' +
     ' border-radius:6px;padding:9px 14px;text-decoration:none;color:#C25E4C;' +
     ' font:700 11px/1.2 -apple-system,sans-serif;letter-spacing:.12em;' +
-    ' text-transform:uppercase;}' +
+    ' text-transform:uppercase;cursor:pointer;}' +
     // A SPREAD ON ONE CARD: the pictures share the width so they are compared
     // rather than scrolled between, each under its own name. They shrink as a
     // spread grows — two get half each, three a third — which is the whole
@@ -1572,7 +1582,7 @@
       // or words (Aug 2026 v3: "make the single image review surface the same
       // general template as the text one"). The older tests stand: a page that
       // asked for style:'moment', or a card carrying any of her parts.
-      if (herLook && (it.text || it.img || (it.cards && it.cards.length))) return true;
+      if (herLook && (it.text || it.img || it.video || (it.cards && it.cards.length))) return true;
       return !!(it.who || it.eyebrow || it.caption || (it.sections && it.sections.length)
         || (opts.style === 'moment' && it.text));
     }
@@ -1593,7 +1603,7 @@
     /** a card that is nothing but a picture — see the `.pic` rules */
     function isPicCard(it) {
       if (!it || !isMoment(it)) return false;
-      if (!(it.img || (it.cards && it.cards.length))) return false;
+      if (!(it.img || it.video || (it.cards && it.cards.length))) return false;
       return !(it.who || it.text || it.caption || (it.sections && it.sections.length));
     }
     function isLong(it) {
@@ -1602,7 +1612,7 @@
       (it.sections || []).forEach(function (s) {
         n += String(s.text || '').length + String(s.label || '').length;
       });
-      return n > (it.img ? 150 : 240);
+      return n > (it.img || it.video ? 150 : 240);
     }
     // `hoisted` — the name is being drawn in the page's top chrome instead
     // (a moment deck), so the stack starts at the first box
@@ -1669,6 +1679,17 @@
             + '</figure>';
         }).join('') + '</div>';
       }
+      // A CLIP PLAYS ON THE CARD (2026-09-10). It is NOT wrapped in the zoom
+      // handler — a tap on the controls must reach the controls, and the edge
+      // browse zones already sit under it.
+      if (it.video) {
+        out += '<figure class="' + (ar ? 'ar' : 'hug') + '"'
+          + (ar ? ' style="aspect-ratio:' + ar + '"' : '') + '>'
+          + '<video class="jg-vid' + (ar ? ' fill' : '') + '" controls playsinline'
+          + ' preload="metadata"'
+          + (it.poster ? ' poster="' + esc(it.poster) + '"' : '')
+          + ' src="' + esc(it.video) + '"></video></figure>';
+      }
       if (it.img) {
         // no card-face shape asked for → the panel HUGS the picture and caps
         // its height, so a picture card is one screen like everything else
@@ -1697,11 +1718,23 @@
     // spread does: the zones are 26%-wide strips at z-index 2 and a centred
     // link lands between them, but its ENDS reach into them, so a thumb
     // slightly off centre would page the deck instead of opening the link.
+    // …and beside it, THE FOOTAGE DOOR (2026-09-10, her ask on the scene
+    // deck). It fills the Footage page's box with this card's words and its
+    // references and takes her there — it SENDS NOTHING; the star on that
+    // page is still her tap. See footageGo below for the hand-off itself.
     function linkHtml(it) {
-      if (!it || !it.link || !it.link.url) return '';
-      return '<div class="jg-momlink"><a href="' + esc(it.link.url) + '"'
-        + ' target="_blank" rel="noopener">' + esc(it.link.label || 'Open')
-        + ' ›</a></div>';
+      if (!it) return '';
+      var inner = '';
+      if (it.link && it.link.url) {
+        inner += '<a href="' + esc(it.link.url) + '"'
+          + ' target="_blank" rel="noopener">' + esc(it.link.label || 'Open')
+          + ' ›</a>';
+      }
+      if (it.footage && it.footage.prompt) {
+        inner += '<button type="button" data-footage="' + esc(it.id) + '">'
+          + 'Footage ›</button>';
+      }
+      return inner ? '<div class="jg-momlink">' + inner + '</div>' : '';
     }
     function mediaHtml(it, hoisted) {
       return mediaBody(it, hoisted) + linkHtml(it);
@@ -2151,7 +2184,8 @@
           + (browse ? '<button class="jg-navzone prev" data-act="prev" aria-label="Back"></button>'
             + '<button class="jg-navzone next" data-act="next" aria-label="Forward"></button>' : '')
           + '<div class="jg-card' + (momUI ? ' momcard' : '')
-          + (momUI && it.link && it.link.url ? ' linkroom' : '') + ctl
+          + (momUI && ((it.link && it.link.url) || (it.footage && it.footage.prompt))
+            ? ' linkroom' : '') + ctl
           + (flash ? ' jg-flash' : '') + '">'
           + mediaHtml(it, momUI)
           // a date card carries no label line, no corner note and no mic —
@@ -2357,7 +2391,41 @@
       document.body.appendChild(h);
     }
 
+    // ── THE FOOTAGE HAND-OFF (2026-09-10). A Compare page is same-origin
+    // with /footage, so the whole hand-off is one localStorage key: we write
+    // it, the Footage page reads it, APPLIES it and REMOVES it (its own rule,
+    // which is what makes it land exactly once). Nothing is sent from here.
+    //
+    // The walk must reach the TOP window: inside the app this deck runs in an
+    // iframe of chats.html, so `location.href` here would load the Footage
+    // page INSIDE the page viewer. Same-origin, so `window.top` is readable —
+    // and a cross-origin host (which nothing here is) falls back to our own.
+    function footageGo(it) {
+      var f = it && it.footage;
+      if (!f || !f.prompt) return;
+      var hand = { prompt: f.prompt, refs: f.refs || [], at: Date.now() };
+      ['title', 'from', 'model', 'seconds', 'res', 'ratio', 'seed'].forEach(function (k) {
+        if (f[k] !== undefined && f[k] !== '') hand[k] = f[k];
+      });
+      try { localStorage.setItem('footage_handoff', JSON.stringify(hand)); }
+      catch (err) { /* a private window: the walk is still better than nothing */ }
+      var w = window;
+      try { if (window.top && window.top.location.origin === location.origin) w = window.top; }
+      catch (err) { w = window; }
+      w.location.href = '/footage';
+    }
+
     mount.addEventListener('click', function (e) {
+      var fg = e.target && e.target.closest ? e.target.closest('[data-footage]') : null;
+      if (fg) {
+        var fid = fg.getAttribute('data-footage'), fit = null;
+        items.forEach(function (x) {
+          if (x.id === fid) fit = x;
+          (x.cards || []).forEach(function (c) { if (c.id === fid) fit = c; });
+        });
+        if (fit) footageGo(fit);
+        return;
+      }
       // the picture: hers to open, not compare.js's (see `views` above)
       var z = e.target && e.target.closest ? e.target.closest('[data-zoom]') : null;
       if (z && views) {
