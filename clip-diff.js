@@ -148,6 +148,34 @@
     return d.reduce(function (n, t) { return n + (t.op === 'same' ? 0 : tokens(t.t).filter(function (x) { return x.trim(); }).length); }, 0);
   }
 
+  // ── ONLY WHAT MOVED ──────────────────────────────────────────────────────
+  // 2026-09-14, Sophie: "default ONLY shows diff - expand button to see whole
+  // prompt". The diff re-joins byte for byte, so it can be cut back into
+  // LINES with each line carrying its own ops — and a line holding nothing
+  // but `same` is a line she did not touch. The panel draws the changed lines
+  // and puts the whole prompt behind an opener.
+  //
+  // A LINE IS MARKED BY ITS OWN TEXT, NEVER BY THE BREAK THAT ENDS IT. An
+  // added paragraph brings its own newline in as an `add`, and that newline
+  // sits at the END of the line before it — so counting the break would light
+  // the untouched line above every paragraph she ever added.
+  function promptLines(d) {
+    var lines = [{ ops: [], changed: false }];
+    (d || []).forEach(function (t) {
+      String(t.t).split('\n').forEach(function (p, i) {
+        if (i) lines.push({ ops: [], changed: false });
+        if (!p) return;
+        var cur = lines[lines.length - 1];
+        cur.ops.push({ op: t.op, t: p });
+        if (t.op !== 'same') cur.changed = true;
+      });
+    });
+    return lines;
+  }
+  function changedLines(d) {
+    return promptLines(d).filter(function (l) { return l.changed; });
+  }
+
   // ── SETTINGS ─────────────────────────────────────────────────────────────
   // One row per field that MOVED. The words are the card's own (a model's
   // label, `480p`, `3:4`), so the panel reads like the tags line she already
@@ -306,6 +334,117 @@
   }
   function isKin(a, b) { return similarity(a && a.prompt, b && b.prompt) >= KIN; }
 
+  // ── EVERY CLIP LIKE THIS ONE ─────────────────────────────────────────────
+  // 2026-09-14, Sophie: "shows ALL clips with similar prompt, including parts
+  // of it". `kinOf` answers ONE clip — the nearest older twin — which is the
+  // right thing to OPEN on and the wrong answer to "which other clips are
+  // this shot". A relative is measured two ways and the better number counts:
+  //   · `alike` — the whole prompt's Jaccard: a redo of the same words.
+  //   · `part`  — the share of THIS clip's WORDS sitting in a line the other
+  //     clip also carries. That is what finds a clip holding one paragraph of
+  //     it ("including parts of it"), where the whole-prompt number is far
+  //     under any bar worth setting.
+  // `part` IS WEIGHTED BY EACH LINE'S LENGTH, deliberately. Every clip in a
+  // film shares the boilerplate ("camera at eye level", "no text on screen"),
+  // so counting LINES would put a quarter score on every unrelated clip in
+  // the project and the list would be the project.
+  var PART = 0.25;
+  function lineList(s) {
+    return String(s == null ? '' : s).split('\n').map(function (l) { return l.trim(); })
+      .filter(function (l) { return words(l).length >= 2; });
+  }
+  // A LINE EVERY CLIP CARRIES SAYS NOTHING. Every ward prompt ends "camera at
+  // eye level"; weighing lines by their words alone makes that line a quarter
+  // of a short prompt, so every unrelated clip in the film clears the bar and
+  // the list IS the project. So a line's weight is its words discounted by how
+  // much of the pool carries it (plain IDF over the candidates themselves) —
+  // a line on all of them is worth nothing, one on a couple is worth its
+  // words. Under four candidates there is no corpus to measure and the raw
+  // word count stands.
+  function lineWeights(prompt, jobs) {
+    var A = lineList(prompt);
+    var pool = (jobs || []).filter(function (o) { return o && o.prompt; });
+    return A.map(function (l) {
+      var w = words(l).length;
+      if (pool.length < 4) return { line: l, w: w };
+      var n = 0;
+      pool.forEach(function (o) {
+        var B = lineList(o.prompt);
+        for (var i = 0; i < B.length; i++) { if (similarity(l, B[i]) >= LINE_TWIN) { n += 1; return; } }
+      });
+      return { line: l, w: w * (1 - n / pool.length) };
+    });
+  }
+  function shareOf(a, b, weights) {
+    var A = weights || lineWeights(a, null), B = lineList(b), hit = 0, all = 0, n = 0;
+    A.forEach(function (e) {
+      all += e.w;
+      for (var i = 0; i < B.length; i++) {
+        if (similarity(e.line, B[i]) >= LINE_TWIN) { hit += e.w; n += 1; return; }
+      }
+    });
+    return { shared: n, lines: A.length, part: all ? hit / all : 0 };
+  }
+  function related(a, b, weights) {
+    // AN EMPTY PROMPT IS NOT LIKE ANYTHING. `similarity('','')` is 1 by its
+    // own arithmetic (nothing differs), which would file two promptless clips
+    // as "the same words".
+    if (!words(a && a.prompt).length || !words(b && b.prompt).length) {
+      return { alike: 0, part: 0, shared: 0, lines: 0, score: 0, kin: false };
+    }
+    var alike = similarity(a.prompt, b.prompt);
+    var s = shareOf(a.prompt, b.prompt, weights);
+    return { alike: alike, part: s.part, shared: s.shared, lines: s.lines,
+      score: Math.max(alike, s.part), kin: alike >= KIN };
+  }
+  // HOW MUCH OF IT, in a word — what the tile under the pair says.
+  // THE WORD COMES OFF `alike`, NEVER OFF THE RANKING SCORE. `part` saturates
+  // at 1 for any redo — every line of a clip with one word changed still has
+  // its twin — so a score-read word called every redo "the same words".
+  function shareWord(r) {
+    if (!r) return '';
+    if (r.alike >= 0.98) return 'the same words';
+    if (r.alike >= 0.8) return 'nearly all of it';
+    if (r.alike >= 0.55) return 'most of it';
+    return 'part of it';
+  }
+  // Every clip in `j`'s project over the bar, best first. NEWER ONES ARE IN
+  // TOO — "all clips with similar prompt" is not a walk backwards, and she
+  // may be standing on an older clip asking what it became. A clip she put
+  // away stays away; a REFUSED one is listed (it never drew, so it is a bad
+  // thing to open on by default — `kinOf` still skips it — but "what did I
+  // change since the one that came back refused" is the question).
+  function relatives(j, jobs, opts) {
+    opts = opts || {};
+    var min = opts.min != null ? opts.min : PART;
+    var out = [];
+    if (!j) return out;
+    var pool = (jobs || []).filter(function (o) {
+      return o && o.id && o.id !== j.id && !o.hidden && (o.project || '') === (j.project || '');
+    });
+    var weights = lineWeights(j.prompt, pool);
+    pool.forEach(function (o) {
+      var r = related(j, o, weights);
+      // EITHER BAR, NEVER THE BETTER NUMBER AGAINST ONE BAR. The whole-prompt
+      // Jaccard carries the boilerplate too — a clip sharing only "camera at
+      // eye level, no text on screen" reads ~0.36 alike against a short
+      // prompt — so one bar over `max(alike, part)` lists the project again
+      // however well `part` is weighted. A relative is a REDO (alike over
+      // KIN) or a clip carrying a real PART of it (part over PART, where
+      // boilerplate is already discounted to nothing). The score is still the
+      // better of the two: that is the ranking, not the gate.
+      if (!(r.alike >= KIN || r.part >= min)) return;
+      r.job = o;
+      r.older = String(o.sentAt || '') < String(j.sentAt || '');
+      r.word = shareWord(r);
+      out.push(r);
+    });
+    out.sort(function (x, y) {
+      return y.score - x.score || String(y.job.sentAt || '').localeCompare(String(x.job.sentAt || ''));
+    });
+    return opts.limit ? out.slice(0, opts.limit) : out;
+  }
+
   // NAMES OFF THE CAST LIBRARY — url → "character · look" over the shelf's
   // entries, the one place a reference has a name she gave it. A url on two
   // looks keeps the first; a wardrobe worn by several patients names the
@@ -326,6 +465,7 @@
     return function (url) { return by[url] || ''; };
   }
 
-  return { tokens: tokens, words: words, similarity: similarity, wordDiffLine: wordDiffLine, wordDiff: wordDiff, changedWords: changedWords, kinOf: kinOf, isKin: isKin, KIN: KIN, LINE_TWIN: LINE_TWIN, settingsDiff: settingsDiff,
-    refsDiff: refsDiff, lanes: lanes, tail: tail, diff: diff, summary: summary, previousOf: previousOf, castNames: castNames };
+  return { tokens: tokens, words: words, similarity: similarity, wordDiffLine: wordDiffLine, wordDiff: wordDiff, changedWords: changedWords, kinOf: kinOf, isKin: isKin, KIN: KIN, LINE_TWIN: LINE_TWIN, PART: PART, settingsDiff: settingsDiff,
+    refsDiff: refsDiff, lanes: lanes, tail: tail, diff: diff, summary: summary, previousOf: previousOf, castNames: castNames,
+    promptLines: promptLines, changedLines: changedLines, shareOf: shareOf, lineWeights: lineWeights, related: related, shareWord: shareWord, relatives: relatives };
 }));
