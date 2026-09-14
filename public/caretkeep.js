@@ -223,7 +223,11 @@
   var COPY = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing',
     'textTransform', 'textIndent', 'wordSpacing', 'paddingTop', 'paddingRight', 'paddingBottom',
     'paddingLeft', 'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
-    'boxSizing', 'whiteSpace', 'wordBreak', 'overflowWrap', 'tabSize'];
+    'boxSizing', 'whiteSpace', 'wordBreak', 'overflowWrap', 'tabSize',
+    // WebKit's textarea wraps a trailing space `after-white-space`; a div does
+    // not, so without this the mirror puts a caret typed after a space at the
+    // end of a full line one line lower than the box does (2026-09-14)
+    'lineBreak'];
   function ensureMirror() {
     if (mirror && mirror.parentNode) return mirror;
     mirror = document.createElement('div');

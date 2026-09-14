@@ -3023,6 +3023,10 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   of the box into view and the line she is typing sits under the keyboard,
   with nothing on screen saying why.
   **Full details: *THE CARET STAYS WHERE SHE CAN SEE IT* in `docs/design-rules.md` (moved from CLAUDE.md).**
+  **AND A FIT NEVER COLLAPSES THE BOX SHE IS TYPING IN (2026-09-14, "huge
+  text block bug · rapid movement"): the shrink road measures on a twin
+  textarea and writes the box only when its height really changed — a
+  `height:auto` on a focused box is the jump. Same section of the doc.**
 
 - **THE WAY OUT OF A BIG BOX STAYS ON SCREEN — `/stickybox.js`, ONE FILE,
   EVERY PAGE (2026-09-10, Sophie: "can we get a floating or sticky/pinned
