@@ -164,7 +164,9 @@ const readState = () => ({
   ok('every thumb really decoded (the poster stands in for the video) — ' + JSON.stringify(s1.thumbs),
     s1.thumbs.length === 3 && s1.thumbs.every((w) => w > 0));
   ok('the hand-off\'s model is honoured when the page offers it (2.0 Fast) — ' + s1.model, s1.model === 'fast');
-  ok('the seconds are the hand-off\'s, through Mini\'s own clamp — ' + s1.secs, s1.secs === '9');
+  // SNAPPED to the nearest row the picker offers (2026-09-14, "4,8,12,15
+  // only") — 9 lands on 8, since the box can only show a length it has.
+  ok('the hand-off\'s seconds snap to the nearest offered length (9 → 8) — ' + s1.secs, s1.secs === '8');
   ok('the resolution is the hand-off\'s — ' + s1.res, s1.res === '720p');
   ok('the shape is the hand-off\'s and its chip is lit — ' + s1.ratio, s1.ratio === '16:9');
   ok('the key is GONE, so no later load can re-apply it', s1.key === null);

@@ -267,7 +267,7 @@ async function pickProject(pg, v) {
   // switch files the clip somewhere she was not when she armed it. MEASURED
   // off the button's own state and off what the server really received.
   cents = 420;                                     // over the $3 ask line
-  await page.click('#secup');                      // any control change re-asks /estimate
+  await page.selectOption('#secs', '8');           // any control change re-asks /estimate
   await page.waitForFunction(() => /\$4\.20/.test(document.getElementById('goalllab').textContent), null, { timeout: 4000 });
   const nPosted = posted.length;
   await page.click('#goall');
