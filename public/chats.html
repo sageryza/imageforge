@@ -3527,17 +3527,45 @@ var BMK_TABS=[['chat','Chats'],['page','Artifacts'],['msg','Messages']];
 function bmkTabOf(kind){ return kind==='chat' ? 'chat' : kind==='page' ? 'page' : 'msg'; }
 var bmkCache=null;
 // A TAG FILTER NARROWS THE PILE, IT DOES NOT SPLIT IT (Aug 2026) — which is
-// why it is a chip and the three kinds are tabs. The To read door on the
-// Update tab used to open it with this lit; that door went with the tab
-// (2026-09-14), so the chip is how the pile is narrowed now — session-only
-// and cleared on the way out
-// of this view: a filter she cannot see, hiding most of what she kept, is the
-// failure to avoid.
+// why it is a chip and the three kinds are tabs. Session-only and cleared on
+// the way out of this view: a filter she cannot see, hiding most of what she
+// kept, is the failure to avoid.
+//
+// THE WAY IN IS A CHIP ROW OVER THE PILE (2026-09-14). Until then the ONLY
+// thing that ever set `bmkTag` was the To read door above the Update tab's
+// account row — so when that tab came off at her ask ("get rid of the updates
+// tab in chats") the tag-filtered pile became unreachable: she could still
+// mark a thing `to read` and had no way left to ask for the ones she had.
+// That is a silent loss, not part of the ask, so the row that already draws
+// the LIT chip (the clear ✕) draws the unlit ones too. Two things not to
+// undo: it is the SAME `.bmktagbar`, so there is one row and one look; and a
+// word with nothing wearing it is NOT offered — a chip that can only ever
+// answer "nothing" is a dead control, and the pile is where a tag is read
+// back, never where one is applied.
 var bmkTag='';       // '' | one of BMK_TAGS' keys
+function bmkTagRow(el, all){
+  var counts={};
+  all.forEach(function(m){
+    if((m.kind||'read')==='chat') return;      // a kept chat carries no tags
+    (m.tags||[]).forEach(function(t){ counts[t]=(counts[t]||0)+1; });
+  });
+  var words=BMK_TAGS.filter(function(t){ return counts[t[0]]; });
+  if(!words.length) return;
+  var bar=document.createElement('div'); bar.className='catrow bmktagbar';
+  words.forEach(function(t){
+    var b=document.createElement('button'); b.className='catchip';
+    b.innerHTML=esc(t[1])+'<span class="cc-new">'+counts[t[0]]+'</span>';
+    b.setAttribute('aria-label','Only what is tagged '+t[1]);
+    b.onclick=function(){ bmkTag=t[0]; paintBookmarks(el); window.scrollTo(0,0); };
+    bar.appendChild(b);
+  });
+  el.appendChild(bar);
+}
 function paintBookmarks(el){
   var all=(bmkCache||[]);
   el.innerHTML='';
   if(bmkTag){ paintBmkTagPile(el, all); return; }
+  bmkTagRow(el, all);
   var items=all.filter(function(m){ return bmkTabOf(m.kind||'read')===bmkTab; });
   // the hairline tab row — same markup and classes as the account tabs, so
   // the two can never drift apart. `.bmktabs` only adds the pill's corner
