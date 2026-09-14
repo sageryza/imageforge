@@ -8933,6 +8933,57 @@ before working on that module. Nothing was deleted — the moved text is verbati
   nothing at all. Full note: *CHARACTERS, THEN SETTING* in
   `docs/modules/audio-and-film.md`; test
   `node scripts/test-footage-heads.js`.
+  **A BLOCK IS A STORY PART, AND ‹ › WALK THE PROMPTS ALREADY SENT FOR IT
+  (2026-09-14, Sophie: "replace footage blocks w story blocks, next and back
+  to see old prompts").** The Story Timeline's Send to Footage carries the
+  story by id and one entry per connected part (`story: {id, title}`,
+  `units: [{key, ids, text}]`, `key` = the part's FIRST moment id — it
+  survives a reorder and a join, and a split makes a new part with a new key);
+  Footage binds the page to the story (`STORY`, on the draft) and each block
+  to its part (`unit` + the story's own words `utext` on the block's job, so
+  every path that already carries a strip — a divide, a join, the draft, the
+  bank, a put-back — carries the part with it). A block's heading says
+  **Part N** and, shut, the STORY's words for it rather than the prompt's; the
+  panel row names the story; a one-part story still draws its heading. **THE
+  SAME STORY SENT AGAIN MERGES** — a part she already has keeps the prompt she
+  wrote here, its pictures and its fold (sub-blocks she divided out of it
+  included), a new part comes in with its words, a part gone from the story
+  goes (the whole job is banked first, `undo` has it), and the order is the
+  story's; a different story, or a belt scene, replaces as it always did and a
+  belt scene unbinds. Nothing writes back to the story — the Story Timeline
+  is where the story is edited. **EVERY SEND FROM A STORY BLOCK IS TAGGED**:
+  `story`, `unit` and `words` (the block's own text BEFORE the two heads) ride
+  the body the way `project` does, the doors file them on the log doc
+  (`video-log.js` whitelists the first two, caps `words` at 4000; a REFUSED
+  send keeps them too), `cardOf` answers them and `GET /jobs?story=&unit=`
+  filters over the whole log before the page is cut (a story is asked by
+  name, so a tucked project does not narrow it). An appended All send carries
+  the story only — it spans parts. **THE WALK** is one read per story
+  (`loadHistory`, `/jobs?story=<id>&limit=300`, grouped by part, newest first;
+  on bind, on load, and on coming back to the tool throttled like the panels
+  sweep; a send this page makes lands on its own part at once) drawn as a
+  small `‹ now · 3 sent ›` row under the heading of a part that has been sent
+  from and NOWHERE else (the silence rule). ‹ shows the old prompt READ-ONLY
+  in the box's place — the box and its corner buttons leave the layout, and
+  stickybox is told (`hidden`, then `sync()`), because a pinned button is
+  `position:fixed` and went on floating over the words (PHOTOGRAPHED) — with
+  one line under it (`sent Sep 14, 10:34 pm · 4s · 2.0 Mini · drawn`, a tap
+  goes to that clip's card) and **use this**, which is the card's own
+  `copyBack` (the references and the settings ride, `undo` has what was
+  there; `stay:true` keeps her where she is). `copyBack` puts back `words`
+  when the log has them — the whole `prompt` carries the heads, and a box the
+  heads are prepended to again would send them twice. Stepping never saves and
+  never sends, and **the star REFUSES while an old prompt is showing** (the
+  star sends the box, which is exactly what she cannot see then). Not built:
+  editing a part's words back into the timeline, history for a plain (non-
+  story) block, a belt scene's hand-off carrying a story. Tests: `node
+  scripts/test-footage-story-blocks.js` (the real page headless against a stub
+  that files what it receives — every assertion a MEASUREMENT: the parts and
+  their keys, what a send really carried, the merge keeping her prompt, the
+  old prompt read back off the log after a reload, the box really out of the
+  layout, the star's refusal, `use this` and its bank, a belt scene unbinding,
+  a plain page unchanged) plus the story rows of `test-timeline.js` and
+  `test-video-log.js`.
   **AND A STORY TIMELINE STORY COPIES OVER, ONE CONNECTED PART PER BLOCK
   (2026-09-13, Sophie: "how do i copy a story to footage · each connected part
   its own section · lines breaks back").** A **Send to Footage** link on an open
@@ -11418,7 +11469,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **SEND TO FOOTAGE — one connected part is one block (2026-09-13).** A link
   on an open story hands the whole story to `/footage`: one block per UNIT, the
   moments inside one joined by a newline each. Full rules under *DIVIDE HERE* in
-  the Footage bullet; nothing is sent, the star is still her tap.
+  the Footage bullet; nothing is sent, the star is still her tap. **And since
+  2026-09-14 the hand-off carries the story by id and its parts by key** (a
+  part's first moment id), so Footage binds its blocks to the story's parts,
+  merges a second send onto the prompts she wrote there, and walks every prompt
+  already sent for a part — *A BLOCK IS A STORY PART* in the Footage bullet.
   **HER WORDS GO ON THE TIMELINE EXACTLY AS SHE SENT THEM — NEVER ADD, DELETE,
   SPLIT, REGROUP OR REORDER A LINE (2026-09-06, Sophie: "did u add delete or
   change my words" · "if so undo" · "add to docs never do this").** The chat
