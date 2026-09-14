@@ -3040,10 +3040,15 @@ them off the reference sheet, not off the old filenames.
     still suppresses the pop-out for a chat already holding a `reviewHoldAt`.
   - **WHAT LOST ITS ONLY DOOR, named rather than quietly kept:** the
     **Instagram mockups** icon moved to the CHAT LIST (the bug button's rule)
-    because `/instagram` is reachable from nowhere else. The **Update** door to
-    `/brief` and the **To read** door went with the screen — `/brief` is still
-    a page, and the keep-pile's To read chip is still how that pile is
-    narrowed. **Review** kept its own iOS tile and `/review`.
+    because `/instagram` is reachable from nowhere else. The **To read** door
+    was the ONLY thing that ever set `bmkTag`, so the keep-pile grew its own
+    **tag chip row** (`bmkTagRow` — the row that already drew the lit clear
+    chip now draws the unlit ones, and a word nothing is wearing is not
+    offered); without it she could mark a thing `to read` and never ask for
+    the ones she had. The **Update** door to `/brief` went with the screen and
+    nothing links `/brief` now — the page still works, and seating that door
+    somewhere is hers to ask for. **Review** kept its own iOS tile and
+    `/review`.
   - **AND THE SECOND HALF OF THE `to be reviewed` RULE DIED WITH IT** — the
     hold on her account lists was written by dismissing a card from that tab
     ("IF i dismiss manually from update tab"), and there is no dismissal now.
