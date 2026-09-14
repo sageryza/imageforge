@@ -312,8 +312,6 @@
      for the second tap) it takes the gold ring the active block already
      wears — the one accent on this page that means "this is the one" —
      rather than a colour nothing else here uses. */
-  #goall{white-space:nowrap}
-  #goall.armed{box-shadow:0 0 0 2px #c9a96a}
   /* NOTHING A DOOR SAYS MAY WIDEN THE PAGE (2026-09-10, Sophie: "bug where
      screen sometimes zooms extra or gets v wide ?"). A refusal arrives as the
      door's own words — Atlas hands back up to 600 characters of raw body, and
@@ -1293,18 +1291,6 @@
        "no plan button"), with the price of that tap right beside it. -->
   <div class="row" style="margin-top:12px">
     <button class="go" id="go" type="button"><span id="gostar"></span>Go</button>
-    <!-- AND SHE CAN SEND THEM ALL (2026-09-13, Sophie: "sending two boxes at
-         once"). The star sends the block she is in, which is right when the
-         blocks are two takes of one shot and wrong when they are shot one and
-         shot two of a scene she has just divided — there the second tap meant
-         waiting for the first clip, tapping into the next block and reading
-         the price again. So a second star beside it, drawn only once two or
-         more blocks have words in them, with the WHOLE batch's price on the
-         button itself: the read-back is on the tap, which is the strongest
-         form of her "have me approve the prompt and references" rule. Over $3
-         it ARMS instead of sending and says the total — her ask-above-$3 line,
-         in this page's idiom (a second tap, never a dialog). -->
-    <button class="go" id="goall" type="button" hidden><span id="goallstar"></span><span id="goalllab">All</span></button>
     <span class="cost" id="cost"></span>
     <!-- CLEAR, AND AN UNDO BESIDE IT (2026-09-11, Sophie: "add a clear button
          to footage · with an undo · make a draft save automatically"). It
@@ -1484,7 +1470,6 @@ var ICONS = {
 };
 var $ = function (id) { return document.getElementById(id); };
 $('gostar').innerHTML = ICONS.star;
-$('goallstar').innerHTML = ICONS.star;
 $('addicon').innerHTML = ICONS.image;
 document.querySelectorAll('.selwrap .chev').forEach(function (c) { c.innerHTML = ICONS.chev; });
 document.querySelectorAll('.iconbtn .ico').forEach(function (c) { c.innerHTML = ICONS.folder; });
@@ -1863,7 +1848,6 @@ function setFolder(f, opts) {
   f = String(f || '');
   if (f === S.folder && !opts.force) return;
   S.folder = f; folderSave(f);
-  disarm();   // an armed "send all · $x?" would file the clip in the folder she LEFT
   if (typeof clearErr === 'function') clearErr();
   if (typeof cmpCancelPick === 'function') cmpCancelPick();
   jobsById = {}; olderAt = null; walkAt = ''; feedMore = false;
@@ -2283,10 +2267,6 @@ function loadBank() {
 function paintWipe() {
   var c = $('clearjob'), u = $('undojob');
   if (!c || !u) return;
-  // ANY CHANGE TO THE JOB DISARMS THE BATCH — this is the one signal every
-  // path that changes it already sends, so an armed "send all 4 · $18?" can
-  // never be sitting there for a scene she has edited since.
-  disarm();
   // written only on a change — this runs on every keystroke (saveDraft), and a
   // same-value attribute write is still a mutation on the row she types over
   var ch = jobEmpty(jobNow()), uh = !bank;
@@ -2302,141 +2282,6 @@ function paintWipe() {
   // guarantees the row is the height it has always been while nothing is
   // offered.
   if ($('wipes').hidden !== (ch && uh)) $('wipes').hidden = ch && uh;
-  paintGoAll();
-}
-// ── SEND THEM ALL — APPENDED INTO ONE CLIP ────────────────────────────────
-// 2026-09-13, Sophie: "sending two boxes at once", then her note on the card
-// the same hour: "u misunderstood. not separate jobs. i want them to append
-// to each other". So this is ONE job whose prompt is every written block
-// joined, blank line between them — exactly what the join mark in the gap
-// does to the words, without destroying her blocks. It shipped for an hour as
-// N sequential jobs (N scenes, N times the price, stopping at the first
-// refusal); that is HISTORY, not a rule, and the sequential walk, its tally
-// toast and the `batch` flag that lit a refused block's gold line are gone
-// with it.
-// WHY IT IS ONE JOB AND NOT N CHAINED ONES: chaining would still be separate
-// jobs, which is the half she ruled out. A clip that continues another one is
-// the keyframe marks' job, not this button's.
-// THE PRICE IS ONE CLIP'S, and it is on the button for her "never run without
-// asking · have me approve the prompt and references" rule — the read-back is
-// at the tap rather than behind one.
-// AND OVER $3 IT ASKS, which is a house rule and not this page's idea. The
-// first tap ARMS and names the total, the second sends; anything that changes
-// the job disarms it, and so does eight seconds, so an armed button can never
-// be sitting there tomorrow spending money on a job she has since edited. One
-// clip is rarely over the line — a 30s 2.5 clip is — so the rule stands
-// whether or not it fires today.
-var ARM_MS = 8000, ASK_CENTS = 300;
-var armed = 0;
-function wordyBlocks() {
-  return blocks().filter(function (w) { return w.querySelector('.pblock').value.trim(); });
-}
-// EVERY WRITTEN BLOCK, IN ORDER, BLANK LINE BETWEEN — the join mark's own
-// shape, so appending and joining cannot read as two different things. The
-// blocks themselves are untouched: her structure survives the send.
-// EVERY WRITTEN BLOCK'S REFERENCES, IN ONE JOB (2026-09-14, Sophie: "blocks in
-// footage that have images attached shud keep attached images"). The All star
-// appends the blocks into ONE clip, so that clip has to carry every picture
-// its words name: the union in block order, deduped by url, put in the doors'
-// own order. THE MARKS follow the same rule — the first written block that has
-// one wins each end, because a clip has one first frame, and a picture marked
-// in a later block rides as an ordinary reference rather than being dropped.
-function allStrip() {
-  var jobs = wordyBlocks().map(jobOf);
-  var out = [], have = {};
-  jobs.forEach(function (j) {
-    j.refs.forEach(function (r) { if (r && r.url && !have[r.url]) { have[r.url] = 1; out.push(r); } });
-  });
-  var first = '', last = '';
-  jobs.forEach(function (j) { if (!first && j.first && have[j.first]) first = j.first; });
-  jobs.forEach(function (j) { if (!last && j.last && have[j.last] && j.last !== first) last = j.last; });
-  return cleanJob({ refs: sortRefs(out), first: first, last: last });
-}
-// AND EVERY BLOCK'S WORDS RENUMBERED ONTO IT. A slot name is a POSITION, so
-// block 2's `[Image1]` is a different picture from block 1's — joining the
-// words without the rewrite would draw the wrong reference, silently, which is
-// the one failure this page must not have.
-function allJob() {
-  var ws = wordyBlocks();
-  var jobs = ws.map(jobOf);
-  var job = allStrip(), plain = plainOf(job);
-  job.prompt = ws.map(function (w, i) {
-    return reslotText(w.querySelector('.pblock').value.trim(), plainOf(jobs[i]), plain);
-  }).join('\n\n');
-  return job;
-}
-// WHAT A JOB COSTS DEPENDS ON ITS SHAPE, not only on the model and the length:
-// a reference video, a keyframe and whether anything is attached at all move
-// the price AND which door takes it. So the union's shape is compared against
-// the active block's, and only where they differ is a second (free) estimate
-// asked for — the figure on the All button has to be the price of the clip
-// that button sends.
-function refCounts(plain) {
-  var c = { image: 0, video: 0, audio: 0 };
-  plain.forEach(function (r) { c[r.kind === 'video' ? 'video' : r.kind === 'audio' ? 'audio' : 'image'] += 1; });
-  return c;
-}
-// THE COUNTS ARE IN THE KEY (2026-09-14, found auditing the page): it ended in
-// `plain.length ? 1 : 0`, so a union of ten pictures and an active block of
-// one had the SAME key and the All button quoted the block's Atlas price for
-// a job Atlas must refuse — which `POST /jobs`, counting properly, then sent
-// through a dearer door.
-function shapeKey(job) {
-  var plain = plainOf(job), c = refCounts(plain);
-  return [S.model, S.res, S.ratio, S.seconds,
-    plain.some(function (r) { return r.kind === 'video'; }) ? 1 : 0,
-    job.first ? 1 : 0, job.last ? 1 : 0, c.image, c.video, c.audio].join('|');
-}
-var allCost = { key: '', cents: null, about: false, error: '' };
-function askAllCost(job, k) {
-  allCost = { key: k, cents: null, about: false, error: '' };   // keyed BEFORE the ask, so one shape asks once
-  var plain = plainOf(job), c = refCounts(plain);
-  var q = '?model=' + S.model + '&res=' + S.res + '&ratio=' + encodeURIComponent(S.ratio) + '&seconds=' + S.seconds
-    + '&video=' + (plain.some(function (r) { return r.kind === 'video'; }) ? 1 : 0) + '&door=' + doorNow()
-    + (job.first ? '&first=1' : '') + (job.last ? '&last=1' : '') + (plain.length ? '&refs=1' : '')
-    // the counts — Atlas has caps of its own, and the price has to be the door's that will really take it
-    + '&imgs=' + c.image + '&vids=' + c.video + '&auds=' + c.audio;
-  api('/estimate' + q).then(function (d) {
-    if (allCost.key !== k) return;
-    // AN UNPRICEABLE UNION IS SAID, NOT LEFT BLANK: `sendAll` refuses on a
-    // missing figure, so a shape no door takes has to reach the button as words
-    if (!d || d.error || d.cents == null) { allCost.error = (d && d.error) || 'no price'; paintGoAll(); return; }
-    allCost.cents = d.cents; allCost.about = !!d.about;
-    paintGoAll();
-  }).catch(function () {});
-}
-// null while there is no figure yet — the button says the count and no price
-// rather than a number the server has not answered.
-// ONE clip, so it is the single price and never a multiple of it.
-function allFigure() {
-  var u = allStrip(), k = shapeKey(u);
-  if (k === shapeKey(liveJob())) {
-    var c = parseFloat($('cost').dataset.cents);
-    return { cents: isFinite(c) ? c : null, about: !!$('cost').dataset.about };
-  }
-  if (allCost.key !== k) askAllCost(u, k);
-  return { cents: allCost.key === k ? allCost.cents : null, about: allCost.about, error: allCost.key === k ? allCost.error : '' };
-}
-function allCents() { return allFigure().cents; }
-function disarm() { if (armed) { armed = 0; paintGoAll(); } }
-function paintGoAll() {
-  var b = $('goall');
-  if (!b) return;
-  var n = wordyBlocks().length;
-  var hide = n < 2;
-  if (armed && Date.now() - armed > ARM_MS) armed = 0;
-  if (b.hidden !== hide) b.hidden = hide;
-  if (hide) { armed = 0; return; }
-  var fig = allFigure();
-  var total = fig.cents;
-  var lab = armed ? 'Send all ' + n + ' · ' + cents(total) + '?'
-    : 'All ' + n + (total == null ? '' : ' · ' + (fig.about ? '~' : '') + cents(total));
-  var el = $('goalllab');
-  if (el.textContent !== lab) el.textContent = lab;
-  var t = armed ? 'Tap again to send all ' + n + ' — ' + cents(total)
-    : 'Send all ' + n + ' blocks as ONE clip, appended';
-  if (b.title !== t) b.title = t;
-  if (b.classList.contains('armed') !== !!armed) b.classList.toggle('armed', !!armed);
 }
 function clearJob() {
   var was = jobNow();
@@ -2776,8 +2621,15 @@ function updateCost() {
     $('cost').dataset.about = d.about ? '1' : '';
     $('cost').dataset.door = d.door || '';
     paintKfNote();
-    paintGoAll();                   // the batch's total is N × this figure
   }).catch(function () {});
+}
+// HOW MANY OF EACH KIND RIDE — Atlas has caps of its own (9 pictures, 3
+// videos, 3 audios), so a price has to be the price of the door that will
+// really take the job. Read by the estimate and by the refusal's door words.
+function refCounts(plain) {
+  var c = { image: 0, video: 0, audio: 0 };
+  plain.forEach(function (r) { c[r.kind === 'video' ? 'video' : r.kind === 'audio' ? 'audio' : 'image'] += 1; });
+  return c;
 }
 // WHAT THE DOORS WILL DO WITH A KEYFRAME, BEFORE SHE TAPS — nothing hidden.
 // The one shape worth a line is a first (or last) frame WITH other references
@@ -3929,10 +3781,6 @@ function paintBlocks() {
   // strip is showing: this is the one place the block COUNT changes, so a
   // divide or a join can never leave it saying "block 3" over a page of two
   if (typeof paintFolds === 'function') paintFolds();
-  // the block COUNT is what decides whether the second star is drawn, and
-  // this is the one place it changes (a divide, a join, a removal, a hand-off,
-  // a draft coming back) — `paintWipe` covers the words changing under it
-  if (typeof paintGoAll === 'function') paintGoAll();
   if (window.__fitPillGap) window.__fitPillGap();
 }
 // THE CUT IS THE TIMELINE'S: the words before the caret stay, the words after
@@ -3945,8 +3793,8 @@ function paintBlocks() {
 // empty block"). It used to refuse — "put the cursor where the second block
 // should start" — on the reasoning that there was nothing to cut, and that is
 // history: an empty block is an ordinary state on this page (a restored draft
-// can hold one, `wordyBlocks` already skips one, and the star already refuses
-// one with "say what the clip is first"), and writing shot two means asking
+// can hold one, and the star refuses an empty one with "say what the clip is
+// first"), and writing shot two means asking
 // for a box before there are words to put in it. Three things not to undo:
 //   - THE NEW EMPTY BLOCK TAKES THE GOLD LINE AND THE CARET. The tap means
 //     "give me somewhere to write"; leaving the star pointing at the block she
@@ -4323,8 +4171,8 @@ $('go').addEventListener('click', function () { sendJob(''); });
 // whose strip is every written block's unioned and whose words are renumbered
 // onto it). `box` still says which block a refusal's gold line belongs to, so
 // the two are separate arguments on purpose.
-function sendJob(pin, box, job, resend) {
-  var btn = $('go'), all = $('goall');
+function sendJob(pin, box, resend) {
+  var btn = $('go');
   if (btn.disabled) return Promise.resolve(false);
   // BOTH STARS GO DOWN TOGETHER (2026-09-13, found auditing the page). `#go`
   // is the gate and greys itself (`button[disabled]{opacity:.45}`), and the
@@ -4332,10 +4180,8 @@ function sendJob(pin, box, job, resend) {
   // looking button that answers nothing is the shape of every "it didn't
   // work" report. It is the same one send either way, so they read the same.
   btn.disabled = true;
-  if (all) all.disabled = true;
-  return postJob(pin, box || activeBox(), job, resend).then(function (ok) {
+  return postJob(pin, box || activeBox(), resend).then(function (ok) {
     btn.disabled = false;
-    if (all) all.disabled = false;
     return ok;
   });
 }
@@ -4363,12 +4209,12 @@ function clearErr() { var el = $('err'); el.hidden = true; el.textContent = ''; 
 // size, shape, seed, project and prompt all ride from it and never from the
 // live controls, so a door word sends THAT job and nothing that has changed
 // since (2026-09-14 — it used to re-read every setting off `S`).
-function postJob(pin, box, job, resend) {
+function postJob(pin, box, resend) {
   // the block she is in and its own strip, or every block appended and theirs
-  var words = job ? job.prompt : box.value;
-  var sendRefs = job ? sortRefs(job.refs) : orderedRefs();
-  var sendFirst = job ? job.first : firstUrl;
-  var sendLast = job ? job.last : lastUrl;
+  var words = box.value;
+  var sendRefs = orderedRefs();
+  var sendFirst = firstUrl;
+  var sendLast = lastUrl;
   clearErr();
   // THE SCENE IS WHAT HAS TO BE THERE — characters and setting are the head
   // of a clip, never the clip, so an empty box with a cast written in it is
@@ -4416,7 +4262,7 @@ function postJob(pin, box, job, resend) {
       // THE JOB'S OWN TEXT RIDES ALONG, or a door word after an appended send
       // would re-send only the block wearing the gold line — the "those words
       // re-send THAT exact job" rule, which a joined prompt can break.
-      if (d && d.refusal === 'content') offerDoors(d.door || $('cost').dataset.door || '', box, job, body);
+      if (d && d.refusal === 'content') offerDoors(d.door || $('cost').dataset.door || '', box, body);
       return false;
     }
     // THE CARD IS THE JOB THAT WENT, NEVER WHAT THE PAGE SAYS NOW (2026-09-13,
@@ -4455,8 +4301,7 @@ function postJob(pin, box, job, resend) {
       || (likedOnly() && card.vote !== 'like') || (hideX() && card.vote === 'dislike');
     justSent[d.jobId] = 1;
     applyFilt();
-    toast((job ? 'Drawing all ' + wordyBlocks().length + ' blocks as one clip…'
-      : (blocks().length > 1 ? 'Drawing block ' + (blocks().indexOf(box.closest('.promptwrap')) + 1) + '…' : 'Drawing…'))
+    toast((blocks().length > 1 ? 'Drawing block ' + (blocks().indexOf(box.closest('.promptwrap')) + 1) + '…' : 'Drawing…')
       + (hid ? ' · shown here though it is outside your search' : ''));
     // her words STAY in the box after a send (a re-roll is one tap), and so
     // does the draft — it used to be wiped here while the box still showed
@@ -4473,42 +4318,6 @@ function postJob(pin, box, job, resend) {
     return false;
   });
 }
-// EVERY WRITTEN BLOCK APPENDED INTO ONE CLIP (her note, 2026-09-13: "not
-// separate jobs. i want them to append to each other"). One job, one price,
-// one refusal line — so nothing has to stop at the first refusal, nothing
-// tallies how many went, and the door words under a refusal re-send the same
-// appended scene rather than one block of it.
-// The GOLD LINE is left exactly where she put it: with one job there is no
-// "which block was refused", and moving her active block under her would be
-// the page deciding where she is typing next.
-function sendAll() {
-  var btn = $('go');
-  if (btn.disabled) return;
-  var ws = wordyBlocks();
-  if (ws.length < 2) return sendJob('');
-  var fig = allFigure(), total = fig.cents;
-  // NO FIGURE, NO SEND (2026-09-14, found auditing the page): the over-$3 ask
-  // below was skipped whenever the estimate had not landed — or had come back
-  // as "no door takes that shape" — so the button read "All 4" with no price
-  // and the first tap sent, at any price, with no read-back at all.
-  if (total == null) {
-    if (fig.error) return toast(fig.error);
-    return toast('Working out what that costs — tap again in a second');
-  }
-  // OVER $3 IT ASKS — the house rule, as a second tap rather than a dialog
-  if (!armed && total != null && total >= ASK_CENTS) {
-    armed = Date.now(); paintGoAll();
-    setTimeout(function () { if (armed) disarm(); }, ARM_MS + 50);
-    return toast('That is ' + cents(total) + ' for one clip of all ' + ws.length + ' — tap it again to send');
-  }
-  armed = 0; paintGoAll();
-  // the FIRST written block owns the gold line only if a refusal needs one —
-  // it does not, so the box here is just where `postJob` reads nothing from.
-  // AND THE JOB CARRIES ITS OWN STRIP (2026-09-14) — every written block's
-  // references unioned, every block's words renumbered onto it.
-  sendJob('', ws[0].querySelector('.pblock'), allJob());
-}
-$('goall').addEventListener('click', sendAll);
 
 // The doors that can still take THIS job, priced. `/estimate` is free and is
 // the one place that knows whether a door can take the job's shape at all —
@@ -4520,7 +4329,7 @@ $('goall').addEventListener('click', sendAll);
 // scene and the union that went with it, never whatever block happens to be
 // active when she taps it. `body` is what really left, so the prices offered
 // are for the shape that was refused rather than for the page as it stands.
-function offerDoors(refused, box, job, body) {
+function offerDoors(refused, box, body) {
   var others = ['atlascloud', 'openrouter', 'apiframe'].filter(function (d) { return d !== refused; });
   var sent = body || {};
   var plain = (sent.refs || []).filter(function (r) {
@@ -4552,7 +4361,7 @@ function offerDoors(refused, box, job, body) {
       b.className = 'doorgo';
       b.textContent = 'Send it through ' + doorWord(r.door) + ' · ' + (r.about ? '~' : '') + '$' + (r.cents / 100).toFixed(2);
       // the EXACT body that was refused, pinned to this door — never the page as it stands now
-      b.addEventListener('click', function () { clearErr(); sendJob(r.door, box, job, body); });
+      b.addEventListener('click', function () { clearErr(); sendJob(r.door, box, body); });
       row.appendChild(b);
     });
     if ($('err').hidden) return;       // she cleared it while the prices were being asked

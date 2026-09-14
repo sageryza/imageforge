@@ -260,12 +260,6 @@ const send = async (page, btn) => {
   ok('so the star still sends THAT block, with the heads on top',
     got.prompt === CAST + '\n\n' + ROOM + '\n\n' + s.blockVals[1]);
 
-  // ── 10. THE ALL STAR: the heads ride ONCE, at the top ───────────────────
-  got = await send(page, '#goall');
-  ok('an appended send carries the heads once, ahead of every block',
-    got.prompt === CAST + '\n\n' + ROOM + '\n\n' + s.blockVals[0] + '\n\n' + s.blockVals[1]);
-  ok('and never once per block', got.prompt.split('green-tiled ward').length === 2);
-
   // ── 11. `clear` LEAVES THEM — they are the standing thing above the job ─
   await page.click('#clearjob');
   await page.waitForTimeout(250);

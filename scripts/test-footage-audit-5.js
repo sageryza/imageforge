@@ -109,10 +109,14 @@ const page = fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8');
 // ── THE PAGE, by source ───────────────────────────────────────────────────
 {
   ok('a lone block can never be shut', /if \(ws\.length === 1 && ws\[0\]\.classList\.contains\('shut'\)\) \{ ws\[0\]\.classList\.remove\('shut'\)/.test(page));
-  ok("the All star's shape key and its estimate carry the counts", /c\.image, c\.video, c\.audio\]\.join\('\|'\)/.test(page) && /'&imgs=' \+ c\.image \+ '&vids=' \+ c\.video \+ '&auds=' \+ c\.audio;\n  api\('\/estimate'/.test(page));
-  ok('no figure, no send', /if \(total == null\) \{\n    if \(fig\.error\) return toast\(fig\.error\);/.test(page));
+  // THE ALL STAR IS GONE (2026-09-14, Sophie: "button is stipid get it out"),
+  // so its two pins — the counts in its shape key, and "no figure, no send"
+  // — went with it. The single estimate carries the counts of its own, pinned
+  // by `offerDoors prices off the body that left` below and by the page's own
+  // `&imgs=` line; nothing on the page sends a whole job any more.
+  ok('nothing on the page sends a job that is not the active block', !/goall|allJob\(|wordyBlocks\(/.test(page));
   ok('the refusal line has a ✕ and dies with the job', /function clearErr\(\)/.test(page) && (page.match(/clearErr\(\);/g) || []).length >= 5);
-  ok('a door word re-sends the exact body that was refused', /sendJob\(r\.door, box, job, body\)/.test(page) && /var body = resend \? Object\.assign\(\{\}, resend, \{ door: pin \|\| doorNow\(\) \}\)/.test(page));
+  ok('a door word re-sends the exact body that was refused', /sendJob\(r\.door, box, body\)/.test(page) && /var body = resend \? Object\.assign\(\{\}, resend, \{ door: pin \|\| doorNow\(\) \}\)/.test(page));
   ok('offerDoors prices off the body that left, with the counts', /encodeURIComponent\(sent\.model \|\| S\.model\)/.test(page) && /'&auds=' \+ c\.audio;\n  Promise\.all\(others/.test(page));
   ok('reslotPlan forgets EVERY vanished slot name', /gones\.push\(a\.slots\[r\.url\]\)/.test(page) && /function reslotApply\(p, t\)/.test(page));
   ok('a put-back strips the heads it carries', /headWords\(\)\.forEach\(function \(t\) \{ if \(back\.indexOf\(t \+ '\\n\\n'\) === 0\) back = back\.slice\(t\.length \+ 2\); \}\);/.test(page));

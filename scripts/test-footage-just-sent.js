@@ -249,47 +249,6 @@ async function pickProject(pg, v) {
     ws[1].value = 'shot two'; ws[1].dispatchEvent(new Event('input', { bubbles: true }));
   });
   await page.waitForTimeout(200);
-  slow = 400;                                      // hold the send open long enough to look
-  const during = await page.evaluate(async () => {
-    document.getElementById('go').click();
-    await new Promise((r) => setTimeout(r, 120));
-    const go = document.getElementById('go'), all = document.getElementById('goall');
-    return { go: go.disabled, all: all.disabled, dim: parseFloat(getComputedStyle(all).opacity) };
-  });
-  ok('while a send is in flight the All star is down too ' + JSON.stringify(during),
-    during.go && during.all && during.dim < 0.6);
-  await page.waitForTimeout(700);
-  const afterSend = await page.evaluate(() => ({ go: document.getElementById('go').disabled, all: document.getElementById('goall').disabled }));
-  ok('and both come back up when it lands ' + JSON.stringify(afterSend), !afterSend.go && !afterSend.all);
-  slow = 0;
-
-  // ── AN ARMED "SEND ALL · $x?" GOES DOWN WHEN THE PROJECT MOVES ─────────
-  // The arm is a promise that the second tap sends the job she was looking
-  // at, and the project rides the body — so an arm left standing across a
-  // switch files the clip somewhere she was not when she armed it. MEASURED
-  // off the button's own state and off what the server really received.
-  cents = 420;                                     // over the $3 ask line
-  await page.selectOption('#secs', '8');           // any control change re-asks /estimate
-  await page.waitForFunction(() => /\$4\.20/.test(document.getElementById('goalllab').textContent), null, { timeout: 4000 });
-  const nPosted = posted.length;
-  await page.click('#goall');
-  await page.waitForTimeout(200);
-  ok('the first tap arms rather than sending',
-    (await page.evaluate(() => document.getElementById('goall').classList.contains('armed'))) && posted.length === nPosted);
-  // the FOLDER is the one that needed a line of its own — `setProject`
-  // repaints the controls and `paintWipe` disarms, where `setFolder` does not
-  await pickProject(page, 'ward');
-  await page.waitForTimeout(500);
-  await page.click('#goall');                      // arm again inside the project
-  await page.waitForTimeout(200);
-  ok('armed inside the project', await page.evaluate(() => document.getElementById('goall').classList.contains('armed')));
-  await pickProject(page, 'ward/commercials');
-  await page.waitForTimeout(400);
-  ok('switching folder disarms it — nothing is one tap from sending',
-    !(await page.evaluate(() => document.getElementById('goall').classList.contains('armed'))));
-  ok('and still nothing went', posted.length === nPosted);
-  cents = 4.4;
-
   ok('no page errors', errors.length === 0);
   await browser.close(); server.close();
   report();
