@@ -105,6 +105,34 @@
     return (vv && vv.height ? (vv.offsetTop || 0) : 0) + 10;
   }
 
+  // PAGE CHROME PINNED TO THE BOTTOM OF THE SAME BAND (2026-09-14). Footage's
+  // list/tiles bar is sticky at BOTH ends, so while she is up in the prompt
+  // block it sits at the bottom of the viewport — exactly where these buttons
+  // aim. Both are right and they cannot share the pixel, so a marked row wins
+  // and the button pins above it. Read LIVE, never cached: the bar is at the
+  // bottom for one stretch of the scroll, in the flow for the next and at the
+  // top after that, and a set remembered at find time would reserve a band
+  // that is no longer there. `band()` itself stays un-narrowed — narrowing it
+  // for one of THESE buttons is the ratchet the 2026-09-13 note forbids, and
+  // this is a row stickybox does not move.
+  function chromeBottom() {
+    var out = Infinity, all, i, r;
+    try { all = document.querySelectorAll('[data-pagechrome]'); } catch (_) { return out; }
+    for (i = 0; i < all.length; i += 1) {
+      var c = all[i];
+      if (c.hidden) continue;
+      var cs = window.getComputedStyle(c);
+      if (cs.position !== 'sticky' && cs.position !== 'fixed') continue;
+      if (cs.visibility === 'hidden' || cs.display === 'none') continue;
+      r = c.getBoundingClientRect();
+      if (!r.height) continue;
+      // only a row really pinned near the BOTTOM of the band reserves anything;
+      // the same bar at the top of the page is somebody else's problem.
+      if (r.top > bandBottom() - r.height - 2) out = Math.min(out, r.top);
+    }
+    return out;
+  }
+
   // A fixed child is only viewport-relative while nothing above it has made
   // itself the containing block. Anything else and this must not pin at all.
   function fixedIsViewport(el) {
@@ -183,7 +211,7 @@
     var wr = wrap.getBoundingClientRect();
     if (!wr.height) return null;
 
-    var limit = Math.min(bandBottom(), regionBottom(btn)) - GAP;
+    var limit = Math.min(bandBottom(), regionBottom(btn), chromeBottom()) - GAP;
     var top = bandTop();
     var homeBottom = wr.bottom + e.dy;
 

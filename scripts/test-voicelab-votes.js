@@ -175,10 +175,12 @@ const shown = (page) => page.evaluate(() => [].slice.call(document.querySelector
   console.log('\nTHE TWO FILTERS');
   const hearts = '#pane-say .filttog [data-filt="liked"]';
   const nox = '#pane-say .filttog [data-filt="hidex"]';
-  await page.click(nox);
-  await page.waitForTimeout(60);
+  // DEFAULT ON (2026-09-14, "default to hide x") — no tap: this is the
+  // untouched state, and the box is lit so the filter is never a silent one.
   let list = await shown(page);
-  ok(!list.includes('the crossed out line'), 'hide-the-✕\'d drops the crossed-out take');
+  ok(!list.includes('the crossed out line'), 'hide-the-✕\'d drops the crossed-out take, with no tap');
+  ok(await page.evaluate((s) => document.querySelector(s).classList.contains('on'), nox),
+    'and the box says so');
   ok(list.includes('the plain line') && list.includes('the hearted line'),
     'and keeps everything it does not name');
   ok(list.includes('the one that died'), 'a failed take is not a ✕ and stays');

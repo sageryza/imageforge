@@ -680,9 +680,42 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         block wears nothing and the page looks exactly as it did. The model,
         the seconds and the size are the JOB and are shared across the
         blocks; the block is the words AND its own pictures (below). A slot
-        tap, a character's line and a card's put-back land in that same
-        block. Every block keeps its words after a send (the box's own rule)
-        and the toast says which block went.
+        tap and a character's line land in that same block. Every block keeps
+        its words after a send (the box's own rule) and the toast says which
+        block went.
+      - **A CARD'S PUT-BACK MAKES A BLOCK OF ITS OWN (2026-09-14, Sophie:
+        "copy back from finished job shud make a new text block · not replace
+        the selected block").** It used to write the card's words straight
+        into the active box, so putting a finished clip back cost her whatever
+        was in that block — the scene she was part way through, or the shot
+        she had just divided out — and the only way back was the `undo`
+        `copyBack` had to bank the WHOLE job for. One block is one clip, so a
+        clip she puts back is another block. Five things not to undo:
+          - **IT LANDS AT THE END**, never inserted beside the block she is
+            standing in: an insert would renumber the shots she is reading in
+            order, which is a change to her scene she did not ask for.
+          - **…EXCEPT INTO A TRAILING EMPTY BLOCK**, which is the box she
+            already has — a fresh page IS one empty block, and a divide at the
+            end of the last one is her asking for somewhere to write. Adding
+            beside either would strand an empty block she then has to take
+            off. Empty means no words AND no pictures: a block carrying a
+            strip is one she set up.
+          - **THE NEW BLOCK TAKES THE GOLD LINE AND THE CARD'S OWN STRIP**, so
+            the star sends what she just put back and the references under the
+            panel are its. The block she was in keeps its words and its
+            pictures exactly as they were — the whole of her ask — and there is
+            nothing of any other block's to renumber, since none of them moved.
+          - **NOTHING IS BANKED, because nothing is overwritten.** An `undo`
+            left on the row by an earlier `clear` goes on meaning that clear.
+          - **THE SETTINGS ARE STILL THE JOB and are still replaced** — the
+            model, the seconds, the size, the shape and the seed belong to the
+            clip whichever block sends it, and only what the record knows (a
+            card with no seed clears the box, one with no keyframe brings no
+            marks, a model this page does not offer leaves the picker alone).
+          The window is walked to the block it landed in — never
+          `scrollIntoView` (the caret keeper's and `goToCard`'s rule), and
+          never simply to the top of the page, which on a panel of several
+          blocks is not where the new block is.
       - **AND EVERY BLOCK KEEPS ITS OWN PICTURES (2026-09-14, Sophie: "blocks
         in footage that have images attached shud keep attached images and the
         images return when block is selected").** The strip under the panel is
@@ -712,8 +745,8 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         picture uploads used to drop it there, on a scene that never asked
         for it, and the toast now names the block when it is not the one she
         is standing in; the **✕ renames the active block's words alone**, since no other
-        block's pictures moved; a **card's put-back** replaces that block's
-        strip and touches nothing else; a **hand-off gives EVERY block the
+        block's pictures moved; a **card's put-back** brings the card's strip in
+        on the new block it makes and touches nothing else; a **hand-off gives EVERY block the
         same strip**, since its scenes are one job's references however many
         parts they came over in; **each
         heading carries a picture glyph and a count**, so a block she is not

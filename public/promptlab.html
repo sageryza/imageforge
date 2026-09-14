@@ -1269,7 +1269,12 @@
   // stack without arguing — hearts-only has already dropped every ✕'d picture,
   // so this one simply finds nothing more to do.
   document.getElementById('v-hidex').innerHTML = ICONS.x;
-  function hideX() { return localStorage.getItem('promptlab_hidex') === '1'; }
+  // DEFAULT ON (2026-09-14, Sophie: "default to hide x") — absent means HIDE, so
+  // a fresh page opens with the crossed-out ones already gone. Stored '1'/'' as
+  // before, and the reader asks ABSENT FIRST: null takes the default, '1' is on,
+  // '' alone is off — so a phone that had already turned it on, or deliberately
+  // off, keeps exactly what she chose. The bell's default-on shape.
+  function hideX() { var v = localStorage.getItem('promptlab_hidex'); return v === null ? true : v === '1'; }
   function applyHideX(repaint) {
     document.getElementById('v-hidex').classList.toggle('on', hideX());
     if (repaint) renderFeed();

@@ -137,6 +137,20 @@ function serve() {
   }, [run, i]);
   const lbOpen = () => pg.evaluate(() => { const el = document.getElementById('clightbox'); return !!el && el.style.display === 'flex'; });
 
+  // ── DEFAULT ON, then put DOWN for the rest of this pass ──
+  // 2026-09-14, Sophie: "default to hide x". Measured here on the untouched
+  // page; everything below is about CASTING marks, and a picture that hides
+  // itself the moment it is ✕'d cannot then be re-marked, so her own OFF is
+  // tapped once and the filter's own section turns it back on.
+  {
+    const start = await pg.evaluate(() => ({
+      lit: document.getElementById('v-hidex').classList.contains('on'),
+      hid: (document.querySelector('#run-r2 .cell[data-i="1"]') || {}).hidden }));
+    ok('a fresh page opens with the ✕\'d picture already hidden, and the box lit', start.lit && start.hid === true);
+    await pg.click('#v-hidex'); await pg.waitForTimeout(150);
+    ok('and her tap puts it down', await pg.evaluate(() => !document.getElementById('v-hidex').classList.contains('on')));
+  }
+
   // ── ♥ / ✕ on every picture of every card ──
   {
     const marks = await pg.evaluate(() => {

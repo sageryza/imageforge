@@ -7782,6 +7782,34 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `node scripts/test-playground-hide-x.js` (headless — including the
   placeholder measured against the room the input actually has, because a
   clipped field passes both `isVisible()` and a width assertion).
+  **AND IT IS ON BY DEFAULT SINCE 2026-09-14 (Sophie: "default to hide x") —
+  ON ALL FIVE SURFACES THAT HAVE IT**: the Playground, Footage, Freeform,
+  Voice Studio and Stitch. The ♥/✕ pair is ONE pattern ported across those
+  five, so a default that differed per page would be two meanings for two
+  identical-looking controls — the drift the house rule about measuring a
+  shared thing against every CALLER exists to stop. Four things not to undo:
+  - **ABSENT IS THE DEFAULT, AND HER TAP IS NOT.** Each reader asks ABSENT
+    FIRST — `null` takes the default, `'1'` is on, `''` is off — and the write
+    still stores `'1'`/`''` exactly as before, so a phone that had already
+    turned it on, or deliberately off, keeps what she chose and only an
+    untouched one changes. The bell's own default-on shape (OFF is the thing
+    that gets stored), spelled with the value's own presence.
+  - **THE CHIP IS LIT ON A FRESH PAGE**, which is the whole of what keeps a
+    default-on filter from being the silent filter this app keeps getting
+    burned by — and it is why this is safe where the Assets tab and Meta
+    Assets are not.
+  - **THE ASSETS TAB AND META ASSETS ARE DELIBERATELY NOT THIS.** Their
+    New · ♥ · Hide ✕ mark filter stores nothing on purpose ("those are places
+    she arrives to look at everything, and a filter left on from last week
+    silently hiding most of her library is what the chip's state-wearing
+    exists to stop"), so it still opens showing everything.
+  - **HEARTS-ONLY IS UNTOUCHED** and still opens OFF — it KEEPS only what it
+    names, where this one only ever DROPS a ✕.
+  Test: `node scripts/test-hide-x-default.js` — every check RUNS the real
+  reader lifted out of the real page against a fake store, since a reader that
+  reads perfectly and answers the old default looks identical in the source
+  (verified failing 5 pre-fix). A test that needs to see a crossed-out picture
+  stores her own explicit `''` and says why.
   **PICK SEVERAL AT ONCE — THE SELECT CHIP (2026-09-02, Sophie: "add a select
   button to playground so i can x a bunch of things at once").** A fourth chip
   in the filter box; lit, a tap on a picture PICKS it instead of opening it,
@@ -8245,7 +8273,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
   marks on each picture's top corners on the card AND in the lightbox (one
   reader, `runsById`, so a mark cast anywhere shows everywhere), tapping the
   lit one clears it, and the ♥-only / hide-✕'d pair over the feed, sticky
-  (`freeform_liked` / `freeform_hidex`). **Both directions with the Assets
+  (`freeform_liked` / `freeform_hidex`). **Hide-the-✕'d opens ON since 2026-09-14** (her "default to hide x" — the rule and its four guards are in the Playground's ✕-filter note). **Both directions with the Assets
   tab**: the route calls server.js's `syncVoteToAssets` (handed in at init —
   a Freeform output is a My Creations picture, so the my-creations rule reaches
   `/freeform/out/` too) and the Assets vote route calls `freeform.voteFromAssets`
@@ -8672,6 +8700,36 @@ before working on that module. Nothing was deleted — the moved text is verbati
   MEASUREMENT, since a sticky that never pins, one the clips show through, one
   whose own controls sit under the pill, and one that leaves a card behind it
   all look identical in the source; verified failing 12 pre-fix).
+  **AND IT IS STICKY AT BOTH ENDS — IT IS THE DIVIDER (2026-09-14, her
+  correction the same day: "i want the tiles bar as a middle · in prompt block
+  mode its pinned to bottom · gallery its top (as now) · textblock / bar /
+  gallery · bar always visible").** Pinning at the top alone answers only half
+  of "always visible": with a long scene, the big box open or a strip of
+  references, the prompt block is taller than the screen and the bar sits
+  below the fold the whole time she is up in it (MEASURED at 390x844 on a
+  22-line scene with the big box open: the panel is 1,988px and the bar's
+  natural spot is y=2054, two screens down). `bottom:0` beside the `top` is
+  the whole fix — a sticky element sticks to whichever edge its natural
+  position is pushed past, so the bar is at the bottom while she is in the
+  prompt block, at the top once the gallery has reached it, and in the flow
+  for the stretch in between. It needs no script and keeps no copy of its own
+  height; the containing block is the page, which spans both halves.
+  Two things not to undo. **A box's pinned corner buttons sit ABOVE it** —
+  `stickybox.js` pins the bigger-box and divide buttons at the bottom of
+  caretkeep's band and the bar is bottom-pinned at the bottom of the same
+  band, so without this they land on each other on exactly the long scene
+  that makes the bar bottom-pin at all (MEASURED: the buttons' bottom 812
+  against a bar top of 793). The bar carries `data-pagechrome` and
+  `chromeBottom()` reads it LIVE on every pass, never cached — the bar is at
+  the bottom for one stretch of the scroll, in the flow for the next and at
+  the top after that, and a set remembered at find time would reserve a band
+  that is no longer there. **`band()` itself is still NOT narrowed** (the
+  2026-09-13 ratchet), because this is a row stickybox does not move. And
+  **nothing was added to `caretkeep`**: the bar is a body-level sticky row, so
+  `findStuck` already finds it and `caretBand` lifts her caret line clear by
+  itself. Pinned by sections 7 of
+  `node scripts/test-footage-feedbar-sticky.js` (verified failing 4 against
+  the top-only CSS, and 1 more with the stickybox half reverted).
   **AND THE FEED PAGES BACK PAST TODAY (2026-09-11, Sophie: "I can't go back
   farther than today in footage").** The read was the newest 40 clips and
   nothing else — at ~70 Mini clips a day that IS today, so everything before
@@ -8771,7 +8829,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
   SERVED** (`GET /estimate`, the model table on `GET /status`) — the page holds
   no cost figure at all, and a test pins that. Seconds and resolution open at
   the minimum on every load; the model and the shape are remembered. Nothing is
-  deleted — ♥/✕ marks, `hidden` is the verb. **A chat's clips do NOT go here**
+  deleted — ♥/✕ marks, `hidden` is the verb. **Hide-the-✕'d opens ON since 2026-09-14** (her "default to hide x" — the rule and its four guards are in the Playground's ✕-filter note). **A chat's clips do NOT go here**
   — this is her feed, the Playground's rule; a chat's clips are tagged with the
   chat's own slug. Test: `node scripts/test-footage.js`.
   **A BELT SCENE HANDS ITS WHOLE JOB TO THIS PAGE — ONE localStorage KEY,
@@ -8972,14 +9030,38 @@ before working on that module. Nothing was deleted — the moved text is verbati
   in the gap puts them back with a blank line between. **THE STAR SENDS THE
   BLOCK SHE IS IN** — the one she last tapped into, wearing the star's gold
   line once there are two or more; the model, the seconds and the size are
-  the job and are shared, the block is the words; a slot tap, a character's
-  line and a put-back land in the active block. **A CARET AT THE END MAKES AN
+  the job and are shared, the block is the words; a slot tap and a
+  character's line land in the active block, and a **PUT-BACK MAKES A BLOCK
+  OF ITS OWN** (2026-09-14, Sophie: "copy back from finished job shud make a
+  new text block · not replace the selected block") — see the paragraph after
+  next. **A CARET AT THE END MAKES AN
   EMPTY BLOCK, AND IT TAKES THE GOLD LINE AND THE CARET WITH IT (2026-09-14,
   Sophie: "divide here in footage should allow a divide with nothing after it
   to make a new empty block")** — the old refusal there is HISTORY (an empty
   block is an ordinary state here, and writing shot two means asking for a box
   before there are words for it); a caret at the START is still refused (her
   words would jump down the screen) and an empty box divides into nothing.
+  **AND PUTTING A FINISHED CLIP BACK MAKES A BLOCK RATHER THAN OVERWRITING
+  ONE (2026-09-14, Sophie: "copy back from finished job shud make a new text
+  block · not replace the selected block").** A card's copy button used to
+  write its words straight into the box she was standing in, so putting a clip
+  back cost her whatever was in that block — the scene she was part way
+  through, or the shot she had just divided out — and the only way back was the
+  `undo` `copyBack` had to bank the WHOLE job for. One block is one clip, so a
+  clip she puts back is another block. Five things not to undo: it lands at
+  the **END**, never inserted beside her (an insert renumbers the shots she is
+  reading in order); **except into a TRAILING EMPTY block**, which is the box
+  she already has — a fresh page IS one empty block and a divide at the end is
+  her asking for somewhere to write, so adding beside either would strand an
+  empty block she then has to take off (empty means no words AND no pictures);
+  the new block **takes the gold line and the card's own strip**, so the star
+  sends what she just put back and the references under the panel are its;
+  **nothing is banked**, because nothing is overwritten — an `undo` left on
+  the row by an earlier `clear` goes on meaning that clear; and **the
+  SETTINGS are still the job and are still replaced** (model, seconds, size,
+  shape, seed), only what the record knows, exactly as before. The window is
+  walked to the new block — never `scrollIntoView`, and never simply to the
+  top of the page, which on a panel of several blocks is not where it is.
   Both corner buttons pin
   together (`stickybox.js` v2 — buttons on one box are a group; the divide is
   `nofollow`, since it shrinks the box from the bottom and the seam is
@@ -9033,8 +9115,8 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (the toast names the block when it is not the one she is standing in); the
   **✕ renames the active
   block's words alone**, since no other block's pictures moved; a **put-back**
-  replaces that block's strip and touches no other; a **hand-off gives every
-  block the same strip** (one job's references, however many parts its scene
+  brings the card's strip in on the NEW block it makes and touches no
+  other; a **hand-off gives every block the same strip** (one job's references, however many parts its scene
   came over in). **AND FOLDING A BLOCK AWAY NO LONGER
   MAKES IT THE ONE THE STAR SENDS** — the document click handler makes any
   button on a block active, which was invisible while the strip was shared and
@@ -9957,7 +10039,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
     (`pickables`, pure): a drawing, failed or hidden clip is out, a part
     still baking is out, the whole of a trimmed clip is the SOURCE (never
     the first part), a part with no poster takes the clip's, newest first,
-    the title is the prompt's first words and never the url.
+    the title is the prompt's first words and never the url. **And a clip she
+    crossed out is not offered either — hide-the-✕'d opens ON since
+    2026-09-14** (her "default to hide x"; the rule and its four guards are in
+    the Playground's ✕-filter note), which on her real shelf is 103 of 174
+    pickables the picker used to offer exactly like the rest.
   - **THE ORDER IS SAVED WHOLE** (`POST /:id/clips`, debounced 500ms,
     flushed on pagehide) — order and membership change together, so a
     partial write could never be right (Assembly's rule). The page keeps a
@@ -10467,7 +10553,8 @@ before working on that module. Nothing was deleted — the moved text is verbati
   what it names, ✕ drops only what it names, and they stack. Five things not to
   undo:
   - **ONE SETTING ACROSS BOTH TABS** (her call): Text and Voice are two views
-    of one state (`voicelab_liked` / `voicelab_hidex`), so `paintFilt`
+    of one state (`voicelab_liked` / `voicelab_hidex`; hide-the-✕'d opens ON
+    since 2026-09-14 — the Playground's ✕-filter note has the rule), so `paintFilt`
     repaints every copy. A filter lit on the tab she is not looking at is the
     silent-filter failure this app keeps getting burned by.
   - **THE TWO LIT COLOURS MUST DIFFER** — the heart takes the rose and the ✕
