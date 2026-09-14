@@ -201,6 +201,31 @@ still every time the work wraps up.
      sentence.
 
 **When the work WRAPS UP (not every turn)**
+3m. **MERGE YOUR OWN PR — a DRAFT LEFT OPEN IS WORK THAT NEVER SHIPPED
+   (2026-09-14, Sophie, looking at six unmerged branches: "why didn't they
+   merge? · add rule to merge? why isn't it?").** It WAS a rule — "Merge your
+   own PRs when CI is green — don't park them as drafts" — and it was on line
+   655 of this file, which is the whole reason the checklist exists. Here it
+   is at the top: **a turn does not end with an open PR of yours.** Mark it
+   ready, merge it (squash, `[skip render]` in the title — merging is not
+   deploying), and only then wrap up. *Measured that day: 6 real PRs sitting
+   open, four of them drafts, the oldest eight days; three had gone into
+   conflict because main moved under them, and one had been silently
+   SUPERSEDED by a later PR solving the same ask a different way.*
+   - **A DRAFT IS NOT A PARKING SPACE.** Mark it ready the moment the work is
+     done; a draft is for something genuinely half-built that you are about to
+     keep working on in the same turn.
+   - **THE COST IS NOT ZERO AND IT GROWS.** A clean branch left a week is a
+     conflicted branch, and resolving one correctly means re-applying your
+     change onto MAIN's copy, file by file, then re-running every test whose
+     source pins moved. Merging the day you write it is minutes; merging it a
+     week later is an afternoon.
+   - **ASK HER ONLY ABOUT DEPLOYING, never about merging** — the standing
+     permission to merge your own PR has not moved (*ASK BEFORE YOU DEPLOY*).
+   - **BLOCKED? SAY SO IN THE PR AND IN YOUR REPLY.** A red CI, a failing test
+     you cannot explain, a design question only she can answer — those are
+     reasons to leave it open, and every one of them is something to NAME
+     rather than a draft left sitting silently.
 3b. **Leave a WRAP-UP** — `POST /api/chatfeed/wrapup {chat, session, line,
    asked, did, next}`. It is **her three questions, ONE SENTENCE EACH** (Aug
    2026: "what I really wanted was the what you asked, what I did, and next
@@ -652,7 +677,9 @@ LIST ITEMS in your replies, `kind:'item'`; answer those with `POST
   commercial: every cut re-rendered all 16 pieces from scratch, twice through
   a box restart, while she waited.
 - **Estimate the cost before a paid batch, and ASK above $3.**
-- **Merge your own PRs** when CI is green — don't park them as drafts.
+- **Merge your own PRs** when CI is green — don't park them as drafts. It is
+  checklist item **3m** at the top of this file now, because sitting here is
+  what let six of them pile up (2026-09-14).
 - **Measure, never reason, about other sessions or the environment.**
 
 **Writing the reply** — **SHORT BY DEFAULT** (a few short paragraphs; only
