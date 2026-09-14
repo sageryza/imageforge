@@ -83,6 +83,49 @@ The generic phone inbox, the APNs doorbell, and the Google Drawing extractor.
   `POST /upload-file` (raw body — the iOS path), `POST /upload-zip`,
   `PATCH /bundle` (label a whole album at once), `DELETE /items/:id`.
 
+### WHAT A DUMPED CLIP SAYS — transcribed once, ever
+
+`node scripts/transcribe-media.js` (2026-09-14, Sophie: "transcribe w whisper,
+cache it"). She shoots takes on her phone, dumps the album, and then wants to
+know what she said in each one without opening every clip.
+
+**The rule it is built around is the house one: paid or slow work is banked the
+moment it exists and keyed by what made it.** whisper-1 is ~0.6¢ a minute and a
+take gets read many times — by her, by the Story Room's take alignment, by
+whatever cuts the film — so the answer lives at
+
+    transcripts/<sha1(source url)>.json
+    { url, model, text, words:[{word,start,end}], segments, seconds, at, silent? }
+
+and asking for the same url twice costs nothing. **The Dump is
+content-addressed** (`drops/_/<md5>.<ext>`), so the same bytes dumped into two
+albums are ONE cache entry by construction — nothing here has to dedupe.
+
+**Two mirrors, both deliberate.**
+
+- `scratchpad/take-words/<the same key>.json` — the Story Room's OWN take cache
+  (`takeWords` in `scratchpad.js`), same key, same word shape. A story whose
+  voiceover IS this take then renders with no transcription at all. Writing it
+  here is free; not writing it means paying twice. **If either side's key rule
+  drifts the mirror is dead weight and nothing says so**, which is what
+  `scripts/test-transcribe-media.js` pins — against the REAL expressions in both
+  files, never a copy typed into the test.
+- `transcript` + `transcriptAt` on the file's own `forge-drops` doc, capped at
+  4,000 characters, so a reader can SHOW what a clip says without fetching the
+  cache. The words stay in Storage: a long take is thousands of them and the doc
+  rides a list read.
+
+**Her file is never touched and never re-encoded** — it is downloaded, a
+throwaway 16k mono mp3 is handed to whisper, and the original is left alone (the
+house *a derived copy, never the source* rule). **A file with no audio track is
+cached as `silent`** rather than left to be retried forever: silence is the
+answer, not a failure.
+
+Usage — `<url|dropId>…`, or `--session <s> --bundle <b>` to sweep a whole album;
+`--dry` is free and names what it would do; `--force` re-transcribes; `--json`
+for a reader. Measured the day it landed: the whole `footage` bundle — 14 clips,
+113 seconds of audio — cost **1.1¢**, and the second run cost nothing.
+
 ## Push notifications (the Update tab's doorbell — Aug 2026)
 - **`push.js` (`/api/push`) sends real APNs lock-screen notifications**, raw
   HTTP/2 straight to Apple — no Firebase Messaging, no SDK. The iOS app

@@ -56,13 +56,22 @@ async function setPause(fetchFn, on, deploy) {
 async function readState(fetchFn) {
   try {
     const r = await fetchFn(`${BASE}/api/promptlab/inflight`, { headers: { 'Cache-Control': 'no-store' } });
-    if (!r.ok) return { busy: 0, drawing: 0, cutting: 0, unreadable: `HTTP ${r.status}` };
+    if (!r.ok) return { busy: 0, drawing: 0, cutting: 0, working: 0, work: {}, unreadable: `HTTP ${r.status}` };
     const j = await r.json();
     const drawing = (j.drawing || []).length;
     const cutting = (j.cutting || []).length;
-    return { busy: drawing + cutting, drawing, cutting, rss: j.memory && j.memory.rss };
+    // AND EVERYTHING ELSE (2026-09-14, Sophie: "make sure the deploy guard
+    // waits for footage sends and anything else that would cause a problem").
+    // `work` is inflight.js's register on the live box — a footage send above
+    // all, which is charged at the door before anything is written down, plus
+    // every ffmpeg render, bake and paid sweep. An older build answers no
+    // `work` at all, which reads as nothing to wait for: exactly the
+    // behaviour this guard had before, never a hold on a box that cannot say.
+    const work = (j.work && typeof j.work === 'object') ? j.work : {};
+    let working = 0; for (const v of Object.values(work)) working += Number(v) || 0;
+    return { busy: drawing + cutting + working, drawing, cutting, working, work, rss: j.memory && j.memory.rss };
   } catch (e) {
-    return { busy: 0, drawing: 0, cutting: 0, unreadable: e.message };
+    return { busy: 0, drawing: 0, cutting: 0, working: 0, work: {}, unreadable: e.message };
   }
 }
 
@@ -113,7 +122,8 @@ async function waitForClear(o) {
       await setPause(fetchFn, false);
       return { ok: false, waited, reason: 'busy' };
     }
-    log(`deploy-guard: ${st.drawing} drawing, ${st.cutting} cutting — holding the deploy (${Math.round(waited / 1000)}s)`);
+    const also = Object.entries(st.work || {}).map(([k, v]) => `${v} ${k}`).join(', ');
+    log(`deploy-guard: ${st.drawing} drawing, ${st.cutting} cutting${also ? `, ${also}` : ''} — holding the deploy (${Math.round(waited / 1000)}s)`);
     await wait(o.tickMs || TICK_MS);
   }
 }

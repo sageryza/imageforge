@@ -883,7 +883,7 @@ async function pillSweep(pg, where) {
   ok('the resolution is a <select>', sel.rTag === 'SELECT');
   ok('the native chrome is off and the box is the house 6px', sel.appearance === 'none' && sel.radius === '6px');
   // the project picker is a folder ICON since the folders landed (2026-09-11) and draws no chevron
-  ok('the three text drop-downs (model, size, shape) each draw our own inline chevron', sel.chevs === 3);
+  ok('the four text drop-downs (model, size, shape, seconds) each draw our own inline chevron', sel.chevs === 4);
   ok('the resolution opens at Mini\'s minimum', sel.rvalue === '480p' && sel.reses.join(',') === '480p,720p');
   // PICKING FAST REALLY REACHES THE PRICE AND THE JOB — a select whose change
   // handler never fires looks identical to one that works
@@ -919,33 +919,39 @@ async function pillSweep(pg, where) {
   ok('nothing writes the model into footage_ctl',
     !(await page.evaluate(() => (localStorage.getItem('footage_ctl') || '').indexOf('model') >= 0)));
 
-  // ── the seconds are typed, and clamped to the model\'s own range ─────────
+  // ── THE SECONDS ARE FOUR ROWS IN A DROP-DOWN (2026-09-14, Sophie:
+  //    "seconds drop down · 4,8,12,15 only"). Typing and the -/+ stepper are
+  //    gone; the rows are SEC_STEPS narrowed to the model's served range, so
+  //    the picker can never offer a length the server would clamp. ─────────
   const secBox = await page.evaluate(() => {
     const b = document.getElementById('secs');
-    return { type: b.type, value: b.value, min: b.min, max: b.max };
+    return {
+      tag: b.tagName, value: b.value,
+      rows: [...b.options].map((o) => o.value),
+      labels: [...b.options].map((o) => o.textContent),
+      steppers: !!(document.getElementById('secup') || document.getElementById('secdn')),
+    };
   });
-  ok('seconds open at the model minimum, in a real number field',
-    secBox.type === 'number' && secBox.value === '4' && secBox.min === '4' && secBox.max === '15');
-  await page.fill('#secs', '9');
-  await page.evaluate(() => document.getElementById('secs').blur());
-  await page.waitForTimeout(120);
-  ok('a number she types is kept when the model allows it', (await page.$eval('#secs', (e) => e.value)) === '9');
-  // Mini runs 4–15, so 99 clamps DOWN and 1 clamps UP — the range comes off
-  // the served model table, never a number typed into the page.
-  await page.fill('#secs', '99');
-  await page.evaluate(() => document.getElementById('secs').blur());
-  await page.waitForTimeout(120);
-  ok('a number past the model\'s max clamps to it (99 → 15)', (await page.$eval('#secs', (e) => e.value)) === '15');
-  await page.fill('#secs', '1');
-  await page.evaluate(() => document.getElementById('secs').blur());
-  await page.waitForTimeout(120);
-  ok('a number under the minimum clamps up (1 → 4)', (await page.$eval('#secs', (e) => e.value)) === '4');
-  // the range is Mini's own — 4 to 15 — read off the served table, never a
-  // number typed into the page (Fast happens to share it)
-  ok('the clamp is Mini\'s (4–15) off the served table, not a number in the page',
-    (await page.$eval('#secs', (e) => e.min + '-' + e.max)) === '4-15' && !/max="15"|min="4"/.test(PAGE_SRC));
-  await page.fill('#secs', '4');
-  await page.evaluate(() => document.getElementById('secs').blur());
+  ok('the seconds are a drop-down, not a typed box with a stepper',
+    secBox.tag === 'SELECT' && !secBox.steppers);
+  ok('it offers exactly 4, 8, 12 and 15: ' + secBox.rows.join(','),
+    secBox.rows.join(',') === '4,8,12,15');
+  ok('each row says its seconds', secBox.labels.join(',') === '4s,8s,12s,15s');
+  ok('it opens at the model minimum', secBox.value === '4');
+  // every row is inside the SERVED model's own range, so a model with a
+  // tighter one simply offers fewer of the four
+  const secRange = await page.evaluate(async () => {
+    const d = await fetch('/api/footage/status').then((r) => r.json());
+    const m = (d.models || []).find((x) => x.id === document.getElementById('model').value);
+    return m ? m.secs : null;
+  });
+  ok('every row is inside the served range ' + JSON.stringify(secRange),
+    !!secRange && secBox.rows.every((v) => Number(v) >= secRange[0] && Number(v) <= secRange[1]));
+  ok('the lengths are not a min/max typed into the markup', !/max="15"|min="4"/.test(PAGE_SRC));
+  await page.selectOption('#secs', '12');
+  await page.waitForFunction(() => document.getElementById('secs').value === '12');
+  ok('picking one takes', (await page.$eval('#secs', (e) => e.value)) === '12');
+  await page.selectOption('#secs', '4');
   await page.waitForFunction(() => document.getElementById('secs').value === '4');
 
   // ── one door, so the price line no longer names one; and the hedge is one
@@ -973,10 +979,10 @@ async function pillSweep(pg, where) {
     return { sameRow: Math.abs((g.top + g.height / 2) - (c.top + c.height / 2)) < 14, gap: Math.round(c.left - g.right) };
   });
   ok('the price sits right beside the star (gap ' + beside.gap + 'px)', beside.sameRow && beside.gap >= 0 && beside.gap < 30);
-  await page.click('#secup');
+  await page.selectOption('#secs', '8');
   await page.waitForFunction((c) => document.getElementById('cost').textContent !== c, cost0);
-  ok('one more second is a higher price', priceNum(await page.$eval('#cost', (e) => e.textContent)) > priceNum(cost0));
-  await page.click('#secdn');
+  ok('a longer clip is a higher price', priceNum(await page.$eval('#cost', (e) => e.textContent)) > priceNum(cost0));
+  await page.selectOption('#secs', '4');
   await page.waitForFunction((c) => document.getElementById('cost').textContent === c, cost0);
   // THE PRICE WEARS ITS "~" AND NEVER THE WORD, with a reference video and
   // without one — on Atlas neither is pinned, so taking the video off must
@@ -1477,13 +1483,12 @@ async function pillSweep(pg, where) {
     prompt: document.getElementById('prompt').value }));
   ok('copying a 15-second clip brings its seconds, its size and its shape back with its words ' + JSON.stringify(back),
     back.secs === '15' && back.res === '720p' && back.ratio === '9:16' && /socks on the line 6/.test(back.prompt));
-  // AND IT WINS EVEN WITH THE CARET STILL IN THE SECONDS BOX — on iOS that
-  // box can hold focus while she taps a card, and the guard that keeps a "1"
-  // on its way to "12" from becoming 4 under her used to swallow the copy.
-  // driven WITHOUT a real pointer on purpose: a playwright click blurs the
-  // box on its way in, which is the one thing an iPhone does not promise
+  // AND IT WINS EVEN WITH THE SECONDS PICKER FOCUSED — on iOS that control
+  // can hold focus while she taps a card, and the old typed box's own guard
+  // used to swallow the copy. driven WITHOUT a real pointer on purpose: a
+  // playwright click blurs it on the way in, which an iPhone does not promise
   await page.evaluate(() => { document.getElementById('secs').focus(); document.querySelector('#job-f6 .copy').click(); });
-  ok('a copy she asked for beats the caret sitting in the seconds box',
+  ok('a copy she asked for beats the focus sitting in the seconds picker',
     (await page.$eval('#secs', (e) => e.value)) === '15');
   await page.click('#job-f0 .copy');            // back to 4s · 480p · 3:4 for what follows
 

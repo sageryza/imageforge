@@ -365,6 +365,7 @@ loadConfig().then(() => {
   app.use('/api/apiframe', apiframe.router); // Midjourney deck-art generator
   app.use('/api/openrouter', openrouter.router); // Seedance at ByteDance's price, no video references (the second door)
   app.use('/api/atlascloud', atlascloud.router); // Seedance through Atlas Cloud's reference-to-video (the third door; unmeasured)
+  require('./footage').init({ paused: () => (pausedNow() ? { until: drawPause.until, note: drawPause.note || PAUSE_NOTE } : null) });
   app.use('/api/footage', require('./footage').router); // Footage: she makes Seedance clips herself — both doors, one log
   // The CHARACTER LIBRARY behind the footage page's people icon (2026-09-11,
   // Sophie: "a version of 'characters' for footage so i can click a button and
@@ -5775,13 +5776,18 @@ const PL_GPT = {
   // file is her hearted Playground render ("girl placing her book face down",
   // run AD3NW4comO2TZYRFjZoD) banked into refs/.
   characterFile: 'sophie-book.png',
-  // Keep BOTH in sync with STYLES.chatgpt in public/promptlab.html (the page
-  // only uses its copies to PREVIEW the prompt; these are what gets sent).
+  // Keep BOTH in sync with ART in scratchpad.js (scripts/check-derived.js
+  // pins them equal); the page holds no copy — it PRINTS the served line.
+  // "or says I or me" (2026-09-06, Sophie: "i added the sophie character but
+  // it wasn't applied when i made the images"): her captions are first
+  // person, and "whenever the prompt mentions Sophie" never told the model
+  // the I in "they caught me in the library" IS the girl on the card.
   prefix: 'Use only the style of the attached style reference and ignore its ' +
     'content — do not copy anything depicted in it. You can choose your own ' +
     'colors rather than copying the colors of the style reference.',
   characterLine: ' Use the second attached image as a character reference. ' +
-    'Her name is Sophie. Whenever the prompt mentions Sophie, draw her as that girl.',
+    'Her name is Sophie. Whenever the prompt mentions Sophie, or says I or me, ' +
+    'draw her as that girl.',
   // HER OWN PHOTO REFERENCE (Aug 2026, Sophie: "Freeform has the ability to
   // upload a photo reference, but playground doesn't ... in the case of dreamy
   // or watercolor, where they already have references, it will go as the
@@ -6202,6 +6208,7 @@ const plSweep = require('./promptlab-sweep');
 // sweep must never judge.
 const drawGate = require('./draw-gate').makeGate();
 const drawingNow = new Set();
+const inflight = require('./inflight');
 // THE PAUSE BEFORE A DEPLOY (2026-09-02, Sophie: "instead of straight to
 // deploy, chat sends to the queue. if it's clean, it deploys, but also pauses
 // image generation with an explanatory note"). The deploy guard
@@ -6273,6 +6280,23 @@ if (process.env.RENDER_EXTERNAL_URL) {
         .catch((e) => console.log('deploy push:', e.message));
     } catch (e) { console.log('deploy push:', e.message); }
   }, 4 * 1000);
+  // FIVE CHANGES WAITING (2026-09-14, Sophie: "I would like a notification
+  // when there are five changes undeployed"). A merge no longer deploys by
+  // itself — the house rule is merge with `[skip render]`, then ask — so main
+  // runs ahead of the live box for hours and the only way to know by how much
+  // was to go and count. Hourly, derived from THIS instance's own commit
+  // against main (one free unauthenticated GitHub read), with push.js holding
+  // the rule and the once-per-rung mark. Off Render there is no commit to
+  // compare against and the check answers `no-commit` without asking anything.
+  const behindTick = () => {
+    try {
+      require('./push').behindCheck()
+        .then((r) => { if (r && r.pushed) console.log(`push: ${r.ahead} undeployed`); })
+        .catch((e) => console.log('behind push:', e.message));
+    } catch (e) { console.log('behind push:', e.message); }
+  };
+  setTimeout(behindTick, 90 * 1000);
+  setInterval(behindTick, 60 * 60 * 1000);
 }
 async function sweepStuckPromptlabRuns() {
   try {
@@ -7704,7 +7728,7 @@ app.post('/api/promptlab/pause', (req, res) => {
     startQueuedRuns();
   }
   res.json({ paused: pausedNow(), until: drawPause.until, note: drawPause.note,
-    drawing: drawingNow.size, cutting: cuttingNow.size });
+    drawing: drawingNow.size, cutting: cuttingNow.size, working: inflight.total() });
 });
 
 app.get('/api/promptlab/inflight', (req, res) => {
@@ -7712,6 +7736,14 @@ app.get('/api/promptlab/inflight', (req, res) => {
   const m = process.memoryUsage();
   res.json({
     drawing: Array.from(drawingNow), cutting: Array.from(cuttingNow),
+    // EVERYTHING ELSE A RESTART WOULD KILL (2026-09-14, Sophie: "make sure
+    // the deploy guard waits for footage sends and anything else that would
+    // cause a problem"). `drawing`/`cutting` are the Playground's own two
+    // sets and were all this route ever said, so a footage send, an ffmpeg
+    // render and a paid sweep were invisible to the guard and to SIGTERM.
+    // `work` is inflight.js's register — one entry per kind, counted. An
+    // older guard reads only the two arrays and behaves exactly as it did.
+    work: inflight.counts(), working: inflight.total(),
     paused: pausedNow() ? { until: drawPause.until, note: drawPause.note } : null,
     slots: drawGate.slots(), waiting: drawGate.waiting(),
     memory: { rss: m.rss, heapUsed: m.heapUsed, external: m.external, limit: 512 * 1048576 },
@@ -8669,7 +8701,7 @@ app.listen(PORT, () => console.log(`Server v11 running on http://localhost:${POR
 // going to the new instance by the time this fires, so nothing is refused.
 process.on('SIGTERM', () => {
   require('./shutdown-hold').holdUntilClear({
-    busy: () => drawingNow.size + cuttingNow.size,
+    busy: () => drawingNow.size + cuttingNow.size + inflight.total(),
     log: (m) => console.log(`shutdown: ${m}`),
   }).then(() => process.exit(0), () => process.exit(0));
 });

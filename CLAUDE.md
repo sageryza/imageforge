@@ -201,6 +201,31 @@ still every time the work wraps up.
      sentence.
 
 **When the work WRAPS UP (not every turn)**
+3m. **MERGE YOUR OWN PR — a DRAFT LEFT OPEN IS WORK THAT NEVER SHIPPED
+   (2026-09-14, Sophie, looking at six unmerged branches: "why didn't they
+   merge? · add rule to merge? why isn't it?").** It WAS a rule — "Merge your
+   own PRs when CI is green — don't park them as drafts" — and it was on line
+   655 of this file, which is the whole reason the checklist exists. Here it
+   is at the top: **a turn does not end with an open PR of yours.** Mark it
+   ready, merge it (squash, `[skip render]` in the title — merging is not
+   deploying), and only then wrap up. *Measured that day: 6 real PRs sitting
+   open, four of them drafts, the oldest eight days; three had gone into
+   conflict because main moved under them, and one had been silently
+   SUPERSEDED by a later PR solving the same ask a different way.*
+   - **A DRAFT IS NOT A PARKING SPACE.** Mark it ready the moment the work is
+     done; a draft is for something genuinely half-built that you are about to
+     keep working on in the same turn.
+   - **THE COST IS NOT ZERO AND IT GROWS.** A clean branch left a week is a
+     conflicted branch, and resolving one correctly means re-applying your
+     change onto MAIN's copy, file by file, then re-running every test whose
+     source pins moved. Merging the day you write it is minutes; merging it a
+     week later is an afternoon.
+   - **ASK HER ONLY ABOUT DEPLOYING, never about merging** — the standing
+     permission to merge your own PR has not moved (*ASK BEFORE YOU DEPLOY*).
+   - **BLOCKED? SAY SO IN THE PR AND IN YOUR REPLY.** A red CI, a failing test
+     you cannot explain, a design question only she can answer — those are
+     reasons to leave it open, and every one of them is something to NAME
+     rather than a draft left sitting silently.
 3b. **Leave a WRAP-UP** — `POST /api/chatfeed/wrapup {chat, session, line,
    asked, did, next}`. It is **her three questions, ONE SENTENCE EACH** (Aug
    2026: "what I really wanted was the what you asked, what I did, and next
@@ -652,7 +677,9 @@ LIST ITEMS in your replies, `kind:'item'`; answer those with `POST
   commercial: every cut re-rendered all 16 pieces from scratch, twice through
   a box restart, while she waited.
 - **Estimate the cost before a paid batch, and ASK above $3.**
-- **Merge your own PRs** when CI is green — don't park them as drafts.
+- **Merge your own PRs** when CI is green — don't park them as drafts. It is
+  checklist item **3m** at the top of this file now, because sitting here is
+  what let six of them pile up (2026-09-14).
 - **Measure, never reason, about other sessions or the environment.**
 
 **Writing the reply** — **SHORT BY DEFAULT** (a few short paragraphs; only
@@ -5739,6 +5766,34 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
       already are. The guard is only safe because the doors are MEASURED on
       the real page by `node scripts/test-asset-doors.js`; without that, "no
       doors" would be the thing every harness silently passed.
+    - **AN UNCUT SHEET'S PLAYGROUND DOOR SLOTS ITS PANELS INTO THE BOXES
+      (2026-09-06, Sophie, on the 3x3 in her Assets tab: "when i press copy on
+      the original uncut grid it shud slot all 9 into panels").** The sheet's
+      content half is all N panels, and `?prompt=` put the whole wall in the
+      single box. `sheetGrid.panelParse({style, content, label, caption})`
+      reads the RECORD and the door sends `?panels=<json>&grid=N` instead
+      (seedPanelsFromLink lands them on the Panels tab); style, `sameref`,
+      quality and the cast ride exactly as before. Three markers, none of
+      them the shape of the text: a `1/9 (4K)` caption is a CUT panel and
+      goes to the single box (her 2026-08-27 rule); the grid sentence in the
+      style half (a server-filed sheet — sheetSeam puts it in the prefix) says
+      N; and for a sheet filed WITHOUT the sentence — the
+      mental-hospital-storyboard chat's shape, measured on the live records:
+      wrapper + `[content]`, the panels joined by a blank line — the label's
+      own `3x3` says N, only when that is a grid the module knows. Labeled
+      `Panel k (…):` lines or the blank-line join come apart; anything short
+      of exactly N is null and the door sends the one prompt it always did —
+      **never dropped, never padded**. The honest fix at the source is to
+      file the exact sent text, grid sentence included. **AND THE BACK-CRUMB
+      BLOCK USED TO WIPE THE SEED**: promptlab spent the WHOLE query one tick
+      after load, and the seed is read only once the styles fetch lands, so
+      every sheet that walked in with `&back=` arrived to nine empty boxes;
+      `panels`/`grid` now survive that spend and the seed spends them itself
+      (a reload is still a plain Playground). Pinned by
+      `node scripts/test-sheet-grid.js` (the parser against panelBlock) and
+      the sheet half of `test-asset-doors.js` (the REAL Playground behind the
+      door — the url read off the browser, then the nine boxes counted and
+      read; a cut panel still on the Picture tab).
     - Test: `node scripts/test-asset-doors.js` (both real pages headless —
       the set, the row measured, the Playground door's real url read off the
       browser AFTER it navigates, the no-prompt picture riding as a photo
@@ -5795,8 +5850,15 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
       index she held IS the next one. It heals the moment the picture is back
       on screen, and it can only ever be one tile out, because the only thing
       that re-filters while the box is open is a mark she just cast.
-      **The Playground has the same shape and is NOT fixed here** — its own
-      `lbAt()` returns -1 the same way once `loadRuns` re-filters under it.
+      **The Playground had the same shape and is FIXED since 2026-09-05**
+      (Sophie: "tap left right doesn't always work in the playground") —
+      worse there, because its re-render REPAINTS the lightbox (`renderFeed`
+      → `showLB`) and so both zones were not merely dead but GONE. `lbIdx`
+      is her place and `lbNext` is the one reader, for the zones AND the
+      step; `node scripts/test-playground-tap-next-vote.js` (verified
+      failing 11 pre-fix, against a STATEFUL stub — the vote has to come
+      back in the next feed read or the re-render restores the picture and
+      the bug cannot be reproduced).
     - **THE CACHED THUMB PAINTS FIRST, the original swaps in behind it** (the
       Playground's 2026-08-26 rule, which these two never had). They painted
       `it.url` — 1-3MB at the 2K and 4K tiers — so the box sat EMPTY through
@@ -8137,10 +8199,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
   side, `ensureVideoFloor` PROBED and DOWNLOADED every reference video on
   every send despite the "baked once" promise — the decision is banked now
   (`floorDecided` in memory, a sidecar under `footage/upscaled/<sha1(url)>.json`
-  across restarts). The **seconds are typed** into a real number
-  field, clamped to the model's own range on the way OUT — on change and on
-  blur, never on every keystroke, or a "1" on its way to "12" becomes 4 under
-  her. **Sound is always on**, sent explicitly rather than left to the model's
+  across restarts). **THE SECONDS ARE A DROP-DOWN OF FOUR —
+  4 · 8 · 12 · 15 (2026-09-14, Sophie: "seconds drop down · 4,8,12,15
+  only").** A typed number with a -/+ stepper made every length in the range
+  reachable and none of the four is where she actually cuts. `SEC_STEPS` is
+  the one list and the rows are it NARROWED to the model's served `secs`
+  range, never a hardcoded 4-15, so a model with a tighter range offers fewer
+  rows rather than a length the server would clamp. `clampSec` SNAPS to the
+  nearest offered row rather than clamping to the range — a stored 9, or a
+  belt hand-off naming one, has to land on a row the picker really has or the
+  box shows one number while `S.seconds` holds another (the hand-off
+  fixture's 9 lands on 8). Typing, the stepper and the clamp-on-blur rule
+  that protected a "1" on its way to "12" are HISTORY. **Sound is always on**, sent explicitly rather than left to the model's
   default. And **what is left lives behind the "?"**, read live when the card
   opens — it is a fact about the account, not a control, and it was sitting
   where the price of the tap belongs; OpenRouter's balance only, since APIFRAME
@@ -8642,6 +8712,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `saveDraft`**, which is the one signal every path that changes the job sends,
   so **attaching leaves it open for the second reference**; and the character
   sheet beside it is untouched (she named the Recent drawer).
+  **AND FOLDING THE PANEL AWAY TAKES IT WITH IT — AN ID BEAT THE FOLD'S OWN
+  SWEEP (2026-09-13, her screenshot of a SHUT panel with the drawer still
+  drawn under it).** `#recent` is a direct child of the panel, so
+  `.panel.shut > *{display:none}` was meant to hide it like everything else —
+  but that selector is two classes (0,2,0) and `#recent{display:flex}` is an
+  ID (1,0,0), so the drawer went on rendering with the panel folded away and
+  **no control left on screen to close it** (`#rectog` hides with the Buttons
+  row). MEASURED headless: shut panel, `display:flex`, 52px tall. The fold's
+  two rules carry `!important` now rather than being fixed one id at a time —
+  any child styled by its own id would have done the same, silently. Reopening
+  the panel brings the drawer back exactly as she left it; `paintFolds` still
+  really CLOSES both drawers when the BUTTONS row folds, since there the
+  toggles go and the drawers would otherwise stay. Pinned by
+  `node scripts/test-footage-recent.js` (verified failing 1 pre-fix).
   **THE CLIPS AND THEIR LAST FRAMES ARE HISTORY, NOT A RULE — DON'T PUT THEM
   BACK.** For a few hours that morning the box also listed a job's own
   FINISHED CLIP ahead of its references, at her ask ("make the recent box
@@ -11143,7 +11227,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   colours are UNLABELLED everywhere but that drop-down, and no machinery
   lives on the canvas.**
   `ART.prefix`/`ART.characterLine` are COPIES of `PL_GPT.*` in server.js — keep
-  them identical. **Full details: `docs/modules/story.md`.**
+  them identical (`node scripts/check-derived.js` pins them).
+  **"I" IS HER, AND HER OWN SOPHIE BEATS THE HOUSE CARD (2026-09-06, Sophie,
+  drawing her Mental hospital beats: "i added the sophie character but it
+  wasn't applied when i made the images" · "it used the watercolor reference
+  not the blue pajamas i added").** Her captions are first person — "they
+  caught me in the library" — and every character line said only "whenever
+  the prompt mentions Sophie", so nothing told the model the I in the caption
+  IS the girl on the card and it drew the woman off the watercolor style
+  page. Both lines say `or says I or me` now: the house card's
+  (`PL_GPT.characterLine` / `ART.characterLine`) always, and the picker's
+  `charLine()` in `pad-characters.js` when a picked character's NAME reads
+  as her (`isSelf`: sophie · me · i) — Mason never claims "I". And ONE
+  SOPHIE PER DRAW: watercolor attaches the house book-girl card by default,
+  so her picked blue-pajamas Sophie rode beside it as a second "Sophie" and
+  lost; `houseCardRides` stands the house card down whenever a self-named
+  character is picked (the page dims `#dchar` to say so). A beat drawn
+  before this needs her re-draw to pick it up. Tests:
+  `node scripts/test-pad-characters.js`. **Full details: `docs/modules/story.md`.**
 - **Story Room data** (`forge-story` in membry, `/api/story/*`) — one doc per
   story; **every content field is optional**, any one of them starts a project.
   Films live ON their story. Voiceover comes in by PASTE (from iOS Voice Memos) or
@@ -11270,6 +11371,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   says. Both ends of that are pinned by `node scripts/test-timeline.js`.
   **The editor is behind a pencil and never a tap on the words** — tap-to-edit
   means every stray thumb on the way down the page opens an editor.
+  **SELECT — pick several cards and delete them together (2026-09-06, Sophie:
+  "can u add a select tool so i can mass delete", on the 172-card Mental
+  hospital story).** The Playground's SELECT chip ported: a Select button on
+  the open story's top row; lit, a tap on a card PICKS it (the pencil hides, a
+  folded middle picks rather than unfolds), and the mode bar under the row is
+  All/None · the count · Delete · Done. Delete drops every picked card out of
+  `units` exactly as the pencil's delete does — `moments` keeps the words, the
+  module's rule — then paints and saves once. Four things not to undo: **Delete
+  is TWO TAPS** (the first arms it, red, saying how many; the second deletes;
+  changing a pick disarms it) and never a browser `confirm()`, which a
+  WKWebView may swallow; **the mode is in memory only, never localStorage**
+  (the Playground's own call — it is something she is in the middle of doing);
+  the mode ends on Done, on leaving the story and on opening another; and it
+  is lit in INK, never the accent, which marks a sequence. **The number box is
+  `.tool input.no`, not `.no`** — tool.css's `.tool input[type=text]` out-
+  specifies a bare class, so its 10px padding won and every number past 9 read
+  as "1"; caught by PHOTOgraphing her live story at 390x844. Both pinned by
+  `node scripts/test-timeline.js`.
   Two bugs worth not repeating, both pinned by the test: a folded middle sets
   `white-space:nowrap`, so its grid track needs `minmax(0,1fr)` or the whole
   unit shoots off the right of the screen; and an editor that holds itself open
@@ -12298,6 +12417,28 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **FOLDERS CONTAIN ALBUMS — they never merge them** (a folder is the `track`
   field; filing an album moves nothing inside it). `photoIndex` comes from a
   transaction, never from counting — that is the bug that scrambled album order.
+  **WHAT A DUMPED CLIP SAYS IS TRANSCRIBED ONCE, EVER —
+  `node scripts/transcribe-media.js` (2026-09-14, Sophie: "transcribe w
+  whisper, cache it").** She shoots takes on her phone, dumps them, and then
+  wants to know what she said in each without opening every clip. whisper-1 is
+  ~0.6¢ a minute and a take gets read many times, so the answer is banked:
+  **`transcripts/<sha1(source url)>.json`** in Storage (text, word timestamps,
+  segments), and the Dump is content-addressed, so the same bytes in two albums
+  are ONE cache entry by construction. Asking twice costs nothing. **Two
+  mirrors, both deliberate:** the word list is ALSO written to
+  `scratchpad/take-words/<the same key>.json` — the Story Room's own take cache
+  — so a story whose voiceover IS that take renders with no transcription at
+  all; and `transcript`/`transcriptAt` go on the file's `forge-drops` doc so a
+  reader can SHOW what a clip says without fetching the cache (the words stay in
+  Storage — a long take is thousands of them and the doc rides a list read).
+  Her file is never touched: a throwaway 16k mono mp3 is what whisper gets. A
+  file with **no audio track caches as `silent`** rather than being retried
+  forever. `--session`/`--bundle` sweeps a whole album, `--dry` is free and says
+  what it would do, `--force` re-transcribes. Measured the day it landed: the
+  whole `footage` bundle — 14 clips, 113s — cost **1.1¢**. Test:
+  `node scripts/test-transcribe-media.js` (the cache key and the Story Room
+  mirror pinned against the REAL expressions in both files, since a drifted key
+  is invisible — it just pays twice).
   **Full details: `docs/modules/inbox-and-misc.md`.**
 - **THE UPDATE BUTTON** (`brief.js`, `/api/brief`, page at `/brief`, the
   **Update** row at the top of the Chats app's UPDATE tab) — Aug 2026,
@@ -13245,17 +13386,75 @@ before working on that module. Nothing was deleted — the moved text is verbati
     which is the right room and needs no TestFlight build. It carries its own
     `thread` instead (a new `sendAll` case), so "Back up" replaces "Server
     update starting" in her shade rather than stacking.
-  - **STILL OPEN, and hers to ask for: the guard does not wait for a footage
-    SEND.** `/inflight` is `drawingNow`/`cuttingNow`, which are the Playground's
-    runs only — `footage.js` touches neither — so a clip's POST to the door is
-    not something the deploy waits out. The window is seconds (once the door
-    has answered and the log is written the poll resumes from any phone), but
-    a send caught inside it is drawn, paid for and unrecorded.
   - Tests: `node scripts/test-deploy-notify.js` (the marker's whole decision
     table against a fake Firestore — the half that can silently be wrong — plus
     the wirings by source) and `node scripts/test-deploy-guard.js` (that only
     the FINAL pause carries the flag, and that a refused or called-off deploy
     carries none).
+  **AND THE DEPLOY WAITS FOR A FOOTAGE SEND, AND FOR EVERYTHING ELSE —
+  `inflight.js`, ONE REGISTER (2026-09-14, Sophie: "make sure the deploy guard
+  waits for footage sends and anything else that would cause a problem").**
+  `/inflight` answered `drawingNow`/`cuttingNow` and nothing else — the
+  Playground's own two sets — so the guard, the hand deploy and the SIGTERM
+  hold all said "nothing drawing or cutting" over a box that was in the middle
+  of a **footage send**: the one piece of work here that is CHARGED AT THE DOOR
+  BEFORE ANYTHING IS WRITTEN DOWN, so a restart inside it loses her prompt, her
+  references and the money at once. Now work registers itself
+  (`inflight.track('name', fn)`) and the three readers ask that one register,
+  which `GET /api/promptlab/inflight` reports as `work` beside the two arrays.
+  Six things not to undo:
+  - **A SEND IN THE SWAP WINDOW IS REFUSED, NOT DRAWN.** The guard pauses the
+    box once it has decided to let the swap through, and the old instance dies
+    about a minute later. The Playground QUEUES a tap; a video job has no queue
+    to stand in, so `POST /api/footage/jobs` answers 503 `refusal:'paused'`
+    saying **nothing was sent or charged, tap again in about a minute** — this
+    page's OWN words, never the Playground's note, which promises the tap
+    "will draw on its own" and would be a message promising a clip that never
+    comes. **It only ever reaches the OLD instance** — the new one boots with
+    no pause at all — so the wait is seconds.
+  - **THE COUNT IS IN MEMORY AND PER PROCESS, deliberately.** The question both
+    readers ask is *would killing THIS process lose something*, which is a fact
+    about this process. A doc saying `running` may belong to an instance that
+    is already gone — that is what every module's own stale sweep is for — and
+    reading those back would hold a deploy for a job nobody is holding.
+  - **`track` CAN NEVER FAIL THE WORK IT WRAPS**: it returns exactly what the
+    function returns, rethrows exactly what it throws, and decrements in a
+    `finally`, so a throw cannot leave a phantom holding the deploy for ever.
+  - **AN OLDER SERVER ANSWERING NO `work` READS AS CLEAR.** A box that cannot
+    say is not a reason to hold a deploy — the guard's own long-standing rule.
+  - **WHAT IS REGISTERED:** a footage SEND (`footage-send`) and its trim /
+    frame-grab / poster bakes (`footage-bake`); every ffmpeg render — the Film
+    Editor, Stitch, Assembly and the Story Room pad's film (`render`); the
+    Movies pipeline's two job runners (`movies`); a Voice Studio render or
+    conversion (`voice`, already billed at ElevenLabs by the time it writes
+    back); and the chat-icons sweep (`icons`, ~6c a sheet). **A new kind of
+    work is ONE line where it starts**, never a counter threaded through
+    server.js.
+  - The cap is unchanged: still 25 minutes, and still a FAILED deploy rather
+    than a killed job — nothing ships, nothing dies, the next merge carries it.
+  Test: `node scripts/test-inflight.js` (the register measured, a throw proved
+  to leave nothing, the guard proved to really HOLD on a send alone, and every
+  wiring pinned; verified failing 5 against the pre-fix guard).
+  **AND SHE IS TOLD WHEN FIVE CHANGES ARE WAITING (2026-09-14, Sophie: "I
+  would like a notification when there are five changes undeployed").** A merge
+  no longer deploys by itself — the house rule is merge with `[skip render]`,
+  then ask — so main runs ahead of the live box for hours and the only way to
+  know by how much was to go and count. **It is DERIVED, not filed**: Render
+  stamps every instance with the commit it was built from
+  (`RENDER_GIT_COMMIT`) and GitHub's compare API says how many commits main
+  carries on top of it, so nothing has to be recorded when a PR merges and a
+  chat that forgets to file something cannot make the number wrong. Hourly, one
+  free unauthenticated GitHub read, no model call, skipped entirely off Render.
+  Three things not to undo: **one buzz per RUNG, never one per tick** — it
+  fires at five, then again at ten and fifteen, because a number that keeps
+  climbing is worth hearing again and the same number every hour is not; **the
+  rung is marked BEFORE the push is sent** (a push that lands with no mark
+  buzzes her every hour, which is the one failure this exists to avoid); and
+  **a deploy resets it by construction** — the mark is keyed by the commit, so
+  the new instance finds a mark that is not its own and starts at zero.
+  `behindPlan` / `readBehind` / `behindCheck` in `push.js`; test
+  `node scripts/test-behind-push.js` (the rule pure, then the whole check
+  against a fake Firestore — the mark is the half that can silently be wrong).
   **THE HOME-SCREEN WIDGET IS FOUR DECKS TO SWIPE (2026-09-02, Sophie: "the
   widget / make it 4 icons / decks to swipe / currently / the dream factory
   deck / the wallpapers")** — the top four decks still waiting in the Review

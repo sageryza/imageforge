@@ -218,6 +218,12 @@
      back onto one line. Its own row, a direct child of the panel, so the
      pill-gap fitter judges it on its own rect like every other row. */
   .joinrow{display:flex;justify-content:center;padding:4px 0 6px}
+  /* A JOIN MARK GOES AWAY WHEN EITHER OF ITS TWO BLOCKS IS FOLDED
+     (2026-09-13, Sophie: "connect shud buttons go away when collapsed").
+     Joining pours one block's words into the other, and a folded block is
+     one she cannot see — so the mark is only offered between two blocks
+     whose words are both on screen. Opening either one brings it back. */
+  .joinrow.hid{display:none}
   .joinrow .joinb{width:26px;height:26px;padding:0;display:inline-flex;align-items:center;
              justify-content:center;background:#fdfbf7;color:#6f675e}
   .joinrow .joinb svg{width:14px;height:14px;display:block}
@@ -387,8 +393,16 @@
      real and is paid rather than worked around: with the panel shut the
      picker is gone, and the HEADER is what still names the project she is
      filtering by. */
-  .panel.shut > *{display:none}
-  .panel.shut > .panelrow{display:flex}
+  /* AND IT IS `!important` BECAUSE AN ID BEATS TWO CLASSES (2026-09-13, from
+     her screenshot of a SHUT panel with the Recent drawer still drawn under
+     it). `#recent{display:flex}` is (1,0,0) and `.panel.shut > *` is (0,2,0),
+     so the drawer — a direct child of the panel, hidden by that sweep like
+     everything else — went on rendering with the panel folded away and no
+     control left on screen to close it. Any child styled by its ID would do
+     the same, silently, so the rule that says "nothing under this draws" says
+     it outright rather than being fixed one id at a time. */
+  .panel.shut > *{display:none!important}
+  .panel.shut > .panelrow{display:flex!important}
   .panel.shut{padding-bottom:6px}
   /* AND IT FOLDS FROM WHEREVER SHE IS STANDING (2026-09-13, Sophie:
      "collapsing the prompt from partway down"). The fold row is the panel's
@@ -1090,7 +1104,7 @@
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
   <p><b>Characters, then setting.</b> The two blocks at the top are permanent and start folded away. What you write in them rides at the top of every clip you send &mdash; the cast on one line, the room on the other &mdash; so a scene is written once instead of into every shot. Folded, each heading says its own words, so you can see what is riding without opening it. Leave one empty and it adds nothing; <b>clear</b> never touches them.</p>
-  <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. Every block has the same buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing. Each block gets its own heading, and <b>tapping the heading folds that block away</b> &mdash; shut it shows its first words, and it still sends them if it is the one the star is pointing at. Folds are for right now: a reload opens everything.</p>
+  <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. Every block has the same buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing. The join mark goes away while either of its two blocks is folded. Each block gets its own heading, and <b>tapping the heading folds that block away</b> &mdash; shut it shows its first words, and it still sends them if it is the one the star is pointing at. Folds are for right now: a reload opens everything.</p>
   <p><b>All of them at once.</b> Once two blocks have words in them a second star appears beside the first, carrying what the whole batch costs. It sends every block that has words, one after another, and stops at the first refusal &mdash; the block it stopped on takes the gold line, so the refusal and the doors under it are about that one. Over $3 the first tap asks and the second sends.</p>
   <p><b>Taking one block off.</b> The &times; in a block&rsquo;s corner takes that block off; with only one block left there is no &times; and <b>clear</b> beside the star is what empties it. Either way <b>undo</b> puts it back.</p>
   <p><b>Folding the prompt.</b> The PROMPT row stays at the top of the screen while you are writing, so a long scene folds away from wherever you are rather than from the top.</p>
@@ -1154,7 +1168,15 @@
     <span class="selwrap"><select id="model" aria-label="Model" title="Model"></select><span class="chev"></span></span>
     <span class="selwrap"><select id="res" aria-label="Resolution" title="Resolution"></select><span class="chev"></span></span>
     <span class="selwrap"><select id="ratio" aria-label="Shape" title="Shape"></select><span class="chev"></span></span>
-    <div class="step"><button type="button" id="secdn" aria-label="Fewer seconds">&minus;</button><input type="number" id="secs" inputmode="numeric" step="1" aria-label="Seconds" title="Seconds"><button type="button" id="secup" aria-label="More seconds">+</button></div>
+    <!-- THE SECONDS ARE A DROP-DOWN OF FOUR LENGTHS (2026-09-14, Sophie:
+         "seconds drop down · 4,8,12,15 only"). It was a typed number with a
+         -/+ stepper, so every length between them was reachable and none of
+         them is a length she cuts with: the choice is a short shot, a normal
+         one, a long one and the model's maximum. The list is STILL derived —
+         `SEC_STEPS` filtered to the model's own served range — so a model
+         with a different range simply offers fewer rows rather than a length
+         the server would silently clamp. -->
+    <span class="selwrap"><select id="secs" aria-label="Seconds" title="Seconds"></select><span class="chev"></span></span>
     <!-- THE SEED IS ON THIS ROW (2026-09-13, Sophie: "seed textbox shud go on
          the same row as the other buttons above"). It rode the STAR's row
          while it read as an ingredient of that tap, and it is a SETTING like
@@ -2148,18 +2170,35 @@ function fillSel(el, items, cur) {
   }
   if (el.value !== cur) el.value = cur;
 }
+// THE FOUR LENGTHS, and the ONE place they live. A model's served `secs` is
+// still a RANGE, so the rows this page offers are these four narrowed to it —
+// never a hardcoded 4-15, which would offer a length a different model must
+// refuse.
+var SEC_STEPS = [4, 8, 12, 15];
+function secOptions(m) {
+  m = m || modelOf(S.model);
+  if (!m) return SEC_STEPS.slice();
+  var rows = SEC_STEPS.filter(function (n) { return n >= m.secs[0] && n <= m.secs[1]; });
+  // A range holding none of the four still has to offer something she can
+  // send: its own minimum, rather than an empty picker.
+  return rows.length ? rows : [m.secs[0]];
+}
+// SNAPS to the nearest offered length rather than clamping to the range: a
+// stored 9 (or a belt hand-off naming one) has to land on a row the picker
+// really has, or the box shows one number while S.seconds holds another.
 function clampSec(v, m) {
   m = m || modelOf(S.model);
+  var rows = secOptions(m);
   var n = Math.round(Number(v));
-  if (!m) return Number.isFinite(n) ? n : 4;
-  if (!Number.isFinite(n)) return m.secs[0];
-  return Math.max(m.secs[0], Math.min(m.secs[1], n));
+  if (!Number.isFinite(n)) return rows[0];
+  var best = rows[0];
+  rows.forEach(function (r) { if (Math.abs(r - n) < Math.abs(best - n)) best = r; });
+  return best;
 }
 // `force` is for a paint SHE asked for — putting a clip back, a belt hand-off.
-// The seconds box is otherwise left alone while it has the caret in it (a "1"
-// on its way to "12" must not become 4 under her), and on iOS that box can
-// still hold focus when she taps a card's copy button — which is exactly the
-// tap that has to win.
+// It is a no-op on the seconds now that they are a picker (fillSel leaves an
+// open drop-down alone by itself, which is what the old typed box needed the
+// flag for), and the parameter stays because every caller passes it.
 function paintControls(force) {
   // THE STRIP, THE FOLDS AND THE SEED ARE HERS AND PAINT FIRST — before the
   // served table is asked for anything. They used to sit behind the `CFG`
@@ -2180,10 +2219,7 @@ function paintControls(force) {
   if (m.res.indexOf(S.res) < 0) S.res = m.res[0];
   fillSel($('res'), m.res.map(function (r) { return { id: r, label: r }; }), S.res);
   S.seconds = clampSec(S.seconds, m);
-  var box = $('secs');
-  box.min = m.secs[0]; box.max = m.secs[1];
-  // never overwrite the digits under her thumb — the clamp runs on the way out
-  if (force || document.activeElement !== box) box.value = S.seconds;
+  fillSel($('secs'), secOptions(m).map(function (n) { return { id: String(n), label: n + 's' }; }), String(S.seconds));
   // A SHAPE THE SERVER DOES NOT CARRY IS DROPPED to the first one it does —
   // otherwise a stale `footage_ctl` or a belt hand-off naming something odd
   // leaves the box showing a shape the server silently clamps to 1:1.
@@ -2207,14 +2243,10 @@ $('model').addEventListener('change', function () {
 $('res').addEventListener('change', function () { S.res = $('res').value; paintControls(); });
 // The shape IS remembered, exactly as it was while it was a row of chips.
 $('ratio').addEventListener('change', function () { S.ratio = $('ratio').value; saveCtl(); paintControls(); });
-$('secdn').addEventListener('click', function () { stepSec(-1); });
-$('secup').addEventListener('click', function () { stepSec(1); });
-function stepSec(dir) { S.seconds = clampSec(S.seconds + dir); paintControls(); }
-// SHE CAN TYPE THE NUMBER (2026-09-09, her ask). Clamped to the model's own
-// range on the way OUT — on change and on blur, never on every keystroke: a
-// "1" on its way to "12" must not become 4 under her.
+// SHE PICKS ONE OF THE FOUR. Typing a number and the -/+ stepper are HISTORY
+// (2026-09-14, "seconds drop down · 4,8,12,15 only") — the clamp-on-blur rule
+// that protected a "1" on its way to "12" has nothing left to protect.
 $('secs').addEventListener('change', function () { S.seconds = clampSec($('secs').value); paintControls(); });
-$('secs').addEventListener('blur', function () { S.seconds = clampSec($('secs').value); $('secs').value = S.seconds; paintControls(); });
 
 // ── THE SEED (2026-09-10, Sophie: "put a seat box that exposes the seed after
 // the clip is drawn and put a copy button next to it so I can reuse the seed
@@ -3173,6 +3205,21 @@ function paintBlockHead(w, n, of) {
 function paintBlockHeads() {
   var ws = blocks();
   ws.forEach(function (w, i) { paintBlockHead(w, i + 1, ws.length); });
+  paintJoinRows();
+}
+// The mark in a gap is drawn only while BOTH of its blocks are open — see the
+// `.joinrow.hid` note in the stylesheet. It rides here rather than in
+// `paintBlocks` because a fold changes nothing about which rows exist, and
+// this is the one function every fold, open, divide, join and removal reaches.
+function paintJoinRows() {
+  var panel = panelEl(), kids = panel.children, i;
+  for (i = 0; i < kids.length; i++) {
+    var r = kids[i];
+    if (!r.classList.contains('joinrow')) continue;
+    var a = r.previousElementSibling, b = r.nextElementSibling;
+    var shut = (a && a.classList.contains('shut')) || (b && b.classList.contains('shut'));
+    r.classList.toggle('hid', !!shut);
+  }
 }
 function toggleBlock(w) {
   w.classList.toggle('shut');

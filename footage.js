@@ -704,12 +704,24 @@ function titleOf(prompt) {
 
 // ─── Doors and balances ─────────────────────────────────────────────────
 let doors = null;   // { openrouter, apiframe, atlascloud } — the three modules, handed in or required
+const inflight = require('./inflight');
+
 function getDoors() {
   if (doors) return doors;
   doors = { openrouter: require('./openrouter'), apiframe: require('./apiframe'), atlascloud: require('./atlascloud') };
   return doors;
 }
-function init(opts) { if (opts && (opts.openrouter || opts.apiframe || opts.atlascloud)) doors = { ...getDoors(), ...opts }; }
+// A DEPLOY PAUSE REACHES A SEND, NOT ONLY A DRAW (2026-09-14, Sophie: "make
+// sure the deploy guard waits for footage sends"). server.js hands its own
+// pause reader in, the doors' pattern — this module must not know how the
+// Playground's pause is stored, only whether one is on right now.
+let pausedHook = null;
+function init(opts) {
+  if (opts && (opts.openrouter || opts.apiframe || opts.atlascloud)) doors = { ...getDoors(), ...opts };
+  if (opts && typeof opts.paused === 'function') pausedHook = opts.paused;
+}
+function pausedNow() { try { return pausedHook ? pausedHook() : null; } catch { return null; } }
+const PAUSED_WORDS = 'Paused for a server update — nothing was sent or charged. Tap again in about a minute.';
 function cfg() {
   const d = getDoors();
   return { openrouter: Boolean(d.openrouter && d.openrouter.configured()), apiframe: Boolean(d.apiframe && d.apiframe.configured()),
@@ -1007,7 +1019,9 @@ async function pollOne(id, d) {
 function ffmpegBin() {
   try { return require('ffmpeg-static'); } catch { return null; }
 }
-async function bakePoster(id, videoUrl) {
+async function bakePoster(id, videoUrl) { return inflight.track('footage-bake', () => bakePosterInner(id, videoUrl)); }
+
+async function bakePosterInner(id, videoUrl) {
   const bin = ffmpegBin();
   const bucket = bucketOrNull();
   if (!bin || !bucket || !/^https?:\/\//.test(String(videoUrl))) return null;
@@ -1105,7 +1119,11 @@ function trimPlan(d, body) {
 // independent of how many clips she trims in a row.
 let trimQueue = Promise.resolve();
 function gateTrim(fn) {
-  const next = trimQueue.then(fn, fn);
+  // A trim and a frame grab are free ffmpeg, but a bake the process dies
+  // holding leaves its part saying "trimming…" for ever with its mp4 and
+  // poster already in Storage — so they hold a deploy too.
+  const run = () => inflight.track('footage-bake', fn);
+  const next = trimQueue.then(run, run);
   trimQueue = next.catch(() => {});
   return next;
 }
@@ -1545,7 +1563,15 @@ async function logRefusal({ body, refs, m, res, ratio, seconds, first, last, doo
   await coll().doc(doc.job).set(doc);
 }
 
-async function startJob(b) {
+// A SEND IS THE ONE PIECE OF WORK ON THIS BOX THAT SPENDS HER MONEY BEFORE
+// IT WRITES ANYTHING DOWN (2026-09-14). Between the tap and the door's answer
+// the clip is charged and unrecorded — a restart there loses the prompt, the
+// references and the money — so the whole of it is registered: the deploy
+// guard holds, and SIGTERM holds, until the door has answered and the log
+// doc exists.
+async function startJob(b) { return inflight.track('footage-send', () => startJobInner(b)); }
+
+async function startJobInner(b) {
   await discounts().catch(() => {});
   await atlasPrices().catch(() => {});
   const built = buildJob(b);
@@ -1680,6 +1706,21 @@ router.get('/spend', async (req, res) => {
 
 router.post('/jobs', async (req, res) => {
   try {
+    // A TAP IN THE SWAP WINDOW IS REFUSED, NOT DRAWN (2026-09-14). The deploy
+    // guard pauses the box once it has decided to let the swap through, and
+    // the old instance dies about a minute later — so a clip started here
+    // would be charged at the door and lost with the process. The Playground
+    // QUEUES its tap; a video job has no queue to stand in, so this says so
+    // in her own words instead, and it is the one refusal that is not the
+    // door's. It only ever reaches the OLD instance: the new one boots with
+    // no pause at all, so the wait is seconds.
+    // THE WORDS ARE THIS PAGE'S OWN, NEVER THE PAUSE NOTE. The Playground's
+    // note says the tap "will draw on its own in about a minute", which is
+    // true there and false here — nothing queues a video job — and a message
+    // promising a clip that never comes is worse than no message.
+    if (pausedNow()) {
+      return res.status(503).json({ error: PAUSED_WORDS, refusal: 'paused', why: PAUSED_WORDS });
+    }
     const r = await startJob(req.body || {});
     balCache.at = 0;
     res.status(202).json({ ok: true, ...r });
@@ -2001,7 +2042,7 @@ module.exports = {
   modelOf, doorFor, doorTakes, shapeRefusal, estimate, priceOn, DOOR_LOOSENESS, DOOR_REFUSAL_FREE, DOOR_WORDS, pollOne, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, resFactor, secondsOk, framesOf, projectSlug, HANDOFF_PROJECTS,
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf, atlasCacheBust,
   drawStats, drawTimeFor, drawTimeFrom, drawKeyOf, medianOf,
-  startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf,
+  startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf, pausedNow,
   canvasFrom, pageJobs, hayOf, foldersOf, shelfOf, folderSlug, statusOf, staleJob, STALE_MS, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
   framePlan, framePath, pullFrame, grabFrame, FRAME_FOLDER, FRAME_END_PAD,
 };
