@@ -269,8 +269,75 @@ const READ = () => {
     };
   });
   ok('with the box small nothing is pinned (' + quiet.pinned + ')', quiet.pinned === 0);
-  ok('so the caret band is the plain one, byte for byte (' + Math.round(quiet.caret) + ')',
-    quiet.caret === quiet.raw);
+  ok('so nothing lowers the ceiling — the bottom is the plain band\'s ('
+    + Math.round(quiet.caret) + ')', quiet.caret === quiet.raw);
+
+  // ── 7. THE MIRROR OF THE SAME BUG: the page's own STICKY row over the top
+  //    of the band.  footage's PROMPT fold row is `position:sticky`, so typing
+  //    in the top half of a long scene after scrolling down used to lift the
+  //    caret line to band.top — straight under that row.  Every assertion here
+  //    is a MEASUREMENT: a caret lifted to the right number and a caret lifted
+  //    onto a button look identical in the source.
+  await page.evaluate((t) => {
+    const el = document.getElementById('prompt');
+    el.value = t;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }, SCENE);
+  await page.waitForTimeout(300);
+  await page.evaluate(() => {
+    const el = document.getElementById('prompt');
+    const at = Math.round(el.value.length * 0.12);     // near the TOP of the scene
+    el.focus(); el.setSelectionRange(at, at);
+  });
+  await page.waitForTimeout(400);
+  await page.evaluate(() => window.scrollBy(0, 300));  // push that line above the band
+  await page.waitForTimeout(120);
+  await page.keyboard.type('typing up here', { delay: 12 });
+  await page.waitForTimeout(600);
+
+  const up = await page.evaluate(() => {
+    const el = document.getElementById('prompt');
+    const k = window.__caretKeep;
+    const c = k.caretRect(el);
+    const r = el.getBoundingClientRect();
+    const mid = Math.round((c.top + c.bottom) / 2);
+    const hit = document.elementFromPoint(Math.round(r.left + Math.min(80, r.width / 3)), mid);
+    const rows = [];
+    document.querySelectorAll('body *').forEach((x) => {
+      const cs = getComputedStyle(x);
+      if (cs.position !== 'sticky' && cs.position !== 'fixed') return;
+      if (x.contains(el) || x.hasAttribute('data-stickybox')) return;
+      const q = x.getBoundingClientRect();
+      if (!q.width || !q.height) return;
+      if (q.right <= r.left || q.left >= r.right) return;
+      if (q.bottom <= c.top || q.top >= c.bottom) return;
+      rows.push((x.id || x.className || x.tagName).toString().slice(0, 30));
+    });
+    const sticky = document.querySelector('.foldrow.panelrow');
+    const sq = sticky ? sticky.getBoundingClientRect() : null;
+    return {
+      caret: [c.top, c.bottom],
+      stickyRow: sq ? [sq.top, sq.bottom] : null,
+      stuck: getComputedStyle(document.querySelector('.foldrow.panelrow') || document.body).position,
+      over: rows,
+      bandTop: k.band().top,
+      caretBandTop: k.caretBand(el).top,
+      hit: hit ? (hit.id || hit.className || hit.tagName).toString().slice(0, 40) : 'nothing',
+    };
+  });
+  ok('the PROMPT row really is sticky (' + up.stuck + ')', up.stuck === 'sticky');
+  ok('and it really is above the plain band\'s top ('
+    + Math.round(up.stickyRow[0]) + '-' + Math.round(up.stickyRow[1]) + ' vs ' + Math.round(up.bandTop) + ')',
+    up.stickyRow && up.stickyRow[1] > up.bandTop);
+  ok('so the caret band\'s FLOOR is pushed below it ('
+    + Math.round(up.caretBandTop) + ' > ' + Math.round(up.bandTop) + ')',
+    up.caretBandTop >= up.stickyRow[1] - 0.5);
+  ok('the caret sits BELOW the sticky row (' + Math.round(up.caret[0]) + ' >= '
+    + Math.round(up.stickyRow[1]) + ')', up.caret[0] >= up.stickyRow[1] - 0.5);
+  ok('nothing sticky is drawn over the caret\'s own line ('
+    + (up.over.join(',') || 'none') + ')', up.over.length === 0);
+  ok('and a tap on that line reaches her WORDS, not a control (' + up.hit + ')',
+    /prompt|pblock/.test(up.hit));
 
   ok('still no page errors', errors.length === 0);
 

@@ -58,6 +58,30 @@
    decide where to pin, and a band that moved under it would ratchet the
    buttons up the screen a row at a time.
 
+   AND THE SAME BUG HAS A MIRROR AT THE TOP — A STICKY ROW (2026-09-14,
+   Sophie: "any other similar changes? bugs"). The half above lifts a caret
+   that has fallen below the band; the other half of `keep()` LOWERS one that
+   has risen above it, onto `band.top` — and `band.top` is the visual
+   viewport's own top, which knows nothing about a row stuck to it. footage's
+   PROMPT fold row went `position:sticky` on 2026-09-13, so typing in the top
+   half of a long scene after scrolling down put her caret straight under it.
+   MEASURED on the real page: caret line 10–33, the sticky row 4–33, and
+   `elementFromPoint` on the caret's own line answering the fold button rather
+   than her words; after, the caret sits at 39–62 and the line reads clear.
+   So `caretBand` narrows from BOTH ends, and chrome narrows the end it is
+   NEARER — no rule about safe-area insets, which is what a "is it at the
+   top?" test cannot survive (in the app the row starts at the inset and the
+   band still starts at 0). Three things not to undo: a stickybox button is
+   excluded from the sticky set and read live instead (it goes fixed and back
+   as she scrolls, so a set cached at find time would remember it as chrome
+   long after it let go); the set is found once per FOCUS by a bounded walk
+   — the box's ancestors' siblings plus body's own children, which is where
+   a header lives — because reading every node's computed position on every
+   keystroke is the churn the typing rule forbids; and only chrome actually
+   PAINTED on top counts (`onTop`), or the Story Room's sticky header, which
+   sits under its own beat popup, would lift her caret clear of something she
+   cannot see.
+
    Include it once, anywhere: `<script src="/caretkeep.js"></script>`. It
    wires itself to every text box on the page, present and future, and takes
    `data-nocaret` on a box (or any ancestor) as an opt-out. compare.js loads
@@ -107,29 +131,90 @@
     try { return window.matchMedia('(hover: none)').matches; } catch (_) { return false; }
   }
 
-  // ── the band the CARET aims at: the visible one, minus anything pinned over
-  //    the box she is typing in ──
+  // ── the band the CARET aims at: the visible one, minus anything pinned or
+  //    stuck over the box she is typing in ──
+  // Two kinds of chrome, read two different ways on purpose.
   // stickybox.js floats a tall box's corner buttons at the bottom of the very
   // band above (its own `bandBottom` asks for it), so without this the caret
   // line and the button row are the same pixels — she types under a control.
-  // Only a pinned control in the box's OWN COLUMN can cover its words, so a
-  // button floating somewhere else on the page narrows nothing. `band()` is
-  // left alone on purpose: stickybox reads it, and narrowing it there would
-  // walk the buttons up the screen a row per pass.
+  // Those pin and unpin as she scrolls, so they are queried every pass.
+  // A STICKY ROW is the page's own furniture (footage's PROMPT fold row), so
+  // the SET is found once per focus by a bounded walk and only its RECT is
+  // read here — walking every node on every keystroke is the churn the
+  // typing rule forbids.
+  // Only chrome in the box's OWN COLUMN can cover its words, and it narrows
+  // the band from whichever END it is nearer, so a header lifts the floor and
+  // a pinned button lowers the ceiling with no rule about safe-area insets.
+  // `band()` is left alone on purpose: stickybox reads it, and narrowing it
+  // there would walk the buttons up the screen a row per pass.
+  var stuck = [];           // the sticky/fixed rows over the focused box
+  var stuckFor = null;      // the box they were found for
+
+  function findStuck(el) {
+    var out = [];
+    try {
+      var chain = [], n = el, i, j;
+      while (n && n !== document.body) { chain.push(n); n = n.parentElement; }
+      var cands = [];
+      for (i = 0; i < chain.length; i += 1) {
+        var sib = chain[i].parentElement ? chain[i].parentElement.children : [];
+        for (j = 0; j < sib.length; j += 1) if (sib[j] !== chain[i]) cands.push(sib[j]);
+      }
+      var kids = document.body ? document.body.children : [];   // a page-level header
+      for (i = 0; i < kids.length; i += 1) cands.push(kids[i]);
+      for (i = 0; i < cands.length; i += 1) {
+        var c = cands[i];
+        if (c === el || c.contains(el)) continue;               // it scrolls WITH her
+        // a stickybox button is the OTHER loop's: it goes fixed and back as
+        // she scrolls, so a set cached at find time would remember it as
+        // chrome long after it let go and had gone back to the box's corner
+        if (c.hasAttribute && c.hasAttribute('data-stickybox')) continue;
+        if (out.indexOf(c) >= 0) continue;
+        var p = window.getComputedStyle(c).position;
+        if (p !== 'sticky' && p !== 'fixed') continue;
+        if (!onTop(c)) continue;                                // a sheet covers it
+        out.push(c);
+      }
+    } catch (_) { return []; }
+    return out;
+  }
+
+  // only chrome that is really PAINTED over the page counts: the Story Room's
+  // sticky header sits under its own beat popup at a higher layer, and lifting
+  // her caret clear of something she cannot see is a jump with no cause.
+  function onTop(c) {
+    try {
+      var q = c.getBoundingClientRect();
+      var x = Math.round(Math.max(0, Math.min(window.innerWidth - 1, (q.left + q.right) / 2)));
+      var y = Math.round(Math.max(0, Math.min(window.innerHeight - 1, (q.top + q.bottom) / 2)));
+      var hit = document.elementFromPoint(x, y);
+      return !hit || hit === c || c.contains(hit) || hit.contains(c);
+    } catch (_) { return true; }
+  }
+
+  function narrow(b, q, r) {
+    if (!q.width || !q.height) return;
+    if (q.right <= r.left || q.left >= r.right) return;       // another column entirely
+    if (q.bottom <= b.top || q.top >= b.bottom) return;       // not over the band at all
+    if (q.bottom - b.top <= b.bottom - q.top) {               // nearer the TOP
+      if (q.bottom + CHROME > b.top) b.top = q.bottom + CHROME;
+    } else if (q.top - CHROME < b.bottom) {                   // nearer the BOTTOM
+      b.bottom = q.top - CHROME;
+    }
+  }
+
   function caretBand(el) {
     var b = band();
     if (!el || !el.getBoundingClientRect) return b;
     var r = el.getBoundingClientRect();
-    var over;
-    try { over = document.querySelectorAll('[data-stickybox].sbx-pin'); } catch (_) { return b; }
-    for (var i = 0; i < over.length; i += 1) {
+    var over, i;
+    try { over = document.querySelectorAll('[data-stickybox].sbx-pin'); } catch (_) { over = []; }
+    for (i = 0; i < over.length; i += 1) {
       if (over[i] === el || over[i].contains(el)) continue;
-      var q = over[i].getBoundingClientRect();
-      if (!q.width || !q.height) continue;
-      if (q.right <= r.left || q.left >= r.right) continue;   // another column entirely
-      if (q.bottom <= b.top || q.top >= b.bottom) continue;   // not over the band at all
-      if (q.top - CHROME < b.bottom) b.bottom = q.top - CHROME;
+      narrow(b, over[i].getBoundingClientRect(), r);
     }
+    if (stuckFor !== el) { stuck = findStuck(el); stuckFor = el; }
+    for (i = 0; i < stuck.length; i += 1) narrow(b, stuck[i].getBoundingClientRect(), r);
     if (b.bottom < b.top + FLOOR) b.bottom = b.top + FLOOR;
     return b;
   }
@@ -279,6 +364,7 @@
   document.addEventListener('focusin', function (e) {
     if (!boxy(e.target)) return;
     focused = e.target;
+    stuckFor = null;                  // re-find this box's chrome
     arm(focused);
   }, true);
   document.addEventListener('click', released, true);
@@ -305,7 +391,7 @@
   }, true);
   if (window.visualViewport) {
     // the keyboard opening or closing, and a rotation
-    window.visualViewport.addEventListener('resize', function () { if (focused) burst(focused); });
+    window.visualViewport.addEventListener('resize', function () { stuckFor = null; if (focused) burst(focused); });
   }
 
   window.__caretKeep = {
@@ -315,7 +401,7 @@
     // keeper learns about the box the fetch was started for), so it arms
     // exactly as focusin does — a burst run here would measure the tap's
     // stale caret, which is the scroll she reported
-    focus: function (el) { if (boxy(el)) { focused = el; arm(el); } },
+    focus: function (el) { if (boxy(el)) { focused = el; stuckFor = null; arm(el); } },
     caretRect: caretRect,
     band: band,              // what the keyboard leaves — stickybox pins against THIS
     caretBand: caretBand,    // that, minus anything pinned over the box she is in
