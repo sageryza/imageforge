@@ -194,7 +194,7 @@ function exe() {
   // block with two boxes since 2026-09-14 — the cast is this block's own)
   await pg.evaluate(() => {
     const set = (id, v) => {
-      const el = document.querySelector('.panel > .headwrap .hrow[data-head="' + id + '"] .hblock');
+      const el = document.querySelector('.panel > .headwrap .hpart[data-head="' + id + '"] .hblock');
       el.value = v; el.dispatchEvent(new Event('input', { bubbles: true }));
     };
     set('characters', 'nurse edna, tired');

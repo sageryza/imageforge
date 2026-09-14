@@ -100,7 +100,7 @@ const read = () => {
   const kids = Array.from(panel.children);
   const hw = kids.filter((c) => c.classList.contains('headwrap'));
   const ws = kids.filter((c) => c.classList.contains('promptwrap'));
-  const rows = hw.length ? Array.from(hw[0].querySelectorAll('.hrow')) : [];
+  const rows = hw.length ? Array.from(hw[0].querySelectorAll('.hpart')) : [];
   const seen = (el) => {
     if (!el) return null;
     const r = el.getBoundingClientRect();
@@ -152,7 +152,7 @@ const read = () => {
 };
 const tapHead = () => document.querySelector('.panel > .headwrap .hfold').click();
 const writeHead = ([id, text]) => {
-  const el = document.querySelector('.panel > .headwrap .hrow[data-head="' + id + '"] .hblock');
+  const el = document.querySelector('.panel > .headwrap .hpart[data-head="' + id + '"] .hblock');
   el.value = text; el.dispatchEvent(new Event('input', { bubbles: true }));
 };
 const intoBlock = (i) => {
