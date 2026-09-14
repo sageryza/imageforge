@@ -83,8 +83,9 @@ const LINKS = [
 ];
 
 // A component with no "?" key matches ANY query string, which is what carries
-// /chats?chat=<slug> and /chats?view=news through to the app. Exact paths, no
-// trailing `*`: `/chats*` would also swallow a future /chatsomething.
+// /chats?chat=<slug> through to the app (and `?view=news`, which opened the
+// Update tab until 2026-09-14 and is swallowed by the page now). Exact paths,
+// no trailing `*`: `/chats*` would also swallow a future /chatsomething.
 function aasa() {
   return {
     applinks: {

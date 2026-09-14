@@ -1309,10 +1309,17 @@
     - Test: `node scripts/test-chats-tags-button.js` — the groups, the sums,
       the reset, and the layout measured on real geometry (a line below the
       pill band may only break when the next chip truly wouldn't fit).
-  - **COME BACK TO IS ONE BUCKET (Aug 2026, Sophie: "can you combine the come
-    back to and later categories" — confirmed as the chat-list FOLDER and the
-    UPDATE screen's BOX).** She had two names for one intention and two places
-    to go looking.
+  - **COME BACK TO IS ONE BUCKET — HISTORY SINCE 2026-09-14.** The Update tab
+    is gone and the LATER box with it, so there is nothing on the other side
+    of this join: `come back to` is one of her ordinary labels again,
+    `chatInCat` is a plain label test, and `cbBox`/`rebuildComeBack`/
+    `QUEUE_CATS`/`queueCat`/`queueOnly` are deleted. `in a minute` and
+    `maybe never` only ever reached the row while a box held something, so
+    they stop appearing; every chat's `newsQueue` field is left untouched and
+    unread. The rest of this bullet is the account of what it was.
+    (Aug 2026, Sophie: "can you combine the come back to and later
+    categories" — confirmed as the chat-list FOLDER and the UPDATE screen's
+    BOX.) She had two names for one intention and two places to go looking.
     - **One word and one pile — deliberately NOT one field.** A label files a
       chat forever; `newsQueue` files ONE update until something newer lands
       and then hands it back. Folding either into the other loses something
@@ -1336,8 +1343,8 @@
       vanish from the list would be a filing she never asked for.
     - A superseded card leaves the pile the same moment it leaves the box —
       the auto-return rule is the box's, and the folder must not contradict it.
-    - Test: `node scripts/test-chats-come-back-to.js` (verified failing against
-      a folder that only reads `category`).
+    - Test: `test-chats-come-back-to.js`, deleted 2026-09-14 with the box it
+      was about.
   - **…AND THEN ALL THREE BOXES GOT ONE (Aug 2026, Sophie, pointing at the
     labels row: "'maybe never' isn't on the tag list in the account area" →
     "give them both a chip").** Only `later` had ever been joined to a word,
@@ -1359,8 +1366,8 @@
     - Nothing about FILING changed: deferring one update still leaves the chat
       on the main list, and a superseded card still leaves both the box and
       the chip at the same moment.
-    - Test: `node scripts/test-chats-queue-chips.js` (verified failing against
-      the one-word join — the two chips simply were not on the row).
+    - Test: `test-chats-queue-chips.js`, deleted 2026-09-14 with the boxes it
+      was about.
     - **A derived word is a FILTER, not a folder** (`queueOnly()`): `in a
       minute` and `maybe never` are on the home row but are kept OUT of
       `fileVocab()`, so no filing sheet offers them. Tapping one in a sheet
@@ -2238,12 +2245,27 @@ little chat drawings.
     the tab she is NOT on can still say there are three waiting over there.
   - Tests: `node scripts/test-chats-accounts.js`.
 
-- **"UPDATE" — the daily notifications tab, and it LEADS the tab row (Aug
-  2026, Sophie: "right now there's account one and account two, two tabs on my
-  chat app screen — I wanna make one more tab, and this is like a daily
-  notifications thing, so it includes a little more information and I can get
-  rid of them if I've already checked them", then, having used it: "I would
-  put it on the left side of the accounts and call it update").**
+- **"UPDATE" — REMOVED 2026-09-14. EVERYTHING UNDER THIS BULLET IS HISTORY,
+  NOT A RULE.** Sophie: "get rid of the updates tab in chats". The tab, its
+  cards, the ✓, the three sections and their triage, the two red boxes, the
+  three queue boxes (Come back to · In a minute · Maybe never), the picking
+  gesture, the tag sheet over a selection, the Update/Review/To read doors and
+  the TAG_RULES pin all went with it — about 1,000 lines of `chats.html` and
+  12 test files. **Do not rebuild any of it from git without her.** What
+  survived is in CLAUDE.md under *THE UPDATE TAB IS GONE*: the Update CARD a
+  chat posts (the archive wrap-up reads it), `sumRows`/`UPD_LABELS`,
+  `seenFloor` (the old `newsFloor`) settling the `waiting for a response`
+  wristwatch, and `reviewHeld`. The Instagram icon moved to the chat list
+  rather than losing its only door. The rest of this bullet is kept because
+  the measurements in it are worth keeping — read it as an account of
+  something that used to exist.
+
+  The original note, verbatim: the daily notifications tab, and it LEADS the
+  tab row (Aug 2026, Sophie: "right now there's account one and account two,
+  two tabs on my chat app screen — I wanna make one more tab, and this is like
+  a daily notifications thing, so it includes a little more information and I
+  can get rid of them if I've already checked them", then, having used it: "I
+  would put it on the left side of the accounts and call it update").
   `homeView='news'` — **the view key is still `news`; only her word for it
   changed** — painted by `renderNews` in chats.html. The tab is the FIRST of
   the three in `.acctabs` and lights up on its own (`data-on="new"`, the

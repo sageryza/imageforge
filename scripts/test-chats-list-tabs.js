@@ -329,7 +329,9 @@ const ok = () => { checks++; };
   if (await shown('#listrow')) fail('both rows are on screen after the toggle');
   else ok();
   const accTabs = await page.$$eval('#accrow .acctab', (b) => b.length);
-  if (accTabs !== 4) fail('the account row is not itself (' + accTabs + ' tabs)');
+  // three tabs since 2026-09-14 — the UPDATE tab that used to lead this row
+  // came off at her ask ("get rid of the updates tab in chats")
+  if (accTabs !== 3) fail('the account row is not itself (' + accTabs + ' tabs)');
   else ok();
   await page.click('#rowtog');
   if (!await shown('#listrow')) fail('the toggle does not swap back');

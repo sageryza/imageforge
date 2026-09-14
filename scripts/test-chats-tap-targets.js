@@ -3,6 +3,10 @@
 // arrow for more information on the chats and the update tab is too small of
 // a tap target").
 //
+// THE UPDATE TAB HALF IS GONE (2026-09-14) — its ⌄ went with the tab, so the
+// measurements below are the record of a control that no longer exists and
+// only the wrap-up's "see more" is still driven.
+//
 // Measured on her phone's width before the fix:
 //   • the Update tab's ⌄ (`.nwmore`)  — 19 x 29
 //   • the wrap-up's ⌄ (`.wrapmore`), in a thread and on an archive row
@@ -134,31 +138,12 @@ const fail = (m) => { console.error('FAIL: ' + m); failed++; process.exitCode = 
     };
   }, sel);
 
-  // ---- 1. the Update tab's ⌄ -------------------------------------------
-  await page.goto(base + '/chats?view=news');
-  await page.waitForSelector('.nwcard .nwmore', { timeout: 8000 })
-    .catch(() => fail('the Update tab drew no ⌄ at all'));
-  const nw = await reach('.nwcard .nwmore');
-  if (!nw) fail('no .nwmore');
-  else {
-    if (nw.h < 44) fail('the Update tab\'s ⌄ is ' + nw.h + 'px tall — a thumb needs 44');
-    if (nw.w < MIN) fail('the Update tab\'s ⌄ is only ' + nw.w + 'px wide (was 19)');
-  }
-  // …and the chat NAME paid nothing for it: `.crow` is `flex:1`, so any width
-  // the button takes in LAYOUT comes straight off the name. The reach above is
-  // an ::after, which occupies no layout at all — so the button's own box must
-  // still measure what it always did.
-  const boxW = await page.$eval('.nwcard .nwmore', (n) => n.getBoundingClientRect().width);
-  if (boxW > 20) fail('the ⌄ grew in LAYOUT (' + boxW + 'px) — that width comes off the chat name');
-  // …and it cannot reach the ✓, which is the tap she was worried about
-  const ck = await page.evaluate(() => {
-    const b = document.querySelector('.nwcard .nwck'), r = b.getBoundingClientRect();
-    const hit = (x, y) => { const e = document.elementFromPoint(x, y); return e && e.closest('button'); };
-    return { self: hit(r.left + r.width / 2, r.top + r.height / 2) === b,
-      edge: (hit(r.left + 1, r.top + r.height / 2) || {}).className || '' };
-  });
-  if (!ck.self) fail('the ✓ is no longer the thing you hit at its own centre');
-  if (/nwmore/.test(ck.edge)) fail('the ⌄ now reaches the ✓ — that is the tap she asked to be kept apart');
+  // ---- 1. THE UPDATE TAB'S ⌄ IS GONE ------------------------------------
+  // `.nwcard .nwmore` — the control this whole file was named for — went with
+  // the Update tab on 2026-09-14 ("get rid of the updates tab in chats"), and
+  // so did `button.sthead`, the foldable section header whose 36px of thumb
+  // the note above `.sthead` still points at. What is left here is the
+  // wrap-up's "see more", which is a real control on a live screen.
 
   // ---- 2. the wrap-up's "see more" link in a thread ----------------------
   await page.goto(base + '/chats');

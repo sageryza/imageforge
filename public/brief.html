@@ -390,7 +390,7 @@ if (!/[?&]embed=1/.test(location.search)) {
   var back = $('back');
   back.hidden = false;
   back.addEventListener('click', function () {
-    if (history.length > 1) history.back(); else location.href = '/chats?view=news';
+    if (history.length > 1) history.back(); else location.href = '/chats';
   });
 }
 

@@ -253,22 +253,23 @@ const QUEUE = {
 
     // 2. THE BELT: a back that moves nothing (the queue sitting at history
     //    index 0 after a deck round-trip — pagehead.js's finding on this very
-    //    page) lands her on the UPDATE tab instead of reading as dead.
+    //    page) lands her on the chat list instead of reading as dead. (It was
+    //    the UPDATE tab until 2026-09-14.)
     await page.evaluate(() => { history.back = function () {}; });
     await page.locator('#back').click();
     await page.waitForURL(/\/chats/, { timeout: 3000 }).catch(() => {});
-    is('a back that moves nothing falls through to the UPDATE tab', page.url(),
-      'https://forge.test/chats?view=news');
+    is('a back that moves nothing falls through to the chat list', page.url(),
+      'https://forge.test/chats');
   }
   {
     // 3. arrived from the Chats app → straight back to it
-    await page.goto('https://forge.test/chats?view=news', { waitUntil: 'domcontentloaded' });
+    await page.goto('https://forge.test/chats', { waitUntil: 'domcontentloaded' });
     await page.evaluate(() => { location.href = '/review'; });
     await page.waitForSelector('#pane-wait .qtile', { timeout: 5000 }).catch(() => {});
     await page.locator('#back').click();
     await page.waitForURL(/\/chats/, { timeout: 3000 }).catch(() => {});
     is('arriving from the Chats app, the chevron goes back to it', page.url(),
-      'https://forge.test/chats?view=news');
+      'https://forge.test/chats');
   }
   {
     // 4. embedded in the native tool screen the bar owns back — one chevron

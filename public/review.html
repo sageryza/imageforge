@@ -342,7 +342,7 @@ if (!/[?&]embed=1/.test(location.search)) {
   backBtn.hidden = false;
   backBtn.addEventListener('click', function () {
     if (window.__navBack && window.__navBack() === true) return;
-    var out = function () { location.href = '/chats?view=news'; };
+    var out = function () { location.href = '/chats'; };
     if (history.length > 1) {
       var bail = setTimeout(out, 400);
       var cancel = function () { clearTimeout(bail); };
