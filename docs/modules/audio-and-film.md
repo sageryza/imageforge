@@ -854,56 +854,89 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         pinned divide — the head box's own top on the glass, since the head
         shrinks from the bottom and setting `.value` drops the caret to 0 —
         the slot renamed in the second block).
-    - **CHARACTERS, THEN SETTING — TWO PERMANENT BLOCKS AT THE TOP, SHUT BY
-      DEFAULT (2026-09-13, Sophie: "i envision two permanent default collapsed
-      blocks at the top of footage: characters, then setting").** Who is in
-      the scene and where it is do not change from shot to shot, and until
-      this they were retyped into every block or re-tapped off the cast shelf
-      per clip. So the panel opens with two blocks of its own above the scene,
-      and **what is written in them rides at the TOP of the prompt of every
-      clip she sends** — in that order, blank line between, exactly the shape
-      the join mark already gives her words. Six things not to undo:
-      - **THEY ARE NOT `blocks()`.** A head is `.headwrap`/`.hblock`, never
-        `.promptwrap`/`.pblock`, so "the blocks" goes on meaning her SCENE
-        blocks in every reader there is: the numbering, the gold line, the
-        join marks, the ✕, the divide, `setBlocks`, the draft (`prompt` first,
-        `blocks` after it), the belt hand-off and every test are untouched by
-        construction rather than by remembering to skip two. The heads ride
-        the draft under their own names (`heads: {characters, setting}`),
-        written only when one of them holds something.
-      - **THE GOLD LINE NEVER MOVES TO ONE.** `setActive` is reached through
-        `closest('.promptwrap')`, which a head is not, so tapping into
-        Characters leaves the star pointing where she left it — right,
-        because the star cannot send a head on its own: it is a head, not a
-        shot. For the same reason the scene box, not a head, is what "say
-        what the clip is first" is about.
-      - **AN EMPTY HEAD ADDS NOTHING**, and with both empty the prompt is
+    - **CHARACTERS & SETTING — ONE FOLDED BLOCK, TWO BOXES, ABOVE THE BLOCK
+      SHE IS IN (2026-09-14, Sophie: "characters/setting become one collapsed
+      block w two text boxes" · "characters/setting move to above currently
+      selected block, w relevant characters for that block").** It shipped a
+      day earlier as TWO permanent blocks pinned at the top of the panel
+      (2026-09-13, "i envision two permanent default collapsed blocks at the
+      top of footage: characters, then setting") and a day of cutting settled
+      two things her sentence is naming:
+      - **THEY ARE ONE THOUGHT**, so they are ONE fold with two boxes rather
+        than two rows of chrome above every scene.
+      - **WHO IS IN A SHOT CHANGES SHOT TO SHOT, WHERE THE ROOM DOES NOT.**
+        That is what "relevant characters for that block" says, and it is what
+        makes the move worth its cost: a block carrying the same words wherever
+        it sat would be churn.
+      So **CHARACTERS IS THE BLOCK'S** — `__chars` on the wrap, exactly the
+      shape its strip already has, so tapping into another block hands its cast
+      back the way its pictures come back — and **SETTING IS STILL THE STANDING
+      VALUE**, one per project (`footage_heads`), riding every clip. What is
+      written in both rides at the TOP of the prompt of the clip that block
+      sends, cast first, blank line between, exactly the shape the join mark
+      already gives her words. Eight things not to undo:
+      - **IT IS NOT `blocks()`.** The wrap is `.headwrap`, each box sits in its
+        own `.hrow` (which is what the corner button is positioned against) and
+        is still `.hblock`, never `.promptwrap`/`.pblock` — so "the blocks"
+        goes on meaning her SCENE blocks in every reader there is: the
+        numbering, the gold line, the join marks, the ✕, the divide,
+        `setBlocks`, the draft, the belt hand-off and every test are untouched
+        by construction rather than by remembering to skip it. The cast rides
+        the draft as `chars`, one per block, beside the words it belongs to;
+        the setting rides `heads: {setting}` and the per-project map.
+      - **THE GOLD LINE NEVER MOVES TO IT.** `setActive` is reached through
+        `closest('.promptwrap')`, which this is not, so tapping into Characters
+        leaves the star pointing where she left it — right, because the star
+        cannot send a head on its own: it is the head of a shot, not a shot.
+        For the same reason the scene box, not a head, is what "say what the
+        clip is first" is about.
+      - **IT MOVES ON EVERY PAINT, AND `placeHeads` IS THE ONE WRITER** of
+        where it sits: directly above the active block, reached from
+        `markActive` (which every path changing the gold line already comes
+        through) and from the end of `paintBlocks`.
+      - **THE NODE IS HELD, NOT HUNTED** (`HEADWRAP`). `paintBlocks` takes the
+        wrap OUT while it rebuilds the join rows — a join row is inserted
+        BEFORE its lower block and the wrap sits there whenever that block is
+        the active one — so a lookup that walks `panel.children` answers null
+        exactly when `placeHeads` needs it and the whole block is lost on the
+        first divide. MEASURED: it simply vanished off the page.
+      - **A JOIN ROW'S TWO BLOCKS ARE ITS NEAREST `.promptwrap` EITHER SIDE,
+        NEVER ITS SIBLINGS** (`blockSide`, read by `paintJoinRows` and
+        `joinAt`). The wrap sits in that gap and is SHUT by default, so reading
+        the plain sibling found a shut node there and hid every join mark.
+      - **AN EMPTY BOX ADDS NOTHING**, and with both empty the prompt is
         byte-for-byte the words in her box. Emptying one is how it stops
-        riding: **permanent means no ✕ and no divide** — nothing takes one off
-        the page and nothing turns one into two.
-      - **`clear` DOES NOT TOUCH THEM.** It wipes the JOB — the blocks, the
-        references, the marks, the seed — and the cast and the room are the
-        standing thing above it, so the next shot of the same scene keeps
-        them. A clear that retyped them would be "permanent" meaning nothing.
-        A belt hand-off leaves them alone for the same reason.
-      - **SHUT IS WHERE THEY START, EVERY LOAD** — the one place this page
-        folds by default, and the opposite of a block's own fold (memory for
-        the life of the page, open on a reload). It is only safe because
-        **shut, the heading SAYS ITS WORDS**: a value riding every clip with
-        nothing on screen saying so is the hidden ingredient the price beside
-        the star exists to prevent.
-      - **`paintHeadBlock`, NOT `paintHead`** — the page header has a
-        `paintHead` of its own hundreds of lines down, and a duplicate
-        function DECLARATION is not an error: the last one in the file wins,
-        silently. The first cut of this folded correctly and painted nothing
-        at all, which is invisible in the source and is what the test caught.
+        riding: **permanent means no ✕ and no divide** — nothing takes it off
+        the page and nothing turns it into two.
+      - **`clear` WIPES THE CAST AND KEEPS THE ROOM.** That follows from the
+        split rather than loosening the 09-13 rule: the cast belongs to a
+        block, so it goes into the bank with the blocks and `undo` puts it
+        back, and the room is the standing thing above the job exactly as it
+        was. A belt hand-off leaves the room alone for the same reason.
+      - **SHUT IS WHERE IT STARTS, EVERY LOAD** — the one place this page folds
+        by default, and the opposite of a block's own fold (which rides the
+        draft). It is only safe because **shut, the heading SAYS BOTH SETS OF
+        WORDS**, cast first: a value riding a clip with nothing on screen
+        saying so is the hidden ingredient the price beside the star exists to
+        prevent.
+      A **divide** copies the cast into the tail (its words name that block's
+      pictures, and half a scene is the same people until she says otherwise);
+      a **join** unions the two, a blank line between; a **put-back** strips a
+      leading prefix that IS one of the casts on the page or the setting, and
+      re-homes the cast it stripped onto the block it makes; and a **draft from
+      the two-block day** seeds EVERY block with the one `heads.characters` it
+      saved (dropping it on block 1 alone would leave the rest of her scene
+      without the people in it). `paintHeadBlock`, NOT `paintHead` — the page
+      header has a `paintHead` of its own hundreds of lines down, and a
+      duplicate function DECLARATION is not an error: the last one in the file
+      wins, silently.
       Test: `node scripts/test-footage-heads.js` (every assertion a
       MEASUREMENT of what really renders or a reading of what the stub server
-      really received — a head that never folds, one that quietly joins
-      `blocks()` and renumbers her scene, one that rides at the BOTTOM, and one
-      whose words never reach the
-      door all look identical in the source; it CRASHES against the pre-fix
-      page, where there are no head blocks at all).
+      really received — a block that never folds, one that quietly joins
+      `blocks()` and renumbers her scene, one that sits in the markup above the
+      active block and paints somewhere else, a cast that reads back right and
+      never reaches the door, and a join mark hidden by the wrap that moved
+      between two blocks all look identical in the source).
     - **WHAT CHANGED — THE COMPARE PANEL (2026-09-11, Sophie: "is there an
       easy way I can diff video clips like I can't remember what I changed for
       example sometimes it's a single line or a reference for the model the

@@ -216,17 +216,25 @@ const server = http.createServer((req, res) => {
 
   // AND FOLDING THE WHOLE PANEL AWAY TAKES IT WITH IT (2026-09-13, from her
   // screenshot of a shut panel with the drawer still drawn under it). The
-  // drawer is a direct child of the panel and `.panel.shut > *` sweeps it —
-  // but `#recent{display:flex}` is an ID and out-specified that sweep, so it
-  // went on rendering with no control left on screen to close it. MEASURED
-  // off the real box, since the markup is identical either way.
+  // PANEL's own fold is gone (2026-09-14, "remove prompt collapse"), so the
+  // fold that has to take the drawer with it is the REFERENCES block's — its
+  // own toggle lives in that block's bar, so a shut block would otherwise
+  // leave the drawer on screen with no control to close it. MEASURED off the
+  // real box, since the markup is identical either way.
   ok('the drawer is open before the fold', await shown());
-  await page.click('#panelfold');
+  await page.click('#reffold');
   await page.waitForTimeout(200);
-  ok('a shut panel takes the drawer with it', !(await shown()));
-  await page.click('#panelfold');
+  ok('a shut references block takes the drawer with it', !(await shown()));
+  await page.click('#reffold');
   await page.waitForTimeout(200);
-  ok('and reopening the panel brings it back as she left it', await shown());
+  // …and it stays shut, which is this fold's own rule rather than the panel's:
+  // `paintFolds` really CLOSES the drawer (`recClose`) when the block hides,
+  // because its toggle goes with it — so reopening the block gives her the
+  // toggle back rather than a drawer she did not ask for again.
+  ok('and reopening the block gives her the toggle back, not the drawer', !(await shown()));
+  await page.click('#rectog');
+  await page.waitForTimeout(150);
+  ok('her tap on it opens the drawer again', await shown());
   await page.click('#rectog');
 
   await page.fill('#prompt', 'the same room, one shot later');

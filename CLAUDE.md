@@ -9154,32 +9154,48 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `node scripts/test-footage-divide.js`,
   `node scripts/test-footage-block-refs.js` and
   `node scripts/test-footage-block-fold.js`.
-  **AND TWO PERMANENT BLOCKS SIT ABOVE THEM — CHARACTERS, THEN SETTING, SHUT
-  BY DEFAULT (2026-09-13, Sophie: "i envision two permanent default collapsed
-  blocks at the top of footage: characters, then setting").** Who is in the
-  scene and where it is do not change from shot to shot, so they are two
-  blocks of their own above the scene and **what is written in them rides at
-  the TOP of the prompt of every clip she sends** — in that order, blank
-  line between. Six things not to undo: **they are not `blocks()`** (a head is `.headwrap`/`.hblock`, never
+  **AND CHARACTERS & SETTING IS ONE FOLDED BLOCK THAT RIDES ABOVE THE BLOCK
+  SHE IS IN (2026-09-14, Sophie: "characters/setting become one collapsed
+  block w two text boxes" · "characters/setting move to above currently
+  selected block, w relevant characters for that block").** It shipped a day
+  earlier as TWO permanent blocks pinned at the top of the panel (2026-09-13,
+  "i envision two permanent default collapsed blocks at the top of footage:
+  characters, then setting") and a day of cutting settled two things: they are
+  ONE thought, so they are one fold with two boxes rather than two rows of
+  chrome above every scene; and **who is in a shot changes shot to shot where
+  the room does not**, which is what "relevant characters for that block"
+  says. So **CHARACTERS IS THE BLOCK'S** — `__chars` on the wrap, exactly the
+  shape its strip already has, so tapping into another block hands its cast
+  back the way its pictures come back — and **SETTING IS STILL THE STANDING
+  VALUE**, one per project, riding every clip. `placeHeads` puts the wrap
+  directly above the active block on every paint, which is what makes the move
+  earn its cost: a block carrying the same words wherever it sat would be
+  churn. Eight things not to undo: **it is not `blocks()`** (the wrap is
+  `.headwrap`, each box sits in its own `.hrow` and is still `.hblock`, never
   `.promptwrap`/`.pblock`, so the numbering, the gold line, the join marks,
   the ✕, the divide, `setBlocks`, the draft and every test are untouched by
-  construction rather than by remembering to skip two; the draft carries them
-  under their own names); **the gold line never moves to one** (`setActive` is
-  reached through `closest('.promptwrap')`, which a head is not, so tapping
-  into Characters leaves the star pointing where she left it — the star cannot
-  send a head on its own); **an empty head adds nothing**, and with both empty
-  the prompt is byte-for-byte the words in her box; **permanent means no ✕ and
-  no divide**, so emptying the box is how one stops riding; **`clear` does not
-  touch them** — it wipes the JOB and the cast and the room are the standing
-  thing above it, and a clear that retyped them would be "permanent" meaning
-  nothing; and **shut is where they START, every load** — the one place this
-  page folds by default, safe only because **shut, the heading says its
-  words** (a value riding every clip with nothing on screen saying so is the
-  hidden ingredient the price beside the star exists to prevent). Named
-  `paintHeadBlock` because the page header already has a `paintHead`, and a
-  duplicate function DECLARATION is not an error — the last one in the file
-  wins, silently, which is how the first cut folded correctly and painted
-  nothing at all. Full note: *CHARACTERS, THEN SETTING* in
+  construction rather than by remembering to skip it); **the gold line never
+  moves to it** (`setActive` is reached through `closest('.promptwrap')`, so
+  tapping into Characters leaves the star pointing where she left it); **the
+  NODE IS HELD, not hunted** (`HEADWRAP` — `paintBlocks` takes it OUT while it
+  rebuilds the join rows, so a lookup that walks `panel.children` answers null
+  exactly when `placeHeads` needs it and the whole block is lost on the first
+  divide; MEASURED, it simply vanished off the page); **a join row's two
+  blocks are its nearest `.promptwrap` either side, never its siblings**
+  (`blockSide` — the wrap sits in that gap and is SHUT by default, so reading
+  the plain sibling hid every join mark); **an empty box adds nothing**;
+  **permanent means no ✕ and no divide**; **`clear` wipes the cast with the
+  blocks and leaves the room** (the cast belongs to a block, so it rides the
+  bank and `undo` puts it back — that follows from the split rather than
+  loosening the 09-13 rule); and **shut is where it starts, every load** —
+  the one place this page folds by default, safe only because **shut, the
+  heading says both sets of words**, cast first. A divide copies the cast into
+  the tail, a join unions the two, a put-back re-homes the cast it stripped
+  off the card's prompt onto the block it makes, and a draft from the
+  two-block day seeds EVERY block with the one `heads.characters` it saved.
+  Named `paintHeadBlock` because the page header already has a `paintHead`,
+  and a duplicate function DECLARATION is not an error — the last one in the
+  file wins, silently. Full note: *CHARACTERS & SETTING* in
   `docs/modules/audio-and-film.md`; test
   `node scripts/test-footage-heads.js`.
   **AND A STORY TIMELINE STORY COPIES OVER, ONE CONNECTED PART PER BLOCK
@@ -9275,36 +9291,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   a clear that empties the box and leaves the references attached, a bank that
   never reached localStorage, and a word drawn where the pill covers it all
   look identical in the source; verified failing pre-fix).
-  **THE WHOLE PROMPT AREA FOLDS, AND THAT IS THE ONE BUTTON TO THE GALLERY
-  (2026-09-11, Sophie: "make the whole prompt area collapse or one button to
-  get to the gallery at bottom").** A **PROMPT** row leads the panel; shut, the
-  panel IS that row and the feed rises to just under the header — MEASURED at
-  390pt on a two-line scene, the panel 491px → 70 and the first clip's card
-  491 → 185. So the fold and the jump are one tap, and it leaves her at the TOP
-  of the gallery rather than parachuting her into the middle. Six things not to
-  undo: it is **one class over the panel** (`.panel.shut`), never a list of rows
-  in script — a BLOCK is a direct child of the panel and blocks are made and
-  joined as she types, so a sweep would have to be re-run by everything that
-  touches one; what it hides is **DISPLAY-hidden and stays in the DOM**, so
-  every value is set the way she left it and `fitPillGap` sees a zero rect;
-  **opening re-fits every block** (a box measured while it was hidden reports no
-  `scrollHeight`, so without it a panel reopened after a reload comes back one
-  line tall); the **project picker moved onto that row** and is the one control
-  a shut panel still draws, because it narrows the FEED as well as the clip and
-  a filter she cannot see from the screen it is filtering is the failure this
-  app keeps getting burned by; **shut, the row says the first words of the block
-  she is in** (and how many blocks there are) in her own case, not the row's
-  caps — at 390pt a 10.5px caps line at .12em fits about four of her words and
-  reads shouted; and **anything that puts words or a reference back OPENS it**
-  (a belt hand-off, a clip's prompt copied back, a reference landing, a last
-  frame re-attached), so nothing can ride hidden. Remembered, and OPEN until she
-  says otherwise. The star goes with it — the whole prompt area, her word — so
-  there is no send from a screen that is showing her the gallery. Test:
-  `node scripts/test-footage-panel-fold.js` (the real page headless — every
-  assertion a MEASUREMENT, since a fold that sets a class and hides nothing, one
-  that leaves the feed where it was, one that folds the picker away with it and
-  one that reopens a box one line tall all look identical in the source;
-  verified failing pre-fix).
+  **THE WHOLE PROMPT AREA USED TO FOLD, AND SHE HAD IT TAKEN OFF (2026-09-14,
+  Sophie: "remove prompt collapse").** It shipped 2026-09-11 as the one button
+  down to the gallery — a **PROMPT** row led the panel and shut, the panel WAS
+  that row — and it is **HISTORY now, not a rule: do not build it back.** What
+  went with it: `.panelrow`, `#panelfold`, the `panel` entry in `FOLDS`,
+  `panelLab()`, `.panel.shut`, the `openFold('panel')` every path that put
+  words in the box had to remember, the row's own sticky `--headtop` pin, and
+  `scripts/test-footage-panel-fold.js`. **What survives, so the gallery is
+  still one gesture away:** the FEED BAR is sticky, so the view switch, the
+  marks, the search and the project picker are on screen all the way down, and
+  the three folds that are still hers — each block's own heading, References,
+  Buttons — each put a third of the panel away. Two readers had to move with
+  it: `goToBlock` aims at the characters-and-setting wrap when that sits above
+  the block it is walking to (landing the BLOCK at the top would push the two
+  boxes belonging to it off the screen, which is the one thing the move was
+  for), and `test-caret-under-button.js`'s sticky-row section measures the
+  RULE — nothing pinned, at either end, over the line she is typing on —
+  rather than that one row.
   **THE SEED IS ON THE CARD AND IN A BOX SHE CAN TYPE IN (2026-09-10, Sophie:
   "put a seed box that exposes the seed after the clip is drawn and put a copy
   button next to it so I can reuse the seed … make it into a text box so I can
