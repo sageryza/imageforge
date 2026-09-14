@@ -290,8 +290,20 @@ const shelves = {
   ticky: [{ slug: 'thomas', name: 'Thomas', kind: 'person', looks: [{ key: 'a', name: 'the duck pond', line: 'Thomas: the boy in {1}.', refs: [{ url: 'https://x/thomas.png', kind: 'image' }], wear: [] }] }]
     .map((e) => C.cardOf('ticky__' + e.slug, { ...e, film: 'ticky' })),
 };
+// AND A THIRD FILM WHOSE WARDROBE LOOK KEY HAS BEEN RENAMED UNDER THE LINE
+// (2026-09-14, from the audit) — the measured case: `mayra` wears
+// `blue-pajamas:sophie`, the outfit now spells that look `sophie-3`, so
+// nothing rides and her `{3}` goes out as a literal `{3}`. Its own film, so
+// nothing already measured here moves.
+shelves.gone = [
+  C.cardOf('gone__mayra', { ...mayra, film: 'gone',
+    looks: [{ ...mayra.looks[0], wear: ['blue-pajamas:sophie'] }] }),
+  C.cardOf('gone__blue-pajamas', { ...pj, film: 'gone',
+    looks: [{ ...pj.looks[1], key: 'sophie-3' }] }),
+];
 const FILMS = [{ slug: 'ward', name: 'The ward', order: 1, people: 2, wardrobe: 1, settings: 1 },
-  { slug: 'ticky', name: 'Ticky Tack', order: 2, people: 1, wardrobe: 0, settings: 0 }];
+  { slug: 'ticky', name: 'Ticky Tack', order: 2, people: 1, wardrobe: 0, settings: 0 },
+  { slug: 'gone', name: 'Renamed', order: 3, people: 1, wardrobe: 1, settings: 0 }];
 let castReads = 0;
 
 const server = http.createServer((req, res) => {
@@ -448,12 +460,37 @@ const server = http.createServer((req, res) => {
   }
 
   // ── THE FOLDERS ────────────────────────────────────────────────────────────
-  ok('both films are on the chip row', await page.evaluate(() =>
-    Array.prototype.map.call(document.querySelectorAll('#cast .films button'), (b) => b.textContent).join(',') === 'The ward,Ticky Tack'));
+  ok('every film is on the chip row', await page.evaluate(() =>
+    Array.prototype.map.call(document.querySelectorAll('#cast .films button'), (b) => b.textContent).join(',') === 'The ward,Ticky Tack,Renamed'));
   await page.evaluate(() => Array.prototype.find.call(document.querySelectorAll('#cast .films button'), (b) => b.textContent === 'Ticky Tack').click());
   await page.waitForFunction(() => /Thomas/.test(document.getElementById('cast').textContent));
   ok('a film is its own shelf and nobody crosses', await page.evaluate(() =>
     Array.prototype.map.call(document.querySelectorAll('#cast .who .nm b'), (b) => b.textContent).join(',') === 'Thomas'));
+  // ── A WARDROBE THAT DID NOT RIDE IS SAID OUT LOUD ─────────────────────────
+  // 2026-09-14, from the audit. It rode nothing, silently, and left a literal
+  // `{3}` in her prompt — a patient with no pajamas. Every assertion here is a
+  // MEASUREMENT of what is really in the box and on the toast, because a plan
+  // that reports the miss and a page that says nothing about it look identical
+  // in the source.
+  await page.evaluate(() => Array.prototype.find.call(document.querySelectorAll('#cast .films button'), (b) => b.textContent === 'Renamed').click());
+  await page.waitForFunction(() => /Mayra/.test(document.getElementById('cast').textContent));
+  await page.evaluate(() => { document.getElementById('prompt').value = ''; });
+  await page.evaluate(() => Array.prototype.find.call(document.querySelectorAll('#cast .who'), (b) => /Mayra/.test(b.textContent)).click());
+  await page.waitForFunction(() => /Mayra/.test(document.getElementById('prompt').value));
+  const said = await page.evaluate(() => (document.getElementById('toast') || {}).textContent || '');
+  ok('the token is LEFT STANDING in her prompt — nothing rewrites her words',
+    /\{3\}/.test(await box()));
+  ok('and the tap NAMES the wardrobe that did not ride',
+    /did not ride/.test(said) && /blue-pajamas:sophie/.test(said));
+  ok('in the ONE toast the tap raises, beside what it attached',
+    /attached/i.test(said) && /line added/.test(said));
+  const refused = F.buildJob({ prompt: await box(), model: 'mini', refs: [] });
+  ok('and the send is refused rather than drawing around the token',
+    /\{3\}/.test(refused.error || '') && !refused.body);
+  // back to the film the next block is about to check she is remembered in
+  await page.evaluate(() => Array.prototype.find.call(document.querySelectorAll('#cast .films button'), (b) => b.textContent === 'Ticky Tack').click());
+  await page.waitForFunction(() => /Thomas/.test(document.getElementById('cast').textContent));
+
   // THE FOLDER IS REMEMBERED — she works one film for a run of clips
   await page.reload({ waitUntil: 'networkidle' });
   await page.click('#casttog');

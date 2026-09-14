@@ -231,6 +231,12 @@
      back onto one line. Its own row, a direct child of the panel, so the
      pill-gap fitter judges it on its own rect like every other row. */
   .joinrow{display:flex;justify-content:center;padding:4px 0 6px}
+  /* A JOIN MARK GOES AWAY WHEN EITHER OF ITS TWO BLOCKS IS FOLDED
+     (2026-09-13, Sophie: "connect shud buttons go away when collapsed").
+     Joining pours one block's words into the other, and a folded block is
+     one she cannot see — so the mark is only offered between two blocks
+     whose words are both on screen. Opening either one brings it back. */
+  .joinrow.hid{display:none}
   .joinrow .joinb{width:26px;height:26px;padding:0;display:inline-flex;align-items:center;
              justify-content:center;background:#fdfbf7;color:#6f675e}
   .joinrow .joinb svg{width:14px;height:14px;display:block}
@@ -400,8 +406,16 @@
      real and is paid rather than worked around: with the panel shut the
      picker is gone, and the HEADER is what still names the project she is
      filtering by. */
-  .panel.shut > *{display:none}
-  .panel.shut > .panelrow{display:flex}
+  /* AND IT IS `!important` BECAUSE AN ID BEATS TWO CLASSES (2026-09-13, from
+     her screenshot of a SHUT panel with the Recent drawer still drawn under
+     it). `#recent{display:flex}` is (1,0,0) and `.panel.shut > *` is (0,2,0),
+     so the drawer — a direct child of the panel, hidden by that sweep like
+     everything else — went on rendering with the panel folded away and no
+     control left on screen to close it. Any child styled by its ID would do
+     the same, silently, so the rule that says "nothing under this draws" says
+     it outright rather than being fixed one id at a time. */
+  .panel.shut > *{display:none!important}
+  .panel.shut > .panelrow{display:flex!important}
   .panel.shut{padding-bottom:6px}
   /* AND IT FOLDS FROM WHEREVER SHE IS STANDING (2026-09-13, Sophie:
      "collapsing the prompt from partway down"). The fold row is the panel's
@@ -1103,7 +1117,7 @@
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
   <p><b>Characters, then setting.</b> The two blocks at the top are permanent and start folded away. What you write in them rides at the top of every clip you send &mdash; the cast on one line, the room on the other &mdash; so a scene is written once instead of into every shot. Folded, each heading says its own words, so you can see what is riding without opening it. Leave one empty and it adds nothing; <b>clear</b> never touches them.</p>
-  <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. Every block has the same buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing. Each block gets its own heading, and <b>tapping the heading folds that block away</b> &mdash; shut it shows its first words, and it still sends them if it is the one the star is pointing at. Folds are for right now: a reload opens everything.</p>
+  <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. Every block has the same buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing. The join mark goes away while either of its two blocks is folded. Each block gets its own heading, and <b>tapping the heading folds that block away</b> &mdash; shut it shows its first words, and it still sends them if it is the one the star is pointing at. Folds are for right now: a reload opens everything.</p>
   <p><b>Every block keeps its own pictures.</b> The references strip is the block you are in &mdash; tap into another one and its pictures come back, and the row above them says which block it is showing. Dividing gives both halves a copy of the strip the scene was written against, so every <b>[Image2]</b> still points at the same picture; joining puts the two strips together and renumbers both halves onto it. The <b>&times;</b> takes a picture off the block you are in and leaves the others alone. Each heading says how many that block is carrying, so nothing rides on a block you are not looking at. <b>All</b> sends every block's pictures in the one clip, with each block's names renumbered onto them &mdash; and its price is that clip's, not this block's.</p>
   <p><b>All of them at once.</b> Once two blocks have words in them a second star appears beside the first, carrying what that clip costs. It sends every written block as <b>one</b> clip, appended in order with a blank line between &mdash; one job, one price, one refusal line &mdash; and it carries every block's pictures, each block's names renumbered onto them. Your blocks are not touched. Over $3 the first tap asks and the second sends.</p>
   <p><b>Taking one block off.</b> The &times; in a block&rsquo;s corner takes that block off; with only one block left there is no &times; and <b>clear</b> beside the star is what empties it. Either way <b>undo</b> puts it back.</p>
@@ -2559,8 +2573,14 @@ function updateCost() {
   // get. Nothing here holds a copy of that rule — `doorFor` is the one place.
   var plain = slotRefs();
   var hasVideo = plain.some(function (r) { return r.kind === 'video'; });
+  // AND THE COUNTS, because Atlas has caps of its own (9 pictures, 3 videos,
+  // 3 audios, and audio never alone) and AUTO ranks Atlas first on its sale —
+  // so a ten-picture job would be priced on the one door that must refuse it.
+  // `doorFor` is still the only place that rule lives.
+  var nOf = function (k) { return plain.filter(function (r) { return r.kind === k; }).length; };
   var q = '?model=' + S.model + '&res=' + S.res + '&ratio=' + encodeURIComponent(S.ratio) + '&seconds=' + S.seconds + '&video=' + (hasVideo ? 1 : 0) + '&door=' + doorNow()
-    + (firstUrl ? '&first=1' : '') + (lastUrl ? '&last=1' : '') + (plain.length ? '&refs=1' : '');
+    + (firstUrl ? '&first=1' : '') + (lastUrl ? '&last=1' : '') + (plain.length ? '&refs=1' : '')
+    + '&imgs=' + nOf('image') + '&vids=' + nOf('video') + '&auds=' + nOf('audio');
   api('/estimate' + q).then(function (d) {
     if (seq !== costSeq) return;
     if (!d || d.error) { $('cost').textContent = (d && d.error) || ''; $('cost').dataset.cents = ''; $('cost').dataset.door = 'none'; paintKfNote(); return; }
@@ -3110,45 +3130,26 @@ function castBySlug() {
 // wrote named a slot number that `slotsOf` gives to a DIFFERENT picture. The
 // clip drew, of the wrong reference. Her MARK wins — it is hers, and a keyframe
 // takes no slot — so the plan's copy is dropped.
-function withMarks(planRefs, before) {
-  var isMark = {};
-  before.forEach(function (r) { if (roleOfUrl(r.url)) isMark[r.url] = 1; });
-  var out = planRefs.filter(function (r) { return !isMark[r.url]; });
-  before.forEach(function (r, i) {
-    if (roleOfUrl(r.url)) out.splice(Math.min(i, out.length), 0, r);
-  });
-  return out;
-}
-// AND THE LINE IS RE-RESOLVED AGAINST THE STRIP THAT REALLY RIDES. A `{n}`
-// pointing at a picture she has marked as a keyframe cannot be a slot name, so
-// it names the END instead — "in the first frame" — which is both true and
-// readable, where `resolveLine` would otherwise leave the raw `{2}` in her
-// prompt. Everything else resolves exactly as the planner answered.
-function castLine(p, ent, look) {
-  if (!CL || !CL.resolveLine || !CL.lookRefs || !CL.slotMap || !p || !p.template) return p && p.line;
-  var mine = CL.lookRefs(ent, look || (ent.looks || [])[0] || {}, castBySlug());
-  var map = CL.slotMap(slotRefs()).slots, slots = {};
-  Object.keys(map).forEach(function (u) { slots[u] = map[u]; });
-  refs.forEach(function (r) {
-    var role = roleOfUrl(r.url);
-    if (role) slots[r.url] = 'the ' + roleWord(role);
-  });
-  return CL.resolveLine(p.template, mine, slots);
-}
+// ALL THREE OF THOSE RULES LIVE IN `cast-line.js` NOW, AS `planMarked`
+// (2026-09-14). They were the page's alone, which is exactly why the door a
+// CHAT calls — `POST /api/cast/plan` — went on planning over the raw strip and
+// handing back a line naming a picture that is not there. One rule, two
+// callers; the page keeps no copy of it. The comments above are the record of
+// where each half came from.
 function castPlan(ent, look) {
-  if (!CL) return null;
-  return CL.plan({ refs: slotRefs(), entry: ent, look: look, byslug: castBySlug() });
+  if (!CL || !CL.planMarked) return null;
+  return CL.planMarked({ refs: refs, entry: ent, look: look, byslug: castBySlug(),
+    first: firstUrl, last: lastUrl });
 }
 function castApply(ent, look) {
-  var wasRefs = refs.slice();
   var p = castPlan(ent, look);
   if (!p) { toast('Characters are not loaded yet'); return; }
   if (p.empty && !p.line) { toast('Nothing on ' + (ent.name || ent.slug) + ' yet'); return; }
-  refs = withMarks(p.refs, wasRefs);
+  refs = p.refs;
   var box = activeBox();
   openBlock(box);
   var before = box.value;
-  box.value = CL.withLine(before, castLine(p, ent, look));
+  box.value = CL.withLine(before, p.line);
   if (window.__fitBigPrompt) window.__fitBigPrompt();
   // A LINE LANDING IN THE BOX OPENS THE PANEL, whether or not a picture was
   // attached with it — the panel-fold rule is that anything putting words in
@@ -3163,7 +3164,27 @@ function castApply(ent, look) {
   // this disclosure must never do.
   paintCast();
   var said = p.added ? ('Attached ' + p.added) : 'Already attached';
-  toast(box.value === before ? said + ' · the line was already there' : said + ' · line added');
+  said += box.value === before ? ' · the line was already there' : ' · line added';
+  // A WARDROBE THAT DID NOT RIDE IS SAID OUT LOUD (2026-09-14, from the
+  // audit). A `wear` spec whose look key has been renamed attaches nothing and
+  // leaves a literal `{2}` in her prompt — so the tap names it, and `buildJob`
+  // refuses the send rather than drawing around the token. It rides the ONE
+  // toast this tap raises: a second `toast()` call here would simply overwrite
+  // the first, so a warning on its own line would never be read.
+  said += castWarn(p);
+  toast(said);
+}
+// What did not resolve, in her words, or '' on an ordinary tap.
+function castWarn(p) {
+  if (p.missing && p.missing.length) {
+    return p.missing.length === 1
+      ? ' · its wardrobe did not ride (' + p.missing[0].wear + ': ' + p.missing[0].why + ')'
+      : ' · ' + p.missing.length + ' wardrobes did not ride: ' + p.missing.map(function (x) { return x.wear; }).join(', ');
+  }
+  if (p.unresolved && p.unresolved.length) {
+    return ' · its line still says ' + p.unresolved.join(' ') + ' — a reference it names is not riding';
+  }
+  return '';
 }
 
 $('casttog').addEventListener('click', function () {
@@ -3421,6 +3442,21 @@ function paintBlockHead(w, n, of) {
 function paintBlockHeads() {
   var ws = blocks();
   ws.forEach(function (w, i) { paintBlockHead(w, i + 1, ws.length); });
+  paintJoinRows();
+}
+// The mark in a gap is drawn only while BOTH of its blocks are open — see the
+// `.joinrow.hid` note in the stylesheet. It rides here rather than in
+// `paintBlocks` because a fold changes nothing about which rows exist, and
+// this is the one function every fold, open, divide, join and removal reaches.
+function paintJoinRows() {
+  var panel = panelEl(), kids = panel.children, i;
+  for (i = 0; i < kids.length; i++) {
+    var r = kids[i];
+    if (!r.classList.contains('joinrow')) continue;
+    var a = r.previousElementSibling, b = r.nextElementSibling;
+    var shut = (a && a.classList.contains('shut')) || (b && b.classList.contains('shut'));
+    r.classList.toggle('hid', !!shut);
+  }
 }
 function toggleBlock(w) {
   w.classList.toggle('shut');

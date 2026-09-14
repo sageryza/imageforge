@@ -216,7 +216,12 @@ async function patch(id, fields) {
   await db().collection(COL).doc(id).set(fields, { merge: true });
 }
 
-async function runSweep(id, { limit = PER_SHEET } = {}) {
+// A DEPLOY WAITS FOR THIS (2026-09-14, Sophie: "anything else that would
+// cause a problem"). A sheet is ~6c of her money and is lost whole
+// if the process dies between the draw and the filing.
+async function runSweep(id, opts) { return require('./inflight').track('icons', () => runSweepInner(id, opts)); }
+
+async function runSweepInner(id, { limit = PER_SHEET } = {}) {
   try {
     const { chats } = await registry();
     const waiting = waitingFrom(chats);

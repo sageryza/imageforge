@@ -62,7 +62,9 @@ ok('POST /cast exists', srv.includes("router.post('/cast'"));
 ok('POST /cast writes `cast` alone with merge and NO updatedAt', /set\(\{ cast \}, \{ merge: true \}\)/.test(castRoute) && !/updatedAt/.test(castRoute));
 ok('POST /cast goes through castOf (the caps, the shape)', /castOf\(req\.body\.cast\)/.test(castRoute));
 ok('/generate hands pad.cast to the draw', /runArtJob\(pid, id, \{[^}]*cast: pad\.cast/.test(srv));
-ok('runArtJob builds the prompt through artPrompt', /artPrompt\(\{ recipe, prompt, character, cline, cast: castRows \}\)/.test(srv));
+// `character` is bound to houseCardRides' answer (#2156) — that pin lives in
+// test-pad-characters.js; this one is only that the cast rows get there.
+ok('runArtJob builds the prompt through artPrompt', /= artPrompt\(\{ recipe, prompt, character[^,]*, cline, cast: castRows \}\)/.test(srv));
 ok('readPad returns the cast', /cast: castOf\(v\.cast\)/.test(srv));
 ok('the clause is never written in scratchpad.js', !/Named characters in this picture/.test(srv));
 ok('the page loads the served /sheet-grid.js', page.includes('<script src="/sheet-grid.js"></script>'));

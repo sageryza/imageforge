@@ -2181,7 +2181,10 @@ async function startDreamJob(dream, kind, fn) {
       if (Date.now() - lastSave > 1500) { lastSave = Date.now(); await saveDream(dream).catch(() => {}); }
     };
     try {
-      await fn(progress);
+      // A DEPLOY WAITS FOR THIS (2026-09-14, Sophie: "anything else that
+      // would cause a problem"). An ffmpeg render is minutes of work on our
+      // own box; a restart in the middle of it loses the whole thing.
+      await require('./inflight').track('movies', () => fn(progress));
       dream.job = { ...dream.job, status: 'done', label: 'done' };
     } catch (err) {
       console.warn(`movies: dream job ${kind} failed —`, err.message);
@@ -2465,7 +2468,10 @@ async function startJob(movie, kind, fn) {
       if (Date.now() - lastSave > 1500) { lastSave = Date.now(); await saveMovie(movie).catch(() => {}); }
     };
     try {
-      await fn(progress);
+      // A DEPLOY WAITS FOR THIS (2026-09-14, Sophie: "anything else that
+      // would cause a problem"). An ffmpeg render is minutes of work on our
+      // own box; a restart in the middle of it loses the whole thing.
+      await require('./inflight').track('movies', () => fn(progress));
       movie.job = { ...movie.job, status: 'done', label: 'done' };
     } catch (err) {
       console.warn(`movies: job ${kind} failed —`, err.message);
