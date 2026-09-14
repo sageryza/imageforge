@@ -3730,7 +3730,16 @@ document.addEventListener('focusin', function (e) {
 });
 document.addEventListener('click', function (e) {
   var w = e.target && e.target.closest && e.target.closest('.promptwrap');
-  if (w && w.parentNode === panelEl()) setActive(w);
+  if (!w || w.parentNode !== panelEl()) return;
+  // …EXCEPT FOLDING ONE AWAY (2026-09-14). A heading tap that SHUTS a block is
+  // "put this away", not "work here": moving the gold line onto it would aim
+  // the star at a block she just folded, and — now that the strip is the
+  // ACTIVE block's — swap the references under the panel to that block's
+  // pictures with nothing on screen saying why. The heading's own handler has
+  // already run, so `shut` is where it landed. OPENING one is the other way
+  // round and still makes it active: that is her going there to write.
+  if (e.target.closest('.bfold') && w.classList.contains('shut')) return;
+  setActive(w);
 });
 window.addEventListener('resize', fitAll);
 window.__fitBigPrompt = fitAll;

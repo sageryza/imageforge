@@ -8843,7 +8843,14 @@ before working on that module. Nothing was deleted — the moved text is verbati
   names renumbered onto it, priced by its OWN free estimate whenever the
   union's shape (a reference video, a keyframe, anything attached at all)
   differs from the active block's — the figure on a button has to be the
-  price of the clip that button sends. Each heading carries a picture glyph
+  price of the clip that button sends. **AND FOLDING A BLOCK AWAY NO LONGER
+  MAKES IT THE ONE THE STAR SENDS** — the document click handler makes any
+  button on a block active, which was invisible while the strip was shared and
+  is wrong now: folding block 2 away moved the gold line onto it AND swapped
+  her pictures on screen for its (MEASURED: her 2-picture strip became block
+  2's 4). A heading tap that SHUTS a block is "put this away"; one that OPENS
+  it still makes it active, which is her going there to write. Each heading
+  carries a picture glyph
   and a count, so a block she is not standing in cannot ride with pictures on
   no screen at all. The draft and the `clear` bank keep `refs`/`first`/`last`
   as the FIRST block's for a page cached from before, with the whole set

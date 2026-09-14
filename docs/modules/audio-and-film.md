@@ -668,7 +668,15 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         "the references are the JOB and are shared" and the ✕ renaming the slot
         in EVERY block**; both are history rather than rules, because one block
         is one clip and the pictures that clip draws from belong to it exactly
-        as its words do. Eight things not to undo:
+        as its words do. Nine things not to undo:
+        **FOLDING a block away no longer makes it the one the star sends** —
+        the document click handler makes any button on a block active, which
+        was invisible while the strip was shared and is wrong now: MEASURED,
+        folding block 2 moved the gold line onto it and replaced her 2-picture
+        strip on screen with block 2's 4. A heading tap that SHUTS a block is
+        "put this away"; one that OPENS it still makes it active, which is her
+        going there to write. (The rule lives in the document click handler,
+        read off `shut` AFTER the heading's own handler has run.)
         a **DIVIDE copies the strip into both halves** (the tail's words name
         it by slot, so a second block starting empty would leave every
         `[Image2]` in it pointing at nothing — the ✕'s own renumbering rule

@@ -338,6 +338,35 @@ const tapBlock = (i) => {
   ok('and not on the block she tapped into — ' + JSON.stringify([was0, s.counts[0]]), s.counts[0] === was0);
   ok('and the toast says where it went — "' + s.toast + '"', /block 2/.test(s.toast));
 
+  // ── 12. FOLDING A BLOCK AWAY DOES NOT SWAP THE STRIP UNDER HER ───────────
+  // Every button on a block makes it the one the star sends — and a fold
+  // heading is "put this away", not "work here". While the strip was shared
+  // this was invisible; now, moving the gold line onto a block she just folded
+  // would replace her pictures on screen with that block's. OPENING one still
+  // makes it active: that is her going there to write.
+  await page.evaluate(tapBlock, 0);
+  await page.waitForTimeout(250);
+  before = await page.evaluate(read);
+  await page.evaluate((i) => {
+    const ws = Array.from(document.querySelector('.panel').children).filter((c) => c.classList.contains('promptwrap'));
+    ws[i].querySelector('.bfold').click();
+  }, 1);
+  await page.waitForTimeout(250);
+  s = await page.evaluate(read);
+  ok('folding block 2 leaves the gold line on block 1 — ' + JSON.stringify([before.active, s.active]),
+    before.active === 0 && s.active === 0);
+  ok('and her strip is untouched — ' + JSON.stringify([before.strip.length, s.strip.length]),
+    JSON.stringify(s.strip) === JSON.stringify(before.strip));
+  ok('and the row still names block 1 — "' + s.reflab + '"', /block 1/.test(s.reflab));
+  await page.evaluate((i) => {
+    const ws = Array.from(document.querySelector('.panel').children).filter((c) => c.classList.contains('promptwrap'));
+    ws[i].querySelector('.bfold').click();
+  }, 1);
+  await page.waitForTimeout(250);
+  s = await page.evaluate(read);
+  ok('opening it again DOES make it the one the star sends — ' + s.active, s.active === 1);
+  ok('and the strip is block 2\'s now — "' + s.reflab + '"', /block 2/.test(s.reflab));
+
   ok('no page errors', errors.length === 0);
   if (errors.length) console.log(errors.join('\n'));
 
