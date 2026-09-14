@@ -4083,9 +4083,67 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   no screen at all. The draft and the `clear` bank keep `refs`/`first`/`last`
   as the FIRST block's for a page cached from before, with the whole set
   beside them under `jobs`; a draft with no `jobs` gives every block the one
-  strip it saved, which is what it meant when the strip was shared. Full
+  strip it saved, which is what it meant when the strip was shared.
+  **AND EVERY BLOCK'S HEADING SAYS WHETHER IT HAS GONE — A RED SENT / UNSENT
+  (2026-09-14, Sophie: "add a red 'sent' or 'unsent' to top of collapsed
+  block").** One block is one clip, and a folded block is a clip she cannot
+  read: four shots into a scene, which of them had actually left was a fact the
+  page knew and said nowhere. **IT IS THE WORDS THAT WENT, NEVER A FLAG ON THE
+  BLOCK** — the Playground's `promptlab_panels_drawn_<g>` rule ("the EXACT
+  array that was sent, so editing one box after a draw makes that grid undrawn
+  again"): the question is only ever *are the words in this box words that have
+  gone*, so the mark is position-independent by construction and a divide, a
+  join, a removal, a reorder, a put-back and `use this` need no bookkeeping at
+  all (dividing a sent block leaves both halves UNSENT, which is right — neither
+  half is the clip that went).
+  **TWO SOURCES ANSWER IT, AND THE SERVER'S IS THE BETTER ONE.** A story part's
+  own `hist` — every clip sent from that part, read off the log by
+  `loadHistory`, whose `words` is the block's text before the heads — so a part
+  reads SENT on a phone that never sent it and after a page's whole life has
+  been forgotten; the local bank (`sentTexts`, riding the draft) is the fallback
+  for an ORDINARY block, which has no part and so no history to read, and for
+  the seconds between a send and the next sweep. The union can only ever ADD a
+  SENT, never take one away, and `loadHistory` calls `paintBlockHeads` rather
+  than `forEach(paintHist)` — a sweep that only repainted the ‹ › row would
+  leave a part that really has been sent reading UNSENT. Six things not to undo: it rides the heading **OPEN OR
+  SHUT**, like the reference count beside it (the don't-say-it-twice rule only
+  bites where the thing is right there on screen, and nothing in an open box
+  says whether it was sent); **a block with no words is neither** and draws
+  nothing; **editing a sent block flips it back to UNSENT** on the keystroke
+  that breaks the match, and restoring the words flips it back (whitespace she
+  cannot see is not an edit); **a REFUSAL banks nothing** — nothing drew and
+  nothing was charged; a **PUT-BACK reads SENT**, because those words came off
+  a clip that really drew, so a put-back-and-tweak flips the moment she changes
+  a word (and so does `use this` off the ‹ › walk); and **`clear` leaves the
+  bank alone**, so the undo hands her blocks
+  back still knowing which of them went. What is banked is the block's own
+  words **without the two heads** the send puts on top of them (`peelHeads`,
+  ONE copy of that rule, shared with the put-back — `copyBack` took the cast
+  head it peeled and that is the same peel), and a door word's re-send
+  banks the body that was REFUSED rather than the box, since she may have typed
+  since. The bank rides the DRAFT beside the words it is about, like `shut`, so it
+  survives a reload and the page's own self-heal — **but it is written by
+  `saveSentBank`, which PATCHES the stored draft, and never by `saveDraft`,
+  which rebuilds it from the live DOM (MEASURED: a send answers a round trip
+  later, so a `saveDraft` there writes the old scene back over a hand-off or a
+  put-back that landed in between, and it is why main deliberately leaves the
+  draft alone on the send path)**; it is the page's own red
+  (`#a0402a`, the refusal line's) and never a second one; `margin-left:auto`
+  puts it at the end of its own heading in both fold states; **`paintSent`
+  reads the BOX and never `paintBlockHead`'s `txt`**, which on a story part is
+  the PART's own words rather than the prompt (the red word is about what is
+  about to be sent); and the mark has
+  **its own painter** (`paintSent`) so a keystroke can repaint it without
+  walking every heading and every join row — an ordinary keystroke writes
+  nothing at all (the 2026-09-12 typing rule). Full
   note: *DIVIDE
   HERE* in `docs/modules/audio-and-film.md`; tests
+  `node scripts/test-footage-sent-mark.js` (the real page headless — every
+  assertion a MEASUREMENT of what really renders or a reading of what the stub
+  really received, since a mark whose CSS never landed, one painted in the
+  row's own grey, one that reads SENT off a block that was merely TYPED and one
+  that stays SENT after she edits a word all look identical in the source; it
+  CRASHES against the pre-fix page, which has no `.bsent` at all),
   `node scripts/test-footage-divide.js`,
   `node scripts/test-footage-block-refs.js` and
   `node scripts/test-footage-block-fold.js`.
