@@ -211,20 +211,61 @@ function plain(s) {
     .trim();
 }
 
+// ── A BANNER IS NEVER ONE WORD, AND NEVER A BARE LINK (2026-09-15, Sophie:
+// "one word notification feels aggressive").
+//
+// The body was the TLDR, else the reply's first non-bold line — written when a
+// reply opened with a paragraph. Two rules landed on 2026-09-14 and both push
+// the opposite way: the reply cap ("600 characters, about five short lines")
+// and the links rule ("links now pin to page top"). So the first line of a
+// reply is now often a bare url, and the line that is left is a fragment.
+//
+// MEASURED over her 182 newest finished replies the day she said it: 9 would
+// have buzzed her with three words or fewer — "burt", "Now the fix.", "CI
+// green." — and two of those were nothing but a github url. A lock screen
+// showing one clipped word reads as a bark; it is the shortness, not the
+// wording, so the fix is structural.
+//
+// Two rules, in the order they matter:
+//   • A LINE THAT IS ONLY A LINK IS NOT WHAT THE REPLY SAID. It is skipped the
+//     way a bolded echo is — a url with words after it ("…/pull/2430 — the
+//     header is gone") is an ordinary line and is kept.
+//   • SHORT LINES ARE JOINED UNTIL THE BANNER IS A SENTENCE. Successive lines
+//     are added until there are BANNER_WORDS of them, so "Now the fix." picks
+//     up the line under it instead of standing alone. Nothing is invented and
+//     nothing is padded — a reply that really only says one word still says
+//     it, because there is nothing else to say.
+// A TLDR still leads, and a long enough one still stands by itself.
+const BARE_LINK = /^(?:[-*\u2022]\s*)?<?https?:\/\/\S+>?$/;
+const BANNER_WORDS = 4;
+function wordCount(s) { return String(s).split(/\s+/).filter(Boolean).length; }
+
 /**
- * The one line of the reply worth putting on her lock screen.
+ * What the reply says, on her lock screen.
  * @param {string} text the finished reply
  * @param {string} tldr the TLDR the hook lifted, when it found one
  * @returns {string} plain text, ready to send (caller still caps the length)
  */
 function pushBody(text, tldr) {
-  const t = plain(tldr);
-  if (t) return t;
   const lines = String(text || '').split('\n').filter((l) => l.trim());
-  const said = lines.find((l) => !BOLD_LINE.test(l));
-  // Every line entirely bold → nothing else to say, so say the first one
-  // rather than sending an empty banner.
-  return plain(said || lines[0] || '');
+  const said = [];
+  for (const l of lines) {
+    if (BOLD_LINE.test(l)) continue;
+    const p = plain(l);
+    if (!p || BARE_LINK.test(p) || said.includes(p)) continue;
+    said.push(p);
+  }
+  const out = [];
+  const t = plain(tldr);
+  if (t && !BARE_LINK.test(t)) out.push(t);
+  for (const l of said) {
+    if (wordCount(out.join(' ')) >= BANNER_WORDS) break;
+    if (out.includes(l)) continue;
+    out.push(l);
+  }
+  // Every line bolded, a link, or nothing at all → say the first line rather
+  // than sending a blank banner.
+  return out.length ? out.join(' ') : plain(lines[0] || '');
 }
 
 module.exports = { shouldPushReply, chatNotifies, needEscalates, pushAlert, pushBody, _plain: plain };
