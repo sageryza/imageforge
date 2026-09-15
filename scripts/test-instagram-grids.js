@@ -85,8 +85,12 @@ if (JSON.stringify(posted) !== JSON.stringify(dream.tiles)) {
 } else ok('the posted Compare page and /instagram read the same ' + posted.length + ' dream tiles');
 
 const real = (a) => a.tiles.filter((t) => !t.empty);
-is('the witch account holds her one existing film', real(witch).length, 1);
-is('…and it is moon milk', real(witch)[0].label.toLowerCase(), 'moon milk');
+// The witch tab is DERIVED like the rest: the house reel leads it (2026-09-15,
+// the witch-reels-final cut) and moon milk — still no film on file — stays.
+const moonmilk = real(witch).find((t) => /moon milk/i.test(t.label));
+is('the witch account leads with the house reel', real(witch)[0].id, 'house');
+is('…and moon milk is still on it', !!moonmilk, true);
+is('…with no film on file for moon milk', !!(moonmilk && moonmilk.film), false);
 
 // ── 2 & 3. the real pages, driven ────────────────────────────────────────────
 (async () => {
@@ -197,13 +201,14 @@ is('…and it is moon milk', real(witch)[0].label.toLowerCase(), 'moon milk');
     await page.locator('#tabs .acctab').nth(ACCOUNTS.indexOf(witch)).click();
     is('the witch grid drew', await page.locator('.igpane:not([hidden]) .gtile').count(),
       witch.tiles.length);
-    is('…with one real tile', await page.locator('.igpane:not([hidden]) button.gtile').count(), 1);
-    const cap = await page.locator('.igpane:not([hidden]) .glegend i').first().textContent();
-    if (!/moon milk/i.test(cap)) fail('the witch tile is not named for moon milk: "' + cap + '"');
+    is('…with every real tile a button', await page.locator('.igpane:not([hidden]) button.gtile').count(), real(witch).length);
+    const mmIdx = witch.tiles.indexOf(moonmilk);
+    const cap = await page.locator('.igpane:not([hidden]) .glegend i').nth(mmIdx).textContent();
+    if (!/moon milk/i.test(cap)) fail('the moon milk tile is not named on the legend: "' + cap + '"');
     else ok('…named on the legend, not written over the picture');
 
     // no film on file for it, so it must open its still rather than do nothing
-    await page.locator('.igpane:not([hidden]) button.gtile').first().click();
+    await page.locator('.igpane:not([hidden]) button.gtile').nth(mmIdx).click();
     await page.waitForSelector('.cmp-lb:not([hidden]) img', { timeout: 4000 })
       .then(() => ok('a tile with no film yet opens its still — no tile is a dead control'))
       .catch(() => fail('the moon milk tile did nothing'));
