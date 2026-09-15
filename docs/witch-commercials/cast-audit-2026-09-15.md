@@ -41,14 +41,21 @@ Folders by size, with her own votes:
 ### People, likeliest first
 
 1. **Sophie, present day** — the lead of nearly every spot, and she has
-   **three different faces in circulation**:
+   **FOUR different faces in circulation** (counted 2026-09-15 by reading every
+   done clip's poster; the page is *Witch commercials — the four Sophies v1*,
+   sheet `witch-sophies-v1`):
    - *the chapel still* `drops/_/c05681dba6f480257652d8d89fc5c577.png`
      (short red bob, black high-collar dress) — 29 clips, the most-used.
    - *the tweed still* `drops/_/2d6c34a1f060aa68f2ca5042dc382ce4.png`
      (long wavy brown hair, tweed dress, leather handbag) — 19 clips.
-   - *the doctor-clip Sophie* — a short-haired brunette in a cardigan who
-     exists only inside `atlascloud-video/1789064628044-1o7jq9.mp4`; the whole
-     34-clip doctor run hangs off her, ♥7.
+   - *the short curls* — a brunette with a short curly bob who exists only
+     inside the two Atlas clips (`1789064628044-1o7jq9.mp4`,
+     `1789012214490-cl9isx.mp4`); the whole 34-clip doctor run hangs off her,
+     and she is ALSO the woman in the hearted packing-orders clip — 36 clips,
+     ♥11 ✕11, no still anywhere.
+   - *the hotel one* — a fourth woman entirely, long dark straight hair, in the
+     two travel-kit clips whose ONLY reference is the kit itself. Nobody was
+     attached, so the model invented her — and the invented one is hearted.
    Looks in use: street/plainclothes, the tweed walk ("It's Sophie" ♥), herb
    picking (influencer ♥), packing orders in the garage ♥, the airport line,
    the hotel room ♥, the tea-dregs afternoon (home away ♥).
@@ -94,7 +101,7 @@ possum, **a worm named Michael**).
 
 ## What is wrong, and the fix
 
-- **Two women are both being called "sophie", and 6 clips attach BOTH in one
+- **Four women are being called "sophie", and 6 clips attach two of them in one
   prompt** (3 in `influencer`, 3 in `its-sophie`). Settle one face per look and
   put it on the shelf; that is what a look is for.
 - **13 prompts fight a reference with a negation** — "(no handbag)", "(no bag)".
