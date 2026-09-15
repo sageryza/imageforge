@@ -40,3 +40,7 @@ alibaba escalation: generator Play + screen record, dings piling up (the script 
 CLIP 9 · TITLE CARD
 They can steal the idea. They can't steal the fact that it's a bad idea.
 or: Crowdsource bad ideas. Outsource the consequences.
+
+— v3 CUT (2026-09-15, Film Editor cut ieoZPffT6GT4Cd6r0PjS, build/cut.json) —
+ten pieces, 1:01: opener · chatgpt · SITE (screen recording of shouldimakethis.web.app via build/siterec.js, VO on her clone "Sophie — morning" eleven_multilingual_v2, request y2MPYnUKd6Ra3DDXZTKv; TTS text reads "people"/"your" for her "ppl"/"ur") · couch ("Ali Baba" spelled out; the model still says "Ali Aba") · ALIBABA QUOTE (frames off the Alibaba chat generator, build/aliframes.js, dings synthesized in ffmpeg) · delivery v2 · box · to camera · ESCALATION (same, dings multiplying) · TITLE CARD (build/title.html).
+New shots from here wear the SWEATER, not the hoodie (her rule, 2026-09-15): reference drops/_/ccb522b0b1b3ee593e153acdee3e4e18.jpg, a frame off the opener.
