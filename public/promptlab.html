@@ -1022,6 +1022,7 @@
     <div class="canvastog" id="canvastog" role="group" aria-label="Canvas shape">
       <button id="c-portrait" type="button">Portrait</button><button id="c-square" type="button">Square</button>
     </div>
+    <div class="canvastog" id="artog" role="group" aria-label="Shape" hidden></div>
     <button type="button" id="rpick" class="tri" aria-label="Resolution"></button>
     <button type="button" id="qpick" class="tri" aria-label="Quality"></button>
     <!-- THE FILTER DOOR SITS IN THE GAP THIS ROW ALREADY HAD (2026-09-02,
@@ -1534,7 +1535,7 @@
   // the space between the heart toggle (next to tiles/grid)") ──────────────
   // The shape WORD a run is searchable by — the twin of server.js's own
   // PL_SHAPE_WORD, pinned equal by scripts/test-playground-panels.js.
-  var PL_SHAPE_WORD = { '2:3': 'portrait', '1:1': 'square', '3:2': 'landscape' };
+  var PL_SHAPE_WORD = { '2:3': 'portrait', '1:1': 'square', '3:2': 'landscape', '9:16': 'tall', '16:9': 'wide' };
   // It filters the feed by RUN — her words are a run's, not a picture's — so
   // in list view whole boxes drop out and in tiles every picture from a
   // matching run stays on the wall. It stacks with the heart the same way the
@@ -3918,6 +3919,48 @@
   document.getElementById('c-square').addEventListener('click', function () { pickCanvas('square'); });
   paintCanvas();
 
+  // ── THE LoRA'S SHAPE (2026-09-15, Sophie: "add aspect ratio options to wtr
+  // in playground") ───────────────────────────────────────────────────────
+  // WTR is a Flux LoRA and it has ALWAYS ridden `aspect_ratio` — the server
+  // has accepted the field since the route was written and defaulted it to
+  // 2:3 — so every WTR picture ever drawn here is portrait because the page
+  // never offered the choice, not because the model had no say. This is its
+  // own control rather than the canvas toggle: that toggle picks a gpt-image-2
+  // CANVAS with its own tier sizes and its own prices, and the LoRA has
+  // neither (one megapixel, whatever the shape), so the two would be lying
+  // about each other. The comment beside `ct.style.display` still stands.
+  //
+  // LABELLED AS THE RATIO, not as a word: "Portrait" and "Square" say nothing
+  // about 16:9, and the number is exactly what the picture will be. Five of
+  // Flux's shapes, tall to wide, so the row reads as a dial.
+  // REMEMBERED, by the canvas toggle's own rule ("just whatever the last
+  // option was") — a shape costs nothing it did not cost last time.
+  var LORA_ARS = ['9:16', '2:3', '1:1', '3:2', '16:9'];
+  var LORA_AR_DEFAULT = '2:3';              // what every WTR run before this drew
+  var loraAr = LORA_ARS.indexOf(localStorage.getItem('promptlab_lora_ar')) >= 0
+    ? localStorage.getItem('promptlab_lora_ar') : LORA_AR_DEFAULT;
+  var artog = document.getElementById('artog');
+  artog.innerHTML = LORA_ARS.map(function (a) {
+    var w = PL_SHAPE_WORD[a] || '';
+    return '<button type="button" data-ar="' + a + '" title="'
+      + (w ? w.charAt(0).toUpperCase() + w.slice(1) + ' ' + a : a) + '">' + a + '</button>';
+  }).join('');
+  function paintAr() {
+    Array.prototype.forEach.call(artog.querySelectorAll('button'), function (b) {
+      b.classList.toggle('on', b.getAttribute('data-ar') === loraAr);
+    });
+  }
+  artog.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-ar]');
+    if (!b) return;
+    loraAr = b.getAttribute('data-ar');
+    // Written on the TAP, not on the run — the shape she is looking at is the
+    // one she comes back to, whether or not she generated anything with it.
+    try { localStorage.setItem('promptlab_lora_ar', loraAr); } catch (err) { /* private mode */ }
+    paintAr();
+  });
+  paintAr();
+
   // ── THE RESOLUTION — 1K, 2K or 4K (Aug 2026, Sophie: "adding the size as a
   // toggle in the playground for things I want to print versus things I'm
   // using for like videos") ────────────────────────────────────────────────
@@ -4084,6 +4127,9 @@
       pb.classList.toggle('edited', !!overrideFor(styleKey));
     }
     if (ct) ct.style.display = (gpt && canvasApplies()) ? 'flex' : 'none';
+    // …and the LoRA's own shape toggle is the other half of that sentence.
+    var at = document.getElementById('artog');
+    if (at) at.hidden = gpt;
     // The tiers are gpt-image-2's too — the WTR LoRA has one output size and
     // rides `aspect_ratio`, so the toggle comes off there rather than offering
     // a choice that would change nothing. `hidden` rather than a display
@@ -4195,14 +4241,22 @@
   //
   // The prompt is normalized the way the server does it (trim, then drop
   // trailing periods) or a typed "." would look like a different run.
-  function recipeKey(model, prompt, scale, seed) {
-    return sameRunKey(['replicate', model, String(prompt || '').trim().replace(/\.+$/, ''), scale, seed]);
+  // THE SHAPE IS PART OF THE RECIPE (2026-09-15). The same prompt at 16:9 is
+  // a different picture from the same prompt at 2:3 — Flux draws the shape it
+  // is given — so leaving the ratio out of this key would answer "you already
+  // have that one" to the first thing she does after picking a new shape. A
+  // run with no ratio on file is a run from before the toggle, which drew the
+  // default, so it keys as the default and nothing already in her feed moves.
+  function recipeKey(model, prompt, scale, seed, ar) {
+    return sameRunKey(['replicate', model, String(prompt || '').trim().replace(/\.+$/, ''), scale, seed,
+      ar || LORA_AR_DEFAULT]);
   }
   function plannedKey(S, prompt, scale, seed) {
-    return S.engine === 'gptimage' ? null : recipeKey(S.model, prompt, scale, seed);
+    return S.engine === 'gptimage' ? null : recipeKey(S.model, prompt, scale, seed, loraAr);
   }
   function runKey(r) {
-    return r.engine === 'gptimage' ? null : recipeKey(r.model, r.prompt, r.loraScale, r.seed);
+    return r.engine === 'gptimage' ? null
+      : recipeKey(r.model, r.prompt, r.loraScale, r.seed, r.aspectRatio);
   }
   // Only a run that actually produced a picture blocks a repeat — a failed or
   // cancelled one has to stay retryable. A run still drawing blocks too: it is
@@ -4296,6 +4350,10 @@
       : { prompt: prompt, lora_scale: scale, model: S.model,
           suffix: (sentParts(styleKey) || {}).suffix != null
             ? sentParts(styleKey).suffix : S.suffix,
+          // The shape she picked. The server has always taken this field and
+          // always defaulted it to 2:3, so a run at the default is
+          // byte-for-byte the request it has always been.
+          aspect_ratio: loraAr,
           seed: seed, padTarget: padBack || undefined };
     return fetch('/api/promptlab', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -4311,7 +4369,7 @@
             queued: d.queued ? (d.note || 'paused for a server update') : '' }
         // `key` rides along so a second tap can see this one is already on its
         // way, before it has any images to be recognised by.
-        : { id: d.id, prompt: prompt, scale: scale, style: S.label, engine: 'replicate', count: OUTPUTS, seed: seed, key: key, ar: '2:3' });
+        : { id: d.id, prompt: prompt, scale: scale, style: S.label, engine: 'replicate', count: OUTPUTS, seed: seed, key: key, ar: loraAr });
       setPending(list);
       // HAS THIS PROMPT BEEN DRAWN? — the panels stamp's twin, for the one
       // box. The EXACT words that were sent, so editing them afterwards makes
@@ -4532,7 +4590,7 @@
     var list = pendingKept().slice().reverse();
     if (qGroups.length) list = list.filter(function (p) { return qmatch(pendHay(p), qGroups); });
     var groups = groupBy(list, function (p) {
-      return sameRunKey([p.engine, p.style, (p.prompt || '').trim(), p.quality, p.scale, p.seed]);
+      return sameRunKey([p.engine, p.style, (p.prompt || '').trim(), p.quality, p.scale, p.seed, p.ar]);
     });
     var pendHtml = groups.map(function (g) {
       var p = g.items[0];

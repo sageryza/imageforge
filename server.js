@@ -5851,6 +5851,9 @@ const PL_GPT = {
 // the canvas, the tier, the quality. WTR had none, because it has none of
 // those knobs: one output size, one step count, one picture a run. So its
 // price had nowhere to live and the page said nothing at all.
+// (The shape toggle added later the same day does NOT move this number —
+// Flux draws one megapixel whatever the ratio, so the figure holds for all
+// five shapes.)
 //
 // REPLICATE PUBLISHES NO PER-IMAGE PRICE FOR A PRIVATE FINE-TUNE, and the
 // prediction object carries NO cost field — only `metrics.predict_time`. So
@@ -6842,7 +6845,12 @@ async function runPromptLabGptJob(docRef, cfg) {
 
 // The shape WORD a run's cell ratio is searchable by — keep in step with the
 // page's own copy in promptlab.html (`PL_SHAPE_WORD` there too).
-const PL_SHAPE_WORD = { '2:3': 'portrait', '1:1': 'square', '3:2': 'landscape' };
+const PL_SHAPE_WORD = { '2:3': 'portrait', '1:1': 'square', '3:2': 'landscape', '9:16': 'tall', '16:9': 'wide' };
+
+// The shapes the Flux LoRA route accepts — Replicate's own list for
+// flux-dev-lora, so the page can offer any of them and a typo can never reach
+// the model. The Playground's toggle offers five of these.
+const PL_LORA_ARS = ['1:1', '16:9', '21:9', '3:2', '2:3', '4:5', '5:4', '9:16', '9:21', '3:4', '4:3'];
 
 // ── A PANELS RUN: one sheet, cut apart ─────────────────────────────────
 // (Aug 2026, Sophie: "we make a picture and cut it into panels … describe
@@ -7563,7 +7571,15 @@ app.post('/api/promptlab', async (req, res) => {
     const suffix = String(req.body.suffix ?? 'White background').trim();
     const loraScale = Number(req.body.lora_scale ?? 1);
     const seed = Number.isFinite(Number(req.body.seed)) ? Number(req.body.seed) : 85;
-    const aspectRatio = String(req.body.aspect_ratio || '2:3');
+    // The shape, off the page's own toggle (2026-09-15, Sophie: "add aspect
+    // ratio options to wtr in playground"). CHECKED against the shapes Flux
+    // takes rather than passed through: an unknown string is refused by
+    // Replicate at prediction time, which costs a round trip and files a
+    // failed run, where falling back to the default draws the picture. 2:3 is
+    // what this line has always defaulted to and what every WTR run before
+    // the toggle drew, so an older caller that sends nothing is unchanged.
+    const wantAr = String(req.body.aspect_ratio || '2:3');
+    const aspectRatio = PL_LORA_ARS.includes(wantAr) ? wantAr : '2:3';
     // Per-model extras so the other house styles work here too: HOONIE's
     // baked suffix and 40 steps, vict's pen-and-ink suffix, etc.
     const steps = known.defaultSteps ?? 28;
