@@ -84,7 +84,7 @@
      stays: it is what still separates the one control that decides the run
      from the pale `.stylebtn` neighbours. */
   .styles { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-  #stylepick { appearance: none; -webkit-appearance: none; border: 1px solid #2b2622; border-radius: 6px;
+  #stylepick, #artog { appearance: none; -webkit-appearance: none; border: 1px solid #2b2622; border-radius: 6px;
     padding: 8px 32px 8px 12px; font: inherit; font-size: 16px; background-color: #fdfcf9; color: #2b2622;
     background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232b2622' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat; background-position: right 9px center; background-size: 15px 15px; }
@@ -170,14 +170,14 @@
      #stylepick` selector never matched it and it stood 35px tall beside a row
      of 34s (Aug 2026, measured, after "they're all different sizes"). It is
      addressed by its own id here; the rest are genuinely in the row. */
-  #stylepick,
+  #stylepick, #artog,
   .controls .stylebtn, .controls .xthree,
   .controls .canvastog, .controls .tri, .controls #charpick,
   .controls #photopick, .controls .seedbtn, .controls button.go {
     height: 34px; box-sizing: border-box; }
   .controls .stylebtn, .controls .xthree {
     display: inline-flex; align-items: center; padding-top: 0; padding-bottom: 0; }
-  #stylepick { padding-top: 0; padding-bottom: 0; }
+  #stylepick, #artog { padding-top: 0; padding-bottom: 0; }
   .controls .stylebtn, .controls .xthree, .controls .canvastog,
   .controls #charpick, .controls #photopick, .controls .seedbtn { border-color: var(--ctl-line); }
   .xthree { border: 1px solid #d8d0c4; border-radius: 6px; padding: 0 10px; font: inherit; font-size: 14px; font-weight: 600; background: #fdfcf9; color: #2b2622; }
@@ -210,6 +210,28 @@
   .seedbtn { width: var(--ctl-h); border-radius: 6px; border: 1px solid #d8d0c4; background: #fdfcf9; color: #2b2622; display: flex; align-items: center; justify-content: center; }
   .seedbtn svg { width: 19px; height: 19px; }
   .seedtag { font-size: 11.5px; color: #6f675e; }
+  /* THE SEED IS DOWN · BOX · UP (2026-09-15, Sophie: "wtr seed up down text
+     box"). The three ride their own tight group rather than loose in the row:
+     `.controls`' 10px gap between a stepper and the number it steps would read
+     as three unrelated controls, and the group is also what keeps them on one
+     line when the row wraps (the `.gogroup` lesson). The word `seed` is the
+     field's NAME, outside the box — the box holds nothing but her number. */
+  .seedwrap { display: inline-flex; align-items: center; gap: 6px; }
+  /* The box is the row's own height and line, so the stepper reads as one
+     control with its buttons. Its spinners come OFF — the two arrows either
+     side are the spinner, and the browser's own pair inside a 72px box is a
+     second, tinier set of the same thing. 16px type because anything under it
+     zooms the whole page on her phone the moment she taps in. */
+  /* `input[type=number]` further down is (0,1,1) and a bare `.seedin` is
+     (0,1,0), so it took that rule's 64px and its GOLD line and drew a warm box
+     between two ink buttons — caught in a photo, not in the source. The
+     attribute is written in here so the group's own rule out-specifies it. */
+  input[type=number].seedin { width: 72px; height: var(--ctl-h); box-sizing: border-box;
+    border: 1px solid var(--ctl-line); border-radius: 6px; padding: 0 6px;
+    font: inherit; font-size: 16px; text-align: center;
+    background: #fdfcf9; color: #2b2622; -moz-appearance: textfield; }
+  .seedin::-webkit-outer-spin-button,
+  .seedin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   /* The three-way toggle is /tritoggle.css now (Aug 2026, Sophie: "make a
      reusable three toggle shell so we can change the styling all at once. make
      color a per instance option"). This page keeps only its COLOUR and its
@@ -1012,8 +1034,7 @@
     <div class="canvastog" id="gridpick" role="group" aria-label="How many panels" hidden></div>
     <label id="scalewrap">LoRA scale <input type="number" id="scale" value="1" step="0.1" min="0" max="2"></label>
     <button class="xthree" id="xthree" title="Run at scale 1, 1.2 and 1.4">&times;3</button>
-    <button class="seedbtn" id="seedbtn" aria-label="Next seed"></button>
-    <span class="seedtag" id="seedtag"></span>
+    <span class="seedwrap" id="seedwrap"><span class="seedtag">seed</span><button type="button" class="seedbtn" id="seeddown" aria-label="Seed down" title="Seed down"></button><input type="number" class="seedin" id="seedin" inputmode="numeric" step="1" min="0" aria-label="Seed"><button type="button" class="seedbtn" id="seedbtn" aria-label="Seed up" title="Seed up"></button></span>
     <button id="charpick" hidden aria-label="Draw Sophie from her reference" title="Sophie character reference"><img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1785884140714-d37oym.webp" alt="Sophie"></button>
     <span id="photowrap"><span id="photoslot"><button id="photopick" type="button" aria-label="Attach a photo reference" title="Attach a photo reference"></button><button id="photoclear" type="button" aria-label="Take the photo reference off" title="Take the photo reference off"></button></span><span id="photomore"></span><button id="photoadd" type="button" aria-label="Attach another photo reference" title="Attach another photo reference"></button></span>
     <input type="file" id="photofile" accept="image/*" multiple hidden>
@@ -1022,6 +1043,7 @@
     <div class="canvastog" id="canvastog" role="group" aria-label="Canvas shape">
       <button id="c-portrait" type="button">Portrait</button><button id="c-square" type="button">Square</button>
     </div>
+    <select id="artog" aria-label="Shape" hidden></select>
     <button type="button" id="rpick" class="tri" aria-label="Resolution"></button>
     <button type="button" id="qpick" class="tri" aria-label="Quality"></button>
     <!-- THE FILTER DOOR SITS IN THE GAP THIS ROW ALREADY HAD (2026-09-02,
@@ -1035,6 +1057,7 @@
       <button class="go" id="go" onclick="go()" aria-label="Generate" title="Generate"></button>
     </div>
   </div>
+  <div class="permline" id="priceline" hidden></div>
   <div class="permline" id="permline" hidden></div>
   <div class="err" id="err" hidden></div>
 </div>
@@ -1138,7 +1161,13 @@
     maximize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
     minimize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
-    sprout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>',
+    // THE SEED STEPPERS — Lucide `chevron-up` / `chevron-down`. They replaced
+    // the SPROUT (2026-09-15, Sophie: "wtr seed up down text box"): the sprout
+    // could only ever go UP, so a seed she had just walked past was gone. Two
+    // arrows either side of the number say which way each one goes with no
+    // word, and the box in the middle is the way back to a seed she remembers.
+    chevUp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
+    chevDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
     copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
     // ADD TO SHOEBOX — Lucide `share`, the iOS square-and-arrow-up. The SAME
     // mark the Story Room's beat popup and Meta Assets already wear for this
@@ -1269,12 +1298,18 @@
   // stack without arguing — hearts-only has already dropped every ✕'d picture,
   // so this one simply finds nothing more to do.
   document.getElementById('v-hidex').innerHTML = ICONS.x;
-  // DEFAULT ON (2026-09-14, Sophie: "default to hide x") — absent means HIDE, so
-  // a fresh page opens with the crossed-out ones already gone. Stored '1'/'' as
-  // before, and the reader asks ABSENT FIRST: null takes the default, '1' is on,
-  // '' alone is off — so a phone that had already turned it on, or deliberately
-  // off, keeps exactly what she chose. The bell's default-on shape.
-  function hideX() { var v = localStorage.getItem('promptlab_hidex'); return v === null ? true : v === '1'; }
+  // DEFAULT OFF ON THIS PAGE — AND THAT IS A REVERSAL, NOT AN OVERSIGHT
+  // (2026-09-15, Sophie: "filter changed · change back · playground" · "filter
+  // used to be different"). It opened ON here for a day, from her own "default
+  // to hide x" (#2399), and the Playground is where that lands hardest: this
+  // feed IS her history, she ✕'s a picture to say "not that one" rather than
+  // to file it away, and a fresh page therefore opened with runs missing and a
+  // lit chip she had never tapped to explain it. ONLY THIS PAGE MOVED —
+  // Footage, Freeform, Voice Studio and Stitch still open ON, and
+  // `test-hide-x-default.js` carries the per-page default so the four cannot
+  // drift after this one.
+  // Stored '1'/'' exactly as before, so a phone that turned it on keeps it on.
+  function hideX() { return localStorage.getItem('promptlab_hidex') === '1'; }
   function applyHideX(repaint) {
     document.getElementById('v-hidex').classList.toggle('on', hideX());
     if (repaint) renderFeed();
@@ -1533,7 +1568,7 @@
   // the space between the heart toggle (next to tiles/grid)") ──────────────
   // The shape WORD a run is searchable by — the twin of server.js's own
   // PL_SHAPE_WORD, pinned equal by scripts/test-playground-panels.js.
-  var PL_SHAPE_WORD = { '2:3': 'portrait', '1:1': 'square', '3:2': 'landscape' };
+  var PL_SHAPE_WORD = { '2:3': 'portrait', '1:1': 'square', '3:2': 'landscape', '9:16': 'tall', '16:9': 'wide' };
   // It filters the feed by RUN — her words are a run's, not a picture's — so
   // in list view whole boxes drop out and in tiles every picture from a
   // matching run stays on the wall. It stacks with the heart the same way the
@@ -1935,20 +1970,43 @@
     if (n) toast(n === 1 ? 'Prompt and 1 character description are back'
       : 'Prompt and ' + n + ' character descriptions are back');
   }
-  document.getElementById('seedbtn').innerHTML = ICONS.sprout;
+  document.getElementById('seedbtn').innerHTML = ICONS.chevUp;
+  document.getElementById('seeddown').innerHTML = ICONS.chevDown;
 
-  // The seed: starts at 85 (the test convention), the sprout button steps it
-  // up one — it only SETS the seed, Generate still fires the run. Persisted so
-  // a reload keeps the seed you were on; the little number keeps it visible.
+  // The seed: starts at 85 (the test convention). The two arrows step it a
+  // whole number either way and the box in the middle takes one straight —
+  // 2026-09-15, Sophie: "wtr seed up down text box". None of the three fires a
+  // run; they only SET the seed and Generate draws with it. Persisted, so a
+  // reload keeps the seed you were on.
+  //
+  // WHY DOWN AND A BOX AND NOT JUST THE OLD SPROUT: a seed is the one knob
+  // here that is worth going BACK to — the same prompt at the same scale on
+  // seed 85 is the same picture forever (see `recipeKey`), so a seed she liked
+  // and stepped past was unreachable without clearing localStorage by hand.
+  var seedIn = document.getElementById('seedin');
   function curSeed() {
     var s = parseInt(localStorage.getItem('promptlab_seed') || '85', 10);
     return Number.isFinite(s) ? s : 85;
   }
-  function showSeed() { document.getElementById('seedtag').textContent = 'seed ' + curSeed(); }
-  document.getElementById('seedbtn').addEventListener('click', function () {
-    localStorage.setItem('promptlab_seed', String(curSeed() + 1));
+  function setSeed(n) {
+    if (!Number.isFinite(n)) return;
+    localStorage.setItem('promptlab_seed', String(Math.max(0, Math.round(n))));
     showSeed();
+  }
+  function showSeed() { seedIn.value = String(curSeed()); }
+  document.getElementById('seedbtn').addEventListener('click', function () { setSeed(curSeed() + 1); });
+  document.getElementById('seeddown').addEventListener('click', function () { setSeed(curSeed() - 1); });
+  // Typed: stored as she types, so a seed she dictated and never blurred is
+  // still the one Generate sends. A half-typed or junk box stores NOTHING —
+  // it is not a reason to draw on a seed she did not ask for — and the box is
+  // put back to the stored number when she leaves it, never mid-keystroke
+  // (rewriting the field under her thumb is what eats a number as she types).
+  seedIn.addEventListener('input', function () {
+    var n = parseInt(seedIn.value, 10);
+    if (Number.isFinite(n) && n >= 0) localStorage.setItem('promptlab_seed', String(n));
   });
+  seedIn.addEventListener('change', showSeed);
+  seedIn.addEventListener('blur', showSeed);
   showSeed();
   // The styles on offer. The server owns the real presets (trigger word,
   // baked suffix, steps); `suffix` here is the page-level tail — WTR keeps the
@@ -3680,6 +3738,7 @@
       if (d.maxPhotos) PHOTO_MAX = d.maxPhotos;
       if (d.maxChars) charMax = d.maxChars;
       RES = d.res || null; RES_DEFAULT = d.resDefault || '1k';
+      LORA = d.lora || null;
       if (RES && !RES[canvas]) canvas = 'portrait';
       if (RES && RES[canvas] && !RES[canvas].tiers[resTier]) resTier = RES_DEFAULT;
       // The Panels tab's geometry — grids, cell names, derived sheet
@@ -3689,7 +3748,7 @@
       // read once it lands — and it must land BEFORE the first paint, or the
       // boxes render empty and fill in under her.
       seedPanelsFromLink();
-      paintPromptPanel(); syncControls(); paintRes();
+      paintPromptPanel(); syncControls(); paintRes(); paintPrice();
       syncTab();
     })
     .catch(function () {});
@@ -3916,6 +3975,53 @@
   document.getElementById('c-square').addEventListener('click', function () { pickCanvas('square'); });
   paintCanvas();
 
+  // ── THE LoRA'S SHAPE (2026-09-15, Sophie: "add aspect ratio options to wtr
+  // in playground") ───────────────────────────────────────────────────────
+  // WTR is a Flux LoRA and it has ALWAYS ridden `aspect_ratio` — the server
+  // has accepted the field since the route was written and defaulted it to
+  // 2:3 — so every WTR picture ever drawn here is portrait because the page
+  // never offered the choice, not because the model had no say. This is its
+  // own control rather than the canvas toggle: that toggle picks a gpt-image-2
+  // CANVAS with its own tier sizes and its own prices, and the LoRA has
+  // neither (one megapixel, whatever the shape), so the two would be lying
+  // about each other. The comment beside `ct.style.display` still stands.
+  //
+  // A DROP DOWN, NOT A SEGMENTED TOGGLE (2026-09-15, her one word: "drop
+  // down"). It shipped as five segments on the row for one turn; five is past
+  // where a segmented control reads as a dial and into where it reads as a
+  // wall of numbers, and the row already wraps on her phone. So it is the
+  // STYLE PICKER's own box — same border, same chevron, same rule rather than
+  // a second copy of it — which also leaves room to name each shape.
+  // THE RATIO AND NOTHING ELSE ON EACH OPTION (2026-09-15, Sophie: "no wide",
+  // then "noooo just 9:16"). They shipped for one turn as "9:16 tall" /
+  // "16:9 wide" — the word beside the number — and both of her messages are
+  // about that word: the first struck it, and the second says what an option
+  // reads instead, which is JUST THE RATIO. The first was read here as
+  // striking the 16:9 SHAPE, which is why 16:9 is back on this line: it was
+  // never the thing she was pointing at.
+  // The words are not gone from the app, only from these five labels —
+  // PL_SHAPE_WORD still calls 2:3 portrait and 16:9 wide, which is what her
+  // search finds those runs by and what the run cards' own tags read.
+  // REMEMBERED, by the canvas toggle's own rule ("just whatever the last
+  // option was") — a shape costs nothing it did not cost last time.
+  var LORA_ARS = ['9:16', '2:3', '1:1', '3:2', '16:9'];
+  var LORA_AR_DEFAULT = '2:3';              // what every WTR run before this drew
+  var loraAr = LORA_ARS.indexOf(localStorage.getItem('promptlab_lora_ar')) >= 0
+    ? localStorage.getItem('promptlab_lora_ar') : LORA_AR_DEFAULT;
+  var artog = document.getElementById('artog');
+  artog.innerHTML = LORA_ARS.map(function (a) {
+    return '<option value="' + a + '">' + a + '</option>';
+  }).join('');
+  function paintAr() { artog.value = loraAr; }
+  artog.addEventListener('change', function () {
+    loraAr = artog.value;
+    // Written on the PICK, not on the run — the shape she is looking at is
+    // the one she comes back to, whether or not she generated anything with
+    // it.
+    try { localStorage.setItem('promptlab_lora_ar', loraAr); } catch (err) { /* private mode */ }
+  });
+  paintAr();
+
   // ── THE RESOLUTION — 1K, 2K or 4K (Aug 2026, Sophie: "adding the size as a
   // toggle in the playground for things I want to print versus things I'm
   // using for like videos") ────────────────────────────────────────────────
@@ -3930,6 +4036,57 @@
   // tier name and no claim about cost.
   var resTier = '1k';
   var RES = null, RES_DEFAULT = '1k';
+  // THE LoRA'S OWN PRICE, SERVED (2026-09-15, Sophie: "add pricing to wtr in
+  // playground"). Same rule as RES above and for the same reason: the page
+  // that keeps its own copy of a price is the page that goes stale the day
+  // the model or the hardware moves. `PL_LORA` in server.js owns the number
+  // and how it was measured; here it is only looked up and printed. Until
+  // /styles answers — and for any model with no row served — the page says
+  // nothing about cost rather than guessing one.
+  var LORA = null;
+  // What ONE picture costs at the selected style, or null when nothing is
+  // served for it. A gpt style deliberately answers null: its price moves
+  // with quality, canvas and tier, and it is printed on those three toggles,
+  // which is the control that SETS it. The LoRA has none of them — one output
+  // size, one step count, one picture a run — so its one figure is printed on
+  // its own line instead.
+  function styleCents() {
+    var S = STYLES[styleKey];
+    if (!S || S.engine !== 'replicate') return null;
+    var m = LORA && LORA.models && LORA.models[S.model];
+    return (m && typeof m.cents === 'number') ? m.cents : null;
+  }
+  // Cents → what she reads. Under a dollar it stays in cents to one decimal
+  // (4.28 → 4.3¢); at a dollar it becomes dollars, which is the word she
+  // asked for on anything that size.
+  function money(c) {
+    return c >= 100 ? '$' + (c / 100).toFixed(2) : (Math.round(c * 10) / 10) + '\u00A2';
+  }
+  // The quiet line under the controls. It draws ONLY where nothing else on
+  // screen carries a price — i.e. on the LoRA, whose knobs are all hidden —
+  // so a gpt style is left exactly as it was, with its cost on the toggles.
+  function paintPrice() {
+    var c = styleCents();
+    var el = document.getElementById('priceline');
+    if (el) {
+      if (c == null) { el.hidden = true; el.textContent = ''; }
+      else {
+        // JUST THE NUMBER (2026-09-15, Sophie: "make it just say ~1.2"). It
+        // shipped as "WTR — about 1.2¢ a picture" and every word of that was
+        // already on screen: the style is named in the picker two rows up,
+        // and one run is one picture here. The ~ carries the "about" — the
+        // spread is the box's, not the prompt's.
+        el.textContent = '~' + money(c);
+        el.hidden = false;
+      }
+    }
+    // ×3 is the LoRA's own three-in-one-tap, so it prints what the tap
+    // costs the way the gpt ladders' own notes do — the button that spends
+    // three pictures says three pictures' worth.
+    var x3 = document.getElementById('xthree');
+    if (x3) x3.title = 'Run at scale 1, 1.2 and 1.4'
+      + (c == null ? '' : ' \u2014 about ' + money(c * 3));
+  }
   function tierIds() { return ['1k', '2k', '4k']; }
   // Arrived with ?res= (a Panels cut's hand-off carries the tier the redraw
   // should land on — 1k since 2026-08-26, her ask; it used to be 4k). One-shot
@@ -4019,6 +4176,10 @@
   // there doing nothing.
   function syncControls() {
     var gpt = isGpt(styleKey);
+    // The price line follows the style, because the style is the only thing
+    // that sets it here. On Panels the picker is gpt-only, so this answers
+    // null by itself and the line comes off with nothing to special-case.
+    paintPrice();
     // The canvas toggle is gpt-image-2's — the LoRA's shape rides a different
     // parameter. The prompt button is NOT (see the note just below).
     var pb = document.getElementById('promptbtn');
@@ -4032,6 +4193,9 @@
       pb.classList.toggle('edited', !!overrideFor(styleKey));
     }
     if (ct) ct.style.display = (gpt && canvasApplies()) ? 'flex' : 'none';
+    // …and the LoRA's own shape toggle is the other half of that sentence.
+    var at = document.getElementById('artog');
+    if (at) at.hidden = gpt;
     // The tiers are gpt-image-2's too — the WTR LoRA has one output size and
     // rides `aspect_ratio`, so the toggle comes off there rather than offering
     // a choice that would change nothing. `hidden` rather than a display
@@ -4056,7 +4220,7 @@
     // saved, so this read as "the style prompt doesn't save". paintPromptPanel
     // is already gated on `bakedFor`, so a style with no wrapper draws nothing
     // without anyone having to close the panel behind her.
-    ['scalewrap', 'xthree', 'seedbtn', 'seedtag'].forEach(function (id) {
+    ['scalewrap', 'xthree', 'seedwrap'].forEach(function (id) {
       document.getElementById(id).hidden = gpt;
     });
     // The Panels tab: N boxes instead of the one, and the one-picture-only
@@ -4143,14 +4307,22 @@
   //
   // The prompt is normalized the way the server does it (trim, then drop
   // trailing periods) or a typed "." would look like a different run.
-  function recipeKey(model, prompt, scale, seed) {
-    return sameRunKey(['replicate', model, String(prompt || '').trim().replace(/\.+$/, ''), scale, seed]);
+  // THE SHAPE IS PART OF THE RECIPE (2026-09-15). The same prompt at 16:9 is
+  // a different picture from the same prompt at 2:3 — Flux draws the shape it
+  // is given — so leaving the ratio out of this key would answer "you already
+  // have that one" to the first thing she does after picking a new shape. A
+  // run with no ratio on file is a run from before the toggle, which drew the
+  // default, so it keys as the default and nothing already in her feed moves.
+  function recipeKey(model, prompt, scale, seed, ar) {
+    return sameRunKey(['replicate', model, String(prompt || '').trim().replace(/\.+$/, ''), scale, seed,
+      ar || LORA_AR_DEFAULT]);
   }
   function plannedKey(S, prompt, scale, seed) {
-    return S.engine === 'gptimage' ? null : recipeKey(S.model, prompt, scale, seed);
+    return S.engine === 'gptimage' ? null : recipeKey(S.model, prompt, scale, seed, loraAr);
   }
   function runKey(r) {
-    return r.engine === 'gptimage' ? null : recipeKey(r.model, r.prompt, r.loraScale, r.seed);
+    return r.engine === 'gptimage' ? null
+      : recipeKey(r.model, r.prompt, r.loraScale, r.seed, r.aspectRatio);
   }
   // Only a run that actually produced a picture blocks a repeat — a failed or
   // cancelled one has to stay retryable. A run still drawing blocks too: it is
@@ -4244,6 +4416,10 @@
       : { prompt: prompt, lora_scale: scale, model: S.model,
           suffix: (sentParts(styleKey) || {}).suffix != null
             ? sentParts(styleKey).suffix : S.suffix,
+          // The shape she picked. The server has always taken this field and
+          // always defaulted it to 2:3, so a run at the default is
+          // byte-for-byte the request it has always been.
+          aspect_ratio: loraAr,
           seed: seed, padTarget: padBack || undefined };
     return fetch('/api/promptlab', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -4259,7 +4435,7 @@
             queued: d.queued ? (d.note || 'paused for a server update') : '' }
         // `key` rides along so a second tap can see this one is already on its
         // way, before it has any images to be recognised by.
-        : { id: d.id, prompt: prompt, scale: scale, style: S.label, engine: 'replicate', count: OUTPUTS, seed: seed, key: key, ar: '2:3' });
+        : { id: d.id, prompt: prompt, scale: scale, style: S.label, engine: 'replicate', count: OUTPUTS, seed: seed, key: key, ar: loraAr });
       setPending(list);
       // HAS THIS PROMPT BEEN DRAWN? — the panels stamp's twin, for the one
       // box. The EXACT words that were sent, so editing them afterwards makes
@@ -4348,11 +4524,13 @@
     if (S && S.engine === 'gptimage' && RES && RES[canvas]) {
       var t = RES[canvas].tiers[resTier];
       var c = t && t.cents && t.cents[quality];
-      if (c) {
-        var total = c * n;
-        line += ' · ~' + (total >= 100 ? '$' + (total / 100).toFixed(2) : Math.round(total * 10) / 10 + '¢')
-          + ' at ' + quality;
-      }
+      if (c) line += ' · ~' + money(c * n) + ' at ' + quality;
+    } else {
+      // The LoRA prices the same way from its own served figure (2026-09-15).
+      // No quality to name after it — it has none — so the number stands
+      // alone, and a model with nothing served still adds nothing.
+      var lc = styleCents();
+      if (lc != null) line += ' · ~' + money(lc * n);
     }
     el.textContent = line; el.hidden = false;
   }
@@ -4372,8 +4550,8 @@
     });
     if (!todo.length) {
       toast(ex.prompts.length > 1
-        ? 'You already have all of those — tap the sprout for a new seed'
-        : 'You already have that one — tap the sprout for a new seed');
+        ? 'You already have all of those — change the seed for a new one'
+        : 'You already have that one — change the seed for a new one');
       return;
     }
     if (todo.length < ex.prompts.length) {
@@ -4402,7 +4580,7 @@
         else todo.push({ p: p, s: s });
       });
     });
-    if (!todo.length) { toast('You already have all of those — tap the sprout for a new seed'); return; }
+    if (!todo.length) { toast('You already have all of those — change the seed for a new one'); return; }
     if (have) toast('Drawing ' + todo.length + ' — you already have ' + have);
     var btn = document.getElementById('xthree');
     btn.disabled = true;
@@ -4478,7 +4656,7 @@
     var list = pendingKept().slice().reverse();
     if (qGroups.length) list = list.filter(function (p) { return qmatch(pendHay(p), qGroups); });
     var groups = groupBy(list, function (p) {
-      return sameRunKey([p.engine, p.style, (p.prompt || '').trim(), p.quality, p.scale, p.seed]);
+      return sameRunKey([p.engine, p.style, (p.prompt || '').trim(), p.quality, p.scale, p.seed, p.ar]);
     });
     var pendHtml = groups.map(function (g) {
       var p = g.items[0];

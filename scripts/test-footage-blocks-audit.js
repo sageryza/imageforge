@@ -243,29 +243,22 @@ const readBlocks = () => {
   await page.waitForTimeout(500);
   await page.evaluate(() => window.scrollTo(0, 700));
   await page.waitForTimeout(400);
-  const fold = await page.evaluate(() => {
-    const f = document.getElementById('panelfold');
-    const r = f.getBoundingClientRect();
-    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-    const row = f.parentNode, cs = getComputedStyle(row);
-    return { top: Math.round(r.top), onScreen: r.top >= 0 && r.bottom <= window.innerHeight,
-      reach: hit ? (hit.id || hit.className || hit.tagName) : 'none',
-      pos: cs.position, bg: cs.backgroundColor, gap: row.style.getPropertyValue('--pillgap'),
-      right: Math.round(r.right), scrollY: Math.round(window.scrollY) };
-  });
-  ok('deep in the scene the fold row is still on screen (top ' + fold.top + ', scrollY ' + fold.scrollY + ')',
-    fold.onScreen && fold.scrollY > 400);
-  ok('and it really takes the tap (' + fold.reach + ')', fold.reach === 'panelfold');
-  ok('it is sticky, not a copy (' + fold.pos + ')', fold.pos === 'sticky');
-  ok('it is opaque, so the scene does not scroll through it (' + fold.bg + ')',
-    /^rgb\(255, 255, 255\)$/.test(fold.bg));
-  ok('it still keeps the pill\'s column (right ' + fold.right + ')', fold.right < 324);
-  await page.evaluate(() => document.getElementById('panelfold').click());
-  await page.waitForTimeout(300);
-  ok('tapping it from down there folds the panel',
-    await page.evaluate(() => document.getElementById('prompt').closest('.panel').classList.contains('shut')));
-  await page.evaluate(() => document.getElementById('panelfold').click());
-  await page.waitForTimeout(300);
+  // THE PANEL'S OWN FOLD IS GONE (2026-09-14, Sophie: "remove prompt
+  // collapse"). What stood here measured the sticky PROMPT row from deep in a
+  // long scene; the row does not exist, so what is measured instead is that
+  // nothing pretends to be it — no `#panelfold`, no `.panelrow`, and the panel
+  // never wears `shut`.
+  const gone = await page.evaluate(() => ({
+    fold: !!document.getElementById('panelfold'),
+    row: !!document.querySelector('.panelrow'),
+    shut: document.getElementById('prompt').closest('.panel').classList.contains('shut'),
+    boxSeen: (() => {
+      const r = document.getElementById('prompt').getBoundingClientRect();
+      return r.width > 0 && r.height > 0;
+    })(),
+  }));
+  ok('there is no prompt fold left on the page', !gone.fold && !gone.row);
+  ok('and the panel can never be shut', !gone.shut && gone.boxSeen);
 
   // ── 11. A PUT-BACK BANKS HER WORDS AND RENUMBERS THE OTHER BLOCKS ───────
   await page.evaluate(() => {
@@ -322,7 +315,7 @@ const readBlocks = () => {
   } else {
     const fn = fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8').split('function copyBack')[1].slice(0, 3000);
     ok('a put-back banks nothing, because it overwrites nothing (no finished card in this fixture — source pinned instead)',
-      !/bank = /.test(fn) && /addBlock\(back, tail, job\)/.test(fn));
+      !/bank = /.test(fn) && /addBlock\(back, tail, job, tookChars\)/.test(fn));
   }
 
   // ── 12. SOURCE PINS for the fixes with no reachable surface here ────────

@@ -211,6 +211,52 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
     ok('a file whose rate is unknown is cut on her marks as they are', none.snapped === false && none.start === 1.2 && none.end === 3.6 && none.seconds === 2.4);
   }
 
+  // ─── 1c. THE ENCODE FITS THE BOX (2026-09-15, "can't upload references
+  // anymore!" — a 720p trim pinned the 512MB box for sixteen minutes and
+  // every request died until a restart). Measured on a 720x1280 clip: 215MB
+  // peak uncapped on 4 threads, 318MB with 16, 131MB with the cap. The
+  // recipe is pinned off the PURE args, and the room rule and the stale
+  // re-bake are driven with their clocks injected.
+  {
+    const a = F.cutArgs('in.mp4', 'out.mp4', 1, 3, true, 24);
+    const s = a.join(' ');
+    ok('the decoder is held to one thread', /^-y -threads 1 -i in\.mp4 /.test(s));
+    ok('x264 is held to one thread with a short lookahead and one reference — the Film Editor\'s measured cap',
+      /-c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p -threads 1 -x264-params rc-lookahead=10:ref=1 -movflags \+faststart out\.mp4$/.test(s)
+      && F.TRIM_CAP.join(' ') === '-threads 1 -x264-params rc-lookahead=10:ref=1');
+    ok('and the frame-rate rule is untouched by it', /-fps_mode cfr -r 24 /.test(s)
+      && /-fps_mode passthrough /.test(F.cutArgs('in.mp4', 'out.mp4', 1, 3, false, 0).join(' ')));
+    ok('the same cap the Film Editor measured', /RENDER_CAP = \['-threads', '1', '-x264-params', 'rc-lookahead=10:ref=1'\]/.test(fs.readFileSync(path.join(ROOT, 'filmeditor.js'), 'utf8')));
+
+    const mb = (n) => n * 1048576;
+    ok('a box with 212MB free has room', F.trimRoom(mb(300)).ok && F.trimRoom(mb(300)).free === 212);
+    ok('a box with 112MB free has not — the minute before the hang Node held 367MB', !F.trimRoom(mb(400)).ok && F.trimRoom(mb(400)).free === 112);
+    ok('the need is above the measured 131MB peak', F.TRIM_NEED_MB > 131 && F.BOX_MB === 512);
+    // the wait: memory that comes back (a draw finishing) is waited for…
+    let reads = 0; let waited = 0; let clock = 0;
+    const freeing = await F.waitTrimRoom({ rss: () => { reads += 1; return mb(reads < 3 ? 420 : 250); }, wait: async (ms) => { waited += ms; clock += ms; }, now: () => clock });
+    ok('a bake waits for room that comes back, and then goes', freeing.ok && reads === 3 && waited === 10000);
+    // …and memory that never does is refused, not started
+    reads = 0; waited = 0; clock = 0;
+    const never = await F.waitTrimRoom({ rss: () => { reads += 1; return mb(420); }, wait: async (ms) => { waited += ms; clock += ms; }, now: () => clock });
+    ok('room that never comes is a refusal after the cap, never an encode that pins the box', !never.ok && never.free === 92 && waited >= 90000 && waited < 100000);
+    ok('the bake asks for room AFTER the baked-once read and BEFORE the fetch',
+      /const \[exists\] = await f\.exists\(\);[\s\S]*const room = await waitTrimRoom\(\);\s*if \(!room\.ok\) \{\s*return write\(\{ status: 'failed'[\s\S]*fetch\(plan\.source/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
+
+    const ago = (min) => new Date(Date.now() - min * 60000).toISOString();
+    ok('a part baking for sixteen minutes is dead', F.bakeStale({ status: 'baking', at: ago(16) }));
+    ok('one baking for five is working', !F.bakeStale({ status: 'baking', at: ago(5) }));
+    ok('a ready part is never stale, however old', !F.bakeStale({ status: 'ready', at: ago(600) }));
+    ok('and a part with no date is not judged', !F.bakeStale({ status: 'baking' }));
+    ok('the server\'s fifteen minutes are the page\'s', F.BAKE_STALE_MS === 15 * 60 * 1000
+      && /var BAKE_STALE_MS = 15 \* 60 \* 1000;/.test(fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8')));
+    const routeSrc = fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8');
+    ok('a re-tap on a stale part bakes it again, on both no-op roads',
+      /if \(bakeStale\(already\)\) bakeTrim\(id, plan\)/.test(routeSrc) && /if \(bakeStale\(stuck\)\) bakeTrim\(id, plan\)/.test(routeSrc));
+    ok('Node\'s heap is capped under the box, so it collects before the box thrashes',
+      /"start": "node --max-old-space-size=256 server\.js"/.test(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')));
+  }
+
   if (FF) {
     const out = path.join(tmp, 'cut.mp4');
     const src = await F.probeMedia(mp4);

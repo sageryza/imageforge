@@ -133,7 +133,10 @@ const readState = () => {
     prevOff: ws.map((w) => w.querySelector('.hprev').disabled),
     nextOff: ws.map((w) => w.querySelector('.hnext').disabled),
     active: ws.findIndex((w) => w.classList.contains('active')),
-    label: document.getElementById('panelfoldlab').textContent,
+    // THE STORY'S NAME MOVED TO ITS OWN ROW (2026-09-14, "remove prompt
+    // collapse" took the PROMPT fold row it used to ride). A label, not a
+    // fold: hidden outright with no story bound.
+    label: (() => { const r = document.getElementById('storyrow'); return r && !r.hidden ? r.textContent : ''; })(),
     undo: !document.getElementById('undojob').hidden,
     refs: ws.map((w) => ((w.__job && w.__job.refs) || []).length),
     key: localStorage.getItem('footage_handoff'),
@@ -179,7 +182,7 @@ const typeInto = (i, text) => `(() => {
   ok('the line breaks inside a part survive', /\n/.test(s.blocks[0]));
   ok('every block is a story part and its heading says so — ' + JSON.stringify(s.labels),
     s.story.every(Boolean) && JSON.stringify(s.labels) === '["Part 1","Part 2","Part 3"]');
-  ok('the panel row names the story — ' + JSON.stringify(s.label), /Prompt · The ward at night/.test(s.label));
+  ok('the story row names the story — ' + JSON.stringify(s.label), /The ward at night/.test(s.label));
   ok('the draft carries the story and each part\'s key — ' + JSON.stringify((s.draft.jobs || []).map((j) => j.unit)),
     s.draft.story && s.draft.story.id === 'st1' && JSON.stringify((s.draft.jobs || []).map((j) => j.unit)) === '["m1","m4","m7"]');
   ok('no part has been sent from, so no block draws a walk — ' + JSON.stringify(s.rows), s.rows.every((r) => !r));
@@ -199,7 +202,7 @@ const typeInto = (i, text) => `(() => {
   ok('with no heads written the prompt IS the words', posted[0].prompt === posted[0].words);
 
   // with a head written, `prompt` carries it and `words` does not
-  await one.page.evaluate(`(() => { const b = document.querySelector('.headwrap[data-head=characters] .hblock');
+  await one.page.evaluate(`(() => { const b = document.querySelector('.headwrap .hpart[data-head=characters] .hblock');
     b.value = 'Sophie is the woman in [Image1]'; b.dispatchEvent(new Event('input', { bubbles: true })); })()`);
   await one.page.evaluate(typeInto(1, 'The corridor, camera at eye level, she walks toward us'));
   await ready(one.page);
@@ -310,7 +313,7 @@ const typeInto = (i, text) => `(() => {
     const j = (s.draft.jobs || [])[0]; return j && /later/.test(j.utext) && s.blocks[0] === 'The corridor';
   })());
   await belt.evaluate(arm(storyHandoff(port, { id: 'st2', title: 'Another story' }, [{ key: 'x1', ids: ['x1'], text: 'Only part' }])));
-  await two.page.waitForFunction(() => /Another story/.test(document.getElementById('panelfoldlab').textContent), null, { timeout: 6000 }).catch(() => {});
+  await two.page.waitForFunction(() => /Another story/.test(document.getElementById('storyrow').textContent), null, { timeout: 6000 }).catch(() => {});
   await two.page.waitForTimeout(300);
   s = await two.page.evaluate(readState);
   ok('a DIFFERENT story replaces — ' + JSON.stringify(s.blocks) + ' ' + JSON.stringify(s.label),
@@ -322,7 +325,7 @@ const typeInto = (i, text) => `(() => {
   await two.page.waitForTimeout(200);
   s = await two.page.evaluate(readState);
   ok('a belt scene unbinds the story — plain blocks again — ' + JSON.stringify([s.label, s.labels[0]]),
-    s.label === 'Prompt' && !s.story[0] && !s.draft.story);
+    s.label === '' && !s.story[0] && !s.draft.story);
   await two.ctx.close();
 
   // ── 3. a plain page is byte-for-byte what it was ─────────────────────────

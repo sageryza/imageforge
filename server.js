@@ -466,6 +466,7 @@ loadConfig().then(() => {
   app.use('/api/brief', require('./brief').router); // the update button — the five things worth knowing, then the quieter ones
   app.use('/api/deliverables', require('./deliverables').router); // the running deliverables list (newest first; new entries push past the bell)
   app.use('/api/review', require('./review').router); // the review queue — every deck/grid page still waiting on her
+  app.use('/api/waiting', require('./waiting').router); // what the "N changes waiting" push is about — merged-not-live + still-open, per chat
   app.use('/api/filmshots', require('./filmshots').router); // which picture is on screen at which second — the Prompt door on a paused film
   app.use('/api/storylink', require('./storylink').router); // one story across Story Timeline, the Story Room and Cutting Blocks
   app.use('/api/googleads', googleads.router); // Google Ads API credential health check
@@ -951,6 +952,12 @@ app.get('/stitch', serveGated('stitch.html', { pill: true }));
 app.get('/vector', serveGated('vector.html', { pill: true }));
 // One screen, never scrolls — so no autoscroll pill, like /opinions.
 app.get('/crop', serveGated('crop.html'));
+// Alibaba chat: a fictional buyer/supplier chat drawn at real screenshot size
+// (1170x2532) for a staged reel. Client-side canvas only — no API, no money.
+// NO autoscroll pill, like /crop and /opinions: the page is one screen, and the
+// pill's fixed corner (x 324-374, y 14-192) lands on the phone preview's own
+// status bar — it would cover the battery she is checking.
+app.get('/alibaba', serveGated('alibaba.html'));
 // Shoebox: the polaroids in her Memory Library, on one shelf in the app. The
 // front for /api/shoebox; read-only over her memories.
 app.get('/shoebox', serveGated('shoebox.html', { pill: true }));
@@ -1004,6 +1011,11 @@ app.get('/deliverables', serveGated('deliverables.html', { pill: true }));
 // projection of the chat registry; read-only, no model call. Served WITH the
 // pill: a long list that scrolls.
 app.get('/worklog', serveGated('worklog.html', { pill: true }));
+// Waiting: what the "N changes waiting" push is about — everything merged and
+// not live yet, and everything still open, each change under the chat that
+// wrote it (Sophie's ask, 2026-09-14: "shud go to a screen that says what the
+// unmerged changes are · each chat contributes"). Read-only, no model call.
+app.get('/waiting', serveGated('waiting.html', { pill: true }));
 // The Sophie character card, for the pad's draw-here toggle (refs/ is not
 // web-served, so this one file is exposed deliberately — it's her own
 // hearted render, and the page behind the gate is the only thing asking).
@@ -5833,6 +5845,54 @@ const PL_GPT = {
     'described below — the people, places or objects in them — and NOT for ' +
     'the drawing style, which comes from the style reference above.',
 };
+// ── WHAT A REPLICATE LoRA PICTURE COSTS (2026-09-15, Sophie: "add pricing to
+//    wtr in playground") ────────────────────────────────────────────────────
+// Every gpt style on the picker prints its price on the toggle that SETS it —
+// the canvas, the tier, the quality. WTR had none, because it has none of
+// those knobs: one output size, one step count, one picture a run. So its
+// price had nowhere to live and the page said nothing at all.
+// (The shape toggle added later the same day does NOT move this number —
+// Flux draws one megapixel whatever the ratio, so the figure holds for all
+// five shapes.)
+//
+// REPLICATE PUBLISHES NO PER-IMAGE PRICE FOR A PRIVATE FINE-TUNE, and the
+// prediction object carries NO cost field — only `metrics.predict_time`. So
+// this is measured the only way it can be: the real time × the published
+// hardware rate.
+//   `rate`    $0.001525/sec — replicate.com/pricing, Nvidia H100, read
+//             2026-09-15. A FAST-BOOTING FINE-TUNE (which every LoRA here is)
+//             bills ACTIVE time only, so `predict_time` IS the billed time —
+//             no boot, no idle. A private model that is NOT fast-booting
+//             would bill the instance's whole life and this arithmetic would
+//             be wrong; re-check that before adding a model here.
+//   `seconds` the MEDIAN over every real one-output 28-step WTR prediction in
+//             Replicate's own history — 21 of them, 7.42s min / 7.61s median
+//             / 10.86s max — read back from GET /v1/predictions. All of them
+//             are Playground runs at the settings the page really sends: 1
+//             megapixel, 1 output, 28 steps. The spread is the box's, not the
+//             prompt's, which is why the page says "about".
+// It does NOT move with quality or canvas — the LoRA has neither — so there
+// is ONE number per model rather than gpt-image-2's tier table. THE ASPECT
+// ROW DOES NOT MOVE IT EITHER, and that is measured rather than assumed:
+// `megapixels: '1'` is pinned on every run, so every ratio draws the same
+// number of pixels — 2:3 came back at a 7.92s median and 1:1 at 7.61s over
+// the same history, inside the spread of either on its own. If the megapixel
+// pin ever becomes a knob, this stops being one number and needs re-measuring
+// per setting.
+// A MODEL WITH NO ROW HERE SERVES NO PRICE AND THE PAGE PRINTS NOTHING: an
+// invented figure is worse than a blank, the same rule the exact-prompt and
+// the caption rules follow. Re-measure rather than re-derive when the step
+// count, the hardware or Replicate's rate moves:
+//   node scripts/measure-lora-cost.js
+const PL_LORA = {
+  rate: 0.001525, hardware: 'Nvidia H100',
+  models: {
+    'sageryza/watercolordrawings': {
+      label: 'WTR', steps: 28, outputs: 1, megapixels: '1',
+      seconds: 7.61, cents: 1.16, n: 21, measured: '2026-09-15',
+    },
+  },
+};
 // "two", "three" … for the plural photo lines; past ten the digit is honest.
 // The page keeps a twin (photoWords in promptlab.html) for its Prompt panel —
 // scripts/test-playground-photo-refs.js pins the two equal.
@@ -6791,7 +6851,12 @@ async function runPromptLabGptJob(docRef, cfg) {
 
 // The shape WORD a run's cell ratio is searchable by — keep in step with the
 // page's own copy in promptlab.html (`PL_SHAPE_WORD` there too).
-const PL_SHAPE_WORD = { '2:3': 'portrait', '1:1': 'square', '3:2': 'landscape' };
+const PL_SHAPE_WORD = { '2:3': 'portrait', '1:1': 'square', '3:2': 'landscape', '9:16': 'tall', '16:9': 'wide' };
+
+// The shapes the Flux LoRA route accepts — Replicate's own list for
+// flux-dev-lora, so the page can offer any of them and a typo can never reach
+// the model. The Playground's toggle offers five of these.
+const PL_LORA_ARS = ['1:1', '16:9', '21:9', '3:2', '2:3', '4:5', '5:4', '9:16', '9:21', '3:4', '4:3'];
 
 // ── A PANELS RUN: one sheet, cut apart ─────────────────────────────────
 // (Aug 2026, Sophie: "we make a picture and cut it into panels … describe
@@ -7512,7 +7577,15 @@ app.post('/api/promptlab', async (req, res) => {
     const suffix = String(req.body.suffix ?? 'White background').trim();
     const loraScale = Number(req.body.lora_scale ?? 1);
     const seed = Number.isFinite(Number(req.body.seed)) ? Number(req.body.seed) : 85;
-    const aspectRatio = String(req.body.aspect_ratio || '2:3');
+    // The shape, off the page's own toggle (2026-09-15, Sophie: "add aspect
+    // ratio options to wtr in playground"). CHECKED against the shapes Flux
+    // takes rather than passed through: an unknown string is refused by
+    // Replicate at prediction time, which costs a round trip and files a
+    // failed run, where falling back to the default draws the picture. 2:3 is
+    // what this line has always defaulted to and what every WTR run before
+    // the toggle drew, so an older caller that sends nothing is unchanged.
+    const wantAr = String(req.body.aspect_ratio || '2:3');
+    const aspectRatio = PL_LORA_ARS.includes(wantAr) ? wantAr : '2:3';
     // Per-model extras so the other house styles work here too: HOONIE's
     // baked suffix and 40 steps, vict's pen-and-ink suffix, etc.
     const steps = known.defaultSteps ?? 28;
@@ -7621,6 +7694,11 @@ app.get('/api/promptlab/styles', (req, res) => {
   // `sizes` is the old flat shape and stays exactly as it was — a page cached
   // on her phone reads it, and this endpoint is the only thing that serves it.
   res.json({ styles: out, sizes: PL_GPT.sizes, res: PL_GPT.res, resDefault: PL_GPT.resDefault,
+    // The LoRA's own price, keyed by MODEL ID — the page looks it up by the
+    // id its style entry already carries and keeps no copy of the number, the
+    // same rule `res` above follows. A model with no row serves nothing and
+    // the page prints nothing rather than guessing.
+    lora: PL_LORA,
     max: PL_GPT.promptMax, photoLine: PL_GPT.photoLine,
     photoLineWithChars: PL_GPT.photoLineWithChars,
     photoLineMany: PL_GPT.photoLineMany, photoLineManyWithChars: PL_GPT.photoLineManyWithChars,

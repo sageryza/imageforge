@@ -184,6 +184,53 @@ is('an empty reply is an empty body, not a crash',
   '');
 
 
+// ── A BANNER IS NEVER ONE WORD, AND NEVER A BARE LINK (2026-09-15, Sophie:
+// "one word notification feels aggressive") ─────────────────────────────────
+
+// The case she saw: the whole reply is one word, and it went to her phone
+// alone. There is a second line here, so the banner is a sentence.
+is('a one-word opening line picks up the line under it',
+  pushBody('burt\nThe filter is on the history view now.', ''),
+  'burt The filter is on the history view now.');
+
+// The links-first rule (2026-09-14) puts a bare url at the top of nearly every
+// reply that touched a PR. A url is not what the reply said.
+is('a bare link line is skipped the way a bolded echo is',
+  pushBody('https://github.com/sageryza/imageforge/pull/2430\nThe night shots are re-cut.', ''),
+  'The night shots are re-cut.');
+is('a link WITH words after it is an ordinary line',
+  pushBody('https://example.com/x — the header is gone on the swipe view', ''),
+  'https://example.com/x — the header is gone on the swipe view');
+is('a bulleted bare link is a bare link',
+  pushBody('- https://example.com/x\nMerged and not deployed.', ''),
+  'Merged and not deployed.');
+
+// Joining stops the moment the banner is a sentence — it never runs on into
+// the whole reply.
+is('joining stops at four words',
+  pushBody('Now the fix.\nThe caret stays put.\nAnd a third line nobody needs.', ''),
+  'Now the fix. The caret stays put.');
+is('a long first line stands alone',
+  pushBody('The caret stays where she can see it now.\nsecond line', ''),
+  'The caret stays where she can see it now.');
+
+// A short TLDR is grown the same way; a long one still stands by itself.
+is('a short TLDR picks up the reply under it',
+  pushBody('The prices are on the belt page.', 'CI green.'),
+  'CI green. The prices are on the belt page.');
+is('a TLDR that is only a link does not lead',
+  pushBody('The page is posted.', 'https://example.com/x'),
+  'The page is posted.');
+
+// Nothing is invented: a reply that really only says one word still says it.
+is('a reply with nothing else to say still says its one word',
+  pushBody('burt', ''), 'burt');
+is('a reply that is nothing but a link still says the link',
+  pushBody('https://example.com/x', ''), 'https://example.com/x');
+is('the same line twice is not doubled',
+  pushBody('Merged.\nMerged.', ''), 'Merged.');
+
+
 // ── A CHAT BLOCKED ON HER RINGS WITHOUT A BELL (2026-08-28, Sophie: "can u
 // make chats bell themselves based on importance") ──────────────────────────
 {
@@ -226,7 +273,8 @@ is('an empty reply is an empty body, not a crash',
   is('an unknown kind falls back rather than saying nothing',
     pushAlert('whatever', { chatName: 'c', title: 'x' }).body, 'New deliverable · x');
   is('an answer still leads with its TLDR',
-    pushAlert('answer', { chatName: 'c', text: 'body', tldr: 'TLDR line' }).body, 'TLDR line');
+    pushAlert('answer', { chatName: 'c', text: 'body', tldr: 'A whole TLDR line of words' }).body,
+    'A whole TLDR line of words');
   // The 2026-08-15 rule survives the move: a reply opening with her own
   // question in bold must never come back to her as the banner.
   is('and still skips her own bolded question',

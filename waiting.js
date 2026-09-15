@@ -1,0 +1,283 @@
+// waiting.js — WHAT IS WAITING: the changes that are merged and not live yet,
+// and the PRs still open, each one said in the words of the chat that wrote it.
+//
+// Sophie's ask (2026-09-14, looking at the "11 changes waiting" push): "shud go
+// to a screen that says what the unmerged changes are · each chat contributes".
+// The push already tells her HOW MANY (push.js's behindCheck, one rung per
+// five). A number is not something she can act on — the only way to find out
+// what the eleven were was to go and read main.
+//
+// EACH CHAT CONTRIBUTES, AND IT ALREADY DOES — nothing new to remember.
+// Every PR this repo merges carries the house attribution trailer in its
+// squash commit:
+//     Claude-Session: https://claude.ai/code/session_01SgNmBN4Panb3mRmSyr1Amx
+// and the chat registry records that same session id on the chat that owns it.
+// So the join from a commit to the chat that made it is DERIVED — it works for
+// every chat that has ever merged, including the ones asleep, and it needed no
+// discipline from anyone. A chat may ALSO say it in her words with
+// POST /api/waiting { chat, session, pr, line } — that line replaces the commit
+// subject on the row and nothing else.
+//
+// WHAT IT COSTS: two unauthenticated GitHub reads (60/hr is the limit), cached
+// 5 minutes in this process. No model call, no Firestore read unless a chat has
+// filed a line. Opening the page spends nothing.
+//
+// THE LIVE COMMIT IS THIS INSTANCE'S OWN (`RENDER_GIT_COMMIT`) — the same
+// source behindCheck counts from, so the page and the push can never disagree
+// about the number. Off Render there is no commit to compare against and the
+// page says so rather than inventing a baseline.
+//
+// Routes (STUDIO_TOKEN gate, GET /status open):
+//   GET  /api/waiting            → { ok, live, ahead, groups, open, at }
+//   GET  /api/waiting/status     → { ok, firebase, live }
+//   POST /api/waiting            → { chat, session?, pr?, sha?, line } — a
+//        chat's own words for one change (200 chars). Re-posting replaces it.
+//
+// Page: /waiting (serveGated, pill). Tests: node scripts/test-waiting.js
+
+const express = require('express');
+const admin = require('firebase-admin');
+
+const router = express.Router();
+const COLL = 'forge-waiting';
+const REPO = process.env.FORGE_REPO || 'sageryza/imageforge';
+const BRANCH = process.env.FORGE_BRANCH || 'main';
+const TTL_MS = 5 * 60 * 1000;
+
+const db = () => admin.firestore();
+const firebaseUp = () => admin.apps.length > 0;
+
+router.use((req, res, next) => {
+  const token = process.env.STUDIO_TOKEN || '';
+  if (!token) return next();
+  if (req.method === 'GET' && req.path === '/status') return next();
+  if (req.get('x-studio-token') === token || req.query.token === token) return next();
+  return res.status(401).json({ error: 'unauthorized' });
+});
+router.use(express.json({ limit: '32kb' }));
+
+// ---- pure helpers (exported for the test) ----------------------------------
+
+// The session id, bare. Kept identical in shape to chatfeed's own bareSid —
+// the registry stores `sessionId` with the prefix already off, and a commit
+// trailer carries the `session_` form.
+function bareSid(s) {
+  return String(s || '').replace(/^(session_|cse_)/, '').trim().slice(0, 120);
+}
+
+/** One commit → what a row needs. Pure; `c` is GitHub's compare shape. */
+function parseCommit(c) {
+  const msg = String((c && c.commit && c.commit.message) || '');
+  const lines = msg.split('\n');
+  const subject = lines[0].trim();
+  // `Title (#2424)` and `Title [skip render] (#2424)` are both squash titles,
+  // and a PR number can also appear as `(#2424)` mid-subject — the LAST one on
+  // the subject line is the merge's own.
+  let pr = 0;
+  const nums = subject.match(/\(#(\d+)\)/g);
+  if (nums && nums.length) pr = Number(nums[nums.length - 1].replace(/\D/g, '')) || 0;
+  // The house attribution trailer. A PR body can carry several (one per commit
+  // in a multi-commit squash) — they are all the same chat, so the first wins.
+  const sess = msg.match(/claude\.ai\/code\/(?:session_)?([A-Za-z0-9_-]{16,})/);
+  return {
+    sha: String((c && c.sha) || '').slice(0, 40),
+    title: cleanTitle(subject),
+    pr,
+    session: sess ? bareSid(sess[1]) : '',
+    at: String((c && c.commit && c.commit.committer && c.commit.committer.date) || ''),
+  };
+}
+
+// The subject, minus the machinery she never needs to read: the PR number
+// (the row links it) and the `[skip render]` marker (every one of these is
+// unshipped by definition — saying so on each row says nothing).
+function cleanTitle(s) {
+  return String(s || '')
+    .replace(/\(#\d+\)/g, '')
+    .replace(/\[skip render\]/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/[\s—–\-:·]+$/, '')
+    .trim();
+}
+
+/** An open PR → the same row shape. `p` is GitHub's pulls shape. */
+function parsePull(p) {
+  const body = String((p && p.body) || '');
+  const sess = body.match(/claude\.ai\/code\/(?:session_)?([A-Za-z0-9_-]{16,})/);
+  return {
+    sha: '',
+    title: cleanTitle((p && p.title) || ''),
+    pr: Number((p && p.number) || 0) || 0,
+    session: sess ? bareSid(sess[1]) : '',
+    at: String((p && p.updated_at) || (p && p.created_at) || ''),
+    draft: !!(p && p.draft),
+  };
+}
+
+// slug → the session that owns it, from the registry. A chat's `sessionId` is
+// the guarded field (chatfeed's keepsDeepLink); `url` is the orange Open
+// button's link and is the fallback for a doc stamped before that field
+// existed.
+function sidIndex(chats) {
+  const byS = new Map();
+  for (const [slug, d] of Object.entries(chats || {})) {
+    if (!d || d.movedTo) continue;
+    const sid = bareSid(d.sessionId) || bareSid((String(d.url || '').match(/session_[A-Za-z0-9_-]+/) || [''])[0]);
+    if (!sid) continue;
+    if (!byS.has(sid)) byS.set(sid, slug);
+  }
+  return byS;
+}
+
+const nameOf = (d, slug) => String((d && (d.displayName || d.name)) || slug || '').trim() || slug;
+
+/**
+ * The whole page, pure: commits (and open PRs) grouped by the chat that wrote
+ * them, each group newest first, the groups themselves ordered by their own
+ * newest change.
+ *
+ * A change whose session matches no chat is NOT dropped — it lands in one
+ * group with an empty slug, because a change she cannot see is the exact thing
+ * this screen exists to end. (Measured shapes that land there: a PR merged
+ * from her Mac, and the handful of chats whose registry doc predates
+ * `sessionId`.)
+ */
+function groupRows(rows, chats, notes) {
+  const byS = sidIndex(chats);
+  const noteFor = (r) => {
+    const n = (notes && (notes['pr-' + r.pr] || (r.sha && notes['sha-' + r.sha.slice(0, 12)]))) || null;
+    return n && n.line ? String(n.line) : '';
+  };
+  const groups = new Map();
+  for (const r of rows) {
+    const slug = (r.session && byS.get(r.session)) || '';
+    if (!groups.has(slug)) groups.set(slug, []);
+    groups.get(slug).push({ ...r, line: noteFor(r) });
+  }
+  const out = [];
+  for (const [slug, items] of groups) {
+    items.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+    out.push({
+      chat: slug,
+      name: slug ? nameOf(chats && chats[slug], slug) : '',
+      items,
+      at: items[0] ? items[0].at : '',
+    });
+  }
+  // Newest work first; the unclaimed pile never leads, however recent it is —
+  // it is the leftovers, not the news.
+  out.sort((a, b) => {
+    if (!a.chat !== !b.chat) return a.chat ? -1 : 1;
+    return String(b.at).localeCompare(String(a.at));
+  });
+  return out;
+}
+
+// ---- GitHub (one read each, cached) ----------------------------------------
+
+const cache = { at: 0, key: '', data: null };
+
+async function ghJson(url, fetchFn) {
+  const f = fetchFn || fetch;
+  const r = await f(url, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'imageforge' } });
+  if (!r.ok) throw new Error(`github ${r.status}`);
+  return r.json();
+}
+
+/** Merged-and-not-live: the commits main has that the live box does not. */
+async function readAhead(fetchFn, sha) {
+  const head = String(sha || process.env.RENDER_GIT_COMMIT || '').trim();
+  if (!head) return null;
+  const j = await ghJson(`https://api.github.com/repos/${REPO}/compare/${head}...${BRANCH}`, fetchFn);
+  const commits = Array.isArray(j.commits) ? j.commits : [];
+  return {
+    sha: head,
+    ahead: Number.isFinite(Number(j.ahead_by)) ? Number(j.ahead_by) : commits.length,
+    commits: commits.map(parseCommit).reverse(),   // GitHub answers oldest first
+  };
+}
+
+/** Still open — the PRs that have not merged at all. */
+async function readOpen(fetchFn) {
+  const j = await ghJson(`https://api.github.com/repos/${REPO}/pulls?state=open&per_page=50`, fetchFn);
+  return (Array.isArray(j) ? j : []).map(parsePull);
+}
+
+async function readNotes() {
+  if (!firebaseUp()) return {};
+  const snap = await db().collection(COLL).get();
+  const out = {};
+  snap.docs.forEach((d) => { out[d.id] = d.data(); });
+  return out;
+}
+
+async function build(opts) {
+  const o = opts || {};
+  const head = String(o.sha || process.env.RENDER_GIT_COMMIT || '').trim();
+  if (!o.fresh && cache.data && cache.key === head && Date.now() - cache.at < TTL_MS) return cache.data;
+  const [ahead, open, notes, chats] = await Promise.all([
+    readAhead(o.fetch, head).catch((e) => ({ error: e.message })),
+    readOpen(o.fetch).catch(() => []),
+    readNotes().catch(() => ({})),
+    (async () => {
+      try { return (await require('./chatfeed').registry()).chats || {}; } catch (e) { return {}; }
+    })(),
+  ]);
+  const data = {
+    live: head ? head.slice(0, 7) : '',
+    // A box with no commit of its own (a dev container) can still show what is
+    // open; it just cannot say what is unshipped.
+    ahead: ahead && !ahead.error ? ahead.ahead : 0,
+    error: (ahead && ahead.error) || (head ? '' : 'no-commit'),
+    groups: ahead && !ahead.error ? groupRows(ahead.commits, chats, notes) : [],
+    open: groupRows(open, chats, notes),
+    at: new Date().toISOString(),
+  };
+  cache.at = Date.now(); cache.key = head; cache.data = data;
+  return data;
+}
+
+// ---- routes ----------------------------------------------------------------
+
+router.get('/status', (req, res) => {
+  res.json({ ok: true, firebase: firebaseUp(), live: String(process.env.RENDER_GIT_COMMIT || '').slice(0, 7) });
+});
+
+router.get('/', async (req, res) => {
+  try {
+    const data = await build({ fresh: req.query.fresh === '1' });
+    res.json({ ok: true, ...data });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// A chat says what its change MEANS, in her words. Keyed by PR when there is
+// one (a squash title carries it), else by the merge sha — never by chat, so a
+// chat with three changes waiting gets three lines rather than one that
+// overwrites the others.
+router.post('/', async (req, res) => {
+  try {
+    if (!firebaseUp()) return res.status(503).json({ error: 'no firestore' });
+    const b = req.body || {};
+    const pr = Number(b.pr) || 0;
+    const sha = String(b.sha || '').replace(/[^0-9a-f]/gi, '').slice(0, 12);
+    if (!pr && !sha) return res.status(400).json({ error: 'pr or sha required' });
+    const line = String(b.line || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+    if (!line) return res.status(400).json({ error: 'line required' });
+    const id = pr ? 'pr-' + pr : 'sha-' + sha;
+    await db().collection(COLL).doc(id).set({
+      line,
+      chat: String(b.chat || '').slice(0, 60),
+      session: bareSid(b.session),
+      pr, sha,
+      at: new Date().toISOString(),
+    }, { merge: true });
+    cache.data = null;
+    res.json({ ok: true, id, line });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+module.exports = { router, parseCommit, parsePull, cleanTitle, sidIndex, groupRows, readAhead, readOpen, build, bareSid };

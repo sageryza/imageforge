@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Alibaba chat</title>
+<!-- No autoscroll pill, on the route AND on a posted copy of this page: it is
+     one screen and never scrolls, and the pill's fixed corner lands on the
+     phone preview's own status bar and on the "?" beside the title. The meta
+     is what a POSTED page needs — a posted page gets the pill injected
+     whatever the route says. -->
+<meta name="forge-pill" content="off">
+<link rel="stylesheet" href="/tool.css">
+<style>
+/* A PROP, DRAWN FROM THE REAL THING. Every number below was measured off
+   Sophie's own screenshots of the Alibaba app (2026-09-15, "real screen
+   shots") rather than eyeballed: the logical canvas is an iPhone 13 at
+   390x844 and the export is that at SCALE 3 = 1170x2532, which is the size
+   the phone really writes. Change a number here only against a screenshot. */
+.tabs{display:flex; border-bottom:1px solid var(--line); margin:2px 0 8px;
+  padding-right:56px; position:relative}
+.tabs button{flex:1; background:none; border:none; padding:11px 0 10px;
+  font-size:12px; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--ink2); font-weight:400; font-family:inherit; cursor:pointer}
+.tabs button.on{color:var(--ink)}
+.tabs .tline{position:absolute; bottom:-1px; left:0; width:calc((100% - 56px)/2);
+  height:2px; background:var(--ink); transform:translateX(var(--tx,0));
+  transition:transform .18s}
+
+.two{display:flex; gap:10px}
+.two > label{flex:1; margin-top:0}
+.field{margin:12px 0 0}
+.field > span{display:block; font-size:11px; letter-spacing:1px;
+  text-transform:uppercase; color:var(--ink2); margin:0 0 5px}
+.field input, .field textarea{width:100%; border:1px solid var(--line);
+  border-radius:var(--r); padding:10px; font:inherit; font-size:16px;
+  background:var(--paper); color:var(--ink)}
+.field textarea{resize:vertical}
+#script{min-height:230px; line-height:1.45}
+
+.checks{display:flex; flex-wrap:wrap; gap:10px 16px; margin-top:14px}
+.checks label{display:flex; align-items:center; gap:7px; font-size:14px;
+  color:var(--ink); margin:0; text-transform:none; letter-spacing:0}
+.checks input{width:18px; height:18px; accent-color:var(--chg)}
+
+.frame-row{display:flex; align-items:center; gap:10px; margin-top:16px}
+.frame-row span{font-size:11px; letter-spacing:1px; text-transform:uppercase;
+  color:var(--ink2)}
+#range{flex:1; accent-color:var(--chg)}
+
+/* the phone: shown at its own aspect, never stretched, and it is the page's
+   one picture — so it sizes off the viewport rather than the column. */
+.stage{display:flex; justify-content:center; padding:2px 0 6px}
+#canvas{width:auto; height:auto; max-width:100%; max-height:74svh;
+  aspect-ratio:390/844; border:1px solid var(--line); border-radius:12px;
+  background:#f1f2f4}
+.fileline{display:flex; align-items:center; gap:8px; margin-top:8px; font-size:13px;
+  color:var(--ink2)}
+.fileline input[type=file]{font-size:12px; max-width:100%}
+[hidden]{display:none !important}
+</style>
+</head>
+<body class="tool">
+
+<div class="head">
+  <div class="eyebrow tool-eyebrow">ALIBABA CHAT</div>
+  <button id="help" aria-label="What is this?">?</button>
+</div>
+<div class="helpcard" id="helpcard" hidden>
+  <b>A fictional chat, drawn at real screenshot size</b> — 1170 &times; 2532,
+  the same pixels the phone writes.<br><br>
+  In the script, <b>them:</b> starts a message from the supplier and
+  <b>me:</b> starts one from you. A line with no prefix carries on the message
+  above it, and a blank line inside a message is a paragraph break — that is how
+  a long supplier pitch comes out in paragraphs. A line reading <b>img:</b> hangs
+  the attached picture under that message.<br><br>
+  <b>Visible messages</b> is which frame you are exporting; <b>Play</b> walks
+  them on one at a time so you can screen-record the buildup.<br><br>
+  Use invented names. The dramatization label is on by default.
+</div>
+
+<main>
+  <div class="tabs" id="tabs">
+    <button id="t-screen" class="on">Screen</button>
+    <button id="t-script">Script</button>
+    <i class="tline"></i>
+  </div>
+
+  <section id="p-screen">
+    <div class="stage"><canvas id="canvas" width="1170" height="2532"
+      aria-label="Preview of a fictional Alibaba-style chat screenshot"></canvas></div>
+    <div class="frame-row">
+      <span>Messages</span>
+      <input id="range" type="range" min="1" max="1" value="1">
+      <span id="count"></span>
+    </div>
+    <div class="row">
+      <button class="btn" id="play">Play</button>
+      <button class="btn ghost" id="reset">Reset</button>
+      <button class="btn ghost" id="save">Save PNG</button>
+    </div>
+  </section>
+
+  <section id="p-script" hidden>
+    <label class="field"><span>Script</span><textarea id="script" spellcheck="true"></textarea></label>
+
+    <div class="two">
+      <label class="field"><span>Supplier</span><input id="who" autocomplete="off"></label>
+      <label class="field"><span>Their local time</span><input id="ltime" autocomplete="off"></label>
+    </div>
+    <div class="two">
+      <label class="field"><span>Clock</span><input id="clock" autocomplete="off"></label>
+      <label class="field"><span>Battery</span><input id="batt" autocomplete="off"></label>
+    </div>
+    <label class="field"><span>Buttons above the keyboard</span><input id="chips" autocomplete="off"></label>
+
+    <div class="fileline"><span>Their photo</span><input id="avafile" type="file" accept="image/*">
+      <button class="btn ghost" id="avaclear" hidden>Clear</button></div>
+    <div class="fileline"><span>Attached picture</span><input id="attfile" type="file" accept="image/*">
+      <button class="btn ghost" id="attclear" hidden>Clear</button></div>
+
+    <div class="checks">
+      <label><input id="o-chips" type="checkbox" checked><span>Buttons row</span></label>
+      <label><input id="o-read" type="checkbox"><span>Read receipts</span></label>
+      <label><input id="o-note" type="checkbox"><span>Dramatization label</span></label>
+      <label><input id="o-banner" type="checkbox"><span>Notification banner</span></label>
+    </div>
+
+    <div class="two">
+      <label class="field"><span>Banner from</span><input id="b-who" autocomplete="off"></label>
+      <label class="field"><span>Banner line</span><input id="b-line" autocomplete="off"></label>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+'use strict';
+const W = 390, H = 844, S = 3;
+const ORANGE = '#e8600a', BG = '#f1f2f4', INK = '#131313', GREY = '#8a8a8e';
+const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+const $ = id => document.getElementById(id);
+const cv = $('canvas'), ctx = cv.getContext('2d');
+
+/* Boxes ship EMPTY of examples — but this page's script box is the WORK, not
+   a box she fills in from nothing, so it opens on a script the way the tool
+   she sent it from did. Everything here is invented. */
+const SEED = `them: Hello my old friend,
+
+Since Super September is now live, our factory is offering returning customers locked-in pricing and priority production slots through September 30.
+
+This month's discount is the biggest of the year. I can also lock in the September price for any orders placed before the end of this month.
+
+Would you like me to prepare a quote for your Q4 stock?
+img:`;
+
+const F = {
+  who: ['who', 'Cindy Su'], ltime: ['ltime', '6:39 PM'], clock: ['clock', '6:39'],
+  batt: ['batt', '56'], chips: ['chips', 'View order history, Send order request, View all payments'],
+  bwho: ['b-who', 'Eva Huang'], bline: ['b-line', 'Hi sage ,']
+};
+Object.values(F).forEach(([id, v]) => { $(id).value = v; });
+$('script').value = SEED;
+
+let ava = null, att = null, playing = false, run = 0;
+
+/* ── the script ───────────────────────────────────────────────────────────
+   A prefix starts a message; an unprefixed line carries the one above on, and
+   a blank line inside a message is a paragraph break. That is what makes a
+   supplier's four-paragraph pitch ONE bubble — the thing the real screenshots
+   show and a line-per-message parser cannot say. */
+function parse() {
+  const out = [];
+  let cur = null;
+  const push = () => { if (cur) { while (cur.paras.length && !cur.paras[cur.paras.length - 1]) cur.paras.pop(); if (cur.paras.length || cur.img) out.push(cur); } cur = null; };
+  for (const raw of $('script').value.split('\n')) {
+    const t = raw.trim();
+    const m = t.match(/^(me|them)\s*:\s*(.*)$/i);
+    if (m) { push(); cur = { from: m[1].toLowerCase(), paras: m[2] ? [m[2]] : [], img: false }; continue; }
+    if (/^img\s*:?$/i.test(t)) { if (cur) cur.img = true; continue; }
+    if (!cur) continue;
+    if (!t) { if (cur.paras.length && cur.paras[cur.paras.length - 1] !== '') cur.paras.push(''); continue; }
+    const last = cur.paras.length - 1;
+    if (last >= 0 && cur.paras[last]) cur.paras[last] += ' ' + t; else if (last >= 0) cur.paras[last] = t; else cur.paras.push(t);
+  }
+  push();
+  return out;
+}
+
+/* ── drawing helpers ── */
+function rr(x, y, w, h, r, fill, stroke, lw) {
+  const rad = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rad, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rad);
+  ctx.arcTo(x + w, y + h, x, y + h, rad);
+  ctx.arcTo(x, y + h, x, y, rad);
+  ctx.arcTo(x, y, x + w, y, rad);
+  ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1; ctx.stroke(); }
+}
+function ln(x1, y1, x2, y2, c, w) {
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+  ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+}
+function wrap(text, max) {
+  const words = String(text).split(/\s+/).filter(Boolean);
+  const lines = []; let cur = '';
+  for (const w of words) {
+    const test = cur ? cur + ' ' + w : w;
+    if (!cur || ctx.measureText(test).width <= max) cur = test;
+    else { lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+function clip(text, max) {
+  if (ctx.measureText(text).width <= max) return text;
+  let v = text;
+  while (v.length > 1 && ctx.measureText(v + '…').width > max) v = v.slice(0, -1);
+  return v + '…';
+}
+
+/* ── the iOS status bar ── */
+function statusBar() {
+  ctx.fillStyle = INK;
+  ctx.font = '600 16px ' + FONT;
+  ctx.textAlign = 'center';
+  ctx.fillText($('clock').value || '9:41', 67, 38);
+
+  // signal: four bars, shortest first
+  for (let i = 0; i < 4; i++) rr(283 + i * 5.5, 30 - i * 2.4, 3.6, 5 + i * 2.4, 1.2, INK);
+  // wifi: three arcs and a dot
+  ctx.strokeStyle = INK; ctx.lineWidth = 2.1; ctx.lineCap = 'round';
+  [8.6, 5.4].forEach((r, i) => {
+    ctx.beginPath(); ctx.arc(321, 33 - i * 0.6, r, Math.PI * 1.22, Math.PI * 1.78); ctx.stroke();
+  });
+  ctx.beginPath(); ctx.arc(321, 31.6, 1.5, 0, Math.PI * 2); ctx.fillStyle = INK; ctx.fill();
+  // battery with the number inside it
+  const pct = Math.max(0, Math.min(100, parseInt($('batt').value, 10) || 0));
+  rr(337, 23, 26, 13, 4, null, 'rgba(19,19,19,.35)', 1.2);
+  rr(364, 27, 1.8, 5, 1, 'rgba(19,19,19,.35)');
+  rr(338.5, 24.5, 23 * (pct / 100), 10, 3, INK);
+  ctx.fillStyle = '#fff'; ctx.font = '600 9.5px ' + FONT; ctx.textAlign = 'left';
+  ctx.fillText(String(pct), 340, 33);
+}
+
+/* ── the header: chevron, name, their local time, and their three icons ── */
+function header() {
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, 96);
+  statusBar();
+
+  ln(24, 58, 16, 66, INK, 2.4); ln(16, 66, 24, 74, INK, 2.4);
+
+  ctx.textAlign = 'left';
+  ctx.fillStyle = INK; ctx.font = '600 18px ' + FONT;
+  ctx.fillText(clip($('who').value || 'Supplier', 190), 50, 68);
+  ctx.fillStyle = '#6b6b70'; ctx.font = '400 13px ' + FONT;
+  const lt = ($('ltime').value || '').trim();
+  ctx.fillText(clip(lt ? lt + ' local time' : '', 190), 50, 86);
+
+  glyph(G.store, 261, 67, 25);
+  glyph(G.phone, 309, 69, 23);
+  glyph(G.cam, 316, 59, 15, 2.6);
+  glyph(G.person, 362, 67, 25);
+  glyph(G.plus, 350, 71, 11, 2.6);
+}
+
+/* The chrome icons are Lucide paths drawn through Path2D rather than hand-laid
+   strokes: hand-laid ones were what made the first photo's video-call button
+   read as a stray hook. A glyph is a 24-box, scaled here, with the stroke
+   width divided back out so it stays 1.9pt whatever the size. */
+const G = {
+  store: 'm2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7 M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8 M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4 M2 7h20 M22 7v3a2 2 0 0 1-2 2a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7',
+  phone: 'M13.83 19a19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 6.75 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11l-1.27 1.27a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-6.63-1.99',
+  cam: 'M3.5 6.5h7a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 2 12V8a1.5 1.5 0 0 1 1.5-1.5z M12 9.5 15.5 7v6L12 10.5z',
+  person: 'M19 21v-2a5 5 0 0 0-5-5h-2a5 5 0 0 0-5 5v2 M13 3.2a4.5 4.5 0 1 1 0 8.6 4.5 4.5 0 0 1 0-8.6',
+  plus: 'M12 5v14 M5 12h14',
+  circlePlus: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M12 7v10 M7 12h10',
+  smile: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M8 14s1.5 2 4 2 4-2 4-2 M9 9h.01 M15 9h.01',
+  image: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z M9 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M21 16l-4.6-4.6a2 2 0 0 0-2.83 0L4.5 20.9'
+};
+function glyph(d, x, y, size, w) {
+  const p = new Path2D(d);
+  ctx.save();
+  ctx.translate(x - size / 2, y - size / 2);
+  ctx.scale(size / 24, size / 24);
+  ctx.strokeStyle = INK; ctx.lineWidth = (w || 1.9) * 24 / size;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.stroke(p);
+  ctx.restore();
+}
+
+/* ── one message ── */
+const LH = 22, FS = 17, PADX = 11.5, PADY = 13, MAXW = 294, IMGW = 107;
+function layout(m) {
+  ctx.font = '400 ' + FS + 'px ' + FONT;
+  const max = MAXW - PADX * 2;
+  const lines = [];
+  let widest = 0;
+  m.paras.forEach((p, i) => {
+    if (i) lines.push('');
+    if (p === '') return;
+    wrap(p, max).forEach(l => { lines.push(l); widest = Math.max(widest, ctx.measureText(l).width); });
+  });
+  const w = lines.length ? Math.min(MAXW, Math.max(74, Math.ceil(widest + PADX * 2))) : 0;
+  const h = lines.length ? lines.length * LH + PADY * 2 : 0;
+  let imgH = 0;
+  if (m.img && att) imgH = Math.round(IMGW * (att.naturalHeight / att.naturalWidth)) + 14;
+  const read = m.from === 'me' && $('o-read').checked && lines.length ? 17 : 0;
+  return { lines, w, h, imgH, read, total: h + imgH + read + (h ? 12 : 0) };
+}
+function avatar(x, y) {
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x, y, 16.5, 0, Math.PI * 2); ctx.closePath();
+  ctx.fillStyle = '#e5e8eb'; ctx.fill(); ctx.clip();
+  if (ava) {
+    const s = Math.max(33 / ava.naturalWidth, 33 / ava.naturalHeight);
+    const w = ava.naturalWidth * s, h = ava.naturalHeight * s;
+    ctx.drawImage(ava, x - w / 2, y - h / 2, w, h);
+  } else {
+    const n = ($('who').value || 'S').trim().split(/\s+/);
+    ctx.fillStyle = '#5b6671'; ctx.font = '600 12px ' + FONT;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(((n[0] || 'S')[0] + ((n[1] || '')[0] || '')).toUpperCase(), x, y + 0.5);
+    ctx.textBaseline = 'alphabetic';
+  }
+  ctx.restore();
+}
+function message(m, L, y) {
+  const them = m.from === 'them';
+  const x = them ? 57 : W - 16 - L.w;
+  if (L.h) {
+    if (them) avatar(29.5, y + 17);
+    rr(x, y, L.w, L.h, 10, them ? '#ffffff' : '#ffe9d7');
+    ctx.fillStyle = INK; ctx.font = '400 ' + FS + 'px ' + FONT; ctx.textAlign = 'left';
+    L.lines.forEach((l, i) => { if (l) ctx.fillText(l, x + PADX, y + PADY + 16 + i * LH); });
+    if (L.read) {
+      ctx.fillStyle = GREY; ctx.font = '400 12px ' + FONT; ctx.textAlign = 'right';
+      ctx.fillText('Read', W - 17, y + L.h + 14);
+    }
+  }
+  if (L.imgH && att) {
+    const iy = y + L.h + (L.h ? 12 : 0), ih = L.imgH - 14;
+    const ix = them ? 57 : W - 16 - IMGW;
+    ctx.save();
+    rr(ix, iy, IMGW, ih, 8); ctx.clip();
+    ctx.drawImage(att, ix, iy, IMGW, ih);
+    ctx.restore();
+  }
+}
+
+/* ── the quick-action buttons and the composer ── */
+function chipsRow(top) {
+  const words = ($('chips').value || '').split(',').map(s => s.trim()).filter(Boolean);
+  if (!words.length) return;
+  ctx.font = '400 15px ' + FONT; ctx.textAlign = 'left';
+  let x = 9;
+  for (const w of words) {
+    const bw = Math.ceil(ctx.measureText(w).width) + 32;
+    rr(x, top, bw, 40, 8, '#ffffff', '#e3e4e7', 1);
+    ctx.fillStyle = INK; ctx.fillText(w, x + 16, top + 25.5);
+    x += bw + 10;
+    if (x > W) break;               // they run off the edge, as they do on the phone
+  }
+}
+function composer(top) {
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, top, W, H - top);
+  const cy = top + 29;
+  glyph(G.circlePlus, 22, cy, 25, 1.7);
+
+  rr(44, cy - 15, 266, 30, 15, '#f1f2f4');
+  ctx.fillStyle = GREY; ctx.font = '400 16px ' + FONT; ctx.textAlign = 'left';
+  ctx.fillText('Enter your message...', 60, cy + 6);
+  // the little expand corner inside the field
+  ln(291, cy + 1, 291, cy + 6, '#8e8e93', 1.5); ln(291, cy + 6, 296, cy + 6, '#8e8e93', 1.5);
+  ln(299, cy - 1, 304, cy - 1, '#8e8e93', 1.5); ln(304, cy - 6, 304, cy - 1, '#8e8e93', 1.5);
+
+  glyph(G.smile, 332, cy, 24, 1.8);
+  glyph(G.image, 368, cy, 24, 1.8);
+
+  rr(136, 826, 118, 5, 3, '#141414');
+}
+
+/* ── an iOS notification banner, and the screen dimmed behind it ── */
+function banner() {
+  ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(0, 0, W, H);
+  const x = 8, y = 40, w = W - 16, h = 101;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,.14)'; ctx.shadowBlur = 22; ctx.shadowOffsetY = 5;
+  rr(x, y, w, h, 19, '#ffffff');
+  ctx.restore();
+
+  rr(x + 13, y + 14, 25, 25, 6, '#eef3f0', '#dfe6e2', 1);
+  ctx.fillStyle = '#1f7a4d';
+  ctx.beginPath(); ctx.arc(x + 25.5, y + 25, 8.5, Math.PI * 0.55, Math.PI * 1.75); ctx.fill();
+  ctx.fillStyle = '#2f6fb5';
+  ctx.beginPath(); ctx.arc(x + 25.5, y + 25, 5, Math.PI * 1.5, Math.PI * 0.6); ctx.fill();
+
+  ctx.fillStyle = INK; ctx.font = '600 17px ' + FONT; ctx.textAlign = 'left';
+  ctx.fillText(clip($('b-who').value || '', 200), x + 51, y + 32);
+
+  const pill = 'Reply';
+  ctx.font = '500 15px ' + FONT;
+  const pw = Math.ceil(ctx.measureText(pill).width) + 34;
+  rr(x + w - 14 - pw, y + 43, pw, 33, 16.5, ORANGE);
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+  ctx.fillText(pill, x + w - 14 - pw / 2, y + 64.5);
+
+  ctx.fillStyle = INK; ctx.font = '400 16px ' + FONT; ctx.textAlign = 'left';
+  ctx.fillText(clip($('b-line').value || '', w - 30 - pw - 24), x + 13, y + 64);
+}
+
+function dramatization() {
+  if (!$('o-note').checked) return;
+  const t = 'DRAMATIZATION';
+  ctx.font = '700 9px ' + FONT;
+  const w = Math.ceil(ctx.measureText(t).width) + 14;
+  rr(W - w - 10, 104, w, 20, 6, 'rgba(20,20,20,.72)');
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+  ctx.fillText(t, W - w / 2 - 10, 117.5);
+}
+
+function render() {
+  ctx.setTransform(S, 0, 0, S, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H);
+
+  const msgs = parse();
+  const n = Math.min(Number($('range').value), msgs.length);
+  const shown = msgs.slice(0, n);
+  const layouts = shown.map(layout);
+
+  const composerTop = 757;
+  const chipsOn = $('o-chips').checked && ($('chips').value || '').trim();
+  const chipsTop = composerTop - 52;
+  const bottom = (chipsOn ? chipsTop : composerTop) - 10;
+  const top = 96;
+  const total = layouts.reduce((s, l) => s + l.total, 0);
+  let y = bottom - total;   // always scrolled to the newest, like the real app
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, top, W, bottom - top); ctx.clip();
+  shown.forEach((m, i) => { message(m, layouts[i], y); y += layouts[i].total; });
+  ctx.restore();
+
+  header();
+  if (chipsOn) chipsRow(chipsTop);
+  composer(composerTop);
+  dramatization();
+  if ($('o-banner').checked) banner();
+
+  $('count').textContent = n + ' / ' + msgs.length;
+}
+
+function sync(keepEnd) {
+  const msgs = parse();
+  const r = $('range');
+  const wasEnd = Number(r.value) >= Number(r.max);
+  r.max = String(Math.max(1, msgs.length));
+  if (keepEnd && wasEnd) r.value = r.max;
+  if (Number(r.value) > msgs.length) r.value = r.max;
+  render();
+}
+
+/* ── play: one message at a time, so a screen recording shows the buildup ── */
+const wait = ms => new Promise(r => setTimeout(r, ms));
+async function play() {
+  if (playing) return;
+  const msgs = parse();
+  if (msgs.length < 2) return;
+  playing = true; run++;
+  const mine = run;
+  $('play').disabled = true;
+  $('range').value = '1'; render();
+  for (let i = 1; i < msgs.length; i++) {
+    await wait(1200);
+    if (mine !== run) return;
+    $('range').value = String(i + 1); render();
+  }
+  playing = false; $('play').disabled = false;
+}
+
+function pickFile(input, clearBtn, set) {
+  input.addEventListener('change', () => {
+    const f = input.files && input.files[0];
+    if (!f) return;
+    const img = new Image();
+    img.onload = () => { set(img); clearBtn.hidden = false; render(); };
+    img.src = URL.createObjectURL(f);
+  });
+  clearBtn.addEventListener('click', () => {
+    input.value = ''; set(null); clearBtn.hidden = true; render();
+  });
+}
+pickFile($('avafile'), $('avaclear'), v => { ava = v; });
+pickFile($('attfile'), $('attclear'), v => { att = v; });
+
+['who', 'ltime', 'clock', 'batt', 'chips', 'b-who', 'b-line'].forEach(id =>
+  $(id).addEventListener('input', render));
+['o-chips', 'o-read', 'o-note', 'o-banner'].forEach(id =>
+  $(id).addEventListener('change', render));
+$('script').addEventListener('input', () => sync(true));
+$('range').addEventListener('input', render);
+$('play').addEventListener('click', play);
+$('reset').addEventListener('click', () => { run++; playing = false; $('play').disabled = false; sync(true); });
+$('save').addEventListener('click', () => {
+  render();
+  const a = document.createElement('a');
+  a.download = 'alibaba-chat-' + String($('range').value).padStart(2, '0') + '.png';
+  a.href = cv.toDataURL('image/png');
+  a.click();
+});
+
+const tabs = $('tabs');
+function tab(which) {
+  const screen = which === 'screen';
+  $('t-screen').classList.toggle('on', screen);
+  $('t-script').classList.toggle('on', !screen);
+  $('p-screen').hidden = !screen;
+  $('p-script').hidden = screen;
+  tabs.style.setProperty('--tx', screen ? '0' : 'calc(100% - 56px)');
+  if (screen) render();
+}
+$('t-screen').addEventListener('click', () => tab('screen'));
+$('t-script').addEventListener('click', () => tab('script'));
+
+$('help').addEventListener('click', () => { $('helpcard').hidden = !$('helpcard').hidden; });
+$('helpcard').addEventListener('click', () => { $('helpcard').hidden = true; });
+
+window.__alibaba = { render, parse, layout };
+sync(true);
+})();
+</script>
+</body>
+</html>

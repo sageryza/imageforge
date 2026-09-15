@@ -1,15 +1,17 @@
 #!/usr/bin/env node
-/* TWO PERMANENT BLOCKS AT THE TOP — CHARACTERS, THEN SETTING (2026-09-13,
- * Sophie: "i envision two permanent default collapsed blocks at the top of
- * footage: characters, then setting").
+/* CHARACTERS & SETTING — ONE FOLDED BLOCK, ABOVE THE BLOCK SHE IS IN
+ * (2026-09-14, Sophie: "characters/setting become one collapsed block w two
+ * text boxes" · "characters/setting move to above currently selected block, w
+ * relevant characters for that block"). It replaces the two permanent blocks
+ * of 2026-09-13.
  *
  * The REAL page headless, and every assertion is a MEASUREMENT of what really
- * renders or a reading of what the stub server really received: a head that
- * is in the markup and never folds, a fold whose CSS never landed, a head
- * that quietly joins `blocks()` and renumbers her scene, one that rides
- * twice on an appended send, one that rides at the BOTTOM, and one whose
- * words never reach the door at all look identical in the source. It CRASHES
- * against the pre-fix page, where there are no head blocks at all.
+ * renders or a reading of what the stub server really received: a block that
+ * is in the markup and never folds, a fold whose CSS never landed, one that
+ * quietly joins `blocks()` and renumbers her scene, one that sits in the
+ * markup above the active block and paints somewhere else, a cast that reads
+ * back right and never reaches the door, and a join mark hidden by the wrap
+ * that moved between two blocks all look identical in the source.
  *
  * Run: node scripts/test-footage-heads.js
  */
@@ -89,14 +91,16 @@ const server = http.createServer((req, res) => {
 
 const CAST = 'Sophie is the woman in [Image1]. Nurse Edna is the woman in [Image2].';
 const ROOM = 'A green-tiled ward corridor at night, one strip light out.';
+const CAST2 = 'Nurse Edna is alone in [Image1].';
 const SCENE = Array.from({ length: 6 }, (_, i) => 'scene line ' + (i + 1) + ' — she walks the corridor').join('\n');
 
 // what the page shows, measured
 const read = () => {
   const panel = document.querySelector('.panel');
   const kids = Array.from(panel.children);
-  const hs = kids.filter((c) => c.classList.contains('headwrap'));
+  const hw = kids.filter((c) => c.classList.contains('headwrap'));
   const ws = kids.filter((c) => c.classList.contains('promptwrap'));
+  const rows = hw.length ? Array.from(hw[0].querySelectorAll('.hpart')) : [];
   const seen = (el) => {
     if (!el) return null;
     const r = el.getBoundingClientRect();
@@ -108,20 +112,29 @@ const read = () => {
       reaches: !!(hit && (hit === el || el.contains(hit))) };
   };
   const pill = document.querySelector('body > .float');
+  const wrap = hw[0] || null;
   return {
-    nHeads: hs.length,
-    ids: hs.map((w) => w.dataset.head),
-    labs: hs.map((w) => (w.querySelector('.bflab') || {}).textContent || ''),
-    lw: hs.map((w) => (w.querySelector('.lw') || {}).textContent || ''),
-    shut: hs.map((w) => w.classList.contains('shut')),
-    hbox: hs.map((w) => seen(w.querySelector('.hblock'))),
-    hhead: hs.map((w) => seen(w.querySelector('.hfold'))),
-    hvals: hs.map((w) => w.querySelector('.hblock').value),
-    hcorner: hs.map((w) => seen(w.querySelector('.bigger'))),
-    hasWipe: hs.map((w) => !!w.querySelector('.wipeb')),
-    hasDivide: hs.map((w) => !!w.querySelector('.divide')),
-    hasPblock: hs.map((w) => !!w.querySelector('.pblock')),
-    aboveFirstBlock: hs.length && ws.length ? kids.indexOf(hs[hs.length - 1]) < kids.indexOf(ws[0]) : false,
+    nWraps: hw.length,
+    nRows: rows.length,
+    ids: rows.map((r) => r.dataset.head),
+    labs: rows.map((r) => (r.querySelector('.hlab') || {}).textContent || ''),
+    headLab: wrap ? (wrap.querySelector('.bflab') || {}).textContent || '' : '',
+    lw: wrap ? (wrap.querySelector('.lw') || {}).textContent || '' : '',
+    shut: wrap ? wrap.classList.contains('shut') : null,
+    hbox: rows.map((r) => seen(r.querySelector('.hblock'))),
+    hrow: rows.map((r) => seen(r)),
+    hhead: wrap ? seen(wrap.querySelector('.hfold')) : null,
+    hvals: rows.map((r) => r.querySelector('.hblock').value),
+    hcorner: rows.map((r) => seen(r.querySelector('.bigger'))),
+    hasWipe: wrap ? !!wrap.querySelector('.wipeb') : null,
+    hasDivide: wrap ? !!wrap.querySelector('.divide') : null,
+    hasPblock: wrap ? !!wrap.querySelector('.pblock') : null,
+    // WHERE IT SITS, both ways: its place in the panel's own children, and the
+    // block it is really drawn above on the screen.
+    wrapAt: wrap ? kids.indexOf(wrap) : -1,
+    aboveIdx: wrap ? ws.indexOf(wrap.nextElementSibling) : -2,
+    aboveOnScreen: wrap && wrap.nextElementSibling
+      ? wrap.getBoundingClientRect().top < wrap.nextElementSibling.getBoundingClientRect().top : null,
     nBlocks: ws.length,
     firstIsPrompt: !!(ws[0] && ws[0].querySelector('#prompt')),
     many: panel.classList.contains('many'),
@@ -129,18 +142,22 @@ const read = () => {
     blockActive: ws.map((w) => w.classList.contains('active')),
     blockVals: ws.map((w) => w.querySelector('.pblock').value),
     joinRows: kids.filter((c) => c.classList.contains('joinrow')).length,
+    joinShown: kids.filter((c) => c.classList.contains('joinrow'))
+      .map((r) => r.getBoundingClientRect().height > 0),
+    panelHasFold: !!document.getElementById('panelfold'),
+    panelShut: panel.classList.contains('shut'),
     pill: pill ? pill.getBoundingClientRect().left : null,
     draft: JSON.parse(localStorage.getItem('footage_draft') || '{}'),
   };
 };
-const tapHead = (i) => {
-  const hs = Array.from(document.querySelector('.panel').children).filter((c) => c.classList.contains('headwrap'));
-  hs[i].querySelector('.hfold').click();
-};
-const writeHead = ([i, text]) => {
-  const hs = Array.from(document.querySelector('.panel').children).filter((c) => c.classList.contains('headwrap'));
-  const el = hs[i].querySelector('.hblock');
+const tapHead = () => document.querySelector('.panel > .headwrap .hfold').click();
+const writeHead = ([id, text]) => {
+  const el = document.querySelector('.panel > .headwrap .hpart[data-head="' + id + '"] .hblock');
   el.value = text; el.dispatchEvent(new Event('input', { bubbles: true }));
+};
+const intoBlock = (i) => {
+  const ws = Array.from(document.querySelector('.panel').children).filter((c) => c.classList.contains('promptwrap'));
+  ws[i].querySelector('.pblock').focus();
 };
 const write = (text) => {
   const el = document.getElementById('prompt');
@@ -166,126 +183,189 @@ const send = async (page, btn) => {
   await page.waitForFunction(() => document.querySelectorAll('#ratio option').length > 0);
   await page.waitForTimeout(300);
 
-  // ── 1. TWO OF THEM, AT THE TOP, IN HER ORDER ────────────────────────────
+  // ── 1. ONE BLOCK, TWO BOXES, AND NO PROMPT FOLD ────────────────────────
   let s = await page.evaluate(read);
-  ok('two head blocks', s.nHeads === 2);
-  ok('characters, then setting — ' + s.ids.join(', '), s.ids.join(',') === 'characters,setting');
-  ok('named on their headings — ' + s.labs.join(' / '), s.labs[0] === 'Characters' && s.labs[1] === 'Setting');
-  ok('both above the first scene block', s.aboveFirstBlock);
-  ok('and in that order on the screen (' + s.hhead.map((h) => Math.round(h.top)).join(' → ') + ')',
-    s.hhead[0].top < s.hhead[1].top);
+  ok('one head block, not two', s.nWraps === 1);
+  ok('two boxes in it — ' + s.ids.join(', '), s.nRows === 2 && s.ids.join(',') === 'characters,setting');
+  ok('one heading over both — "' + s.headLab + '"', /Characters/.test(s.headLab) && /etting/.test(s.headLab));
+  ok('each box says which it is — ' + s.labs.join(' / '),
+    /Characters/i.test(s.labs[0]) && /Setting/i.test(s.labs[1]));
+  ok('the prompt fold is gone — "remove prompt collapse"', !s.panelHasFold && !s.panelShut);
 
-  // ── 2. DEFAULT COLLAPSED, and the heading is what opens one ─────────────
-  ok('both start folded away', s.shut[0] && s.shut[1]);
-  ok('their boxes are out of the layout, not merely dimmed — '
-    + s.hbox.map((b) => b.display + ' ' + Math.round(b.h)).join(' / '),
-    s.hbox.every((b) => b.display === 'none' && b.h === 0));
+  // ── 2. DEFAULT COLLAPSED, and the heading is what opens it ─────────────
+  ok('it starts folded away', s.shut === true);
+  ok('both boxes are out of the layout, not merely dimmed — '
+    + s.hrow.map((b) => b.display + ' ' + Math.round(b.h)).join(' / '),
+    s.hrow.every((b) => b.display === 'none' && b.h === 0) && s.hbox.every((b) => b.h === 0));
   ok('their corner buttons go with them', s.hcorner.every((c) => c.h === 0));
-  ok('each heading is on screen', s.hhead.every((h) => h.display === 'flex' && h.h > 0));
-  ok('and a tap really reaches each one', s.hhead.every((h) => h.reaches));
+  ok('the heading is on screen', s.hhead.display === 'flex' && s.hhead.h > 0);
+  ok('and a tap really reaches it', s.hhead.reaches);
 
-  // ── 3. PERMANENT: no ✕, no divide, and never a `blocks()` block ─────────
-  ok('no ✕ on a head — nothing takes one off the page', s.hasWipe.every((x) => !x));
-  ok('no divide on a head — nothing turns one into two', s.hasDivide.every((x) => !x));
-  ok('a head carries no .pblock, so `blocks()` cannot see it', s.hasPblock.every((x) => !x));
+  // ── 3. PERMANENT: no ✕, no divide, and never a `blocks()` block ────────
+  ok('no ✕ — nothing takes it off the page', !s.hasWipe);
+  ok('no divide — nothing turns it into two', !s.hasDivide);
+  ok('it carries no .pblock, so `blocks()` cannot see it', !s.hasPblock);
   ok('her page is still ONE block', s.nBlocks === 1 && !s.many && s.joinRows === 0);
   ok('and the first block is still #prompt', s.firstIsPrompt);
+  ok('and it sits above that block', s.aboveIdx === 0 && s.aboveOnScreen);
 
-  // ── 4. WITH BOTH EMPTY THE SEND IS BYTE-FOR-BYTE WHAT IT WAS ────────────
+  // ── 4. WITH BOTH EMPTY THE SEND IS BYTE-FOR-BYTE WHAT IT WAS ───────────
   await page.evaluate(write, SCENE);
   await page.waitForTimeout(200);
   let got = await send(page, '#go');
-  ok('an unwritten head adds nothing at all — the prompt is exactly her box',
+  ok('an unwritten box adds nothing at all — the prompt is exactly her box',
     got.prompt === SCENE);
 
-  // ── 5. OPENING ONE FITS IT TO ITS WORDS ─────────────────────────────────
-  await page.evaluate(tapHead, 0);
+  // ── 5. OPENING IT FITS BOTH BOXES ──────────────────────────────────────
+  await page.evaluate(tapHead);
   await page.waitForTimeout(250);
   s = await page.evaluate(read);
-  ok('characters is open', !s.shut[0] && s.shut[1]);
-  ok('its box has a real height (' + Math.round(s.hbox[0].h) + 'px)', s.hbox[0].h > 40);
-  ok('and its corner button is on screen and tappable', s.hcorner[0].h > 0 && s.hcorner[0].reaches);
-  ok('the OTHER one is untouched', s.hbox[1].h === 0);
+  ok('it is open', s.shut === false);
+  ok('both boxes have a real height (' + s.hbox.map((b) => Math.round(b.h)).join(' / ') + ')',
+    s.hbox.every((b) => b.h > 30));
+  ok('and both corner buttons are on screen and tappable',
+    s.hcorner.every((c) => c.h > 0 && c.reaches));
 
-  // ── 6. THE PILL'S COLUMN IS RESERVED — a head is a panel child ──────────
-  ok('the open head box clears the pill\'s column (right ' + Math.round(s.hbox[0].right)
-    + ' vs pill at ' + Math.round(s.pill) + ')', s.pill != null && s.hbox[0].right <= s.pill + 1);
-  ok('and so does its heading (right ' + Math.round(s.hhead[0].right) + ')', s.hhead[0].right <= s.pill + 1);
+  // ── 6. THE PILL'S COLUMN IS RESERVED — it is a panel child ─────────────
+  // THE BOXES RUN FULL WIDTH BEHIND THE PILL since 2026-09-14 (Sophie: "text
+  // box shud just stay full width behind pill"); only the heading keeps clear
+  ok('the open boxes run under the pill\'s column (right '
+    + s.hbox.map((b) => Math.round(b.right)).join(' / ') + ' vs pill at ' + Math.round(s.pill) + ')',
+    s.pill != null && s.hbox.every((b) => b.right > s.pill + 1));
+  ok('while its heading clears it (right ' + Math.round(s.hhead.right) + ')', s.hhead.right <= s.pill + 1);
 
-  // ── 7. SHUT, THE HEADING SAYS ITS WORDS — the whole disclosure ──────────
-  await page.evaluate(writeHead, [0, CAST]);
-  await page.evaluate(writeHead, [1, ROOM]);
+  // ── 7. SHUT, THE HEADING SAYS BOTH — the whole disclosure ──────────────
+  await page.evaluate(writeHead, ['characters', CAST]);
+  await page.evaluate(writeHead, ['setting', ROOM]);
   await page.waitForTimeout(200);
   s = await page.evaluate(read);
-  ok('open, the heading does NOT repeat the words under it — "' + s.lw[0] + '"', s.lw[0] === '');
-  await page.evaluate(tapHead, 0);
+  ok('open, the heading does NOT repeat the words under it — "' + s.lw + '"', s.lw === '');
+  await page.evaluate(tapHead);
   await page.waitForTimeout(250);
   s = await page.evaluate(read);
-  ok('shut, it says the first words of the cast — "' + s.lw[0] + '"',
-    /Sophie is the woman/.test(s.lw[0]) && /^·/.test(s.lw[0].trim()));
-  ok('and the setting says its own — "' + s.lw[1] + '"', /green-tiled ward/.test(s.lw[1]));
+  ok('shut, it says the cast AND the room — "' + s.lw + '"',
+    /Sophie is the woman/.test(s.lw) && /green-tiled ward/.test(s.lw) && /^·/.test(s.lw.trim()));
+  ok('the cast comes first, since that is the half that changes block to block',
+    s.lw.indexOf('Sophie') < s.lw.indexOf('green-tiled'));
   ok('the words are not lost by folding', s.hvals[0] === CAST && s.hvals[1] === ROOM);
 
-  // ── 8. THEY RIDE AT THE TOP OF THE CLIP SHE SENDS ───────────────────────
+  // ── 8. THEY RIDE AT THE TOP OF THE CLIP SHE SENDS ──────────────────────
   got = await send(page, '#go');
   ok('the prompt the server really got is characters, setting, then the scene',
     got.prompt === CAST + '\n\n' + ROOM + '\n\n' + SCENE);
-  ok('and it rode while both were folded away — nothing about a fold changes the job',
+  ok('and it rode while it was folded away — nothing about a fold changes the job',
     /Sophie is the woman/.test(got.prompt));
 
-  // ── 9. THE GOLD LINE NEVER MOVES TO A HEAD ──────────────────────────────
+  // ── 9. A DIVIDE, AND THE WRAP FOLLOWS THE GOLD LINE ────────────────────
   const cut = SCENE.indexOf('scene line 4');
   await page.evaluate((c) => { const el = document.getElementById('prompt'); el.focus(); el.setSelectionRange(c, c); }, cut);
   await page.click('#divide');
-  await page.waitForTimeout(250);
-  await page.evaluate(() => {
-    const ws = Array.from(document.querySelector('.panel').children).filter((c) => c.classList.contains('promptwrap'));
-    ws[1].querySelector('.pblock').focus();
-  });
-  await page.waitForTimeout(150);
-  await page.evaluate(tapHead, 0);                       // open characters
-  await page.waitForTimeout(200);
-  await page.evaluate(() => {
-    const hs = Array.from(document.querySelector('.panel').children).filter((c) => c.classList.contains('headwrap'));
-    hs[0].querySelector('.hblock').focus();              // and tap into it
-    hs[0].querySelector('.hblock').click();
-  });
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(300);
   s = await page.evaluate(read);
   ok('two scene blocks, numbered as they always were — ' + s.blockLabs.join(' / '),
     s.nBlocks === 2 && s.blockLabs.join(',') === 'Block 1,Block 2');
-  ok('and tapping into a head left the gold line on the block she was in',
-    s.blockActive[1] === true && s.blockActive[0] === false);
-  got = await send(page, '#go');
-  ok('so the star still sends THAT block, with the heads on top',
-    got.prompt === CAST + '\n\n' + ROOM + '\n\n' + s.blockVals[1]);
-
-  // ── 11. `clear` LEAVES THEM — they are the standing thing above the job ─
-  await page.click('#clearjob');
+  ok('the gold line is still on block 1', s.blockActive[0] === true);
+  ok('and the wrap is above block 1 (' + s.aboveIdx + ')', s.aboveIdx === 0 && s.aboveOnScreen);
+  ok('the join mark between them is still drawn — the wrap in the gap must not hide it',
+    s.joinRows === 1 && s.joinShown[0] === true);
+  await page.evaluate(intoBlock, 1);
   await page.waitForTimeout(250);
   s = await page.evaluate(read);
-  ok('the job is wiped', s.blockVals.join('') === '' && s.nBlocks === 1);
-  ok('and the cast and the room are still there', s.hvals[0] === CAST && s.hvals[1] === ROOM);
+  ok('tapping into block 2 moves the gold line', s.blockActive[1] === true && !s.blockActive[0]);
+  ok('AND THE WRAP MOVES WITH IT — it is above block 2 now (' + s.aboveIdx + ')',
+    s.aboveIdx === 1 && s.aboveOnScreen);
+  ok('the join mark is still drawn with the wrap moved into that gap',
+    s.joinRows === 1 && s.joinShown[0] === true);
+  ok('a divide gives the new half a copy of the cast', s.hvals[0] === CAST);
 
-  // ── 12. THEY SURVIVE A RELOAD, AND COME BACK SHUT ───────────────────────
-  ok('the draft carries them by name', s.draft.heads && s.draft.heads.characters === CAST
-    && s.draft.heads.setting === ROOM);
+  // ── 10. CHARACTERS IS THE BLOCK'S — "relevant characters for that block" ─
+  await page.evaluate(writeHead, ['characters', CAST2]);
+  await page.waitForTimeout(200);
+  s = await page.evaluate(read);
+  ok('block 2 now has its own cast', s.hvals[0] === CAST2);
+  ok('and the room is untouched — it is every clip\'s', s.hvals[1] === ROOM);
+  got = await send(page, '#go');
+  ok('the star sends THAT block with THAT block\'s cast',
+    got.prompt === CAST2 + '\n\n' + ROOM + '\n\n' + s.blockVals[1]);
+  await page.evaluate(intoBlock, 0);
+  await page.waitForTimeout(250);
+  s = await page.evaluate(read);
+  ok('tapping back into block 1 brings ITS cast back', s.hvals[0] === CAST);
+  ok('and the wrap is back above block 1', s.aboveIdx === 0);
+  got = await send(page, '#go');
+  ok('and block 1 sends its own', got.prompt === CAST + '\n\n' + ROOM + '\n\n' + s.blockVals[0]);
+
+  // ── 11. THE DRAFT CARRIES ONE CAST PER BLOCK, AND ONE SETTING ──────────
+  ok('the draft holds a cast per block — ' + JSON.stringify(s.draft.chars),
+    Array.isArray(s.draft.chars) && s.draft.chars[0] === CAST && s.draft.chars[1] === CAST2);
+  ok('and the setting by name, with no `characters` beside it',
+    s.draft.heads && s.draft.heads.setting === ROOM && !('characters' in s.draft.heads));
+
+  // ── 12. A JOIN PUTS THE TWO CASTS TOGETHER ─────────────────────────────
+  await page.evaluate(() => document.querySelector('.panel .joinrow .joinb').click());
+  await page.waitForTimeout(300);
+  s = await page.evaluate(read);
+  ok('one block again', s.nBlocks === 1 && s.joinRows === 0);
+  ok('and one cast holding both — "' + s.hvals[0].replace(/\n/g, ' / ') + '"',
+    /Sophie is the woman/.test(s.hvals[0]) && /Nurse Edna is alone/.test(s.hvals[0]));
+
+  // ── 13. `clear` WIPES THE CAST AND LEAVES THE ROOM; `undo` PUTS IT BACK ─
+  await page.click('#clearjob');
+  await page.waitForTimeout(300);
+  s = await page.evaluate(read);
+  ok('the job is wiped', s.blockVals.join('') === '' && s.nBlocks === 1);
+  ok('the cast goes with the blocks it belonged to', s.hvals[0] === '');
+  ok('and the room is still there — it is the standing thing above the job', s.hvals[1] === ROOM);
+  await page.click('#undojob');
+  await page.waitForTimeout(300);
+  s = await page.evaluate(read);
+  ok('undo puts the cast back with the words', /Sophie is the woman/.test(s.hvals[0]));
+
+  // ── 14. THEY SURVIVE A RELOAD, AND IT COMES BACK SHUT ──────────────────
   await page.reload();
   await page.waitForFunction(() => document.querySelectorAll('#ratio option').length > 0);
   await page.waitForTimeout(300);
   s = await page.evaluate(read);
-  ok('after a reload the words are back', s.hvals[0] === CAST && s.hvals[1] === ROOM);
-  ok('and they are folded away again — shut is where they START', s.shut[0] && s.shut[1]);
-  ok('the heading says the words without opening anything — "' + s.lw[0] + '"',
-    /Sophie is the woman/.test(s.lw[0]));
+  ok('after a reload the cast is back', /Sophie is the woman/.test(s.hvals[0]));
+  ok('and the room', s.hvals[1] === ROOM);
+  ok('and it is folded away again — shut is where it STARTS', s.shut === true);
+  ok('the heading says the words without opening anything — "' + s.lw + '"',
+    /Sophie is the woman/.test(s.lw));
+  ok('and it is above the block she was in', s.aboveIdx === 0);
 
-  // ── 13. ONE EMPTY, ONE WRITTEN ──────────────────────────────────────────
-  await page.evaluate(writeHead, [0, '']);
+  // ── 15. AN EMPTIED BOX STOPS RIDING ────────────────────────────────────
+  await page.evaluate(writeHead, ['characters', '']);
   await page.evaluate(write, SCENE);
   await page.waitForTimeout(200);
   got = await send(page, '#go');
-  ok('an emptied head stops riding, and the other one still does',
+  ok('an emptied cast stops riding, and the room still does',
     got.prompt === ROOM + '\n\n' + SCENE);
+
+  // ── 16. A DRAFT FROM THE TWO-BLOCK DAY SEEDS EVERY BLOCK ───────────────
+  // A shipped fix to a WRITE path leaves the records already on file wrong —
+  // a page that wrote `heads.characters` as ONE value for every block has to
+  // hand it to every block, or her scene comes back without the people in it.
+  await page.evaluate(() => {
+    // the per-project map is the standing store for the SETTING, so it is
+    // cleared with the draft — otherwise the room she has already written for
+    // this project (correctly) wins, and the step would be measuring that
+    localStorage.removeItem('footage_heads');
+    localStorage.setItem('footage_draft', JSON.stringify({
+      prompt: 'shot one', blocks: ['shot two'], active: 0,
+      heads: { characters: 'THE OLD ONE CAST', setting: 'THE OLD ONE ROOM' },
+    }));
+  });
+  await page.reload();
+  await page.waitForFunction(() => document.querySelectorAll('#ratio option').length > 0);
+  await page.waitForTimeout(300);
+  s = await page.evaluate(read);
+  ok('the old single cast comes back on block 1', s.hvals[0] === 'THE OLD ONE CAST');
+  ok('and the old room', s.hvals[1] === 'THE OLD ONE ROOM');
+  await page.evaluate(intoBlock, 1);
+  await page.waitForTimeout(250);
+  s = await page.evaluate(read);
+  ok('and block 2 got it too — nothing of hers is left without a cast',
+    s.hvals[0] === 'THE OLD ONE CAST');
 
   ok('no page errors: ' + errors.join(' | '), !errors.length);
 

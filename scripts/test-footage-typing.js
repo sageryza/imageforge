@@ -17,6 +17,13 @@
  * Verified failing 4 against the pre-fix page (52 style writes for 12
  * characters, 24 for three at the end of a capped box).
  *
+ * Section 8 (2026-09-14, "huge text block bug · rapid movement"): the SHRINK
+ * road — a Backspace, an autocorrected word — still set the focused box to
+ * `height:auto` and back, a 120-line scene collapsing to its floor for one
+ * layout. Verified failing 3 against the 2026-09-14 live page
+ * (FOOTAGE_PAGE=<that copy>): 16 style writes for four edits, `auto` written
+ * four times.
+ *
  * Run: node scripts/test-footage-typing.js
  */
 'use strict';
@@ -62,7 +69,9 @@ const server = http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
   const json = (o) => { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
   if (u.pathname === '/footage') {
-    const html = fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8').replace('__STUDIO_TOKEN__', '') + PILL;
+    // FOOTAGE_PAGE=<file> drives the same checks against another copy of the
+    // page (how the pre-fix failures below were verified)
+    const html = fs.readFileSync(process.env.FOOTAGE_PAGE || path.join(PUB, 'footage.html'), 'utf8').replace('__STUDIO_TOKEN__', '') + PILL;
     res.writeHead(200, { 'content-type': 'text/html' }); return res.end(html);
   }
   if (u.pathname === '/api/footage/status') {
@@ -177,7 +186,7 @@ const READ = () => {
   await page.waitForTimeout(250);
   const s6 = await page.evaluate(READ);
   ok('room borrowed and returned: the box is not re-laid out wide (' + s6.wide + ') and its reserve is untouched (' + s6.muts + ' writes)', s6.wide === 0 && s6.muts === 0);
-  ok('and it still keeps the pill\'s column (' + s6.w + ')', s6.w < 330);
+  ok('and it still runs the panel\'s full width — behind the pill since 2026-09-14 (' + s6.w + ')', s6.w >= 330);
 
   // ── 7. the pinned corner buttons are not rewritten per keystroke ────────
   //       (stickybox's input pass re-pinned them every character — class and
@@ -211,6 +220,54 @@ const READ = () => {
   await page.waitForTimeout(300);
   const bmuts = await page.evaluate(() => window.__bmuts);
   ok('nine keystrokes inside the big box rewrite the pinned buttons ZERO times (' + bmuts + ')', bmuts === 0);
+
+  // ── 8. THE SHRINK ROAD NEVER COLLAPSES A HUGE BLOCK (2026-09-14, Sophie:
+  //       "huge text block bug · rapid movement · in footage · while typing").
+  //       A Backspace and an autocorrected word (`insertReplacementText`) took
+  //       the full fit, which set the box to `height:auto` — a 120-line scene
+  //       at its floor for one layout — before writing the real height back.
+  //       On iOS that relayout of the focused box is what reveals the caret
+  //       and starts the jump. So: a backspace that unwraps nothing writes NO
+  //       style at all, `auto` is never written to the box, and one that does
+  //       unwrap writes the real height once.
+  await page.evaluate(() => {
+    const el = document.getElementById('prompt');
+    el.value = Array.from({ length: 120 }, (_, i) => 'line ' + i + ' of a very long scene she is writing on her phone tonight, the ward corridor at night').join('\n');
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    const at = Math.round(el.value.length * 0.5); el.focus(); el.setSelectionRange(at, at);
+  });
+  await page.waitForTimeout(400);
+  await page.evaluate(() => {
+    const box = document.getElementById('prompt'), wrap = box.parentNode;
+    window.__hmuts = []; window.__auto = 0; window.__hset = [];
+    // every write is its own record and `oldValue` is the attribute before it,
+    // so a collapse (`auto`, then the real height) shows as a record whose
+    // oldValue carries `auto` — visible even though the collapse lasts one layout
+    const mo = new MutationObserver((list) => { for (const m of list) {
+      window.__hmuts.push(m.target === box ? 'box' : 'wrap');
+      if (m.target === box) { const now = box.getAttribute('style') || ''; window.__hset.push((now.match(/height:\s*([^;]+)/) || [])[1] || '');
+        if (/height:\s*auto/.test(now) || /height:\s*auto/.test(m.oldValue || '')) window.__auto += 1; }
+    } });
+    mo.observe(box, { attributes: true, attributeFilter: ['style'], attributeOldValue: true });
+    mo.observe(wrap, { attributes: true, attributeFilter: ['style'] });
+  });
+  const h8 = (await page.evaluate(READ)).h;
+  for (let i = 0; i < 3; i++) { await page.keyboard.press('Backspace'); await page.waitForTimeout(60); }
+  await page.evaluate(() => { const el = document.getElementById('prompt'); el.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, inputType: 'insertReplacementText', data: 'x' })); el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertReplacementText', data: 'x' })); });
+  await page.waitForTimeout(200);
+  const s8 = await page.evaluate(() => ({ muts: window.__hmuts.slice(), auto: window.__auto, set: window.__hset.slice(), h: Math.round(document.getElementById('prompt').getBoundingClientRect().height) }));
+  ok('three backspaces and an autocorrect mid-scene in a 120-line box write NO style on the box or its wrap (' + JSON.stringify(s8.muts) + ')', s8.muts.length === 0);
+  ok('and `auto` is never written to the box she is typing in (' + JSON.stringify(s8.set) + ')', s8.auto === 0 && !s8.set.some((v) => v === 'auto'));
+  ok('the box is still its full height (' + h8 + ' → ' + s8.h + ')', s8.h === h8 && h8 > 2000);
+  // a backspace that DOES unwrap a line still shrinks it, in one write
+  await page.evaluate(() => { const el = document.getElementById('prompt'); const at = el.value.length; el.setSelectionRange(at, at); window.__hset = []; window.__hmuts = []; });
+  for (let i = 0; i < 60; i++) await page.keyboard.press('Backspace');
+  await page.waitForTimeout(200);
+  const s8b = await page.evaluate(() => ({ set: window.__hset.slice(), h: Math.round(document.getElementById('prompt').getBoundingClientRect().height) }));
+  ok('deleting the last line shrinks the box (' + h8 + ' → ' + s8b.h + ') with only real heights written (' + JSON.stringify(s8b.set) + ')', s8b.h < h8 && s8b.set.length >= 1 && s8b.set.every((v) => /^\d+px$/.test(v)));
+  // and the twin agrees with the box's own layout: the fit is never short
+  const s8c = await page.evaluate(() => { const el = document.getElementById('prompt'); return { fit: window.__fitBox ? window.__fitBox.height(el) : -1, scroll: el.scrollHeight + (el.offsetHeight - el.clientHeight) }; });
+  ok('the twin measures what the box itself would (' + s8c.fit + ' vs ' + s8c.scroll + ')', s8c.fit >= s8c.scroll && s8c.fit <= s8c.scroll + 2);
 
   ok('no page errors', errors.length === 0);
   if (errors.length) console.log('  errors: ' + errors.join(' | '));

@@ -2,7 +2,7 @@
   "name": "imageforge",
   "version": "1.0.0",
   "scripts": {
-    "start": "node server.js"
+    "start": "node --max-old-space-size=256 server.js"
   },
   "engines": {
     "node": ">=18"

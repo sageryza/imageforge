@@ -52,6 +52,16 @@ final class PushDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCen
     static var pendingChat: String?
     static var pendingChatList = false
 
+    /// A PUSH THAT NAMES A PAGE INSTEAD OF A CHAT (2026-09-14, Sophie, looking
+    /// at "11 changes waiting": "shud go to a screen that says what the
+    /// unmerged changes are"). The payload's `open` is a path on our own
+    /// server — today only `/waiting` sends one — and the Chats web view loads
+    /// it in place of /chats. It rides here rather than in a Tool case because
+    /// the screen is a page, not a tool: no tile, no icon, nothing to file.
+    /// ONE-SHOT like the two above, and an older build that has never heard of
+    /// the field lands on the chat list exactly as it did.
+    static var pendingPath: String?
+
     /// THE WIDGET'S DECK (2026-09-02, Sophie: "make it 4 icons / decks to
     /// swipe"). A tap on one of the home-screen widget's icons arrives as
     /// `deckfactory://review?deck=<page id>`; RootView drops the id here and
@@ -110,11 +120,17 @@ final class PushDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCen
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 didReceive response: UNNotificationResponse,
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
-        let chat = response.notification.request.content.userInfo["chat"] as? String
+        let info = response.notification.request.content.userInfo
+        let chat = info["chat"] as? String
+        // A push may name a PAGE instead of a chat ("11 changes waiting" →
+        // /waiting). Only a path on our own server is honoured — an absolute
+        // url or anything with a scheme is ignored rather than opened.
+        let open = info["open"] as? String
+        Self.pendingPath = (open?.hasPrefix("/") == true && open?.contains("//") == false) ? open : nil
         // "push-test" is the /api/push/test send, which belongs to no chat —
         // that one lands on the chat list.
         Self.pendingChat = (chat == "push-test") ? nil : chat
-        Self.pendingChatList = (Self.pendingChat == nil)
+        Self.pendingChatList = (Self.pendingChat == nil && Self.pendingPath == nil)
         NotificationCenter.default.post(name: .forgePushOpenChats, object: nil)
         completionHandler()
     }

@@ -1,0 +1,46 @@
+STUPID IDEA FACTORY — SEEDANCE SCRIPT v3 (SENT 2026-09-15, her go, $1 budget)
+Seedance 2.0 Mini · 480p · 9:16 · audio ON, the vo: lines spoken by the model (the way your clips run) · one shot per clip, 4–8s
+[Image1] = the porch frame at 0:01 of the 8s delivery clip (drops/_/ac4fd054….jpg, filed in the Dump) · [Image2] = the products (drops/_/75d00b91….png) · [Image3] = the ChatGPT screenshot (drops/_/cbbe03b8….png) · clip 1's first frame = the desk picture (drops/_/e7e73a27….png)
+Sent on her go: six clips, ~58¢ estimated (clip 1 on APIFRAME for the keyframe, the rest on Atlas). Every exact prompt below is what the door received.
+
+CLIP 1 · 8s · SEEDANCE
+PROMPT: vo: i don't know about you but i have a lot of ideas
+shot: the girl in [Image1] at her desk. product ideas like [Image2] erupt out of the top of her head like a volcano and rain down around her.
+REFS: first frame = the desk picture (a keyframe takes no slot)
+
+CLIP 2 · 4s · SEEDANCE
+PROMPT: vo: and chatgpt is just making it worse
+shot: over her shoulder, the girl in [Image1] types into [Image3]. a perfect mockup of [Image2] appears on the screen.
+
+CLIP 3 · SCREEN RECORD (no seedance)
+VO: so, i made this site / basically, ppl rate ur ideas, they can even invest little bits of money, and if enough ppl heart it (exciting heart buildup w sound effects), then...it actually gets made
+the real app, shouldimakethis.web.app, hearts piling up + sfx
+
+CLIP 4 · 4s · SEEDANCE
+PROMPT: vo: i send it to alibaba. they give me a quote
+shot: the girl in [Image1] on her couch, taps send on her phone, camera at eye level.
+INSERT: the alibaba chat, one plausible message and the quote (generator)
+
+CLIP 5 · 8s · SEEDANCE (rewritten — her two delivery clips went to the neighbor, and made her the mailman)
+PROMPT: vo: and boom two months later
+shot: the girl in [Image1] opens her front door. a delivery man, an older man in a brown uniform, stacks twelve large cardboard boxes on her doorstep until they tower over her. she stands in the doorway staring at them.
+girl vo: we have 500 of them
+
+CLIP 6 · 4s · SEEDANCE
+PROMPT: vo: but then i was like: wait
+shot: the girl in [Image1] opens one of the boxes, pulls out [Image2], freezes, looks straight into the camera.
+
+CLIP 7 · 4s · SEEDANCE
+PROMPT: vo: ppl will just steal my designs. why shud i put them out there for ppl to see
+shot: the girl in [Image1] to camera, boxes behind her, camera at eye level. her face slowly falls.
+
+CLIP 8 · SCREEN RECORD (no seedance)
+alibaba escalation: generator Play + screen record, dings piling up (the script is in this chat)
+
+CLIP 9 · TITLE CARD
+They can steal the idea. They can't steal the fact that it's a bad idea.
+or: Crowdsource bad ideas. Outsource the consequences.
+
+— v3 CUT (2026-09-15, Film Editor cut ieoZPffT6GT4Cd6r0PjS, build/cut.json) —
+ten pieces, 1:01: opener · chatgpt · SITE (screen recording of shouldimakethis.web.app via build/siterec.js, VO on her clone "Sophie — morning" eleven_multilingual_v2, request y2MPYnUKd6Ra3DDXZTKv; TTS text reads "people"/"your" for her "ppl"/"ur") · couch ("Ali Baba" spelled out; the model still says "Ali Aba") · ALIBABA QUOTE (frames off the Alibaba chat generator, build/aliframes.js, dings synthesized in ffmpeg) · delivery v2 · box · to camera · ESCALATION (same, dings multiplying) · TITLE CARD (build/title.html).
+New shots from here wear the SWEATER, not the hoodie (her rule, 2026-09-15): reference drops/_/ccb522b0b1b3ee593e153acdee3e4e18.jpg, a frame off the opener.

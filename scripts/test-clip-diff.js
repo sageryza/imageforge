@@ -116,6 +116,58 @@ const D = require('../clip-diff');
   // a pasted scene past the cap still answers, as one block
   const big = Array.from({ length: 1600 }, (_, i) => 'w' + i).join(' ');
   ok('a prompt past the size cap diffs as one block rather than hanging', D.wordDiff(big, big + ' x').length === 2);
+
+  // ── ONLY WHAT MOVED (2026-09-14, Sophie: "default ONLY shows diff - expand
+  // button to see whole prompt") ─────────────────────────────────────────────
+  const older3 = 'sophie is the woman in [Video1].\nshe walks down the hall.\ncamera at eye level.';
+  const newer3 = 'sophie is the woman in [Video1].\nshe walks slowly down the hall.\ncamera at eye level.';
+  const L = D.promptLines(D.wordDiff(older3, newer3));
+  ok('the diff cuts back into its own lines', L.length === 3);
+  ok('only the line she touched is marked changed: ' + JSON.stringify(L.map((x) => x.changed)),
+    L.filter((x) => x.changed).length === 1 && L[1].changed === true);
+  ok('the changed line carries its unchanged words too, so it reads in place',
+    L[1].ops.map((o) => o.t).join('') === 'she walks slowly down the hall.'
+    && L[1].ops.some((o) => o.op === 'add' && o.t.trim() === 'slowly'));
+  ok('the lines re-join to the newer prompt byte for byte',
+    L.map((x) => x.ops.filter((o) => o.op !== 'del').map((o) => o.t).join('')).join('\n') === newer3);
+  ok('and to the older one',
+    L.map((x) => x.ops.filter((o) => o.op !== 'add').map((o) => o.t).join('')).join('\n') === older3);
+  ok('changedLines is that filter', D.changedLines(D.wordDiff(older3, newer3)).length === 1);
+  // AN ADDED PARAGRAPH DOES NOT LIGHT THE UNTOUCHED LINE ABOVE IT — the break
+  // it brings in belongs to the end of that line, so counting it would fold
+  // open a line she never touched every time she added one under it
+  const pl = D.promptLines(D.wordDiff('a line here.\nand another.', 'a line here.\nand another.\na third.'));
+  ok('an added paragraph is its own changed line and nothing above it moves: ' + JSON.stringify(pl.map((x) => x.changed)),
+    pl.length === 3 && pl[2].changed === true && !pl[0].changed && !pl[1].changed);
+
+  // ── EVERY CLIP LIKE THIS ONE (2026-09-14, Sophie: "shows ALL clips with
+  // similar prompt, including parts of it") ────────────────────────────────
+  const boiler = '\ncamera at eye level.\nno text on screen.';
+  const mk = (id, pr, t) => ({ id, prompt: pr, project: 'ward', sentAt: t });
+  const r1 = mk('r1', 'sophie is the woman in [Video1].\nshe walks down the hall.' + boiler, '1');
+  const r2 = mk('r2', 'sophie is the woman in [Video1].\nshe walks slowly down the hall.' + boiler, '2');
+  const r3 = mk('r3', 'she walks down the hall.\nthe ghost is against the ceiling tiles.' + boiler, '3');
+  const n1 = mk('n1', 'a witchcraft kit on a table, top down.' + boiler, '4');
+  const n2 = mk('n2', 'the doctor writes at his desk, close on the pen.' + boiler, '5');
+  const n3 = mk('n3', 'the nurse pushes a stretcher past the window.' + boiler, '6');
+  const elsewhere = { ...mk('o1', r2.prompt, '7'), project: 'ticky-tack' };
+  const rel = D.relatives(r2, [r1, r3, n1, n2, n3, elsewhere]);
+  ok('a redo and a clip sharing a real line are relatives, best first: ' + rel.map((x) => x.job.id).join(','),
+    rel.map((x) => x.job.id).join(',') === 'r1,r3');
+  ok('a clip sharing only the boilerplate is NOT — the line every clip carries is discounted to nothing',
+    !rel.some((x) => ['n1', 'n2', 'n3'].indexOf(x.job.id) >= 0));
+  ok('another project is never a relative, however alike', !rel.some((x) => x.job.id === 'o1'));
+  ok('the word comes off the whole prompt, so a one-word redo is not "the same words": ' + rel[0].word,
+    rel[0].word === 'nearly all of it' && D.shareWord({ alike: 1 }) === 'the same words');
+  // "including parts of it" — a clip carrying ONE paragraph, far under the
+  // whole-prompt bar, is found by the part measure and says how much
+  const part = D.relatives(r3, [r2, n1, n2, n3]).find((x) => x.job.id === 'r2');
+  ok('a clip sharing a paragraph is listed, with its share counted', part && part.shared >= 1 && part.part > 0);
+  ok('a clip she put away is never a relative', D.relatives(r2, [{ ...r1, hidden: true }]).length === 0);
+  ok('an empty prompt is not like anything (similarity of two blanks is 1 by its own arithmetic)',
+    D.related({ prompt: '' }, { prompt: '' }).score === 0 && D.relatives({ id: 'z', prompt: '' }, [r1, r2]).length === 0);
+  ok('the list is capped when asked', D.relatives(r2, [r1, r3], { limit: 1 }).length === 1);
+  ok('the clip itself is never its own relative', !D.relatives(r2, [r2, r1]).some((x) => x.job.id === 'r2'));
 }
 
 // ── the page half ──────────────────────────────────────────────────────────
@@ -136,22 +188,23 @@ const F = require('../footage');
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
 const base = { model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', resolution: '480p', ratio: '3:4', sound: true, status: 'done', vote: '', hidden: false, project: 'ward', poster: 'http://127.0.0.1:PORT/ref.png' };
 let jobs = [
-  { ...base, id: 'c3', prompt: 'sophie is the woman in [Video1]. she walks slowly down the hall, camera at eye level', seconds: 12, seed: 7,
+  { ...base, id: 'c3', prompt: 'sophie is the woman in [Video1].\nshe walks slowly down the hall.\ncamera at eye level.', seconds: 12, seed: 7,
     video: 'http://127.0.0.1:PORT/c3.mp4', refs: [{ url: 'http://127.0.0.1:PORT/jazz.mp4', kind: 'video', poster: 'http://127.0.0.1:PORT/ref.png' }, { url: 'http://127.0.0.1:PORT/pj-c.png', kind: 'image' }], sentAt: '2026-09-10T03:00:00.000Z' },
   // an UNRELATED ward clip right before c3 — the shape of her screenshot —
   // never the "clip before" for a twin further back
   { ...base, id: 'ux', prompt: 'a commercial for a witchcraft kit on a kitchen table, camera pushes in', seconds: 4, seed: 2, status: 'failed', ratio: '9:16',
     video: '', refs: [], sentAt: '2026-09-10T02:30:00.000Z' },
-  { ...base, id: 'c2', prompt: 'sophie is the woman in [Video1]. she walks down the hall, camera at eye level', seconds: 8, seed: 7,
+  { ...base, id: 'c2', prompt: 'sophie is the woman in [Video1].\nshe walks down the hall.\ncamera at eye level.', seconds: 8, seed: 7,
     video: 'http://127.0.0.1:PORT/c2.mp4', refs: [{ url: 'http://127.0.0.1:PORT/jazz.mp4', kind: 'video', poster: 'http://127.0.0.1:PORT/ref.png' }, { url: 'http://127.0.0.1:PORT/pj-a.png', kind: 'image' }], sentAt: '2026-09-10T02:00:00.000Z' },
   // another project between them — never the "clip before" for a ward clip
   { ...base, id: 'tt', project: 'ticky-tack', prompt: 'a red door', seconds: 4, seed: 1, video: 'http://127.0.0.1:PORT/tt.mp4', refs: [], sentAt: '2026-09-10T01:30:00.000Z' },
-  { ...base, id: 'c1', prompt: 'sophie is the woman in [Video1]. she stands in the hall', seconds: 8, seed: 7,
+  { ...base, id: 'c1', prompt: 'sophie is the woman in [Video1].\nshe stands in the hall.\ncamera at eye level.', seconds: 8, seed: 7,
     video: 'http://127.0.0.1:PORT/c1.mp4', refs: [{ url: 'http://127.0.0.1:PORT/jazz.mp4', kind: 'video', poster: 'http://127.0.0.1:PORT/ref.png' }, { url: 'http://127.0.0.1:PORT/pj-a.png', kind: 'image' }], sentAt: '2026-09-10T01:00:00.000Z' },
 ];
 // off the page — the one the server answers when asked for what is under c1
 let older = { ...base, id: 'c0', prompt: 'sophie sits in the hall', seconds: 4, seed: 3, video: 'http://127.0.0.1:PORT/c0.mp4', refs: [], sentAt: '2026-09-09T20:00:00.000Z' };
 const asked = [];
+const askedRel = [];   // kept apart so the kin assertions stay exact counts
 const server = http.createServer((req, res) => {
   if (servePublic(req, res)) return;
   const u = new URL(req.url, 'http://x');
@@ -183,6 +236,15 @@ const server = http.createServer((req, res) => {
       const j = all.find((x) => x.id === km[1]);
       const k = j ? D.kinOf(j, all) : null;
       return json({ ok: true, job: k ? k.job : null, kin: k ? k.kin : false, back: k ? k.back : 0 });
+    }
+    // EVERY CLIP LIKE THIS ONE — the REAL rule over the whole project, the
+    // off-page clip included, exactly as the server route runs it
+    const rm = u.pathname.match(/^\/api\/footage\/jobs\/([^/]+)\/relatives$/);
+    if (rm) {
+      askedRel.push(rm[1]);
+      const all = jobs.concat([older]);
+      const j = all.find((x) => x.id === rm[1]);
+      return json({ ok: true, list: j ? D.relatives(j, all.filter((x) => x.id !== j.id), { limit: 40 }) : [] });
     }
     if (u.pathname === '/api/cast/films') return json({ ok: true, films: [{ slug: 'ward', name: 'The ward' }] });
     if (u.pathname === '/api/cast/' || u.pathname === '/api/cast') {
@@ -279,7 +341,14 @@ const server = http.createServer((req, res) => {
   await page.waitForTimeout(500);
   ok('a clip with no twin still opens, on the plain clip before it', /8s/.test(await page.$eval('#cmp .cpair .cclip:first-child', (e) => e.textContent)));
   ok('and says the prompt is different rather than lighting a hash of words', /a different prompt/.test(await page.$eval('#cmp .csum', (e) => e.textContent)) && (await page.$$('#cmp .cprompt .dadd, #cmp .cprompt .ddel')).length === 0);
-  ok('this clip\'s own words are shown plain', /witchcraft kit/.test(await page.$eval('#cmp .cprompt', (e) => e.textContent)));
+  // and its words are BEHIND THE OPENER with everything else — a prompt that
+  // is not a comparison must not fill the panel by default (2026-09-14)
+  ok('this clip\'s own words do not fill the panel', (await page.$$('#cmp .cprompt')).length === 0);
+  await page.click('#cmpwhole');
+  await page.waitForTimeout(80);
+  ok('the opener shows them', /witchcraft kit/.test(await page.$eval('#cmp .cprompt', (e) => e.textContent)));
+  await page.click('#cmpwhole');   // fold it back, so the next panel opens as she left it
+  await page.waitForTimeout(80);
   await page.click('#cmpclose');
 
   // identical clips say so
@@ -289,6 +358,61 @@ const server = http.createServer((req, res) => {
   await page.click('#cmppick');
   await page.click('#job-c2 .cmpb');   // same card twice = cancel
   ok('tapping the lit mark again cancels the pick', await page.$eval('#cmp', (e) => e.hidden) && !(await page.$eval('#job-c2 .cmpb', (e) => e.classList.contains('on'))));
+
+  // ── ONLY WHAT CHANGED, AND THE REST BEHIND THE OPENER ────────────────────
+  // (2026-09-14, Sophie: "default ONLY shows diff - expand button to see whole
+  // prompt".) Every assertion a MEASUREMENT of the rendered words: a fold that
+  // renders every line and a fold that renders one look identical in source.
+  await page.click('#job-c3 .cmpb');
+  await page.waitForSelector('#cmp:not([hidden])');
+  await page.waitForTimeout(500);
+  const shown = await page.$eval('#cmp .cprompt', (e) => e.textContent);
+  ok('the prompt shows ONLY the line she changed: ' + JSON.stringify(shown),
+    /walks slowly/.test(shown) && !/camera at eye level/.test(shown) && !/the woman in/.test(shown));
+  ok('the opener says how many lines sit behind it: ' + await page.$eval('#cmpwhole', (e) => e.textContent),
+    /2 more lines/.test(await page.$eval('#cmpwhole', (e) => e.textContent)));
+  ok('the opener is an underlined word, not a button with a box (the house .moretxt rule)',
+    await page.$eval('#cmpwhole', (e) => {
+      const c = getComputedStyle(e);
+      return c.textDecorationLine === 'underline' && c.borderTopWidth === '0px'
+        && (c.backgroundColor === 'rgba(0, 0, 0, 0)' || c.backgroundColor === 'transparent');
+    }));
+  await page.click('#cmpwhole');
+  await page.waitForTimeout(100);
+  const whole = await page.$eval('#cmp .cprompt', (e) => e.textContent);
+  ok('tapping it shows the whole prompt: ' + JSON.stringify(whole),
+    /camera at eye level/.test(whole) && /the woman in/.test(whole) && /walks slowly/.test(whole));
+  ok('and the one added word is still the only thing lit',
+    (await page.$$('#cmp .cprompt .dadd')).length === 1 && (await page.$$('#cmp .cprompt .ddel')).length === 0);
+  ok('the opener offers the way back', /only what changed/.test(await page.$eval('#cmpwhole', (e) => e.textContent)));
+  await page.click('#cmpwhole');
+  await page.waitForTimeout(100);
+  ok('and it folds again', !/camera at eye level/.test(await page.$eval('#cmp .cprompt', (e) => e.textContent)));
+
+  // ── EVERY CLIP LIKE THIS ONE ─────────────────────────────────────────────
+  ok('the relatives are asked of the server once per clip and cached: ' + askedRel.join(','),
+    askedRel.filter((x) => x === 'c3').length === 1);
+  const tiles = await page.$$eval('#cmp .crel .rel', (els) => els.map((e) => e.getAttribute('data-rel')));
+  ok('the strip holds the ward clips like c3 — and nothing from another project or another shot: ' + tiles.join(','),
+    tiles.indexOf('c2') >= 0 && tiles.indexOf('c1') >= 0 && tiles.indexOf('tt') < 0 && tiles.indexOf('ux') < 0);
+  ok('the clip the panel is already on is the lit one',
+    await page.$eval('#cmp .crel .rel.on', (e) => e.getAttribute('data-rel')) === 'c2');
+  ok('each tile says how much of it that clip carries',
+    /of it|same words/.test(await page.$eval('#cmp .crel .rel b', (e) => e.textContent)));
+  ok('the strip counts them in its heading: ' + await page.$eval('#cmp h3', (e) => e.textContent),
+    /Clips like this one \(\d+\)/.test(await page.$eval('#cmp h3', (e) => e.textContent)));
+  // TAPPING ONE SEATS IT AS THE OTHER SIDE
+  await page.click('#cmp .crel .rel[data-rel="c1"]');
+  await page.waitForTimeout(200);
+  ok('tapping a tile seats that clip as "before"',
+    await page.$eval('#cmp .cwhich', (e) => e.textContent) === '3 clips back');
+  ok('and the lit tile follows her',
+    await page.$eval('#cmp .crel .rel.on', (e) => e.getAttribute('data-rel')) === 'c1');
+  ok('the words she took out of c1 are struck', (await page.$$('#cmp .cprompt .ddel')).length >= 1);
+  ok('the strip never landed anything on the feed (the … older cursor is untouched)',
+    (await page.$$('#feed .job')).length === 5);
+  await page.click('#cmpclose');
+  await page.waitForTimeout(100);
 
   // PHOTO
   await page.click('#job-c3 .cmpb');

@@ -102,34 +102,45 @@ const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
   const NOX = '#v-hidex';
   const openFilt = async () => {};
 
-  // DEFAULT ON (2026-09-14, Sophie: "default to hide x"). A fresh page has
-  // stored nothing, so this IS the untouched state — and the button is lit,
-  // which is what keeps a default-on filter from being a silent one.
-  console.log('THE FILTER — ON BY DEFAULT');
-  ok(same(await list(), NO_X), 'a fresh page opens with the ✕\'d ones already gone');
-  ok(await page.locator(NOX).evaluate(e => e.classList.contains('on')),
-    'and the button says so');
-  ok(await boxes() === 2, 'the run with both pictures ✕\'d is not in the list either');
+  // DEFAULT OFF AGAIN ON THIS PAGE (2026-09-15, Sophie: "filter changed ·
+  // change back · playground" · "filter used to be different"). It opened ON
+  // here for a day under her own "default to hide x" (#2399) and she took the
+  // PLAYGROUND back off: this feed is her history, where a ✕ means "not that
+  // one" rather than "file it away", so a fresh page was opening with runs
+  // missing behind a chip she had never tapped. The other four surfaces still
+  // open ON — `test-hide-x-default.js` holds the per-page table.
+  //
+  // A fresh page has stored nothing, so this IS the untouched state.
+  console.log('THE FILTER — OFF BY DEFAULT ON THIS PAGE');
+  ok(same(await list(), ALL_SIX), 'a fresh page shows every picture, crossed out or not');
+  ok(!(await page.locator(NOX).evaluate(e => e.classList.contains('on'))),
+    'and the button is unlit — nothing is being hidden');
+  ok(await boxes() === 3, 'the run with both pictures ✕\'d is in the list too');
   await page.click('#v-tiles');
   await page.waitForFunction(() => document.querySelectorAll('#tiles .cell img').length > 0);
-  ok(same(await wall(), NO_X), 'the tile wall opens the same way');
+  ok(same(await wall(), ALL_SIX), 'the tile wall opens the same way');
   await page.click(NOX);
-  ok(same(await wall(), ALL_SIX), 'tapping it brings the crossed-out ones back');
+  ok(same(await wall(), NO_X), 'tapping it hides the crossed-out ones');
+  ok(await boxes() === 2, 'and the run with both ✕\'d drops out of the list with them');
 
-  console.log('STICKY — AND HER OFF IS HERS');
+  console.log('STICKY — AND HER ON IS HERS');
   await page.reload();
   await page.waitForFunction(() => document.querySelectorAll('#tiles .cell img').length > 0);
-  ok(same(await wall(), ALL_SIX), 'a reload keeps it OFF — the default never comes back over her tap');
-  ok(!(await page.locator(NOX).evaluate(e => e.classList.contains('on'))),
+  ok(same(await wall(), NO_X), 'a reload keeps it ON — her tap outlives the default');
+  ok(await page.locator(NOX).evaluate(e => e.classList.contains('on')),
     'and the button says so');
   await page.click(NOX);
-  ok(same(await wall(), NO_X), 'and tapping it again hides them');
+  ok(same(await wall(), ALL_SIX), 'and tapping it again brings them back');
 
+  // Coming in here BOTH are off (the block above ends by tapping the ✕ back
+  // off), which is the page's resting state again now the default is off.
   console.log('WITH THE HEART');
   await page.click(HEART);
-  ok(same(await wall(), HEARTS), 'both lit: hearts only, no argument');
+  ok(same(await wall(), HEARTS), 'the heart alone: hearts only');
   await page.click(NOX);
-  ok(same(await wall(), HEARTS), 'the heart alone is unchanged by turning it off');
+  ok(same(await wall(), HEARTS), 'both lit: still hearts only, no argument — hearts-only has already dropped every ✕\'d one');
+  await page.click(NOX);
+  ok(same(await wall(), HEARTS), 'and taking the ✕ back off leaves the heart doing its own job');
   await page.click(HEART);
   ok(same(await wall(), ALL_SIX), 'and both off is the whole feed back');
 

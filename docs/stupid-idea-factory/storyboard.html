@@ -1,0 +1,116 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stupid Idea Factory — storyboard v2</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+/* Her words, verbatim (2026-09-15: "dont change my words!"). The page holds
+   nothing drawn — nothing is drawn unless she says — so each card is the VO
+   line and the shot, and a small tag saying what KIND of footage it needs. */
+.shot{display:flex; align-items:baseline; gap:10px; margin-bottom:6px}
+.shot b{font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink2)}
+.need{font:600 10px/1 -apple-system,'Helvetica Neue',sans-serif; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--paper); background:var(--ink2);
+  padding:4px 6px; border-radius:4px}
+.need.gen{background:var(--chg)}
+.need.shoot{background:var(--rose)}
+.vo{font-size:19px; line-height:1.4; margin:0 0 8px}
+.vo:before{content:'“'} .vo:after{content:'”'}
+.pic{color:var(--ink2); font-size:15px; line-height:1.45; padding-right:40px}
+.tagline{font-size:22px; line-height:1.3; text-align:center; padding:18px 8px}
+details{margin-top:8px} summary{color:var(--ink2); font-size:14px; cursor:pointer}
+pre{white-space:pre-wrap; font:13px/1.5 -apple-system,'Helvetica Neue',sans-serif;
+  color:var(--ink); margin-top:8px}
+</style>
+
+<div class="wrap">
+  <h1>Stupid Idea Factory — storyboard v2</h1>
+
+  <div class="card" data-item="s01">
+    <div class="shot"><b>Shot 1</b><span class="need shoot">shoot</span></div>
+    <p class="vo">i don't know about you but i have a lot of ideas</p>
+    <p class="pic">girl w ideas popping out of her head like a volcano. product ideas</p>
+  </div>
+
+  <div class="card" data-item="s02">
+    <div class="shot"><b>Shot 2</b><span class="need">screen</span></div>
+    <p class="vo">and chatgpt is just making it worse</p>
+    <p class="pic">typing stupid ideas on chatgpt, and it makes a perfect mockup</p>
+  </div>
+
+  <div class="card" data-item="s03">
+    <div class="shot"><b>Shot 3</b><span class="need">screen</span></div>
+    <p class="vo">so, i made this site</p>
+    <p class="pic">shouldimakethis.com — pitch it like indiegogo</p>
+  </div>
+
+  <div class="card" data-item="s04">
+    <div class="shot"><b>Shot 4</b><span class="need">screen + sfx</span></div>
+    <p class="vo">basically, ppl rate ur ideas, they can even invest little bits of money, and if enough ppl heart it</p>
+    <p class="pic">exciting heart buildup w sound effects</p>
+  </div>
+
+  <div class="card" data-item="s05">
+    <div class="shot"><b>Shot 5</b><span class="need gen">generator</span></div>
+    <p class="vo">then...it actually gets made. i send it to alibaba</p>
+    <p class="pic">the Alibaba chat — one plausible message, the design going out</p>
+  </div>
+
+  <div class="card" data-item="s06">
+    <div class="shot"><b>Shot 6</b><span class="need gen">generator</span></div>
+    <p class="vo">they give me a quote</p>
+    <p class="pic">the quote in the chat</p>
+  </div>
+
+  <div class="card" data-item="s07">
+    <div class="shot"><b>Shot 7</b><span class="need shoot">shoot</span></div>
+    <p class="vo">and boom two months later</p>
+    <p class="pic">a girl overwhelmed by 12 large boxes arriving at her door</p>
+  </div>
+
+  <div class="card" data-item="s08">
+    <div class="shot"><b>Shot 8</b><span class="need shoot">shoot</span></div>
+    <p class="vo">we have 500 of them</p>
+    <p class="pic">the boxes, opened</p>
+  </div>
+
+  <div class="card" data-item="s09">
+    <div class="shot"><b>Shot 9</b><span class="need shoot">shoot</span></div>
+    <p class="vo">but then i was like: wait. ppl will just steal my designs. why shud i put them out there for ppl to see</p>
+    <p class="pic">her, to camera</p>
+  </div>
+
+  <div class="card" data-item="s10">
+    <div class="shot"><b>Shot 10</b><span class="need gen">generator + dings</span></div>
+    <p class="pic">footage of Alibaba that slowly starts to feel overwhelming with like ding sound effects of them asking for my designs and it gets more and more insane like designs, design, designs, please, etc. — replies from me like asking for spec info — escalate slower</p>
+    <details>
+      <summary>the chat script (paste into the Alibaba chat generator, then Play + screen record)</summary>
+      <pre id="esc"></pre>
+    </details>
+  </div>
+
+  <div class="card" data-item="s11">
+    <div class="shot"><b>Shot 11</b><span class="need">title card</span></div>
+    <p class="tagline">They can steal the idea. They can't steal the fact that it's a bad idea.</p>
+    <p class="tagline">Crowdsource bad ideas. Outsource the consequences.</p>
+  </div>
+
+  <div class="card" data-item="s12">
+    <div class="shot"><b>Caption</b><span class="need">ig hook</span></div>
+    <p class="vo">People told me not to post my product ideas because Alibaba would steal them. So I started posting ideas I wanted Alibaba to steal.</p>
+  </div>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+(function () {
+  document.getElementById('esc').textContent = __ESCALATION__;
+  window.__compareHelp({ html:
+    '<b>Every line is hers, word for word.</b> Nothing is drawn yet.<br><br>' +
+    '<b>shoot</b> = film it · <b>screen</b> = screen record · <b>generator</b> = the ' +
+    '<a href="https://imageforge-q125.onrender.com/api/chatfeed/page/AXQbmpD5GRHqEq1kV71z">Alibaba chat generator</a>' +
+    ' (its Play button walks the messages on one at a time for a screen recording).<br><br>' +
+    'Leave a note on any shot with the + in its corner — move it, cut it, add one.' });
+  window.__compareNotes({ chat: 'stupid-idea-factory-storyboard', sheet: 'sif-storyboard-v2' });
+})();
+</script>

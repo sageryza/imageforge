@@ -351,7 +351,7 @@ let forgePillPages: Set<String> = [
     "/deliverables", "/desktop", "/dreams", "/dreams-archive", "/dump", "/editor",
     "/films", "/footage", "/freeform", "/import", "/instagram", "/pausing", "/photo", "/playground",
     "/promptlab", "/report", "/review", "/scratchpad", "/search", "/shoebox", "/song",
-    "/stitch", "/storyroom", "/studio", "/timeline", "/vector", "/voice", "/worklog",
+    "/stitch", "/storyroom", "/studio", "/timeline", "/vector", "/voice", "/waiting", "/worklog",
     // baked in-page from scripts/pill.py, not injected
     "/chats", "/gallery", "/wall", "/writing",
 ]

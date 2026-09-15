@@ -3265,3 +3265,1503 @@ the chat reads it back only when it asks. The key is
 the page's `tickKey` over the original words; the test extracts that function
 out of `chats.html` and pins the two equal. A file over 4000 characters is
 refused before anything is posted. Test: `node scripts/test-chat-block.js`.
+
+
+## Moved from CLAUDE.md (2026-09-14)
+
+Moved here verbatim from `CLAUDE.md` on 2026-09-14 so that file stays readable;
+CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
+
+### THE ARCHIVE WRAP-UP
+
+- **THE ARCHIVE WRAP-UP — what the chat was about and what went down (Aug
+  2026, Sophie: "whenever I'm about to archive a chat the last message of the
+  chat is them explaining what the chat was about … and that could go into the
+  note at the top").** Measured that day: **73 of her 88 archived chats showed
+  nothing but a name.**
+  - **A chat is ASLEEP by the time she archives it**, so it cannot summarise
+    itself then — the whole design follows from that. Written ahead, frozen on
+    the way past. Best source first: the chat's own `POST /wrapup`; failing
+    that, archiving freezes its **Update card** into one (free, instant, and a
+    straight copy now — `updAsked`/`updDid`/`updNext` ARE the three questions
+    the summary is made of); failing both it stays blank rather than
+    inventing something.
+  - **THE SUMMARIZE BUTTON on the archive pop-up (Aug 2026, Sophie: "I want a
+    button on there that automatically asks the chat to give me like a quick
+    summary of what we accomplished in that chat, and if there were still any
+    questions that were open").** It cannot literally ask the chat — that is
+    the asleep problem above — so the SERVER reads the thread the app already
+    stores and writes the summary itself (`POST /wrapup/write`, Claude,
+    `force:true` because a deliberate tap re-writes). From her side the
+    difference is invisible: one tap inside the sheet, no trip back to the
+    Claude app, nothing to copy. It **writes as soon as it answers**, so
+    Cancel keeps the summary and archiving mid-write loses nothing — which is
+    why it is not a background job. The summary reads back in the sheet before
+    she commits. ~1-2¢ a tap.
+  - **ONE SENTENCE EACH IS CUT IN CODE, AND THE LINE IS WHAT SHE ASKED FOR
+    (Aug 2026, Sophie: "I thought that each of the questions was supposed to be
+    just one sentence but the middle question is longer" → "ok hard cap it" ·
+    "4 the default line just use what you asked and then the arrow shows the
+    next two bolded fields").** Two rules from one screenshot, both about the
+    same duplication. `wrapPartOf` (chatfeed.js) cuts every answer to its FIRST
+    sentence on the way in and to 200 characters behind that, at a word
+    boundary; `onePart` (chats.html) is its twin and cuts on the way OUT, which
+    is what reaches the two the server cannot — a wrap-up written before the cap
+    existed, and the live **Update card**, whose own 300-character fields stay
+    uncut on the Update tab (that is where the two-sentence middle came from:
+    the chat had no wrap-up at all, so the summary was falling back to its
+    Update card, which never had a sentence rule). A sentence ends at `.!?` plus
+    a space plus a CAPITAL, so "e.g." and "12x18." survive. And **the one line
+    is now `asked`** — it used to be `wrapLine`, then what the chat DID, which
+    on that same chat put the identical sentence on the line and again under
+    "What I did"; her question is the one answer that can never repeat what is
+    under it. The arrow opens the other two only, and a summary that is `asked`
+    alone draws no arrow. `wrapLine` still holds the line for an older record
+    with no three answers. Tests: `node scripts/test-chats-wrapup.js` (the two
+    copies run over the same cases so they cannot drift).
+  - **AND THAT LINE IS HER OWN SENTENCE NOW, VERBATIM (2026-08-24, Sophie:
+    "right now the what I asked sentence is paraphrased. can you make it my
+    exact sentence and just truncate it if it gets too long, so basically just
+    the beginning of my last message. and have it say what I asked in bold
+    above it, and then the see more is as it was").** The other two answers are
+    the chat's account of its own work and have to be written; hers is the one
+    line nobody needs to write, and a model retelling it can only move it
+    further from what she meant — the house *nothing stands between the source
+    and the output* rule applied to the summary she reads months later. So the
+    server lifts the OPENING of her last message off the thread it already
+    stores (`herAskOf` + `lastHerText` in `chatfeed.js`) and files that, on all
+    three paths: her Summarize tap, a chat's own `POST /wrapup`, and the freeze
+    on the way into the archive. A chat's `asked` is the FALLBACK, for a chat
+    she never posted into.
+    - **TRUNCATED, NOT CUT AT A SENTENCE, and that is the whole difference from
+      `wrapPartOf`.** She dictates, so her punctuation is unreliable and a
+      sentence rule leaves "I have a question." as the line — the one shape
+      that says nothing. It is the first 200 characters at a word boundary
+      with an ellipsis. `wrapAskedHers:true` marks the answer as hers so the
+      page truncates rather than sentence-cutting it; `herAsk` in `chats.html`
+      is its twin, pinned equal by the test.
+    - **A COMPACTION SUMMARY IS NOT HER MESSAGE** — the harness hands it over
+      as a user turn and the hook lifts it exactly like something she typed, so
+      it would file 7,000 characters of recited rules as what she asked for.
+      `isCompacted` is exported from `questions.js` — ONE copy of that rule.
+    - **AND WHEN SHE SENDS SEVERAL IN A ROW IT IS THE FIRST OF THEM
+      (2026-08-27, Sophie: "recurring issue - multiple messages only log the
+      last one in chats app" / "first shud be under what i asked").** She talks
+      the way she talks: the request, then the qualifications — "also the glove
+      ones", "notify when done", "j" — so reading her LAST message filed the
+      afterthought as the one line she reads months later to remember what a
+      chat was. `herAskText` in `chatfeed.js` (it REPLACED `lastHerText`, so
+      there is one reader for one question) takes the START of her latest RUN:
+      her consecutive messages with **no reply between them**, which is exactly
+      "the chat never got a word in, so all of it is one ask". The moment a
+      reply lands the run ends, so an ordinary back-and-forth is untouched and
+      this can only ever reach back over messages nothing has answered.
+      Measured over her 215 stored wrap-ups the hour it landed: **14 change**,
+      from "pills" to "we made a couple panels yesterday and I think they never
+      got cut", from "view" to "pressing the playground button on images made
+      by panels should copy the prompt", from "j" to "dreamt style".
+      **Deliberately NOT time-bounded** — a stretch the chat worked through
+      without replying is still one ask, and a clock here is a rule she never
+      asked for.
+      - **A BARE SLASH COMMAND IS NOT AN ASK** (`SLASH_ONLY` / `isAskable`).
+        She types `/concise` and the harness hands it over as an ordinary user
+        turn, so the hook lifts it like anything she said — and one of the 14
+        chats measured above opened its run on exactly that. Only a message
+        that is NOTHING BUT a command is skipped; one that merely mentions one
+        is hers. Same family as `isCompacted`, applied in the same place.
+      - **AND THE RECORDS ALREADY ON FILE CARRY THE LAST OF A RUN** — a
+        wrap-up is STORED, not derived on read, so `POST /wrapup/rehers` grew
+        `redo:true`, which reopens the summaries already marked
+        `wrapAskedHers`. Dry by default and free, like the rest of that pass;
+        `wrapAskedWas` keeps the ORIGINAL paraphrase and is written once, so a
+        re-pointing pass cannot overwrite the undo with the sentence it is
+        replacing.
+    - **The bold question over the line** is `UPD_LABELS[0][1]` ("What you
+      asked"), the Update tab's own vocabulary, drawn ONLY when the line really
+      is the asked answer (`wrapLineIsAsk`) — labelling a line that fell
+      through to what the chat DID with a question it does not answer is worse
+      than no label. "See more…" is untouched, still inline on that line.
+    - **AND THE ONES ALREADY ON FILE NEEDED THEIR OWN PASS — `POST
+      /wrapup/rehers` (2026-08-24, her SECOND ask the next day: "what I asked,
+      which is the default note at the top of every chat, is paraphrased … make
+      it not paraphrase, just my actual words truncated").** The live paths were
+      already right and she was still looking at a paraphrase, because **a
+      wrap-up is STORED, not derived on read** — nothing rewrites one, so every
+      summary written before the fix kept its model sentence forever. Measured
+      the hour she asked: **9 chats carried her words, 70 carried a paraphrase.**
+      **A shipped fix to a WRITE path leaves the existing records wrong — ask
+      what is already on file before saying it is fixed.**
+      Free (pure text surgery, no model call), dry by default, `{chat}` for one
+      — the `/wrapup/trim` pattern. Three rules, each about not overreaching:
+      it touches **only `wrapAsked`** plus the `wrapUp` prose mirror when that
+      mirror provably IS the three answers joined (`wrapDid` / `wrapNext` /
+      `wrapLine` / `wrapLong` are the chat's own account of its work and are
+      never reworded); it reads her message **as of `wrapUpAt`**, not her
+      newest (`lastHerText`'s `before` — a summary is a moment, and pairing
+      today's question with last week's answers reads as nonsense); and a chat
+      she never posted into is **left alone and NAMED** in the answer, since
+      the chat's own `asked` is the honest fallback there exactly as on the
+      live paths.
+      **AND NOTHING IS DESTROYED — the paraphrase moves to `wrapAskedWas`.**
+      Measured over the 62 it rewrites: ~56 are plainly better and about SIX
+      come out WORSE, because her last message before that summary was a
+      sign-off ("ok build is here now. anything else to do?") or a
+      machine-authored prompt the hook lifted as hers (a routine's deploy
+      check-in, a handoff brief pasted as a user turn — the same family as the
+      compaction summary `isCompacted` already excludes). Those really are the
+      words that were sent as her turn, so **the pass applies her rule
+      everywhere rather than inventing a quality bar over her own messages** —
+      the detector-over-her-words mistake this repo has already made twice (see
+      *Answering a question*). Keeping the old line is what makes that the
+      cheap, reversible call instead of a permanent one.
+  - **THE SUMMARY IS THE UPDATE CARD'S THREE QUESTIONS (Aug 2026 v4, Sophie:
+    "I think what I really wanted was the what you asked, what I did, and next
+    steps. Since chat already answered those three questions could you just
+    switch the summary for that … each of the three sections is about two
+    sentences that's six sentences in total. I'd prefer to be about three
+    sentences").** So the summary behind the expander is `wrapAsked` /
+    `wrapDid` / `wrapNext` — **one sentence each, three in total** — drawn as
+    the Update tab's own rows (`sumRows` in `chats.html`, ONE renderer, the
+    question bold and the answer not). A prose summary was a fourth shape
+    saying the same thing in a form she never asked for.
+    - **A chat with no wrap-up falls back to its own UPDATE CARD**, which
+      answers the identical three questions — that is exactly what she was
+      pointing at. Order: the wrap-up's three → an older prose `wrapUp` → the
+      live Update card.
+    - **`wrapNext` absorbed `wrapOpen`** — what is next and what was left
+      unanswered are one question, and two fields would show her the same
+      loose end twice. The unanswered questions fed to the model are still
+      DERIVED (`buildQuestions` over the whole thread, `!q.answer`), not read
+      out of the digest, so `next` names loose ends that provably exist.
+      Old records still render their `wrapOpen` paragraph.
+    - **`wrapUp` is still written**, as the three joined into plain prose:
+      her phone keeps a cached page for days and 312 chats already carry one
+      in that shape, so it stays the fallback every older reader can draw.
+    - **NONE of it is `sophieNote`.** Her own note still wins the row — a chat
+      must never overwrite a line she wrote, which is why this did not reuse
+      her note field even though she described it as "the note at the top".
+      Row: `note || wrapLine || need || doing`.
+  - **IT ALSO SHOWS IN THE THREAD, UNDER HER NOTE (Aug 2026, Sophie: "i want
+    the archive summary to show below my note, as u said, including the down
+    arrow to make it longer").** It used to live on the ARCHIVE row and only
+    there, which had two consequences she was reading as the summary not
+    existing: a home row is `note || wrap`, so a note SHE wrote takes the line
+    outright (measured 2026-08-19 — **71 of the 312 chats carrying a summary
+    also carry a note**), and the ⌄ is painted only in the archive's LIST view,
+    so the **162 of 312 not yet archived** had nowhere to open one at all. In a
+    thread there is room for both: her note keeps its line and `.threadwrap`
+    sits under it with the same three depths and the same ⌄. `wrapBody()` /
+    `wrapToggle()` / `wrapHasMore()` are shared with the archive row — ONE
+    renderer, so the depths behave the same wherever she opens them — and the
+    Summarize button repaints the thread line (`threadWrap`) the moment it
+    writes, since that sheet is opened from the thread's own header.
+    Test: `node scripts/test-chats-note-wrap-clear.js`.
+  - **A freshly written wrap-up reaches an already-open phone on its next
+    Refresh**, not instantly: the page paints from its localStorage cache and
+    polls only for new MESSAGES (the launch block in `chats.html`). True of
+    every registry field, not just this one.
+  - **There is NO rule that only she may write her note** — `POST /chatnote`
+    has never had a permission check. It was only ever a style guideline
+    (her length, her shape). Don't reintroduce one.
+  - The expander is a **sibling** of the row, not a child: a row is a
+    `<button>`, so a nested button is invalid and the tap would bubble into
+    opening the chat.
+  - **The sheet the button lives on asks for TAGS, not piles (Aug 2026 v3,
+    Sophie).** "Archive this chat?" is the header at the top; the name box is
+    GONE ("the chat name can only be changed from within the chat, not this
+    archive option"); and a star + bookmark toggle sit left of a row of tag
+    chips, all of which save on the tap rather than on Archive. The tags are a
+    FIXED vocabulary kept in two places — `TAGS` in `chatfeed.js` and
+    `TAG_LIST` in `chats.html`, pinned equal by a test — and they become the
+    archive's filter row. Full rules in `docs/chats-app.md`.
+  - **THREE DEPTHS OF THE SAME STORY (Aug 2026 v2, Sophie: "ideally would be a
+    short summary like three lines at most, and then a longer summary behind an
+    arrow").** `wrapLine` is the one line on the archive row, the three answers
+    are behind the expander, and `wrapLong` is the full account behind a `more`
+    inside that. Each is written to stand alone — not an intro, a middle and an
+    end — because she stops at whichever depth answers her. A chat too small to
+    justify a long version leaves `wrapLong` empty and shows no `more`. The
+    fields are asked for shortest-first ON PURPOSE: a truncated answer loses the
+    LAST field, so the summary she actually reads is the one least at risk.
+    **Each answer is capped in CHARACTERS as well as at one sentence** (140) —
+    the lesson the old short summary taught: asked for three sentences and
+    nothing else, the model came back at 374 characters, seven lines in the
+    expander. A rescued half-sentence is dropped whole rather than shown
+    ending mid-word, because a one-sentence answer has nothing to trim back to.
+    The SHORT one is capped in CHARACTERS (under 180 = three lines on her
+    phone), not in sentences — the first cut asked for three sentences and came
+    back at 374 characters, seven lines in the expander.
+  - **THE CAP IS ENFORCED IN CODE, BECAUSE THE MODEL CANNOT COUNT (Aug 2026,
+    measured TWICE over her real summaries).** Asking for "UNDER 180
+    CHARACTERS" produced a median of 223 across 318 chats; tightening the
+    instruction to two sentences and re-running still left 169 over the cap,
+    the worst at 526 characters — eight lines in the expander. `capShort()` in
+    `chatfeed.js` cuts it on the way in: whole sentences up to 180, and a first
+    sentence already over the cap kept WHOLE rather than cut mid-thought. It
+    guards the FREE-TEXT paths only — the THREE-ANSWER prose above is derived
+    from three separately-capped sentences, and trimming it would silently drop
+    "what's next". Nothing is lost — the detail lives in the bulleted long
+    version, which is what makes trimming safe. **A prompt instruction about
+    length is a hope; a length that matters gets cut in code.**
+  - **`POST /wrapup/trim` shortens the ones ALREADY on file, free** — pure text
+    surgery, no model call, dry by default (`{dry:false}` to write). It skips
+    any chat already carrying the three-answer fields, so it only ever reaches
+    the one-paragraph summaries written before that shape. It only
+    ever shortens `wrapUp`; `wrapLine`, `wrapLong` and `wrapOpen` are never
+    touched, so it cannot spend money or reword a summary she has read.
+    Re-asking Claude for 169 summaries to fix a LENGTH would have cost about
+    $1.70 and rewritten their words as a side effect.
+  - **THE LONG ONE IS BULLETS (Aug 2026, Sophie: "I would like bullet points
+    especially for the long summary — don't add bullet points where it doesn't
+    actually help, but the long summary is one block of text would be great to
+    see them separated").** The model returns `long` as an ARRAY of points and
+    the route stores it newline-joined, so `wrapLong` stays a plain string and
+    the one paragraph written before this still reads. **The array is what makes
+    the split reliable** — re-splitting a paragraph on punctuation breaks on
+    every abbreviation and file name. `fillWrap()` in `chats.html` draws it,
+    ONE renderer for both the archive row's expander and the sheet's read-back:
+    more than one line → one `.wrapbul` per line with a CSS `•` and a hanging
+    indent; a single line → a plain paragraph, because the short summary is
+    always one and a lone bullet in front of one sentence is decoration. The
+    prompt says **SPLIT ONLY WHERE THE WORK ACTUALLY SPLIT**, so a chat that did
+    one continuous thing gets one or two points rather than a chopped-up list.
+  - **A truncated answer is RESCUED, not thrown away (found live 2026-08-15 in
+    her hands).** `max_tokens` cut the JSON mid-string and an unclosed brace
+    fails both of `parseJSON`'s attempts, so a finished summary line died with
+    the unfinished sentence after it. The cap is 1500 now and `salvageJson` in
+    `chatfeed.js` closes what the model left open, then trims back to the last
+    finished sentence — and, in the bulleted long half, drops the point that
+    stopped mid-word while keeping the ones that finished. It is deliberately NOT in `anthropic.js`: half an object
+    is exactly what other callers must never be handed silently.
+  - Tests: `node scripts/test-chats-wrapup.js` (the freeze rule, the row line,
+    the three questions and their fallback to the Update card, the truncation
+    rescue), `node
+    scripts/test-chats-archive-summary.js` (the button) and `node
+    scripts/test-chats-archive-tags.js` (the tags, the vocabulary and the
+    filter row) — the last two headless against the real page.
+
+### A LIST IN A REPLY WEARS A BOX ON EVERY ITEM
+
+- **A LIST IN A REPLY WEARS A BOX ON EVERY ITEM, AND THE BOX HAS THREE STOPS
+  (2026-09-03, Sophie: "could message lists automatically have a tick in the
+  app" · 2026-09-04: "do a three way toggle so two press is an x three press
+  is a note option that brings up a text box … a toggle default to for claude
+  but also can set to 'just for me'").** A markdown list of 2+ or a run of 3+
+  bold-led paragraphs draws a box at the head of each item (`tickList` in
+  chats.html). One press ticks (red), two crosses out (the dislike badge's
+  grey, the item struck), three opens a NOTE BOX under the item, four clears.
+  A press CYCLES here on purpose — the box has nothing to aim at, unlike
+  the three-way TRACK the house rule forbids cycling on. The state is
+  `ticks[key]` on the MESSAGE doc (`true` · `'x'` · `'note'`, keyed by a hash
+  of the item's words), `POST /api/chatfeed/tick {id, key, state, note?, to?}`.
+  - **FOR CLAUDE IS THE DEFAULT.** Send posts the note into the thread as HER
+    message — `Note on "<the item's words>": <her note>` — through `/reply`,
+    the composer's path, and **never rings `/wake`** (her rule the hour it
+    shipped: "doesn't need to ring doorbell · just see it when they're up by
+    me") — the chat sweeps it like anything she writes, next time it is up. **Just for me** files it on the item alone and tells
+    nobody. A saved note reads back under its item in her italic with who it
+    was for; tapping it reopens the box holding her words (prefilling with
+    her own saved value is not pre-written text).
+  - **AND IT IS IN THE ONE NOTES INBOX EVERY CHAT SWEEPS — `GET
+    /api/gallery/assets/notes?chat=` lists it as `kind:'item'` (2026-09-04,
+    the same hour: a chat swept that read, answered "none reached me", and six
+    of her notes sat in its thread — "if they weren't in an obvious place at
+    first, that's on you").** The row carries the item's own words as its
+    `description`, her note as the thread, `waiting:'chat'` until answered,
+    and `msgId` + `key`. **Answer it ON THE NOTE**, the picture-note rule:
+    `POST /api/chatfeed/tick/reply {id: msgId, key, text}` — it reads back
+    under her note in the app. A just-for-me note is in no inbox.
+  - **THE WORDS OF A LIST ITEM ARE STILL THE PAGE — ONLY A NEAR MISS IS
+    EXEMPT (2026-09-11, Sophie: "tapping chats no longer scrolls screen -
+    only pill").** The 09-09 fix below took the whole item — its words
+    included — off the tap gesture, and a reply here is mostly list items (a
+    markdown list of 2+, or 3+ bold-led paragraphs, both wrap every item's
+    words in `.mtitem`), so there was nothing left on most replies to tap.
+    `tickNearMiss` is the rule now: a tap inside the first 16px of the item's
+    own first line, right beside the box (whose invisible hit area already
+    reaches ~5px into the gap), is the tap she aimed at the box and moves
+    nothing; anything further along the words toggles the reading-aid like
+    prose. The saved note and the open note box stay off the gesture. Pinned
+    by `node scripts/test-chats-list-ticks.js` (a near miss MEASURED still,
+    the words MEASURED moving).
+  - **THE TARGET IS BIGGER THAN THE BOX, AND A MISS NEVER MOVES THE PAGE
+    (2026-09-09, Sophie: "can you make the targets for the message X checklist
+    bigger or make it so it doesn't also scroll the page").** Both halves,
+    because they are one complaint: the box was 19px in a line of 16.5px
+    prose — a **20×20 tap area, measured** — and a MISS landed on `.m-full`,
+    whose tap toggles the autoscroll, so missing set the page moving under her
+    thumb (measured: 54px on one tap). The box is 22px and carries an
+    INVISIBLE hit area around it (`.mtick::before`) — **38×30 now** — which
+    buys the size without making the mark heavier or moving a line of her
+    words; it reaches LEFT into the indent and only ~5px right, so the words
+    stay the words, and its vertical reach is held inside the line box so two
+    boxes in a run never fight over the same pixel. The whole item — its
+    words, its saved note, its open note box — is off the tap gesture beside
+    `pre`/`code`; the rest of the message still toggles.
+  - **The words live in `ticknotes[key]`, a SEPARATE map**, so cycling the box
+    past the note stop never deletes a sentence she wrote; the box ships
+    EMPTY. `forge-item-notes` is the inbox's copy (`node
+    scripts/test-item-notes.js`). Test: `node scripts/test-chats-list-ticks.js` (the real page
+    headless — the three colours MEASURED, and what the stub really received
+    on /reply, /wake and /tick, in order).
+
+### THE PINNED LINK
+
+- **THE PINNED LINK — if your work lives at a URL, PIN IT (Aug 2026, Sophie:
+  "I'm constantly referring to a link to a page… I just wanna make that
+  pattern more clear that chats have that option and make it the expected and
+  common behavior for chats if a link is involved").** A pinned link sits
+  directly under the chat's name, above the messages: one row, the title she
+  gave it, one tap. Everything else about a link — where it was mentioned,
+  which turn it was in — makes her hunt for it in the scrollback.
+  `POST /api/chatfeed/pin { chat, session, url, title, kind? }`.
+  - **TWO CASES EARN A PIN, AND ONLY THOSE TWO** (Sophie, same day, after the
+    first version of this rule read as "pin whenever a link is involved" and
+    chats started pinning anything with a URL: "not every chat deserves one,
+    only the two cases I mentioned"). **Most chats should have NO pin** — an
+    empty row is the correct, common state, and a pin she does not come back
+    to is clutter at the top of a thread she reads every day.
+    - **a page this chat is ACTIVELY WORKING ON** — `/science`, `/chunking`, a
+      tool page. Pin it the first turn it exists. The
+      test is active work, not "a link exists": a page you finished and will
+      not touch again does not need the row.
+    - **a deliverable you are ACTIVELY HANDING HER NEW VERSIONS OF** — a film,
+      an episode, an audio cut. Pin the NEWEST render; the title carries the
+      version ("Evan — the long cut v6 (4:54)"). A one-off render you will
+      never re-cut is not this.
+  - **A COMPARE PAGE IS ALREADY IN THE TAB — NEVER ALSO PIN IT AS A LINK (Aug
+    2026, Sophie: "if there's a compare page for the exact same thing … it
+    shouldn't be also pinned as a link").** Anything posted with
+    `POST /api/chatfeed/page` sits in the chat's **Compare tab**, one tap from
+    the same header, so pinning its URL puts the identical thing on screen
+    twice and spends the one pin row on something she can already reach. This
+    is a carve-out of case 1, not an exception to it: a page you are actively
+    working on still earns the row — unless the page IS the Compare page, in
+    which case the tab is the row. (This line used to name "a Compare page's
+    URL" as a thing to pin, which is how it happened.) Same for the judge and
+    cut-picker pages: all three land in that tab. A page you host yourself
+    (`/science`, a tool page) is NOT in the tab and still pins normally.
+  - **NEVER PIN, without asking:** a PR or a GitHub file/doc link, a dashboard,
+    a page you merely referenced, the Chats app itself, a page whose work is
+    done, your own chat's admin links, or **anything already sitting in one of
+    this chat's own tabs** (a Compare page, an Assets image). **A THIRD CASE
+    IS NOT YOURS TO DECLARE** (Sophie: "there might be other cases, but I'd
+    like them to be run by me before they're made official") — describe the
+    case in your reply and let her say yes; do not pin it and see if she
+    objects.
+  - **RE-POST IT EVERY TIME YOU UPDATE WHAT'S BEHIND IT.** Same url is fine —
+    the re-post is the update, and it is what lights the **current** tag on
+    the row (Sophie: "a tag on it that says like current or recent, and it
+    only says that if the chat updated the last turn that they finished"). The
+    server counts the finished replies since the pin; *current* shows while
+    that count is 0 or 1 — the turn that pinned it, and that turn once it has
+    ended — and goes out the moment the chat finishes a turn that left the
+    link alone. So a lit tag means *what's behind this moved in the last thing
+    this chat did*, and nothing else. Nothing decays it on a timer.
+  - **ONE pin per chat** — pinning again replaces it. Pin the thing she comes
+    back to; when a chat has both a page and a film, the page usually wins
+    (the film's newest cut can live on the page). Clear it with `url:""`.
+  - `kind` is optional now: a url ending in `.mp4`/`.mov`/`.webm` pins as a
+    film (tap = full-screen player), `.m4a`/`.mp3`/`.wav` as audio, anything
+    else as a **link** that opens the page. Pass `kind` explicitly when the
+    url has no extension to read (a signed media url with no filename).
+  - **Read back what you have pinned** with `GET /api/chatfeed/status?chat=&
+    session=` → `pinned:{url,title,kind,at,turns}`. `turns` ≤ 1 means the tag
+    is still lit.
+  - **THE ROW ENDS BEFORE THE PILL'S COLUMN, MEASURED (2026-08-26, Sophie's
+    screenshot of `people-watching-club-reel`: the row read "PWC ep006 — the
+    building across the street (0:41)Fastest").** That tail is `#spd`, the
+    autoscroll pill's own speed label, drawn under the capsule in the fixed
+    top-right corner — and the pinned row was `width:100%`, so **47px of it sat
+    inside that column** and her title's last words were unreadable. It is the
+    same collision the QUESTIONS button had, so it is the same answer:
+    `fitPillGap` in `chats.html` is now ONE measured pass shared by both rows
+    (`pillRows`), never a hardcoded band — the pill is conditional and its top
+    rides `env(safe-area-inset-top)`. **The BOX shortens rather than padding**,
+    because this row has an outline and a padded one keeps drawing its border
+    under the pill. A header row added later joins by pushing itself onto
+    `pillRows`. Test: `node scripts/test-chats-pin-pill.js` (verified failing 4
+    against the pre-fix page; the tap asked with `elementFromPoint`, which is
+    what a covered row passes every width assertion while failing).
+  - Tests: `node scripts/test-pin-current.js` (the kind + tag rules, pure) and
+    `node scripts/test-chats-pin.js` (the real page, headless).
+
+### A THIRD PIN, AND IT IS A SCREEN
+
+- **A THIRD PIN, AND IT IS A SCREEN — ON MY TRAY (2026-08-31, Sophie: "add a
+  tab in chats called 'on my tray' where i can pin chats by their icons for
+  what im working on rn — ex xi to do · review cards illustrations ideas ·
+  triset · review cards").** The FOURTH list tab, leading the row, and the one
+  answer none of the four marks above gave: `starred` lifts a chat inside a
+  list of two hundred, where the tray IS the list — three or four chats and
+  nothing else on screen. **`tray` + `POST /api/chatfeed/tray`**; the Organize
+  sheet's mark is the ONE door and it toggles both ways.
+  - **`trayAt` IS THE POINT AND IS NOT BOOKKEEPING — the tray does not
+    reshuffle.** It is the one pile in this app that does NOT come through
+    `sortedChatNames`: every other list is newest-message-first, which is right
+    for an inbox and exactly wrong for a dock — icons that move whenever a chat
+    replies are icons she can never learn the position of. The order is when
+    she PUT each one there, oldest first, so the tray grows at the end. The
+    server stamps it (only the write knows the moment), the optimistic copy
+    stamps one too, and re-adding a chat already on the tray KEEPS its original
+    stamp so a stray double tap cannot send its icon to the front.
+  - **IT IS A DAY'S TRAY, AND THE ARROWS WALK BACK (2026-09-02, Sophie: "make
+    the 'on my tray' feature be per day — so it starts fresh, and i can go
+    back w arrow to other days").** The store is `trayDays: {'YYYY-MM-DD': iso}`
+    on the registry doc — a key per WORKING day (the 5am Pacific cut the date
+    headings draw by, now a server module too: `day-cut.js`, pinned by
+    `test-day-cut.js`) → when she put the chat there. Today opens EMPTY; a
+    `‹ Today ›` row leads the tray and ‹ walks to the days that HAVE one (not
+    the calendar — a week with no tray is one tap). Putting a chat on writes
+    TODAY's key; taking it off deletes TODAY's key and nothing else, so
+    yesterday's tray is history no tap today can rewrite. `chatTray()` on the
+    page means "on today's tray" — the Organize mark lights and writes for
+    today. The day is NEVER sticky (a reopened tab is today's; re-tapping the
+    tab from a past day returns to today), and the old single `tray`/`trayAt`
+    mark reads as the day it was set, so her tray from before this shipped is
+    that day's tray. `POST /tray` folds it into the map on the first write.
+  - **SHE ASKED FOR THE ICONS, so the tray is the icons: four across against
+    the tile wall's three, the name under each clamped to two lines, and no
+    status line, no timestamp, no about.** That question — *what am I on* — is
+    answered by looking; *what happened* is the ALL tab next door. Four across
+    is what makes a whole tray one glance rather than a scroll.
+  - **NO DATE HEADINGS**, deliberately, and it is the one pile without them:
+    every other list gets `mkDayRule` because every other list is in timing
+    order. Here a date rule would be a heading over a grouping that does not
+    exist.
+  - **IT IGNORES THE ACCOUNT FILTER**, the way the ★ pile ignores `archived`.
+    The account row is not even on screen while the lists row is (they take
+    turns), so a hand-picked chat vanishing because it belongs to the other
+    account is exactly the silent filter this app keeps getting burned by —
+    she picked these, and that IS the filter. A lit category chip LEAVES the
+    tray onto ALL, the same way it leaves the bug pile, for the same reason.
+  - **The archive and the trash stay their own rooms** — an archived tray chat
+    is not drawn, and the MARK is left on its doc, so un-archiving puts it back
+    where it was. Archiving never silently clears her pin.
+  - **A TILE CARRIES NO CONTROL AT ALL (2026-08-31, Sophie: "get rid of the
+    tray icon per chat · too wash to click").** It shipped with a lit tray mark
+    on the corner of every icon — the way off the tray without opening the
+    chat — and two things were wrong with it at the size it really renders: it
+    sat ON the drawing, washing out the one thing this screen is made of, and
+    26px on a 4-across tile is under the tap target anything here should have.
+    So the Organize sheet's mark is the only door, and it already toggles both
+    ways. Three taps to take a chat off against one — and the tray is three or
+    four chats she changes a couple of times a day, so the tap is cheap and the
+    clean icons are not. **Don't put it back**, and don't put a pushpin or a
+    hide eye there either: those are list controls, and the tray is not a list
+    she is triaging.
+  - **THE GLYPH IS LUCIDE `inbox` AND IS NEVER FILLED — measured, not
+    reasoned.** It shipped filled when lit, like the star and the bookmark
+    beside it, and rendered as a **red blob**: those two get away with a fill
+    because their silhouette IS the shape, where a tray's shape is its OPENING,
+    so filling the body closes the mouth. `.on` is the red stroke and the red
+    box, as it is for the crossed eye. Same finding as the bell's, one glyph
+    over.
+  - **THE TAB SAYS "My tray", NOT HER WHOLE PHRASE** — the PWC tab's call. A
+    fourth tab narrows every one of them, and "On my tray" measures 69.5px
+    against the ~64px a tab has at 320pt, so it wrapped and made that row 10px
+    taller than every other hairline row in the app. Nothing counts the tabs,
+    in the page or in the tests, so a fifth costs no layout work.
+  - Test: `node scripts/test-chats-tray.js` (the real page headless — four
+    across MEASURED off the real cells, the order proved against a fixture
+    whose first-added chat has the OLDEST message, and the add driven through a
+    deliberately SLOW stub so the OPTIMISTIC order is what renders; verified
+    catching a recency sort, a lost stamp, a three-wide grid, a refilled glyph,
+    a control growing back on a tile, and a sheet mark that can only add).
+
+### ORGANIZE — a chat can be filed and tagged from INSIDE it
+
+- **ORGANIZE — a chat can be filed and tagged from INSIDE it (Aug 2026,
+  Sophie: "an ability to tag or categorize something from within the chat
+  itself … an icon that says organize and then it pulls up the ability to tag
+  and categorize which is already on the front page but so far it doesn't work
+  within there").** The tag icon in a thread's header opens a sheet of her own
+  words — one row of chips, several lit at once — which shipped as her FOLDERS
+  (one per chat) over a fixed TAG vocabulary (many); both already existed and
+  neither was reachable from a thread.
+  **AND THE SIX LITTLE MARKS LIVE IN THAT SHEET NOW (Aug 2026, Sophie: "put
+  the little icons like the bell and the star and the pin and the trashcan and
+  the eye hide symbol … take them out of the main thing and put them in little
+  boxes like the … category tag things — don't forget to add the pin").** The
+  thread header carried seven controls in one row of unlabelled glyphs; five of
+  them (star · bell · keep · hide · delete) moved into Organize as boxed chips
+  the same shape as the tag chips, with the PUSHPIN she asked for
+  added beside them — so the sheet is one screen of decisions about the chat:
+  the four states over the two exits, then her words. The header keeps only
+  ARCHIVE (a word, deliberately) and the tag icon that opens the sheet. Two
+  things not to undo: **the pushpin is ALSO still on the home row** (her
+  earlier ask, "right on the main page not inside of it") — this added a place,
+  it did not move it; and **the section labels are back** (`.orggrp`, whose own
+  CSS comment always said to bring them back "the moment a second kind of chip
+  lands in that sheet") because a mark and a tag are different taps in
+  identical boxes. **THE MARKS CARRY NO WORDS — JUST THE GLYPH (Aug 2026,
+  Sophie: "the top (pin, star, bell etc) of tagging chats shud be just the icon
+  not text").** They shipped as boxes with the name in caps beside the picture,
+  which ran the six of them onto three lines of a sheet that is meant to be one
+  screen; the box is a 34px SQUARE now — the tap target, not the glyph — and
+  the word lives on the `aria-label` and the `title`, so nothing is lost to a
+  screen reader. The BOXES stay (that was her earlier ask, and it is what makes
+  a mark and a tag read as the same kind of thing).
+  `mkOrgMarks` in `chats.html` is all six; each keeps its old
+  class name, which is what carries its own colour (the bell stays GOLD, the
+  crossed eye and the lit pinhead stay red). Test:
+  `node scripts/test-chats-pin-top.js`.
+  Everything saves on the tap. **Filing is still HERS, not yours** — the
+  server files chats by itself (`chat-sort.js`); do not POST a category.
+  **CATEGORIES AND TAGS ARE ONE FIELD SINCE AUG 2026** (Sophie: "you can only
+  be in one category at a time … combine them and let you be in multiple
+  categories or tags at once") — `labels`, an array, many per chat, her own
+  words, one row of chips in the sheet. `POST /api/chatfeed/labels
+  {chat|chats, labels?|add?|remove?}` is the write; `category` and `tags` are
+  still MIRRORED on every write (first label / whole set) for the cached page
+  on her phone and for every reader that was never touched, so don't drop
+  them. **A LABEL IS A PILE OR JUST A WORD (Aug 2026 v2, Sophie: "tagging
+  shouldn't hide everything … whereas other ones shouldn't take it off the main
+  feed")** — only a PILE word takes a chat off the unfiled home list, seeded
+  from her folder vocabulary frozen the day the fields merged (`PILE_SEEDS`)
+  and switched per word in the Organize sheet (`POST /pile`).
+  **MAKING A WORD A PILE RE-FILES WHAT ALREADY WEARS IT (2026-08-26, Sophie:
+  "middle one goes first chat should've left because I tagged it as PWC
+  reel").** The word was already on that chat — the auto-sorter put it there
+  the day before — and what she did was flip `pwc reel` ON in the "Which words
+  file a chat away?" sheet. That flip wrote `pileLabels` and **nothing else**,
+  so every chat wearing the word became filed while still carrying the
+  `filedAt` it was given back when the word meant nothing; any reply newer than
+  that stamp makes `chatBack` true, the chat pops onto the main list, and it
+  never leaves. The sheet's own subtitle promises "a lit word takes a chat off
+  the main list until it answers you" — and that chat had answered a day before
+  the promise existed. **Measured live: of the 8 chats wearing `pwc reel`, the
+  only one that did not leave was the only one whose reply post-dated its
+  stamp.** So the flip now renews `filedAt` on every chat wearing the word,
+  exactly as filing by hand already does (`saveLabels` writes the stamp itself
+  for the same reason). Three things not to undo: it writes `filedAt` **alone**
+  and never `labelPatch`, so it cannot stamp `catBy:'sophie'` and lock the
+  auto-sorter out of the ten chats it filed itself; turning a word **OFF**
+  stamps nothing, since those chats hand themselves back by `chatFiled` going
+  false; and the page mirrors the stamp optimistically or the row sits there
+  until the next reload. Pinned by `node scripts/test-chats-labels.js`
+  (verified failing 2 pre-fix).
+  **The OTHER half of that report is her own rule working as written and was
+  left alone:** 11 more filed chats are sitting on her main list because they
+  answered after she filed them, some since Aug 15 — a pop-out ends only when
+  she re-files or responds ("it should stay in both places until I file it away
+  again or respond"), and nothing expires one. Changing that is hers to ask
+  for. **And `to be
+  reviewed` also puts the chat in the Review Queue** at `/review`. **And
+  `waiting for something` OPENS A BOX** asking what it is waiting for; her
+  answer lives in its own field (`waitingFor`, never `sophieNote`), shows as a
+  bold **Waiting for:** line on the chat's row and above her note in the
+  thread, and is DELETED the moment the tag comes off — a second asking word is
+  not yours to declare. **The reasons she has given before sit behind a small
+  ⟲ on that box** (Aug 2026, her ask) — the field is a live state and is
+  deleted with the tag, so the answers are remembered separately on
+  `__settings.waitingReasons` and the list rides the feed; nothing given
+  before shows no button at all. **AND TWO WORDS NOW CARRY A MANUAL RULE ON THE UPDATE
+  TAB (Aug 2026, Sophie: "i think i'll have to do manual rules per tag … more
+  coming")** — `waiting for a response` PINS the chat's card above every
+  section until she answers or dismisses it (the tag itself is the news, so
+  the card shows with nothing new), and `to be reviewed` folds its cards
+  behind a **Review** row that opens `/review`, where dismissing one HOLDS the
+  chat off her account lists until she reviews or responds. Both are HERS to
+  apply — the auto-sorter is forbidden from filing into either — and the rules
+  live in ONE table (`TAG_RULES` in `chats.html`) so her next one is a row in
+  it. Full rules in `docs/chats-app.md`; test `node scripts/test-tag-rules.js`.
+  **AND `waiting for a response` WEARS A MARK WHEREVER THE CHAT APPEARS
+  (2026-08-24, Sophie: "are there any extra instructions for if I tag a chat
+  waiting for a response? Since I'm waiting for it I'd like a chat that's
+  tagged like that to come with some extra indication").** The pin was the
+  whole of the rule, and a pin only existed on the Update tab — so on the home
+  list, and inside the thread itself, a chat she was owed an answer from
+  looked like every other chat. **The mark is the WHOLE rule now** (the tab
+  went on 2026-09-14, and the pin with it). It is a Lucide **`watch`** — a wristwatch — in
+  the marks' red at the front of the row, beside the star and the bookmark (the
+  slot for a state with no control of its own), and in the thread's `<h1>`.
+  **THERE IS NO "SOMEONE POINTING AT THEIR WATCH" ICON, and that is measured**
+  (her next question the same day): all 2,035 Lucide glyphs read, none holds a
+  figure, because the gesture needs a body, an arm and a dial and a line set
+  cannot say three things at 14px. Hand-drawn it fails too — rendered at
+  14/18/28/64 the figure is mud at the mark's real size and reads as someone
+  with a MAGNIFYING GLASS blown up. So the watch alone carries it: the object
+  out of her own picture, legible small. It shipped as an hourglass for one
+  afternoon. Three things
+  worth not undoing: it follows the **TAG**, not a card — the debt is over when
+  the word comes off (or when her reply stamps `notifSeenAt`, which is what
+  `seenFloor` reads), the same rule the sibling `Waiting for:` line has always
+  followed; it reads the rule off `TAG_RULES` rather than off the string, so
+  nothing can disagree about which word means this; and it is a `<span>`, because a
+  row is a `<button>` and a nested button would eat the tap. `waitMarkHtml` is
+  the one renderer and `syncWaitMark` repaints the thread header, which is
+  built once — the Organize sheet opens from inside that same thread, so
+  without it the screen she is standing on is the last to know. **A chat CAN
+  see its labels since 2026-08-27** — `GET /api/chatfeed/status` returns
+  `labels` (added for the bug-fix auto-archive and quick-question bell rules);
+  this line used to say it carried none. Reading them is fine; FILING is still
+  hers and the auto-sorter's. Test:
+  `node scripts/test-chats-waiting-mark.js`.
+
+### THE CHAT AREA IS THREE LISTS
+
+- **THE CHAT AREA IS THREE LISTS, AND THE ROW TAKES TURNS WITH THE ACCOUNTS
+  (2026-08-28, Sophie: "i'm thinking about restructuring chat area based on bug
+  fixes and deliverables, so they're on two separate lists" · "one tab ALL
+  chats, in timing order · one - list of deliverables AS they're delivered. so
+  - just the link to a movie, previews of images and whatnot · bug fix tab
+  third" · "also have a toggle next to account switcher that goes back to 3
+  tabs 1 per account").** One hairline row under the header with two modes,
+  swapped by `#rowtog` beside the account switcher — the LISTS, or the ACCOUNT
+  tabs it has always been. Sticky, opening on the lists.
+  **IT IS FOUR SINCE 2026-08-31** — *My tray* joined at her ask and LEADS the
+  row, so it reads most-focused to broadest left to right; `all` is still the
+  stored default, because a tray she has not filled yet would open the app on
+  an empty screen. Full rules: *A THIRD PIN, AND IT IS A SCREEN* above.
+  - **ALL IS NOT THE HOME INBOX, and that is the tab.** The ordinary home list
+    is the UNFILED pile, so a pile word takes a chat off it; ALL is every chat
+    in timing order, filed or not, **across every account since 2026-09-15**
+    (see *THE ACCOUNT FILTER FOLLOWS THE ACCOUNT ROW* below) — her word, in caps. The
+    ARCHIVE and the TRASH stay their own rooms (she put those away on
+    purpose), and **a lit category chip still narrows it** — the chip row is on
+    screen there, and a filter she can see that does nothing is the
+    silent-filter failure this app keeps getting burned by.
+  - **…EXCEPT THE BUG-FIX CHATS, WHICH ARE NOT ON IT (2026-08-29, Sophie: "make
+    the bug fix chats not show up in the all section").** They have a tab of
+    their own — the third one, and the header's bug button — so listing them on
+    ALL too is the same pile twice, and on a day of bug work it is most of what
+    ALL shows. The carve-out is the CHIP: a lit bug word is her asking for them
+    by name, and a filter she can see that returns nothing is the same
+    silent-filter failure. `bug fix`/`bugfix` are ARCHIVE_PROGRESS words and are
+    not offered as chips on the home row; `bug`/`bugs`, her own dictated
+    spellings, are — so the carve-out is reachable from a real tap. The live
+    home list, the hidden pile, the ★ pile and the archive are all untouched;
+    this is the ALL branch alone.
+  - **DELIVERED is the only tab whose rows are THINGS, not threads** — the
+    films and cuts from `forge-deliverables` (a pinned film is a hand-over, so
+    nothing new is filed) interleaved by time with PICTURE rows derived the way
+    the Update tab's strip is. **A picture row is a BURST, not a chat**: a
+    chat's images split wherever it went `BURST_MS` without filing another, so
+    the morning's nine and the evening's three are two rows — "as they're
+    delivered" is the ask. Three thumbs, her size, and the row says how many
+    there really were. **There is deliberately NO image door into the
+    deliverables collection** — 2,488 filed pictures would bury the films — and
+    her SOURCE LIBRARIES (the Dump, crystals, ingest), derived `thumbs/` copies
+    and audio records are not deliveries. **NOR IS ANYTHING UNLABELED, and
+    that is the load-bearing rule** — the house rule that a chat labels every
+    image it delivers, used as the test for whether a picture was handed over
+    at all. Measured live the hour it shipped: of 18 picture rows, the 7 with
+    nothing labeled were ALL background catches (a generated chat icon, a
+    film's cover frame, a poster) and every labeled row read as a real
+    hand-over. A path blacklist would grow a line per surface forever.
+    **TWO RULES SHE ADDED THE HOUR IT SHIPPED** (2026-08-28: "newest replaces
+    oldest" · "disappears if i write back"): a film already collapses by title
+    stem and a chat's PICTURES collapse by chat, so a second batch REPLACES the
+    first — nothing dropped, the earlier ones ride along as `older` and the row
+    says how many; and a row LEAVES the list once she has written back to that
+    chat since it landed (`lastHerAt`, her real send time, stamped by the one
+    route both her doors come through). So the tab is what has been handed to
+    her and not yet dealt with, and it empties itself; a chat that delivers
+    again after she wrote back comes back on its own.
+    **ANSWERED IS JUDGED ON THE FIRST HAND-OVER, NEVER `updatedAt`
+    (2026-08-31, Sophie: "deliverables don't leave when i answer them").**
+    A chat that acts on her answer re-pins the same url at the end of that very
+    turn — its checklist duty — and `record()` bumps `updatedAt`, so a row
+    judged by it was re-dated past her message every time she wrote: it could
+    never STAY answered. The leave rule compares `lastHerAt` against the doc's
+    own `at` (`firstAt` on the row), which never moves for a url; only a
+    genuinely NEW version (a new url → a fresh doc) brings the work back.
+    **AND EVERY ROW HAS HER ✕ (same message: "there's no way to swipe them
+    away").** Answering by message is not the only way she deals with a
+    delivery — a note on the paused film, a ♥, a decision made elsewhere — and
+    none of those stamp `lastHerAt`. The ✕ (`POST /api/deliverables/dismiss`,
+    a film row by its url, a pictures row by its chat) stamps a dismissal into
+    ONE map doc (`__dismissed`, carrying no `updatedAt` on purpose so the
+    orderBy queries can never surface it as a row); the rule is the answered
+    rule's shape — everything handed over before the tap is dealt with, a
+    delivery newer than the stamp shows by itself. A tap, never a swipe (the
+    house rule), and **the ✕ is HERS — a chat must never call the route to
+    tidy its own row away.**
+    `deliverables-feed.js` is the whole
+    rule (pure); `GET /api/deliverables/feed` is the read, three cached queries
+    and no model call.
+  - **AND THE BUG PILE DOES NOT REACH INTO THE ARCHIVE (2026-08-28, Sophie:
+    "archive doesn't pop out ur insane that's the point of archive").** It
+    shipped reaching in — the 2026-08-27 reasoning was that bug-fix chats
+    archive themselves when a fix lands clean, so a live-only pile would empty
+    itself exactly as that rule starts working. She overruled it: an archived
+    chat is one she put away, and a pile that hands it back is the archive not
+    working. **The emptying IS the feature** — the tab is the bug work still
+    open, and a finished one is in the archive, which has its own `bug fix`
+    filter chip. That old reasoning is history, not a rule.
+  - **THE BUG PILE IS ONE STATE UNDER TWO DOORS** — the header's bug button
+    (2026-08-27) and this row's third tab both write `listTab`, and the button
+    brings the row with it, so the pile she is looking at is always named on
+    screen. `bugOnly` is gone; `bugPile()` is the reader.
+  - **THE HIDDEN PILE RIDES ALL, BEHIND THE SAME BAR** (2026-08-28, Sophie:
+    "put hidden back in the new tab structure · same ui"). It went missing
+    because this tab renders its own list rather than falling through to the
+    live branch, where the fold lives. `renderHiddenBar` is CALLED, never
+    copied — the count, the "N new", the working glow and the
+    open-pile-is-the-whole-screen rule are one implementation, so a chat she
+    parks behaves the same wherever she is standing.
+  - **ONE ROW, SO ONE WRITER (2026-08-28, her screenshot: both rows stacked).**
+    `paintHomeChrome` un-hides the account row and EVERY repaint comes through
+    it, while `paintListTabs` only runs on the four branches that rebuild the
+    list — so the poll, a note save or leaving a search put the account row
+    back underneath the lists. `listsOn()` is asked inside `paintHomeChrome`
+    now, and the search's own `showAcc` asks it too; nothing else may write
+    that row's display.
+  - **EVERY DELIVERED ROW HAS A WAY BACK TO ITS CHAT** (2026-08-28, Sophie:
+    "add back to chat icon in deliverables tab") — a film row's own tap PLAYS
+    the film, so without it a delivery had no route to the one place she can
+    say anything about it. Its own `<button>`, a sibling of the row's, never
+    nested: a button inside a button is invalid and the tap would bubble into
+    the player.
+  - **THE ACCOUNT ROW COMES BACK ON EVERY OTHER VIEW** whatever mode she left
+    this in — the archive, bookmarks, the to-do. `paintListTabs` speaks ONLY
+    for the live chat list; anywhere else `paintHomeChrome`'s answer stands,
+    and it hides that row with `style.display`, which beats the `hidden`
+    attribute (the house rule).
+  - Tests: `node scripts/test-deliverables-feed.js` (the bursts and the
+    exclusions, pure) and `node scripts/test-chats-list-tabs.js` (the real
+    page, headless — verified failing against the pre-fix page).
+
+### THE ACCOUNT FILTER FOLLOWS THE ACCOUNT ROW
+
+- **THE CHAT LIST DOES NOT DEFAULT TO ONE ACCOUNT ANY MORE (2026-09-15, Sophie:
+  "does chat app default to only current account?" · "shud be chronological").**
+  It did, and invisibly, which is the whole of the bug. `rowMode` opens on the
+  THREE LISTS, and that row takes the ACCOUNT row's PLACE — so the account tabs
+  were off screen while `acctMatch` went on narrowing every pile under them to
+  whichever account the iOS app happens to be signed into. A filter with no
+  control on screen is the exact failure this app keeps getting burned by, and
+  the tray and the lit tag each already say so in their own notes: *"the account
+  row is not even on screen while the lists row is, and a pile silently missing
+  two thirds of itself is exactly the filter she cannot see."*
+  - **MEASURED on her live registry the morning she asked, `appAccount:"2"`:**
+    of the **30 most recently active chats, 26 are on account 1 and 4 on
+    account 2** — so the screen she opens to find out what happened was hiding
+    26 of her newest 30. Across the whole ALL pile it is **136 of 401**; live
+    chats run 238 / 146 / 107 across accounts 1 / 2 / 3, and over the last seven
+    days 102 / 5 / 86. Account 2 is where the FEWEST of her recent chats live,
+    which is why this read as "my chats are gone" rather than as a filter.
+  - **THE RULE IS ONE FUNCTION, `acctRowOn()` in `chats.html`** — the filter
+    applies exactly while the account row is on screen, and `paintHomeChrome`
+    shows the row FROM the same function, so the row and what it narrows can
+    never disagree. Tapping `#rowtog` brings the tabs back and the filter with
+    them; flipping to the lists takes the filter off, including an account she
+    had tapped, which would otherwise outlive its own control.
+  - **NOTHING IS LOST BUT THE HIDING.** Every row already carries its account
+    digit (`acctHtml` → `.cr-acct`), so a merged list still says which account
+    a chat ran on — the pinned heading, the day rules and the sort are all
+    untouched, and the sort was already chronological. What broke the
+    chronology was the filter, not the order.
+  - **THE EMPTY STATES STOPPED NAMING A FILTER THAT IS NOT APPLIED** (`onAcct()`
+    / `otherTab()`): "No chats on account 2 — tap the other tab" is the right
+    answer while the row is up and a lie while it is not.
+  - **THE CATEGORY CHIP'S BADGE WAS NARROWING TOO, and its pile stopped being
+    account-scoped on 2026-08-31** ("any tag shud show all") — so the red number
+    under a word was smaller than the pile behind it. The badge counts what the
+    chip shows now.
+  - **AND ★ WAS A DEAD CONTROL ON THE DEFAULT SCREEN, found the same hour.**
+    `if(starOnly)` sat BELOW the ALL branch, which returns — so with the lists
+    row up and ALL lit (the default), tapping the star chip repainted the same
+    list. Its own handler had always assumed otherwise: it clears a lit chip and
+    moves off the bug/tray tabs so this pile can take over. It is seated with
+    the other replace-the-list piles now, in front of ALL, where the lit TAG
+    pile already was.
+  - **A KNOWN, MEASURED, UNFIXED THING BESIDE IT: the masthead's controls
+    overlap the title on her phone.** At 390pt the `.hctl` row starts at x=84
+    and the word "Chats" runs x 19.5 → 95.7, so the bookmark button sits on the
+    last few pixels of the word and takes a tap there; at 430 there is no
+    overlap. Six controls need 231px and the row has 390. Which control gives
+    way is a design call, so it is named here rather than changed.
+    `test-chats-accounts.js` fails on it.
+  - Tests: `node scripts/test-chats-account-default.js` (the real page
+    headless — the default list MEASURED against the stub's own timestamps,
+    every account present, the digit really visible, the hidden pile, `#rowtog`
+    narrowing and widening again, and the empty state's words; verified failing
+    5 pre-fix). `test-chats-accounts.js` had been RED on main since the three
+    lists landed — it asserted the account row was simply up — and opens the
+    row by hand now.
+
+### ANSWERING A QUESTION
+
+- **ANSWERING A QUESTION — answer it ONCE, at the top, plainly. THE BOLD ECHO
+  FIRES ONLY WHEN SHE SAYS THE WORD "QUESTION" (2026-08-23, Sophie: "get rid of
+  the directions for chats to bold question answers. it ONLY applies if i use
+  the word question in my text eg i have a question, or my question is: or
+  'quick question' etc. THEN it's bolded and put in the questions tab").** One
+  rule with a switch on it, and the switch is hers:
+  - **She did NOT say it → answer plainly and move on.** No bold heading, no
+    restatement as a required block. If restating helps the answer, restate it
+    in your own words. Nothing from that message reaches the Questions tab.
+  - **She DID say it → repeat THAT question on its own line in bold, verbatim,
+    and answer underneath, not bold.** That is the shape `questions.js` reads
+    to file the exact answer under the exact question, so it earns its space
+    here — and the rest of the reply is unchanged: this is a heading on the
+    answer you were already writing first, never a second pass at it.
+  - **Or she said a CODE WORD** — "file this" / "save that answer" / "for the
+    questions tab" — which files the exchange even when nothing in it was
+    shaped like a question. Same shape of reply: bold the thing she wants kept
+    on its own line, answer under it.
+  - **Keep the answer SHORT either way**; the length rule above applies to
+    answers first of all.
+  - **Why it has a switch at all.** The blanket version shipped for one day
+    (2026-08-14→15) and Sophie retired it: chats answered her question first
+    (the older rule) and then echoed it in bold and answered it AGAIN, so every
+    reply carried the same answer twice, and the verbatim echo of her dictation
+    read as clutter ("the verbatim is kind of annoying"). It was never the bold
+    that was wrong — it was bolding EVERY sentence a detector thought was a
+    question, on a list she looked at and said "most of them aren't even
+    questions". Her word is what makes the echo rare enough to be worth
+    reading.
+  - **The QUESTIONS button needs nothing from you.** Under a chat's header, on
+    the note row, a button **swaps the message list for her questions** and
+    swaps it back — the header, tabs and her note stay put; each row is a real
+    `.msg` (collapsed to the question, tap to open the answer under it). It is
+    **DERIVED, never filed**: `questions.js` pairs her messages
+    (`from:'sophie'`) with the reply that followed and shows that reply's
+    opening — the TLDR or first paragraph — **which is exactly why answering
+    FIRST and ONCE matters: your opening IS what she sees under her question
+    forever.** A reply that opens with "Lots here. Let me start the rendering
+    first" files a non-answer under her question (real example). Chosen over a
+    POSTed card because only 15 of 224 chats ever wrote an Update card; a
+    filed list would be empty. **Unanswered questions are never listed**
+    (`answeredOnly`), and one answer never repeats across several question
+    rows (`collapseSharedAnswers`).
+  - It shipped first as a full-screen overlay with an ✕ and that was wrong —
+    "not totally separate not an x"; a new surface here should take the
+    messages' place, not cover them.
+  - **THE GATE IS HER WORD, NOT A `?` AND NOT A DETECTOR (2026-08-23).** A
+    message with no `question` in it contributes NOTHING to the list, however
+    much it reads like an ask; inside a message that has it, the old heuristics
+    still pick WHICH sentence — her dictation often carries no question mark at
+    all ("I'm wondering if this should be part of the message"), and "quick
+    question, can you make the dashes pink" has neither a mark nor an
+    auxiliary, so only her word finds it. **Bare framing hands the row to the
+    next sentence** — "I have a question." is a heading, so the row reads what
+    follows it. The list is DERIVED on every read, so this changed every
+    chat's whole history at once, with nothing migrated.
+  - **SHE HAS TO BE ASKING, NOT TALKING ABOUT ASKING — the gate is her
+    PHRASES, not the bare word (2026-08-24, Sophie: "i noticed ur still
+    structuring ur response w bold questions. is that cuz ur rules are out of
+    date?").** The rules were not out of date; the gate fired exactly as
+    written, and that WAS the bug. Measured in this chat's own tab that day:
+    **all 3 rows were false positives**, none of them a question she had marked
+    — "…ur still structuring ur response w bold questions" (describing), "it
+    didn't actually answer the question" (complaining), "it ONLY applies if i
+    use the word question in my text" (specifying). So `ASKING` — the phrase
+    list that already picked WHICH sentence — decides whether the message counts
+    at all, plus `BARE_FRAME`, a WHOLE sentence that is nothing but a count of
+    them ("Two questions." / "Questions:"). **`BARE_FRAME` is anchored at both
+    ends and that is load-bearing**: any looser rule matches the trailing
+    `question.` of "it didn't actually answer the question." Measured over her
+    120 recent chats, 399 of her messages: **36 flagged → 17**, and the
+    survivors read as her genuinely marking one.
+  - **THE HAND-OFF IS A LAST RESORT.** Bare framing gives the row to the next
+    sentence ONLY when nothing else in the message reads as a question —
+    otherwise her setup line ("so basically, I have this idea…") files as a
+    second row beside the real ask.
+  - **A CODE WORD FILES ON PURPOSE (2026-08-24, her idea: "maybe a code word
+    that triggers the chat to file the answer intentionally?").** `file this` ·
+    `file that` · `save that answer` · `for the questions tab` — it reaches the
+    case no phrase rule can: an exchange that was never shaped like a question,
+    where she reads an explanation and decides she wants it back. **A SMALL
+    VOCABULARY, NOT ONE MAGIC STRING** — she dictates and paraphrases, so a
+    single exact string would silently drop the second spelling. It runs first
+    and then falls THROUGH, so a message carrying both still picks the real ask.
+  - **A CONTEXT-COMPACTION SUMMARY IS NOT HER MESSAGE (found live 2026-08-24 in
+    this feature's own chat).** When a session runs out of context the harness
+    hands the model a summary as a USER turn, so the hook lifts it exactly like
+    something she typed — 7,232 characters reciting her earlier words, this
+    file's rules, and the trigger phrases as examples, which fires every gate
+    several times. `COMPACTED` in `questions.js` matches the harness's own
+    opening line, **anchored at the start** so a message merely talking about
+    compaction is untouched. Measured over her 120 recent chats: only **4 of
+    408** of her messages are one, but they produced **5 of the 35** rows — a
+    summary quotes, so it trips far above its weight (35 → 30 after).
+    **The deeper half is NOT fixed**: the feed still shows the summary as hers
+    in the thread and under the search's Mine filter. Only the derived half
+    was in reach without a hook change.
+  - **The cost, named:** a message that QUOTES the trigger phrases — her own
+    spec above literally contains "i have a question" and "my question is:" as
+    examples — is indistinguishable from asking one. Irreducible by any phrase
+    rule, rare (a message about this feature), and an unanswered row is never
+    shown anyway.
+  - **THE ANSWER CAN LIVE ANYWHERE IN THE REPLY — `bestParagraph` scores every
+    paragraph against the question and takes the one that talks about it
+    (2026-08-23, Sophie, looking at a row still opening on progress lines:
+    "did u check the answer? it didn't actually answer the question. ull have
+    to be smarter about this whole thing").** The reply-opening fallback
+    assumed answer-first always holds; on a working turn's reply it often
+    doesn't — her "are 2k and 4k the only sizes" was answered with "Now the
+    size tiers on the server:" while the reply's FIFTH paragraph literally
+    began "2K and 4K are not the only sizes — it's continuous." It is
+    `matchBlock` without the bold requirement: ≥3 distinct question words must
+    hit (two is a coincidence — "answer"+"question" co-occur in half her
+    threads), the score's denominator is capped at 8 (her dictated questions
+    run long, and an uncapped fraction buries a real 4-word match under 13
+    words of framing), the TLDR competes as a candidate, and below the bar it
+    returns null so the old chain runs unchanged — which is also why no row
+    can REGRESS: the new path only fires when the paragraph provably shares
+    the question's words. **The stem lands singular and plural on one root**
+    — the old one sent "images"→`imag` but "image"→`image`, losing the two
+    hits on exactly the paragraph that answered her. Measured over her 120
+    recent chats, 36 answered rows: answers sharing ≥3 content words with
+    their question went 11 → 20. Free, derived, no model call.
+  - **A PARAGRAPH ENDING IN A COLON IS AN INTRODUCTION — the fallback keeps
+    READING (same day, the earlier half of the fix).** When nothing scores,
+    `firstPara` reads past colon-ended lead-ins, up to three paragraphs, and
+    only ever reads FURTHER — a mid-turn progress line and a real lead-in
+    ("Two things:") are the same shape, so keeping both is merely noisy where
+    dropping would be wrong. Going forward the bold echo on questions she
+    marks hands `matchBlock` the exact answer before either fallback runs.
+  - **THE PILL SAT ON THE QUESTIONS BUTTON (2026-08-23, her screenshot: the
+    door read "QUES").** The note row is the thread's LAST header line and it
+    does not scroll, so its right end is permanently inside the injected
+    pill's fixed corner, and the button is the rightmost thing on it —
+    47px of it covered on a 390pt phone. `fitNoteRow()` reserves `--pillgap`
+    MEASURED against the pill's real rect, not the home screen's hardcoded
+    `192-top` band: in a thread the header is a different height and her
+    safe-area inset pushes the pill down (measured off the screenshot: y
+    63→222pt, not 14→192). It re-measures on a delay and on resize, because
+    the pill is conditional and appears only once there is something to
+    scroll. **`elementFromPoint` is the only honest test** — the button passed
+    `offsetParent !== null` and every width assertion the whole time it was
+    unreachable.
+  - `GET /api/chatfeed/questions?chat=` returns them, newest first
+    (`?open=1` includes unanswered ones).
+  - Tests: `node scripts/test-questions.js` (the extraction and the lead-in
+    rule, pure, no network) and `node scripts/test-chats-questions.js` (the
+    real page, headless — including the pill collision, verified failing 2
+    against the pre-fix page).
+
+### Notes are a THREAD
+
+- **Notes are a THREAD — WRITE BACK on the image (July 2026).** A note is a
+  two-way conversation on that picture: she writes from the lightbox, and **the
+  chat that made the image replies on the image itself**. Deliberately snail
+  mail — you answer when she next messages you, so a reply landing hours later
+  is the expected rhythm, and there are still NO timers or self-check-ins.
+  - **Read what's waiting:** `GET /api/gallery/assets/notes?chat=<name>` — only
+    the images that have a thread, `waiting:"chat"` ones FIRST (she spoke last
+    and nobody answered), each with its `thread:[{from:"sophie"|"chat", text,
+    at}]`, the image's `description` label, and any `vote`/`done`. The full
+    `GET /api/gallery/assets` carries `thread` + `waiting` + `unread` too.
+  - **Reply:** `POST /api/gallery/assets/note`
+    `{ chat, url, text, from:"chat" }` — appends one message (2000 chars max,
+    over-length is REFUSED, never truncated). Answer what she asked, say what
+    you changed, and name the new image's label if you re-rolled it.
+  - **Check them in the same sweep as votes/prompts** whenever Sophie messages
+    you: read the notes, do the work, then reply on each image you acted on.
+    `done:true` (via the vote route) still marks one handled; her next message
+    on that image reopens it automatically.
+  - Legacy single `note` strings show up as a one-message thread from her, so
+    old notes are never lost, and `note` keeps mirroring her LATEST ask for any
+    older reader. Her tile shows a green count badge until she opens your reply.
+  - **HER NOTES USUALLY ARRIVE *AFTER* THE MESSAGE THAT ANNOUNCES THEM — SWEEP
+    AGAIN BEFORE YOU SAY YOU ARE DONE (2026-08-28, TO FIX).** Measured on the
+    hate-of-the-game reel: she wrote "added some notes … i suggested 3 examples
+    in the notes" at **23:17:29**, and the seven notes themselves landed
+    **23:29:54-23:31:11 — twelve minutes later**. The chat swept at 23:18,
+    correctly found nothing, told her so, and built 135 pictures ignoring
+    every one of her specific asks. Reading them at turn START is not enough:
+    she announces the intent, then watches the film and writes while the chat
+    works. **Re-read `GET /api/gallery/assets/notes?chat=` right before you
+    report finished**, and treat "no notes yet" as "not yet", never as "she
+    left none".
+    - **A NOTE ON A FILM IS NOT ON AN ASSET TILE, so the assets listing never
+      shows it.** Those seven landed on the PINNED REEL's url with no
+      `description` (the `[0:18] …` timestamp form `filmnote.js` writes). They
+      ride the same `forge-asset-votes` doc, so **`/notes` finds them and
+      `GET /api/gallery/assets?chat=` does not** — a sweep that walks the
+      Assets tab looking for `note`/`thread` fields is blind to every note she
+      leaves on a film.
+    - **THE BELL IS BUILT NOW (2026-08-28, Sophie: "fix the note bell").** A
+      note she writes rings the owning chat's wake doorbell, so a note landing
+      while the chat is asleep can reach it instead of waiting for her to
+      message again. It lives in **`appendAssetMessage` in server.js** — the
+      ONE place all four note paths funnel through (her text note, the legacy
+      single note, a voice note, and a film note's timestamped line), so the
+      bell has no holes. Three things not to undo: it rings only for
+      `who === 'sophie'` (a chat answering on an image would wake itself in a
+      loop), it is **never awaited** and its failure is caught (a note must
+      land on the doc whether or not anything is wakeable — witchvideo.js's
+      `ringChat` has exactly this shape), and it goes through `chat-wake.ring`
+      with `registry` + `followMoves` so a forked or re-keyed chat still
+      resolves. Pinned by `node scripts/test-asset-note-bell.js`.
+    - **A FILM NOTE LEAVES THE PHONE THE INSTANT SHE SWITCHES APPS
+      (2026-09-05, Sophie: she notes on the film, opens the Claude app, and
+      the note arrived minutes late).** `filmnote.js`'s outbox only sent
+      while the page was in front — a backgrounded page runs no timers and
+      its fetch can be cut off — so a note waited for her to come back AND
+      for the 45s tick. Now: `visibilitychange`→hidden and `pagehide` send
+      every text-ready entry by `sendBeacon` (the one send a browser
+      finishes after the page is gone), and visible/`pageshow` flushes the
+      queue at once. A beacon answers nothing, so the entry STAYS queued
+      (stamped `beaconed`) and the flush re-sends it — every send carries
+      the entry's own `noteId`, and `appendAssetMessage` files ONE message
+      per id inside its transaction (a duplicate answers `duplicate:true`
+      and never rings the bell). A recording still waiting to be uploaded
+      cannot ride a beacon (it needs the transcript back) and waits for the
+      flush. The 45s tick is only the fallback. Test: step 7b of
+      `node scripts/test-chats-film-note.js` (a REAL beacon against the stub,
+      the outbox read after the beacon and after the return, the re-send's
+      noteId; verified failing 4 pre-fix).
+    - **THE BELL IS NOT A SUBSTITUTE FOR THE RE-READ.** A chat mid-turn is
+      already awake, so nothing wakes it — the doorbell only helps a chat that
+      has finished. The note that got ignored landed while a chat was working.
+      So the re-read before reporting done is still the protection, and the
+      bell is what covers the case after.
+    - **AND DO NOT "VERIFY" WITH AN ORDERED FIRESTORE QUERY.** The same
+      session reported the notes collection **empty** from
+      `.orderBy('updatedAt','desc')` — but the docs carry `updated`, not
+      `updatedAt`, and **Firestore silently omits every document missing the
+      orderBy field**. The collection held **1,262 docs**. That wrong reading
+      is what turned "not yet" into a confident "nothing saved anywhere".
+      Count with a bare `.get()` before concluding anything is empty.
+
+### Prompts on Assets images
+
+- **Prompts on Assets images — POST THE PROMPT FOR EVERY IMAGE YOU MAKE (July
+  2026).** Sophie taps **PROMPT** on an image in the Assets tab and the prompt
+  covers the picture, with a **Style / Content** toggle (style left, content
+  right). Nothing derives it — the chat that generated the image posts the two
+  halves itself, because only it knows where the seam is:
+  - **style** = the look: house-style/LoRA trigger word and its suffixes, medium,
+    palette, rendering notes (`wtr watercolor drawing, loose wet-on-wet wash,
+    visible paper grain`).
+  - **content** = what is depicted: subject, action, setting, composition
+    (`a woman in a yellow raincoat feeding crows on a park bench at dusk`).
+  - **THE EXACT PROMPT, character for character — NEVER PARAPHRASE (Aug 2026,
+    Sophie's rule).** Both halves are the literal text that was sent to the
+    model: the content half verbatim, and the style half the real style
+    prefix/suffix/character-consistency lines as sent (when the style is a
+    wrapper around the content, mark the seam with `[content]`, and note any
+    attached style-ref images + size/quality after it). Never a summary, a
+    cleaned-up version, or a reconstruction from memory. If the exact text is
+    not available (an older image, an unknown generator), file NOTHING — the
+    PROMPT button stays hidden by design — or file `not available`; never
+    fill the gap with a paraphrase.
+  - `POST /api/gallery/assets/prompt` `{ chat, url, style, content }` — the
+    image's Firebase Storage url, x-studio-token when gated. Do this for EVERY
+    image deliverable, right after the image exists; it needs no gallery step
+    first (post it before the Stop hook files the image and the hook's post
+    converges onto the same record by url — never a second tile). Re-posting the
+    same url overwrites that image's split, so a fixed prompt is one more POST.
+    Sending only one side leaves the other alone; `""` clears a side. 1500 chars
+    each. Batch many images in one call with
+    `{ chat, items:[{url, style, content}, …] }` (per-item `ok`/`error` back).
+  - Stored on the chat's `forge-chat-assets` doc as `promptStyle` /
+    `promptContent`, returned by `GET /api/gallery/assets?chat=<name>` — so a
+    chat can also READ back what it (or an earlier session) filed.
+  - **Backfilling older images:** `node scripts/backfill-asset-prompts.js <chat>
+    --list` prints every image in that tab with its label and whether a prompt is
+    on file; then write a JSON array and post it with
+    `node scripts/backfill-asset-prompts.js <chat> prompts.json [--dry-run]`.
+    Each entry identifies its image by `"url"` (exact) or `"match"` (a substring
+    of the url OR of the label shown in the app — easier, since a chat remembers
+    what it called an image). `FORGE_BASE` overrides the server.
+  - **CONTENT is the side the overlay opens on (Aug 2026, Sophie: "right now
+    the style is the default and I want it to be the content, so I don't have
+    to click all the time").** What the picture is OF is what she opens the
+    overlay for; the style half is the same house prefix across most of a
+    batch, so Style-first charged her a tap on every image to reach the half
+    that differs. Style still wins when content is the only half missing.
+  - An image with no prompt on file shows **no PROMPT button at all** — never
+    write "no prompt filed" anywhere; empty is silent by design.
+  - These instructions live HERE only. There used to be a "How to post prompts"
+    fold at the top of every Assets tab, but chats read this file, not that
+    page — so it was clutter only Sophie ever saw, and it's been removed.
+  - **The tab is PAGED, and it dedupes by CONTENT HASH as well as by filename
+    (Aug 2026 — the fail-safe that replaced "sweep for the duplicates
+    afterwards").**
+    `GET /api/gallery/assets?chat=&limit=&offset=` returns `{assets, total,
+    offset, limit}`; the app loads 150 and pulls the next page as she scrolls.
+    It used to be a single capped request, which was a hard truncate — a chat
+    past 300 images silently lost its OLDEST ones (never deleted, just never
+    sent). **One picture can live at two storage paths** (where it was
+    generated, e.g. `witch-school/assets/<id>.png`, and the copy the server
+    makes when the same image is also sent as a file,
+    `claude-deliveries/<random>.png`): the copies collapse into one tile, every
+    field is merged, the url kept is the one carrying the label/prompt, the
+    others ride along as `alts`, and a ♥/note left on either path is still
+    found. **`asset-union.js` is the whole rule** and it joins on three keys:
+    - **`md5`** — the Storage object's own md5, read from object METADATA at
+      filing time (`asset-hash.js`; bytes are NEVER downloaded, the
+      `drop-dedupe.js` technique). This is what finally kills the
+      claude-deliveries twin, whose random filename could never match.
+    - **`hash`** — the sha256 `POST /api/gallery` already computes when bytes
+      arrive inline. A DIFFERENT algorithm on purpose, so it lives in its own
+      key namespace: md5 is free from Storage, sha256 is free from bytes in
+      hand, and neither is worth a download to convert into the other.
+    - **the filename**, exactly as before, for every record carrying neither.
+    **The join is TRANSITIVE (union-find), and it has to be** — A can share an
+    md5 with B while B shares a filename with C, and all three are one picture;
+    a per-key pass would leave that chain as two tiles.
+    **The bucket comes from the URL, never from whichever app is handy** —
+    the same picture can sit in deckfactory-43176 or membry-df528 and a
+    credential for one cannot read the other. Reading the md5 is best-effort
+    everywhere (external url, deleted object, slow call → file with no `md5`,
+    exactly as before): a dedupe hint must never fail or stall a filing.
+    **Old records need `node scripts/backfill-asset-hashes.js`** (`--dry-run`
+    first, `--chat <slug>` for one, idempotent, only ever ADDS `md5`) — until a
+    record is hashed it still falls back to the filename, so duplicates already
+    in a tab collapse once it has run over them.
+    Tests: `node scripts/test-asset-hash-union.js` (the real union against
+    fixture records — no network; verified failing against a filename-only
+    join).
+  - **The Assets tab has a search bar** that filters the tiles as she types,
+    matching an image's label, its model/quality caption, BOTH halves of its
+    prompt, and every message in its note thread — so a filed prompt is what
+    makes an image findable later. It stacks with the New/♥/Hide ✕ filter and
+    runs client-side over the already-loaded tiles (no request per keystroke).
+
+### EVERY SEARCH BOX SPEAKS ONE GRAMMAR, AND SEARCHES AS SHE DICTATES
+
+- **EVERY SEARCH BOX SPEAKS ONE GRAMMAR, AND SEARCHES AS SHE DICTATES (Aug
+  2026).** Bare words are AND'd **within one message/image** (`witch keywords`
+  = both, any order — her ask: two words she knows shared one message where one
+  of them appears in hundreds of others), `OR` takes either, `-word` excludes,
+  `"quoted"` keeps words adjacent (the old whole-field-as-one-phrase
+  behaviour). Parsed in ONE place, `search-grammar.js`, shared with the
+  Chunking clip library; matching stays per-caller on purpose (the feed anchors
+  terms at a word start against raw text, the clip library normalises). And
+  every box runs through `liveInput` — **iOS dictation can fill a field without
+  firing `input`**, so the boxes poll the value while focused rather than
+  waiting for the keyboard's ✓. **RETURN ENDS A SEARCH TOO (Aug 2026, Sophie:
+  "only the check mark sends the search on its way… I'd like the return button
+  to do the same")** — `enterSubmits` runs the query at once (no debounce left
+  to wait out) and drops the keyboard, so what she is left looking at is the
+  answer; an `<input type=search>` outside a `<form>` has nothing to submit to,
+  which is why Return did nothing at all. Wire it beside `liveInput` on any new
+  box, and `sync()` the live handle inside the callback or the blur schedules a
+  second identical run. **AND THE HOME BAR REMEMBERS THE LAST SEARCH FOR ONE
+  MINUTE** (her ask, same day): reopening the bar inside that minute puts the
+  words AND the results back — the same hunt continuing — while the glass
+  (a NEW search) forgets them outright and anything older opens empty, which is
+  still the default. **THE PHRASE RANKS FIRST, AND NOTHING ELSE JUMPS THE
+  QUEUE — TWO TIERS (Aug 2026, Sophie: "typing `maybe never` finds … the chats
+  where those words appear in the same order as typed should appear at the top
+  and the ones where they appear anywhere should appear underneath").** The
+  grammar is unchanged and nothing is filtered out; `/search` sorts into **the
+  phrase** (adjacent, in her order — exactly what quoting would have found,
+  which is why she no longer has to quote) and then **everything else, newest
+  first**. The old sort was recency alone, so `maybe never` answered with
+  "saving maybe $3-5 a month" above the message that literally says "maybe
+  never".
+  - **IT SHIPPED WITH A THIRD, MIDDLE TIER AND SHE RETIRED IT (2026-08-24: "you
+    mentioned if it's there but there are words between it vs. different order.
+    that's stupid … only if no words moves it up").** Her sentence above names
+    TWO buckets; the build read "in the same order as typed" as a rung of its
+    own, separate from the phrase, so "maybe you'll never" was lifted above a
+    newer, plainer message. Scattered-in-order is not a meaningful kind of
+    match and lifting it only pushed better answers down. The left-to-right
+    walk that detected it is gone with it.
+  - **ONE ROW PER CHAT, ITS NEWEST (Aug 2026, Sophie: "if the same word is
+    found in the same chat, only show the most recent result").** A chat that
+    said her word twenty times filled the whole first screen with twenty rows
+    of itself, so every OTHER chat that said it once was pushed off the answer
+    — and the twenty rows are one finding twenty times over. `bestPerChat`
+    runs BEFORE the 80 cap (deduping after it would answer with fewer rows and
+    still hide whole chats). It keeps the best-ranked row and the newest among
+    equals, which with two tiers is "the most recent" in almost every search;
+    it differs only where a chat holds the exact phrase in an older message and
+    a loose scatter in a newer one, and there the newer row would open the chat
+    on something she did not search for.
+  - **AND THE SNIPPET OPENS ON THE PHRASE when the message has one** (found
+    by reading the live answer to her own `maybe never` search, the hour it
+    shipped). The top row was first BECAUSE her two words sit adjacent in it,
+    and the window was opening on a scattered occurrence further up the same
+    message — so the result the ranking was proudest of read as though it did
+    not answer the search that put it there. `snippetAnchor` takes the phrase
+    regex and prefers it; with no phrase in the message it is the old
+    rare-term rule, untouched. A rank and a snippet that disagree are worse
+    than either alone, because she judges a row by the words she can see.
+  - **AND A WHOLE WORD BEATS A PREFIX, IN THE WINDOW AND IN THE BOLD
+    (2026-08-28, her `red dress` screenshot).** Every term is anchored at a
+    word START and nowhere else — right for MATCHING, since the prefix `bound`
+    must still find "boundaries" — so `red` really does match "redraw", and
+    five of her eight rows opened on "redraw"/"redo"/"reduces" with `dress`
+    nowhere on screen. **The rows were right and the presentation was lying**:
+    every one of them held both her words. Two halves, and each is one rule
+    disagreeing with itself:
+    - **The WINDOW.** Measured on the row she screenshotted: `red` once,
+      inside "redraw", 2,000 characters from the only `dress` — a rarity TIE,
+      which the old rule broke by taking the term she typed FIRST. A hit that
+      lands on a whole word now wins outright, a term prefers its own
+      whole-word occurrence over an earlier prefix one, and rarity only
+      decides between two of a kind.
+    - **The BOLD.** `hl` in `chats.html` had NO anchor at all, so `red` lit up
+      inside "tired" — a word the search itself would never have matched. The
+      highlight and the match must be the same question asked twice, or the
+      mark claims a row was found for a reason it was not.
+    - **AND WHEN NEITHER HIT IS A WHOLE WORD, SHE GETS A WINDOW EACH.** The
+      rule above cannot reach her own row: `red` inside "redraw" and `dress`
+      inside "dressed" are both prefixes, so the tie falls back to rarity, both
+      are 1, and the window opens on "redraw" again. No ordering of ONE window
+      answers that — the two words are 2,000 characters apart — so a message
+      whose terms are far apart is cut into one window per word, joined by an
+      ellipsis, narrower (35/55 rather than 45/70) so the pair still fits the
+      row's one line. Windows that overlap merge back into one, a phrase hit
+      stays one window, and a one-word query is byte-for-byte what it was.
+    Tests: `node scripts/test-search-grammar.js` and `node
+    scripts/test-chats-live-search.js` (both verified failing pre-fix).
+  - **Two things not to undo:** the phrase is its own regex pass (a
+    left-to-right walk takes the EARLIEST match of each word and would miss an
+    adjacent pair further along — "maybe … never … maybe never" is the
+    phrase), and the scores go in a parallel array rather than onto the
+    `searchIndex` rows, which are the long-lived shared index where a leftover
+    score would sort the next query. A one-word query has nothing to rank and
+    is untouched. Test: `node scripts/test-search-rank.js` (pure).
+  **RETURN WAS WIRED INTO THE CHATS APP ONLY, AND THAT WAS
+  THE WHOLE BUG (Aug 2026, Sophie asking a second time: "I asked a chat to make
+  `return` catalyze a search, in addition to the checkmark — what happened").**
+  `enterSubmits` shipped into `public/chats.html` and stopped there; `/search`,
+  `/chunking` and `/assets` were left on `liveInput` alone, so Return never
+  dropped the keyboard and she was left looking at her own words over the
+  answer. `/search` was the worst of the three — its box asks iOS for a SEARCH
+  key with `enterkeyhint="search"`, so the keyboard offered a key wired to
+  nothing, and it had no `liveInput` either, so it never searched as she
+  dictated. **Both helpers are on every live search box now, and each page
+  keeps its own copy** (there is no shared page script to hang them on) —
+  `chats.html` ×3, `search.html`, `clips.html`, `assets.html`;
+  `cuttingroom.html` has always had its own Enter handler, and
+  `storyroom.html` is the unpointed old board surface. **AND THE HOME BAR HAS A
+  CLEAR THAT IS NOT THE WAY OUT (Aug 2026, Sophie: "there's supposed to be an
+  extra button to 'clear' the search, but not dismiss the search box").** The
+  action already existed — the GLASS on the left starts a new search — but a
+  magnifier does not READ as "clear", so it was a control she had no reason to
+  try. A round ✕ inside the field now does the same thing (forget, reset, keep
+  the focus), shown only while there are words to wipe, and deliberately a
+  different mark from the row's bare ✕ so the two never read as one button
+  twice. It is repainted from `run()` as well as from the live handler: dictated
+  text and Return's own `sync()` both fill the box without the live callback
+  ever firing again. Tests:
+  `node scripts/test-search-grammar.js`,
+  `node scripts/test-chats-live-search.js`,
+  `node scripts/test-chats-search-return.js`,
+  `node scripts/test-search-return-everywhere.js` (the other three pages,
+  headless — verified failing against the pre-fix pages),
+  `node scripts/test-chats-note-wrap-clear.js` (the clear control).
+
+### THE SEARCH FILTERS
+
+- **THE SEARCH FILTERS — OPT IN, THREE-WAY, AND THE ROW THE NEXT ONES JOIN
+  (Aug 2026, Sophie: "I'd like to add some filters to the search in the chats
+  thing that are optional … one would be a filter allowing me to search
+  through my messages versus Claude's messages" → "now: make the filters opt
+  in" → "another filter to add can be archived as in does it search the
+  archive or not or just the archive").** One `Filters` chip under the search
+  box; the drawer under it is SHUT until she taps it. On the `/chats` home bar
+  and inside a thread.
+  - **OPT IN IS THE WHOLE SHAPE.** They shipped first as three chips always on
+    screen under the bar, which is not optional: every search she ran had to
+    step over a control she was not using. **The chip WEARS THE STATE when
+    anything is narrowed** ("Mine · Archive only") and lights — a filter she
+    cannot see must never be one she has forgotten she set, quietly deleting
+    results behind a closed drawer.
+  - **EVERY FILTER HERE HAS THREE OPTIONS, SO EVERY ONE IS A THREE-WAY
+    TOGGLE** (`/tritoggle.css` — the one shell; see the design rules). That is
+    not a coincidence and it is why the pattern fits: a search filter worth
+    having is `everything` plus the two OPPOSITE narrowings, and a checkbox
+    can only say two of those three. Her own words for the archive one — "or
+    not or just the archive" — are that shape exactly.
+  - **The value is spelled out BESIDE the knob, and the knob carries no
+    letter.** "Claude's" and "Archive only" are not initials, and a code to
+    learn is a worse control than a word. **Tapping the word CLEARS that
+    filter** (2026-08-24) — it used to step to the next value, which is the
+    cycle she retired; the word cannot aim at a stop it sits nowhere near, and
+    the one thing it can mean unambiguously is "put this back to Everyone". **They take the Playground's
+    78px track, not the account switcher's 48**, and that is measured: at 48
+    the three stops are 11px apart, which the account switcher's own note
+    calls the floor — it can afford the floor because a toast names the
+    account after every tap, and here the stop is something she has to read
+    off the control. Two sizes in the house, not three.
+  - **The chip carries the state only while the drawer is SHUT.** Open, the
+    rows already say "Mine" and "Archive only" in full, and repeating them in
+    the heaviest treatment on the screen is the same answer twice — the lesson
+    the archive summary's one line already learned. It stays LIT either way,
+    because lit is the half that is not redundant.
+  - **WHO — hers is `from === 'sophie'` EXACTLY; everything else is
+    Claude's.** The asymmetry is load-bearing and is the rule the app already
+    used in three places (`renderMsg`'s own me/claude label among them). A
+    reply is stamped `from:'claude'` today but older docs carry an empty
+    `from` — and those are replies, since her messages have only ever reached
+    the feed through `POST /reply` and the hook's her_words path, both of
+    which stamp `sophie`. So an unstamped record lands on HIS side: silence is
+    the safe direction for the smaller pile. (Measured: she posts about 40
+    messages to every 220 replies, which is why a search across both buries
+    the shorter one.)
+  - **THE NEUTRAL STOP IS THE MIDDLE ONE, on both filters (2026-08-24, her
+    ask: "the middle should be the both option or everyone or whatever …
+    that way I can get to either way with one tap").** The row reads `Mine ·
+    Everyone · Claude's` and `Not archived · Everywhere · Archive only`, so
+    either narrowing is one aimed tap from rest and one tap back. `FILTERS`
+    carries `neutral` by NAME — see the design rules; the server's own lists
+    still lead with `all` and are untouched.
+  - **ARCHIVE — `all` · `live` · `only`, filtering by CHAT.** `archived` is a
+    flag on the registry doc, so the set is one read of the 5-minute cache the
+    route already takes. A chat with no flag at all is live.
+  - **THE HOME BAR ASKS THE SERVER — `?from=me&arch=only`.** Filtering the 80
+    results already on screen would answer "my messages about the image doc"
+    out of whatever survived the UNFILTERED top-80 — the Assets tab's
+    hard-truncate lesson, re-learned rather than re-lived. The server holds
+    the whole index and filters BEFORE it ranks. **`all` sends the param NOT
+    AT ALL**, which is exactly what every older cached page on her phone
+    already sends, and an unknown value WIDENS to `all` rather than emptying
+    the list (`pickOne` in chatfeed.js is the one reader for both).
+  - **ONLY THREE CHAT-NAME ROWS ARE PINNED (Aug 2026, Sophie: "right now, the
+    name instances in the name are pinned to the top just pin the first three
+    instances and then show content results").** It was ten. A common word
+    matches a dozen chat NAMES, and ten of those above the fold pushed the
+    message she was actually looking for off the first screen — the name rows
+    are a shortcut to the obvious answer, not a second list to read.
+    `pickNameRows` + `NAME_ROWS` in chatfeed.js, newest-seen first. They obey
+    the ARCHIVE filter (a name row is about the chat) and come off entirely
+    while a WHO side is picked (a name was said by nobody).
+  - **The THREAD's copy filters what is already rendered** — fully loaded, so
+    no truncate to fall through and no request to make — **narrows with an
+    EMPTY box** ("just show me what I said in here"), and offers WHO only: a
+    thread is one chat, so an archive filter there could show her everything
+    or nothing and never anything else.
+  - **NEITHER FILTER OUTLIVES ITS HUNT.** They ride the home bar's one-minute
+    memory beside the words (and the drawer comes back OPEN when the restored
+    hunt is narrowed), the GLASS resets them with the query it forgets, and
+    closing a thread's search takes the filter off with the words — a thread
+    reopened later silently missing half its messages, with no box on screen
+    saying why, is the failure to avoid.
+  - **ONE BUILDER for every box IN THE HOUSE now — `/searchfilters.js`
+    (2026-09-02; see the next bullet).** It used to be `buildFilters` inside
+    `chats.html`, which is exactly why no other page could open one. What
+    stays in `chats.html` is the `FILTERS` table — which filters THIS page
+    has. The next filter is a row in that table (values, words, and the
+    query-string `param` kept together so a caller cannot send it under a name
+    the server does not read). **A filter that needs the whole history goes to
+    the server like these two; one the loaded page can answer honestly may
+    stay client-side — say which you built.**
+  - Test: `node scripts/test-search-filters.js` (the decision tables and the
+    name-row cap pure, then the real page headless — opt-in, both toggles
+    reaching the server, the chip wearing the state, and the controls' right
+    edge measured against the pill's column). Its harness now calls
+    `scripts/lib/public-asset.js` rather than hand-listing what it serves — it
+    had been 404ing `/sheet-grid.js` to a `<script>` tag and failing forever on
+    "page errors: Unexpected token ':'", which had nothing to do with filters.
+
+### THE ADVANCED SEARCH DRAWER
+
+- **THE ADVANCED SEARCH DRAWER — `/searchfilters.js` + `/searchfilters.css`,
+  the ONE shell, on every page (2026-09-02, Sophie: "can u add settings - a
+  toggle open advanced search in all pages - reusable shell - playground meta
+  assets etc · search by low medium high, by date · you can put the heart x
+  thing within the toggle").** The Chats drawer above WAS the design; it just
+  lived inside `chats.html` where nothing could reach it, so the Playground and
+  Meta Assets each grew their own loose row of chips instead — on bars already
+  fighting the injected pill for width, with nowhere to put "only the high
+  ones". Same story as `/tritoggle.css`, same answer.
+  - **THE DOOR IS A SIFTER, NOT A WORD (2026-09-02, Sophie: "make it the
+    button an icon of a flour filter").** Lucide `funnel` at the house 1.8
+    stroke, in a rounded square at the house 6px — never a circle, never a
+    pill. The name lives on the `aria-label` and the `title`, so nothing is
+    lost to a screen reader.
+  - **AND IT COUNTS, IT DOES NOT SPELL (2026-09-02, her next screenshot of
+    "NO ✕ · ♥ ONLY" wrapped onto a line of its own: "this looks awk" ·
+    "change to # of filters" · "not red").** A digit beside the glyph — open
+    AND shut, so the button is a fixed width and never appears and disappears
+    under her. Spelling the filters out grew the door by however long her
+    words happened to be, and two of them pushed the search box onto a second
+    row; the words are one tap away on the rows below. **LIT IS THE INK, NOT
+    THE ACCENT** — the rose belongs to the chips INSIDE that really are her ♥
+    and her picks; this is a door, and dark against the row's grey says
+    "something is on" without shouting it from the calmest strip on the page.
+    Pinned by a MEASUREMENT of what really renders (a class name says nothing
+    about a colour).
+  - **WHAT THE SHELL OWNS: the shape.** The chip; the drawer SHUT until she
+    taps it; the chip WEARING the state while it is shut and staying lit
+    either way; the aimed three-way toggle and the word that clears it; the
+    neutral rules; that an unknown value WIDENS rather than emptying the
+    list. **WHAT A PAGE OWNS: which filters it has** — values,
+    words, the query-string `param` when the answer has to reach a server, and
+    its own `get`/`set` when a filter is meant to survive a reload, so **no
+    localStorage key lives in the shared file** and the Playground's existing
+    `promptlab_liked`/`promptlab_hidex` keep meaning what they always meant.
+  - **TWO KINDS OF ROW, and which one a filter gets is decided by whether it
+    has an OFF state to spare.** `kind:'tri'` is the house three-way toggle
+    (everything plus the two OPPOSITE narrowings — "whose messages", "the
+    archive"). `kind:'chips'` is a row of chips, none lit = everything, and it
+    is what quality and date NEED: **low · medium · high is three options, but
+    a filter needs a fourth answer — "all of them" — and there is nowhere on a
+    three-way track to put it.** Chips also let her say low AND high, which is
+    what comparing a ladder actually looks like. Tapping the lit chip clears
+    it, so no row needs a second "off" control.
+  - **WHERE IT IS: the Playground, Meta Assets, a chat's own Assets tab, and
+    the Chats search (both boxes).** Two rows on the picture surfaces —
+    **Quality** and **When** (Today · This week · This month, days back from
+    now; "since Sunday" would cut a working night in half).
+  - **THE ♥ AND THE ✕ ARE NOT IN IT, AND THAT IS HER SECOND WORD ON IT
+    (2026-09-02: "you can put the heart x thing within the toggle" → "actually
+    put the heart x thing exactly where it was").** They rode inside the drawer
+    for a day. They are marks she CASTS on a picture, and the row above the
+    pictures is where she casts them; the drawer keeps the two things that are
+    facts about a RUN and have no other home. **Don't move them in again.**
+  - **AND ON THE PLAYGROUND THE DOOR IS ON THE CONTROLS ROW, NOT THE FEED BAR
+    (2026-09-02, she marked the spot in a screenshot: "put the filter button
+    where the pink mark was").** It drops into the gap `.gogroup`'s
+    `margin-left:auto` already makes, so Generate stays hard right and the row
+    is the width it was. **The drawer there is ABSOLUTE against `.controls`,
+    at z-index 6** — in flow the mount stretched to the drawer's width and
+    broke the row into three lines with Generate in the bottom corner
+    (PHOTOGRAPHED), and 6 is one above the feed bar's sticky 5 or the bar
+    paints over it.
+  - **QUALITY IS READ OFF THE FILED MODEL · QUALITY · SIZE CAPTION** on an
+    asset, because that is the only place a record carries it — which is also
+    why filing that caption matters more, not less. **A picture whose caption
+    never said does not pass "high"**: she asked for the high ones, and "we
+    don't know" is not one of them. `qualityOf` is pinned against
+    `playground-port.js`'s near-twin by the test so a reword of one cannot
+    leave the other reading a different ladder.
+  - **STICKY WHERE ITS NEIGHBOURS WERE, AND NOWHERE ELSE.** The Playground's
+    marks were already sticky, so quality and date are too (the keys are
+    `promptlab_filt_*` — a key named for quality alone would read as the
+    GENERATE knob, which is deliberately NOT persisted because a remembered
+    `high` is 16.5-21.1¢ a tap arriving unasked). Meta Assets and the Assets
+    tab keep nothing: those are places she arrives to look at everything, and a
+    filter left on from last week silently hiding most of her library is what
+    the chip's state-wearing exists to stop.
+  - **THE DRAWER HANGS off a STICKY bar (the Playground) and sits IN FLOW
+    everywhere else** — measured: an absolute panel over the Assets row covers
+    the search box and the first row of pictures, and `elementFromPoint` says
+    neither can be tapped. On the Playground there is nothing under the bar to
+    push, and its own z-index 5 keeps the drawer under the pill's 9.
+  - **THE `--fsf-*` TOKENS GO ON THE MOUNT, never on the drawer** — the chip is
+    the drawer's SIBLING, so tokens set there never reached it and it drew with
+    no box at all. Caught by a screenshot, not by any assertion; PHOTOGRAPH
+    EVERY ROUND.
+  - **TAPPING OUT CLOSES IT (2026-09-02, Sophie: "tapping out shud close").**
+    A drawer with only one way out costs a tap on every filter she sets, and on
+    the Playground it hangs OVER the feed, so the natural gesture is to tap
+    what is underneath and expect it gone. **On the CLICK, never on
+    pointerdown, and that is measured**: the two Assets drawers are IN FLOW, so
+    closing at pointerdown moves the grid between her finger going down and the
+    tap being delivered, and the tap lands on whatever slid into that spot —
+    `test-assets-tap-next.js` simply stopped being able to open a tile. In the
+    CAPTURE phase, so it runs before a host handler that rebuilds what was
+    tapped (the detached-subtree bug `asset-lightbox.js` earned). It only ever
+    CLOSES — nothing is swallowed, so the tap still opens the picture.
+  - **THE SIZES ARE THE ROW'S, NOT A NUMBER OF THEIR OWN (2026-09-02, Sophie:
+    "how the fuck did u decide the button sizes" — fair; the first cut was
+    26px, eyeballed off the Chats drawer's 11px type, and sat under every
+    neighbour).** The door STRETCHES to the row it stands on (the Playground's
+    feed bar is a 32px family — the view switch, the search field — so the bar
+    is still one 48px line), and the chips INSIDE the drawer are 34px, which is
+    the height of the three-way toggles they sit beside there. The test asserts
+    it as an EQUALITY against the neighbours rather than against a constant, so
+    it survives the row changing.
+  - **The two mark buttons came OFF the Playground's feed bar**, which is what
+    paid for the chip: the row is the same width it was.
+  - Tests: `node scripts/test-search-filters-shell.js` (the decision table
+    pure, then the real Playground and the real Meta Assets headless — opt-in,
+    the three rows, the quality and date chips really hiding runs and tiles,
+    low AND high together, the shut chip wearing it, sticky where it should be
+    and not where it should not, and the open drawer measured against the
+    search box and the first tile; verified failing against the pre-fix pages)
+    and `node scripts/test-search-filters.js` for the Chats copy.
+

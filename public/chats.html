@@ -3463,7 +3463,9 @@ function paintHomeChrome(){
   // while paintListTabs only runs on the four that rebuild the list. A second
   // writer meant the poll, a note save or a search put the account row back
   // underneath the lists.
-  var accOff = other || homeView==='archive' || listsOn();
+  // ONE rule, shared with the filter itself (see acctRowOn) — the row and
+  // what it narrows can never disagree about whether it is on screen.
+  var accOff = !acctRowOn();
   if(acc) acc.style.display = accOff ? 'none' : '';
   // The lists row is painted from HERE too, so the two halves of one row can
   // never disagree about which is showing — the four list branches call it as
@@ -4790,6 +4792,33 @@ var acctTab='';
 var ACCOUNTS=['1','2','3'];
 function isAcct(a){ return ACCOUNTS.indexOf(a)>=0; }
 function acctFilter(){ return acctTab || appAccount(); }
+// THE ACCOUNT FILTER FOLLOWS THE ACCOUNT ROW, AND NEVER OUTLIVES IT
+// (2026-09-15, Sophie: "does chat app default to only current account?" ·
+// "shud be chronological"). The answer was yes, and invisibly: `rowMode`
+// defaults to the THREE LISTS, which take the account row's place — so the
+// row was off screen while its filter went on narrowing every pile under it.
+// MEASURED on her live registry the day she asked, with the app signed into
+// account 2: of the 30 most recently active chats, 26 are on account 1 and
+// FOUR are on 2 — so the screen she opens to see what happened was hiding 26
+// of her newest 30, with no control on screen saying so. Across the whole
+// ALL pile it is 136 of 401.
+// This is the tray's rule and the lit tag's rule, which both already say it
+// in this file: "the account row is not even on screen while the lists row
+// is, and a pile silently missing two thirds of itself is exactly the filter
+// she cannot see." One list, newest first, whatever account it ran on — and
+// every row still carries its account digit (acctHtml), so nothing is lost
+// but the hiding. Tapping #rowtog brings the row back and the filter with
+// it: that row is the control, and it governs exactly while it is visible.
+// ONE function, because paintHomeChrome shows the row from it too — a rule
+// that lives in two places drifts, which is the lesson the sliding line
+// under this same row was written to close.
+function acctRowOn(){ return !otherView() && homeView!=='archive' && !listsOn(); }
+// An empty screen must never name a filter that is not applied. While the
+// account row is up, "nothing here" is nearly always "they're on another tab"
+// and the message says which account; with the three lists up there is no
+// account filter to blame, so it says nothing about accounts at all.
+function onAcct(){ return acctRowOn() ? ' on account '+acctFilter() : ''; }
+function otherTab(){ return acctRowOn() ? ' \u2014 tap another tab.' : '.'; }
 function acctOf(name){ var a=(chats[name]&&chats[name].account)||''; return isAcct(a)?a:''; }
 // An UNTAGGED chat shows on EVERY tab. Measured live 2026-08-10: of 200 chats
 // only 2 carry no account, so this costs nothing — and the alternative (pick
@@ -4977,9 +5006,12 @@ function paintCatRow(g){
   // in there — which is where a chat wearing one of them is found.
   var cats=catList().filter(function(c){ return !isArchiveWord(c); }).map(function(c){
     var mine=Object.keys(chats).filter(function(n){
-      // acctMatch: the badge has to count the same chats the chip will SHOW,
-      // or a folder promises replies that are on the other account's tab.
-      return chatInCat(n,c) && !(chats[n]&&chats[n].archived) && acctMatch(n);
+      // The badge counts the same chats the chip will SHOW, or a folder
+      // promises replies that are not in it. A lit chip has been its own
+      // CROSS-ACCOUNT pile since 2026-08-31 ("any tag shud show all") and
+      // this line was still narrowing the count to one account — so the
+      // number under a word was smaller than the pile behind it.
+      return chatInCat(n,c) && !(chats[n]&&chats[n].archived);
     });
     // how many chats in here have ANSWERED her — a finished reply she has not
     // opened. Counted per CHAT, not per message: "3" means three of them came
@@ -5352,7 +5384,10 @@ function renderHome(){
   // narrowed by a control that is no longer on screen is exactly the silent
   // filter this app keeps getting burned by.
   var everyone=sortedChatNames(g);
-  var all=everyone.filter(acctMatch);
+  // …and ONLY while the account row is the one on screen (2026-09-15 — see
+  // acctRowOn). With the three lists up, which is the default, this is every
+  // chat in timing order, her ask: "shud be chronological".
+  var all=acctRowOn() ? everyone.filter(acctMatch) : everyone.slice();
   // ALL — every chat on this account in timing order, filed or not (2026-08-28,
   // her caps). The home list below is the unfiled INBOX and always has been, so
   // this is a different question, not a wider version of the same one: a chat
@@ -5444,6 +5479,27 @@ function renderHome(){
     if(window.__pillRecheck) window.__pillRecheck();
     return;
   }
+  // ★ RUNS BEFORE THE THREE LISTS, and that is a FIX, not a tidy
+  // (2026-09-15). It sat BELOW the ALL branch, which returns — so on the
+  // default screen (the lists row up, ALL lit) the star chip was a control
+  // that did nothing at all: she tapped it and the same list stayed. Its own
+  // handler has always assumed otherwise (it clears a lit chip and moves off
+  // the bug/tray tabs so this pile can take over), and the lit TAG pile above
+  // is already seated here for exactly the same reason — these piles REPLACE
+  // the list rather than narrowing it, so they must come before any branch
+  // that paints one.
+  // ★ is its own pile and it reaches INTO the archive: these are chats she has
+  // finished with and put away, so stopping at `archived` would hide most of
+  // them. It replaces the whole list rather than narrowing it.
+  if(starOnly){
+    var st=all.filter(chatStar);
+    paintHomeChrome(); paintAcctTabs(g); paintListTabs(); paintCatRow(g);
+    document.getElementById('selbtn').classList.toggle('on', selMode);
+    paintSelBar();
+    if(!st.length){ el.innerHTML='<div class="state">No starred chats'+onAcct()+' — open one and tap the star in its header.</div>'; return; }
+    renderList(el,g,st);
+    return;
+  }
   if(listsOn() && listTab==='all'){
     // A LIT CHIP STILL NARROWS IT. The category row is on screen here, and a
     // filter she can see that does nothing is the silent-filter failure this
@@ -5482,7 +5538,7 @@ function renderHome(){
     paintHomeChrome(); paintAcctTabs(g); paintListTabs(); paintCatRow(g);
     document.getElementById('selbtn').classList.toggle('on', selMode);
     paintSelBar();
-    if(!every.length){ el.innerHTML='<div class="state">No chats on account '+acctFilter()+'.</div>'; return; }
+    if(!every.length){ el.innerHTML='<div class="state">No chats'+onAcct()+'.</div>'; return; }
     renderHiddenBar(el,g,everyHid);
     // Opening the pile takes the whole screen, exactly as it does on the live
     // list — guarded on the pile still having something in it, or a chat
@@ -5507,18 +5563,6 @@ function renderHome(){
     renderDelivered(el);
     return;
   }
-  // ★ is its own pile and it reaches INTO the archive: these are chats she has
-  // finished with and put away, so stopping at `archived` would hide most of
-  // them. It replaces the whole list rather than narrowing it.
-  if(starOnly){
-    var st=all.filter(chatStar);
-    paintHomeChrome(); paintAcctTabs(g); paintListTabs(); paintCatRow(g);
-    document.getElementById('selbtn').classList.toggle('on', selMode);
-    paintSelBar();
-    if(!st.length){ el.innerHTML='<div class="state">No starred chats on account '+acctFilter()+' — open one and tap the star in its header.</div>'; return; }
-    renderList(el,g,st);
-    return;
-  }
   // BUG FIX — the header's bug button (2026-08-27), the row's third tab since
   // 2026-08-28. Same shape as ★: it replaces the whole list.
   //
@@ -5536,7 +5580,7 @@ function renderHome(){
     paintHomeChrome(); paintAcctTabs(g); paintListTabs(); paintCatRow(g);
     document.getElementById('selbtn').classList.toggle('on', selMode);
     paintSelBar();
-    if(!bg.length){ el.innerHTML='<div class="state">No open bug-fix chats on account '+acctFilter()+' — finished ones are in the Archive.</div>'; return; }
+    if(!bg.length){ el.innerHTML='<div class="state">No open bug-fix chats'+onAcct()+' — finished ones are in the Archive.</div>'; return; }
     renderList(el,g,bg);
     return;
   }
@@ -5585,7 +5629,7 @@ function renderHome(){
   // An empty screen must never look like the chats are gone — with the
   // account tabs up, "nothing here" is nearly always "they're on the other
   // tab", so the message says which account it is talking about.
-  if(!all.length){ el.innerHTML='<div class="state">No chats on account '+acctFilter()+' — tap the other tab.</div>'; return; }
+  if(!all.length){ el.innerHTML='<div class="state">No chats'+onAcct()+otherTab()+'</div>'; return; }
   renderHiddenBar(el,g,hid);
   // THE OPEN PILE IS THE WHOLE SCREEN (Aug 2026, Sophie: "when I press the
   // hidden one it shows hidden, but it also shows everything else — can you
