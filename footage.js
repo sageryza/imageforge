@@ -866,6 +866,15 @@ function trimsOf(d) {
     : (d && d.trim && typeof d.trim === 'object' ? [d.trim] : []);
   return list.filter((t) => t && typeof t === 'object' && t.key);
 }
+// A PART BAKING FOR OVER FIFTEEN MINUTES IS DEAD, NOT WORKING — the page's
+// own rule (`BAKE_STALE_MS` in footage.html), kept equal here so the server
+// re-bakes exactly the parts the card already calls "never finished".
+const BAKE_STALE_MS = 15 * 60 * 1000;
+function bakeStale(t, now) {
+  if (!t || t.status !== 'baking') return false;
+  const at = Date.parse(t.at || '');
+  return Number.isFinite(at) && (now == null ? Date.now() : now) - at > BAKE_STALE_MS;
+}
 function trimCard(t) {
   return {
     start: Number(t.start) || 0, end: Number(t.end) || 0,
@@ -1281,16 +1290,63 @@ function frameSpan(start, end, fps, total) {
 // A file whose rate the probe cannot read keeps every frame's own timestamp
 // instead (`passthrough`), which is one frame short of duration on the last
 // frame but never a frame she did not choose.
-async function cutSpan(src, out, start, end, withAudio, fps) {
-  const bin = ffmpegBin();
+//
+// AND THE ENCODE IS CAPPED IN MEMORY — THE 512MB BOX HUNG ON A 720p TRIM
+// (2026-09-15, Sophie: "can't upload references anymore!"). It was not the
+// references: at 00:09 UTC she trimmed a 15s 720p 9:16 Mini clip, a minute
+// later the box was pinned at 511-512MB and every request for the next
+// sixteen minutes — uploads, the feed, the widget — died with a 499 until the
+// service was restarted by hand. x264 with no thread cap allocates lookahead
+// and reference frames PER THREAD, and the count comes off the HOST's cores,
+// not the 0.5 vCPU the box has. Measured here on a 720x1280 clip: 215MB peak
+// on 4 threads, 318MB with 16, 131MB with the cap below — beside a Node
+// process that idles at 250-370MB. The Film Editor learned the same lesson on
+// 2026-09-02 (`RENDER_CAP` in filmeditor.js); this is its cap, and the
+// decoder is held to one thread too. `cutArgs` is PURE so the recipe is pinned
+// by test-footage-trim.js rather than read back off the process.
+const TRIM_CAP = ['-threads', '1', '-x264-params', 'rc-lookahead=10:ref=1'];
+function cutArgs(src, out, start, end, withAudio, fps) {
   const graph = require('./clips').chunkGraph(start, end, withAudio);
-  const args = ['-y', '-i', src, '-filter_complex', graph, '-map', '[v]'];
+  const args = ['-y', '-threads', '1', '-i', src, '-filter_complex', graph, '-map', '[v]'];
   if (withAudio) args.push('-map', '[a]', '-c:a', 'aac', '-b:a', '160k');
   if (fps > 0) args.push('-fps_mode', 'cfr', '-r', String(fps));
   else args.push('-fps_mode', 'passthrough');
-  args.push('-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out);
-  await runBin(bin, args, TRIM_RUN_MS);
+  args.push('-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p', ...TRIM_CAP, '-movflags', '+faststart', out);
+  return args;
+}
+async function cutSpan(src, out, start, end, withAudio, fps) {
+  await runBin(ffmpegBin(), cutArgs(src, out, start, end, withAudio, fps), TRIM_RUN_MS);
   return out;
+}
+
+// AND A BAKE THAT WOULD NOT FIT IS NOT STARTED (2026-09-15, the same hang).
+// The cap above makes one encode ~131MB; what is left of the box is whatever
+// Node is not holding, and Node drifts (367MB the minute before the hang,
+// 467MB earlier that evening). A box over its limit does not crash — it
+// THRASHES, at 10% CPU, for as long as nobody restarts it — so the honest
+// answer is to wait for the room and then refuse, never to start and hope.
+// Other work finishing (a draw, a sheet, a cut) gives memory back, so the
+// wait is real; when it never comes the part says so on its card instead of
+// "trimming…" for ever. PURE with its reader injected, for the test.
+const BOX_MB = 512;
+const TRIM_NEED_MB = 150;                 // the capped encode measured at 131MB
+const TRIM_ROOM_WAIT_MS = 90000;
+function trimRoom(rssBytes, need) {
+  const free = BOX_MB - Math.round((Number(rssBytes) || 0) / 1048576);
+  return { free, ok: free >= (need == null ? TRIM_NEED_MB : need) };
+}
+async function waitTrimRoom(o) {
+  const rss = (o && o.rss) || (() => process.memoryUsage().rss);
+  const wait = (o && o.wait) || ((ms) => new Promise((r) => setTimeout(r, ms)));
+  const now = (o && o.now) || Date.now;
+  const cap = (o && o.ms) != null ? o.ms : TRIM_ROOM_WAIT_MS;
+  const t0 = now();
+  for (;;) {
+    const r = trimRoom(rss());
+    if (r.ok) return r;
+    if (now() - t0 >= cap) return r;
+    await wait(5000);
+  }
 }
 
 // Fire-and-forget on the clip's own doc: baking → ready, or baking → failed
@@ -1332,6 +1388,12 @@ async function bakeTrim(id, plan) {
         return write({ status: 'ready', url: pub(plan.path), poster: pExists ? pub(plan.posterPath) : '' });
       }
     } catch { /* fall through and bake */ }
+    // the room check comes AFTER the baked-once read: a span already in
+    // Storage costs no encode and needs no room
+    const room = await waitTrimRoom();
+    if (!room.ok) {
+      return write({ status: 'failed', error: `the server is too full to trim right now (${room.free}MB free, a trim needs ${TRIM_NEED_MB}) — try again in a minute` });
+    }
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'trim-'));
     const src = path.join(dir, 'src.mp4');
     const out = path.join(dir, 'trim.mp4');
@@ -2276,7 +2338,18 @@ router.post('/jobs/:id/trim', async (req, res) => {
     // found auditing the module): this answered the shortened list and wrote
     // nothing, so the replaced part came straight back on the next poll — her
     // edit discarded and a part flickering in and out of the trimmer.
-    if (already && !replacing) return res.json({ ok: true, job: cardOf(id, { ...d, trims: kept, trim: null }) });
+    // A PART THE PROCESS DIED HOLDING IS BAKED AGAIN ON THE NEXT TAP
+    // (2026-09-15). The same span is the same key, so the no-op above used to
+    // make a part stuck on `baking` — a deploy or a restart mid-encode, and
+    // that day's hang — impossible to ever finish: every re-tap answered the
+    // stuck list and started nothing. Past the page's own fifteen minutes
+    // (`BAKE_STALE_MS`, which draws it as "never finished") a tap on that span
+    // runs the bake again; it checks Storage first, so an mp4 that DID land
+    // costs no encode, and its write patches the part by key as ever.
+    if (already && !replacing) {
+      if (bakeStale(already)) bakeTrim(id, plan).catch(() => {});
+      return res.json({ ok: true, job: cardOf(id, { ...d, trims: kept, trim: null }) });
+    }
     if (kept.length >= TRIM_MAX_PARTS) return res.status(400).json({ error: `that is ${TRIM_MAX_PARTS} parts already — take one off first` });
     const part = { start: plan.start, end: plan.end, seconds: plan.span, key: plan.key,
       source: plan.source, at: new Date().toISOString(), status: 'baking', url: '', poster: '', error: '' };
@@ -2298,7 +2371,11 @@ router.post('/jobs/:id/trim', async (req, res) => {
       return { write: { trims: next2, trim: admin.firestore.FieldValue.delete() }, next: next2, now };
     });
     if (r.code) return res.status(r.code).json({ error: r.error });
-    if (r.already) return res.json({ ok: true, job: cardOf(id, { ...r.now, trims: r.next, trim: null }) });
+    if (r.already) {
+      const stuck = r.next.find((t) => t.key === plan.key);
+      if (bakeStale(stuck)) bakeTrim(id, plan).catch(() => {});
+      return res.json({ ok: true, job: cardOf(id, { ...r.now, trims: r.next, trim: null }) });
+    }
     bakeTrim(id, plan).catch(() => {});
     res.status(202).json({ ok: true, job: cardOf(id, { ...r.now, trims: r.next, trim: null }) });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -2326,6 +2403,7 @@ module.exports = {
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf, atlasCacheBust,
   drawStats, drawTimeFor, drawTimeFrom, drawKeyOf, medianOf,
   startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf, pausedNow,
-  canvasFrom, pageJobs, hayOf, foldersOf, shelfOf, folderSlug, statusOf, staleJob, STALE_MS, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, frameSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
+  canvasFrom, pageJobs, hayOf, foldersOf, shelfOf, folderSlug, statusOf, staleJob, STALE_MS, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, cutArgs, TRIM_CAP, frameSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
+  trimRoom, waitTrimRoom, TRIM_NEED_MB, BOX_MB, bakeStale, BAKE_STALE_MS,
   framePlan, framePath, pullFrame, grabFrame, FRAME_FOLDER, FRAME_END_PAD,
 };
