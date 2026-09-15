@@ -5035,9 +5035,21 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
     letter up) on the tile, in the header, in the toasts and in the card's
     rows, so a folder is spelled one way wherever she meets it. Display only —
     `folderSlug` is still the only thing that writes.
-  - **THE CARD'S MOVE MENU IS STILL A `<select>` WITH ITS FOLDS**, deliberately:
-    moving one clip is a one-tap decision, not a shelf to look at. Everything
-    the fold note above says is about that menu now.
+  - **AND SINCE 2026-09-15 THE CARD'S MOVE CONTROL IS THIS SHEET TOO
+    (Sophie, looking at the card's native list: "switch to new file
+    system").** It was the last native list on the page. The card carries a
+    folder BUTTON saying where the clip is — "No project", "The ward",
+    "The ward › Socks" — and it opens the same sheet in MOVE mode: it opens
+    at the FILMS (a move is most often a move out, and landing inside would
+    cost a back tap every time) with the clip's place lit — its project at
+    level 1, its folder at level 2; the level-1 "All" tile reads **No
+    project** there; the TUCK is not offered (hiding a film from All is a
+    filter decision, and this sheet is deciding where one clip lives); and
+    New project… / New folder… move the clip straight into what they make,
+    the folder inside whichever project the sheet is standing in. **The FOLD
+    ROWS went with the select** — `viewRows`, `FOLD`, `footage_open` and the
+    remembered open set are deleted, because a sheet of two levels has no
+    rows to fold. So the 2026-09-12 fold note above is history, not a rule.
   The tuck is a WORD in the sheet's own header, offered only inside a project;
   `shelfPick` is the old `<select>`'s handler body, so `setProject` /
   `setFolder` / New project… / New folder… mean exactly what they meant. Test:
@@ -5066,8 +5078,8 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   none 17 (door probes, the dialogue test, the harry potter joke, the taxi,
   the dunce-hat class, the therapy-with-ants clip — hers to place). The seven
   new films are on the cast shelf (`POST /api/cast/films`), so the picker
-  lists them. **MOVING A CLIP IS THE DROP-DOWN ON ITS CARD** (her "add the
-  move project UI"): the same films, "No project" first, the clip's own lit;
+  lists them. **MOVING A CLIP IS THE FOLDER BUTTON ON ITS CARD** (her "add the
+  move project UI"; a `<select>` until 2026-09-15, the poster sheet since): the same films, "No project" first, the clip's own lit;
   a change POSTs `/jobs/:id/project`, the toast says where it went, and
   inside a project view the card leaves. A wrong guess above is one tap.
   **AND A PROJECT HAS SUB-FOLDERS SINCE THE SAME NIGHT (Sophie: "can we do
@@ -5084,8 +5096,8 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   is never silent), its rows every project with its folders indented under
   it (`project/folder` values), "New project…" always and "New folder…"
   inside a project; **the header says where she is** — Footage · The ward ·
-  The ward › commercials. Every card's move drop-down is the same list, so
-  one control moves a clip anywhere; **a move to another project drops the
+  The ward › commercials. Every card's move control opens the same
+  folders, so one control moves a clip anywhere; **a move to another project drops the
   folder** (it belonged to the project the clip left), and a folder named on
   a card joins the picker at once. The feed asks `?project=&folder=`,
   remembered as `footage_folder` beside the project; a belt hand-off may
