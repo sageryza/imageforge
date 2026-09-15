@@ -3520,14 +3520,6 @@ before working on that module. Nothing was deleted — the moved text is verbati
   before. **Do NOT put a second star back** — that is the All button she had
   removed (#2397, "button is stipid get it out") and `test-footage-audit-5.js`
   pins its absence.
-  **AND THE FUNNEL IS ITS OWN BUTTON ON THE FEED BAR — NOT A SUB MENU OF THE
-  SEARCH GLASS (2026-09-15, Sophie: "filter changed · change back ·
-  footage").** It rode inside the glass from #2332 on her own "filter is sub
-  menu of glass · only one main button", and she reversed it: **that design is
-  HISTORY, not a rule — don't tuck it back.** The count the glass wore while
-  the funnel was hidden went with it (the chip wears its own). Six controls do
-  not fit one line at 390pt against the pill's column, so the funnel takes the
-  next line at the left and `test-footage.js` pins the bar at TWO lines.
   **Full details: *Footage* in `docs/modules/audio-and-film.md` (moved from CLAUDE.md).**
 
 - **Stitch** (`stitch.js`, `/api/stitch`, page at `/stitch`, iOS tile under the
