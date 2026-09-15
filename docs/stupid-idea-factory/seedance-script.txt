@@ -1,12 +1,12 @@
-STUPID IDEA FACTORY — SEEDANCE SCRIPT v2
+STUPID IDEA FACTORY — SEEDANCE SCRIPT v3 (SENT 2026-09-15, her go, $1 budget)
 Seedance 2.0 Mini · 480p · 9:16 · audio ON, the vo: lines spoken by the model (the way your clips run) · one shot per clip, 4–8s
-[Image1] = you, plainclothes — grab the frame at 0:01 of the 8s delivery clip (hoodie, porch) so the church stops leaking into frame one · [Image2] = the products (kit, moon milk, shorts) · [Image3] = your ChatGPT screenshot
-Nothing is sent until you say go. 32s of Mini ≈ 45¢.
+[Image1] = the porch frame at 0:01 of the 8s delivery clip (drops/_/ac4fd054….jpg, filed in the Dump) · [Image2] = the products (drops/_/75d00b91….png) · [Image3] = the ChatGPT screenshot (drops/_/cbbe03b8….png) · clip 1's first frame = the desk picture (drops/_/e7e73a27….png)
+Sent on her go: six clips, ~58¢ estimated (clip 1 on APIFRAME for the keyframe, the rest on Atlas). Every exact prompt below is what the door received.
 
 CLIP 1 · 8s · SEEDANCE
 PROMPT: vo: i don't know about you but i have a lot of ideas
-shot: the girl in [Image1] at her desk, first frame [Image4]. product ideas like [Image2] erupt out of the top of her head like a volcano and rain down around her.
-REFS: [Image4] = the desk picture, marked as the first frame (takes no slot — the page renumbers)
+shot: the girl in [Image1] at her desk. product ideas like [Image2] erupt out of the top of her head like a volcano and rain down around her.
+REFS: first frame = the desk picture (a keyframe takes no slot)
 
 CLIP 2 · 4s · SEEDANCE
 PROMPT: vo: and chatgpt is just making it worse
@@ -21,9 +21,9 @@ PROMPT: vo: i send it to alibaba. they give me a quote
 shot: the girl in [Image1] on her couch, taps send on her phone, camera at eye level.
 INSERT: the alibaba chat, one plausible message and the quote (generator)
 
-CLIP 5 · 8s · SEEDANCE (your delivery clip, the one that works)
+CLIP 5 · 8s · SEEDANCE (rewritten — her two delivery clips went to the neighbor, and made her the mailman)
 PROMPT: vo: and boom two months later
-shot: "delivery!" mailman shows up with 12 large boxes arriving at her front doorstep. the girl in [Image1] (but in plainclothes)
+shot: the girl in [Image1] opens her front door. a delivery man, an older man in a brown uniform, stacks twelve large cardboard boxes on her doorstep until they tower over her. she stands in the doorway staring at them.
 girl vo: we have 500 of them
 
 CLIP 6 · 4s · SEEDANCE
