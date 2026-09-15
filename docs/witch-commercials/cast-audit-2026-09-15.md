@@ -69,7 +69,8 @@ Folders by size, with her own votes:
    20 clips, and he is not in frame in either hearted one. No reference.
 5. **The nightgown circle** — women in old-fashioned white/cream nightgowns
    dancing round a lit pine. 16 clips across `tree-stolen` and the Christmas
-   group, ♥1. No reference.
+   group, ♥1. **Four photo references exist** and only the 2 Christmas-group
+   clips ride them; every `tree-stolen` clip rides nothing.
 6. **The gloomy daughter** (~26, white nightgown, Christmas morning) — 6 clips,
    ♥1. Has a reference clip: `drops/_/5cafc3ad24f57547bb70f3fc7ac150f4.mp4`.
 7. **The Salem mob and the accused girl** — 2 clips, both ♥, no reference.
@@ -98,6 +99,31 @@ The page: *Witch commercials — everyone but Sophie v1*, sheet
   consistently.
 - **The neighbour is a hand.** The only frame of her is a hand knocking on a
   door.
+
+### THE PEOPLE WHO ACTUALLY RIDE A REFERENCE — the whole list
+
+Her ask, 2026-09-15: "ppl i named w references only". Read off every `refs`
+array on the 167 clips; page *Witch commercials — the people with a reference
+v1*, sheet `witch-refs-v1`. **Six, and that is all of them:**
+
+| who | what carries them | clips |
+|---|---|---|
+| Sophie | the chapel still `c05681db…png` | 29 |
+| Sophie | the tweed still `2d6c34a1…png` | 19 |
+| Sophie | the ward's jazz clip `ward-refs/jazz-best4s-…mp4` | 5 |
+| the doctor (+ Sophie in frame) | `atlascloud-video/1789064628044-1o7jq9.mp4` | 26 |
+| the doctor (+ Sophie in frame) | `atlascloud-video/1789012214490-cl9isx.mp4` | 10 |
+| the doctor | `drops/_/882dc8b1…mp4`, the clip she sent in | 1 |
+| the gloomy daughter | `drops/_/5cafc3ad…mp4` (her own name on the file) | 5 |
+| the other daughter | `drops/_/1f3fd2b0…png` (IMG_0887, the pink nightgown) | 3 |
+| the nightgown circle | four photos, `20f4c4cb` · `3901051a` · `dff6d833` · `60c585b5` | 2 |
+| the cat | `drops/_/06ab2c45…png`, the illustrated street | 2 |
+| the man in the hot tub | `drops/_/e4a9cf70…jpg`, a real photo | 1 ✕ |
+
+Everyone else on the roster above rides NOTHING and is written out in words
+every time: the professor, the class, the Salem mob and the accused girl, the
+medieval doctors and the leeched woman, the pill-ad cast, the TSA agent, the
+neighbour, the boy with the couch, the men with the pickup, the mailman.
 
 ### Named in a prompt, never given a face
 
