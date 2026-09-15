@@ -519,6 +519,10 @@
   .fold.nofold svg{visibility:hidden}
   .refbar{display:flex;align-items:center;gap:8px;margin:0 var(--pillgap,0px) 8px 0}
   .refbar > button{flex:none;margin:0}
+  /* `clear all` sits at the far end of the bar, the same underlined word as
+     clear/undo beside the star — never a boxed button, so the bar's three
+     filled squares stay the things that PUT something in the strip. */
+  .refbar > .wipe{margin-left:auto;padding:2px 0}
   /* THE WHOLE PROMPT AREA USED TO FOLD, AND SHE HAD IT TAKEN OFF (2026-09-14,
      Sophie: "remove prompt collapse"). It shipped 2026-09-11 as the one button
      down to the gallery — shut, the panel was one sticky PROMPT row and the
@@ -1347,7 +1351,7 @@
   <p><b>Sound is always on.</b></p>
   <p><b>Characters &amp; setting.</b> One permanent block, two boxes, folded away until you tap it &mdash; and it sits <b>directly above the block you are in</b>, so what is on screen is always what that clip is about to send. <b>Characters is that block&rsquo;s own:</b> tap into another block and its cast comes back, the way its pictures do, so shot two can be one person where shot one was the whole family. <b>Setting is every clip&rsquo;s</b> &mdash; one room per project. Both ride at the top of the prompt, cast first. Folded, the heading says what is in both, so you can see what is riding without opening it. Leave a box empty and it adds nothing. Dividing a block gives the new half a copy of the cast; joining two puts both casts together; <b>clear</b> wipes the cast with the blocks (<b>undo</b> puts it back) and leaves the setting alone.</p>
   <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. With the cursor at the <b>end</b> there is nothing to cut, so it makes an <b>empty</b> block under this one and puts you in it &mdash; a box for the next shot before there are words for it. Every block has the same buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead, or tick several headings to send them appended as one clip. Nothing is sent by dividing. The join mark goes away while either of its two blocks is folded. Each block gets its own heading, and <b>tapping the heading folds that block away</b> &mdash; shut it shows its first words, and it still sends them if it is the one the star is pointing at. A folded block stays folded &mdash; it comes back that way after a reload, and opens by itself if anything puts words into it.</p>
-  <p><b>Every block keeps its own pictures.</b> The references strip is the block you are in &mdash; tap into another one and its pictures come back, and the row above them says which block it is showing. Dividing gives both halves a copy of the strip the scene was written against, so every <b>[Image2]</b> still points at the same picture; joining puts the two strips together and renumbers both halves onto it. The <b>&times;</b> takes a picture off the block you are in and leaves the others alone. Each heading says how many that block is carrying, so nothing rides on a block you are not looking at. Each heading also ends with a red <b>sent</b> or <b>unsent</b> saying whether the words in that box have gone &mdash; change one and it reads unsent again. Marking blocks sends every marked block's pictures in the one clip, with each block's names renumbered onto them &mdash; and the price beside the star is that clip's, not one block's.</p>
+  <p><b>Every block keeps its own pictures.</b> The references strip is the block you are in &mdash; tap into another one and its pictures come back, and the row above them says which block it is showing. Dividing gives both halves a copy of the strip the scene was written against, so every <b>[Image2]</b> still points at the same picture; joining puts the two strips together and renumbers both halves onto it. The <b>&times;</b> takes a picture off the block you are in and leaves the others alone; <b>clear all</b> at the end of the bar takes every picture off that block at once, with their names out of the box, and <b>undo</b> beside the star puts them back. Each heading says how many that block is carrying, so nothing rides on a block you are not looking at. Each heading also ends with a red <b>sent</b> or <b>unsent</b> saying whether the words in that box have gone &mdash; change one and it reads unsent again. Marking blocks sends every marked block's pictures in the one clip, with each block's names renumbered onto them &mdash; and the price beside the star is that clip's, not one block's.</p>
   <p><b>Picking several blocks &mdash; any of them, in any order.</b> Every block's heading carries a small square. Tick the ones you want and the star sends <b>those</b> blocks as <b>one</b> clip, appended in the order they sit with a blank line between &mdash; one job, one price, one refusal line. They do not have to be next to each other: block 1 and block 3 without block 2 is three taps. The star says how many it is about to send, the price beside it is that clip's, and the clip carries every ticked block's pictures with each block's names renumbered onto them. Your blocks are not touched and the ticks stay, so sending again is one tap. Tick nothing and the star is what it always was &mdash; the block with the gold line. Over $3 the first tap asks and the second sends.</p>
   <p><b>Taking one block off.</b> The &times; in a block&rsquo;s corner takes that block off; with only one block left there is no &times; and <b>clear</b> beside the star is what empties it. Either way <b>undo</b> puts it back.</p>
   <p><b>Clear</b> beside the star wipes the job &mdash; every block, the references, the marks and the seed &mdash; and leaves the model, the size, the shape and the project where you set them. It asks nothing, because <b>undo</b> appears next to it and puts the whole thing back, even after a reload: the cleared job is saved the moment you clear it. Tap undo again and you are back where you were. Your words are saved as you type them either way.</p>
@@ -1406,6 +1410,12 @@
          character's references AND puts the line that names them by slot at
          the TOP of the prompt. -->
     <button id="casttog" type="button" class="ib" aria-expanded="false" aria-label="Characters" title="Characters" hidden></button>
+    <!-- CLEAR ALL (2026-09-15, Sophie: "clear all references button"). One
+         word at the far end of the bar, drawn only while something is
+         attached: it takes EVERY reference off the block she is in, takes
+         their names out of her words, and `undo` beside the star puts the
+         whole thing back — the ✕ five times over, with one way back. -->
+    <button type="button" class="wipe" id="clearrefs" hidden title="Take every reference off this block — undo puts them back">clear all</button>
   </div>
   <div class="refs" id="refs"></div>
   <!-- THE TWO DRAWERS FOLLOW THEIR BUTTONS (2026-09-14). They are siblings of
@@ -2633,6 +2643,33 @@ function undoJob() {
 }
 $('clearjob').addEventListener('click', clearJob);
 $('undojob').addEventListener('click', undoJob);
+// ── CLEAR ALL REFERENCES (2026-09-15, Sophie: "clear all references button") ─
+// The ✕ takes one picture off the block she is in; this takes them all off
+// that block — THE ACTIVE BLOCK'S STRIP, the one on screen under the heading
+// that names it, never another block's (the ✕'s own 2026-09-14 rule). Her
+// words are not touched except for the names: every slot that named a picture
+// comes out of the box through the same `reslotActive` the ✕ uses, so
+// nothing is left naming a picture that is not there.
+//
+// IT ASKS NOTHING AND IT HAS A WAY BACK — the same bank `clear` uses. The job
+// as it stood goes into the bank, so `undo` beside the star swaps it straight
+// back, pictures, marks and names, even after a reload. That is one undo for
+// both clears rather than a second mechanism, and it costs a tap only on the
+// clears she regrets.
+function clearRefs() {
+  if (!refs.length) return;
+  var was = jobNow();
+  var n = refs.length;
+  bank = was; saveBank();
+  var plain = slotRefs();
+  refs = [];
+  pruneMarks();
+  var r = reslotActive(plain, []);
+  saveDraft(); paintControls(true); paintRefs();
+  toast(n + (n === 1 ? ' reference' : ' references') + ' off'
+    + (r.changed ? ' \u00b7 names out of the box' : '') + ' \u2014 tap undo to put them back');
+}
+$('clearrefs').addEventListener('click', clearRefs);
 // THE LIST IS DERIVED, NEVER TYPED: a model this page offers is one at least
 // one live door carries, AND one named in `PAGE_MODELS`. So the drop-down can
 // never offer a row nothing can send, and never a row she did not ask for.
@@ -3125,6 +3162,9 @@ function paintRefs() {
   paintGrabRef();
   var marked = list.map(function (r) { return { url: r.url, kind: r.kind, poster: r.poster, name: r.name, role: roleOfUrl(r.url) }; });
   var slots = slotsOf(marked);
+  // NEVER A DEAD CONTROL — `clear all` is drawn only while there is a strip to
+  // clear, ahead of the signature check, since the strip's length is in it
+  if ($('clearrefs').hidden !== !list.length) $('clearrefs').hidden = !list.length;
   // THE MARKS ARE IN THE SIGNATURE — marking a picture renames the one under
   // it and renumbers the rest, and a signature of urls alone would leave the
   // strip showing the names it had before the tap.
