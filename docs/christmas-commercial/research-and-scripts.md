@@ -350,72 +350,91 @@ and then it has nowhere to go. This is the ending — a person arrives, and the
 first thing she does is answer the one line every comment section is going to
 post anyway.
 
-**Who she is: the gloomy daughter** — ~26, white nightgown, Christmas morning,
-the calm girl on the stairs (`docs/witch-commercials/cast-audit-2026-09-15.md`,
-character 6; her hearted take is the reference clip on file). She has never had
-a line in anything. That is what makes her starting to talk the ending.
+**Who she is: an eleven-year-old** (2026-09-15, Sophie: *"consider the voice of
+an eleven-year-old girl"*). Nightgown, Christmas morning, bare feet on the
+stairs. The whole ending turns on the age — a grown woman explaining Roman
+holidays to camera is a lecture, and a kid doing it is a kid who looked
+something up and has been waiting all week to tell someone. She is right, and
+being right is the funny part.
+
+**The reference problem, named:** the cast on file is a ~26-year-old woman
+(`docs/witch-commercials/cast-audit-2026-09-15.md`, character 6) and her
+hearted reference clip is that woman. A child in a ruffled nightgown HAS turned
+up in the drawn clips — she is the ✕'d half of the two-girls split in that same
+audit — so there is no approved still for an eleven-year-old and nothing to
+hold her face steady across takes. She would be written out in prose every
+time, which is exactly what let the professor come back as two different men.
+**Getting one good still of her first is the cheap move**, and it is Sophie's
+to ask for; nothing here is drawn.
 
 It rides on the end of **A, B, C or D**. The format voice stops mid-stride, and
-the spot has a human in it for the last fifteen seconds. **E already has her**,
-so E takes the extra lines instead.
+there is a child in the spot for the last fifteen seconds. **E is the grown
+woman's spot** and stays as written.
 
 ### THE ENDING (:15)
 
-*The format cuts out. She is sitting on the stairs, the tree behind her, a mug
-in both hands. She looks at the camera like someone finishing an argument that
-started before the commercial did.*
+*The format cuts out. She is sitting on the stairs in a nightgown, the tree
+behind her, the house not awake yet. She talks straight to camera, a little
+fast, the way you do when you have been saving something up.*
 
-> "Somebody is going to tell you it's Saturnalia.
+> "Everybody says it's Saturnalia. My teacher said it. It's not.
 >
-> Saturnalia was the seventeenth of December. It ran to the twenty-third at
-> the outside. It was never the twenty-fifth.
+> Saturnalia was December seventeenth. Sometimes it went to the twenty-third.
+> It was never the twenty-fifth. You can look it up.
 >
-> What Rome actually did that week: shut the courts, made the gambling legal,
-> sat the slaves down at the table, and picked a fool to be king for a day.
+> But listen to what they actually did. The Romans closed all the courts so
+> nobody had to work, and gambling was allowed, and the slaves got to sit down
+> and eat first. And they picked one guy to be king for the day and he got to
+> tell everyone what to do and they had to do it.
 >
-> A thousand years later, in England, the same week: twelve days off, a Lord
-> of Misrule — usually the poorest man in the parish, with the rich waiting on
-> him — and the poor at your door asking for the good drink, not the cheap one.
+> Then like a thousand years later, in England — twelve days off, and they
+> picked the poorest man in the whole village to be in charge, and the rich
+> people had to serve him his dinner. And if you were poor you could knock on a
+> rich person's door and they had to give you a drink. The good one.
 >
-> Nobody handed that down. There's no thread. Two different centuries got
-> there on their own.
+> Nobody copied. They didn't even know about each other.
 >
-> When it's dark at four o'clock you eat the stores, you open the good bottle,
-> and you put the bottom on top for a few days. Rome worked it out. The north
-> worked it out."
+> It's just that it gets dark at four o'clock. So you eat all the food you
+> saved up, and the grown-ups drink, and for a couple of days the people at the
+> bottom get to be on top."
 
-*She drinks, and looks back up the stairs, at the noise of a house waking up.*
+*A noise upstairs. She looks up, then back.*
 
-> "We do it in slippers."
+> "We still do it. We just do it in pajamas."
 
 > SUPER: *Christmas. Everybody arrives at it separately.*
 > [OPTION — witch button: SUPER: *Secretly a Witch.*]
 
-**:08 cut** (when the spot has already run :52): "Somebody is going to tell you
-it's Saturnalia. Saturnalia was the seventeenth of December, and it was never
-the twenty-fifth. Rome shut the courts, legalised the gambling and let the
-slaves eat first. England, a thousand years later, put the poorest man in the
-parish at the head of the table. Nobody handed that down. When it's dark at
-four, everybody puts the bottom on top for a few days." — then *We do it in
-slippers.*
+**:08 cut** (when the spot has already run :52): "Everybody says it's
+Saturnalia. It's not, Saturnalia was December seventeenth. But the Romans did
+close the courts and let the slaves eat first, and England picked the poorest
+man in the village to be in charge for twelve days, and nobody copied — it just
+gets dark at four o'clock." — then *We still do it. We just do it in pajamas.*
 
 **[Extra lines to cut or swap in]**
-- "The fool they crowned was called the *Saturnalicius princeps*. The one here
-  was called the Lord of Misrule. Neither of them had heard of the other."
-- "They gave each other presents too. Candles and little clay dolls. That one
-  really is the same, and it's the one nobody brings up."
-- "The Puritans didn't ban it for being Roman. They banned it for being fun."
-- "If you want the part that actually came down to us — it's the word. Yule.
-  It's still in the songs." *(use this one when the spot is heading for the
-  witch button)*
-- Her first line, if the spot needs the correction earlier: "You're going to
-  say Saturnalia. Everyone says Saturnalia."
+- "The Roman one they picked was called the *Saturnalicius princeps*. Ours was
+  the Lord of Misrule. Same job."
+- "They did presents too. Candles, and these little clay dolls. That part
+  actually IS the same and nobody ever says that one."
+- "The Puritans banned Christmas. Not for being Roman. For being fun. You got
+  fined five shillings."
+- "You know what's really left over? The word. Yule. It's still in the songs."
+  *(use this one when the spot is heading for the witch button)*
+- An opening if the correction needs to land sooner: "You're going to say
+  Saturnalia. Everybody says Saturnalia."
 
-**The one thing not to lose in a rewrite:** she is correcting the claim and
-then conceding the shape of it. If a cut keeps only the correction she comes
-off as a pedant, and if it keeps only the concession the spot has said the
-debunked thing on camera. The two halves ship together or the ending is a
-different ending.
+**What an eleven-year-old does NOT sound like**, since this is the thing a
+rewrite will drift back into: no "at the outside", no "there is no thread", no
+semicolons, no summing-up. She goes in order, she piles clauses on with *and*,
+and she stops when she runs out — she never lands a conclusion on purpose. The
+facts stay exactly as accurate as they were; the sentences get shorter, not the
+research.
+
+**The one thing not to lose in a rewrite:** she corrects the claim and then
+concedes the shape of it. A cut that keeps only the correction is a kid
+show-off with nothing behind it, and a cut that keeps only the concession has
+put the debunked thing on camera in a child's mouth. The two halves ship
+together or it is a different ending.
 
 ---
 
