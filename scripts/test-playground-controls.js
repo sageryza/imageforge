@@ -181,12 +181,17 @@ catch {
   // The seed button is the LoRA's, so it is off screen on a gpt-image-2 style —
   // un-hide it to measure rather than reading 0 off a hidden box.
   const seedH = await page.evaluate(() => {
+    const w = document.getElementById('seedwrap');
+    w.hidden = false; w.style.display = 'inline-flex';
     const b = document.querySelector('.seedbtn');
-    b.hidden = false; b.style.display = 'flex';
     const h = Math.round(b.getBoundingClientRect().height);
     return h;
   });
   ok(seedH === rowH, 'the same box the seed button is (' + seedH + ')');
+  // …and the number she types sits in the same box as the buttons that step it.
+  const seedBoxH = await page.evaluate(() =>
+    Math.round(document.getElementById('seedin').getBoundingClientRect().height));
+  ok(seedBoxH === rowH, 'the seed box is the row\'s height too (' + seedBoxH + ')');
   ok(await page.evaluate(() => getComputedStyle(document.getElementById('go')).borderRadius) === '6px',
     'still a 6px rounded rectangle — the house rule, not sharp corners');
 
@@ -290,8 +295,77 @@ catch {
   // The seed button belongs to the LoRA style, and it was the one circle.
   await page.selectOption('#stylepick', 'watercolor');
   await page.waitForSelector('.seedbtn');
-  const seedR = await page.locator('.seedbtn').evaluate((e) => getComputedStyle(e).borderRadius);
-  ok(seedR === '6px', `the seed button is a rounded square, not a circle (${seedR})`);
+  // BOTH of them — the pair is two of one control, so one of them drifting
+  // round is exactly the shape this guards against.
+  const seedR = await page.evaluate(() => [...document.querySelectorAll('.seedbtn')]
+    .map((e) => getComputedStyle(e).borderRadius));
+  ok(seedR.length === 2 && seedR.every((r) => r === '6px'),
+    `both seed buttons are rounded squares, not circles (${seedR.join(', ')})`);
+  // THE BOX IS INK LIKE ITS BUTTONS — caught in a photo, invisible in source:
+  // the generic `input[type=number]` rule is more specific than a bare
+  // `.seedin`, so the number drew a WARM line between two ink arrows.
+  const seedInk = await page.evaluate(() => {
+    const cs = getComputedStyle(document.getElementById('seedin'));
+    const b = getComputedStyle(document.querySelector('.seedbtn'));
+    return { box: cs.borderTopColor, btn: b.borderTopColor, r: cs.borderRadius,
+      w: Math.round(document.getElementById('seedin').getBoundingClientRect().width) };
+  });
+  ok(seedInk.r === '6px', 'and the box between them is the same corner');
+  ok(seedInk.box === seedInk.btn,
+    `the box's line is the arrows' line, not the warm one (${seedInk.box} / ${seedInk.btn})`);
+  ok(seedInk.w === 72, `and it is the group's own width, not the number field's (${seedInk.w})`);
+
+  // THE SEED GOES BOTH WAYS AND TAKES A TYPED NUMBER (2026-09-15, Sophie:
+  // "wtr seed up down text box"). Measured off the BOX and off localStorage —
+  // what Generate sends is the stored number, so a stepper that paints the
+  // right thing and stores the old one looks identical to a working one.
+  console.log('the seed steps up, steps down, and takes a number');
+  const seedNow = () => page.evaluate(() => ({
+    box: document.getElementById('seedin').value,
+    kept: localStorage.getItem('promptlab_seed'),
+  }));
+  await page.evaluate(() => { localStorage.setItem('promptlab_seed', '85'); });
+  await page.goto(base + '/playground');
+  await page.selectOption('#stylepick', 'watercolor');
+  await page.waitForSelector('#seedin');
+  let s = await seedNow();
+  ok(s.box === '85', `it opens on the seed it was left on (${s.box})`);
+  await page.click('#seedbtn');
+  s = await seedNow();
+  ok(s.box === '86' && s.kept === '86', `up goes up (${s.box}/${s.kept})`);
+  await page.click('#seeddown');
+  await page.click('#seeddown');
+  s = await seedNow();
+  ok(s.box === '84' && s.kept === '84', `and down goes back past where it started (${s.box}/${s.kept})`);
+  // The box: her number is stored as she types, without waiting for a blur.
+  await page.fill('#seedin', '1234');
+  s = await seedNow();
+  ok(s.kept === '1234', `a typed seed is kept on the keystroke (${s.kept})`);
+  // A half-typed or emptied box stores NOTHING, and leaving it puts the real
+  // seed back — never a run on a seed she did not ask for.
+  await page.fill('#seedin', '');
+  s = await seedNow();
+  ok(s.kept === '1234', `an emptied box changes no seed (${s.kept})`);
+  await page.evaluate(() => document.getElementById('seedin').blur());
+  s = await seedNow();
+  ok(s.box === '1234', `and leaving it shows the seed again (${s.box})`);
+  // It really is what the run carries.
+  posted.length = 0;
+  await page.fill('#prompt', 'a dog');
+  await page.click('#go');
+  await page.waitForFunction(() => document.querySelectorAll('#pendings *').length > 0);
+  ok(posted.length === 1 && posted[0].seed === 1234,
+    `the run is sent with it (${posted[0] && posted[0].seed})`);
+  // Down can never walk it below zero — Replicate has no negative seed.
+  await page.fill('#seedin', '0');
+  await page.click('#seeddown');
+  s = await seedNow();
+  ok(s.box === '0' && s.kept === '0', `down stops at zero (${s.box})`);
+  // The whole group is the LoRA's: nothing of it is left on a gpt style.
+  await page.selectOption('#stylepick', 'chatgpt');
+  ok(await page.evaluate(() =>
+    !document.getElementById('seedwrap').getBoundingClientRect().height),
+  'and the whole seed group comes off a gpt-image-2 style');
 
   await browser.close();
   server.close();
