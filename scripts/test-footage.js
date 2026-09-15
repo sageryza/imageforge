@@ -821,7 +821,7 @@ async function pillSweep(pg, where) {
     const p3 = F.pageJobs(all, { limit: 3, before: p2.docs[2].d.sentAt });
     ok('the last page is short and says so', p3.docs.map((x) => x.id).join() === 'j0' && p3.more === false);
     ok('no cursor and a big limit is everything, and more is false', F.pageJobs(all, { limit: 40 }).more === false && F.pageJobs(all, { limit: 40 }).docs.length === 7);
-    ok('the route answers `more` beside the jobs', /jobs: docs\.map\(\(x\) => cardOf\(x\.id, x\.d\)\), more, folders \}/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
+    ok('the route answers `more` beside the jobs', /jobs: docs\.map\(\(x\) => cardOf\(x\.id, x\.d\)\), more, folders[,}]/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
   }
 
   // ── the page rules ──────────────────────────────────────────────────────
