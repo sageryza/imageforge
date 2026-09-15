@@ -2020,6 +2020,28 @@ function pageJobs(all, { limit, before, beforeId, max } = {}) {
   return { docs, more: under.length > docs.length };
 }
 
+// HOW MANY MATCHES ARE OUTSIDE THE PROJECT SHE IS STANDING IN (2026-09-15,
+// Sophie, inside "Secretly a Witch" with `cider` typed and "Nothing matches
+// that." under it: "where r the rest of my clips???"). Measured that morning:
+// 90 of her 500 clips carry NO project at all — 53 of them sent the day
+// before, the Christmas commercial she was searching for — because the
+// project stamps at SEND time and she was in All when she sent them. The
+// project narrows the feed AND the search, and from down at the feed it is a
+// filter she cannot see, so the page reported an empty library rather than a
+// narrowed one. The narrowing stays — a project is what she asked the picker
+// for — and this is the number that says the clips exist and are one tap
+// away. Pure, so it has a test that needs no Firestore.
+// A HIDDEN CLIP IS NOT "ELSEWHERE": `hidden` is this page's delete, and a
+// count promising clips the feed would never draw would send her to All to
+// find nothing. Tucked films ARE counted — a search is her asking for
+// something by name, the route's own carve-out.
+function outsideCount(rows, { project, folder, hit }) {
+  if (!project) return 0;
+  return rows.filter((x) => !x.d.hidden
+    && !(projectSlug(x.d.project) === project && (!folder || folderSlug(x.d.folder) === folder))
+    && hit(x)).length;
+}
+
 router.get('/jobs', async (req, res) => {
   try {
     // EVERY CLIP ON THE LOG, WHICHEVER CHAT DREW IT (2026-09-11, Sophie, on
@@ -2075,17 +2097,22 @@ router.get('/jobs', async (req, res) => {
     // page's own filter reads (footage-hay.js) and the feed's own matcher
     // (search-grammar.js). A search may ask for a bigger page.
     const q = String(req.query.q || '').trim();
+    // AND IT SAYS HOW MANY IT FOUND OUTSIDE THIS PROJECT (`outsideCount`) —
+    // free, since the whole collection is already read and the matcher built
+    let elsewhere = 0;
     if (q) {
       // THE PROJECT'S NAME IS IN THE HAY HERE TOO (2026-09-14) — the page put
       // it in its own client-side pass and the server did not, so typing "the
       // ward" showed the loaded hits and then the server's answer blanked them
       const names = await cast.filmNames().catch(() => ({}));
       const groups = grammar.compileFeed(q);
-      all = all.filter((x) => {
+      const hit = (x) => {
         const c = cardOf(x.id, x.d);
         if (c.project && names[c.project]) c.projectName = names[c.project];
         return grammar.feedMatches(hayOf(c), groups);
-      });
+      };
+      all = all.filter(hit);
+      elsewhere = outsideCount(rows, { project, folder, hit });
     }
     const { docs, more } = pageJobs(all, { limit: q ? Math.min(Number(req.query.limit) || 40, 300) : req.query.limit, before: req.query.before, beforeId: req.query.beforeId, max: q ? 300 : undefined });
     // ask the doors about the ones still drawing — throttled per job, so a
@@ -2109,7 +2136,7 @@ router.get('/jobs', async (req, res) => {
       bakePoster(x.id, x.d.video).catch(() => {});
     });
     res.set('Cache-Control', 'no-store');
-    res.json({ ok: true, jobs: docs.map((x) => cardOf(x.id, x.d)), more, folders });
+    res.json({ ok: true, jobs: docs.map((x) => cardOf(x.id, x.d)), more, folders, elsewhere });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -2403,7 +2430,7 @@ module.exports = {
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf, atlasCacheBust,
   drawStats, drawTimeFor, drawTimeFrom, drawKeyOf, medianOf,
   startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf, pausedNow,
-  canvasFrom, pageJobs, hayOf, foldersOf, shelfOf, folderSlug, statusOf, staleJob, STALE_MS, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, cutArgs, TRIM_CAP, frameSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
+  canvasFrom, pageJobs, outsideCount, hayOf, foldersOf, shelfOf, folderSlug, statusOf, staleJob, STALE_MS, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, cutArgs, TRIM_CAP, frameSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
   trimRoom, waitTrimRoom, TRIM_NEED_MB, BOX_MB, bakeStale, BAKE_STALE_MS,
   framePlan, framePath, pullFrame, grabFrame, FRAME_FOLDER, FRAME_END_PAD,
 };

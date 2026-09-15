@@ -3665,7 +3665,36 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   MODEL (the four `PAGE_MODELS`, several at once) and WHEN (the shell's own
   days-back chips) — sticky under `footage_filt_*` like the ♥ and ✕ beside
   them; an emptied feed names which of them emptied it. Both stay OUT of the
-  drawer (her 2026-09-02 word). Test: the search block of
+  drawer (her 2026-09-02 word).
+  **AND THE PROJECT IS A FILTER TOO — A SEARCH INSIDE ONE SAYS HOW MANY IT
+  FOUND OUTSIDE IT (2026-09-15, Sophie, standing in "Secretly a Witch" with
+  `cider` typed and "Nothing matches that." under it: "where r the rest of my
+  clips???").** The project narrows the feed AND the search — `projQ()` rides
+  the search read and `shown()` drops a card of another project — and from
+  down at the feed it is the one filter with no chip, no light and no count,
+  so an empty answer reads as a lost library. **Measured on her live log that
+  morning: 90 of her 500 clips carry NO project at all, 53 of them sent the
+  day before** — the Christmas commercial she was searching for — because the
+  project stamps at SEND time (`project: S.project` on the POST) and she was
+  in All when she sent them; they are not lost, they are in All. The
+  narrowing STAYS, because a project is what she asked the picker for; what
+  was missing is the number. `outsideCount` (footage.js, pure and exported)
+  counts the matches outside the project/folder over the whole collection the
+  read already holds and rides back as `elsewhere` — free, no second read —
+  and the page draws the house underlined word under the empty line:
+  `… 2 outside this project` (`this folder` when she is in one), whose tap is
+  `setProject('')`, her words still in the box. Two rules: a **hidden** clip
+  is never counted (`hidden` is this page's delete, and a count promising
+  clips the feed would not draw sends her to All to find nothing), and a
+  **tucked** film IS counted — a search is her asking for something by name,
+  the route's own carve-out. The empty line names the project now too
+  (*Nothing matches that in Secretly a Witch.*). Test:
+  `node scripts/test-footage-elsewhere.js` (the count pure, then the real
+  page headless — the word MEASURED as a box with width on screen, the tap
+  asked as a real tap, and the read the server received checked, since a
+  count computed but never drawn and one drawn but hidden look identical in
+  the source; verified failing 12 pre-fix).
+  Test: the search block of
   `node scripts/test-footage.js` (every assertion a MEASUREMENT of what is on
   screen or of what the stub server really received — a word only an older
   clip says has to reach the server and come back as a card).

@@ -1498,6 +1498,14 @@
      a boxed button. It sits under BOTH views. -->
 <button type="button" class="olderbtn" id="older" hidden>&hellip; older</button>
 <div class="emptynote" id="feedempty" hidden>Nothing made here yet.</div>
+<!-- WHERE THE REST OF THEM ARE (2026-09-15, Sophie, standing in "Secretly a
+     Witch" with `cider` typed and "Nothing matches that." under it: "where r
+     the rest of my clips???"). The project narrows the feed AND the search,
+     and it is a filter she cannot see from down here — measured that morning,
+     90 of her 500 clips carry no project at all, 53 of them sent the day
+     before. The narrowing stays; the count that says the clips exist is what
+     was missing. The house underlined word, never a boxed button. -->
+<button type="button" class="olderbtn" id="qelse" hidden></button>
 
 <div id="shelf" hidden role="dialog" aria-label="Projects and folders">
   <div class="shhead">
@@ -5186,7 +5194,7 @@ function applyFilt() {
   var fm = FILT && (FILT.get('model') || []).length, fw = FILT && FILT.get('when');
   $('feedempty').textContent = !n ? (S.project ? 'Nothing in here yet.' : 'Nothing made here yet.')
     : likedOnly() ? 'Nothing hearted yet.'
-    : qGroups.length ? 'Nothing matches that.'
+    : qGroups.length ? ('Nothing matches that' + (S.project ? ' in ' + (S.folder ? folderName(S.folder) : projectName(S.project)) : '') + '.')
     : fm ? 'Nothing on that model.'
     : fw ? 'Nothing that recent.'
     : hideX() ? 'Everything here is crossed out.' : 'Nothing to show here.';
@@ -5226,7 +5234,7 @@ $('v-hidex').addEventListener('click', function () { try { localStorage.setItem(
 // the words and keeps her in it.
 var qparse = window.FeedKit ? window.FeedKit.qparse : function () { return []; };
 var qmatch = window.FeedKit ? window.FeedKit.qmatch : function () { return true; };
-var searchQ = '', qGroups = [], qHits = null, qSeq = 0, qTimer = null, qMore = false, qAt = '';
+var searchQ = '', qGroups = [], qHits = null, qSeq = 0, qTimer = null, qMore = false, qAt = '', qElse = 0;
 function hayOf(j) { return window.FootageHay ? window.FootageHay.hayOf(j) : ''; }
 // WHICH CLIPS A SEARCH KEEPS: the server's answer once it has landed, the
 // same words matched over the loaded feed until then. A SEARCH DECIDES
@@ -5274,6 +5282,7 @@ function runSearch(before) {
     if (!before || !qHits) qHits = {};
     jobs.forEach(function (j) { qHits[j.id] = true; });
     qMore = !!(d && d.more);
+    qElse = (d && d.elsewhere) || 0;       // matches outside the project she is in
     var qLow = minSentAt(jobs);
     if (qLow) qAt = qLow;
     paintFeed(); paintOlder();
@@ -5287,7 +5296,7 @@ function readSearch() {
   $('qclear').hidden = !searchQ;
   box.classList.toggle('hasq', !!box.value);            // the ✕'s padding, only while it shows
   qHits = null;                                          // the loaded feed answers meanwhile
-  qMore = false; qAt = '';                               // and its own walk starts over
+  qMore = false; qAt = ''; qElse = 0;                    // and its own walk starts over
   clearTimeout(qTimer);
   if (searchQ) qTimer = setTimeout(runSearch, 350);
   else qSeq++;                                           // and any answer still coming is dropped
@@ -6549,7 +6558,25 @@ function paintOlder() {
   b.hidden = searching ? !qMore : !feedMore;
   b.disabled = loadingOlder;
   b.textContent = loadingOlder ? '\u2026 loading' : (searching ? '\u2026 more matches' : '\u2026 older');
+  paintElse();
 }
+// THE MATCHES SHE CANNOT SEE FROM IN HERE. Drawn only while a search is up
+// inside a project and the server really found some outside it; the tap goes
+// to All with her words still in the box, which is the one gesture that shows
+// them. It says which filter is hiding them — the folder when she is in one,
+// the project otherwise — because naming the wrong one is what made the empty
+// feed read as a lost library in the first place.
+function paintElse() {
+  var b = $('qelse'), on = !!(qGroups.length && qElse > 0 && S.project);
+  b.hidden = !on;
+  if (!on) return;
+  var where = S.folder ? 'outside this folder' : 'outside this project';
+  b.textContent = '\u2026 ' + qElse + ' ' + where;
+  b.setAttribute('aria-label', 'Show all ' + qElse + ' matches ' + where);
+}
+$('qelse').addEventListener('click', function () {
+  setProject('');                    // her words stay in the box; setProject re-asks
+});
 function loadOlder() {
   if (loadingOlder) return Promise.resolve();
   // while a search stands, the door walks the SEARCH's pages
