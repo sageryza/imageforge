@@ -271,6 +271,30 @@
      a second one. */
   .promptwrap .bfold .bsent{display:none;flex:none;white-space:nowrap;margin-left:auto;color:#a0402a}
   .promptwrap .bfold .bsent.on{display:inline}
+  /* THE MARK THAT PUTS A BLOCK IN THE NEXT CLIP (2026-09-15, Sophie: "how do i
+     select multiple non adjacent text blocks in footage to send appended as one
+     prompt"). Blocks 1 and 3 without 2, which neither send on the page could
+     do: the star sends the block she is in, and the All star she had taken out
+     the day before (#2397, "button is stipid get it out") was all-or-nothing.
+     So the pick is PER BLOCK and THE STAR IS STILL THE ONLY SEND — no second
+     button grows back, the star reads the marks. That is the half of #2397 that
+     was right and is kept.
+     A ROUNDED SQUARE, grey outline empty, a red check when it is on — her own
+     words for what a checkbox is (the keep-pile's read box) — and never a
+     circle (the `No pills` rule). 6px, the house radius.
+     THE BAND IS THE TARGET AND THE BOX IS THE PICTURE (the `.mtick` rule): 16px
+     of paint with a transparent `::before` carrying the thumb's 28px, so the
+     row is the height it has always been and the chevron does not move. It is a
+     SPAN and not a button — a button inside the heading's button is invalid
+     markup, which is why the walk's own ‹ › sit on a row of their own. */
+  .promptwrap .bfold .bpick{position:relative;display:none;flex:none;align-items:center;justify-content:center;
+        width:16px;height:16px;box-sizing:border-box;border:1px solid #c3b9a8;border-radius:6px;
+        background:#fff;color:#a0402a;-webkit-tap-highlight-color:transparent}
+  .panel.many .promptwrap .bpick{display:inline-flex}
+  .promptwrap .bfold .bpick::before{content:'';position:absolute;top:-6px;right:-4px;bottom:-6px;left:-8px}
+  .promptwrap .bfold .bpick.on{border-color:#a0402a}
+  .promptwrap .bfold .bpick svg{width:11px;height:11px;display:none}
+  .promptwrap .bfold .bpick.on svg{display:block}
   /* ONE FOLDED BLOCK WITH TWO BOXES, AND IT RIDES ABOVE THE BLOCK SHE IS IN
      (2026-09-14, Sophie: "characters/setting become one collapsed block w two
      text boxes" · "characters/setting move to above currently selected block,
@@ -405,12 +429,10 @@
   .go{display:inline-flex;align-items:center;gap:8px;background:#2b2620;color:#f6f2ea;border-color:#2b2620;
       padding:9px 14px 9px 11px;font-size:16px}
   .go svg{width:20px;height:20px;display:block}
-  /* THE SECOND STAR — SEND EVERY BLOCK (2026-09-13). It is the star's own
-     class, so the two read as the same kind of tap; only the label differs,
-     and the label carries the whole batch's price. ARMED (over $3, waiting
-     for the second tap) it takes the gold ring the active block already
-     wears — the one accent on this page that means "this is the one" —
-     rather than a colour nothing else here uses. */
+  /* ARMED — the second tap of the over-$3 ask (2026-09-15). A ring rather than
+     a colour: the star is the page's one send and recolouring it would read as
+     a different button, where a ring reads as the same button waiting. */
+  .go.armed{box-shadow:0 0 0 2px #c9a96a}
   /* NOTHING A DOOR SAYS MAY WIDEN THE PAGE (2026-09-10, Sophie: "bug where
      screen sometimes zooms extra or gets v wide ?"). A refusal arrives as the
      door's own words — Atlas hands back up to 600 characters of raw body, and
@@ -1315,9 +1337,9 @@
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
   <p><b>Characters &amp; setting.</b> One permanent block, two boxes, folded away until you tap it &mdash; and it sits <b>directly above the block you are in</b>, so what is on screen is always what that clip is about to send. <b>Characters is that block&rsquo;s own:</b> tap into another block and its cast comes back, the way its pictures do, so shot two can be one person where shot one was the whole family. <b>Setting is every clip&rsquo;s</b> &mdash; one room per project. Both ride at the top of the prompt, cast first. Folded, the heading says what is in both, so you can see what is riding without opening it. Leave a box empty and it adds nothing. Dividing a block gives the new half a copy of the cast; joining two puts both casts together; <b>clear</b> wipes the cast with the blocks (<b>undo</b> puts it back) and leaves the setting alone.</p>
-  <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. With the cursor at the <b>end</b> there is nothing to cut, so it makes an <b>empty</b> block under this one and puts you in it &mdash; a box for the next shot before there are words for it. Every block has the same buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead. Nothing is sent by dividing. The join mark goes away while either of its two blocks is folded. Each block gets its own heading, and <b>tapping the heading folds that block away</b> &mdash; shut it shows its first words, and it still sends them if it is the one the star is pointing at. A folded block stays folded &mdash; it comes back that way after a reload, and opens by itself if anything puts words into it.</p>
-  <p><b>Every block keeps its own pictures.</b> The references strip is the block you are in &mdash; tap into another one and its pictures come back, and the row above them says which block it is showing. Dividing gives both halves a copy of the strip the scene was written against, so every <b>[Image2]</b> still points at the same picture; joining puts the two strips together and renumbers both halves onto it. The <b>&times;</b> takes a picture off the block you are in and leaves the others alone. Each heading says how many that block is carrying, so nothing rides on a block you are not looking at. Each heading also ends with a red <b>sent</b> or <b>unsent</b> saying whether the words in that box have gone &mdash; change one and it reads unsent again. <b>All</b> sends every block's pictures in the one clip, with each block's names renumbered onto them &mdash; and its price is that clip's, not this block's.</p>
-  <p><b>All of them at once.</b> Once two blocks have words in them a second star appears beside the first, carrying what that clip costs. It sends every written block as <b>one</b> clip, appended in order with a blank line between &mdash; one job, one price, one refusal line &mdash; and it carries every block's pictures, each block's names renumbered onto them. Your blocks are not touched. Over $3 the first tap asks and the second sends.</p>
+  <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. With the cursor at the <b>end</b> there is nothing to cut, so it makes an <b>empty</b> block under this one and puts you in it &mdash; a box for the next shot before there are words for it. Every block has the same buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead, or tick several headings to send them appended as one clip. Nothing is sent by dividing. The join mark goes away while either of its two blocks is folded. Each block gets its own heading, and <b>tapping the heading folds that block away</b> &mdash; shut it shows its first words, and it still sends them if it is the one the star is pointing at. A folded block stays folded &mdash; it comes back that way after a reload, and opens by itself if anything puts words into it.</p>
+  <p><b>Every block keeps its own pictures.</b> The references strip is the block you are in &mdash; tap into another one and its pictures come back, and the row above them says which block it is showing. Dividing gives both halves a copy of the strip the scene was written against, so every <b>[Image2]</b> still points at the same picture; joining puts the two strips together and renumbers both halves onto it. The <b>&times;</b> takes a picture off the block you are in and leaves the others alone. Each heading says how many that block is carrying, so nothing rides on a block you are not looking at. Each heading also ends with a red <b>sent</b> or <b>unsent</b> saying whether the words in that box have gone &mdash; change one and it reads unsent again. Marking blocks sends every marked block's pictures in the one clip, with each block's names renumbered onto them &mdash; and the price beside the star is that clip's, not one block's.</p>
+  <p><b>Picking several blocks &mdash; any of them, in any order.</b> Every block's heading carries a small square. Tick the ones you want and the star sends <b>those</b> blocks as <b>one</b> clip, appended in the order they sit with a blank line between &mdash; one job, one price, one refusal line. They do not have to be next to each other: block 1 and block 3 without block 2 is three taps. The star says how many it is about to send, the price beside it is that clip's, and the clip carries every ticked block's pictures with each block's names renumbered onto them. Your blocks are not touched and the ticks stay, so sending again is one tap. Tick nothing and the star is what it always was &mdash; the block with the gold line. Over $3 the first tap asks and the second sends.</p>
   <p><b>Taking one block off.</b> The &times; in a block&rsquo;s corner takes that block off; with only one block left there is no &times; and <b>clear</b> beside the star is what empties it. Either way <b>undo</b> puts it back.</p>
   <p><b>Clear</b> beside the star wipes the job &mdash; every block, the references, the marks and the seed &mdash; and leaves the model, the size, the shape and the project where you set them. It asks nothing, because <b>undo</b> appears next to it and puts the whole thing back, even after a reload: the cleared job is saved the moment you clear it. Tap undo again and you are back where you were. Your words are saved as you type them either way.</p>
   <p><b>The seed</b> is on every finished clip, with a button that puts it back in the box. Leave the box blank and each clip gets a fresh one. A seed repeats the <i>opening</i> of a short clip and then drifts &mdash; it does not survive a changed prompt or a different size, and at 15 seconds it does close to nothing.</p>
@@ -1352,7 +1374,7 @@
        cursor into two; the second half becomes a block of its own right under
        this one, with a join mark in the gap. The star sends the block she is
        in — the one with the gold line — once there is more than one. -->
-  <div class="promptwrap active"><button type="button" class="fold bfold" aria-expanded="true"><span class="chev"></span><span class="bflab">Block 1</span><span class="lw"></span><span class="bref"><span class="ic"></span><span class="n"></span></span><span class="bsent"></span></button><div class="hrow" hidden><button type="button" class="hprev" aria-label="An older prompt" title="An older prompt sent from this part">‹</button><span class="hpos"></span><button type="button" class="hnext" aria-label="A newer prompt" title="A newer prompt, back toward now">›</button></div><div class="hpast" hidden><div class="hwords"></div><div class="hmeta"><button type="button" class="hcard" title="Open that clip"></button><button type="button" class="wipe huse">use this</button></div></div><textarea id="prompt" class="pblock"></textarea><button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this block off" title="Take this block off — undo puts it back"></button><button type="button" id="divide" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block; at the end, an empty one"></button><button type="button" id="bigprompt" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
+  <div class="promptwrap active"><button type="button" class="fold bfold" aria-expanded="true"><span class="bpick" role="checkbox" aria-checked="false" tabindex="0"></span><span class="chev"></span><span class="bflab">Block 1</span><span class="lw"></span><span class="bref"><span class="ic"></span><span class="n"></span></span><span class="bsent"></span></button><div class="hrow" hidden><button type="button" class="hprev" aria-label="An older prompt" title="An older prompt sent from this part">‹</button><span class="hpos"></span><button type="button" class="hnext" aria-label="A newer prompt" title="A newer prompt, back toward now">›</button></div><div class="hpast" hidden><div class="hwords"></div><div class="hmeta"><button type="button" class="hcard" title="Open that clip"></button><button type="button" class="wipe huse">use this</button></div></div><textarea id="prompt" class="pblock"></textarea><button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this block off" title="Take this block off — undo puts it back"></button><button type="button" id="divide" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block; at the end, an empty one"></button><button type="button" id="bigprompt" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
 
   <!-- THE REFERENCES BLOCK — ITS HEADING, THE BAR, THE PICTURES (2026-09-14,
        Sophie: "references default collapsed · and collapse when job is sent" ·
@@ -1435,9 +1457,12 @@
     <button type="button" id="doorq" class="qm" aria-label="What each door accepts and costs" title="What each door accepts and costs">?</button>
   </div>
   <!-- THE STAR IS THE ONE BUTTON AND IT SENDS ON ITS TAP (2026-09-09, Sophie:
-       "no plan button"), with the price of that tap right beside it. -->
+       "no plan button"), with the price of that tap right beside it. It is
+       still the ONLY send after the marks landed (2026-09-15) — a second star
+       is what she had taken out (#2397), so the marks are read BY this one and
+       its label says how many blocks the tap will send. -->
   <div class="row" style="margin-top:12px">
-    <button class="go" id="go" type="button"><span id="gostar"></span>Go</button>
+    <button class="go" id="go" type="button"><span id="gostar"></span><span id="golab">Go</span></button>
     <span class="cost" id="cost"></span>
     <!-- CLEAR, AND AN UNDO BESIDE IT (2026-09-11, Sophie: "add a clear button
          to footage · with an undo · make a draft save automatically"). It
@@ -1587,6 +1612,7 @@ var API = '/api/footage';
 var ICONS = {
   heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
   x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>',
   copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>',
   // Lucide `search` — the glass that opens the box
   search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
@@ -1746,7 +1772,8 @@ var HROW_HTML = '<div class="hrow" hidden><button type="button" class="hprev" ar
 //     every block, which was right while one strip was every block's);
 //   - a DIVIDE copies the strip into both halves (the tail's words name it),
 //     a JOIN unions the two and renumbers both texts onto the union, and the
-//     All star sends the union with every block's words renumbered onto it —
+//     a MARKED send unions every ticked block's and renumbers each one's words
+//     onto it (2026-09-15) —
 //     so a name can never point at a picture that is not in the job it rides.
 // The globals stay globals on purpose: every attach, ✕, mark, character line
 // and put-back already writes them, so nothing else on the page had to learn
@@ -1835,8 +1862,8 @@ function roleWord(role) { return role === 'first' ? 'first frame' : role === 'la
 // keyframes. This is what the slot names are counted over, here and on the
 // server (footage.js `slotsOf` skips a ref carrying a `role`).
 function slotRefs() { return refs.filter(function (r) { return !roleOfUrl(r.url); }); }
-// The same rule over ANY job — a block she is not standing in, or the union
-// the All star sends — so one arithmetic answers the slot names everywhere.
+// The same rule over ANY job — a block she is not standing in, or the union a
+// marked send makes — so one arithmetic answers the slot names everywhere.
 function plainOf(job) {
   var j = job || {};
   return (j.refs || []).filter(function (r) { return r.url !== j.first && r.url !== j.last; });
@@ -2316,6 +2343,14 @@ function loadCtl() {
     if (Array.isArray(d.shut)) {
       blocks().forEach(function (w, i) { if (d.shut[i]) w.classList.add('shut'); });
     }
+    // AND THE MARKS (2026-09-15) — a scene she has picked three blocks out of
+    // must still be those three after the page's own self-heal fires on a new
+    // build, which she never asked for and cannot see coming. Safe in the
+    // other direction too: a draft written before this carries none, so every
+    // block opens unmarked and the star is the block she is in.
+    if (Array.isArray(d.picks)) {
+      blocks().forEach(function (w, i) { setPick(w, !!d.picks[i]); });
+    }
     // AND EVERY BLOCK'S OWN STRIP (2026-09-14) — `jobs` when the page that
     // wrote the draft had them, and otherwise the ONE strip it saved, given to
     // EVERY block: that is what it meant back when the strip was shared, and
@@ -2401,6 +2436,14 @@ function saveDraft() {
       // written in the same object, by the same call)
       var sh = ws.map(function (w) { return w.classList.contains('shut'); });
       if (sh.some(Boolean)) d.shut = sh;
+      // AND THE MARKS, by position, beside the folds — the same object holding
+      // the words they belong to, so a hand-off or a put-back replacing the
+      // blocks replaces the marks in the same write and a mark can never land
+      // on words it was not put on. Written only while something is really
+      // marked, so a page that never marks one saves exactly the draft it
+      // always saved.
+      var pk = ws.map(pickOf);
+      if (pk.some(Boolean)) d.picks = pk;
       if (sentTexts.length) d.sent = sentTexts;
     }
     // A STORY RIDES THE DRAFT, and so does a one-block story's part — `jobs`
@@ -2463,6 +2506,11 @@ function jobNow() {
     // cached page reads a bank with no `chars` and every block starts with
     // none, which is exactly what it meant before this.
     chars: ws.map(function (w) { return charsOf(w); }),
+    // and one mark per block (2026-09-15) — a clear wipes the whole job, so
+    // `undo` has to put back the set she had picked out of it. An older cached
+    // page reads a bank with no `picks` and every block comes back unmarked,
+    // which is exactly what it meant before this.
+    picks: ws.map(pickOf),
     refs: cloneRefs(jobs[0].refs), first: jobs[0].first, last: jobs[0].last, seed: seedVal(),
   };
 }
@@ -2488,7 +2536,8 @@ function applyJob(j) {
   j = j || { blocks: [''], active: 0, jobs: [{ refs: [], first: '', last: '' }], seed: '' };
   if (typeof clearErr === 'function') clearErr();   // a refusal was about the job that just left
   var ws = (j.blocks && j.blocks.length ? j.blocks : ['']).map(function (t) { return String(t || ''); });
-  setBlocks(ws, jobJobs(j).map(cleanJob), Array.isArray(j.chars) ? j.chars : []);
+  setBlocks(ws, jobJobs(j).map(cleanJob), Array.isArray(j.chars) ? j.chars : [],
+    Array.isArray(j.picks) ? j.picks : []);
   var all = blocks();
   if (all[j.active]) { markActive(all[j.active]); }
   loadActive();
@@ -2529,6 +2578,7 @@ function paintWipe() {
   // guarantees the row is the height it has always been while nothing is
   // offered.
   if ($('wipes').hidden !== (ch && uh)) $('wipes').hidden = ch && uh;
+  paintGo();
 }
 function clearJob() {
   var was = jobNow();
@@ -2675,8 +2725,9 @@ function paintDoorPrices() {
   var rows = doorRows().filter(function (r) { return r.id !== 'auto'; });
   if (!rows.length) { el.textContent = ''; return; }
   el.textContent = 'Pricing this clip…';
+  var sj = sendingJob();       // the marked union, or the active block
   Promise.all(rows.map(function (r) {
-    return api('/estimate' + costQuery(r.id)).then(function (e) {
+    return api('/estimate' + costQuery(r.id, sj)).then(function (e) {
       return { label: r.label, cents: e && e.ok && e.cents != null ? e.cents : null, about: e && e.about };
     }).catch(function () { return { label: r.label, cents: null }; });
   })).then(function (out) {
@@ -2873,12 +2924,18 @@ $('ctlfold').addEventListener('click', function () { setFold('ctl', !foldShut('c
 // THE SHAPE OF THE CLIP AS ONE QUERY, so the price under the star and the
 // prices in the doors card are asked the same way and can never disagree about
 // what is being priced. The door is the one thing that varies.
-function costQuery(door) {
-  var plain = slotRefs();
+// `job`, when given, is the union the marks have made (2026-09-15) — its
+// strip, not the active block's, because the price has to be the price of the
+// clip the tap sends. Its SHAPE moves the figure and moves which door takes it
+// at all: ten pictures is a job Atlas must refuse where one is not, so the
+// counts go with it and never a bare "something is attached".
+function costQuery(door, job) {
+  var plain = job ? plainOf(job) : slotRefs();
+  var first = job ? job.first : firstUrl, last = job ? job.last : lastUrl;
   var hasVideo = plain.some(function (r) { return r.kind === 'video'; });
   var nOf = function (k) { return plain.filter(function (r) { return r.kind === k; }).length; };
   return '?model=' + S.model + '&res=' + S.res + '&ratio=' + encodeURIComponent(S.ratio) + '&seconds=' + S.seconds + '&video=' + (hasVideo ? 1 : 0) + '&door=' + door
-    + (firstUrl ? '&first=1' : '') + (lastUrl ? '&last=1' : '') + (plain.length ? '&refs=1' : '')
+    + (first ? '&first=1' : '') + (last ? '&last=1' : '') + (plain.length ? '&refs=1' : '')
     + '&imgs=' + nOf('image') + '&vids=' + nOf('video') + '&auds=' + nOf('audio');
 }
 var costSeq = 0;
@@ -2900,10 +2957,10 @@ function updateCost() {
   // 3 audios, and audio never alone) and AUTO ranks Atlas first on its sale —
   // so a ten-picture job would be priced on the one door that must refuse it.
   // `doorFor` is still the only place that rule lives.
-  var q = costQuery(doorNow());
+  var q = costQuery(doorNow(), sendingJob());
   api('/estimate' + q).then(function (d) {
     if (seq !== costSeq) return;
-    if (!d || d.error) { $('cost').textContent = (d && d.error) || ''; $('cost').dataset.cents = ''; $('cost').dataset.door = 'none'; paintKfNote(); return; }
+    if (!d || d.error) { $('cost').textContent = (d && d.error) || ''; $('cost').dataset.cents = ''; $('cost').dataset.door = 'none'; paintKfNote(); paintGo(); return; }
     // A "~" WHERE THE FIGURE IS NOT PINNED (2026-09-10, Sophie: "add ~ to
     // both" — both resolutions on Atlas, which is every job through the
     // page's one door until a real Atlas charge is read against an
@@ -2935,6 +2992,7 @@ function updateCost() {
     $('cost').dataset.about = d.about ? '1' : '';
     $('cost').dataset.door = d.door || '';
     paintKfNote();
+    paintGo();          // an armed star names the total, which is this figure
   }).catch(function () {});
 }
 // HOW MANY OF EACH KIND RIDE — Atlas has caps of its own (9 pictures, 3
@@ -2956,13 +3014,18 @@ function refCounts(plain) {
 // beside the star already names which one this tap goes to.
 function paintKfNote() {
   var el = $('kfnote');
-  var plain = slotRefs();
-  var has = Boolean(firstUrl || lastUrl);
+  // THE UNION WHILE ANYTHING IS MARKED (2026-09-15) — a first frame in block 1
+  // and pictures in block 3 is one job that can only ride APIFRAME, and a line
+  // read off the active block alone would say nothing about it.
+  var sj = sendingJob();
+  var kf = sj ? { first: sj.first, last: sj.last } : { first: firstUrl, last: lastUrl };
+  var plain = sj ? plainOf(sj) : slotRefs();
+  var has = Boolean(kf.first || kf.last);
   var door = $('cost').dataset.door || '';
   // no line at all until the server has said which door — a wrong line is
   // worse than a beat with none
   if (!has || !plain.length || !door) { el.hidden = true; el.textContent = ''; el.classList.remove('bad'); return; }
-  var word = firstUrl && lastUrl ? 'A first and a last frame' : (firstUrl ? 'A first frame' : 'A last frame');
+  var word = kf.first && kf.last ? 'A first and a last frame' : (kf.first ? 'A first frame' : 'A last frame');
   if (door === 'apiframe') {
     el.textContent = word + ' and references ride one job on APIFRAME only — this tap goes there.';
     el.classList.remove('bad');
@@ -3110,8 +3173,8 @@ function paintRefs() {
 // is selected"). It used to sweep EVERY block, which was right while one strip
 // was every block's — with a strip per block, the ✕ she taps is on the active
 // block's strip alone, so rewriting another block's words would rename slots
-// that have not moved and break the one prompt that was right. The join and
-// the All star, where two strips really do become one, renumber through
+// that have not moved and break the one prompt that was right. The join and a
+// MARKED send, where two strips really do become one, renumber through
 // `reslotText` at that moment instead.
 function reslotPlan(was, now) {
   var CL = window.__castLine;
@@ -4015,7 +4078,12 @@ function setText(el, t) { if (el && el.textContent !== t) el.textContent = t; }
 // union can only ever ADD a SENT, never take one away.
 var sentTexts = [], SENT_MAX = 20;
 function normText(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+// A LIST, when one send took several blocks (2026-09-15) — each picked block
+// banks its OWN words, so every one of them reads `sent` afterwards rather
+// than none of them: the mark's question is "are the words in this box words
+// that have gone", and after an appended send they have.
 function markSent(t) {
+  if (Array.isArray(t)) { t.slice().reverse().forEach(markSent); return; }
   t = normText(t);
   if (!t) return;
   var i = sentTexts.indexOf(t);
@@ -4085,6 +4153,7 @@ function paintBlockHead(w, n, of) {
   // is the row it has always been.
   var nr = jobOf(w).refs.length;
   var tag = paintSent(w);
+  paintPick(w);
   var cnt = b.querySelector('.bref');
   if (cnt) {
     setText(cnt.querySelector('.n'), nr ? String(nr) : '');
@@ -4098,6 +4167,157 @@ function paintBlockHeads() {
   var ws = blocks();
   ws.forEach(function (w, i) { paintBlockHead(w, i + 1, ws.length); });
   paintJoinRows();
+  paintGo();
+}
+// ── THE BLOCKS SHE PICKED, APPENDED INTO ONE CLIP ─────────────────────────
+// 2026-09-15, Sophie: "how do i select multiple non adjacent text blocks in
+// footage to send appended as one prompt". Blocks 1 and 3 without 2. Neither
+// send the page had could do it — the star sends the block wearing the gold
+// line, and the All star (2026-09-13, out again 2026-09-14 on her "button is
+// stipid get it out") was every written block or nothing.
+//
+// THE STAR IS STILL THE ONLY SEND, and that is the half of #2397 this keeps:
+// no second button, no second price, no second thing to grey out. The star
+// reads the marks — nothing marked and it is the block she is in, exactly as
+// it has always been, byte for byte.
+//
+// THE MARK IS A POSITION-FREE FACT ON THE WRAP (`__pick`), like the strip and
+// the cast beside it, so a divide, a join, a removal, the draft, the clear's
+// bank and a put-back all carry it with nothing to bookkeep. A divide COPIES
+// it (the tail is half of the same scene, the strip's own rule), a join keeps
+// it if either half had it, and taking the first block off brings block 2's
+// mark up into `#prompt` with block 2's words.
+//
+// AND THE PRICE IS THE UNION'S, on the star's own line, because that is the
+// clip the tap sends (the house rule: what a tap costs sits beside the tap).
+// One price path and not two — the removed All star needed a second estimate
+// only because it was a second button.
+function pickOf(w) { return !!(w && w.__pick); }
+function setPick(w, on) { if (w) w.__pick = !!on; }
+// A MARK MEANS NOTHING ON A PAGE WITH ONE BLOCK, and an EMPTY marked block has
+// nothing to append — so both are simply not picked, and the mark she can see
+// on an empty block is the page saying so.
+function pickedBlocks() {
+  var ws = blocks();
+  if (ws.length < 2) return [];
+  return ws.filter(function (w) { return pickOf(w) && w.querySelector('.pblock').value.trim(); });
+}
+// EVERY PICKED BLOCK'S REFERENCES, IN ONE JOB — the union in block order,
+// deduped by url, put in the doors' own order. THE MARKS follow the same rule
+// the join does: the first picked block that has one wins each end, because a
+// clip has one first frame, and a picture marked in a later block rides as an
+// ordinary reference rather than being dropped.
+function pickStrip(ws) {
+  var jobs = (ws || pickedBlocks()).map(jobOf);
+  var out = [], have = {};
+  jobs.forEach(function (j) {
+    j.refs.forEach(function (r) { if (r && r.url && !have[r.url]) { have[r.url] = 1; out.push(r); } });
+  });
+  var first = '', last = '';
+  jobs.forEach(function (j) { if (!first && j.first && have[j.first]) first = j.first; });
+  jobs.forEach(function (j) { if (!last && j.last && have[j.last] && j.last !== first) last = j.last; });
+  return cleanJob({ refs: sortRefs(out), first: first, last: last });
+}
+// AND EVERY PICKED BLOCK'S WORDS RENUMBERED ONTO IT. A slot name is a
+// POSITION, so block 3's `[Image1]` is a different picture from block 1's —
+// appending the words without the rewrite would draw the wrong reference,
+// silently, which is the one failure this page must not have.
+//
+// THE CAST RIDES WITH ITS OWN BLOCK, the setting once at the top. Characters
+// is the BLOCK's (2026-09-14) and shot three can be one person where shot one
+// was the family, so it cannot be lifted to the head of an appended scene the
+// way the room can; `postJob` puts the setting on. That is the one place the
+// order differs from a single block's send (cast, then setting, then words),
+// and it differs because there are several casts and one room.
+function pickJob() {
+  var ws = pickedBlocks();
+  if (!ws.length) return null;
+  var jobs = ws.map(jobOf);
+  var job = pickStrip(ws), plain = plainOf(job);
+  job.prompt = ws.map(function (w, i) {
+    var body = reslotText(w.querySelector('.pblock').value.trim(), plainOf(jobs[i]), plain);
+    var c = String(charsOf(w) || '').trim();
+    return c ? c + '\n\n' + body : body;
+  }).join('\n\n');
+  // what the sent mark banks — each picked block's own words, so every one of
+  // them reads `sent` afterwards rather than none of them
+  job.sentWords = ws.map(function (w) { return w.querySelector('.pblock').value; });
+  return job;
+}
+// THE ONE ANSWER TO "what would the star send": the union while anything is
+// marked, else nothing (the active block, which every caller already knows how
+// to read). Used by the price, by the keyframe note, by the doors card and by
+// the star itself, so none of them can disagree about what is being priced.
+function sendingJob() { return pickedBlocks().length ? pickJob() : null; }
+function paintPick(w) {
+  var el = w.querySelector('.bpick');
+  if (!el) return;
+  var on = pickOf(w);
+  if (!el.firstChild) el.innerHTML = ICONS.check;
+  if (el.classList.contains('on') !== on) el.classList.toggle('on', on);
+  var want = on ? 'true' : 'false';
+  if (el.getAttribute('aria-checked') !== want) el.setAttribute('aria-checked', want);
+  var t = on ? 'Marked \u2014 the star sends this block with the others'
+    : 'Send this block with the others';
+  if (el.title !== t) el.title = t;
+  if (el.getAttribute('aria-label') !== t) el.setAttribute('aria-label', t);
+}
+// AND OVER $3 IT ASKS, which is the house rule and not this page's idea: the
+// first tap ARMS and names the total, the second sends. Anything that changes
+// the job disarms it, and so does eight seconds, so an armed star can never be
+// sitting there tomorrow spending money on a scene she has edited since.
+// IT ARMS ONLY ON A PICKED SEND. A single block's star is one tap today and
+// stays one tap — that behaviour is hers and this change does not touch it.
+var ARM_MS = 8000, ASK_CENTS = 300;
+var armed = 0;
+function disarm() { if (armed) { armed = 0; paintGo(); } }
+// THE STAR SAYS WHAT IT WILL SEND. With nothing marked it is the word it has
+// always been; with marks it names the count, because the words it is about to
+// send are spread over blocks she may have folded away — the read-back at the
+// moment of the tap, which is her "have me approve the prompt and references"
+// rule on a page where the page itself is the read-back.
+// WHICH BLOCKS THE STAR WOULD SEND, AS ONE STRING. `paintGo` runs on every
+// keystroke (through `paintWipe`), and a keystroke changes the job only when a
+// MARKED block crosses empty→written or back — so the price is re-asked on a
+// changed signature and never on a key. It also disarms: an armed star must
+// never send a set she has changed under it.
+var pickSig = '';
+function pickSigNow() {
+  var ws = blocks();
+  return ws.map(function (w, i) { return pickedBlocks().indexOf(w) >= 0 ? i : ''; }).join(',');
+}
+function paintGo() {
+  var lab = $('golab');
+  if (!lab) return;
+  var n = pickedBlocks().length;
+  var sig = pickSigNow();
+  if (sig !== pickSig) {
+    pickSig = sig;
+    armed = 0;
+    updateCost();
+    paintDoorPrices();          // returns at once unless the card is open
+  }
+  if (armed && Date.now() - armed > ARM_MS) armed = 0;
+  if (!n) armed = 0;
+  var c = parseFloat($('cost').dataset.cents);
+  var total = isFinite(c) ? c : null;
+  var t = !n ? 'Go'
+    : (armed ? 'Send ' + n + (total == null ? '' : ' \u00b7 ' + cents(total)) + '?' : 'Go \u00b7 ' + n);
+  if (lab.textContent !== t) lab.textContent = t;
+  var b = $('go');
+  var tip = !n ? 'Send the block with the gold line'
+    : (armed ? 'Tap again to send those ' + n + ' blocks as one clip'
+      : 'Send the ' + n + ' marked block' + (n === 1 ? '' : 's') + ' as ONE clip, appended');
+  if (b.title !== tip) b.title = tip;
+  if (b.classList.contains('armed') !== !!armed) b.classList.toggle('armed', !!armed);
+}
+// A CHANGED PICK IS A CHANGED JOB — the price, the keyframe note and the star
+// all re-read, and an armed star goes down rather than sending a set she has
+// just changed under it.
+function togglePick(w) {
+  setPick(w, !pickOf(w));
+  paintBlockHeads();            // `paintGo` re-prices off the changed signature
+  saveDraft();
 }
 // The mark in a gap is drawn only while BOTH of its blocks are open — see the
 // `.joinrow.hid` note in the stylesheet. It rides here rather than in
@@ -4272,6 +4492,19 @@ function mountBlock(w) {
     var ic = head.querySelector('.bref .ic');
     if (ic) ic.innerHTML = ICONS.image;
     head.addEventListener('click', function () { toggleBlock(w); });
+    // THE MARK IS NOT THE FOLD AND IT IS NOT THE GOLD LINE. Its tap stops
+    // there: the heading's own handler would fold the block away, and the
+    // document's `.promptwrap` handler below would move the gold line onto it
+    // — and marking a block is "send this one too", never "work here". So
+    // both are stopped, and `setActive` is deliberately not called.
+    var pk = head.querySelector('.bpick');
+    if (pk) {
+      pk.addEventListener('click', function (e) { e.stopPropagation(); togglePick(w); });
+      pk.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+        e.preventDefault(); e.stopPropagation(); togglePick(w);
+      });
+    }
   }
   var full = false;   // the next input may need the box to SHRINK
   box.addEventListener('beforeinput', function (e) {
@@ -4307,11 +4540,11 @@ function mountBlock(w) {
 // `job` is the strip the new block carries — a divide hands it a COPY of the
 // block it came out of, a restored draft or bank hands it that block's own,
 // and everything else hands nothing and the block starts empty. `chars` is the
-// same for its cast (2026-09-14).
-function addBlock(text, after, job, chars) {
+// same for its cast (2026-09-14), and `pick` for its mark (2026-09-15).
+function addBlock(text, after, job, chars, pick) {
   var w = document.createElement('div');
   w.className = 'promptwrap';
-  w.innerHTML = '<button type="button" class="fold bfold" aria-expanded="true"><span class="chev"></span><span class="bflab">Block</span><span class="lw"></span><span class="bref"><span class="ic"></span><span class="n"></span></span><span class="bsent"></span></button>'
+  w.innerHTML = '<button type="button" class="fold bfold" aria-expanded="true"><span class="bpick" role="checkbox" aria-checked="false" tabindex="0"></span><span class="chev"></span><span class="bflab">Block</span><span class="lw"></span><span class="bref"><span class="ic"></span><span class="n"></span></span><span class="bsent"></span></button>'
     + HROW_HTML
     + '<textarea class="pblock" aria-label="Another block"></textarea>'
     + '<button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this block off" title="Take this block off — undo puts it back"></button>'
@@ -4320,6 +4553,7 @@ function addBlock(text, after, job, chars) {
   w.querySelector('.pblock').value = text || '';
   setBlockJob(w, job);
   setBlockChars(w, chars);
+  setPick(w, pick);
   var ws = blocks();
   var at = after && ws.indexOf(after) >= 0 ? after : ws[ws.length - 1];
   at.insertAdjacentElement('afterend', w);
@@ -4415,7 +4649,11 @@ function divideBlock(box) {
   // of one scene, so the people in it are the people in the block it came out
   // of until she says otherwise. Taking a name off the half that does not need
   // it is a tap.
-  var nw = addBlock(tail, w, jobOf(w), charsOf(w));
+  // …AND A COPY OF ITS MARK (2026-09-15), the same reasoning one line further
+  // on: the tail is half of a scene she had already put in the next clip, so
+  // dividing it must not drop half of that clip out of the send. Taking the
+  // mark off the half that does not belong is a tap.
+  var nw = addBlock(tail, w, jobOf(w), charsOf(w), pickOf(w));
   // the empty one is the box she asked for, so she lands IN it; a real cut
   // leaves her standing where her words are
   setActive(tail ? w : nw);
@@ -4470,6 +4708,10 @@ function dropBlock(box) {
     // AND ITS CAST, which belongs to those words (2026-09-14) — left behind,
     // the block she can still see would name a cast that is not its scene's.
     setBlockChars(w, blockChars(ws[1]));
+    // AND ITS MARK (2026-09-15) — the mark belongs to the words, and they are
+    // in this node now, so leaving it behind would silently drop block 2's
+    // scene out of the next clip.
+    setPick(w, pickOf(ws[1]));
     gone = ws[1];
     if (gone.classList.contains('active')) moved = true;   // her words are in this node now
   } else {
@@ -4518,6 +4760,11 @@ function joinAt(row) {
   // sentence that was two.
   var ca = String(charsOf(above) || '').trim(), cb = String(charsOf(below) || '').trim();
   setBlockChars(above, ca && cb && ca !== cb ? ca + '\n\n' + cb : (ca || cb));
+  // AND THE MARK SURVIVES EITHER HALF CARRYING IT (2026-09-15) — the joined
+  // block holds both scenes, so dropping the mark would take words she had
+  // put in the next clip out of it without saying so. `ja || jb`, the rule
+  // `joinJob` already uses for the part above it.
+  setPick(above, pickOf(above) || pickOf(below));
   // THE GOLD LINE ONLY MOVES IF ONE OF THE TWO JOINED BLOCKS HAD IT
   // (2026-09-13, found auditing the page). This used to set it unconditionally,
   // so joining blocks 1 and 2 while she was standing in block 3 moved the
@@ -4546,15 +4793,16 @@ function joinAt(row) {
 // bank coming back); with none every block starts EMPTY and the caller attaches
 // afterwards — a hand-off's references land on every block, since its scenes
 // are one job's and its words may name any of them.
-function setBlocks(list, jobs, chars) {
+function setBlocks(list, jobs, chars, picks) {
   blocks().slice(1).forEach(function (w) { w.remove(); });
   // the first block is the SAME node every time, so a fold left on it would
   // hide the first scene of a hand-off, a put-back or a restored draft
   blocks()[0].classList.remove('shut');
   setBlockJob(blocks()[0], jobs && jobs[0]);
   setBlockChars(blocks()[0], chars && chars[0]);
+  setPick(blocks()[0], picks && picks[0]);
   $('prompt').value = list[0] || '';
-  for (var i = 1; i < list.length; i++) addBlock(list[i], null, jobs && jobs[i], chars && chars[i]);
+  for (var i = 1; i < list.length; i++) addBlock(list[i], null, jobs && jobs[i], chars && chars[i], picks && picks[i]);
   markActive(blocks()[0]);
   loadActive();
   paintBlocks();
@@ -4763,6 +5011,14 @@ function withHeads(words, w) {
   var h = headWords(w);
   return h.length ? h.concat([String(words).trim()]).join('\n\n') : words;
 }
+// AND THE ROOM ALONE, for an appended send (2026-09-15). `pickJob` has already
+// put each picked block's own CAST above its own words — characters is the
+// block's and several blocks have several casts — so the only head left to put
+// on is the setting, which is every clip's and goes once at the top.
+function withSetting(words) {
+  var room = String(settingVal() || '').trim();
+  return room ? room + '\n\n' + String(words).trim() : String(words).trim();
+}
 // NAMED `paintHeadBlock` AND NOT `paintHead` — the page header has a
 // `paintHead` of its own hundreds of lines down, and a duplicate function
 // DECLARATION is not an error: the last one in the file wins, silently, so
@@ -4855,25 +5111,59 @@ paintHeadBlocks();
 // word — a refused job stops at its door, nothing is re-sent on its own, and
 // nothing is ever drawn without its references. This only puts the choice she
 // already has to make in front of her thumb instead of in another app.
-$('go').addEventListener('click', function () { sendJob(''); });
-// ONE TAP IS ONE JOB, and `#go`'s own disabled flag is that gate — the star,
-// the All button and the refusal's door words all come through here, and the
-// self-heal reads the same flag as "a send in flight".
+// THE STAR READS THE MARKS (2026-09-15). Nothing marked and this is the send
+// it has always been, byte for byte: the block wearing the gold line. With
+// blocks marked it is ONE clip of those blocks appended — one job, one price,
+// one refusal line — and her blocks are not touched, so the structure survives
+// the send and a re-roll is still one tap.
+$('go').addEventListener('click', sendStar);
+function sendStar() {
+  if ($('go').disabled) return;
+  var ws = pickedBlocks();
+  if (!ws.length) return sendJob('');
+  // AN OLD PROMPT ON SCREEN IS NOT THE ONE THE STAR WOULD SEND — `postJob`
+  // refuses for the block it is handed, and an appended send reads several, so
+  // the whole set is checked here rather than the one box that happens to
+  // carry the refusal's gold line.
+  var past = ws.filter(function (w) { return w.__hpos > 0; });
+  if (past.length) { toast('A block is showing an old prompt \u2014 tap "use this" or \u203a back to now'); return; }
+  var c = parseFloat($('cost').dataset.cents);
+  var total = isFinite(c) ? c : null;
+  // NO FIGURE, NO SEND. The ask below is the house's over-$3 rule, and skipping
+  // it whenever the estimate had not landed is how the removed All star came to
+  // send at any price with no read-back at all — its own audit's finding, kept.
+  if (total == null) {
+    var why = $('cost').dataset.door === 'none' ? ($('cost').textContent || 'No door takes that shape') : '';
+    return toast(why || 'Working out what that costs \u2014 tap again in a second');
+  }
+  if (!armed && total >= ASK_CENTS) {
+    armed = Date.now(); paintGo();
+    setTimeout(function () { if (armed) disarm(); }, ARM_MS + 50);
+    return toast('That is ' + cents(total) + ' for one clip of ' + ws.length + ' blocks \u2014 tap the star again to send');
+  }
+  armed = 0; paintGo();
+  // the gold line is left exactly where she put it — with one job there is no
+  // "which block was refused", and moving it under her would be the page
+  // deciding where she is typing next. The box handed over is only where a
+  // refusal's door words hang.
+  sendJob('', ws[0].querySelector('.pblock'), pickJob());
+}
+// ONE TAP IS ONE JOB, and `#go`'s own disabled flag is that gate — the star
+// and the refusal's door words both come through here, and the self-heal reads
+// the same flag as "a send in flight".
 // `job`, when given, is the WHOLE job instead of the active block's — its
-// prompt, its references and its two marks (the All button's appended scene,
-// whose strip is every written block's unioned and whose words are renumbered
+// prompt, its references and its two marks (the marked blocks' appended scene,
+// whose strip is every picked block's unioned and whose words are renumbered
 // onto it). `box` still says which block a refusal's gold line belongs to, so
-// the two are separate arguments on purpose.
-function sendJob(pin, box, resend) {
+// the two are separate arguments on purpose. It was threaded out again on
+// 2026-09-14 with the All star and is back with the marks (2026-09-15): it is
+// the feature this time and not a dead parameter, which is what that removal
+// was about.
+function sendJob(pin, box, job, resend) {
   var btn = $('go');
   if (btn.disabled) return Promise.resolve(false);
-  // BOTH STARS GO DOWN TOGETHER (2026-09-13, found auditing the page). `#go`
-  // is the gate and greys itself (`button[disabled]{opacity:.45}`), and the
-  // All star sat beside it at full strength doing NOTHING on a tap — a live-
-  // looking button that answers nothing is the shape of every "it didn't
-  // work" report. It is the same one send either way, so they read the same.
   btn.disabled = true;
-  return postJob(pin, box || activeBox(), resend).then(function (ok) {
+  return postJob(pin, box || activeBox(), job, resend).then(function (ok) {
     btn.disabled = false;
     return ok;
   });
@@ -4902,17 +5192,18 @@ function clearErr() { var el = $('err'); el.hidden = true; el.textContent = ''; 
 // size, shape, seed, project and prompt all ride from it and never from the
 // live controls, so a door word sends THAT job and nothing that has changed
 // since (2026-09-14 — it used to re-read every setting off `S`).
-function postJob(pin, box, resend) {
-  // the block she is in and its own strip, or every block appended and theirs
-  var words = box.value;
+function postJob(pin, box, job, resend) {
+  // the block she is in and its own strip, or the marked blocks appended and
+  // theirs (2026-09-15)
+  var words = job ? job.prompt : box.value;
   // AN OLD PROMPT ON SCREEN IS NOT THE ONE THE STAR WOULD SEND (2026-09-14):
   // the star sends the box, and the box is what she cannot see while a past
   // prompt is showing in its place — so it refuses and says which tap sends.
   var pw = box && box.closest ? box.closest('.promptwrap') : null;
   if (!resend && pw && pw.__hpos > 0) { toast('That is an old prompt \u2014 tap "use this" to send it, or \u203a back to now'); return Promise.resolve(false); }
-  var sendRefs = orderedRefs();
-  var sendFirst = firstUrl;
-  var sendLast = lastUrl;
+  var sendRefs = job ? sortRefs(job.refs) : orderedRefs();
+  var sendFirst = job ? job.first : firstUrl;
+  var sendLast = job ? job.last : lastUrl;
   clearErr();
   // THE SCENE IS WHAT HAS TO BE THERE — characters and setting are the head
   // of a clip, never the clip, so an empty box with a cast written in it is
@@ -4923,11 +5214,18 @@ function postJob(pin, box, resend) {
   // refusal's door words send the same shape, and the log, the card and the
   // 1080p redo all carry the exact text that went, which is the exact-prompt
   // rule.
-  var prompt = resend ? resend.prompt : withHeads(words, box.closest('.promptwrap'));
+  // an appended scene already carries each picked block's own cast, so only
+  // the room goes on top of it (`withSetting`); one block takes both heads
+  var prompt = resend ? resend.prompt
+    : (job ? withSetting(words) : withHeads(words, box.closest('.promptwrap')));
   // WHAT THE SENT MARK BANKS: the block's own words, without the two heads the
   // send puts on top of them. A door word's re-send banks the body that was
   // REFUSED rather than the box, since she may have typed since.
-  var sentWords = resend ? (resend.words || peelHeads(resend.prompt).body) : words;
+  // AN APPENDED SEND BANKS EVERY BLOCK IT TOOK, one entry each, so all of them
+  // read `sent` rather than none — the joined prompt is in no box on the page
+  // and would mark nothing.
+  var sentWords = resend ? (resend.words || peelHeads(resend.prompt).body)
+    : (job ? job.sentWords : words);
   var body = resend ? Object.assign({}, resend, { door: pin || doorNow() })
     : { prompt: prompt, model: S.model, seconds: S.seconds, resolution: S.res, ratio: S.ratio,
       sound: true, door: pin || doorNow(), refs: sendRefs, project: S.project, folder: S.project ? S.folder : '' };
@@ -4942,9 +5240,13 @@ function postJob(pin, box, resend) {
   // WHICH STORY AND WHICH PART (2026-09-14) — the story, the part and the
   // block's own words before the heads, so the log can be walked per part. A
   // resend already carries them from the body that was refused.
+  // AN APPENDED SEND BELONGS TO NO ONE PART (2026-09-15) — it may span several
+  // — so it carries the story and no `unit`, rather than filing a clip of four
+  // parts under whichever one happened to be first. Its blocks' ‹ › walks are
+  // untouched; nothing is claimed that is not true.
   if (!resend && STORY && STORY.id) {
     body.story = STORY.id;
-    if (unitOf(pw)) { body.unit = unitOf(pw); body.words = words; }
+    if (!job && unitOf(pw)) { body.unit = unitOf(pw); body.words = words; }
   }
   return api('/jobs', { method: 'POST', body: JSON.stringify(body) }).then(function (d) {
     if (!d || !d.jobId) {
@@ -4972,7 +5274,7 @@ function postJob(pin, box, resend) {
       // THE JOB'S OWN TEXT RIDES ALONG, or a door word after an appended send
       // would re-send only the block wearing the gold line — the "those words
       // re-send THAT exact job" rule, which a joined prompt can break.
-      if (d && d.refusal === 'content') offerDoors(d.door || $('cost').dataset.door || '', box, body);
+      if (d && d.refusal === 'content') offerDoors(d.door || $('cost').dataset.door || '', box, job, body);
       return false;
     }
     // THE CARD IS THE JOB THAT WENT, NEVER WHAT THE PAGE SAYS NOW (2026-09-13,
@@ -5020,7 +5322,11 @@ function postJob(pin, box, resend) {
     // own self-heal.
     markSent(sentWords); paintBlockHeads();
     applyFilt();
-    toast((blocks().length > 1 ? (unitOf(pw) ? 'Drawing part ' : 'Drawing block ') + (blocks().indexOf(box.closest('.promptwrap')) + 1) + '…' : 'Drawing…')
+    // AN APPENDED SEND SAYS SO — "block 1" over a clip carrying three of them
+    // would be the toast lying about which words went.
+    var nsent = job && job.sentWords ? job.sentWords.length : 0;
+    toast((nsent ? 'Drawing ' + nsent + ' blocks as one clip…'
+      : (blocks().length > 1 ? (unitOf(pw) ? 'Drawing part ' : 'Drawing block ') + (blocks().indexOf(box.closest('.promptwrap')) + 1) + '…' : 'Drawing…'))
       + (hid ? ' · shown here though it is outside your search' : ''));
     // her words STAY in the box after a send (a re-roll is one tap), and so
     // does the draft — it used to be wiped here while the box still showed
@@ -5056,7 +5362,7 @@ function postJob(pin, box, resend) {
 // scene and the union that went with it, never whatever block happens to be
 // active when she taps it. `body` is what really left, so the prices offered
 // are for the shape that was refused rather than for the page as it stands.
-function offerDoors(refused, box, body) {
+function offerDoors(refused, box, job, body) {
   var others = ['atlascloud', 'openrouter', 'apiframe'].filter(function (d) { return d !== refused; });
   var sent = body || {};
   var plain = (sent.refs || []).filter(function (r) {
@@ -5088,7 +5394,7 @@ function offerDoors(refused, box, body) {
       b.className = 'doorgo';
       b.textContent = 'Send it through ' + doorWord(r.door) + ' · ' + (r.about ? '~' : '') + '$' + (r.cents / 100).toFixed(2);
       // the EXACT body that was refused, pinned to this door — never the page as it stands now
-      b.addEventListener('click', function () { clearErr(); sendJob(r.door, box, body); });
+      b.addEventListener('click', function () { clearErr(); sendJob(r.door, box, job, body); });
       row.appendChild(b);
     });
     if ($('err').hidden) return;       // she cleared it while the prices were being asked

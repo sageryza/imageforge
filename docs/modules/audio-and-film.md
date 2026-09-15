@@ -4232,6 +4232,82 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   `node scripts/test-footage-divide.js`,
   `node scripts/test-footage-block-refs.js` and
   `node scripts/test-footage-block-fold.js`.
+  **AND SHE PICKS WHICH BLOCKS GO IN ONE CLIP — ANY OF THEM, NOT NECESSARILY
+  NEXT TO EACH OTHER (2026-09-15, Sophie: "how do i select multiple non
+  adjacent text blocks in footage to send appended as one prompt").** Blocks 1
+  and 3 without block 2, which neither send on the page could do. **THE HISTORY
+  MATTERS HERE, because the obvious build is one she has already rejected:** an
+  ALL STAR shipped 2026-09-13 at her own ask ("sending two boxes at once"), was
+  corrected the same hour to ONE appended clip rather than N jobs, and was
+  taken out again a day later on her note "button is stipid get it out"
+  (#2397). What she rejected was a SECOND BUTTON that sent every written block
+  or nothing; what she is asking for here is the pick it could never do. So:
+  **the star is still the ONLY send** and it READS the marks — a second button
+  must not grow back, and `test-footage-audit-5.js` pins exactly that rather
+  than the old "only the active block sends".
+  **A MARK PER BLOCK, ON ITS OWN HEADING** — a rounded square at the house 6px,
+  grey outline empty, the page's own red with a check when it is on (her words
+  for what a checkbox is, from the keep-pile's read box), never a circle. It is
+  a SPAN with `role="checkbox"` and not a button, because the heading IS a
+  button and one inside another is invalid markup — the same reason the ‹ ›
+  walk sits on a row of its own — and its tap **stops propagation**: the
+  heading's own handler would fold the block away and the document's
+  `.promptwrap` handler would drag the gold line onto it, where marking a block
+  is "send this one too" and never "work here" (PHOTOGRAPHED: the gold line
+  stays where she left it). The band is the target and the box is the picture
+  (the `.mtick` rule) — 16px of paint with a transparent `::before` carrying
+  the thumb's ~28px, so the row is the height it has always been.
+  **THE STAR SAYS WHAT IT WILL SEND** — `Go` with nothing marked, `Go · 3` with
+  three — because those words are spread over blocks she may have folded away,
+  and the label is the read-back at the moment of the tap (her "have me approve
+  the prompt and references" rule, on a page where the page itself is the
+  read-back). **The price beside it is the UNION's**, asked with the union's
+  own shape and counts, because that is the clip the tap sends and ten pictures
+  is a job Atlas must refuse where one is not. ONE price path and not two — the
+  removed All star needed a second estimate only because it was a second
+  button. **`sendingJob()` is the one answer** to "what would the star send",
+  read by the price, the keyframe note, the doors card and the star.
+  **THE UNION IS BUILT THE WAY A JOIN IS**: every picked block's references
+  deduped in block order and put in the doors' order (`pickStrip`), the two
+  keyframe marks going to the first picked block that has one, and **every
+  block's words renumbered onto it through `reslotText`** — a slot name is a
+  POSITION, so block 3's `[Image1]` is a different picture from block 1's and
+  appending without the rewrite would draw the wrong reference silently, which
+  is the one failure this page must not have. **The cast rides with its own
+  block and the setting once at the top** (`withSetting`): characters is the
+  BLOCK's since 2026-09-14, so several picked blocks are several casts and it
+  cannot be lifted to the head of the scene the way the room can — that is the
+  one place the order differs from a single block's send, and it differs
+  because there are several casts and one room.
+  **THE MARK IS A FACT ON THE WRAP** (`__pick`), like the strip and the cast
+  beside it, so a **divide COPIES** it (the tail is half of a scene already in
+  the next clip), a **join keeps** it if either half had it, **taking the first
+  block off** brings block 2's mark up into `#prompt` with block 2's words, and
+  the **draft** (`picks`, by position, beside `shut`) and the **`clear` bank**
+  carry it, so it survives a reload and `undo` puts it back. Written only while
+  something is really marked, so a page that never marks one saves exactly the
+  draft it always saved. **A mark means nothing on a one-block page and an
+  EMPTY marked block has nothing to append** — both are simply not picked, and
+  the mark she can see on an empty block is the page saying so; typing into it
+  puts it in and the star's count says so on that keystroke.
+  **OVER $3 IT ASKS** — the house rule as a second tap rather than a dialog:
+  the first arms the star (a gold ring, the accent this page already uses for
+  "this is the one") and names the total, the second sends, eight seconds or
+  any change to the picked set disarms it. **NO FIGURE, NO SEND** — the removed
+  star's own audit finding, kept: skipping the ask whenever the estimate had
+  not landed is how it came to send at any price with no read-back at all.
+  **It arms only on a picked send**; a single block's star is one tap today and
+  stays one tap. **Her blocks are not touched and the ticks stay**, so sending
+  again is one tap — and **every picked block banks its own words**, so all of
+  them read `sent` afterwards rather than none (the joined prompt is in no box
+  on the page and would mark nothing). **An appended send belongs to no one
+  story part** and carries the story with no `unit`, rather than filing a clip
+  of four parts under whichever was first. Test:
+  `node scripts/test-footage-pick-blocks.js` (the real page headless, every
+  assertion a MEASUREMENT — the tap asked with `elementFromPoint` at the mark's
+  own centre, the gold line and the fold read back after a tick, the posted
+  BODY read off the stub rather than the page, and the arm driven both ways;
+  verified failing 34 pre-fix).
   **AND CHARACTERS & SETTING IS ONE FOLDED BLOCK THAT RIDES ABOVE THE BLOCK
   SHE IS IN (2026-09-14, Sophie: "characters/setting become one collapsed
   block w two text boxes" · "characters/setting move to above currently
