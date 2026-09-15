@@ -1,0 +1,144 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Waiting</title>
+<!--
+  waiting.html — what the "N changes waiting" push is actually about
+  (2026-09-14, Sophie: "shud go to a screen that says what the unmerged
+  changes are · each chat contributes").
+
+  Two piles, under each other:
+    • NOT LIVE YET — merged into main, waiting for a deploy. This is the pile
+      the push counts, so the number here and the number on her phone are the
+      same number.
+    • STILL OPEN — PRs that have not merged at all.
+
+  Each change sits under THE CHAT THAT WROTE IT. That join is derived from the
+  attribution trailer every PR carries, so it needed nothing from any chat —
+  see waiting.js. A chat may also file its own line for a change
+  (POST /api/waiting), and that line leads the row when it exists.
+
+  READ-ONLY. Opening it spends nothing (two cached GitHub reads, no model
+  call), and it deploys nothing — deploying stays hers to ask for.
+-->
+<link rel="stylesheet" href="/tool.css">
+<style>
+  .wrap{ max-width:640px; margin:0 auto; }
+  .count{ font-size:15px; line-height:1.4; margin:0 0 4px; }
+  .count b{ font-weight:600; }
+  .sub{ font-size:12px; color:var(--dim); margin:0 0 16px; }
+  .sect{ font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--dim); border-bottom:1px solid var(--border);
+    padding:0 2px 6px; margin:20px 0 10px; }
+  .grp{ margin:0 0 14px; }
+  .who{ font-size:13px; font-weight:600; margin:0 0 6px 2px; }
+  .who .n{ color:var(--dim); font-weight:400; font-size:11px; margin-left:6px; }
+  .ch{ display:block; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--r); padding:10px 12px; margin:0 0 6px; color:var(--ink);
+    text-decoration:none; -webkit-tap-highlight-color:transparent; }
+  .ch .t{ display:block; font-size:14px; line-height:1.35; }
+  .ch .m{ display:block; font-size:11px; color:var(--dim); margin-top:5px;
+    letter-spacing:.03em; }
+  /* a chat's own words lead; the commit subject rides underneath, quiet */
+  .ch .said{ display:block; font-size:14px; line-height:1.35; }
+  .ch .said + .t{ font-size:12px; color:var(--dim); margin-top:4px; }
+  .draft{ color:var(--dim); }
+  .empty{ color:var(--dim); font-size:14px; padding:12px 2px; }
+</style>
+<body class="tool">
+<div class="head">
+  <span class="eyebrow tool-eyebrow">WAITING</span>
+  <button id="help" type="button" aria-label="What this is">?</button>
+</div>
+<div class="helpcard" id="helpcard" hidden>
+  <b>What the “changes waiting” buzz is about.</b> Everything merged but not
+  live yet, and every pull request still open, under the chat that wrote it.
+  Tapping a change opens its pull request. Nothing here deploys anything —
+  say the word in any chat and it goes out.
+</div>
+
+<main class="wrap">
+  <div id="body"><div class="empty">Reading&hellip;</div></div>
+</main>
+
+<script>
+/* IIFE: the injected autoscroll pill runs in global scope and declares its own
+   `var raf`/`var I`, so a page-level `let` of the same name would kill its
+   script at parse time. Nothing of this page's leaks out. */
+(function(){
+  'use strict';
+  var bodyEl = document.getElementById('body');
+  var REPO = 'sageryza/imageforge';
+
+  function esc(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+
+  /* 12-hour Pacific, the house time rule. */
+  function when(iso){
+    if (!iso) return '';
+    try {
+      return new Date(iso).toLocaleString('en-US', { timeZone:'America/Los_Angeles',
+        month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })
+        .replace(/ (AM|PM)$/i, function(m,p){ return ' ' + p.toLowerCase(); });
+    } catch (e) { return ''; }
+  }
+
+  function change(it){
+    var meta = [it.pr ? '#' + it.pr : '', when(it.at), it.draft ? 'draft' : '']
+      .filter(Boolean).join(' · ');
+    var inner = it.line
+      ? '<span class="said">' + esc(it.line) + '</span>' +
+        (it.title ? '<span class="t">' + esc(it.title) + '</span>' : '')
+      : '<span class="t">' + esc(it.title || ('commit ' + String(it.sha).slice(0,7))) + '</span>';
+    var href = it.pr ? 'https://github.com/' + REPO + '/pull/' + it.pr
+      : (it.sha ? 'https://github.com/' + REPO + '/commit/' + it.sha : '');
+    var tag = href ? 'a href="' + esc(href) + '" target="_blank" rel="noopener"' : 'div';
+    return '<' + tag + ' class="ch' + (it.draft ? ' draft' : '') + '">' + inner +
+      (meta ? '<span class="m">' + esc(meta) + '</span>' : '') +
+      '</' + (href ? 'a' : 'div') + '>';
+  }
+
+  /* One block per chat. A change whose chat could not be worked out is never
+     dropped — it lands in "not traced to a chat", because a change she cannot
+     see is the thing this screen exists to end. */
+  function groups(list){
+    if (!list.length) return '<div class="empty">Nothing.</div>';
+    return list.map(function(g){
+      var n = g.items.length;
+      return '<div class="grp"><div class="who">' +
+        esc(g.name || g.chat || 'not traced to a chat') +
+        (n > 1 ? '<span class="n">' + n + ' changes</span>' : '') +
+        '</div>' + g.items.map(change).join('') + '</div>';
+    }).join('');
+  }
+
+  function render(j){
+    var n = j.ahead || 0;
+    var open = (j.open || []).reduce(function(a,g){ return a + g.items.length; }, 0);
+    var head = j.error === 'no-commit'
+      ? '<p class="count">This box has no commit of its own, so it can’t say what is unshipped.</p>'
+      : (j.error
+        ? '<p class="count">Couldn’t read GitHub — ' + esc(j.error) + '</p>'
+        : '<p class="count"><b>' + n + '</b> ' + (n === 1 ? 'change is' : 'changes are') +
+          ' merged and not live yet.</p>');
+    bodyEl.innerHTML = head +
+      '<p class="sub">Live on ' + esc(j.live || '—') + ' · read ' + esc(when(j.at)) + '</p>' +
+      '<div class="sect">Not live yet</div>' + groups(j.groups || []) +
+      '<div class="sect">Still open · ' + open + '</div>' + groups(j.open || []);
+  }
+
+  var help = document.getElementById('help'), card = document.getElementById('helpcard');
+  help.onclick = function(){ card.hidden = !card.hidden; };
+  card.onclick = function(){ card.hidden = true; };
+
+  fetch('/api/waiting').then(function(r){ return r.json(); }).then(function(j){
+    if (!j || !j.ok) throw new Error((j && j.error) || 'no answer');
+    render(j);
+  }).catch(function(err){
+    bodyEl.innerHTML = '<div class="empty">Couldn’t read it — ' + esc(String(err.message || err)) + '</div>';
+  });
+})();
+</script>
+</body>

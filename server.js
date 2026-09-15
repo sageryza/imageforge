@@ -466,6 +466,7 @@ loadConfig().then(() => {
   app.use('/api/brief', require('./brief').router); // the update button — the five things worth knowing, then the quieter ones
   app.use('/api/deliverables', require('./deliverables').router); // the running deliverables list (newest first; new entries push past the bell)
   app.use('/api/review', require('./review').router); // the review queue — every deck/grid page still waiting on her
+  app.use('/api/waiting', require('./waiting').router); // what the "N changes waiting" push is about — merged-not-live + still-open, per chat
   app.use('/api/filmshots', require('./filmshots').router); // which picture is on screen at which second — the Prompt door on a paused film
   app.use('/api/storylink', require('./storylink').router); // one story across Story Timeline, the Story Room and Cutting Blocks
   app.use('/api/googleads', googleads.router); // Google Ads API credential health check
@@ -1010,6 +1011,11 @@ app.get('/deliverables', serveGated('deliverables.html', { pill: true }));
 // projection of the chat registry; read-only, no model call. Served WITH the
 // pill: a long list that scrolls.
 app.get('/worklog', serveGated('worklog.html', { pill: true }));
+// Waiting: what the "N changes waiting" push is about — everything merged and
+// not live yet, and everything still open, each change under the chat that
+// wrote it (Sophie's ask, 2026-09-14: "shud go to a screen that says what the
+// unmerged changes are · each chat contributes"). Read-only, no model call.
+app.get('/waiting', serveGated('waiting.html', { pill: true }));
 // The Sophie character card, for the pad's draw-here toggle (refs/ is not
 // web-served, so this one file is exposed deliberately — it's her own
 // hearted render, and the page behind the gate is the only thing asking).

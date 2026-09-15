@@ -4096,6 +4096,35 @@ before working on that module. Nothing was deleted — the moved text is verbati
   notifications, raw HTTP/2 straight to Apple, no Firebase Messaging.
   **Full details: *Push notifications* in `docs/modules/inbox-and-misc.md` (moved from CLAUDE.md).**
 
+- **WAITING** (`waiting.js`, `/api/waiting`, page at `/waiting`, no iOS tile —
+  2026-09-14, Sophie, looking at the "11 changes waiting" push: "shud go to a
+  screen that says what the unmerged changes are · each chat contributes").
+  What the number on her phone is actually about: everything merged and NOT
+  LIVE yet, then everything still OPEN, each change under the chat that wrote
+  it. **The tap lands there now** — the behind push carries `open:'/waiting'`
+  and `PushDelegate.pendingPath` opens it (an older build ignores the field and
+  lands on the chat list exactly as before, so nothing is half-broken while the
+  TestFlight build catches up).
+  - **EACH CHAT ALREADY CONTRIBUTES — the join is DERIVED and there is nothing
+    to remember.** Every PR's squash message carries the house attribution
+    trailer (`Claude-Session: …/session_…`) and the registry records that same
+    session on the chat that owns it, so a change reaches its chat with no
+    discipline from anyone, asleep chats included. Measured over the last 40
+    merges: the trailer and a PR number are on nearly all of them, and
+    `scripts/test-waiting.js` reads THIS repo's real commits so a drifted
+    trailer format fails there instead of quietly emptying the page.
+  - **A chat MAY say what its change means in her words** —
+    `POST /api/waiting {chat, session, pr, line}` (200 chars) — and that line
+    leads the row with the commit subject quiet underneath. Keyed by PR (or
+    sha), never by chat, so three changes get three lines.
+  - **A change that traces to no chat is NAMED, never dropped** ("not traced to
+    a chat", last) — a change she cannot see is the thing this screen ends.
+  - The count is `ahead_by` off the same live commit push.js counts from, so
+    the page and the buzz can never disagree. Two cached unauthenticated GitHub
+    reads, no model call, no Firestore read unless a line was filed; opening it
+    spends nothing and deploys nothing. Tests: `node scripts/test-waiting.js`
+    and `node scripts/test-waiting-page.js`.
+
 - **THE WORK LOG** (`GET /api/chatfeed/worklog`, page at `/worklog`, no
   iOS tile — 2026-09-02, Sophie: "i want to make a timeline of what i worked
   on chronological"). One row per chat under the day it BEGAN, oldest first,

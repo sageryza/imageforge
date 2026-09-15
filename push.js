@@ -538,7 +538,11 @@ async function behindCheck(opts) {
     .catch(() => {});
   const w = behindWords(st.ahead);
   if (configured()) {
-    sendAll(w[0], w[1], { thread: DEPLOY_THREAD, behind: st.ahead })
+    // `open` is the path a TAP lands on — the screen that says what the
+    // changes actually are, per chat (2026-09-14, Sophie: "shud go to a screen
+    // that says what the unmerged changes are"). An older build ignores the
+    // field and lands on the chat list exactly as it did before.
+    sendAll(w[0], w[1], { thread: DEPLOY_THREAD, behind: st.ahead, open: '/waiting' })
       .then((r) => console.log(`push: ${st.ahead} undeployed -> ${r.length} device(s)`))
       .catch((e) => console.log('push: behind notify failed — ' + e.message));
   }
