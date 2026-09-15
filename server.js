@@ -5872,7 +5872,13 @@ const PL_GPT = {
 //             megapixel, 1 output, 28 steps. The spread is the box's, not the
 //             prompt's, which is why the page says "about".
 // It does NOT move with quality or canvas — the LoRA has neither — so there
-// is ONE number per model rather than gpt-image-2's tier table.
+// is ONE number per model rather than gpt-image-2's tier table. THE ASPECT
+// ROW DOES NOT MOVE IT EITHER, and that is measured rather than assumed:
+// `megapixels: '1'` is pinned on every run, so every ratio draws the same
+// number of pixels — 2:3 came back at a 7.92s median and 1:1 at 7.61s over
+// the same history, inside the spread of either on its own. If the megapixel
+// pin ever becomes a knob, this stops being one number and needs re-measuring
+// per setting.
 // A MODEL WITH NO ROW HERE SERVES NO PRICE AND THE PAGE PRINTS NOTHING: an
 // invented figure is worse than a blank, the same rule the exact-prompt and
 // the caption rules follow. Re-measure rather than re-derive when the step
