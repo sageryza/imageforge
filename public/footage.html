@@ -1989,7 +1989,7 @@ function setProject(p, opts) {
   if (typeof cmpCancelPick === 'function') cmpCancelPick();   // an armed pick would swallow the next tap on a card that is gone
   // a folder belongs to the project she is leaving
   S.folder = String(opts.folder || ''); folderSave(S.folder);
-  jobsById = {}; olderAt = null; walkAt = ''; feedMore = false;
+  jobsById = {}; olderAt = null; walkAt = ''; feedMore = false; sentIndexDrop();
   $('feed').innerHTML = ''; $('tiles').innerHTML = '';
   castFilm = p; castFilmSave(p); castEnt = ''; CAST = null;
   paintProject(); paintFolder(); paintControls(); paintCast(); paintRecent();
@@ -2044,7 +2044,7 @@ function setFolder(f, opts) {
   S.folder = f; folderSave(f);
   if (typeof clearErr === 'function') clearErr();
   if (typeof cmpCancelPick === 'function') cmpCancelPick();
-  jobsById = {}; olderAt = null; walkAt = ''; feedMore = false;
+  jobsById = {}; olderAt = null; walkAt = ''; feedMore = false; sentIndexDrop();
   $('feed').innerHTML = ''; $('tiles').innerHTML = '';
   paintFolder(); paintRecent();
   loadJobs();
@@ -4133,7 +4133,59 @@ function wasSent(t, w) {
   t = normText(t);
   if (!t) return false;
   if (sentTexts.indexOf(t) >= 0) return true;
-  return histOf(w).some(function (c) { return normText(c && (c.words || c.prompt)) === t; });
+  if (histOf(w).some(function (c) { return normText(c && (c.words || c.prompt)) === t; })) return true;
+  return !!sentIndex()[t];
+}
+// AND THE THIRD SOURCE IS THE FEED ITSELF, WHICH IS WHY EVERY BLOCK READ
+// UNSENT (2026-09-15, Sophie: "they all read unsent"). The two sources this
+// shipped with are the local bank — empty on a page that has not sent yet —
+// and a STORY part's own `hist`, which needs a `unit`: an ORDINARY block has
+// none, so `histOf` answered `[]` and nothing on the page had ever read the
+// clips she had already drawn. So every ordinary block, and everything sent
+// before the mark existed, was UNSENT forever. The feed is already loaded and
+// every card carries the exact `prompt` that went, so it needs no request.
+// THE MATCH IS AT A PARAGRAPH BOUNDARY, BOTH ENDS, and that is the whole
+// safety of it: `withHeads` joins the two heads and the words with a blank
+// line, and an appended multi-block send joins the blocks the same way — so a
+// block's words are a contiguous run of the prompt's own `\n\n` segments,
+// never a phrase floating inside one. A loose "does the prompt contain these
+// words" would read SENT off any clip that happened to say them, and a false
+// SENT is the direction that costs her a shot she needed.
+// A FAILED OR REFUSED CLIP IS SKIPPED — nothing drew and nothing was charged,
+// which is the same rule the bank follows.
+// Built ONCE per feed and cached, because `paintSent` runs on every keystroke
+// (the 2026-09-12 typing rule) and this walks every clip on screen.
+var sentSet = null, sentDirty = false, SENT_SEGS = 12;
+// A CLIP LANDING HAS TO REPAINT THE HEADINGS, or the index is right and the
+// word on screen is the one built before the feed arrived — which is exactly
+// how this read UNSENT on a page whose own feed held the clip. `sentDirty`
+// is set only when a LIVE index was thrown away, so an ordinary poll that
+// added nothing repaints nothing (the 2026-09-12 typing rule's own reason).
+function sentIndexDrop() { if (sentSet) { sentSet = null; sentDirty = true; } }
+function sentRepaint() { if (!sentDirty) return; sentDirty = false; paintBlockHeads(); }
+function sentIndex() {
+  if (sentSet) return sentSet;
+  sentSet = Object.create(null);
+  Object.keys(jobsById).forEach(function (k) {
+    var j = jobsById[k];
+    if (!j || j.status === 'failed') return;
+    if (j.words) { var wn = normText(j.words); if (wn) sentSet[wn] = 1; }
+    var raw = String(j.prompt || '');
+    if (!raw) return;
+    var whole = normText(raw);
+    if (whole) sentSet[whole] = 1;
+    var segs = raw.split('\n\n');
+    if (segs.length > SENT_SEGS) return;   // the whole prompt still counts
+    for (var i = 0; i < segs.length; i++) {
+      var run = '';
+      for (var m = i; m < segs.length; m++) {
+        run = m === i ? segs[m] : run + '\n\n' + segs[m];
+        var n = normText(run);
+        if (n) sentSet[n] = 1;
+      }
+    }
+  });
+  return sentSet;
 }
 // IT READS THE BOX, never `paintBlockHead`'s `txt` — which on a story part is
 // the PART's own words rather than the prompt, and the red word is about what
@@ -5736,7 +5788,7 @@ function setView(v) { VS.setView(v); }
 // change — and the batch is where it was leaking. Nothing outside a batch
 // is deferred: a vote, a new job and a view switch still paint on the spot.
 var batching = false;
-function paintFeed() { if (batching) return; if (curView() === 'tiles') renderTiles(); applyFilt(); }
+function paintFeed() { if (batching) return; if (curView() === 'tiles') renderTiles(); applyFilt(); sentRepaint(); }
 function arOf(r) {
   var m = { '1:1': '1', '3:4': '3/4', '9:16': '9/16', '4:3': '4/3', '16:9': '16/9', '21:9': '21/9' };
   return m[r] || '3/4';
@@ -6148,6 +6200,7 @@ function trimLine(j) {
 }
 function jobCard(j) {
   jobsById[j.id] = j;
+  sentIndexDrop();
   var feed = $('feed');
   var el = document.getElementById('job-' + j.id);
   if (!el) {
