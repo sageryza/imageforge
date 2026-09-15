@@ -350,91 +350,81 @@ and then it has nowhere to go. This is the ending — a person arrives, and the
 first thing she does is answer the one line every comment section is going to
 post anyway.
 
-**Who she is: an eleven-year-old** (2026-09-15, Sophie: *"consider the voice of
-an eleven-year-old girl"*). Nightgown, Christmas morning, bare feet on the
-stairs. The whole ending turns on the age — a grown woman explaining Roman
-holidays to camera is a lecture, and a kid doing it is a kid who looked
-something up and has been waiting all week to tell someone. She is right, and
-being right is the funny part.
+**Who she is: an eleven-year-old, and she is a witch** (2026-09-15, Sophie:
+*"consider the voice of an 11-year-old girl"* · *"she's a witch · and her
+teacher did not teach this in school"*). Nightgown, Christmas morning, bare
+feet on the stairs. The age is the joke — a grown woman explaining Roman
+holidays to camera is a lecture. **Where she got it is the button:** not from
+a teacher, not from looking it up. She knows it the way her people know it,
+and the last line is what says so.
 
-**The reference problem, named:** the cast on file is a ~26-year-old woman
-(`docs/witch-commercials/cast-audit-2026-09-15.md`, character 6) and her
-hearted reference clip is that woman. A child in a ruffled nightgown HAS turned
-up in the drawn clips — she is the ✕'d half of the two-girls split in that same
-audit — so there is no approved still for an eleven-year-old and nothing to
-hold her face steady across takes. She would be written out in prose every
-time, which is exactly what let the professor come back as two different men.
-**Getting one good still of her first is the cheap move**, and it is Sophie's
-to ask for; nothing here is drawn.
+**So no school frame anywhere in her lines** — no "my teacher said", no "you
+can look it up", no homework voice. That was the first draft's mistake and it
+put the whole speech in a classroom.
 
-It rides on the end of **A, B, C or D**. The format voice stops mid-stride, and
-there is a child in the spot for the last fifteen seconds. **E is the grown
-woman's spot** and stays as written.
+**The reference problem, named:** the cast on file is the ~26-year-old gloomy
+daughter (`docs/witch-commercials/cast-audit-2026-09-15.md`, character 6) and
+her hearted clip is that woman. A child in a ruffled nightgown exists only as
+the ✕'d half of that character's two-girls split, so there is no approved still
+for an eleven-year-old and she would be written out in prose every take — the
+gap that let the professor come back as two different men. One still of her
+first is the cheap move and it is Sophie's to ask for; nothing here is drawn.
 
-### THE ENDING (:15)
+It rides on the end of **A, B, C or D**. **E is the grown woman's spot** and
+stays as written.
 
-*The format cuts out. She is sitting on the stairs in a nightgown, the tree
-behind her, the house not awake yet. She talks straight to camera, a little
-fast, the way you do when you have been saving something up.*
+### THE ENDING (:12)
 
-> "Everybody says it's Saturnalia. My teacher said it. It's not.
+*The format cuts out. She is on the stairs in a nightgown, the tree behind her,
+the house not awake yet. Straight to camera.*
+
+> "Everybody says it's Saturnalia.
 >
-> Saturnalia was December seventeenth. Sometimes it went to the twenty-third.
-> It was never the twenty-fifth. You can look it up.
+> Saturnalia was December seventeenth. It was never the twenty-fifth.
 >
-> But listen to what they actually did. The Romans closed all the courts so
-> nobody had to work, and gambling was allowed, and the slaves got to sit down
-> and eat first. And they picked one guy to be king for the day and he got to
-> tell everyone what to do and they had to do it.
+> Nobody copied. Rome had a week where the slaves ate first and a fool was
+> king. England had twelve days where the poorest man got waited on.
 >
-> Then like a thousand years later, in England — twelve days off, and they
-> picked the poorest man in the whole village to be in charge, and the rich
-> people had to serve him his dinner. And if you were poor you could knock on a
-> rich person's door and they had to give you a drink. The good one.
+> It just gets dark at four o'clock. So everybody puts the bottom on top for a
+> while.
 >
-> Nobody copied. They didn't even know about each other.
->
-> It's just that it gets dark at four o'clock. So you eat all the food you
-> saved up, and the grown-ups drink, and for a couple of days the people at the
-> bottom get to be on top."
+> We still do it. We just do it in pajamas."
 
-*A noise upstairs. She looks up, then back.*
+*A noise upstairs. She looks up, then back at us.*
 
-> "We still do it. We just do it in pajamas."
+> "They don't teach you that at school."
 
-> SUPER: *Christmas. Everybody arrives at it separately.*
-> [OPTION — witch button: SUPER: *Secretly a Witch.*]
+> SUPER: *Secretly a Witch.*
+> [OPTION — no witch button: SUPER: *Christmas. Everybody arrives at it
+> separately.*]
 
-**:08 cut** (when the spot has already run :52): "Everybody says it's
-Saturnalia. It's not, Saturnalia was December seventeenth. But the Romans did
-close the courts and let the slaves eat first, and England picked the poorest
-man in the village to be in charge for twelve days, and nobody copied — it just
-gets dark at four o'clock." — then *We still do it. We just do it in pajamas.*
+**:07 cut:** "Everybody says it's Saturnalia. Saturnalia was December
+seventeenth. Rome had a week where a fool was king, England had twelve days
+where the poorest man got waited on, and nobody copied — it just gets dark at
+four. We still do it. We just do it in pajamas." — then *They don't teach you
+that at school.*
 
 **[Extra lines to cut or swap in]**
-- "The Roman one they picked was called the *Saturnalicius princeps*. Ours was
-  the Lord of Misrule. Same job."
-- "They did presents too. Candles, and these little clay dolls. That part
-  actually IS the same and nobody ever says that one."
-- "The Puritans banned Christmas. Not for being Roman. For being fun. You got
-  fined five shillings."
-- "You know what's really left over? The word. Yule. It's still in the songs."
-  *(use this one when the spot is heading for the witch button)*
-- An opening if the correction needs to land sooner: "You're going to say
-  Saturnalia. Everybody says Saturnalia."
+- "The Roman one was called the *Saturnalicius princeps*. Ours was the Lord of
+  Misrule. Same job."
+- "They did presents too. Candles, and little clay dolls. That part actually IS
+  the same and nobody says that one."
+- "The Puritans banned Christmas. Not for being Roman. For being fun. Five
+  shillings."
+- "You know what's really left? The word. Yule. It's still in the songs."
+- "My mum told me." *(the witch reveal said out loud, if the last line is too
+  quiet on its own — use one or the other, never both)*
 
-**What an eleven-year-old does NOT sound like**, since this is the thing a
-rewrite will drift back into: no "at the outside", no "there is no thread", no
-semicolons, no summing-up. She goes in order, she piles clauses on with *and*,
-and she stops when she runs out — she never lands a conclusion on purpose. The
-facts stay exactly as accurate as they were; the sentences get shorter, not the
-research.
+**What she does NOT sound like**, since this is what a rewrite drifts back
+into: no "at the outside", no "there is no thread", no semicolons, no
+summing-up, and nothing that sounds looked-up. She goes in order, piles clauses
+on with *and*, and stops when she runs out. The facts stay exactly as accurate;
+the sentences get shorter, not the research.
 
-**The one thing not to lose in a rewrite:** she corrects the claim and then
-concedes the shape of it. A cut that keeps only the correction is a kid
-show-off with nothing behind it, and a cut that keeps only the concession has
-put the debunked thing on camera in a child's mouth. The two halves ship
-together or it is a different ending.
+**The one thing not to lose:** she corrects the claim and then concedes the
+shape of it. Only the correction is a kid show-off with nothing behind it; only
+the concession puts the debunked thing on camera in a child's mouth. Both
+halves ship or it is a different ending.
 
 ---
 
