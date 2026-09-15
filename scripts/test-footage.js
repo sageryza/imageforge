@@ -642,6 +642,10 @@ async function pillSweep(pg, where) {
     const out = [];
     document.querySelectorAll(sel).forEach((e) => {
       if (e.closest('.float') || e.closest('.helpcard')) return;
+      // a text block and its box run FULL WIDTH behind the pill since
+      // 2026-09-14 (Sophie: "text box shud just stay full width behind
+      // pill"); their HEADING rows are still swept
+      if (e.matches('.promptwrap, .headwrap, .pblock, .hblock, .hpart')) return;
       const q = e.getBoundingClientRect();
       if (!q.width || !q.height || q.bottom < 0 || q.top > innerHeight) return;
       if (q.right > f.left && q.left < f.right && q.bottom > f.top && q.top < f.bottom) {
@@ -1322,12 +1326,17 @@ async function pillSweep(pg, where) {
     const p = pill.getBoundingClientRect();
     arrows.forEach((a, i) => { a.style.display = was[i]; });
     return [...document.querySelectorAll('.panel > *')].map((el) => {
-      const r = el.getBoundingClientRect();
+      // A TEXT BLOCK IS JUDGED BY ITS HEADING (2026-09-14): the box under it
+      // runs the panel's full width behind the pill on purpose, and the
+      // reserve it carries lands on the heading row alone
+      const head = el.classList.contains('promptwrap') ? el.querySelector('.bfold') : el.classList.contains('headwrap') ? el.querySelector('.hfold') : null;
+      const r = (head && head.getClientRects().length ? head : el).getBoundingClientRect();
+      const noHead = head !== null && !head.getClientRects().length;   // one plain block: no heading, nothing to reserve
       return { el: el.id || el.className, gap: el.style.getPropertyValue('--pillgap'),
         w: Math.round(r.width), kids: [...el.children].map((k) => k.id + ':' + Math.round(k.getBoundingClientRect().width)),
         // a row that ENDS before the column needs no reserve — the two fold
         // rows are fit-content headings and never reach it
-        reaches: r.right > p.left,
+        reaches: !noHead && r.right > p.left,
         over: r.bottom > p.top && r.top < p.bottom && r.width > 0 && r.height > 0 };
     });
   });

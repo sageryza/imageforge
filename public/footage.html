@@ -42,6 +42,14 @@
   .panel{background:#fff;border:1px solid #e0d8ca;border-radius:6px;padding:12px;margin-bottom:14px;
          margin-top:var(--pilltop,0px)}
   .panel > *{margin-right:var(--pillgap,0px)}
+  /* THE TEXT BOX STAYS FULL WIDTH BEHIND THE PILL (2026-09-14, Sophie: "i
+     think text box shud just stay full width behind pill"). A block and the
+     characters-and-setting block keep their words the panel's whole width
+     whatever the rail is doing; only their HEADING row — the tappable line
+     with the fold, the reference count and the red word at its end — keeps
+     the column, judged on its own rect by `fitPillGap`. */
+  .panel > .promptwrap,.panel > .headwrap{margin-right:0}
+  .panel .promptwrap .bfold,.panel .headwrap .hfold{width:calc(100% - var(--pillgap,0px))}
   /* NO SECTION LABELS (2026-09-09, Sophie: "no button word labels above (eg
      seconds)"). The controls stand on their own — a drop-down says what it is
      by what it holds, the stepper by its own number — and the words they cost
@@ -7592,7 +7600,15 @@ function fitPillGap() {
     var el = kids[i];
     var st = sticky[i];
     var cur = parseFloat(el.style.getPropertyValue('--pillgap')) || 0;
-    var r = el.getBoundingClientRect();
+    // A TEXT BLOCK IS JUDGED BY ITS HEADING ROW, never by the box (2026-09-14,
+    // "text box shud just stay full width behind pill"): the reserve it writes
+    // lands on `.bfold`/`.hfold` alone (see the stylesheet), so the rect that
+    // has to clear the rail is the heading's. No heading drawn (one plain
+    // block) → nothing reserves, and the box runs the panel's width.
+    var judge = el.classList.contains('promptwrap') ? el.querySelector('.bfold')
+      : el.classList.contains('headwrap') ? el.querySelector('.hfold') : el;
+    if (!judge) { setGap(el, '--pillgap', '0px'); continue; }
+    var r = judge.getBoundingClientRect();
     if (r.width && r.height) {
       var top0 = r.top + y, bot0 = r.bottom + y, right0 = r.right + cur;
       var off = st ? right0 <= p.left : (bot0 <= p.top || top0 >= p.bottom || right0 <= p.left);
@@ -7600,7 +7616,7 @@ function fitPillGap() {
       if (want === cur) continue;
     }
     setGap(el, '--pillgap', '0px');
-    r = el.getBoundingClientRect();
+    r = judge.getBoundingClientRect();
     if (!r.width || !r.height) continue;            // a hidden row reserves nothing
     if (!st) {
       var top = r.top + y, bot = r.bottom + y;
@@ -7611,6 +7627,18 @@ function fitPillGap() {
   }
 }
 window.__fitPillGap = fitPillGap;
+// THE PILL'S JUMPS STOP AT THE REFERENCES FIRST (2026-09-14, Sophie: "scroll
+// to top and scroll to bottom shud go to midway references/buttons first,
+// then all the way"). The rail's ↑ and ↓ ask the page for stops; this page
+// has one — the references bar, with the buttons row right under it — so a
+// jump from the feed lands on the strip and the star, and the next tap
+// finishes the trip. A hidden bar hands the buttons row instead.
+window.__pillStops = function () {
+  var el = document.getElementById('refbar');
+  if (!el || !el.getClientRects().length) el = document.getElementById('controls');
+  if (!el || !el.getClientRects().length) return [];
+  return [Math.max(0, Math.round(el.getBoundingClientRect().top + (window.scrollY || 0) - 12))];
+};
 (function () {
   var q = false;
   function soon() { if (q) return; q = true; requestAnimationFrame(function () { q = false; fitPillGap(); }); }

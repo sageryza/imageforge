@@ -178,14 +178,32 @@ function sHeight(){
   return Math.max(d?d.scrollHeight:0, b?b.scrollHeight:0);
 }
 function sBy(px){ if(_box) _box.scrollTop += px; else window.scrollBy(0,px); }
+// A PAGE CAN NAME STOPS ON THE WAY (2026-09-14, Sophie, on footage: "scroll
+// to top and scroll to bottom shud go to midway references/buttons first,
+// then all the way"). `window.__pillStops` is the page's: a function
+// answering page-y positions (window scroll space). A jump goes to the
+// nearest stop in its direction that is more than STOP_MIN away, else all
+// the way — so a second tap from a stop finishes the trip. Window only: a
+// scrolling box knows no stops. No hook, no stops: the jump it always was.
+var STOP_MIN=60;
+function pageStops(){
+  try{
+    var f=window.__pillStops, a=f?f():null; if(!a||!a.length) return [];
+    return a.map(Number).filter(function(n){ return isFinite(n) && n>=0; }).sort(function(x,y){ return x-y; });
+  }catch(_){ return []; }
+}
 function sHome(){
   if(_box){ try{ _box.scrollTo({top:0, behavior:'smooth'}); }catch(_){ _box.scrollTop=0; } return; }
-  try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(_){ window.scrollTo(0,0); }
+  var y=sTop(), s=pageStops(), to=0, i;
+  for(i=s.length-1;i>=0;i--){ if(s[i] < y-STOP_MIN){ to=s[i]; break; } }
+  try{ window.scrollTo({top:to, behavior:'smooth'}); }catch(_){ window.scrollTo(0,to); }
 }
 function sEnd(){
   var end=sHeight();
   if(_box){ try{ _box.scrollTo({top:end, behavior:'smooth'}); }catch(_){ _box.scrollTop=end; } return; }
-  try{ window.scrollTo({top:end, behavior:'smooth'}); }catch(_){ window.scrollTo(0,end); }
+  var y=sTop(), s=pageStops(), to=end, i, max=end-sView();
+  for(i=0;i<s.length;i++){ if(s[i] > y+STOP_MIN && s[i] < max-STOP_MIN){ to=s[i]; break; } }
+  try{ window.scrollTo({top:to, behavior:'smooth'}); }catch(_){ window.scrollTo(0,to); }
 }
 var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
 var I={
