@@ -881,6 +881,32 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   `.pbot` there (class only — chats.html's own pill owns the ids), the scroller
   learned an `end()` beside its `home()`, and one `syncTop` lights both off the
   same 150. Pinned by `node scripts/test-page-viewer-pill.js`.
+  **AND THE CHATS APP'S OWN BAKED PILL GREW IT ON 2026-09-15, WHICH RETIRED
+  THE TWO ROUNDED SQUARES (Sophie: "right now in chats there's two scroll to
+  top scroll to bottom arrows" · "i've seen down circle · JUST circles · drop
+  squares").** Measured at 390x844 scrolled 600px before anything was changed:
+  `#ptop` — the 38px circle — lit in the rail at the top right, AND a 44px
+  rounded square `#totop` lit at the bottom right, both tappable, 528px apart
+  and doing one job, with the square's own down twin under it. chats.html was
+  the one baked copy that had never grown `#pbot`, so the bottom pair was the
+  only way DOWN and nobody noticed the up arrow was there twice. The squares
+  (`.jumps` / `#totop` / `#tobot` / `.totop`) are **HISTORY, not a rule — do
+  not build them back**; the rail carries both circles and everything the
+  squares did that it did not: the down arrow lands on the END OF THE OPEN
+  MESSAGE on one tap and goes all the way down on a second (ARMED for 2s, so a
+  quick second tap taken mid-glide cannot land on the same message again), lit
+  and tappable are one helper (`msgTarget()` — asking them separately made the
+  arrow go dark the instant it landed), `bottomReserve()` went with the squares
+  (nothing is bottom-pinned now, so it is a flat 14px of air), and the rail
+  watches `body` with a **ResizeObserver** because this page fetches its
+  content after it loads and the six `__pillRecheck` callers — `__jumpsRecheck`
+  renamed — are the REPAINT paths, not the first paint. **The open message's
+  end is chats.html's own `__pillStops` by another name**, arrived at
+  independently and a year older; the shared `window.__pillStops` (2026-09-14)
+  is the general form and chats.html's hand copy does not read it. Full rules:
+  *THE JUMP PAIR* in `docs/chats-app.md`; tests
+  `node scripts/test-chats-jumps.js` and
+  `node scripts/test-chats-jump-message.js`.
   - **"IT'S NOT THERE" CAN MEAN THE PAGE IS OLD, NOT THAT THE ARROW IS
     MISSING (2026-08-27, Sophie about the Playground, twice).** Measured that
     hour before changing anything: the bytes Render answers with carry the

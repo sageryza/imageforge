@@ -10,7 +10,10 @@
 //   2. it lands INSIDE the message's end, not past it (its last line is on
 //      screen when the jump finishes),
 //   3. a SECOND tap then carries on to the page bottom, so the takeover never
-//      strands her half way down a thread,
+//      strands her half way down a thread — including a QUICK second tap,
+//      taken while the first smooth scroll is still in flight, which is the
+//      one shape her rule must not miss (2026-09-15: "tap once · end first
+//      message · tap twice · all way down"),
 //   4. with the message COLLAPSED again the arrow is the page-bottom jump it
 //      has always been — the takeover is "only when there's an open message",
 //   5. the arrow still shows while the message has a screen to go even when
@@ -18,6 +21,11 @@
 //   6. it still stops the autoscroll first (the whole point of the pair).
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-jump-message.js
+//
+// The arrow is `#pbot`, the down CIRCLE in the pill's rail. It was `#tobot`,
+// a rounded square floating in the bottom-right corner, until she retired the
+// squares (2026-09-15: "JUST circles · drop squares") — the landing came with
+// it, the 44px squares did not.
 //
 // playwright is an optionalDependency, so this skips cleanly without it.
 const http = require('http');
@@ -83,7 +91,7 @@ const settle = (page) => page.evaluate(async () => {
   }
   return window.scrollY;
 });
-const shown = (page, id) => page.evaluate((i) => document.getElementById(i).classList.contains('show'), id);
+const shown = (page, id) => page.evaluate((i) => document.getElementById(i).classList.contains('on'), id);
 
 (async () => {
   await new Promise(r => server.listen(0, r));
@@ -114,20 +122,13 @@ const shown = (page, id) => page.evaluate((i) => document.getElementById(i).clas
       msgEnd: Math.round(window.scrollY + r.bottom),
       pageEnd: Math.round(document.documentElement.scrollHeight - window.innerHeight),
       vh: window.innerHeight,
-      // the page reserves whatever the floating pair is occupying, so the
-      // expected landing is measured, not a magic number. It reserves room
-      // for BOTH arrows even though only the down one shows from the top:
-      // the jump brings the up arrow out and the column grows upward (a copy
-      // of `bottomReserve` in chats.html — if one moves, so must the other)
-      reserve: (function(){
-        const j = document.querySelector('.jumps');
-        if (!j) return 14;
-        const btn = j.querySelector('.totop.show');
-        if (!btn) return 14;
-        const jr = j.getBoundingClientRect(), br = btn.getBoundingClientRect();
-        const gap = parseFloat(getComputedStyle(j).rowGap) || 0;
-        return Math.max(14, Math.round(window.innerHeight - jr.bottom + br.height * 2 + gap + 10));
-      })(),
+      // BOT_PAD in chats.html: a hairline of air under the message's last
+      // line, and nothing more. The squares floated in the bottom-right
+      // corner, so the landing had to measure them out of the way of the
+      // message's own last row; the circles are in the TOP-right rail and
+      // nothing else on this page is bottom-pinned, so that measurement went
+      // with them. If BOT_PAD moves, so must this.
+      reserve: 14,
     };
   });
   if (geom.pageEnd - geom.msgEnd < 600) {
@@ -135,7 +136,7 @@ const shown = (page, id) => page.evaluate((i) => document.getElementById(i).clas
   }
 
   // 5. the arrow is offering something
-  if (!(await shown(page, 'tobot'))) fail('the down arrow is missing with a long open message below');
+  if (!(await shown(page, 'pbot'))) fail('the down arrow is missing with a long open message below');
 
   // 6. it stops the autoscroll first — start it for real, or this proves nothing
   await page.evaluate(() => window.__scrollStart(1));
@@ -147,7 +148,7 @@ const shown = (page, id) => page.evaluate((i) => document.getElementById(i).clas
   if (moved <= 2) fail('the autoscroll never started, so the stop is untested');
 
   // 1 + 2. one tap lands on the END OF THE MESSAGE, with its last line on screen
-  await page.click('#tobot');
+  await page.click('#pbot');
   const y1 = await settle(page);
   const at = await page.evaluate(() => {
     const r = document.querySelector('#thread .msg[data-mid="long"]').getBoundingClientRect();
@@ -170,15 +171,34 @@ const shown = (page, id) => page.evaluate((i) => document.getElementById(i).clas
     if (r.bottom > window.innerHeight) return 'the Open button is below the fold after the jump';
     const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
     if (!hit) return 'nothing at the Open button';
-    if (hit.closest('.jumps')) return 'the jump arrows are sitting on the Open button';
+    if (hit.closest('.float')) return 'the pill rail is sitting on the Open button';
     return hit.closest('.openclaude') ? '' : 'something else covers the Open button';
   });
   if (covered) fail(covered);
 
   // 3. a SECOND tap carries on to the page bottom
-  await page.click('#tobot');
+  await page.click('#pbot');
   const y2 = await settle(page);
   if (geom.pageEnd - y2 > 4) fail('the second tap did not reach the page bottom: ' + y2 + ' of ' + geom.pageEnd);
+
+  // 3b. AND SO DOES A QUICK ONE, taken while the first jump is still gliding.
+  //     This is the shape the arithmetic alone gets wrong: mid-flight the
+  //     message's end is still below the fold, so `openMsgEnd()` answers with
+  //     it again and the second tap lands where the first one did. chats.html
+  //     ARMS the page-bottom jump on a message-end landing for exactly this.
+  //     No settle between the taps — the wait IS the bug.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(150);
+  await page.click('#pbot');
+  await page.waitForTimeout(90);          // still gliding, nowhere near landed
+  const midFlight = await page.evaluate(() => window.scrollY);
+  await page.click('#pbot');
+  const y2b = await settle(page);
+  const pageEndB = await page.evaluate(() => Math.round(document.documentElement.scrollHeight - window.innerHeight));
+  if (pageEndB - y2b > 4) {
+    fail('a quick second tap did not reach the page bottom: ' + y2b + ' of ' + pageEndB
+       + ' (mid-flight at ' + midFlight + ')');
+  }
 
   // 4. with nothing open, the arrow is the plain page-bottom jump again
   await page.evaluate(() => {
@@ -187,7 +207,7 @@ const shown = (page, id) => page.evaluate((i) => document.getElementById(i).clas
     row.classList.remove('open');
   });
   await page.waitForTimeout(120);
-  await page.click('#tobot');
+  await page.click('#pbot');
   const y3 = await settle(page);
   const pageEnd2 = await page.evaluate(() => Math.round(document.documentElement.scrollHeight - window.innerHeight));
   if (pageEnd2 - y3 > 4) fail('with nothing open the arrow did not go to the page bottom: ' + y3 + ' of ' + pageEnd2);
