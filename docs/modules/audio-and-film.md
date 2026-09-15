@@ -4181,7 +4181,33 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   join, a removal, a reorder, a put-back and `use this` need no bookkeeping at
   all (dividing a sent block leaves both halves UNSENT, which is right — neither
   half is the clip that went).
-  **TWO SOURCES ANSWER IT, AND THE SERVER'S IS THE BETTER ONE.** A story part's
+  **THREE SOURCES ANSWER IT, AND THE FEED IS THE ONE THAT WAS MISSING
+  (2026-09-15, Sophie: "they all read unsent").** It shipped with two, and
+  both are blind to an ORDINARY block: the local bank is empty on a page that
+  has not sent yet, and `histOf` needs a `unit`, which only a STORY part has —
+  so every ordinary block, and everything sent before the mark existed, read
+  UNSENT forever. **The FEED is the third and it is already loaded**: every
+  card carries the exact `prompt` that went, so it needs no request.
+  `sentIndex()` builds the set once per feed change and `wasSent` asks it
+  last. Five things not to undo: **the match is at a PARAGRAPH BOUNDARY, both
+  ends** — `withHeads` joins the heads and the words with a blank line and an
+  appended multi-block send joins the blocks the same way, so a block's words
+  are a contiguous run of the prompt's own `\n\n` segments and never a phrase
+  floating inside one (a loose "contains" would read SENT off any clip that
+  happened to say those words, and a false SENT is the direction that costs
+  her a shot); the **whole prompt counts too**, which is what a put-back of an
+  older clip leaves in the box; **a FAILED or refused clip is skipped**, the
+  bank's own rule; it is **built once and cached**, because `paintSent` runs
+  on every keystroke and this walks every clip on screen; and **a clip landing
+  REPAINTS the headings** (`sentDirty` → `sentRepaint`, called from
+  `paintFeed`) — without it the index is right and the word on screen is the
+  one built before the feed arrived, which is exactly how this read UNSENT on
+  a page whose own feed held the clip. `sentDirty` is set only when a LIVE
+  index was thrown away, so an ordinary poll that added nothing repaints
+  nothing. **THE SCOPE IS THE FEED SHE IS LOOKING AT** — narrowed by project,
+  and paged, so a clip from further back than she has walked is not known;
+  a server lookup for an ordinary block is hers to ask for.
+  A story part's
   own `hist` — every clip sent from that part, read off the log by
   `loadHistory`, whose `words` is the block's text before the heads — so a part
   reads SENT on a phone that never sent it and after a page's whole life has

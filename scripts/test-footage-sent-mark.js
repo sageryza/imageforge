@@ -353,6 +353,68 @@ const RED = 'rgb(160, 64, 42)';
   ok('rewriting that part\'s prompt flips it back — "' + t.mark[1].words + '"', t.mark[1].words === 'unsent');
   ok('no page errors on the story page — ' + errors2.join(' | '), errors2.length === 0);
 
+  // ── 12. AN ORDINARY BLOCK READS THE FEED — the bug she reported
+  // (2026-09-15, Sophie: "they all read unsent"). Not a story part, nothing in
+  // this phone's bank: the only thing that knows these words went is the clip
+  // already on the log, which is what the two original sources could not see.
+  // The prompt carries the two HEADS on top of the words, exactly as a real
+  // send does, so this also measures that the match is at a paragraph
+  // boundary rather than on the whole prompt.
+  const SCENE = 'she crosses the ward and stops at the third bed';
+  const OTHER = 'she never crosses the ward at all, she waits by the door';
+  jobs.length = 0;
+  jobs.unshift({ id: 'feed1',
+    prompt: 'SOPHIE is the woman in [Image1].\n\nA green-tiled ward at night.\n\n' + SCENE,
+    words: '', unit: '', story: '',
+    model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', seconds: 4, resolution: '480p',
+    ratio: '3:4', sound: true, refs: [], status: 'done', video: '', poster: '', seed: 7,
+    sentAt: new Date(Date.now() - 9e5).toISOString(), estimate: 4.4, vote: '' });
+  // …and a REFUSED clip banks nothing, whatever its prompt says
+  jobs.unshift({ id: 'feed2',
+    prompt: 'SOPHIE is the woman in [Image1].\n\n' + OTHER,
+    words: '', unit: '', story: '',
+    model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', seconds: 4, resolution: '480p',
+    ratio: '3:4', sound: true, refs: [], status: 'failed', video: '', poster: '', seed: 7,
+    sentAt: new Date(Date.now() - 8e5).toISOString(), estimate: 4.4, vote: '' });
+
+  const ctx3 = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const p3 = await ctx3.newPage();
+  const errors3 = [];
+  p3.on('pageerror', (e) => errors3.push(String(e)));
+  await p3.goto(base + '/footage');
+  await p3.evaluate((d) => localStorage.setItem('footage_draft', d),
+    JSON.stringify({ prompt: SCENE, blocks: [OTHER, 'a shot nobody has ever sent'] }));
+  await p3.goto(base + '/footage');
+  await p3.waitForFunction(() => document.querySelectorAll('#ratio option').length > 0);
+  await p3.waitForTimeout(700);
+  let f = await p3.evaluate(read);
+  ok('three ordinary blocks, none of them a story part', f.n === 3);
+  ok('this phone has banked nothing', !Array.isArray(f.draft.sent) || !f.draft.sent.length);
+  ok('the block whose words are on the log reads SENT — "'
+    + f.mark.map((m) => m.words).join('" / "') + '"', f.mark[0].words === 'sent');
+  ok('and it is the same red', f.mark[0].color === RED);
+  ok('the one that was only REFUSED still reads unsent', f.mark[1].words === 'unsent');
+  ok('and the one nothing has ever sent reads unsent', f.mark[2].words === 'unsent');
+  // still the WORDS: one character makes it a different shot
+  await p3.evaluate(writeIn, { i: 0, text: SCENE + ' by the window' });
+  await p3.waitForTimeout(300);
+  f = await p3.evaluate(read);
+  ok('editing it flips it back — "' + f.mark[0].words + '"', f.mark[0].words === 'unsent');
+  // and a phrase that merely appears INSIDE a sent paragraph is not a send:
+  // the match is a whole run of the prompt's own blank-line segments
+  await p3.evaluate(writeIn, { i: 0, text: 'she crosses the ward' });
+  await p3.waitForTimeout(300);
+  f = await p3.evaluate(read);
+  ok('a fragment of a sent line is NOT sent — "' + f.mark[0].words + '"', f.mark[0].words === 'unsent');
+  // the WHOLE prompt, heads and all, is a send too — that is what a put-back
+  // of an older clip leaves in the box on a page with no heads written
+  await p3.evaluate(writeIn, { i: 0,
+    text: 'SOPHIE is the woman in [Image1].\n\nA green-tiled ward at night.\n\n' + SCENE });
+  await p3.waitForTimeout(300);
+  f = await p3.evaluate(read);
+  ok('the whole prompt reads SENT — "' + f.mark[0].words + '"', f.mark[0].words === 'sent');
+  ok('no page errors on the feed page — ' + errors3.join(' | '), errors3.length === 0);
+
   ok('no page errors — ' + errors.join(' | '), errors.length === 0);
 
   await browser.close();
