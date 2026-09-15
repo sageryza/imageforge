@@ -1,7 +1,9 @@
 // md-to-docx — turn one of this repo's script/plan markdown files into a .docx
 // she can download and read off her phone.
 //
-//   npm install docx            (not a repo dependency — install it on demand)
+//   npm install docx            (not a repo dependency — install it on demand;
+//                               run from where you installed it, or pass
+//                               NODE_PATH=<that>/node_modules)
 //   node scripts/md-to-docx.js docs/christmas-commercial/SCRIPTS.md out.docx
 //
 // Written 2026-09-15 for the Christmas commercial scripts (Sophie: "give us a
@@ -120,8 +122,10 @@ for (const raw of lines) {
   if (k === 'h') { flush(); buf = [l]; bufKind = 'h'; flush(); continue; }
   if (k === 'li' || k === 'ol') { flush(); buf = [l]; bufKind = k; flush(); continue; }
   if (k === 'q' && /^>\s*$/.test(l)) { flush(); continue; }
-  // a speaker label starts its own line in a script
-  if (k === 'q' && /^>\s*[A-Z][A-Z0-9 .'\u2019()\/-]*:/.test(l)) { flush(); bufKind = 'q'; buf.push(l); continue; }
+  // a speaker label starts its own line in a script — the parenthetical is
+  // part of the label ("SANTA (to camera, tired):"), and leaving it out ran
+  // the deposition's last two lines into one
+  if (k === 'q' && /^>\s*[A-Z][A-Z0-9 .'\u2019\/-]*(\([^)]*\))?\s*:/.test(l)) { flush(); bufKind = 'q'; buf.push(l); continue; }
   if (bufKind && bufKind !== k) flush();
   bufKind = bufKind || k;
   buf.push(l);
