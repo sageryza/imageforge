@@ -1657,12 +1657,16 @@ body.reading .backwrap{display:block;}
 .nowplaying{position:fixed; top:max(14px, env(safe-area-inset-top)); left:50%; transform:translateX(-50%) translateZ(0); z-index:10; display:none; align-items:center; gap:8px; max-width:min(60vw,240px); background:var(--barbg); color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:8px 13px; box-shadow:0 2px 12px rgba(0,0,0,.14); cursor:pointer; -webkit-tap-highlight-color:transparent; font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2);}
 .nowplaying.show{display:flex;}
 .nowplaying svg{flex:none; color:var(--ink);}
-/* "New message" bar. A reply landing mid-read must NEVER rebuild the page under
-   her: new messages come in at the TOP, so a rebuild moved her scroll spot and
-   collapsed anything she had open. poll() buffers them instead and raises this;
-   tapping it is what shows them. Sits below the now-playing bar when both are
-   up (sibling selector — no JS coordination). */
-.newbar{position:fixed; top:max(14px, env(safe-area-inset-top)); left:50%; transform:translateX(-50%) translateZ(0); z-index:11; display:none; align-items:center; gap:7px; background:var(--rose); color:var(--paper); border:none; border-radius:6px; padding:9px 14px; box-shadow:0 2px 12px rgba(0,0,0,.18); cursor:pointer; -webkit-tap-highlight-color:transparent; font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase;}
+/* "New message" bar — THE HOME LIST ONLY since 2026-09-15 (Sophie, looking at
+   it in a thread: "when i click the banner, the page shud already have the new
+   message loaded" · "no tap · already there · shud be"). In a THREAD poll()
+   renders the reply straight in and holds her place, so there is nothing left
+   to tap; on the home list a rebuild is a whole screen of rows re-ordering, so
+   it still buffers and raises this. It wears the now-playing bar's own quiet
+   look, not a rose slab ("not magenta banner", the same minute), and sits
+   below it when both are up (sibling selector — no JS coordination). */
+.newbar{position:fixed; top:max(14px, env(safe-area-inset-top)); left:50%; transform:translateX(-50%) translateZ(0); z-index:11; display:none; align-items:center; gap:7px; background:var(--barbg); color:var(--ink2); border:1px solid var(--line); border-radius:6px; padding:8px 13px; box-shadow:0 2px 12px rgba(0,0,0,.14); cursor:pointer; -webkit-tap-highlight-color:transparent; font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase;}
+.newbar svg{color:var(--ink);}
 .newbar.show{display:flex;}
 .newbar svg{flex:none;}
 .nowplaying.show ~ .newbar{top:calc(max(14px, env(safe-area-inset-top)) + 48px);}
@@ -10776,8 +10780,9 @@ function paintNew(){
 function clearNew(){ if(pendingNew){ pendingNew=0; paintNew(); } }
 document.getElementById('newbar').onclick=function(){
   scrollStop();
-  // She asked for the new one, so land on it: the newest is at the top, and in
-  // a thread that means the Chat tab even if she was looking at Assets.
+  // The home list is the only place this can be raised now (see the note by
+  // .newbar). The thread branch stays as the safe fallback for a bar left over
+  // from the list when a thread opened under it.
   if(cur){ curTab='chat'; openChat(cur,false,null,true); }
   else { renderHome(); window.scrollTo(0,0); }
 };
@@ -10872,6 +10877,28 @@ function poll(){
       // is simply there at the next natural render.
       var n = cur ? mineNews : news;
       if(!n) return;
+      // IN A THREAD THERE IS NOTHING TO TAP (2026-09-15, Sophie: "no tap ·
+      // already there · shud be"). The bar existed because a rebuild moved her
+      // scroll spot — a reply lands at the TOP, so everything she was reading
+      // slid down by exactly one row. So measure that row and give the pixels
+      // back: the thread rebuilds, the new reply is above her, and the line she
+      // was on has not moved. `wasOpen` inside openChat already carries her
+      // expanded rows across, which was the other half of the old objection.
+      // AT THE TOP she is put nowhere — the new reply is what she is looking at.
+      if(cur){
+        var wasY=window.scrollY, wasH=document.documentElement.scrollHeight;
+        openChat(cur, true, null, true);
+        // PUT HER BACK WHATEVER HAPPENED. `keepScroll` only means "don't jump
+        // to the top on purpose" — the rebuild empties #thread for an instant,
+        // the document collapses, and the browser CLAMPS scrollY to 0 on the
+        // way past. Measured: y 600 → 0 with the height unchanged. So the
+        // restore is unconditional, plus whatever the page grew ABOVE her (a
+        // new reply that merges into the run at the top adds no height at all,
+        // and then the offset is simply zero).
+        var grew=document.documentElement.scrollHeight-wasH;
+        if(wasY>8) window.scrollTo(0, wasY+Math.max(0,grew));
+        return;
+      }
       pendingNew+=n; paintNew();
     })
     .catch(function(){});   // a failed poll is not worth surfacing; next one retries
