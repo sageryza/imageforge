@@ -1,12 +1,22 @@
 #!/usr/bin/env node
-// HIDE-THE-✕'d IS ON BY DEFAULT, ON EVERY SURFACE THAT HAS IT (2026-09-14,
-// Sophie: "default to hide x").
+// HIDE-THE-✕'d AND ITS DEFAULT, PER SURFACE (2026-09-14, Sophie: "default to
+// hide x"; 2026-09-15, "filter changed · change back · playground").
+//
+// It opened ON everywhere from #2399 and she took the PLAYGROUND back off a
+// day later — that feed is her history, where a ✕ means "not that one" rather
+// than "file it away", so a fresh page opened with runs missing. The other
+// four kept the new default.
+//
+// SO THE DEFAULT IS A COLUMN IN THE TABLE BELOW, not a fact about the pattern.
+// That is the whole reason this file survives the split: one page differing on
+// purpose reads exactly like one page drifting, and only a table that names
+// which is which can tell them apart.
 //
 // The ♥/✕ pair is ONE pattern ported across five feeds, and each feed keeps its
 // own little reader because only three of the five load /feedkit.js — so
-// nothing but this file would notice one of them drifting back to default-off,
-// and a filter that means two different things on two identical-looking
-// controls is the drift this repo keeps getting burned by.
+// nothing but this file would notice one of them drifting, and a filter that
+// means two different things on two identical-looking controls is the drift
+// this repo keeps getting burned by.
 //
 // Every check RUNS the real reader lifted out of the real page against a fake
 // localStorage, rather than matching its text: a reader that reads perfectly
@@ -31,25 +41,32 @@ function lift(file, name) {
   return line.trim();
 }
 
-// `call` is how that page asks its own reader for the hide-✕ answer.
+// `call` is how that page asks its own reader for the hide-✕ answer, and
+// `dflt` is what that page answers a phone that has never touched it.
 const PAGES = [
-  { file: 'promptlab.html', name: 'hideX', call: 'hideX()', liked: 'likedOnly()', likedName: 'likedOnly', key: 'promptlab_hidex' },
-  { file: 'footage.html', name: 'hideX', call: 'hideX()', liked: 'likedOnly()', likedName: 'likedOnly', key: 'footage_hidex' },
-  { file: 'freeform.html', name: 'hideX', call: 'hideX()', liked: 'likedOnly()', likedName: 'likedOnly', key: 'freeform_hidex' },
-  { file: 'voice.html', name: 'hideX', call: 'hideX()', liked: 'likedOnly()', likedName: 'likedOnly', key: 'voicelab_hidex' },
+  // THE ONE THAT OPENS OFF, at her word (2026-09-15) — see the note at the top.
+  { file: 'promptlab.html', name: 'hideX', call: 'hideX()', liked: 'likedOnly()', likedName: 'likedOnly', key: 'promptlab_hidex', dflt: false },
+  { file: 'footage.html', name: 'hideX', call: 'hideX()', liked: 'likedOnly()', likedName: 'likedOnly', key: 'footage_hidex', dflt: true },
+  { file: 'freeform.html', name: 'hideX', call: 'hideX()', liked: 'likedOnly()', likedName: 'likedOnly', key: 'freeform_hidex', dflt: true },
+  { file: 'voice.html', name: 'hideX', call: 'hideX()', liked: 'likedOnly()', likedName: 'likedOnly', key: 'voicelab_hidex', dflt: true },
   // Stitch reads both marks through ONE helper, so the default rides the CALL
   // (`markState('stitch_hidex', true)`) and hearts-only must not inherit it.
-  { file: 'stitch.html', name: 'markState', call: "markState('stitch_hidex', true)", liked: "markState('stitch_liked')", likedName: 'markState', key: 'stitch_hidex' },
+  { file: 'stitch.html', name: 'markState', call: "markState('stitch_hidex', true)", liked: "markState('stitch_liked')", likedName: 'markState', key: 'stitch_hidex', dflt: true },
 ];
 
-console.log('\nTHE READER — absent means HIDE');
+console.log('\nTHE READER — each page\'s own default, and her tap over it');
 for (const p of PAGES) {
   const fn = lift(p.file, p.name);
   const ask = (v) => new Function('localStorage', fn + '\n return ' + p.call + ';')(store(v));
-  ok(p.file + ': a phone that never touched it hides the ✕\'d', ask(null) === true);
+  ok(p.file + ': a phone that never touched it answers ' + p.dflt, ask(null) === p.dflt);
   ok(p.file + ': her ON is still on', ask('1') === true);
   ok(p.file + ': and her OFF is still off — the default never comes back over her tap', ask('') === false);
 }
+// FOUR ON, ONE OFF — asserted as a COUNT so that "they all drifted back to
+// off" can never pass as "the Playground is the exception".
+ok('the split is exactly one page off and four on',
+  PAGES.filter((p) => p.dflt === false).map((p) => p.file).join() === 'promptlab.html'
+  && PAGES.filter((p) => p.dflt === true).length === 4);
 
 console.log('\nTHE HEART IS UNTOUCHED — hearts-only is still OFF by default');
 for (const p of PAGES) {

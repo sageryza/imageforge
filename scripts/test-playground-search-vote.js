@@ -156,13 +156,17 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
   ok(q === 'patchwork', 'and her words are still in the box');
 
   console.log('\nTHE ♥ FILTER, WITH A SEARCH ACTIVE');
-  // The filters live inside the drawer since #2058 — open it, tap the chip.
-  await page.click('#feedfilters .filtchip');
-  await page.waitForSelector('#feedfilters .filtdrawer:not([hidden])');
-  await page.click('#feedfilters .filtcbtn[data-v="like"]');
+  // THE ♥ IS BACK ON THE FEED BAR, not in the drawer (2026-09-03, #2078,
+  // Sophie: "actually put the heart x thing exactly where it was"). This block
+  // still reached into the drawer for a `[data-v="like"]` chip that has not
+  // existed since — so it timed out rather than failing, and the whole file
+  // has been dead from this line down for twelve days. Found 2026-09-15 while
+  // taking hide-the-✕'d back to default-off on this page; the drawer keeps
+  // QUALITY and WHEN, and the marks are `#v-liked` / `#v-hidex` on the bar.
+  await page.click('#v-liked');
   await page.waitForTimeout(400);
   ok(await wall() === 'r2:like', 'hearts only shows exactly the one she just hearted');
-  await page.click('#feedfilters .filtcbtn[data-v="like"]');
+  await page.click('#v-liked');
   await page.waitForTimeout(400);
 
   console.log('\nAND NOTHING MOVED WITH NO SEARCH');

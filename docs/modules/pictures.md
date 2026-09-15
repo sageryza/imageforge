@@ -2388,12 +2388,24 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   `node scripts/test-playground-hide-x.js` (headless — including the
   placeholder measured against the room the input actually has, because a
   clipped field passes both `isVisible()` and a width assertion).
-  **AND IT IS ON BY DEFAULT SINCE 2026-09-14 (Sophie: "default to hide x") —
-  ON ALL FIVE SURFACES THAT HAVE IT**: the Playground, Footage, Freeform,
-  Voice Studio and Stitch. The ♥/✕ pair is ONE pattern ported across those
-  five, so a default that differed per page would be two meanings for two
-  identical-looking controls — the drift the house rule about measuring a
-  shared thing against every CALLER exists to stop. Four things not to undo:
+  **IT OPENED ON BY DEFAULT FROM 2026-09-14 (Sophie: "default to hide x") ON
+  ALL FIVE SURFACES — AND SHE TOOK THE PLAYGROUND BACK OFF A DAY LATER
+  (2026-09-15: "filter changed · change back · playground" · "filter used to
+  be different").** So the default is now **OFF on the Playground and ON on
+  the other four** (Footage, Freeform, Voice Studio, Stitch), and that split
+  is deliberate rather than drift. **Do not "fix" the Playground back to ON.**
+  - **WHY THIS PAGE IS THE EXCEPTION, in her terms:** the Playground's feed IS
+    her history. A ✕ here means *not that one* about a picture she drew, not
+    *file it away* — so a default-on filter opened her own history with runs
+    missing from it, which is what she was looking at when she said the filter
+    used to be different. On the other four the ✕ is closer to housekeeping.
+  - **THE SPLIT IS PINNED, NOT ASSUMED.** `scripts/test-hide-x-default.js`
+    carries the default as a COLUMN per page and asserts the count — exactly
+    one off, four on — because one page differing on purpose reads identically
+    to one page drifting, and only a table that names which is which can tell
+    them apart. Everything else about the pattern is unchanged, and the ♥ is
+    untouched: hearts-only still opens OFF everywhere.
+  Four things not to undo on the four that stayed ON:
   - **ABSENT IS THE DEFAULT, AND HER TAP IS NOT.** Each reader asks ABSENT
     FIRST — `null` takes the default, `'1'` is on, `''` is off — and the write
     still stores `'1'`/`''` exactly as before, so a phone that had already
@@ -2889,7 +2901,7 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   marks on each picture's top corners on the card AND in the lightbox (one
   reader, `runsById`, so a mark cast anywhere shows everywhere), tapping the
   lit one clears it, and the ♥-only / hide-✕'d pair over the feed, sticky
-  (`freeform_liked` / `freeform_hidex`). **Hide-the-✕'d opens ON since 2026-09-14** (her "default to hide x" — the rule and its four guards are in the Playground's ✕-filter note). **Both directions with the Assets
+  (`freeform_liked` / `freeform_hidex`). **Hide-the-✕'d opens ON since 2026-09-14** (her "default to hide x" — the rule and its four guards are in the Playground's ✕-filter note, which also carries the 2026-09-15 split: the PLAYGROUND went back to default-off and these four did not). **Both directions with the Assets
   tab**: the route calls server.js's `syncVoteToAssets` (handed in at init —
   a Freeform output is a My Creations picture, so the my-creations rule reaches
   `/freeform/out/` too) and the Assets vote route calls `freeform.voteFromAssets`

@@ -1298,12 +1298,18 @@
   // stack without arguing — hearts-only has already dropped every ✕'d picture,
   // so this one simply finds nothing more to do.
   document.getElementById('v-hidex').innerHTML = ICONS.x;
-  // DEFAULT ON (2026-09-14, Sophie: "default to hide x") — absent means HIDE, so
-  // a fresh page opens with the crossed-out ones already gone. Stored '1'/'' as
-  // before, and the reader asks ABSENT FIRST: null takes the default, '1' is on,
-  // '' alone is off — so a phone that had already turned it on, or deliberately
-  // off, keeps exactly what she chose. The bell's default-on shape.
-  function hideX() { var v = localStorage.getItem('promptlab_hidex'); return v === null ? true : v === '1'; }
+  // DEFAULT OFF ON THIS PAGE — AND THAT IS A REVERSAL, NOT AN OVERSIGHT
+  // (2026-09-15, Sophie: "filter changed · change back · playground" · "filter
+  // used to be different"). It opened ON here for a day, from her own "default
+  // to hide x" (#2399), and the Playground is where that lands hardest: this
+  // feed IS her history, she ✕'s a picture to say "not that one" rather than
+  // to file it away, and a fresh page therefore opened with runs missing and a
+  // lit chip she had never tapped to explain it. ONLY THIS PAGE MOVED —
+  // Footage, Freeform, Voice Studio and Stitch still open ON, and
+  // `test-hide-x-default.js` carries the per-page default so the four cannot
+  // drift after this one.
+  // Stored '1'/'' exactly as before, so a phone that turned it on keeps it on.
+  function hideX() { return localStorage.getItem('promptlab_hidex') === '1'; }
   function applyHideX(repaint) {
     document.getElementById('v-hidex').classList.toggle('on', hideX());
     if (repaint) renderFeed();
