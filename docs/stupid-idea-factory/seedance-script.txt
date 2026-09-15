@@ -1,28 +1,42 @@
-STUPID IDEA FACTORY — SEEDANCE SCRIPT v1
-Seedance 2.0 Mini · 15s · 480p · 16:9 · through APIFRAME · no audio (VO is yours)
-[Image1] = a still of you (which one?) · [Image2] = the product mockup from shot 2
-Nothing is sent until you say go. ~21¢ a clip, 4 clips ≈ 85¢.
+STUPID IDEA FACTORY — SEEDANCE SCRIPT v2
+Seedance 2.0 Mini · 480p · 9:16 · audio ON, the vo: lines spoken by the model (the way your clips run) · one shot per clip, 4–8s
+[Image1] = you, plainclothes — grab the frame at 0:01 of the 8s delivery clip (hoodie, porch) so the church stops leaking into frame one · [Image2] = the products (kit, moon milk, shorts) · [Image3] = your ChatGPT screenshot
+Nothing is sent until you say go. 32s of Mini ≈ 45¢.
 
-CLIP 1 · 0:00–0:15 · SEEDANCE
-VO: i don't know about you but i have a lot of ideas / and chatgpt is just making it worse / so, i made this site
-PROMPT: The girl is the woman in [Image1]. She sits at a desk, camera at eye level. Product ideas erupt out of the top of her head like a volcano and rain down around her. She turns to a laptop and types fast.
-INSERTS: 0:08 chatgpt making the mockup (screen record) · 0:13 the site (screen record)
+CLIP 1 · 8s · SEEDANCE
+PROMPT: vo: i don't know about you but i have a lot of ideas
+shot: the girl in [Image1] at her desk, first frame [Image4]. product ideas like [Image2] erupt out of the top of her head like a volcano and rain down around her.
+REFS: [Image4] = the desk picture, marked as the first frame (takes no slot — the page renumbers)
 
-CLIP 2 · 0:15–0:30 · SEEDANCE (bed under the screen recording)
-VO: basically, ppl rate ur ideas, they can even invest little bits of money, and if enough ppl heart it … then...it actually gets made
-PROMPT: The girl is the woman in [Image1]. She holds up her phone, camera at eye level, watching it, getting more and more excited until she jumps up cheering.
-INSERTS: the site, hearts piling up (screen record + heart buildup sfx)
+CLIP 2 · 4s · SEEDANCE
+PROMPT: vo: and chatgpt is just making it worse
+shot: over her shoulder, the girl in [Image1] types into [Image3]. a perfect mockup of [Image2] appears on the screen.
 
-CLIP 3 · 0:30–0:45 · SEEDANCE
-VO: i send it to alibaba / they give me a quote / and boom two months later / we have 500 of them
-PROMPT: The girl is the woman in [Image1]. She opens her front door, camera at eye level. A delivery man stacks twelve large cardboard boxes in her doorway until they tower over her. She opens one and pulls out the thing in [Image2], again and again.
-INSERTS: 0:30 alibaba chat, one plausible message and the quote (generator)
+CLIP 3 · SCREEN RECORD (no seedance)
+VO: so, i made this site / basically, ppl rate ur ideas, they can even invest little bits of money, and if enough ppl heart it (exciting heart buildup w sound effects), then...it actually gets made
+the real app, shouldimakethis.web.app, hearts piling up + sfx
 
-CLIP 4 · 0:45–1:00 · SEEDANCE
-VO: but then i was like: wait / ppl will just steal my designs / why shud i put them out there for ppl to see
-PROMPT: The girl is the woman in [Image1], surrounded by cardboard boxes, camera at eye level. She stops, looks straight into the camera, and her face slowly falls as it dawns on her.
-INSERTS: 0:55 the alibaba chat starts again, first ding (generator)
+CLIP 4 · 4s · SEEDANCE
+PROMPT: vo: i send it to alibaba. they give me a quote
+shot: the girl in [Image1] on her couch, taps send on her phone, camera at eye level.
+INSERT: the alibaba chat, one plausible message and the quote (generator)
 
-CLIP 5 · 1:00–1:15 · NO SEEDANCE
+CLIP 5 · 8s · SEEDANCE (your delivery clip, the one that works)
+PROMPT: vo: and boom two months later
+shot: "delivery!" mailman shows up with 12 large boxes arriving at her front doorstep. the girl in [Image1] (but in plainclothes)
+girl vo: we have 500 of them
+
+CLIP 6 · 4s · SEEDANCE
+PROMPT: vo: but then i was like: wait
+shot: the girl in [Image1] opens one of the boxes, pulls out [Image2], freezes, looks straight into the camera.
+
+CLIP 7 · 4s · SEEDANCE
+PROMPT: vo: ppl will just steal my designs. why shud i put them out there for ppl to see
+shot: the girl in [Image1] to camera, boxes behind her, camera at eye level. her face slowly falls.
+
+CLIP 8 · SCREEN RECORD (no seedance)
 alibaba escalation: generator Play + screen record, dings piling up (the script is in this chat)
-TITLE CARD: They can steal the idea. They can't steal the fact that it's a bad idea.
+
+CLIP 9 · TITLE CARD
+They can steal the idea. They can't steal the fact that it's a bad idea.
+or: Crowdsource bad ideas. Outsource the consequences.
