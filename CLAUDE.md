@@ -2116,6 +2116,28 @@ them off the reference sheet, not off the old filenames.
   tabs it has always been.
   **Full details: *THE CHAT AREA IS THREE LISTS* in `docs/chats-app.md` (moved from CLAUDE.md).**
 
+- **THE ACCOUNT FILTER FOLLOWS THE ACCOUNT ROW, AND NEVER OUTLIVES IT
+  (2026-09-15, Sophie: "does chat app default to only current account?" ·
+  "shud be chronological").** It did, invisibly: the THREE LISTS are the
+  default row and they take the ACCOUNT row's PLACE, so the tabs were off
+  screen while their filter went on narrowing every pile to whichever account
+  the iOS app is signed into. **Measured that morning with `appAccount:"2"`:
+  of her 30 most recently active chats, 26 are on account 1 and 4 on account 2
+  — the screen she opens was hiding 26 of her newest 30 (136 of 401 across the
+  whole ALL pile).** One rule now, `acctRowOn()` in `chats.html`, shared with
+  the code that SHOWS the row so the two cannot drift: the filter applies
+  exactly while the row is on screen. Every row still carries its account
+  digit, so a merged list still says which account a chat ran on. Two things
+  found in the same sitting and fixed with it: the category chip's red badge
+  was still account-scoped while its pile went cross-account on 2026-08-31,
+  and the **★ chip was a dead control on the default screen** (`if(starOnly)`
+  sat below the ALL branch, which returns). One measured and NOT changed: at
+  390pt the masthead's six controls start at x=84 and the word "Chats" runs to
+  x=95.7, so the bookmark button takes a tap on the end of the title — which
+  control gives way is hers.
+  **Full details: *THE ACCOUNT FILTER FOLLOWS THE ACCOUNT ROW* in
+  `docs/chats-app.md`.**
+
 - **THE UPDATE TAB IS GONE — SHE HAD IT TAKEN OFF (2026-09-14, Sophie: "get
   rid of the updates tab in chats").** It LED the account row from Aug 2026 as
   a whole VIEW rather than an account, and everything that screen owned went
