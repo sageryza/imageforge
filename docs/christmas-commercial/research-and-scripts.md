@@ -1,10 +1,10 @@
-# Christmas is a revised holiday — research + commercial scripts
+# Christmas is a revised holiday — the research and the fact sheet
 
 Fresh start, 2026-09-05 (chat `christmas-pagan-commercial`). Sophie's ask: *"i want
 to write a commercial about how christmas is secretly a revised pagan holiday …
 start w research. i want a few extra options i can cut."*
 
-Nothing here is drawn or animated. These are scripts and a fact sheet; the go for
+Nothing here is drawn or animated. This is research; the go for
 any picture, storyboard or clip is a separate message of hers.
 
 ---
@@ -98,8 +98,9 @@ spot can be funny without a historian in the comments.
 ### DON'T SAY (debunked)
 
 - Christmas is Saturnalia. Saturnalia was Dec 17, stretched at most to Dec 23,
-  never the 25th. **(The ending in §4 says this out loud — answering the claim
-  is not the same as making it, and it is the strongest thirty seconds here.)**
+  never the 25th. **(THE ENDING in `SCRIPTS.md` says this out loud — answering
+  the claim is not the same as making it, and it is the strongest twelve seconds
+  in the folder.)**
 - Mistletoe kissing is a druid rite.
 - The tree is a pagan idol the church stole.
 - Santa's reindeer are Odin's eight-legged horse.
@@ -113,335 +114,26 @@ in, so she can cut it if the spot is not for the witch account.
 
 ---
 
-## 3. The spots
+## 3. The scripts live next door
 
-Grammar: none of them is the pill-ad shape (her call, start fresh). Each is a
-different borrowed FORMAT, because the joke in every case is that a solemn
-form is being used to say "this holiday is made of spare parts." Timings are
-for :60; the :30 cut of each is marked. **Extra beats she can cut are in
-brackets under each spot — they are surplus by design.**
+**Every script is in `SCRIPTS.md`, in order** — nine spots and the ending, the
+five that used to sit here plus four that existed only on a posted Compare page
+(*Christmas commercial v2 — four spots*, chat `christmas-pagan-commercial`).
+They were moved rather than copied so there is one copy of every line; this
+file is the research and the fact sheet the scripts are built on.
 
-### SPOT A — "PATCH NOTES" (lead)
-*Software-update grammar. A calm system voice reads the version history of
-Christmas over slow, beautiful footage of the season.*
+The order there is by how many recurring faces a spot needs, fewest first.
+The short version: **The parts** (hands only) · **Older than the name** ·
+**Keep the feast** · **Mothers' night** · **Patch notes** · **Heritage brand** ·
+**Product recall** · **The deposition** · **The witness**, then the ending.
 
-**:00–:06** Snow on a dark window. A soft chime, the one a phone makes.
-> VO (flat, system-calm): "An update is available for: Christmas."
-
-**:06–:14** A yule fire. Text on black, monospace, typed as the VO reads.
-> VO: "Version 1.0. Yule. A midwinter feast. Three days, ale, a night called
-> Mothers' Night. No Christ in it. Nobody minded."
-
-**:14–:22** A crown on a wooden table.
-> VO: "Version 2.0, tenth century. A Norse king moves Yule to December
-> twenty-fifth by law. Ale brewing becomes mandatory. This is the only patch
-> everyone liked."
-
-**:22–:30** Candlelight in an old stone church.
-> VO: "Version 2.4. A pope writes to his missionaries: keep the temples, keep
-> the feasts, just change the name on the door."
-
-**:30–:37** A door slammed shut. A padlock.
-> VO: "Version 3.0 has been removed by the Puritans. Reason given: 'drunken
-> pagan revelry.' Fine: five shillings."
-
-**:37–:50** Fast, warm: a tree lit in a parlour, a sleigh in a picture book,
-a red suit.
-> VO: "Version 4.0, the eighteen-hundreds. New features: the tree. Eight
-> reindeer, with names. Kissing under the mistletoe. A fat man in red.
-> Sponsored content."
-
-**:50–:56** Everything at once — the full modern Christmas, a family, a table.
-> VO: "Version 4.7 is the one you are running now. It contains almost nothing
-> from version 1. It works fine."
-
-**:56–:60** Black. The chime again.
-> SUPER: *Christmas. Updated since 354 AD.*
-> [OPTION — witch button: SUPER: *The original is still in there. Secretly a
-> Witch.*]
-
-**:30 cut:** keep :00–:06, :14–:22, :30–:37, :37–:50 (trimmed to two
-features), :56–:60.
-
-**[Extra beats to cut or swap in]**
-- "Version 2.1: December twenty-fifth. Chosen by arithmetic. Landed on the
-  darkest week of the year, where everyone already had a party."
-- "Known issue: nobody knows where the yule log came from. Will not be fixed."
-- "Version 4.3, 1931: the red suit is now standard. Paid for by a soft drink."
-- "Version 3.1: Christmas is now legal again in Massachusetts. Attendance low."
+1–4 make the claim straight; 5–9 make it through a borrowed solemn form. Both
+are true to the sheet above. Cutting one of each is the cheap way to find out
+which one she is making.
 
 ---
 
-### SPOT B — "PRODUCT RECALL"
-*The stern voice of a consumer-safety notice. Black background, white type,
-the little triangle icon. Deadpan.*
-
-**:00–:05**
-> VO (grave): "Attention. A voluntary recall has been issued for: Christmas."
-
-**:05–:15**
-> VO: "Inspection has found that the product contains components from other
-> holidays. The midwinter feast is Norse. The door-to-door drinking is
-> medieval. The tree is German and arrived in 1848."
-
-**:15–:25** Close-ups of each "part" pulled from a box and laid on a white
-table: a sprig of mistletoe, a reindeer figurine, a red hat.
-> VO: "The kiss under the mistletoe was manufactured in 1784 for a comic
-> opera. The reindeer were added in 1823 by a poet. The red suit was supplied
-> by the Coca-Cola Company in 1931."
-
-**:25–:35**
-> VO: "Consumers who believed the product was 'ancient' may have been
-> affected. Consumers who believed it was 'pagan' are partly right, which is
-> worse."
-
-**:35–:45** The parts swept back into the box, the lid closed, a bow put on.
-> VO: "No remedy is available. The manufacturer has confirmed the product has
-> always been assembled from used parts and will continue to be."
-
-**:45–:55**
-> VO: "Do not attempt to return Christmas. Do not attempt to celebrate the
-> original; it involves oxen."
-
-**:55–:60**
-> SUPER: *Christmas. Some assembly required. Since 354 AD.*
-> [OPTION: *Secretly a Witch. We kept the receipts.*]
-
-**:30 cut:** :00–:05, :15–:25, :35–:45, :55–:60.
-
-**[Extra beats]**
-- "The Puritans returned the product in 1659 and were refunded five
-  shillings in reverse."
-- "The pope's letter of 601 is the earliest known terms-of-service update."
-- "Yule log: origin unknown. Do not operate."
-
----
-
-### SPOT C — "HERITAGE BRAND"
-*The warm, slow, expensive voice of a whisky or leather-goods ad. Amber light,
-hands, wood grain. Every line is the heritage-brand cliché, and every fact
-under it is from the 1800s.*
-
-**:00–:08** Hands stir a copper pot. Slow.
-> VO (rich, unhurried): "Some things are made the old-fashioned way."
-
-**:08–:16** A tree carried through snow into a parlour.
-> VO: "The tree by the window. A tradition handed down… from a newspaper. The
-> Illustrated London News. 1848."
-
-**:16–:24** A sleigh bell. A page turning.
-> VO: "The eight reindeer. Their names, passed from father to son… from a poem.
-> New York. 1823."
-
-**:24–:32** Mistletoe hung on a nail.
-> VO: "The kiss beneath the mistletoe. Ancient. Sacred. Comic opera. 1784."
-
-**:32–:40** A red coat on a hook, brass buttons.
-> VO: "And the man himself. Timeless. Painted for a soft-drink advertisement
-> in 1931."
-
-**:40–:50** Now older, rougher footage: a fire, a horn of ale, a dark wood.
-> VO: "Underneath all of it — older than the newspaper, the poem, the opera,
-> the soda — a three-day feast in the dark of the year. Ale. Fire. A night
-> called Mothers' Night. That part is real. That part we did not invent."
-
-**:50–:60** The fire alone.
-> VO: "Christmas. Crafted by hand, mostly in the nineteenth century."
-> SUPER: *Est. 354 AD. Redesigned 1823, 1843, 1848, 1931.*
-> [OPTION: *The oldest part is a witch's holiday. Secretly a Witch.*]
-
-**:30 cut:** :00–:08, :16–:24, :32–:40, :40–:50 (trimmed), :50–:60.
-
-**[Extra beats]**
-- "The yule log. Its origin, like all great heritage, is completely unknown."
-- "Wassail. From the Old English for 'be well.' Also from the Old English for
-  'the poor have come to your door and they have been drinking.'"
-- "A recipe passed down through generations. Banned by the Puritans for
-  twenty-two years. Attendance never fully recovered."
-
----
-
-### SPOT D — "THE DEPOSITION"
-*A single wide shot. Santa under oath, a lawyer we never see. Long pauses.
-Documentary lighting. The comedy is the sworn testimony.*
-
-> LAWYER (V.O.): "State your name."
-> SANTA: "Santa Claus."
-> LAWYER: "Any other names?"
-> SANTA: "Saint Nicholas. Sinterklaas. Father Christmas. Kris Kringle."
-> LAWYER: "That's a lot of names."
-> SANTA: "I've been in the business a long time."
-> LAWYER: "How long?"
-> SANTA: "…Define 'me.'"
->
-> LAWYER: "Where did the reindeer come from?"
-> SANTA: "A poem. 1823."
-> LAWYER: "Before that?"
-> SANTA: "Before that I walked."
->
-> LAWYER: "The suit."
-> SANTA: "Coca-Cola. 1931. I had a green one before. Nobody remembers the
-> green one."
->
-> LAWYER: "Mr. Claus, are you Odin?"
-> SANTA: "No."
-> LAWYER: "You have a beard."
-> SANTA: "Lots of people have a beard."
-> LAWYER: "A Norse poem calls Odin 'the Yule One.'"
-> SANTA: "One poem. He had eight legs on his horse. I have eight reindeer.
-> That's a coincidence, counsel. Ask me about the ale."
-> LAWYER: "The ale?"
-> SANTA: "Tenth century. King Hákon moves Yule onto Christmas Day and makes
-> brewing ale a legal requirement. THAT'S the merger. Nobody puts that on a
-> card."
->
-> LAWYER: "So the holiday is pagan."
-> SANTA: "The bottom layer is. The rest is from the 1800s. The middle was
-> banned for twenty-two years."
-> LAWYER: "By whom?"
-> SANTA: "Puritans. Five shillings."
-> LAWYER: "Nothing further."
-> SANTA (to camera, tired): "Ho ho ho."
-
-> SUPER: *Christmas. Under oath since 354 AD.*
-> [OPTION: *Secretly a Witch.*]
-
-**:30 cut:** names → reindeer → suit → "So the holiday is pagan" → the close.
-
-**[Extra exchanges to cut or swap]**
-- LAWYER: "The mistletoe." SANTA: "Comic opera, 1784. Not my department."
-- LAWYER: "The tree." SANTA: "German. Christian. A queen put it in a newspaper.
-  Everybody wanted one. That's not paganism, that's marketing."
-- LAWYER: "Saturnalia." SANTA: "December seventeenth. Wrong week. Next
-  question."
-- LAWYER: "Mothers' Night." SANTA (softer): "…Yeah. That one's real."
-
----
-
-### SPOT E — "THE WITNESS" (short, for the witch account)
-*:30 only. Noir. A woman in a dark kitchen, a candle, a horn cup. She talks to
-camera like someone who has been keeping a secret for a thousand years.*
-
-> "They gave it a new name. New date. Put a saint on the door. Told the
-> missionaries to keep the temples and keep the feasts — it's in the letter,
-> 601 AD, look it up. A king moved it onto their day and made the ale a law.
-> Then the Puritans banned the whole thing for being what it was.
-> So they built a new one. Out of poems. And a newspaper. And a soda ad.
-> And under all of it, in the dark of the year, three nights, a fire, and the
-> Mothers' Night —
-> still there.
-> (she blows out the candle)
-> Merry Christmas."
-
-> SUPER: *Secretly a Witch.*
-
-**[Extra lines]**
-- "Nobody knows where the yule log came from. I know."
-- "Mistletoe was never ours. Don't let them give us that one. That one's a
-  comic opera."
-
----
-
-## 4. The conclusion — the girl talks
-
-Every spot above is a machine talking: a system voice, a safety notice, a
-heritage announcer, a lawyer. That is the joke and it holds for fifty seconds,
-and then it has nowhere to go. This is the ending — a person arrives, and the
-first thing she does is answer the one line every comment section is going to
-post anyway.
-
-**Who she is: an eleven-year-old, and she is a witch** (2026-09-15, Sophie:
-*"consider the voice of an 11-year-old girl"* · *"she's a witch · and her
-teacher did not teach this in school"*). Nightgown, Christmas morning, bare
-feet on the stairs. The age is the joke — a grown woman explaining Roman
-holidays to camera is a lecture. **Where she got it is the button:** not from
-a teacher, not from looking it up. She knows it the way her people know it,
-and the last line is what says so.
-
-**So no school frame anywhere in her lines** — no "my teacher said", no "you
-can look it up", no homework voice. That was the first draft's mistake and it
-put the whole speech in a classroom.
-
-**The reference problem, named:** the cast on file is the ~26-year-old gloomy
-daughter (`docs/witch-commercials/cast-audit-2026-09-15.md`, character 6) and
-her hearted clip is that woman. A child in a ruffled nightgown exists only as
-the ✕'d half of that character's two-girls split, so there is no approved still
-for an eleven-year-old and she would be written out in prose every take — the
-gap that let the professor come back as two different men. One still of her
-first is the cheap move and it is Sophie's to ask for; nothing here is drawn.
-
-It rides on the end of **A, B, C or D**. **E is the grown woman's spot** and
-stays as written.
-
-### THE ENDING (:12)
-
-*The format cuts out. She is on the stairs in a nightgown, the tree behind her,
-the house not awake yet. Straight to camera.*
-
-> "Everybody says it's Saturnalia.
->
-> Saturnalia was December seventeenth. It was never the twenty-fifth.
->
-> Nobody copied. Rome had a week where the slaves ate first and a fool was
-> king. England had twelve days where the poorest man got waited on.
->
-> It just gets dark at four o'clock. So everybody puts the bottom on top for a
-> while.
->
-> We still do it. We just do it in pajamas."
-
-*A noise upstairs. She looks up, then back at us.*
-
-> "They don't teach you that at school."
-
-> SUPER: *Secretly a Witch.*
-> [OPTION — no witch button: SUPER: *Christmas. Everybody arrives at it
-> separately.*]
-
-**:07 cut:** "Everybody says it's Saturnalia. Saturnalia was December
-seventeenth. Rome had a week where a fool was king, England had twelve days
-where the poorest man got waited on, and nobody copied — it just gets dark at
-four. We still do it. We just do it in pajamas." — then *They don't teach you
-that at school.*
-
-**[Extra lines to cut or swap in]**
-- "The Roman one was called the *Saturnalicius princeps*. Ours was the Lord of
-  Misrule. Same job."
-- "They did presents too. Candles, and little clay dolls. That part actually IS
-  the same and nobody says that one."
-- "The Puritans banned Christmas. Not for being Roman. For being fun. Five
-  shillings."
-- "You know what's really left? The word. Yule. It's still in the songs."
-- "My mum told me." *(the witch reveal said out loud, if the last line is too
-  quiet on its own — use one or the other, never both)*
-
-**What she does NOT sound like**, since this is what a rewrite drifts back
-into: no "at the outside", no "there is no thread", no semicolons, no
-summing-up, and nothing that sounds looked-up. She goes in order, piles clauses
-on with *and*, and stops when she runs out. The facts stay exactly as accurate;
-the sentences get shorter, not the research.
-
-**The one thing not to lose:** she corrects the claim and then concedes the
-shape of it. Only the correction is a kid show-off with nothing behind it; only
-the concession puts the debunked thing on camera in a child's mouth. Both
-halves ship or it is a different ending.
-
----
-
-## 5. Which to make first — a recommendation
-
-**A (Patch Notes)** is the one to cut first: it carries the most facts in the
-least time, the format does the joke so the voice can stay calm, and the
-footage is all things she already draws (snow, fire, a tree, a red coat).
-**D (Deposition)** is the funniest if there is an actor. **E** is the only one
-that is unambiguously a Secretly a Witch spot.
-
-Whichever goes first, put §4 on the end of it. The format joke is the hook and
-the girl is the reason to watch it twice — and it is the only part of the spot
-that answers Saturnalia, which is the objection the whole piece is standing in
-front of.
-
-## 6. Sources
+## 4. Sources
 
 - Live Science, [3 Christmas traditions that may have pagan roots, and 4 that (probably) don't](https://www.livescience.com/archaeology/3-christmas-traditions-that-may-have-pagan-roots-and-4-that-probably-dont)
 - History for Atheists, [Pagan Christmas, Again](https://historyforatheists.com/2024/12/pagan-christmas-again/) — the Hijmans/Sol Invictus argument, Saturnalia dates, Bede, Hákon, the tree, mistletoe, Odin
