@@ -5851,6 +5851,9 @@ const PL_GPT = {
 // the canvas, the tier, the quality. WTR had none, because it has none of
 // those knobs: one output size, one step count, one picture a run. So its
 // price had nowhere to live and the page said nothing at all.
+// (The shape toggle added later the same day does NOT move this number —
+// Flux draws one megapixel whatever the ratio, so the figure holds for all
+// five shapes.)
 //
 // REPLICATE PUBLISHES NO PER-IMAGE PRICE FOR A PRIVATE FINE-TUNE, and the
 // prediction object carries NO cost field — only `metrics.predict_time`. So
