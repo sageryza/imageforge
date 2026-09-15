@@ -37,6 +37,13 @@ console.log('\nplayground — the LoRA\'s shape\n');
 assert.ok(/aspect_ratio: loraAr,/.test(PAGE), 'the replicate body carries the picked ratio');
 assert.ok(!/engine: 'replicate', count: OUTPUTS, seed: seed, key: key, ar: '2:3'/.test(PAGE),
   'and the waiting slots no longer hardcode 2:3');
+// A DROP DOWN (2026-09-15, Sophie: "drop down") — it shipped as a segmented
+// toggle for one turn. Pinned so nothing walks it back to five segments on
+// the row, and so the select really wears the style picker's box rather than
+// the browser's default one.
+assert.ok(/<select id="artog"/.test(PAGE), 'the shape control is a select');
+assert.ok(/#stylepick, #artog \{ appearance: none/.test(PAGE),
+  'and it wears the style picker\'s own box, one rule not two');
 ok('the shape she picked is what is sent, and what the placeholders wear');
 
 // The shape word map is ONE map in two files (the panels test pins them equal
@@ -113,41 +120,46 @@ ok('a shape change is a different recipe, not a duplicate');
     await p.selectOption('#stylepick', 'watercolor');
     await p.waitForTimeout(250);
 
-    // EVERY SEGMENT IS TAPPABLE AT ITS OWN CENTRE, at phone width — the row
-    // wraps, and a segment squeezed off it is the "I don't know how to change
-    // it" bug the canvas toggle already had once.
-    const hits = await p.$$eval('#artog button', (bs) => bs.map((el) => {
+    // THE BOX IS REACHABLE AT PHONE WIDTH — the row wraps, and a control
+    // squeezed off it is the "I don't know how to change it from portrait to
+    // square" bug the canvas toggle already had once.
+    const hit = await p.evaluate(() => {
+      const el = document.getElementById('artog');
       const r = el.getBoundingClientRect();
       if (r.width < 8 || r.height < 8) return 'squashed';
       if (r.right > innerWidth || r.left < 0) return 'off-screen';
       const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
       return el.contains(at) || at === el ? 'ok' : 'covered';
-    }));
-    assert.ok(hits.length >= 3, `there are shapes to pick from (${hits.length})`);
-    assert.ok(hits.every((h) => h === 'ok'), `every segment is tappable (${hits.join(', ')})`);
-    // One height with the rest of the row — the .canvastog family, measured.
+    });
+    assert.strictEqual(hit, 'ok', `the dropdown is tappable at its own centre (${hit})`);
     // Measured against a control that is really on the row for THIS style —
     // the quality ladder is not one of them on the LoRA.
     const [ah, ph] = await p.evaluate(() => [
       Math.round(document.getElementById('artog').getBoundingClientRect().height),
       Math.round(document.getElementById('promptbtn').getBoundingClientRect().height)]);
     assert.strictEqual(ah, ph, `it stands the row's height (${ah} vs ${ph})`);
-    ok(`all ${hits.length} segments are reachable on a 390pt phone, at the row's height`);
+    // EVERY SHAPE CARRIES ITS WORD as well as its ratio — the word is what she
+    // says out loud and what her search finds those runs by.
+    const opts = await p.$$eval('#artog option', (os) => os.map((o) => o.textContent.trim()));
+    assert.ok(opts.length >= 3, `there are shapes to pick from (${opts.length})`);
+    assert.ok(opts.includes('16:9 wide') && opts.includes('2:3 portrait'),
+      `each option names its ratio and its word (${opts.join(' | ')})`);
+    ok(`the dropdown offers ${opts.length} named shapes, reachable at the row's height`);
 
     // THE DEFAULT IS WHAT EVERY WTR RUN BEFORE THIS DREW.
-    const lit = () => p.$eval('#artog button.on', (e) => e.getAttribute('data-ar'));
+    const lit = () => p.$eval('#artog', (e) => e.value);
     assert.strictEqual(await lit(), '2:3', 'a fresh profile opens on 2:3');
     ok('the opening shape is the one the LoRA has always drawn');
 
     // HER PICK IS WHAT THE REQUEST WOULD CARRY — read off the page's own body
     // builder rather than trusted from the paint, and NOT by tapping Generate
     // (that spends money).
-    await p.click('#artog button[data-ar="16:9"]');
+    await p.selectOption('#artog', '16:9');
     await p.waitForTimeout(150);
-    assert.strictEqual(await lit(), '16:9', 'the tap lights the segment');
+    assert.strictEqual(await lit(), '16:9', 'the pick sticks in the box');
     assert.strictEqual(await p.evaluate(() => loraAr), '16:9', 'and moves the value the body reads');
     const before = await p.evaluate(() => plannedKey(STYLES.watercolor, 'a heron', 1, 85));
-    await p.click('#artog button[data-ar="2:3"]');
+    await p.selectOption('#artog', '2:3');
     await p.waitForTimeout(150);
     const after = await p.evaluate(() => plannedKey(STYLES.watercolor, 'a heron', 1, 85));
     assert.notStrictEqual(before, after,
@@ -157,7 +169,7 @@ ok('a shape change is a different recipe, not a duplicate');
     // REMEMBERED ACROSS A LOAD (the canvas toggle's rule: "just whatever the
     // last option was"). Measured after a real reload — a value written to
     // localStorage and never read back looks identical in the source.
-    await p.click('#artog button[data-ar="9:16"]');
+    await p.selectOption('#artog', '9:16');
     await p.waitForTimeout(150);
     await p.reload({ waitUntil: 'domcontentloaded' });
     await p.waitForFunction(() => document.querySelectorAll('#stylepick option').length > 1,
