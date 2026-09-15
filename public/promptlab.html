@@ -210,6 +210,28 @@
   .seedbtn { width: var(--ctl-h); border-radius: 6px; border: 1px solid #d8d0c4; background: #fdfcf9; color: #2b2622; display: flex; align-items: center; justify-content: center; }
   .seedbtn svg { width: 19px; height: 19px; }
   .seedtag { font-size: 11.5px; color: #6f675e; }
+  /* THE SEED IS DOWN · BOX · UP (2026-09-15, Sophie: "wtr seed up down text
+     box"). The three ride their own tight group rather than loose in the row:
+     `.controls`' 10px gap between a stepper and the number it steps would read
+     as three unrelated controls, and the group is also what keeps them on one
+     line when the row wraps (the `.gogroup` lesson). The word `seed` is the
+     field's NAME, outside the box — the box holds nothing but her number. */
+  .seedwrap { display: inline-flex; align-items: center; gap: 6px; }
+  /* The box is the row's own height and line, so the stepper reads as one
+     control with its buttons. Its spinners come OFF — the two arrows either
+     side are the spinner, and the browser's own pair inside a 72px box is a
+     second, tinier set of the same thing. 16px type because anything under it
+     zooms the whole page on her phone the moment she taps in. */
+  /* `input[type=number]` further down is (0,1,1) and a bare `.seedin` is
+     (0,1,0), so it took that rule's 64px and its GOLD line and drew a warm box
+     between two ink buttons — caught in a photo, not in the source. The
+     attribute is written in here so the group's own rule out-specifies it. */
+  input[type=number].seedin { width: 72px; height: var(--ctl-h); box-sizing: border-box;
+    border: 1px solid var(--ctl-line); border-radius: 6px; padding: 0 6px;
+    font: inherit; font-size: 16px; text-align: center;
+    background: #fdfcf9; color: #2b2622; -moz-appearance: textfield; }
+  .seedin::-webkit-outer-spin-button,
+  .seedin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   /* The three-way toggle is /tritoggle.css now (Aug 2026, Sophie: "make a
      reusable three toggle shell so we can change the styling all at once. make
      color a per instance option"). This page keeps only its COLOUR and its
@@ -1012,8 +1034,7 @@
     <div class="canvastog" id="gridpick" role="group" aria-label="How many panels" hidden></div>
     <label id="scalewrap">LoRA scale <input type="number" id="scale" value="1" step="0.1" min="0" max="2"></label>
     <button class="xthree" id="xthree" title="Run at scale 1, 1.2 and 1.4">&times;3</button>
-    <button class="seedbtn" id="seedbtn" aria-label="Next seed"></button>
-    <span class="seedtag" id="seedtag"></span>
+    <span class="seedwrap" id="seedwrap"><span class="seedtag">seed</span><button type="button" class="seedbtn" id="seeddown" aria-label="Seed down" title="Seed down"></button><input type="number" class="seedin" id="seedin" inputmode="numeric" step="1" min="0" aria-label="Seed"><button type="button" class="seedbtn" id="seedbtn" aria-label="Seed up" title="Seed up"></button></span>
     <button id="charpick" hidden aria-label="Draw Sophie from her reference" title="Sophie character reference"><img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1785884140714-d37oym.webp" alt="Sophie"></button>
     <span id="photowrap"><span id="photoslot"><button id="photopick" type="button" aria-label="Attach a photo reference" title="Attach a photo reference"></button><button id="photoclear" type="button" aria-label="Take the photo reference off" title="Take the photo reference off"></button></span><span id="photomore"></span><button id="photoadd" type="button" aria-label="Attach another photo reference" title="Attach another photo reference"></button></span>
     <input type="file" id="photofile" accept="image/*" multiple hidden>
@@ -1138,7 +1159,13 @@
     maximize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
     minimize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
-    sprout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>',
+    // THE SEED STEPPERS — Lucide `chevron-up` / `chevron-down`. They replaced
+    // the SPROUT (2026-09-15, Sophie: "wtr seed up down text box"): the sprout
+    // could only ever go UP, so a seed she had just walked past was gone. Two
+    // arrows either side of the number say which way each one goes with no
+    // word, and the box in the middle is the way back to a seed she remembers.
+    chevUp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
+    chevDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
     copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
     // ADD TO SHOEBOX — Lucide `share`, the iOS square-and-arrow-up. The SAME
     // mark the Story Room's beat popup and Meta Assets already wear for this
@@ -1935,20 +1962,43 @@
     if (n) toast(n === 1 ? 'Prompt and 1 character description are back'
       : 'Prompt and ' + n + ' character descriptions are back');
   }
-  document.getElementById('seedbtn').innerHTML = ICONS.sprout;
+  document.getElementById('seedbtn').innerHTML = ICONS.chevUp;
+  document.getElementById('seeddown').innerHTML = ICONS.chevDown;
 
-  // The seed: starts at 85 (the test convention), the sprout button steps it
-  // up one — it only SETS the seed, Generate still fires the run. Persisted so
-  // a reload keeps the seed you were on; the little number keeps it visible.
+  // The seed: starts at 85 (the test convention). The two arrows step it a
+  // whole number either way and the box in the middle takes one straight —
+  // 2026-09-15, Sophie: "wtr seed up down text box". None of the three fires a
+  // run; they only SET the seed and Generate draws with it. Persisted, so a
+  // reload keeps the seed you were on.
+  //
+  // WHY DOWN AND A BOX AND NOT JUST THE OLD SPROUT: a seed is the one knob
+  // here that is worth going BACK to — the same prompt at the same scale on
+  // seed 85 is the same picture forever (see `recipeKey`), so a seed she liked
+  // and stepped past was unreachable without clearing localStorage by hand.
+  var seedIn = document.getElementById('seedin');
   function curSeed() {
     var s = parseInt(localStorage.getItem('promptlab_seed') || '85', 10);
     return Number.isFinite(s) ? s : 85;
   }
-  function showSeed() { document.getElementById('seedtag').textContent = 'seed ' + curSeed(); }
-  document.getElementById('seedbtn').addEventListener('click', function () {
-    localStorage.setItem('promptlab_seed', String(curSeed() + 1));
+  function setSeed(n) {
+    if (!Number.isFinite(n)) return;
+    localStorage.setItem('promptlab_seed', String(Math.max(0, Math.round(n))));
     showSeed();
+  }
+  function showSeed() { seedIn.value = String(curSeed()); }
+  document.getElementById('seedbtn').addEventListener('click', function () { setSeed(curSeed() + 1); });
+  document.getElementById('seeddown').addEventListener('click', function () { setSeed(curSeed() - 1); });
+  // Typed: stored as she types, so a seed she dictated and never blurred is
+  // still the one Generate sends. A half-typed or junk box stores NOTHING —
+  // it is not a reason to draw on a seed she did not ask for — and the box is
+  // put back to the stored number when she leaves it, never mid-keystroke
+  // (rewriting the field under her thumb is what eats a number as she types).
+  seedIn.addEventListener('input', function () {
+    var n = parseInt(seedIn.value, 10);
+    if (Number.isFinite(n) && n >= 0) localStorage.setItem('promptlab_seed', String(n));
   });
+  seedIn.addEventListener('change', showSeed);
+  seedIn.addEventListener('blur', showSeed);
   showSeed();
   // The styles on offer. The server owns the real presets (trigger word,
   // baked suffix, steps); `suffix` here is the page-level tail — WTR keeps the
@@ -4056,7 +4106,7 @@
     // saved, so this read as "the style prompt doesn't save". paintPromptPanel
     // is already gated on `bakedFor`, so a style with no wrapper draws nothing
     // without anyone having to close the panel behind her.
-    ['scalewrap', 'xthree', 'seedbtn', 'seedtag'].forEach(function (id) {
+    ['scalewrap', 'xthree', 'seedwrap'].forEach(function (id) {
       document.getElementById(id).hidden = gpt;
     });
     // The Panels tab: N boxes instead of the one, and the one-picture-only
@@ -4372,8 +4422,8 @@
     });
     if (!todo.length) {
       toast(ex.prompts.length > 1
-        ? 'You already have all of those — tap the sprout for a new seed'
-        : 'You already have that one — tap the sprout for a new seed');
+        ? 'You already have all of those — change the seed for a new one'
+        : 'You already have that one — change the seed for a new one');
       return;
     }
     if (todo.length < ex.prompts.length) {
@@ -4402,7 +4452,7 @@
         else todo.push({ p: p, s: s });
       });
     });
-    if (!todo.length) { toast('You already have all of those — tap the sprout for a new seed'); return; }
+    if (!todo.length) { toast('You already have all of those — change the seed for a new one'); return; }
     if (have) toast('Drawing ' + todo.length + ' — you already have ' + have);
     var btn = document.getElementById('xthree');
     btn.disabled = true;
