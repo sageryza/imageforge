@@ -3868,7 +3868,7 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   SERVED** (`GET /estimate`, the model table on `GET /status`) — the page holds
   no cost figure at all, and a test pins that. Seconds and resolution open at
   the minimum on every load; the model and the shape are remembered. Nothing is
-  deleted — ♥/✕ marks, `hidden` is the verb. **Hide-the-✕'d opens ON since 2026-09-14** (her "default to hide x" — the rule and its four guards are in the Playground's ✕-filter note). **A chat's clips do NOT go here**
+  deleted — ♥/✕ marks, `hidden` is the verb. **Hide-the-✕'d opens ON since 2026-09-14** (her "default to hide x" — the rule and its four guards are in the Playground's ✕-filter note, which also carries the 2026-09-15 split: the PLAYGROUND went back to default-off and this page did not). **A chat's clips do NOT go here**
   — this is her feed, the Playground's rule; a chat's clips are tagged with the
   chat's own slug. Test: `node scripts/test-footage.js`.
   **A BELT SCENE HANDS ITS WHOLE JOB TO THIS PAGE — ONE localStorage KEY,

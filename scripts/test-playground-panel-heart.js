@@ -109,9 +109,10 @@ const server = http.createServer((req, res) => {
     .find((p) => fs.existsSync(p));
   const browser = await chromium.launch(preinstalled ? { executablePath: preinstalled } : {});
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
-  // Hide-the-✕'d is ON by default since 2026-09-14 ("default to hide x"), and
-  // this pass is about a ♥ surviving the scan cache — so it stores her own explicit
-  // OFF ('' is what her tap writes) rather than measuring the filter.
+  // Hide-the-✕'d opens OFF on the Playground again (2026-09-15, "filter
+  // changed · change back · playground"), and this pass is about a ♥ surviving the scan cache
+  // — so it stores her own explicit OFF ('' is what her tap writes) rather
+  // than leaning on whichever way the default happens to be pointing.
   await page.addInitScript(() => { localStorage.setItem('promptlab_tab', 'panels'); localStorage.setItem('promptlab_hidex', ''); });
   await page.goto(base + '/playground');
   await page.waitForFunction(() => document.querySelectorAll('#runs .cell img').length === 4);
