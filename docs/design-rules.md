@@ -127,6 +127,17 @@ The house rules that only bite when you are actually building a page, an iOS scr
     (`/cutmarks` already does, and its comment says why).
     `node scripts/test-pill-globals.js` loads every injected page in a real
     browser and asks whether the pill's script ran.
+  - **A PAGE CAN NAME STOPS ON THE WAY (2026-09-14, Sophie, on footage:
+    "scroll to top and scroll to bottom shud go to midway references/buttons
+    first, then all the way").** `window.__pillStops` — a function answering
+    page-y positions — and the rail's ↑ and ↓ go to the nearest stop in their
+    direction that is more than 60px away, else all the way, so a second tap
+    from a stop finishes the trip. Footage names one: the references bar (the
+    buttons row is right under it). No hook, no stops: the jump it always
+    was; a scrolling box knows no stops. Source `scripts/pill.py`, rebuilt
+    into `pill-inject.html`; measured on footage in
+    `node scripts/test-footage-box-width.js` (bottom → 487 → 0, top → 487 →
+    end).
 - **TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD — NEVER A BUTTON (Aug 2026,
   Sophie, pointing at the Playground: "the ... button for longer than two line
   prompt is huge. why? it shud be fixed everywhere. truncated text shud always

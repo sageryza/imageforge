@@ -186,7 +186,7 @@ const READ = () => {
   await page.waitForTimeout(250);
   const s6 = await page.evaluate(READ);
   ok('room borrowed and returned: the box is not re-laid out wide (' + s6.wide + ') and its reserve is untouched (' + s6.muts + ' writes)', s6.wide === 0 && s6.muts === 0);
-  ok('and it still keeps the pill\'s column (' + s6.w + ')', s6.w < 330);
+  ok('and it still runs the panel\'s full width — behind the pill since 2026-09-14 (' + s6.w + ')', s6.w >= 330);
 
   // ── 7. the pinned corner buttons are not rewritten per keystroke ────────
   //       (stickybox's input pass re-pinned them every character — class and

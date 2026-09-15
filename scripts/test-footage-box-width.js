@@ -13,6 +13,15 @@
  *
  * Run: node scripts/test-footage-box-width.js
  */
+/* REVERSED 2026-09-14 (Sophie: "i think text box shud just stay full width
+ * behind pill"): the box keeps the panel's whole width whatever the rail is
+ * doing, and only a block's HEADING row reserves the column. The checks are
+ * the new rule — the box the same width pill or no pill, a heading clear of
+ * the rail while the box under it is not — plus the rail's ↑/↓ stopping at
+ * the references first ("scroll to top and scroll to bottom shud go to midway
+ * references/buttons first, then all the way"). Verified failing 5 against
+ * the pre-change page.
+ */
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -101,7 +110,8 @@ const type = (t) => { const el = document.getElementById('prompt'); el.value = t
   ok('the short page has nothing to scroll (' + a.docH + ' of ' + a.vh + ')', a.docH <= a.vh + 4);
   ok('so the pill is hidden', a.pill === false);
   ok('and its inline display is still what the pill set (' + JSON.stringify(a.pillInline) + ')', a.pillInline === 'none');
-  ok('the box is already clear of the column (right ' + a.right + ' < pill ' + '…)', a.w < 330);
+  const panelW = await page.evaluate(() => { const p = document.getElementById('panel'); const cs = getComputedStyle(p); return Math.round(p.getBoundingClientRect().width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth)); });
+  ok('the box runs the panel\'s full width (' + a.w + ' of ' + panelW + ')', a.w === panelW);
   const w0 = a.w;
 
   // ── 2. the caret keeper borrows room under the keyboard: the page grows
@@ -111,7 +121,7 @@ const type = (t) => { const el = document.getElementById('prompt'); el.value = t
   const b = await page.evaluate(read);
   ok('with room borrowed the pill is drawn', b.pill === true);
   ok('and the box is the same width (' + w0 + ' → ' + b.w + ')', b.w === w0);
-  ok('the box ends before the pill\'s column (' + b.right + ' < ' + b.pillLeft + ')', b.right < b.pillLeft);
+  ok('and runs under the pill\'s column (' + b.right + ' > ' + b.pillLeft + ')', b.right > b.pillLeft);
 
   // ── 3. the room goes back, the pill goes — the box still does not move ──
   await page.evaluate(() => { document.documentElement.style.paddingBottom = ''; if (window.__pillSync) window.__pillSync(); if (window.__fitPillGap) window.__fitPillGap(); });
@@ -135,17 +145,47 @@ const type = (t) => { const el = document.getElementById('prompt'); el.value = t
   const e = await page.evaluate(read);
   ok('cut back to a line: the box is still the same width (' + w0 + ' → ' + e.w + ')', e.w === w0);
 
-  ok('no page errors', errors.length === 0);
-  if (errors.length) console.log('  errors: ' + errors.join(' | '));
-
   // ── 5. a page served with NO pill reserves nothing ───────────────────────
   const page2 = await ctx.newPage();
   await page2.goto(base + '/footage?nopill=1');
   await page2.waitForFunction(() => document.querySelectorAll('#ratio option').length > 0);
   await page2.waitForTimeout(500);
   const n = await page2.evaluate(read);
-  ok('with no pill on the page the box runs the panel\'s full width (' + n.w + ')', n.pill === null && n.w > w0 + 30);
+  ok('with no pill on the page the box is the same width (' + n.w + ' vs ' + w0 + ')', n.pill === null && n.w === w0);
+  await page2.close();      // a second open page throttles the first's animations — a smooth scroll below would crawl
 
+  // ── 6. two blocks: the HEADING keeps the column, the box under it does not ──
+  await page.evaluate(() => { const el = document.getElementById('prompt'); el.value = 'the ward at night, a nurse walks the corridor and looks in through each little window'; el.dispatchEvent(new Event('input', { bubbles: true })); el.focus(); el.setSelectionRange(20, 20); });
+  await page.click('#divide');
+  await page.waitForTimeout(500);
+  const h = await page.evaluate(() => { const f = document.querySelector('body > .float'), head = document.querySelector('.promptwrap .bfold'), sent = document.querySelector('.promptwrap .bfold .bsent'), box = document.getElementById('prompt');
+    return { pillLeft: Math.round(f.getBoundingClientRect().left), head: Math.round(head.getBoundingClientRect().right), sent: Math.round(sent.getBoundingClientRect().right), box: Math.round(box.getBoundingClientRect().width), gap: document.querySelector('.promptwrap').style.getPropertyValue('--pillgap') }; });
+  ok('the block heading ends before the pill\'s column (' + h.head + ' < ' + h.pillLeft + ', reserve ' + h.gap + ')', h.head < h.pillLeft && parseFloat(h.gap) > 0);
+  ok('and its red word at the end is clear of the rail too (' + h.sent + ')', h.sent < h.pillLeft);
+  ok('while the box under it still runs the panel\'s full width (' + h.box + ')', h.box === w0);
+
+  // ── 7. the rail's jumps stop at the references first ────────────────────
+  await page.evaluate(() => document.activeElement && document.activeElement.blur());
+  await page.waitForTimeout(600);       // past the caret keeper's room-return on blur, which rewrites the padding used below
+  await page.evaluate(() => { document.documentElement.style.paddingBottom = '1600px'; if (window.__pillSync) window.__pillSync(); });
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await page.waitForTimeout(400);
+  const stop = await page.evaluate(() => Math.round(document.getElementById('refbar').getBoundingClientRect().top + window.scrollY - 12));
+  // a smooth scroll is measured once it has SETTLED, never on a timer
+  const jump = async (id) => { await page.evaluate((id) => document.getElementById(id).click(), id);
+    let last = -1; for (let i = 0; i < 30; i++) { await page.waitForTimeout(150); const y = await page.evaluate(() => Math.round(window.scrollY)); if (y === last) break; last = y; }
+    return last; };
+  const y0 = await page.evaluate(() => Math.round(window.scrollY));
+  const y1 = await jump('ptop'), y2 = await jump('ptop');
+  ok('from the bottom (' + y0 + ') ↑ lands on the references (' + y1 + ' vs ' + stop + ')', Math.abs(y1 - stop) <= 2);
+  ok('and the next ↑ goes all the way up (' + y2 + ')', y2 === 0);
+  const y3 = await jump('pbot'), y4 = await jump('pbot');
+  const max = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
+  ok('from the top ↓ lands on the references (' + y3 + ')', Math.abs(y3 - stop) <= 2);
+  ok('and the next ↓ goes all the way down (' + y4 + ' of ' + max + ')', Math.abs(y4 - max) <= 2);
+
+  ok('no page errors', errors.length === 0);
+  if (errors.length) console.log('  errors: ' + errors.join(' | '));
   await browser.close(); server.close();
   report();
 })().catch((e) => { console.error(e); process.exit(1); });

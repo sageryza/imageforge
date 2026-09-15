@@ -2974,6 +2974,9 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   pill, shown a full screen down, gone at the top — in the rail rather than
   floating loose, because that corner is the only one reserved on every page.
   **Full details: *BACK TO THE TOP RIDES IN THE PILL'S RAIL* in `docs/design-rules.md` (moved from CLAUDE.md).**
+  **AND A PAGE CAN NAME STOPS ON THE WAY (2026-09-14): `window.__pillStops`
+  → the ↑/↓ jumps go to the nearest stop first, then all the way. Footage
+  names its references bar. Same section of the doc.**
 
 - **A LONG PAGE KEEPS HER PLACE AND NAMES ITS CHAPTERS (2026-09-02, Sophie,
   on the Similitude inventory — 97 cards under 75 headings: "long scroll pages

@@ -227,10 +227,12 @@ const send = async (page, btn) => {
     s.hcorner.every((c) => c.h > 0 && c.reaches));
 
   // ── 6. THE PILL'S COLUMN IS RESERVED — it is a panel child ─────────────
-  ok('the open boxes clear the pill\'s column (right '
+  // THE BOXES RUN FULL WIDTH BEHIND THE PILL since 2026-09-14 (Sophie: "text
+  // box shud just stay full width behind pill"); only the heading keeps clear
+  ok('the open boxes run under the pill\'s column (right '
     + s.hbox.map((b) => Math.round(b.right)).join(' / ') + ' vs pill at ' + Math.round(s.pill) + ')',
-    s.pill != null && s.hbox.every((b) => b.right <= s.pill + 1));
-  ok('and so does its heading (right ' + Math.round(s.hhead.right) + ')', s.hhead.right <= s.pill + 1);
+    s.pill != null && s.hbox.every((b) => b.right > s.pill + 1));
+  ok('while its heading clears it (right ' + Math.round(s.hhead.right) + ')', s.hhead.right <= s.pill + 1);
 
   // ── 7. SHUT, THE HEADING SAYS BOTH — the whole disclosure ──────────────
   await page.evaluate(writeHead, ['characters', CAST]);
