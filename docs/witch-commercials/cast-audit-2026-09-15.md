@@ -76,6 +76,29 @@ Folders by size, with her own votes:
 8. **Classroom extras** in uniform — recurring across `school-lecture` and
    `normal-girl`.
 
+### What the posters showed about the others (2026-09-15, every finished clip read)
+
+The page: *Witch commercials — everyone but Sophie v1*, sheet
+`witch-cast-rest-v1`.
+
+- **The doctor holds.** Across all 34 clips he is the same young man — white
+  coat, brown tie, badge — except ONE, where a grey-haired doctor in a blue
+  shirt turned up instead (✕). He is the most consistent character in the whole
+  project, and he has no still.
+- **The professor is two men.** The prompt says "about 40, with graying hair",
+  and the clips came back with a young man in an open white shirt in some and
+  an elderly white-haired man in others. Nothing on file to hold him.
+- **The gloomy daughter is two girls.** The hearted Christmas take is a calm
+  girl on the stairs; the other is a wild-haired child in a ruffled nightgown
+  (✕). Same line, two people.
+- **The class never repeats.** The uniformed extras are drawn fresh each clip,
+  including a blonde girl filming herself on a phone who appears once.
+- **The film inside the lecture** — veiled old women handing a bowl, and the
+  leeching table — is the only place the medieval doctors exist, and it reads
+  consistently.
+- **The neighbour is a hand.** The only frame of her is a hand knocking on a
+  door.
+
 ### Named in a prompt, never given a face
 
 the TSA agent at the x-ray · the neighbour who knocks · the boy who helps move
