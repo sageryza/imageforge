@@ -3986,27 +3986,25 @@
   // wall of numbers, and the row already wraps on her phone. So it is the
   // STYLE PICKER's own box — same border, same chevron, same rule rather than
   // a second copy of it — which also leaves room to name each shape.
-  // BOTH THE RATIO AND THE WORD on every option: the ratio is what actually
-  // draws and the word is what she says out loud (and what her search finds
-  // those runs by). The ratio leads, because that is the picture.
+  // THE RATIO AND NOTHING ELSE ON EACH OPTION (2026-09-15, Sophie: "no wide",
+  // then "noooo just 9:16"). They shipped for one turn as "9:16 tall" /
+  // "16:9 wide" — the word beside the number — and both of her messages are
+  // about that word: the first struck it, and the second says what an option
+  // reads instead, which is JUST THE RATIO. The first was read here as
+  // striking the 16:9 SHAPE, which is why 16:9 is back on this line: it was
+  // never the thing she was pointing at.
+  // The words are not gone from the app, only from these five labels —
+  // PL_SHAPE_WORD still calls 2:3 portrait and 16:9 wide, which is what her
+  // search finds those runs by and what the run cards' own tags read.
   // REMEMBERED, by the canvas toggle's own rule ("just whatever the last
   // option was") — a shape costs nothing it did not cost last time.
-  //
-  // NO 16:9 (2026-09-15, Sophie, reading the list back: "no wide"). It was on
-  // the first cut of this list and she struck it; 3:2 is the landscape she
-  // kept, so the row is still tall-to-wide, it just stops at a shape a
-  // watercolour page can be. The SERVER still accepts 16:9 — PL_LORA_ARS is
-  // Flux's own list, not this menu — and PL_SHAPE_WORD still knows the word,
-  // so anything drawn at that ratio outside the page is still searchable by
-  // it. Putting it back is this one line.
-  var LORA_ARS = ['9:16', '2:3', '1:1', '3:2'];
+  var LORA_ARS = ['9:16', '2:3', '1:1', '3:2', '16:9'];
   var LORA_AR_DEFAULT = '2:3';              // what every WTR run before this drew
   var loraAr = LORA_ARS.indexOf(localStorage.getItem('promptlab_lora_ar')) >= 0
     ? localStorage.getItem('promptlab_lora_ar') : LORA_AR_DEFAULT;
   var artog = document.getElementById('artog');
   artog.innerHTML = LORA_ARS.map(function (a) {
-    var w = PL_SHAPE_WORD[a] || '';
-    return '<option value="' + a + '">' + a + (w ? ' ' + w : '') + '</option>';
+    return '<option value="' + a + '">' + a + '</option>';
   }).join('');
   function paintAr() { artog.value = loraAr; }
   artog.addEventListener('change', function () {
