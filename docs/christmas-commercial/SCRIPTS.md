@@ -36,6 +36,12 @@ deposition) used to say the holiday is made of spare parts. Both are true to
 the research. Cutting one of each is the cheap way to find out which one she
 is actually making.
 
+**A .docx of this file** is at
+`https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/docs/christmas-scripts-2026-09-15.docx`
+— rebuild it after an edit with
+`npm install docx && node scripts/md-to-docx.js docs/christmas-commercial/SCRIPTS.md out.docx`,
+then re-upload to the same path so her saved link keeps working.
+
 ---
 
 ## 1. THE PARTS
