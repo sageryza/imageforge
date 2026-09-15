@@ -109,14 +109,20 @@ const page = fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8');
 // ── THE PAGE, by source ───────────────────────────────────────────────────
 {
   ok('a lone block can never be shut', /if \(ws\.length === 1 && ws\[0\]\.classList\.contains\('shut'\)\) \{ ws\[0\]\.classList\.remove\('shut'\)/.test(page));
-  // THE ALL STAR IS GONE (2026-09-14, Sophie: "button is stipid get it out"),
-  // so its two pins — the counts in its shape key, and "no figure, no send"
-  // — went with it. The single estimate carries the counts of its own, pinned
-  // by `offerDoors prices off the body that left` below and by the page's own
-  // `&imgs=` line; nothing on the page sends a whole job any more.
-  ok('nothing on the page sends a job that is not the active block', !/goall|allJob\(|wordyBlocks\(/.test(page));
-  ok('the refusal line has a ✕ and dies with the job', /function clearErr\(\)/.test(page) && (page.match(/clearErr\(\);/g) || []).length >= 5);
-  ok('a door word re-sends the exact body that was refused', /sendJob\(r\.door, box, body\)/.test(page) && /var body = resend \? Object\.assign\(\{\}, resend, \{ door: pin \|\| doorNow\(\) \}\)/.test(page));
+  // THE SECOND STAR STAYS GONE (2026-09-14, Sophie: "button is stipid get it
+  // out") — and THAT is the pin, not "only the active block sends". She asked
+  // on 2026-09-15 for the thing it could never do ("select multiple non
+  // adjacent text blocks … send appended as one prompt"), so an appended send
+  // is back and it is read BY the one star. What must never grow back is a
+  // second button beside it.
+  ok('there is no second send button', !/goall|goalllab/.test(page));
+  ok('the one star is the only send', (page.match(/\$\('go'\)\.addEventListener\('click'/g) || []).length === 1
+    && /\$\('go'\)\.addEventListener\('click', sendStar\)/.test(page));
+  // and "no figure, no send" is back with the ask it guards — the removed
+  // star's own audit finding, pinned rather than trusted
+  ok('a marked send refuses to send with no figure, and arms over $3', /if \(total == null\) \{/.test(page)
+    && /armed = Date\.now\(\); paintGo\(\);/.test(page) && /ASK_CENTS = 300/.test(page));
+  ok('a door word re-sends the exact body that was refused', /sendJob\(r\.door, box, job, body\)/.test(page) && /var body = resend \? Object\.assign\(\{\}, resend, \{ door: pin \|\| doorNow\(\) \}\)/.test(page));
   ok('offerDoors prices off the body that left, with the counts', /encodeURIComponent\(sent\.model \|\| S\.model\)/.test(page) && /'&auds=' \+ c\.audio;\n  Promise\.all\(others/.test(page));
   ok('reslotPlan forgets EVERY vanished slot name', /gones\.push\(a\.slots\[r\.url\]\)/.test(page) && /function reslotApply\(p, t\)/.test(page));
   // (2026-09-14: the cast is per BLOCK now, so the prefix is matched against

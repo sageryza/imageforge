@@ -3505,6 +3505,14 @@ before working on that module. Nothing was deleted — the moved text is verbati
   under the FILM filter's pictures stage — 2026-09-09, Sophie: "the next step
   is to build a point so I can just make things on my own time by describing
   them or uploading references") — **she sends a Seedance clip herself.**
+  **THE STAR IS THE ONLY SEND AND IT READS THE BLOCK MARKS (2026-09-15,
+  Sophie: "how do i select multiple non adjacent text blocks in footage to
+  send appended as one prompt").** Each block's heading carries a tick; the
+  star sends the ticked blocks as ONE appended clip (blocks 1 and 3 without 2),
+  and with nothing ticked it is the block wearing the gold line, exactly as
+  before. **Do NOT put a second star back** — that is the All button she had
+  removed (#2397, "button is stipid get it out") and `test-footage-audit-5.js`
+  pins its absence.
   **Full details: *Footage* in `docs/modules/audio-and-film.md` (moved from CLAUDE.md).**
 
 - **Stitch** (`stitch.js`, `/api/stitch`, page at `/stitch`, iOS tile under the
