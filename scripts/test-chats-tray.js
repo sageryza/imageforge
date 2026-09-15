@@ -194,7 +194,9 @@ const ok = () => { checks++; };
   await page.waitForSelector('#listrow .acctab[data-list="tray"]');
 
   // ── 1. the tab, in her words, leading the row ─────────────────────────────
-  const tabs = await page.$$eval('#listrow .acctab', (b) => b.map((x) => x.textContent.trim()));
+  // The WORD, not the button's text: the unread badge rides in here too since
+  // 2026-09-15, so textContent reads "My tray4".
+  const tabs = await page.$$eval('#listrow .acctab', (b) => b.map((x) => (x.dataset.label || x.textContent).trim()));
   if (tabs[0] !== 'My tray') fail('the tray tab does not lead the row — ' + tabs.join('|'));
   else ok();
   if (tabs.length !== 4) fail('the lists row has ' + tabs.length + ' tabs, expected 4');
@@ -207,10 +209,15 @@ const ok = () => { checks++; };
   for (const w of [390, 320]) {
     await page.setViewportSize({ width: w, height: 844 });
     await page.waitForTimeout(120);
+    // The range goes around the LABEL'S OWN TEXT NODE, not the whole button:
+    // the unread badge is a second box inside it, so selectNodeContents(b)
+    // returns two rects on a perfectly straight tab (2026-09-15).
     const wrapped = await page.$$eval('#listrow .acctab', (btns) => btns.filter((b) => {
-      const r = document.createRange(); r.selectNodeContents(b);
+      const t = Array.prototype.find.call(b.childNodes, (n) => n.nodeType === 3);
+      if (!t) return false;
+      const r = document.createRange(); r.selectNodeContents(t);
       return r.getClientRects().length > 1;
-    }).map((b) => b.textContent.trim()));
+    }).map((b) => (b.dataset.label || b.textContent).trim()));
     if (wrapped.length) fail('a tab label wraps at ' + w + 'pt: ' + wrapped.join(', '));
     else ok();
   }

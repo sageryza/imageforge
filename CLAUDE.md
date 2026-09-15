@@ -2140,6 +2140,23 @@ them off the reference sheet, not off the old filenames.
   **Full details: *THE ACCOUNT FILTER FOLLOWS THE ACCOUNT ROW* in
   `docs/chats-app.md`.**
 
+- **AND THE NUMBER OF CHATS THAT HAVE ANSWERED HER RIDES THAT ROW TOO
+  (2026-09-15, Sophie: "add number new chats unread").** The red "N answered
+  you" badge has been on the ACCOUNT tabs since Aug 2026 — and the fix above
+  left those tabs off the default screen, so the one count of what is unopened
+  was painted where she cannot see it. The THREE LISTS carry it now, per pile
+  (`listFresh` in `chats.html`): MY TRAY is today's tray, ALL is every live
+  chat minus the bug-tagged ones (the ALL branch's own carve-out, so one reply
+  is counted once), BUG FIXES is the open bug pile, and DELIVERED gets none —
+  its rows are films and pictures, not chats. `chatAnswered` is the one rule,
+  shared with the unread dot on a row. The badge is the COMPACT one and that is
+  measured: the account row's 15px badge wants 0.7px more than a 390pt tab has,
+  which wraps "BUG FIXES" and takes this hairline row from 28px to 39px; below
+  360pt it drops its number and keeps the dot rather than overflowing onto the
+  tab beside it. Full details: *THE NUMBER OF CHATS THAT HAVE ANSWERED HER
+  RIDES THE ROW THAT IS ON SCREEN* in `docs/chats-app.md`. Test:
+  `node scripts/test-chats-unread-count.js`.
+
 - **THE UPDATE TAB IS GONE — SHE HAD IT TAKEN OFF (2026-09-14, Sophie: "get
   rid of the updates tab in chats").** It LED the account row from Aug 2026 as
   a whole VIEW rather than an account, and everything that screen owned went

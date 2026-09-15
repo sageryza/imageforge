@@ -4082,6 +4082,73 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
     lists landed — it asserted the account row was simply up — and opens the
     row by hand now.
 
+### THE NUMBER OF CHATS THAT HAVE ANSWERED HER RIDES THE ROW THAT IS ON SCREEN
+
+- **A COUNT PAINTED ON A ROW SHE CANNOT SEE IS NO COUNT (2026-09-15, Sophie:
+  "add number new chats unread").** The badge is not new — each ACCOUNT tab has
+  carried "N answered you" since Aug 2026, for the reason written beside it:
+  *"the tab she is not on can still say there are three waiting over here."*
+  What changed is which row is on screen. `rowMode` opens on the THREE LISTS,
+  which take the account row's PLACE, and on 2026-09-15 the account FILTER was
+  taken off the default screen with it (the section above) — so the one number
+  on this page that says how many chats have answered her and are unopened was
+  painted onto tabs she has to tap `#rowtog` to reach. Nothing else on the
+  screen answers the question: the hidden bar's "N new" counts what is behind
+  ITS fold, the MORE bar counts what is behind its own, and a category chip's
+  badge counts a folder. The list itself had no number.
+- **EACH TAB COUNTS ITS OWN PILE — `listFresh(tab, g)` in `chats.html`** — and
+  it asks the same question the pile below it asks, never a second opinion:
+  - **MY TRAY** is today's tray (`trayNames(trayToday())`), her hand-picked
+    handful;
+  - **ALL** is every live chat MINUS the bug-tagged ones, which is the ALL
+    branch's own carve-out (2026-08-29, "make the bug fix chats not show up in
+    the all section") — so a bug chat's reply is counted once, on the tab that
+    would actually show it;
+  - **BUG FIXES** is the open bug pile, the archive left alone (2026-08-28,
+    "archive doesn't pop out ur insane that's the point of archive");
+  - **DELIVERED gets none.** Its rows are films and pictures, not chats, so
+    there is nothing there that could have answered her.
+  A chat on her tray is also on ALL, so it can light both. That is the tray
+  being a subset, not a double count — each badge answers "is there something
+  new in THIS pile", which is the question a tab is asked.
+- **THE ARCHIVED AND THE DELETED NEVER COUNT**, and neither does a chat whose
+  last message is HER OWN: `chatAnswered` is the one rule, shared with the
+  unread dot on a row, the hidden bar and the MORE bar. The test asserts the
+  two agree by COUNTING the dots on the rendered list against the number on the
+  tab — a badge that disagrees with the list under it is this same bug one
+  screen down.
+- **THE BADGE IS THE COMPACT ONE, AND THAT IS MEASURED, NOT A STYLE CHOICE.**
+  This row's tabs are WORDS, where the account row's are bare digits. At 390pt
+  a tab is 87.8px wide with 79.8px of content box and "BUG FIXES" is 60.5px of
+  it, so the account badge (15px) plus its gap (5px) wants 80.5px against
+  79.8px of room — over by **0.7px**, which wraps the word onto two lines and
+  takes this hairline row from **28px to 39px**. Both measured before anything
+  was changed. So `#listrow` gets a 3px gap and a 13px badge, and the row
+  measures **30px at 375, 390 and 430** with two-digit badges on it.
+  `white-space:nowrap` on `.acctab` is the belt to that braces: a tab may never
+  become two lines whatever it carries.
+- **BELOW 360pt THE BADGE IS A DOT.** At 320pt a tab is 72px (64px of content)
+  and the word plus the compact badge wants 76.5px — with `nowrap` it does not
+  wrap, it OVERFLOWS, and it PHOTOGRAPHED as "BUG FIXES" sitting on top of
+  "DELIVERED". So under 360 the row tightens its padding and the badge drops
+  its NUMBER rather than dropping the MARK: "something new in here" is the half
+  that must never go silent, and the number is one tap away. Her own phone is
+  390 and this page's rows are hit-tested at 375/390/430.
+- **THE TAB'S WORD LIVES IN THE MARKUP, ONCE.** `paintListTabs` rewrites the
+  button to hang the badge on it, so it lifts the label into `data-label` the
+  first time and writes that back — the four names are never spelled a second
+  time in JS. A test reading these tabs must read `dataset.label`, not
+  `textContent`, which now says "All10"; `test-chats-list-tabs.js` and
+  `test-chats-tray.js` were updated for exactly that, and the tray's
+  no-wrapping check now ranges over the label's own TEXT NODE (a range around
+  the whole button returns two rects on a perfectly straight tab, because the
+  badge is a second box inside it).
+- Test: `node scripts/test-chats-unread-count.js` (the real page headless —
+  every assertion a MEASUREMENT read off the rendered row, since a count
+  computed correctly and painted nowhere, a count painted on a hidden row and
+  a count that is simply wrong all look identical in the source; verified
+  failing 6 pre-fix).
+
 ### ANSWERING A QUESTION
 
 - **ANSWERING A QUESTION — answer it ONCE, at the top, plainly. THE BOLD ECHO

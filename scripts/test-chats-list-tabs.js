@@ -145,7 +145,9 @@ const ok = () => { checks++; };
   else ok();
   if (await shown('#accrow')) fail('both hairline rows are on screen at once — it is ONE row, two modes');
   else ok();
-  const tabs = await page.$$eval('#listrow .acctab', (b) => b.map((x) => x.textContent.trim()));
+  // `dataset.label` is the tab's WORD — the red unread badge lives in the same
+  // button since 2026-09-15, so textContent alone reads "All10" (see listFresh).
+  const tabs = await page.$$eval('#listrow .acctab', (b) => b.map((x) => (x.dataset.label || x.textContent).trim()));
   // ON MY TRAY joined the row 2026-08-31 (her ask) and leads it — the narrowest
   // pile first. Its own screen is `test-chats-tray.js`; here it only has to be
   // in the row without displacing the three this file is about.
