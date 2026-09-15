@@ -146,6 +146,17 @@ const same = (a, b) => JSON.stringify(a.slice().sort()) === JSON.stringify(b.sli
   await page.goto(base + '/chats');
   await page.waitForSelector('#grid [data-chat="one-a"]');
 
+  // THE ACCOUNT ROW IS NOT THE DEFAULT ROW, and has not been since the three
+  // lists landed (2026-08-28) — #rowtog swaps between them and the lists win
+  // on a fresh load. This test was written before that and asserted the row
+  // was simply up, so it had been red on main; it opens the row by hand now.
+  // That is also the rule this file pins as of 2026-09-15: the account filter
+  // applies exactly while this row is on screen, and nowhere else
+  // (`acctRowOn` in chats.html, and scripts/test-chats-account-default.js for
+  // the other half — the default list, every account, newest first).
+  await page.click('#rowtog');
+  await page.waitForSelector('#accrow .acctab');
+
   // 1. the witch sheet's shape, in its place: two labels over a hairline,
   //    sitting directly above the hidden bar (Sophie, Aug 2026 — it shipped
   //    under the masthead and she moved it down to the list it governs)

@@ -3882,7 +3882,8 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   an empty screen. Full rules: *A THIRD PIN, AND IT IS A SCREEN* above.
   - **ALL IS NOT THE HOME INBOX, and that is the tab.** The ordinary home list
     is the UNFILED pile, so a pile word takes a chat off it; ALL is every chat
-    on the account in timing order, filed or not — her word, in caps. The
+    in timing order, filed or not, **across every account since 2026-09-15**
+    (see *THE ACCOUNT FILTER FOLLOWS THE ACCOUNT ROW* below) — her word, in caps. The
     ARCHIVE and the TRASH stay their own rooms (she put those away on
     purpose), and **a lit category chip still narrows it** — the chip row is on
     screen there, and a filter she can see that does nothing is the
@@ -3987,6 +3988,65 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   - Tests: `node scripts/test-deliverables-feed.js` (the bursts and the
     exclusions, pure) and `node scripts/test-chats-list-tabs.js` (the real
     page, headless — verified failing against the pre-fix page).
+
+### THE ACCOUNT FILTER FOLLOWS THE ACCOUNT ROW
+
+- **THE CHAT LIST DOES NOT DEFAULT TO ONE ACCOUNT ANY MORE (2026-09-15, Sophie:
+  "does chat app default to only current account?" · "shud be chronological").**
+  It did, and invisibly, which is the whole of the bug. `rowMode` opens on the
+  THREE LISTS, and that row takes the ACCOUNT row's PLACE — so the account tabs
+  were off screen while `acctMatch` went on narrowing every pile under them to
+  whichever account the iOS app happens to be signed into. A filter with no
+  control on screen is the exact failure this app keeps getting burned by, and
+  the tray and the lit tag each already say so in their own notes: *"the account
+  row is not even on screen while the lists row is, and a pile silently missing
+  two thirds of itself is exactly the filter she cannot see."*
+  - **MEASURED on her live registry the morning she asked, `appAccount:"2"`:**
+    of the **30 most recently active chats, 26 are on account 1 and 4 on
+    account 2** — so the screen she opens to find out what happened was hiding
+    26 of her newest 30. Across the whole ALL pile it is **136 of 401**; live
+    chats run 238 / 146 / 107 across accounts 1 / 2 / 3, and over the last seven
+    days 102 / 5 / 86. Account 2 is where the FEWEST of her recent chats live,
+    which is why this read as "my chats are gone" rather than as a filter.
+  - **THE RULE IS ONE FUNCTION, `acctRowOn()` in `chats.html`** — the filter
+    applies exactly while the account row is on screen, and `paintHomeChrome`
+    shows the row FROM the same function, so the row and what it narrows can
+    never disagree. Tapping `#rowtog` brings the tabs back and the filter with
+    them; flipping to the lists takes the filter off, including an account she
+    had tapped, which would otherwise outlive its own control.
+  - **NOTHING IS LOST BUT THE HIDING.** Every row already carries its account
+    digit (`acctHtml` → `.cr-acct`), so a merged list still says which account
+    a chat ran on — the pinned heading, the day rules and the sort are all
+    untouched, and the sort was already chronological. What broke the
+    chronology was the filter, not the order.
+  - **THE EMPTY STATES STOPPED NAMING A FILTER THAT IS NOT APPLIED** (`onAcct()`
+    / `otherTab()`): "No chats on account 2 — tap the other tab" is the right
+    answer while the row is up and a lie while it is not.
+  - **THE CATEGORY CHIP'S BADGE WAS NARROWING TOO, and its pile stopped being
+    account-scoped on 2026-08-31** ("any tag shud show all") — so the red number
+    under a word was smaller than the pile behind it. The badge counts what the
+    chip shows now.
+  - **AND ★ WAS A DEAD CONTROL ON THE DEFAULT SCREEN, found the same hour.**
+    `if(starOnly)` sat BELOW the ALL branch, which returns — so with the lists
+    row up and ALL lit (the default), tapping the star chip repainted the same
+    list. Its own handler had always assumed otherwise: it clears a lit chip and
+    moves off the bug/tray tabs so this pile can take over. It is seated with
+    the other replace-the-list piles now, in front of ALL, where the lit TAG
+    pile already was.
+  - **A KNOWN, MEASURED, UNFIXED THING BESIDE IT: the masthead's controls
+    overlap the title on her phone.** At 390pt the `.hctl` row starts at x=84
+    and the word "Chats" runs x 19.5 → 95.7, so the bookmark button sits on the
+    last few pixels of the word and takes a tap there; at 430 there is no
+    overlap. Six controls need 231px and the row has 390. Which control gives
+    way is a design call, so it is named here rather than changed.
+    `test-chats-accounts.js` fails on it.
+  - Tests: `node scripts/test-chats-account-default.js` (the real page
+    headless — the default list MEASURED against the stub's own timestamps,
+    every account present, the digit really visible, the hidden pile, `#rowtog`
+    narrowing and widening again, and the empty state's words; verified failing
+    5 pre-fix). `test-chats-accounts.js` had been RED on main since the three
+    lists landed — it asserted the account row was simply up — and opens the
+    row by hand now.
 
 ### ANSWERING A QUESTION
 
