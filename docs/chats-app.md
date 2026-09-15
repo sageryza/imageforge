@@ -1651,39 +1651,73 @@
     file, `--limit N` for a sample). Tests: `node scripts/test-chat-sort.js`
     (pure, no network, no key).
 
-- **THE JUMP PAIR, bottom-right (Aug 2026, Sophie: "could you make another
-  arrow next to it that brings me all the way down to the bottom").** `.jumps`
-  holds the back-to-top arrow and its new twin. Three rules worth keeping:
-  each shows only when it has somewhere to go (>400px that way), so nothing
-  floats over a list that already fits; both call `__scrollStop` FIRST, or the
-  autoscroll keeps creeping after the jump arrives; and they hide under
-  `body.selecting`, where the filing bar owns the bottom of the screen.
-  **THE DOWN ARROW ANSWERS TO THE OPEN MESSAGE FIRST (Aug 2026, Sophie: "a
-  floating down button that gets me just to the bottom of the current message
-  that's open and visible on the screen — you could co-opt" the existing
-  one).** A finished reply runs for screens, and "the end of THIS one" is a
-  different question from "the end of everything". `openMsgEnd()` takes over
-  only when an open message is genuinely on screen AND its end is still below
-  the fold; otherwise the button is the page-bottom jump it always was. So a
-  long thread reads as a progression — one tap lands on the message's end,
-  the next carries on down the page — and on the chat list, where nothing is
-  open, nothing changes.
-  **IT LANDS ABOVE THE ARROWS, NOT UNDER THEM** (Sophie, the first time she
-  used it: "the arrow buttons when I go to the bottom of a message now sit
-  right where the Open in Claude button is"). A message's LAST ROW is its
-  bookmark + Open-in-Claude pair, so a flush landing parks the floating pair
-  exactly on top of the Open button. `bottomReserve()` measures what `.jumps`
-  is actually occupying — live, not hard-coded, so it stays right if the pair
-  changes size — and falls back to a hairline when neither arrow is showing.
-  The page-BOTTOM jump needs none of this: `.wrap` ends in 16vh of padding,
-  which already clears the pair.
-  The show/hide rule follows the same target, since the page bottom can be
-  close while the message still has a screen to go. Tests:
-  `node scripts/test-chats-jump-message.js` (verified failing without it). The
-  page height changes on every rebuild, so `window.__jumpsRecheck()` is called
-  after renderHome and openChat. Tests: `node scripts/test-chats-jumps.js`
-  (which starts the real autoscroll and proves it moved before asserting that
-  the jump stopped it).
+- **THE JUMP PAIR IS THE TWO CIRCLES IN THE PILL'S RAIL — `#ptop` and `#pbot`
+  (2026-09-15, Sophie, looking at two back-to-tops on one screen: "i've seen
+  down circle · JUST circles · drop squares").** Measured on the real page at
+  390x844, scrolled 600px: a 38px CIRCLE at the top right in the pill rail
+  (`#ptop`, the house back-to-top) and a 44px rounded SQUARE at the bottom
+  right (`#totop`), both lit, both tappable, 528px apart and doing one job —
+  plus the square's down twin under it. The squares are GONE: `.jumps`,
+  `#totop`, `#tobot`, `.totop` and their CSS, and the rail grew the down
+  circle it had never had. **This is history now, not a rule — don't build the
+  bottom-right pair back.** Everything they did that the rail did not came
+  with them:
+  - **THE DOWN ARROW ANSWERS TO THE OPEN MESSAGE FIRST (Aug 2026, Sophie: "a
+    floating down button that gets me just to the bottom of the current
+    message that's open and visible on the screen — you could co-opt" the
+    existing one; said again when the squares went: "show down in chats on
+    open · tap once · end first message · tap twice · all way down").** A
+    finished reply runs for screens, and "the end of THIS one" is a different
+    question from "the end of everything". `openMsgEnd()` takes over only when
+    an open message is genuinely on screen AND its end is still below the
+    fold; otherwise the arrow is the page-bottom jump it always was, and on
+    the chat list, where nothing is open, nothing changes.
+  - **TAP TWICE GOES ALL THE WAY DOWN, AND IT IS ARMED rather than left to the
+    arithmetic.** The first tap lands on the message's end over ~300ms of
+    smooth scroll, so a quick second tap reads a position still in flight,
+    still sees that end below the fold, and would land on the same message
+    again — the one shape her rule must not have. A message-end landing arms
+    the page-bottom jump for 2s; a later tap is a fresh gesture and asks the
+    question again.
+  - **LIT AND TAPPABLE ARE ONE FACT — `msgTarget()`.** Asking the two
+    separately is how the arrow went DARK the instant it landed on a message
+    end with screens of thread still below it: `openMsgEnd()` skips a message
+    whose end is already in view, and after the landing that end sits exactly
+    on the line, so a sub-pixel rounding decided whether the arrow existed.
+    The tap and the `on` class read the same helper.
+  - **`bottomReserve()` WENT WITH THE SQUARES.** It measured them out of the
+    way of the message's own last row — its bookmark + Open-in-Claude pair —
+    because a flush landing parked them on top of the Open button (Sophie
+    caught that the first time she used the jump). The circles are in the
+    TOP-right rail and nothing else on this page is bottom-pinned (`#toast` is
+    transient and takes no taps), so `BOT_PAD` is a flat 14px of air and the
+    live measurement is gone.
+  - **THE RAIL WATCHES THE PAGE'S OWN HEIGHT — a ResizeObserver on `body`,
+    scripts/pill.py's rule for the conditional pill.** This page fetches its
+    content AFTER it loads, so the IIFE's one-time `sync()` runs against an
+    empty document. MEASURED when the arrows moved into the rail: 1,911px of
+    page below the fold and the down arrow dark, because the six
+    `__pillRecheck` callers are the REPAINT paths and none of them is the
+    first paint. The squares got away with it by sitting at the bottom of the
+    script, where their one-time run happened after the first render — **a
+    place in the file is not a rule.**
+  - **The floor is PTOP_AT, 150** — the one number the five baked pill copies
+    and mkPagePill share (pinned by `test-back-to-top.js`), not the squares'
+    40. Her Aug 2026 complaint ("since I'm not at the top there should be a
+    scroll up arrow, right above the scroll down arrow") was against a 400px
+    floor AND against the empty slot it left in a column sized for two; the
+    rail is a flex column, so a hidden arrow is out of the layout entirely and
+    there is no slot to leave. `test-chats-jumps.js` measures that.
+  - Unchanged: both call `__scrollStop` FIRST, or the autoscroll keeps
+    creeping after the jump arrives; each shows only when it has somewhere to
+    go; and the rail hides under `body.selecting` (`body.selecting > .float`,
+    which already existed — `.jumps` had needed its own copy of that rule).
+  - `window.__jumpsRecheck` is **`window.__pillRecheck`** now; its six callers
+    moved with the name rather than being left pointing at a control that is
+    gone. Tests: `node scripts/test-chats-jumps.js` (the pair on the chat
+    list — it starts the real autoscroll and proves it moved before asserting
+    the jump stopped it) and `node scripts/test-chats-jump-message.js` (the
+    open-message landing, including a QUICK second tap taken mid-glide).
 
 - **STARRED CHATS (Aug 2026, Sophie: "chats that were important, that have
   work I want to refer back to, but I'm not actively using them" — Imprint

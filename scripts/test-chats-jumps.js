@@ -1,17 +1,24 @@
 #!/usr/bin/env node
-// The floating jump pair (Aug 2026, Sophie: "right now I can go all the way
-// back up to the top with that little floating arrow at the bottom — could you
-// make another arrow next to it that brings me all the way down to the
-// bottom"). Drives the REAL public/chats.html headless against a stub API and
-// asserts:
+// The jump pair in the PILL'S RAIL — `#ptop` and `#pbot`, the two circles
+// (2026-09-15, Sophie, looking at two back-to-tops on one screen: "JUST
+// circles · drop squares"). This used to test `.jumps` / `#totop` / `#tobot`,
+// the 44px rounded squares that floated in the bottom-right corner; they are
+// gone and their behaviour moved into the rail.
+//
+// Drives the REAL public/chats.html headless against a stub API and asserts:
 //   1. at the top of a long list only the DOWN arrow shows — neither floats
 //      over the page when it has nowhere to go,
-//   2. tapping it lands at the bottom, where only the UP arrow shows,
+//   1a. past the rail's own 150 the UP arrow shows too,
+//   1b. STACKED, up above down, in one column, with NO EMPTY SLOT where a
+//      hidden arrow would be (the squares reserved room for both; a flex
+//      column takes a `display:none` child out of the layout, which is what
+//      makes the rail's higher floor harmless where the squares' was not),
+//   2. tapping down lands at the bottom, where only the UP arrow shows,
 //   3. tapping that lands back at the top,
 //   4. a short list shows NEITHER,
 //   5. both stop the autoscroll first, or the page keeps creeping after it
 //      arrives,
-//   6. they are hidden in select mode, where the filing bar owns the bottom.
+//   6. the rail is hidden in select mode, where the filing bar owns the top.
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-jumps.js
 //
@@ -63,8 +70,8 @@ const server = http.createServer((req, res) => {
 
 const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 const shown = (page) => page.evaluate(() => ({
-  up: document.getElementById('totop').classList.contains('show'),
-  down: document.getElementById('tobot').classList.contains('show'),
+  up: document.getElementById('ptop').classList.contains('on'),
+  down: document.getElementById('pbot').classList.contains('on'),
 }));
 
 (async () => {
@@ -84,19 +91,34 @@ const shown = (page) => page.evaluate(() => ({
   if (s.up) fail('the up arrow shows at the top of the page');
   if (!s.down) fail('the down arrow is missing on a long list');
 
-  // 1a. A SHORT SCROLL OFF THE TOP ALREADY SHOWS THE UP ARROW (Aug 2026,
-  //     Sophie: "why is there only a scroll down arrow and not a scroll up
-  //     arrow — since I'm not at the top there should be a scroll up arrow").
-  //     It used to want 400px, half a screen on her phone, while the down
-  //     arrow appears with 40px of an open message still to go — so a short
-  //     scroll into a long reply drew the down arrow alone. 120px is well
-  //     inside the old threshold, so this fails against the pre-fix page.
-  await page.evaluate(() => window.scrollTo(0, 120));
-  await page.waitForFunction(() => window.scrollY >= 118, null, { timeout: 2000 }).catch(() => {});
+  // 1a. A SHORT SCROLL OFF THE TOP SHOWS THE UP ARROW (Aug 2026, Sophie: "why
+  //     is there only a scroll down arrow and not a scroll up arrow — since
+  //     I'm not at the top there should be a scroll up arrow"). In the rail
+  //     the floor is PTOP_AT — 150, the ONE number the five baked pill copies
+  //     and mkPagePill share, pinned by test-back-to-top.js — not the squares'
+  //     40. Her complaint was against a 400px floor AND against the empty slot
+  //     it left above the down arrow in a column sized for two; 1b below
+  //     measures that there is no slot to leave here, which is what makes the
+  //     house number safe in this rail.
+  await page.evaluate(() => window.scrollTo(0, 220));
+  await page.waitForFunction(() => window.scrollY >= 218, null, { timeout: 2000 }).catch(() => {});
   await page.evaluate(() => window.dispatchEvent(new Event('scroll')));
   s = await shown(page);
-  if (!s.up) fail('the up arrow is missing 120px down the page');
+  if (!s.up) fail('the up arrow is missing 220px down the page');
+
+  // 1a-ii. AND AT THE TOP THE DOWN ARROW LEAVES NO HOLE ABOVE IT. Measured,
+  //     because a reserved-but-empty slot renders as nothing and passes every
+  //     assertion about the arrow that IS there.
   await page.evaluate(() => window.scrollTo(0, 0));
+  await page.evaluate(() => window.dispatchEvent(new Event('scroll')));
+  const tight = await page.evaluate(() => {
+    const spd = document.getElementById('spd').getBoundingClientRect();
+    const dn = document.getElementById('pbot').getBoundingClientRect();
+    const gap = parseFloat(getComputedStyle(document.querySelector('.float')).rowGap) || 0;
+    return { hole: Math.round(dn.top - spd.bottom - gap), up: getComputedStyle(document.getElementById('ptop')).display };
+  });
+  if (tight.up !== 'none') fail('the up arrow is not hidden at the top: ' + tight.up);
+  if (tight.hole > 2) fail('a hidden up arrow left a ' + tight.hole + 'px hole in the rail');
 
   // 1b. STACKED, up ABOVE down (Aug 2026, Sophie: "the up shud be above").
   //     Measured, not read off the CSS: a wrong flex-direction is perfectly
@@ -106,14 +128,23 @@ const shown = (page) => page.evaluate(() => ({
   //     once — at the top there is no up arrow to be above anything.
   await page.evaluate(() => window.scrollTo(0, Math.round(
     (document.documentElement.scrollHeight - window.innerHeight) / 2)));
-  await page.waitForFunction(() => document.getElementById('totop').classList.contains('show')
-    && document.getElementById('tobot').classList.contains('show'),
+  await page.waitForFunction(() => document.getElementById('ptop').classList.contains('on')
+    && document.getElementById('pbot').classList.contains('on'),
     null, { timeout: 4000 }).catch(() => fail('both arrows never showed mid-list'));
   const box = await page.evaluate(() => {
     const r = (id) => { const b = document.getElementById(id).getBoundingClientRect();
-      return { top: b.top, bottom: b.bottom, mid: b.left + b.width / 2 }; };
-    return { up: r('totop'), down: r('tobot') };
+      return { top: b.top, bottom: b.bottom, mid: b.left + b.width / 2,
+               w: Math.round(b.width), h: Math.round(b.height),
+               radius: getComputedStyle(document.getElementById(id)).borderRadius }; };
+    return { up: r('ptop'), down: r('pbot') };
   });
+  // JUST CIRCLES: same size, same round plate. The squares were 44px at 6px.
+  if (box.up.w !== box.down.w || box.up.h !== box.down.h) {
+    fail('the two arrows are different sizes: ' + JSON.stringify(box));
+  }
+  if (!/50%|9999px|999px/.test(box.down.radius)) {
+    fail('the down arrow is not a circle: ' + box.down.radius);
+  }
   if (box.up.bottom > box.down.top + 1) {
     fail('the up arrow is not above the down arrow: ' + JSON.stringify(box));
   }
@@ -121,7 +152,7 @@ const shown = (page) => page.evaluate(() => ({
     fail('the two arrows are not in one column: ' + JSON.stringify(box));
   }
   await page.evaluate(() => window.scrollTo(0, 0));
-  await page.waitForFunction(() => !document.getElementById('totop').classList.contains('show'),
+  await page.waitForFunction(() => !document.getElementById('ptop').classList.contains('on'),
     null, { timeout: 4000 }).catch(() => {});
 
   // 5a. tapping stops the autoscroll — start it for real, and prove it really
@@ -134,7 +165,7 @@ const shown = (page) => page.evaluate(() => ({
   });
   if (moved <= 2) fail('the autoscroll never actually started, so the stop is untested');
   // 2. down lands at the bottom, and only the up arrow remains
-  await page.click('#tobot');
+  await page.click('#pbot');
   await page.waitForFunction(() => {
     const left = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
     return left < 4;
@@ -144,7 +175,7 @@ const shown = (page) => page.evaluate(() => ({
   if (s.down) fail('the down arrow still shows at the bottom');
 
   // 3. up lands back at the top
-  await page.click('#totop');
+  await page.click('#ptop');
   await page.waitForFunction(() => window.scrollY < 4, null, { timeout: 6000 })
     .catch(() => fail('the up arrow did not reach the top'));
   s = await shown(page);
@@ -174,8 +205,8 @@ const shown = (page) => page.evaluate(() => ({
   // 6. hidden while she is picking chats (the filing bar owns the bottom)
   await page.click('#selbtn');
   await page.waitForSelector('#selbar');
-  const vis = await page.evaluate(() => getComputedStyle(document.querySelector('.jumps')).display);
-  if (vis !== 'none') fail('the jump arrows sit over the select bar: ' + vis);
+  const vis = await page.evaluate(() => getComputedStyle(document.querySelector('.float')).display);
+  if (vis !== 'none') fail('the rail sits over the select bar: ' + vis);
   await page.click('#selbtn');
 
   // 4. a short list shows neither
@@ -189,5 +220,5 @@ const shown = (page) => page.evaluate(() => ({
 
   await browser.close();
   server.close();
-  console.log(process.exitCode ? 'DONE with failures' : 'OK: the jump pair goes both ways and hides when it has nowhere to go');
+  console.log(process.exitCode ? 'DONE with failures' : 'OK: the two circles go both ways and hide when they have nowhere to go');
 })().catch((e) => { console.error(e); process.exit(1); });
