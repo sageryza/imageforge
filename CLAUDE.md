@@ -102,7 +102,9 @@ still every time the work wraps up.
 1. **Refresh your STATUS CARD** — `POST /api/chatfeed/status {chat, session,
    need, doing}`. Telegraphic fragments, ~30-60 chars, the way she writes her
    own notes. `need` = what you need from her AND how big the ask is; send `""`
-   when nothing is needed.
+   when nothing is needed. **It goes to her LOCK SCREEN verbatim, so it asks
+   rather than orders** — `ok to deploy?`, never `deploy? one word`
+   (2026-09-15: "one word notification feels aggressive").
 2. **Write your UPDATE CARD** — `POST /api/chatfeed/update {chat, session,
    asked, did, next}`. *Measured: only 15 of 224 chats had ever posted one.*
 3. **Spent real money this turn? Say how much.** ONLY then — a reply that
@@ -2210,6 +2212,23 @@ them off the reference sheet, not off the old filenames.
     palette, 10 seconds", "listen to two cuts". Send `""` when nothing is
     needed; an empty `need` is the honest default, and a stale ask is worse
     than none.
+  - **AND IT GOES TO HER LOCK SCREEN VERBATIM, SO ASK — DON'T BARK
+    (2026-09-15, Sophie: "one word notification feels aggressive").** A new
+    `need` bells her without her bell (*a chat blocked on her rings* below),
+    and `pushAlert('need')` sends the line with nothing in front of it — the
+    2026-08-28 rule took "Needs you ·" off, so the sentence stands alone on
+    the banner. The one she was looking at read **`deploy? one word`**. That
+    is this rule followed to the letter and it lands as an order with a
+    demand for how short to answer.
+    - **Write the ask as a person would say it**: `ok to deploy?`, not
+      `deploy?`. A verb with a question mark after it is a command, not a
+      question.
+    - **The size is a KINDNESS, not a quota** — "10 seconds", "1-4",
+      "two cuts" tell her how much of her day this costs. **`one word` is not
+      that**: it tells her how to answer, which is hers to decide. Drop it
+      when the ask is already one beat.
+    - Telegraphic is still right. Short and asking is `ok to deploy?`; short
+      and barking is `deploy? one word`. It is four characters between them.
   - `doing` = what you're on — "six lesson cards, drawing now". Clear it
     (`""`) when you finish.
   - `session` = `CLAUDE_CODE_REMOTE_SESSION_ID` without `cse_` — resolution
@@ -4239,6 +4258,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
 
 ## Dev workflow
 - Develop on a feature branch, commit + push, open a DRAFT PR.
+- **A PR BODY CARRIES NO LINKS, AND IT LEADS WITH WHAT SHE ASKED IN HER OWN
+  WORDS (2026-09-15, Sophie: "pull requests shud never post links" · "it shud
+  be what i asked in my words").** She reads a PR to find out what a chat was
+  told to do, so her sentence — quoted, verbatim, the way the wrap-up already
+  lifts it — is the first thing in the body, and what changed goes under it.
+  - **NO LINKS OF ANY KIND**: no claude.ai session url, no deploy url, no
+    dashboard link, no linked issue or PR reference (write `2445`, not the
+    `#` that autolinks it). This includes the session line the harness
+    attribution asks for — her rule wins over it; the commit trailer is
+    where that belongs and it stays there.
+  - **Her words, not a paraphrase of them.** No sentence of yours standing in
+    for hers, and nothing invented when she never said it — a PR for work no
+    message of hers asked for simply says so.
+  - **The reply is the opposite and has not moved**: links FIRST, full and
+    clickable, PR last (*WRITING THE REPLY*). The PR is the record; the reply
+    is the door.
 - **Merging a DOCS-ONLY PR? Put `[skip render]` in the squash title** — the
   deploy is skipped and costs zero build minutes; the next code merge ships
   the docs. Full note in the Render section above.
