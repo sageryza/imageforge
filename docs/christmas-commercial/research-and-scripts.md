@@ -98,7 +98,8 @@ spot can be funny without a historian in the comments.
 ### DON'T SAY (debunked)
 
 - Christmas is Saturnalia. Saturnalia was Dec 17, stretched at most to Dec 23,
-  never the 25th.
+  never the 25th. **(The ending in §4 says this out loud — answering the claim
+  is not the same as making it, and it is the strongest thirty seconds here.)**
 - Mistletoe kissing is a druid rite.
 - The tree is a pagan idol the church stole.
 - Santa's reindeer are Odin's eight-legged horse.
@@ -341,7 +342,84 @@ camera like someone who has been keeping a secret for a thousand years.*
 
 ---
 
-## 4. Which to make first — a recommendation
+## 4. The conclusion — the girl talks
+
+Every spot above is a machine talking: a system voice, a safety notice, a
+heritage announcer, a lawyer. That is the joke and it holds for fifty seconds,
+and then it has nowhere to go. This is the ending — a person arrives, and the
+first thing she does is answer the one line every comment section is going to
+post anyway.
+
+**Who she is: the gloomy daughter** — ~26, white nightgown, Christmas morning,
+the calm girl on the stairs (`docs/witch-commercials/cast-audit-2026-09-15.md`,
+character 6; her hearted take is the reference clip on file). She has never had
+a line in anything. That is what makes her starting to talk the ending.
+
+It rides on the end of **A, B, C or D**. The format voice stops mid-stride, and
+the spot has a human in it for the last fifteen seconds. **E already has her**,
+so E takes the extra lines instead.
+
+### THE ENDING (:15)
+
+*The format cuts out. She is sitting on the stairs, the tree behind her, a mug
+in both hands. She looks at the camera like someone finishing an argument that
+started before the commercial did.*
+
+> "Somebody is going to tell you it's Saturnalia.
+>
+> Saturnalia was the seventeenth of December. It ran to the twenty-third at
+> the outside. It was never the twenty-fifth.
+>
+> What Rome actually did that week: shut the courts, made the gambling legal,
+> sat the slaves down at the table, and picked a fool to be king for a day.
+>
+> A thousand years later, in England, the same week: twelve days off, a Lord
+> of Misrule — usually the poorest man in the parish, with the rich waiting on
+> him — and the poor at your door asking for the good drink, not the cheap one.
+>
+> Nobody handed that down. There's no thread. Two different centuries got
+> there on their own.
+>
+> When it's dark at four o'clock you eat the stores, you open the good bottle,
+> and you put the bottom on top for a few days. Rome worked it out. The north
+> worked it out."
+
+*She drinks, and looks back up the stairs, at the noise of a house waking up.*
+
+> "We do it in slippers."
+
+> SUPER: *Christmas. Everybody arrives at it separately.*
+> [OPTION — witch button: SUPER: *Secretly a Witch.*]
+
+**:08 cut** (when the spot has already run :52): "Somebody is going to tell you
+it's Saturnalia. Saturnalia was the seventeenth of December, and it was never
+the twenty-fifth. Rome shut the courts, legalised the gambling and let the
+slaves eat first. England, a thousand years later, put the poorest man in the
+parish at the head of the table. Nobody handed that down. When it's dark at
+four, everybody puts the bottom on top for a few days." — then *We do it in
+slippers.*
+
+**[Extra lines to cut or swap in]**
+- "The fool they crowned was called the *Saturnalicius princeps*. The one here
+  was called the Lord of Misrule. Neither of them had heard of the other."
+- "They gave each other presents too. Candles and little clay dolls. That one
+  really is the same, and it's the one nobody brings up."
+- "The Puritans didn't ban it for being Roman. They banned it for being fun."
+- "If you want the part that actually came down to us — it's the word. Yule.
+  It's still in the songs." *(use this one when the spot is heading for the
+  witch button)*
+- Her first line, if the spot needs the correction earlier: "You're going to
+  say Saturnalia. Everyone says Saturnalia."
+
+**The one thing not to lose in a rewrite:** she is correcting the claim and
+then conceding the shape of it. If a cut keeps only the correction she comes
+off as a pedant, and if it keeps only the concession the spot has said the
+debunked thing on camera. The two halves ship together or the ending is a
+different ending.
+
+---
+
+## 5. Which to make first — a recommendation
 
 **A (Patch Notes)** is the one to cut first: it carries the most facts in the
 least time, the format does the joke so the voice can stay calm, and the
@@ -349,7 +427,12 @@ footage is all things she already draws (snow, fire, a tree, a red coat).
 **D (Deposition)** is the funniest if there is an actor. **E** is the only one
 that is unambiguously a Secretly a Witch spot.
 
-## 5. Sources
+Whichever goes first, put §4 on the end of it. The format joke is the hook and
+the girl is the reason to watch it twice — and it is the only part of the spot
+that answers Saturnalia, which is the objection the whole piece is standing in
+front of.
+
+## 6. Sources
 
 - Live Science, [3 Christmas traditions that may have pagan roots, and 4 that (probably) don't](https://www.livescience.com/archaeology/3-christmas-traditions-that-may-have-pagan-roots-and-4-that-probably-dont)
 - History for Atheists, [Pagan Christmas, Again](https://historyforatheists.com/2024/12/pagan-christmas-again/) — the Hijmans/Sol Invictus argument, Saturnalia dates, Bede, Hákon, the tree, mistletoe, Odin
