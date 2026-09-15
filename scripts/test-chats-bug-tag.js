@@ -139,6 +139,29 @@ const ok = () => { checks++; };
   // (2026-09-14) rather than taking `/instagram` away with it.
   if (await page.$eval('#iglink', (n) => n.hidden)) fail('the Instagram icon is hidden on the chat list');
   else ok();
+  // …and the WAITING hourglass joined them (2026-09-15, Sophie: "add /waiting
+  // next to bug icon as its own icon") — a PAGE, on the bug's door rule.
+  if (await page.$eval('#waitlink', (n) => n.hidden)) fail('the waiting icon is hidden on the chat list');
+  else ok();
+  // MEASURED to the LEFT of the bug, and the bug left of Instagram: the three
+  // are right floats, so DOM order alone decides which is rightmost, and a
+  // reorder there would silently move the icon she asked to sit beside the bug.
+  const xs = await page.evaluate(() => ['waitlink', 'bugbtn', 'iglink']
+    .map((id) => Math.round(document.getElementById(id).getBoundingClientRect().x)));
+  if (!(xs[0] < xs[1] && xs[1] < xs[2])) fail('the row does not read hourglass · bug · Instagram — x = ' + xs.join(', '));
+  else ok();
+  // The glyph is Lucide `hourglass`, deliberately NOT the wristwatch — that is
+  // already the `waiting for a response` mark and means a different waiting.
+  const wd = await page.$eval('#waitlink svg', (n) => [].map.call(n.querySelectorAll('path'), (q) => q.getAttribute('d')).join(' '));
+  if (!/M5 22h14/.test(wd) || /16\.13 7\.66/.test(wd)) fail('the waiting icon is not the hourglass — ' + wd);
+  else ok();
+  // AND THE ROW IS STILL ONE LINE. A third icon at the old 8px gap wrapped the
+  // Tags chip on her real feed, which drops the whole list 32px — the reason
+  // the gap is 4px (see #toolrow .igbtn). This fixture carries the same chips,
+  // so it fails the same way.
+  const rowH = await page.$eval('#toolrow', (n) => Math.round(n.getBoundingClientRect().height));
+  if (rowH > 48) fail('the tool row wrapped with the third icon on it — ' + rowH + 'px');
+  else ok();
   // Both leave on a view that is not a list of chats. The ARCHIVE is the one
   // this used to check against the Update tab.
   // Section 1/2 left the bug filter ON (it is how the tagged chats are asked
@@ -152,6 +175,8 @@ const ok = () => { checks++; };
   if (!await page.$eval('#bugbtn', (n) => n.hidden)) fail('the bug button stayed in the archive — it belongs to the chat list');
   else ok();
   if (!await page.$eval('#iglink', (n) => n.hidden)) fail('the Instagram icon stayed in the archive');
+  else ok();
+  if (!await page.$eval('#waitlink', (n) => n.hidden)) fail('the waiting icon stayed in the archive');
   else ok();
   await page.click('#archlink');                  // back to the chat list
   await page.waitForSelector(row('plain'));

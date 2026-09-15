@@ -1677,7 +1677,16 @@ body.reading .backwrap{display:block;}
    counts against the line, so it needs 103 of the 103 available), and nothing
    ≥20px fits — so the choice was a wrap either way, and a full-size tap target
    is the better half of it. Row: 40px → 72px on the UPDATE screen only. */
-#toolrow .igbtn{float:right; margin:0 0 6px 8px;}
+/* THE GAP IS 4px, NOT 8, SINCE THE THIRD ICON JOINED (2026-09-15) —
+   MEASURED against her live feed at 390pt, not conceded blind. Line 1 is
+   select(20-54) · star chip(65-97) · `Tags 33`(103-182, +6 of its own right
+   margin = 188), and the leftmost float's box edge sits at 189-3*gap. At the
+   old 8px gap that edge is 181 and the Tags chip wraps — the row goes 40px to
+   72 and the whole list drops 32px, on the one screen she opens most. At 4px
+   the edge is 193 and the row is byte-for-byte the height it was before this
+   icon existed (first chat row y=298 either way). So a FOURTH icon here is not
+   free: measure the row again before adding one. */
+#toolrow .igbtn{float:right; margin:0 0 6px 4px;}
 #toolrow .igbtn[hidden]{display:none !important;}
 /* The line between the two groups when both are open: her "small red line or
    a label" — a thin line in the accent, then the group's name under it. A
@@ -1961,6 +1970,17 @@ body.selecting > .float{display:none !important;}
            paintHomeChrome(); lit while on.
            The glyph is Lucide `bug`, the same drawing the row mark wears. -->
       <button id="bugbtn" class="iconbtn igbtn bugbtn" hidden aria-label="Bug-fix chats"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.8 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.2 3.8 1.9 4 4"/></svg></button>
+      <!-- WHAT IS WAITING TO GO LIVE — the hourglass beside the bug (2026-09-15,
+           Sophie: "add /waiting next to bug icon as its own icon"). It is a
+           PAGE, not a view of this list, so it navigates the way the Instagram
+           icon does; the "N changes waiting" push lands on the same screen.
+           Third RIGHT FLOAT after #pillnotch, so the three read
+           hourglass · bug · Instagram with the pill's corner to their right.
+           Shown by paintHomeChrome() on the chat list only, the bug's own rule.
+           The glyph is Lucide `hourglass` — deliberately NOT the wristwatch,
+           which is already the `waiting for a response` mark on a chat's row
+           and means a different waiting (a reply she owes a chat). -->
+      <button id="waitlink" class="iconbtn igbtn" hidden aria-label="Changes waiting to go live"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></button>
       <button id="selbtn" class="iconbtn" aria-label="Select chats to file"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg></button>
       <div id="catrow" class="catrow"></div>
     </div>
@@ -3487,6 +3507,10 @@ function paintHomeChrome(){
     bug.hidden = otherView() || homeView==='archive';
     bug.classList.toggle('on', bugPile());
   }
+  // …and the WAITING hourglass rides the same rule — the chat list's own.
+  // It is a page rather than a filter, so it never lights.
+  var wl=document.getElementById('waitlink');
+  if(wl) wl.hidden = otherView() || homeView==='archive';
   if(other && selMode) exitSelect();
   // The to-do list is not chats: the whole tool row and the search bar (which
   // searches MESSAGES) would both be controls that do nothing to it.
@@ -10484,6 +10508,8 @@ document.getElementById('bmklink').onclick=function(){ setHomeView('bookmarks');
 // The Instagram mockups — a page, not a view of this list, so it navigates the
 // way the Update and Review doors on the same screen do.
 document.getElementById('iglink').onclick=function(){ location.href='/instagram'; };
+// What is merged-not-live and still open — a page too, same as above.
+document.getElementById('waitlink').onclick=function(){ location.href='/waiting'; };
 // The bug button is a FILTER, not a page — it narrows the list it sits over.
 // The row toggle beside the account switcher — one row, two modes.
 document.getElementById('rowtog').onclick=function(){
