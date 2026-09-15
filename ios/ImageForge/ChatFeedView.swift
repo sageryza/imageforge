@@ -82,7 +82,14 @@ private struct ChatFeedWebView: UIViewRepresentable {
         // one-shot, and chats.html strips ?chat= after honouring it, so a
         // later reload can't re-open the same thread.
         var path = "/chats"
-        if let chat = PushDelegate.pendingChat, !chat.isEmpty {
+        // A push that names a PAGE wins over both flags — "11 changes waiting"
+        // opens the screen that says WHAT they are (2026-09-14). One-shot.
+        if let p = PushDelegate.pendingPath, p.hasPrefix("/") {
+            PushDelegate.pendingPath = nil
+            PushDelegate.pendingChatList = false
+            PushDelegate.pendingChat = nil
+            path = p
+        } else if let chat = PushDelegate.pendingChat, !chat.isEmpty {
             PushDelegate.pendingChat = nil
             PushDelegate.pendingChatList = false
             let slug = chat.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? chat
