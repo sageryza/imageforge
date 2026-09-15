@@ -1,0 +1,28 @@
+STUPID IDEA FACTORY — SEEDANCE SCRIPT v1
+Seedance 2.0 Mini · 15s · 480p · 16:9 · through APIFRAME · no audio (VO is yours)
+[Image1] = a still of you (which one?) · [Image2] = the product mockup from shot 2
+Nothing is sent until you say go. ~21¢ a clip, 4 clips ≈ 85¢.
+
+CLIP 1 · 0:00–0:15 · SEEDANCE
+VO: i don't know about you but i have a lot of ideas / and chatgpt is just making it worse / so, i made this site
+PROMPT: The girl is the woman in [Image1]. She sits at a desk, camera at eye level. Product ideas erupt out of the top of her head like a volcano and rain down around her. She turns to a laptop and types fast.
+INSERTS: 0:08 chatgpt making the mockup (screen record) · 0:13 the site (screen record)
+
+CLIP 2 · 0:15–0:30 · SEEDANCE (bed under the screen recording)
+VO: basically, ppl rate ur ideas, they can even invest little bits of money, and if enough ppl heart it … then...it actually gets made
+PROMPT: The girl is the woman in [Image1]. She holds up her phone, camera at eye level, watching it, getting more and more excited until she jumps up cheering.
+INSERTS: the site, hearts piling up (screen record + heart buildup sfx)
+
+CLIP 3 · 0:30–0:45 · SEEDANCE
+VO: i send it to alibaba / they give me a quote / and boom two months later / we have 500 of them
+PROMPT: The girl is the woman in [Image1]. She opens her front door, camera at eye level. A delivery man stacks twelve large cardboard boxes in her doorway until they tower over her. She opens one and pulls out the thing in [Image2], again and again.
+INSERTS: 0:30 alibaba chat, one plausible message and the quote (generator)
+
+CLIP 4 · 0:45–1:00 · SEEDANCE
+VO: but then i was like: wait / ppl will just steal my designs / why shud i put them out there for ppl to see
+PROMPT: The girl is the woman in [Image1], surrounded by cardboard boxes, camera at eye level. She stops, looks straight into the camera, and her face slowly falls as it dawns on her.
+INSERTS: 0:55 the alibaba chat starts again, first ding (generator)
+
+CLIP 5 · 1:00–1:15 · NO SEEDANCE
+alibaba escalation: generator Play + screen record, dings piling up (the script is in this chat)
+TITLE CARD: They can steal the idea. They can't steal the fact that it's a bad idea.

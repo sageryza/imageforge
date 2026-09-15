@@ -21,19 +21,25 @@ const DIR = path.join(__dirname, '..', 'docs', 'stupid-idea-factory');
 const LEDGER = path.join(DIR, 'VERSIONS');
 
 const args = process.argv.slice(2);
+// --seedance posts the Seedance script page (seedance-script.html, generated
+// from seedance-script.txt) instead of the storyboard; its own ledger line.
+const seedance = args.includes('--seedance');
 const go = args.includes('--go');
 const si = args.indexOf('--supersede');
 const supersede = si >= 0 && args[si + 1] && !args[si + 1].startsWith('--') ? args[si + 1] : null;
 
 function build() {
   const esc = fs.readFileSync(path.join(DIR, 'alibaba-escalation.txt'), 'utf8').trim();
+  if (seedance) return fs.readFileSync(path.join(DIR, 'seedance-script.html'), 'utf8');
   return fs.readFileSync(path.join(DIR, 'storyboard.html'), 'utf8')
     .replace('__ESCALATION__', JSON.stringify(esc));
 }
 
 let n = 1;
 try { n = fs.readFileSync(LEDGER, 'utf8').trim().split('\n').filter(Boolean).length + 1; } catch (e) {}
-const title = 'Stupid Idea Factory — storyboard v' + n;
+const KIND = seedance ? 'Seedance script' : 'storyboard';
+try { n = fs.readFileSync(LEDGER, 'utf8').split('\n').filter(l => l.startsWith('Stupid Idea Factory — ' + KIND)).length + 1; } catch (e) {}
+const title = 'Stupid Idea Factory — ' + KIND + ' v' + n;
 
 (async () => {
   const html = build();
