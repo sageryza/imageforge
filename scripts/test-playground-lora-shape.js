@@ -138,17 +138,14 @@ ok('a shape change is a different recipe, not a duplicate');
       Math.round(document.getElementById('artog').getBoundingClientRect().height),
       Math.round(document.getElementById('promptbtn').getBoundingClientRect().height)]);
     assert.strictEqual(ah, ph, `it stands the row's height (${ah} vs ${ph})`);
-    // EVERY SHAPE CARRIES ITS WORD as well as its ratio — the word is what she
-    // says out loud and what her search finds those runs by.
+    // AN OPTION IS THE RATIO AND NOTHING ELSE (2026-09-15, Sophie: "no wide",
+    // then "noooo just 9:16"). They carried the word beside the number for one
+    // turn. Pinned as an exact list, so neither the words nor a dropped shape
+    // can creep back in.
     const opts = await p.$$eval('#artog option', (os) => os.map((o) => o.textContent.trim()));
-    assert.ok(opts.length >= 3, `there are shapes to pick from (${opts.length})`);
-    assert.ok(opts.includes('3:2 landscape') && opts.includes('2:3 portrait'),
-      `each option names its ratio and its word (${opts.join(' | ')})`);
-    // SHE STRUCK 16:9 (2026-09-15, "no wide") — pinned, because a menu is the
-    // one thing here that grows back by copy-paste.
-    assert.ok(!opts.some((o) => o.startsWith('16:9')),
-      `and the wide one is not offered (${opts.join(' | ')})`);
-    ok(`the dropdown offers ${opts.length} named shapes, reachable at the row's height`);
+    assert.deepStrictEqual(opts, ['9:16', '2:3', '1:1', '3:2', '16:9'],
+      `the options are bare ratios (${opts.join(' | ')})`);
+    ok(`the dropdown offers ${opts.length} shapes as bare ratios, reachable at the row's height`);
 
     // THE DEFAULT IS WHAT EVERY WTR RUN BEFORE THIS DREW.
     const lit = () => p.$eval('#artog', (e) => e.value);
@@ -158,10 +155,10 @@ ok('a shape change is a different recipe, not a duplicate');
     // HER PICK IS WHAT THE REQUEST WOULD CARRY — read off the page's own body
     // builder rather than trusted from the paint, and NOT by tapping Generate
     // (that spends money).
-    await p.selectOption('#artog', '3:2');
+    await p.selectOption('#artog', '16:9');
     await p.waitForTimeout(150);
-    assert.strictEqual(await lit(), '3:2', 'the pick sticks in the box');
-    assert.strictEqual(await p.evaluate(() => loraAr), '3:2', 'and moves the value the body reads');
+    assert.strictEqual(await lit(), '16:9', 'the pick sticks in the box');
+    assert.strictEqual(await p.evaluate(() => loraAr), '16:9', 'and moves the value the body reads');
     const before = await p.evaluate(() => plannedKey(STYLES.watercolor, 'a heron', 1, 85));
     await p.selectOption('#artog', '2:3');
     await p.waitForTimeout(150);
