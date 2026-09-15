@@ -23,10 +23,16 @@ a 480p draft of the film on Mini" · "15 seconds means more continuity work"
 · "the answer is APIFRAME I guess. Let's build the pipeline around that for
 now" · "update Claude so that everyone knows what the current thing we're
 working on is").** A 480p DRAFT of the ward film (the belt pages under
-`docs/mental-hospital/`), every clip on Seedance 2.0 MINI, every clip sent
-through APIFRAME — the one door that takes a reference with a person in it,
-and she has decided not to split jobs across two doors while the draft is
-being made. Mini clips run 4-15 seconds, so a 15-second shot is where the
+`docs/mental-hospital/`), every clip on Seedance 2.0 MINI, **every clip sent
+through ATLAS CLOUD — NEVER APIFRAME FOR MINI (2026-09-15, Sophie: "duh
+atlas · never apiframe for mini - document · it'll refresh balance").** From
+09-09 to 09-15 this said APIFRAME, "the one door that takes a reference with a
+person in it" — measured since: Atlas takes the jazz person video on Mini
+(the 09-11 multi-shot tests) at ~1.1¢/s against APIFRAME's 5¢, so the reason
+died and she moved the door. One door for the draft still stands; it is Atlas.
+**AND THE DRAFT IS 3:4, NOT LANDSCAPE (2026-09-15, Sophie: "not landscape ·
+3:4 like rest of film")** — every Mini clip is 3:4 like every ward clip already
+in the cut; step 1 below is history. Mini clips run 4-15 seconds, so a 15-second shot is where the
 continuity work is (the same person, the same room, from one clip into the
 next), and that is the work in front of every chat cutting this film. The
 "go" rule, the exact-prompt log and the never-describe-a-reference rule all
@@ -36,12 +42,12 @@ is to re-shoot all the footage landscape style, but just get the main shots
 so we can move forward" · "Next step is landscape 720p 2.5 Seedance" ·
 "Maybe we'll start that in a week and transition off mini in a week and a
 half").** Three steps, in order:
-1. **NOW — the 480p Mini draft, re-shot LANDSCAPE, MAIN SHOTS ONLY.** Every
-   clip drawn from here on is landscape (16:9 on Mini), not the 3:4 the
-   earlier ward clips were; the portrait clips are not re-cut, they are
-   re-shot. "Main shots only" is a scope rule as well as a shape rule — the
-   shot that carries the scene, not the coverage — so the draft can move
-   forward instead of stalling on B-roll and inserts.
+1. **NOW — the 480p Mini draft, 3:4, MAIN SHOTS ONLY, through Atlas.**
+   ~~Re-shot LANDSCAPE~~ — reversed 2026-09-15 ("not landscape · 3:4 like
+   rest of film"): nothing already shot is re-shot for its shape. "Main shots
+   only" is the scope rule — the shot that carries the scene, not the
+   coverage — so the draft can move forward instead of stalling on B-roll and
+   inserts. The current shot list: `docs/mental-hospital/reshoot-plan-2026-09-15.md`.
 2. **~2026-09-16 — landscape 720p on Seedance 2.5**, still through APIFRAME.
    A 2.5 clip is $3-5 each, so the "go" rule matters more, not less, and a
    prompt and its references go on the belt page for her approval before
@@ -277,7 +283,8 @@ Read back what the API really received after sending, and say it.
 in the doc.** Three doors, one log (`forge-video-jobs`): **APIFRAME**
 (`POST /api/apiframe/video`), **OpenRouter** (`POST /api/openrouter/video`,
 ByteDance direct) and **Atlas Cloud** (`POST /api/atlascloud`). During the
-480p Mini draft everything goes through APIFRAME on her word (2026-09-09).
+480p Mini draft everything goes through ATLAS on her word (2026-09-15: "duh
+atlas · never apiframe for mini"; this line said APIFRAME from 09-09 to 09-15).
 Otherwise: a reference with a PERSON in it goes to Atlas or APIFRAME (ByteDance's
 own input filter refuses a real or photoreal face on 2.0 and a person VIDEO on
 every model — the refusal is free); a person-free job is cheapest on

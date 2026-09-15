@@ -1,5 +1,12 @@
 # The rest of the ward on Mini — the plan (2026-09-15, `hospital-night-reshoots`)
 
+**Corrected the same hour (Sophie: "not landscape · 3:4 like rest of film" ·
+"duh atlas" · "never apiframe for mini - document · it'll refresh balance").**
+Every clip is **3:4** like the rest of the film — the 09-09 landscape plan is
+off. The door for Mini is **Atlas Cloud, never APIFRAME**; she is refreshing
+the Atlas balance. The first draft of this doc said landscape and priced
+APIFRAME; the numbers below are the corrected ones.
+
 Sophie: *"i want to shoot the rest of the hospital night scenes on mini · i want
 u to do it for me · based on my script · plus a little continuity · the
 characters and settings have to be perfect for continuity · i'm changing the
@@ -56,12 +63,14 @@ first (model · seconds · resolution · exact prompt · every reference).
 - **Atlas takes the person video on Mini** — the three 09-11 multi-shot tests
   carried the jazz as [Video1], 16:9, and drew. So the 09-09 "APIFRAME is the
   one door that takes a person" reason no longer holds; the standing rule
-  (everything through APIFRAME during the draft) is hers to keep or lift.
+  (everything through APIFRAME during the draft) is LIFTED: "duh atlas ·
+  never apiframe for mini".
 
 ## What I think she wants
 
-1. **Every ward scene not yet shot, on Seedance 2.0 Mini, landscape 16:9,
-   480p, audio on, ≤15s a clip** — main shots only, no b-roll or inserts.
+1. **Every ward scene not yet shot, on Seedance 2.0 Mini, 3:4 like the rest
+   of the film, 480p, audio on, ≤15s a clip** — main shots only, no b-roll
+   or inserts. Through Atlas.
 2. **The judge scene redone in two clips** so the dialogue has room (the 20s
    take crams his two sentences and her horror into 10s; the 30s take timed
    out and cost $4.50). Other shot scenes stay.
@@ -81,7 +90,7 @@ first (model · seconds · resolution · exact prompt · every reference).
 
 ## The shot list (seconds are my picks — hers to change)
 
-Landscape 16:9 · 480p · Mini · audio on. "+aud" = a 4s audition first for a
+3:4 · 480p · Mini · audio on · Atlas. "+aud" = a 4s audition first for a
 face that has never been drawn.
 
 **A — the climax (the reshoot she named)**
@@ -97,7 +106,7 @@ face that has never been drawn.
 **Continuity flag on #3:** 32b (the float, shot with the GINGER) ends with the
 assistant following her to the mirror, and md-33 opens with the assistant
 behind her in that mirror. Two clips, one scene, two women. Either 32b is
-reshot with the brown-haired one (15s, ~17¢ Atlas / 75¢ APIFRAME) or the
+reshot with the brown-haired one (15s, ~17¢) or the
 hair changes mid-scene. My pick: reshoot 32b. Hers.
 
 **B — the pills**
@@ -171,22 +180,22 @@ K 4 = **425 seconds, 41 clips**; +15 if 32b is reshot = 440.
 
 ## The cost
 
-Per second, Mini 480p: APIFRAME 5¢ with the jazz riding (4¢ without a
-video), OpenRouter 3.4¢ (stills only — it refuses a person video), Atlas
-~1.1¢.
+Atlas Cloud, Mini 480p 3:4: **~1.1¢ a second** (measured 1.11¢/s on 3:4 in
+`docs/modules/audio-and-film.md`; Atlas publishes no billing read, so every
+Atlas number is "about"). A 15s clip ≈ 17¢, a 4s audition ≈ 4.5¢.
 
-| | core 425s | + optional 125s | ×2 for retakes |
-|-|-|-|-|
-| APIFRAME (the standing door) | ~$21 | ~$27.50 | ~$42-55 |
-| Atlas Cloud | ~$4.70 | ~$6 | ~$9.50-12 |
-| OpenRouter (stills only) | ~$14.50 | ~$18.70 | ~$29-37 |
+| | seconds | about |
+|-|-|-|
+| core (41 clips) | 425 | $4.70 |
+| + the 32b reshoot | 440 | $4.85 |
+| + all the optionals | 565 | $6.25 |
+| ×2 for retakes | | $9.50–12.50 |
 
 The ×2 is measured, not padding: the parents block took three passes over 23
-clips, the climax-3 Mini redo took five takes of one card. Balances:
-APIFRAME $5.15 · Atlas $4.98 · OpenRouter $17.23 — APIFRAME needs a ~$40
-top-up for the whole thing, Atlas ~$10. Pick: Atlas (takes the person video,
-measured 09-11; a quarter of the price). Her 09-09 word was APIFRAME; hers
-to lift.
+clips, the climax-3 Mini redo took five takes of one card. Atlas balance
+2026-09-15: $4.98 — she is refreshing it. For the record, the same list on
+APIFRAME would have been ~$21 (5¢/s with the jazz riding); never APIFRAME for
+Mini now.
 
 ## The continuity, card by card
 
@@ -196,8 +205,7 @@ to lift.
   room = its cast-shelf still. Never described, only pointed at.
 - **A split scene is chained.** Part 2 carries part 1's LAST FRAME as an
   image reference plus her "what came before" line. Atlas returns the last
-  frame as a PNG for free (`returnLastFrame`); on APIFRAME it is scored out
-  of the tail with `ward-pullstills.py` — never chained blind.
+  frame as a PNG for free (`returnLastFrame`) — never chained blind.
 - **Quoted lines are spoken as written; prose is improvised** (measured
   09-07). Every line that must be said goes in quotes; the town hall and the
   Yolanda cards already are. `everyone speaks English` on any card with an
@@ -215,7 +223,7 @@ to lift.
 ## Open — hers
 
 1. The brown-haired assistant: a still (or which picture she means).
-2. The door: Atlas (my pick, ~$10 topped up) or APIFRAME (~$40).
+2. ~~The door~~ — Atlas, her word. Balance being refreshed.
 3. Which optionals go: the phone, the Michael block, the sculptures, the
    32b reshoot.
 4. Anastasia: is the blonde leotard photo in hop her dance photo?
