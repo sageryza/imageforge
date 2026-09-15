@@ -42,15 +42,21 @@ first (model · seconds · resolution · exact prompt · every reference).
   room. `refs/cast.json` in this folder is the 09-10 snapshot and is behind
   the shelf (Juanita, the RN and the music teacher are on the shelf, not in
   it).
-- **The assistant on the shelf is the GINGER one** — both her looks (the
-  office 4s clip and the skirt-and-sweater still `29b79fed…`) are the
-  red-haired woman; intake A/B and the hall b-roll drew her red too. **There
-  is no brown-haired assistant anywhere on file** — not on the shelf, not in
-  the `hop` album (21 stills: the young male nurse, the butter pat, the
-  half-and-half, a ward-settings sheet, Yolanda's sheet, the RN ×2, Juanita,
-  Anastasia's blonde leotard photo, two portraits of a woman in a green parka
-  — one blonde, one dark — and five photos of the redone sculptures). Her
-  still is the first thing needed.
+- **THE BROWN-HAIRED ASSISTANT IS THE ONE WITH THE CLIPBOARD (Sophie,
+  2026-09-15: "she's there she has a clipboard · did u even see the mirror
+  assistant stuff i shot w her").** She is the cast shelf's `the assistant`
+  still (`29b79fed…`, skirt, purple sweater, clipboard) — this doc's first
+  draft called her ginger and said no brown-haired assistant was on file;
+  wrong. The GINGER is the bright-red-haired assistant in blue scrubs drawn
+  by intake A/B, the hall b-roll, the office b-roll and the two 2.5 climax
+  clips (31b, 32b) — those stay. **And the mirror was already shot with the
+  brown-haired one on 2026-09-11** through Footage (the `footage` chat, 3:4,
+  15s): nine takes of "I don't know who I am anymore" → the assistant appears
+  in the mirror, two of them hearted (Fast, `8e4720ee…` and `3678f06f…`),
+  plus a 30s 2.5 take on Atlas. So the mirror ARRIVAL is covered and the 32b
+  continuity flag below is moot — the speech (md-33) and the hall breakdown
+  (md-34) are what is left, and they chain off a hearted mirror take's last
+  frame.
 - **The redone sculptures ARE in the hop album** — five photos (`25aa46f8…`,
   `74769675…`, `d50e63e6…`, `a342c4be…`, `5fa7936b…`): taped half-and-half
   cups on the wall with menu blurbs, and the city on the table. When a
@@ -103,11 +109,8 @@ face that has never been drawn.
 | 5 | md-34·1 | hall breakdown 1 — out the door → "just like i always wanted" | 15 | Sophie, NEW assistant · the hall |
 | 6 | md-34·2 | hall breakdown 2 — "What you've always wanted?" → she backs away | 15 | chained off #5 |
 
-**Continuity flag on #3:** 32b (the float, shot with the GINGER) ends with the
-assistant following her to the mirror, and md-33 opens with the assistant
-behind her in that mirror. Two clips, one scene, two women. Either 32b is
-reshot with the brown-haired one (15s, ~17¢) or the
-hair changes mid-scene. My pick: reshoot 32b. Hers.
+**#3 chains off the hearted mirror take of 09-11** (the brown-haired assistant
+already in the mirror behind her), not off 32b — so no 32b reshoot is needed.
 
 **B — the pills**
 | # | key | clip | s | who / where |
@@ -158,7 +161,8 @@ out, the smile (10). **Candidate ending** for the never-gets-out version.
 **J — Ms. O'Hara** — 36a2 "to help your miiind", wheeled away, the hand reach
 (15). The one O'Hara card not shot.
 
-**K — the assistant audition** — 4s, the brown-haired still, before #3.
+**K — ~~the assistant audition~~** — not needed: she exists (the clipboard
+still and nine mirror takes).
 
 Core: A 87 + B 87 + C 57 + D 30 + E 46 + F 30 + G 30 + H 14 + I 25 + J 15 +
 K 4 = **425 seconds, 41 clips**; +15 if 32b is reshot = 440.
@@ -222,7 +226,7 @@ Mini now.
 
 ## Open — hers
 
-1. The brown-haired assistant: a still (or which picture she means).
+1. ~~The brown-haired assistant~~ — the clipboard still, on the shelf.
 2. ~~The door~~ — Atlas, her word. Balance being refreshed.
 3. Which optionals go: the phone, the Michael block, the sculptures, the
    32b reshoot.
