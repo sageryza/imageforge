@@ -1246,33 +1246,49 @@ async function pillSweep(pg, where) {
     ok('the glass shuts the box, unlights, and the words go with it', at3.hidden && !at3.on && at3.value === '' && (await visible()).split(',').length >= 8);
     ok('the older door is back once the search is gone', !(await page.$eval('#older', (e) => e.hidden)));
 
-    // THE FUNNEL IS A SUB MENU OF THE GLASS (2026-09-11, Sophie: "filter is
-    // sub menu of glass · only one main button"). Shut, the bar carries the
-    // glass and nothing else; the funnel comes and goes with the field.
+    // THE FUNNEL IS ITS OWN BUTTON ON THE BAR AGAIN (2026-09-15, Sophie:
+    // "filter changed · change back · footage"). It rode inside the glass from
+    // #2332 — her own "filter is sub menu of glass" — and that is history: the
+    // chip is on the bar with the glass SHUT, and the glass no longer wears a
+    // filter count, because the chip that owns it is on screen to wear it.
+    //
+    // EVERY ASSERTION HERE IS A MEASUREMENT of what is rendered. A chip with
+    // the right markup that is 0px wide, and one sitting under the autoscroll
+    // pill where a tap reaches the rail instead of the filter, both read as
+    // "on the bar" to any source assertion.
     const funnelBox = () => page.evaluate(() => {
       const chip = document.querySelector('#feedfilters .filtchip');
-      const r = chip.getBoundingClientRect(), q = document.getElementById('q').getBoundingClientRect();
-      const g = document.getElementById('v-search').getBoundingClientRect();
+      const r = chip.getBoundingClientRect();
+      const q = document.getElementById('q').getBoundingClientRect();
       return { w: Math.round(r.width), h: Math.round(r.height), qh: Math.round(q.height),
+        x: Math.round(r.left), right: Math.round(r.right),
         mountShut: document.getElementById('feedfilters').hidden,
-        afterField: r.left >= q.right - 1,
-        sameRow: Math.abs((r.top + r.height / 2) - (q.top + q.height / 2)) < 4,
-        glassW: Math.round(g.width) };
+        // THE PILL'S COLUMN IS 58px OF THE RIGHT EDGE and nothing tappable may
+        // sit in it — the reserve this page already keeps for the drawer.
+        clearsPill: r.right <= window.innerWidth - 58 + 1,
+        sameRowAsField: Math.abs((r.top + r.height / 2) - (q.top + q.height / 2)) < 4 };
     });
     const shut = await funnelBox();
-    ok('with the glass shut the funnel is NOT on the bar — one main button', shut.mountShut && shut.w === 0 && shut.glassW > 30);
-    await page.click('#v-search');
+    ok('the funnel is ON THE BAR with the glass shut — its own button, not a sub menu',
+      !shut.mountShut && shut.w > 20 && shut.h > 20);
+    ok('and it clears the pill\'s column — x ' + shut.x + '-' + shut.right, shut.clearsPill);
+    ok('the glass wears no filter count now the chip is on screen to wear it',
+      await page.$('#v-search .qcount') === null);
     const dr = await page.evaluate(() => {
       const m = document.getElementById('feedfilters');
       const chip = m.querySelector('.filtchip'), drawer = m.querySelector('.filtdrawer');
       return { chip: !!chip, shut: drawer.hidden, funnel: !!chip.querySelector('svg'),
         rows: Array.from(drawer.querySelectorAll('.filtrow')).map((r) => Array.from(r.querySelectorAll('.filtcbtn')).map((b) => b.textContent.trim()).join('·')) };
     });
-    const open = await funnelBox();
-    ok('the glass opens the field AND the funnel beside it, the drawer shut — ' + JSON.stringify(dr.rows),
-      dr.chip && dr.shut && dr.funnel && open.w > 20 && open.afterField && open.sameRow
+    ok('the drawer is shut until she taps it, and carries this page\'s two rows — ' + JSON.stringify(dr.rows),
+      dr.chip && dr.shut && dr.funnel
       && dr.rows[0] === 'Mini·Fast·2.0·2.5' && dr.rows[1] === 'Today·This week·This month');
-    ok('and the funnel stretches to the field beside it, not the shell’s 34 — ' + open.h + ' vs ' + open.qh, Math.abs(open.h - open.qh) <= 2);
+    // …and the glass still opens its field, which now shares the funnel's line.
+    await page.click('#v-search');
+    const withField = await funnelBox();
+    ok('opening the glass puts the field on the funnel\'s line, both still there',
+      withField.w > 20 && withField.sameRowAsField && !(await page.$eval('#feedsearch', (e) => e.hidden)));
+    await page.click('#v-search');
     ok('the model chips are the models the page offers, pinned to PAGE_MODELS', /var PAGE_MODELS = \['mini', 'fast', '2\.0', '2\.5'\]/.test(fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8')));
     await page.click('#feedfilters .filtchip');
     ok('the tap opens the drawer', !(await page.$eval('#feedfilters .filtdrawer', (e) => e.hidden)));
@@ -1295,27 +1311,30 @@ async function pillSweep(pg, where) {
     await page.evaluate(() => document.body.click());
     const worn = await page.evaluate(() => { const m = document.getElementById('feedfilters'); return { shut: m.querySelector('.filtdrawer').hidden, w: m.querySelector('.filtchipw').textContent.trim(), on: m.querySelector('.filtchip').classList.contains('on') }; });
     ok('tapping out shuts the drawer and the chip wears the count', worn.shut && worn.w === '1' && worn.on);
-    // AND THE GLASS WEARS IT ONCE THE FUNNEL IS OFF THE BAR — a filter she
-    // cannot see must never go on quietly hiding clips
-    await page.click('#v-search');
-    const glassWorn = () => page.evaluate(() => { const g = document.getElementById('v-search'), c = g.querySelector('.qcount'); return { count: (c.textContent || '').trim(), shown: c && !c.hidden, on: g.classList.contains('on'), mountShut: document.getElementById('feedfilters').hidden }; });
-    const gw = await glassWorn();
-    ok('shutting the glass takes the funnel with it and the GLASS wears the count', gw.mountShut && gw.count === '1' && gw.shown && gw.on);
-    // STICKY — a reload keeps the filter, like the ♥ and the ✕ beside it
+    // THE GLASS LIGHTS FOR ITS OWN FIELD AND FOR NOTHING ELSE — it wore the
+    // funnel's count while the funnel was hidden behind it, and a second copy
+    // of the same answer is exactly what came off with that design.
+    ok('a filter of hers does not light the glass', !(await page.$eval('#v-search', (e) => e.classList.contains('on'))));
+    // STICKY — a reload keeps the filter, like the ♥ and the ✕ beside it, and
+    // the CHIP is what wears it (nothing is hidden behind a shut door now).
     await page.reload();
     await page.waitForSelector('#job-old1', { state: 'attached' });
     await page.waitForTimeout(600);
-    const gw2 = await glassWorn();
-    ok('a reload keeps the filter she set, and the shut glass still wears it',
+    const after = await page.evaluate(() => {
+      const m = document.getElementById('feedfilters');
+      return { mountShut: m.hidden, w: m.querySelector('.filtchipw').textContent.trim(),
+        on: m.querySelector('.filtchip').classList.contains('on') };
+    });
+    ok('a reload keeps the filter she set, and the chip on the bar still wears it',
       (await visible()) === '' && (await page.evaluate(() => localStorage.getItem('footage_filt_when'))) === 'today'
-      && gw2.mountShut && gw2.count === '1' && gw2.on);
-    await page.click('#v-search');
+      && !after.mountShut && after.w === '1' && after.on);
     await page.click('#feedfilters .filtchip');
     await page.click('#feedfilters .filtcbtn[data-v="today"]');
     await page.evaluate(() => document.body.click());
     await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length >= 8);
     ok('tapping the lit chip clears it and everything is back', (await visible()).split(',').length >= 8);
-    ok('and with nothing narrowed the glass wears no count', (await glassWorn()).count === '');
+    ok('and with nothing narrowed the chip wears no count',
+      (await page.$eval('#feedfilters .filtchipw', (e) => e.textContent.trim())) === '');
   }
 
   // ── nothing sits under the pill, at her inset ────────────────────────────
@@ -2484,7 +2503,14 @@ async function pillSweep(pg, where) {
     const pr = p.getBoundingClientRect(), gr = glass.closest('.filttog').getBoundingClientRect();
     const pill = document.querySelector('body > .float').getBoundingClientRect();
     const hit = document.elementFromPoint(pr.x + pr.width / 2, pr.y + pr.height / 2);
-    const kids = [...bar.children].map((e) => { const r = e.getBoundingClientRect(); return { id: e.id || e.className, y: Math.round(r.y), h: Math.round(r.height) }; }).filter((k) => k.h);
+    // `#feedfilters` is `display:contents`, so its own rect is EMPTY and a
+    // line count taken off the bar's children alone cannot see the funnel at
+    // all — it read "one line" for a week while the chip sat on a second one.
+    // The chip itself is measured instead.
+    const kids = [...bar.children, document.querySelector('#feedfilters .filtchip')]
+      .filter(Boolean)
+      .map((e) => { const r = e.getBoundingClientRect(); return { id: e.id || e.className, y: Math.round(r.y), h: Math.round(r.height) }; })
+      .filter((k) => k.h);
     return { onBar: p.closest('.feedbar') === bar, inPanel: !!p.closest('.panel'),
       afterGlass: pr.x > gr.x, beforeFunnel: (p.compareDocumentPosition(funnel) & Node.DOCUMENT_POSITION_FOLLOWING) > 0,
       sameHeight: Math.abs(pr.height - gr.height) < 2, level: Math.abs(pr.y - gr.y) < 3,
@@ -2495,10 +2521,17 @@ async function pillSweep(pg, where) {
     seat.onBar && !seat.inPanel && seat.afterGlass && seat.beforeFunnel && seat.lit);
   ok('it is its neighbours\' height and on their line, clear of the pill and tappable',
     seat.sameHeight && seat.level && seat.clear && seat.tappable);
-  ok('and the feed bar is still one line — ' + seat.lines, seat.lines === 1);
-  // WITH THE SEARCH OPEN the funnel chip joins the row (it is hidden with the
-  // search field), so the row is measured in that state too — the picker must
-  // still be on it, whole, and reachable.
+  // TWO LINES SINCE 2026-09-15, and it is a cost rather than a win: the funnel
+  // came back onto this bar at her word ("filter changed · change back ·
+  // footage") and six controls do not fit in the 312px the pill leaves at
+  // 390pt — MEASURED, the five already there end at x=315 against a pill
+  // starting at 324. So the funnel takes the next line at the left, the way
+  // the search field already does when the row has no room. Pinned at TWO so
+  // that a third line — which nothing here should ever cost — fails loudly.
+  ok('the feed bar is two lines: the five controls, then the funnel — ' + seat.lines, seat.lines === 2);
+  // WITH THE SEARCH OPEN the field joins the funnel's line, so the row is
+  // measured in that state too — the picker must still be on it, whole, and
+  // reachable.
   const barOpen = await pgP.evaluate(async () => {
     document.getElementById('v-search').click();
     await new Promise((r) => setTimeout(r, 200));
@@ -2508,13 +2541,15 @@ async function pillSweep(pg, where) {
     const chip = document.querySelector('#feedfilters .filtchip');
     const g = document.getElementById('v-search').closest('.filttog').getBoundingClientRect();
     const out = { w: Math.round(pr.width), h: Math.round(pr.height), gw: Math.round(g.width), gh: Math.round(g.height), tappable: !!(hit && hit.closest('#projwrap')),
-      chip: chip ? Math.round(chip.getBoundingClientRect().x) : null, x: Math.round(pr.x), clear: pr.right <= pill.left };
+      chip: chip ? Math.round(chip.getBoundingClientRect().x) : null, x: Math.round(pr.x), clear: pr.right <= pill.left,
+      // the funnel is on the line BELOW the picker now, not beside it
+      chipBelow: chip ? chip.getBoundingClientRect().top >= pr.bottom - 2 : true };
     document.getElementById('v-search').click();
     await new Promise((r) => setTimeout(r, 200));
     return out;
   });
-  ok('with the search open the picker is still whole, before the funnel, and takes its tap — ' + JSON.stringify(barOpen),
-    barOpen.w === barOpen.gw && barOpen.h === barOpen.gh && barOpen.tappable && barOpen.clear && (barOpen.chip === null || barOpen.chip > barOpen.x));
+  ok('with the search open the picker is still whole, above the funnel, and takes its tap — ' + JSON.stringify(barOpen),
+    barOpen.w === barOpen.gw && barOpen.h === barOpen.gh && barOpen.tappable && barOpen.clear && barOpen.chipBelow);
   // folding the buttons, or the references, leaves the picker on screen. (The
   // PANEL's own fold went 2026-09-14 — "remove prompt collapse" — so the two
   // folds left are the ones that can take a picker off the screen.)
