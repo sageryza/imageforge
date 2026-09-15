@@ -5845,6 +5845,45 @@ const PL_GPT = {
     'described below — the people, places or objects in them — and NOT for ' +
     'the drawing style, which comes from the style reference above.',
 };
+// ── WHAT A REPLICATE LoRA PICTURE COSTS (2026-09-15, Sophie: "add pricing to
+//    wtr in playground") ────────────────────────────────────────────────────
+// Every gpt style on the picker prints its price on the toggle that SETS it —
+// the canvas, the tier, the quality. WTR had none, because it has none of
+// those knobs: one output size, one step count, one picture a run. So its
+// price had nowhere to live and the page said nothing at all.
+//
+// REPLICATE PUBLISHES NO PER-IMAGE PRICE FOR A PRIVATE FINE-TUNE, and the
+// prediction object carries NO cost field — only `metrics.predict_time`. So
+// this is measured the only way it can be: the real time × the published
+// hardware rate.
+//   `rate`    $0.001525/sec — replicate.com/pricing, Nvidia H100, read
+//             2026-09-15. A FAST-BOOTING FINE-TUNE (which every LoRA here is)
+//             bills ACTIVE time only, so `predict_time` IS the billed time —
+//             no boot, no idle. A private model that is NOT fast-booting
+//             would bill the instance's whole life and this arithmetic would
+//             be wrong; re-check that before adding a model here.
+//   `seconds` the MEDIAN over every real one-output 28-step WTR prediction in
+//             Replicate's own history — 21 of them, 7.42s min / 7.61s median
+//             / 10.86s max — read back from GET /v1/predictions. All of them
+//             are Playground runs at the settings the page really sends: 1
+//             megapixel, 1 output, 28 steps. The spread is the box's, not the
+//             prompt's, which is why the page says "about".
+// It does NOT move with quality or canvas — the LoRA has neither — so there
+// is ONE number per model rather than gpt-image-2's tier table.
+// A MODEL WITH NO ROW HERE SERVES NO PRICE AND THE PAGE PRINTS NOTHING: an
+// invented figure is worse than a blank, the same rule the exact-prompt and
+// the caption rules follow. Re-measure rather than re-derive when the step
+// count, the hardware or Replicate's rate moves:
+//   node scripts/measure-lora-cost.js
+const PL_LORA = {
+  rate: 0.001525, hardware: 'Nvidia H100',
+  models: {
+    'sageryza/watercolordrawings': {
+      label: 'WTR', steps: 28, outputs: 1, megapixels: '1',
+      seconds: 7.61, cents: 1.16, n: 21, measured: '2026-09-15',
+    },
+  },
+};
 // "two", "three" … for the plural photo lines; past ten the digit is honest.
 // The page keeps a twin (photoWords in promptlab.html) for its Prompt panel —
 // scripts/test-playground-photo-refs.js pins the two equal.
@@ -7633,6 +7672,11 @@ app.get('/api/promptlab/styles', (req, res) => {
   // `sizes` is the old flat shape and stays exactly as it was — a page cached
   // on her phone reads it, and this endpoint is the only thing that serves it.
   res.json({ styles: out, sizes: PL_GPT.sizes, res: PL_GPT.res, resDefault: PL_GPT.resDefault,
+    // The LoRA's own price, keyed by MODEL ID — the page looks it up by the
+    // id its style entry already carries and keeps no copy of the number, the
+    // same rule `res` above follows. A model with no row serves nothing and
+    // the page prints nothing rather than guessing.
+    lora: PL_LORA,
     max: PL_GPT.promptMax, photoLine: PL_GPT.photoLine,
     photoLineWithChars: PL_GPT.photoLineWithChars,
     photoLineMany: PL_GPT.photoLineMany, photoLineManyWithChars: PL_GPT.photoLineManyWithChars,

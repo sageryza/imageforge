@@ -1035,6 +1035,7 @@
       <button class="go" id="go" onclick="go()" aria-label="Generate" title="Generate"></button>
     </div>
   </div>
+  <div class="permline" id="priceline" hidden></div>
   <div class="permline" id="permline" hidden></div>
   <div class="err" id="err" hidden></div>
 </div>
@@ -3680,6 +3681,7 @@
       if (d.maxPhotos) PHOTO_MAX = d.maxPhotos;
       if (d.maxChars) charMax = d.maxChars;
       RES = d.res || null; RES_DEFAULT = d.resDefault || '1k';
+      LORA = d.lora || null;
       if (RES && !RES[canvas]) canvas = 'portrait';
       if (RES && RES[canvas] && !RES[canvas].tiers[resTier]) resTier = RES_DEFAULT;
       // The Panels tab's geometry — grids, cell names, derived sheet
@@ -3689,7 +3691,7 @@
       // read once it lands — and it must land BEFORE the first paint, or the
       // boxes render empty and fill in under her.
       seedPanelsFromLink();
-      paintPromptPanel(); syncControls(); paintRes();
+      paintPromptPanel(); syncControls(); paintRes(); paintPrice();
       syncTab();
     })
     .catch(function () {});
@@ -3930,6 +3932,52 @@
   // tier name and no claim about cost.
   var resTier = '1k';
   var RES = null, RES_DEFAULT = '1k';
+  // THE LoRA'S OWN PRICE, SERVED (2026-09-15, Sophie: "add pricing to wtr in
+  // playground"). Same rule as RES above and for the same reason: the page
+  // that keeps its own copy of a price is the page that goes stale the day
+  // the model or the hardware moves. `PL_LORA` in server.js owns the number
+  // and how it was measured; here it is only looked up and printed. Until
+  // /styles answers — and for any model with no row served — the page says
+  // nothing about cost rather than guessing one.
+  var LORA = null;
+  // What ONE picture costs at the selected style, or null when nothing is
+  // served for it. A gpt style deliberately answers null: its price moves
+  // with quality, canvas and tier, and it is printed on those three toggles,
+  // which is the control that SETS it. The LoRA has none of them — one output
+  // size, one step count, one picture a run — so its one figure is printed on
+  // its own line instead.
+  function styleCents() {
+    var S = STYLES[styleKey];
+    if (!S || S.engine !== 'replicate') return null;
+    var m = LORA && LORA.models && LORA.models[S.model];
+    return (m && typeof m.cents === 'number') ? m.cents : null;
+  }
+  // Cents → what she reads. Under a dollar it stays in cents to one decimal
+  // (4.28 → 4.3¢); at a dollar it becomes dollars, which is the word she
+  // asked for on anything that size.
+  function money(c) {
+    return c >= 100 ? '$' + (c / 100).toFixed(2) : (Math.round(c * 10) / 10) + '\u00A2';
+  }
+  // The quiet line under the controls. It draws ONLY where nothing else on
+  // screen carries a price — i.e. on the LoRA, whose knobs are all hidden —
+  // so a gpt style is left exactly as it was, with its cost on the toggles.
+  function paintPrice() {
+    var c = styleCents();
+    var el = document.getElementById('priceline');
+    if (el) {
+      if (c == null) { el.hidden = true; el.textContent = ''; }
+      else {
+        el.textContent = STYLES[styleKey].label + ' \u2014 about ' + money(c) + ' a picture';
+        el.hidden = false;
+      }
+    }
+    // ×3 is the LoRA's own three-in-one-tap, so it prints what the tap
+    // costs the way the gpt ladders' own notes do — the button that spends
+    // three pictures says three pictures' worth.
+    var x3 = document.getElementById('xthree');
+    if (x3) x3.title = 'Run at scale 1, 1.2 and 1.4'
+      + (c == null ? '' : ' \u2014 about ' + money(c * 3));
+  }
   function tierIds() { return ['1k', '2k', '4k']; }
   // Arrived with ?res= (a Panels cut's hand-off carries the tier the redraw
   // should land on — 1k since 2026-08-26, her ask; it used to be 4k). One-shot
@@ -4019,6 +4067,10 @@
   // there doing nothing.
   function syncControls() {
     var gpt = isGpt(styleKey);
+    // The price line follows the style, because the style is the only thing
+    // that sets it here. On Panels the picker is gpt-only, so this answers
+    // null by itself and the line comes off with nothing to special-case.
+    paintPrice();
     // The canvas toggle is gpt-image-2's — the LoRA's shape rides a different
     // parameter. The prompt button is NOT (see the note just below).
     var pb = document.getElementById('promptbtn');
@@ -4348,11 +4400,13 @@
     if (S && S.engine === 'gptimage' && RES && RES[canvas]) {
       var t = RES[canvas].tiers[resTier];
       var c = t && t.cents && t.cents[quality];
-      if (c) {
-        var total = c * n;
-        line += ' · ~' + (total >= 100 ? '$' + (total / 100).toFixed(2) : Math.round(total * 10) / 10 + '¢')
-          + ' at ' + quality;
-      }
+      if (c) line += ' · ~' + money(c * n) + ' at ' + quality;
+    } else {
+      // The LoRA prices the same way from its own served figure (2026-09-15).
+      // No quality to name after it — it has none — so the number stands
+      // alone, and a model with nothing served still adds nothing.
+      var lc = styleCents();
+      if (lc != null) line += ' · ~' + money(lc * n);
     }
     el.textContent = line; el.hidden = false;
   }
