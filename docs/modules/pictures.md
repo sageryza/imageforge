@@ -310,6 +310,40 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
   $8/1M, image out $30/1M. Verified end to end — pricing those tokens against
   the usage export predicted $6.97 for a day the invoice billed at $7.10, the
   gap being the handful of other models on it.
+- **WHAT A WTR PICTURE COSTS — about 1.2¢, and it is MEASURED (2026-09-15,
+  Sophie: "add pricing to wtr in playground").** Every gpt style prints its
+  price on the toggle that SETS it — the canvas, the tier, the quality. WTR has
+  none of those knobs (one output size, one step count, one picture a run), so
+  its price had nowhere to live and the page said nothing at all. It now has a
+  quiet line of its own under the controls, `PL_LORA` in `server.js` owns the
+  number, and `/api/promptlab/styles` serves it — the page holds no copy, the
+  rule the tier prices already follow.
+  - **REPLICATE PUBLISHES NO PER-IMAGE PRICE FOR A PRIVATE FINE-TUNE, and a
+    prediction carries NO cost field** — only `metrics.predict_time`. So the
+    figure is the one thing it can be: the real time × the published hardware
+    rate. **$0.001525/sec** (replicate.com/pricing, Nvidia H100) ×
+    **7.61s** = **1.16¢**.
+  - **A FAST-BOOTING FINE-TUNE BILLS ACTIVE TIME ONLY**, which is what makes
+    that arithmetic legal: `predict_time` IS the billed time, no boot, no idle.
+    A private model that is NOT fast-booting bills the instance's whole life
+    and this would be wrong — check that before adding a model to the table.
+  - **The seconds are the MEDIAN over every real one-output 28-step WTR
+    prediction in Replicate's own history** — 21 of them, 7.42s min / 7.61s
+    median / 10.86s max, i.e. **1.1¢ to 1.7¢** — read back from
+    `GET /v1/predictions`. All of them are Playground runs at the settings the
+    page really sends: 1 megapixel, 1 output, 28 steps. The spread is the box's,
+    not the prompt's, which is why the line says "about".
+  - **Re-measure rather than re-derive** when the step count, the hardware or
+    Replicate's rate moves: `node scripts/measure-lora-cost.js` reads the
+    prediction history and prints the row to paste. **It spends nothing** — no
+    prediction is created, nothing is drawn.
+  - **A model with no row serves no price and the page prints nothing** — an
+    invented figure is worse than a blank. ×3 (the LoRA's own three-in-one-tap)
+    prints 3× the figure on its tooltip and likewise says nothing without one.
+  - Test: `node scripts/test-playground-lora-price.js` (the arithmetic pinned
+    against the row's own seconds and rate, then the real page headless with a
+    deliberately WRONG figure served — a page printing its own copy would pass
+    any check that used 1.16; verified failing 8 pre-fix).
 - **Cancel is REPLICATE-ONLY, on purpose (Aug 2026, Sophie's call).** The X on
   a running job → "Are you sure you want to cancel?" → `POST
   /api/promptlab/:id/cancel` → status `cancelled`.
@@ -2530,7 +2564,8 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   braces mean one thing everywhere; each run's doc carries ITS expanded
   prompt, never the braces. A count line under the controls shows while the
   prompt really expands ("{…} 4 prompts — Generate draws all 4"), priced from
-  the SERVED cents on a gpt style (the LoRA shows no price — none is served).
+  the SERVED cents — the tier table on a gpt style, `PL_LORA` on the LoRA
+  (see WHAT A WTR PICTURE COSTS below).
   **The cap is 12 TOTAL RUNS PER TAP, checked as prompts × tiers** — a ladder
   on a big set is refused with the reason on screen and ZERO runs started,
   because 12 keeps the 512MB box under the measured 16-concurrent-output
