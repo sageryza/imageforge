@@ -3991,7 +3991,15 @@
   // those runs by). The ratio leads, because that is the picture.
   // REMEMBERED, by the canvas toggle's own rule ("just whatever the last
   // option was") — a shape costs nothing it did not cost last time.
-  var LORA_ARS = ['9:16', '2:3', '1:1', '3:2', '16:9'];
+  //
+  // NO 16:9 (2026-09-15, Sophie, reading the list back: "no wide"). It was on
+  // the first cut of this list and she struck it; 3:2 is the landscape she
+  // kept, so the row is still tall-to-wide, it just stops at a shape a
+  // watercolour page can be. The SERVER still accepts 16:9 — PL_LORA_ARS is
+  // Flux's own list, not this menu — and PL_SHAPE_WORD still knows the word,
+  // so anything drawn at that ratio outside the page is still searchable by
+  // it. Putting it back is this one line.
+  var LORA_ARS = ['9:16', '2:3', '1:1', '3:2'];
   var LORA_AR_DEFAULT = '2:3';              // what every WTR run before this drew
   var loraAr = LORA_ARS.indexOf(localStorage.getItem('promptlab_lora_ar')) >= 0
     ? localStorage.getItem('promptlab_lora_ar') : LORA_AR_DEFAULT;
