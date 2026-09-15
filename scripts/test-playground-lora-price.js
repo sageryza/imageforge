@@ -161,11 +161,15 @@ let serveLora = true;
     console.log('\n' + fails + ' FAILED');
     process.exit(1);
   }
-  const txt = (await page.textContent('#priceline')) || '';
-  ok(/WTR/.test(txt), 'it names the style: ' + JSON.stringify(txt));
+  const txt = ((await page.textContent('#priceline')) || '').trim();
   // 3.33 prints as 3.3¢ — the SERVED number, rounded by the page's own rule.
-  ok(txt.indexOf('3.3¢') >= 0, 'and prints the SERVED price, not a copy of its own');
-  ok(/a picture/.test(txt), 'per picture, which is what a run draws');
+  ok(txt.indexOf('3.3¢') >= 0, 'it prints the SERVED price, not a copy of its own');
+  // JUST THE NUMBER, AND IT KEEPS THE CENT SIGN (2026-09-15, Sophie: "make it
+  // just say ~1.2" · "cent symbol"). The style name and "a picture" were both
+  // already on screen; the ¢ is the unit and is the one thing that must not
+  // be dropped with them. An exact match, because a word creeping back in —
+  // or the sign falling off — is what this is here to catch.
+  ok(txt === '~3.3¢', 'and nothing else: ' + JSON.stringify(txt));
   // It must really be under the controls and above the feed, where she is
   // looking — a line rendered off screen is a line she never reads.
   const box = await (await page.$('#priceline')).boundingBox();

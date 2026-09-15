@@ -4059,7 +4059,12 @@
     if (el) {
       if (c == null) { el.hidden = true; el.textContent = ''; }
       else {
-        el.textContent = STYLES[styleKey].label + ' \u2014 about ' + money(c) + ' a picture';
+        // JUST THE NUMBER (2026-09-15, Sophie: "make it just say ~1.2"). It
+        // shipped as "WTR — about 1.2¢ a picture" and every word of that was
+        // already on screen: the style is named in the picker two rows up,
+        // and one run is one picture here. The ~ carries the "about" — the
+        // spread is the box's, not the prompt's.
+        el.textContent = '~' + money(c);
         el.hidden = false;
       }
     }

@@ -315,7 +315,10 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
   price on the toggle that SETS it — the canvas, the tier, the quality. WTR has
   none of those knobs (one output size, one step count, one picture a run), so
   its price had nowhere to live and the page said nothing at all. It now has a
-  quiet line of its own under the controls, `PL_LORA` in `server.js` owns the
+  quiet line of its own under the controls — `~1.2¢`, the number and the
+  cent sign and nothing else (2026-09-15, Sophie: "make it just say ~1.2" ·
+  "cent symbol"): the style is named in the picker two rows up and one run is
+  one picture, so every other word was already on screen — `PL_LORA` in `server.js` owns the
   number, and `/api/promptlab/styles` serves it — the page holds no copy, the
   rule the tier prices already follow.
   - **REPLICATE PUBLISHES NO PER-IMAGE PRICE FOR A PRIVATE FINE-TUNE, and a
@@ -337,6 +340,11 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
     Replicate's rate moves: `node scripts/measure-lora-cost.js` reads the
     prediction history and prints the row to paste. **It spends nothing** — no
     prediction is created, nothing is drawn.
+  - **THE ASPECT ROW DOES NOT MOVE THE PRICE, and that is measured.**
+    `megapixels: '1'` is pinned on every run, so every ratio draws the same
+    number of pixels — 2:3 came back at a 7.92s median and 1:1 at 7.61s over
+    the same history, inside the spread of either on its own. If that pin ever
+    becomes a knob, this stops being one number.
   - **A model with no row serves no price and the page prints nothing** — an
     invented figure is worse than a blank. ×3 (the LoRA's own three-in-one-tap)
     prints 3× the figure on its tooltip and likewise says nothing without one.
