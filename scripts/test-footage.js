@@ -615,6 +615,20 @@ async function pick(pg, v) {
   await pg.click(`.shtile[data-go="${v}"]`);
   await pg.waitForTimeout(120);
 }
+// MOVING A CLIP IS THE SAME SHEET (2026-09-15, Sophie: "switch to new file
+// system") — the card's button opens it in move mode and a tile is the move.
+async function moveVia(pg, id, v, into) {
+  v = String(v);
+  await pg.click(`#job-${id} .projsel`);
+  await pg.waitForSelector('#shgrid .shtile');
+  const p = into || v.split('/')[0];
+  if (p && p.indexOf('__') !== 0) {
+    const into = await pg.$(`.shtile[data-into="${p}"]`);
+    if (into) { await into.click(); await pg.waitForSelector(`#shgrid .shtile[data-go="${p}"]`); }
+  }
+  await pg.click(`.shtile[data-go="${v}"]`);
+  await pg.waitForTimeout(150);
+}
 // what the sheet is showing, at whichever level it is on
 function sheetRows(pg) {
   return pg.evaluate(() => Array.from(document.querySelectorAll('#shgrid .shtile')).map((b) => (b.getAttribute('data-go') || '') + '=' + b.querySelector('i').textContent));
@@ -2561,28 +2575,48 @@ async function pillSweep(pg, where) {
   ok('All brings the other four back', allAgain.n === 10);
   ok('a chat\'s clip says which chat sent it and the page\'s own does not — ' + allAgain.from, /from mom-character-clip/.test(allAgain.from) && !/from /.test(allAgain.own));
   // ── MOVE A CLIP (2026-09-11, Sophie: "can you also add the move project
-  // UI"). The card's drop-down: the films, No project first, the clip's own
-  // project lit; picking another POSTs it and the card leaves a project view
-  // it no longer belongs to. Measured off what the stub really received.
+  // UI"; the control became the POSTER SHEET 2026-09-15, "switch to new file
+  // system"). The card's button says where the clip is and opens the sheet in
+  // move mode: the films, "No project" first, the clip's own place lit.
+  // Measured off what the stub really received.
   {
     const dd = await pgP.evaluate(() => {
-      const s = document.querySelector('#job-f4 .projsel select');
-      s.scrollIntoView({ block: 'center' });
-      const r = s.getBoundingClientRect();
+      const b = document.querySelector('#job-f4 .projsel');
+      b.scrollIntoView({ block: 'center' });
+      const r = b.getBoundingClientRect();
       const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
-      return { rows: Array.from(s.options).map((o) => o.value + '=' + o.textContent), val: s.value, h: r.height, tappable: !!(hit && hit.closest('.projsel')),
-        wardVal: document.querySelector('#job-old1 .projsel select').value };
+      return { says: b.textContent.trim(), h: r.height, icon: !!b.querySelector('svg'), tappable: !!(hit && hit.closest('.projsel')),
+        ward: document.querySelector('#job-old1 .projsel').textContent.trim(),
+        lit: document.querySelector('#job-old1 .projsel').classList.contains('on'),
+        sel: document.querySelectorAll('#job-f4 .projsel select').length };
     });
-    ok('every card carries the move drop-down — No project first, the films after, the clip\'s own project lit — ' + dd.rows.join(' '), dd.rows[0] === '=No project' && dd.rows[1] === 'ward=The ward' && dd.val === '' && dd.wardVal === 'ward');
+    if (process.env.SHOT_DIR) await pgP.screenshot({ path: require('path').join(process.env.SHOT_DIR, 'move-button.png') }).catch(() => {});
+    ok('every card carries the move button, saying where the clip is — ' + dd.says + ' / ' + dd.ward,
+      dd.says === 'No project' && dd.ward === 'The ward' && dd.lit && dd.icon && dd.sel === 0);
     ok('it is the icons\' height and takes its own tap — ' + dd.h + ' ' + dd.tappable, Math.abs(dd.h - 32) < 1 && dd.tappable);
-    await pgP.selectOption('#job-f4 .projsel select', 'ward');
+    // it opens the SHEET, at the films, in move mode: no tuck, "No project"
+    // leading, and nothing moved until a tile is tapped
+    await pgP.click('#job-f4 .projsel');
+    await pgP.waitForSelector('#shgrid .shtile');
+    const sheetM = await pgP.evaluate(() => ({
+      rows: Array.from(document.querySelectorAll('#shgrid .shtile')).map((b) => (b.getAttribute('data-go') || '') + '=' + b.querySelector('i').textContent),
+      title: document.getElementById('shtitle').textContent,
+      tuck: !document.getElementById('shtuck').hidden,
+      back: !document.getElementById('shback').hidden,
+      moves: null }));
+    if (process.env.SHOT_DIR) await pgP.screenshot({ path: require('path').join(process.env.SHOT_DIR, 'move-sheet.png') }).catch(() => {});
+    ok('the card\'s button opens the sheet at the films, in move mode — ' + sheetM.title + ' / ' + sheetM.rows.slice(0, 2).join(' '),
+      sheetM.rows[0] === '=No project' && sheetM.title === 'Move this clip' && !sheetM.tuck && !sheetM.back);
+    ok('opening it moved nothing', projMoves.length === 0);
+    await shutSheet(pgP);
+    await moveVia(pgP, 'f4', 'ward');
     await pgP.waitForFunction(() => document.querySelector('#toast').classList.contains('show'));
-    const mv = await pgP.evaluate(() => ({ toast: document.querySelector('#toast').textContent, tag: document.querySelector('#job-f4 .tags').textContent, val: document.querySelector('#job-f4 .projsel select').value }));
-    ok('moving f4 to the ward POSTs it and the card says so — ' + mv.toast, projMoves.length === 1 && projMoves[0].id === 'f4' && projMoves[0].project === 'ward' && /Moved to The ward/.test(mv.toast) && /The ward/.test(mv.tag) && mv.val === 'ward');
+    const mv = await pgP.evaluate(() => ({ toast: document.querySelector('#toast').textContent, tag: document.querySelector('#job-f4 .tags').textContent, says: document.querySelector('#job-f4 .projsel').textContent.trim(), shut: document.getElementById('shelf').hidden }));
+    ok('moving f4 to the ward POSTs it, closes the sheet and the card says so — ' + mv.toast, projMoves.length === 1 && projMoves[0].id === 'f4' && projMoves[0].project === 'ward' && /Moved to The ward/.test(mv.toast) && /The ward/.test(mv.tag) && mv.says === 'The ward' && mv.shut);
     // inside the ward, taking f4 OFF makes it leave the view
     await pick(pgP, 'ward');
     await pgP.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 7);
-    await pgP.selectOption('#job-f4 .projsel select', '');
+    await moveVia(pgP, 'f4', '');
     await pgP.waitForFunction(() => document.getElementById('job-f4').hidden);
     const gone = await pgP.evaluate(() => ({ n: document.querySelectorAll('#feed .job:not([hidden])').length, toast: document.querySelector('#toast').textContent }));
     ok('inside a project, taking a clip off it POSTs \'\' and the card leaves the view — ' + gone.toast, projMoves.length === 2 && projMoves[1].id === 'f4' && projMoves[1].project === '' && gone.n === 6 && /Taken off/.test(gone.toast));
@@ -2608,7 +2642,8 @@ async function pillSweep(pg, where) {
         gw: Math.round(g.width), gh: Math.round(g.height),
         icon: !!w.querySelector('.ico svg'), tappable: !!(hit && hit.closest('#projwrap')),
         f0: document.querySelector('#job-f0 .tags').textContent,
-        f0rows: Array.from(document.querySelector('#job-f0 .projsel select').options).map((o) => o.value), f0val: document.querySelector('#job-f0 .projsel select').value, f4rows: Array.from(document.querySelector('#job-f4 .projsel select').options).map((o) => o.value) };
+        f0says: document.querySelector('#job-f0 .projsel').textContent.trim(),
+        f4says: document.querySelector('#job-f4 .projsel').textContent.trim() };
     });
     // ITS SIZE IS THE GLASS'S WHOLE BOX (2026-09-13, Sophie: "files button
     // smaller than search button footage") — sized to the BUTTON inside that
@@ -2648,35 +2683,36 @@ async function pillSweep(pg, where) {
     const backUp = await pgP.evaluate(() => ({ title: document.getElementById('shtitle').textContent, back: !document.getElementById('shback').hidden }));
     ok('back returns to the films — ' + backUp.title, backUp.title === 'Footage' && !backUp.back);
     await shutSheet(pgP);
-    // ...and the CARD's menu is STILL a <select> with the folds, deliberately:
-    // moving one clip is a one-tap decision, not a shelf to look at. It opens
-    // its own clip's project, or the select could not show where the clip is.
-    ok('f0\'s card says its folder, its drop-down opens its own project with its row lit, and a project-less card offers no New folder… — ' + all.f0, /socks/.test(all.f0) && all.f0rows.includes('ward/socks') && all.f0rows.includes('__newfolder') && all.f0val === 'ward/socks' && !all.f4rows.includes('__newfolder'));
-    // TAPPING A CARD'S FOLD ROW OPENS IT, AND MOVES NOTHING — the feed is not
-    // re-asked and the value goes straight back, so folding is never a filter.
+    // ...and the CARD's control is the SAME SHEET (2026-09-15, Sophie:
+    // "switch to new file system"): the button says where the clip is, and
+    // the sheet says it too — the project lit at the films, the folder lit
+    // inside it. Both MEASURED off what really renders.
+    ok('f0\'s card says its folder in words, and a project-less card says No project — ' + all.f0says + ' / ' + all.f4says,
+      /socks/.test(all.f0) && all.f0says === 'The ward › Socks' && all.f4says === 'No project');
     {
-      const before = await pgP.evaluate(() => ({ n: document.querySelectorAll('#feed .job:not([hidden])').length, v: document.querySelector('#job-f4 .projsel select').value }));
-      const nReads = projReads.length;
-      await pgP.selectOption('#job-f4 .projsel select', '__fold:ward');
-      await pgP.waitForTimeout(250);
-      const open = await pgP.evaluate(() => ({
-        rows: Array.from(document.querySelector('#job-f4 .projsel select').options).map((o) => o.value + '=' + o.textContent),
-        v: document.querySelector('#job-f4 .projsel select').value,
-        n: document.querySelectorAll('#feed .job:not([hidden])').length,
-        stored: localStorage.getItem('footage_open') }));
-      ok('the fold row opens the folders and stops counting while open — ' + open.rows.join(' '),
-        open.rows.some((r) => r.indexOf('ward/socks=') === 0 && /socks/.test(r)) && open.rows.some((r) => r.indexOf('__fold:ward=') === 0 && /folders/.test(r) && !/\d/.test(r)));
-      ok('it moved nothing — same value, same clips, no feed read', open.v === before.v && open.n === before.n && projReads.length === nReads);
-      ok('it is remembered — ' + open.stored, /ward/.test(open.stored || ''));
-      await pgP.selectOption('#job-f4 .projsel select', '__fold:ward');
-      await pgP.waitForTimeout(250);
-      const shutRows = await pgP.evaluate(() => ({ rows: Array.from(document.querySelector('#job-f4 .projsel select').options).map((o) => o.value), stored: localStorage.getItem('footage_open') }));
-      ok('and tapping it again shuts it — ' + shutRows.rows.join(' '), !shutRows.rows.includes('ward/socks') && !/ward/.test(shutRows.stored || ''));
+      await pgP.click('#job-f0 .projsel');
+      await pgP.waitForSelector('#shgrid .shtile');
+      const lit1 = await pgP.evaluate(() => Array.from(document.querySelectorAll('#shgrid .shtile.on')).map((b) => b.getAttribute('data-go')));
+      ok('at the films a clip inside a folder lights its project — ' + lit1.join(','), lit1.join(',') === 'ward');
+      await pgP.click('.shtile[data-into="ward"]');
+      await pgP.waitForSelector('#shgrid .shtile[data-go="ward/socks"]');
+      const lvl = await pgP.evaluate(() => ({
+        lit: Array.from(document.querySelectorAll('#shgrid .shtile.on')).map((b) => b.getAttribute('data-go')),
+        tuck: !document.getElementById('shtuck').hidden,
+        rows: Array.from(document.querySelectorAll('#shgrid .shtile')).map((b) => b.getAttribute('data-go')) }));
+      ok('inside the project its own folder is the lit one, and the tuck is not offered on a move — ' + lvl.lit.join(','),
+        lvl.lit.join(',') === 'ward/socks' && !lvl.tuck && lvl.rows.indexOf('__newfolder') >= 0);
+      // shutting the sheet moves nothing
+      const nMoved = projMoves.length, nReads = projReads.length;
+      await shutSheet(pgP);
+      await pgP.waitForTimeout(150);
+      const after = await pgP.evaluate(() => document.querySelector('#job-f0 .projsel').textContent.trim());
+      ok('closing the sheet moved nothing — ' + after, projMoves.length === nMoved && projReads.length === nReads && after === 'The ward › Socks');
     }
     await pick(pgP, 'ward');
     await pgP.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 6);
-    const inWard = await pgP.evaluate(() => ({ on: document.getElementById('projwrap').classList.contains('on'), title: document.getElementById('title').textContent, f1val: document.querySelector('#job-f1 .projsel select').value }));
-    ok('inside the ward the icon is lit and the header says The ward', inWard.on && inWard.title === 'The ward' && inWard.f1val === 'ward');
+    const inWard = await pgP.evaluate(() => ({ on: document.getElementById('projwrap').classList.contains('on'), title: document.getElementById('title').textContent, f1says: document.querySelector('#job-f1 .projsel').textContent.trim() }));
+    ok('inside the ward the icon is lit and the header says The ward', inWard.on && inWard.title === 'The ward' && inWard.f1says === 'The ward');
     await pick(pgP, 'ward/socks');
     await pgP.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 1);
     const inFold = await pgP.evaluate(() => ({ ids: Array.from(document.querySelectorAll('#feed .job:not([hidden])')).map((e) => e.dataset.id).join(','), tag: document.querySelector('#job-f0 .tags').textContent, saved: localStorage.getItem('footage_folder'), title: document.getElementById('title').textContent }));
@@ -2685,16 +2721,18 @@ async function pillSweep(pg, where) {
     await pgP.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 6);
     // move f1 INTO socks off its card
     const nMoves = projMoves.length;
-    await pgP.selectOption('#job-f1 .projsel select', 'ward/socks');
+    await moveVia(pgP, 'f1', 'ward/socks');
     await pgP.waitForFunction(() => /socks/.test(document.querySelector('#job-f1 .tags').textContent));
-    const mvF = await pgP.evaluate(() => ({ toast: document.querySelector('#toast').textContent, val: document.querySelector('#job-f1 .projsel select').value }));
-    ok('moving f1 into socks POSTs project+folder and the card says so — ' + mvF.toast, projMoves.length === nMoves + 1 && projMoves[nMoves].id === 'f1' && projMoves[nMoves].project === 'ward' && projMoves[nMoves].folder === 'socks' && mvF.val === 'ward/socks' && /The ward › Socks/.test(mvF.toast));
+    const mvF = await pgP.evaluate(() => ({ toast: document.querySelector('#toast').textContent, says: document.querySelector('#job-f1 .projsel').textContent.trim() }));
+    ok('moving f1 into socks POSTs project+folder and the card says so — ' + mvF.toast, projMoves.length === nMoves + 1 && projMoves[nMoves].id === 'f1' && projMoves[nMoves].project === 'ward' && projMoves[nMoves].folder === 'socks' && mvF.says === 'The ward › Socks' && /The ward › Socks/.test(mvF.toast));
     // a NEW folder typed on a card joins the picker at once
+    // A NEW FOLDER IS NAMED IN THE SHEET AND THE CLIP GOES STRAIGHT INTO IT
+    // (2026-09-15) — naming one is never a step that leaves the clip put.
     pgP.once('dialog', (dl) => dl.accept('B Roll'));
-    await pgP.selectOption('#job-f2 .projsel select', '__newfolder');
-    await pgP.waitForFunction(() => Array.from(document.querySelectorAll('#job-f0 .projsel option')).some((o) => o.value === 'ward/b-roll'));
-    const nf = await pgP.evaluate(() => ({ f2: document.querySelector('#job-f2 .projsel select').value, f0rows: Array.from(document.querySelector('#job-f0 .projsel select').options).map((o) => o.value) }));
-    ok('a folder named on a card is slugged, POSTed, and offered by every other card', projMoves[projMoves.length - 1].id === 'f2' && projMoves[projMoves.length - 1].folder === 'b-roll' && nf.f2 === 'ward/b-roll' && nf.f0rows.includes('ward/b-roll'));
+    await moveVia(pgP, 'f2', '__newfolder', 'ward');
+    await pgP.waitForFunction(() => /B roll/.test(document.querySelector('#job-f2 .projsel').textContent));
+    const nf = await pgP.evaluate(() => ({ f2: document.querySelector('#job-f2 .projsel').textContent.trim(), shut: document.getElementById('shelf').hidden }));
+    ok('a folder named on a card is slugged, POSTed and the clip lands in it — ' + nf.f2, projMoves[projMoves.length - 1].id === 'f2' && projMoves[projMoves.length - 1].project === 'ward' && projMoves[projMoves.length - 1].folder === 'b-roll' && nf.f2 === 'The ward › B roll' && nf.shut);
     // ...and by the SHEET, which is where she picks one
     await openSheet(pgP);
     const into2 = await pgP.$('.shtile[data-into="ward"]');
@@ -2703,7 +2741,7 @@ async function pillSweep(pg, where) {
     ok('and the sheet offers it too — ' + sheetHasNew.join(' '), sheetHasNew.some((r) => r.indexOf('ward/b-roll=') === 0));
     await shutSheet(pgP);
     // moving f1 to another project takes it out of its folder
-    await pgP.selectOption('#job-f1 .projsel select', '');
+    await moveVia(pgP, 'f1', '');
     await pgP.waitForFunction(() => document.getElementById('job-f1').hidden);
     ok('moving a clip off its project sends folder \'\' with it', projMoves[projMoves.length - 1].id === 'f1' && projMoves[projMoves.length - 1].project === '' && projMoves[projMoves.length - 1].folder === '');
     await pick(pgP, '');
@@ -2711,7 +2749,7 @@ async function pillSweep(pg, where) {
     const back = await pgP.evaluate(() => ({ on: document.getElementById('projwrap').classList.contains('on'), title: document.getElementById('title').textContent }));
     ok('back on All the icon goes dark and the header says Footage again', !back.on && back.title === 'Footage');
     // put the pool back the way the later blocks expect it
-    await pgP.selectOption('#job-f1 .projsel select', 'ward');
+    await moveVia(pgP, 'f1', 'ward');
     await pgP.waitForFunction(() => /The ward/.test(document.querySelector('#job-f1 .tags').textContent));
 
     // ── TUCKED AWAY (2026-09-13, Sophie: "can u hide the ward, the boyfriend
