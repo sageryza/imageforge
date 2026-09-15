@@ -166,7 +166,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .acctab{flex:1 1 0; min-width:0; display:flex; align-items:center; justify-content:center; gap:5px;
   padding:7px 4px 9px; border:none; background:none; cursor:pointer;
   font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; text-transform:uppercase;
-  color:var(--ink2); -webkit-tap-highlight-color:transparent;}
+  color:var(--ink2); white-space:nowrap; -webkit-tap-highlight-color:transparent;}
 .acctab.on{color:var(--ink);}   /* the sliding line says which one — no bold needed */
 /* --tw / --tx are written by tabLine(). The 0 default means a row that has
    not been measured yet draws NO line rather than a wrong one.
@@ -180,11 +180,39 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .acctabs.tl::after{transition:transform .2s ease, width .2s ease;}
 /* The red badge = chats in THAT account that answered her and she hasn't
    opened. Same shape and reason as the category chips' one: without it, the
-   account she is not looking at would be completely silent. */
+   account she is not looking at would be completely silent.
+   It rides the THREE LISTS row too (2026-09-15, Sophie: "add number new chats
+   unread") — see listFresh. That row's tabs are WORDS, not the accounts' bare
+   digits, and this badge does not fit beside the longest of them. MEASURED at
+   390pt: a tab is 87.8px wide, 79.8px of content box, and "BUG FIXES" is
+   60.5px of it — so the 15px badge plus the 5px gap wants 80.5px where there
+   is 79.8px, over by 0.7px. The word then wraps onto two lines and this
+   hairline row goes 28px → 39px, which was measured both ways before anything
+   was changed. So a badge in a row of WORDS is the compact one — 3px gap, 13px
+   tall, 2px padding — and the row measures 30px at 375, 390 and 430 with
+   two-digit badges on it. `white-space:nowrap` is the belt to that braces: a
+   tab may never become two lines whatever it is carrying, so a number can
+   never silently make this row taller again. */
 .acctab .cc-new{display:inline-flex; align-items:center; justify-content:center;
   min-width:15px; height:15px; padding:0 4px; box-sizing:border-box; border-radius:8px;
   background:var(--chg); color:var(--paper); font-size:9px; font-weight:700;
   letter-spacing:0;}
+#listrow .acctab{gap:3px;}
+#listrow .acctab .cc-new{min-width:13px; height:13px; padding:0 2px; border-radius:7px;}
+/* A PHONE NARROWER THAN 360 CANNOT HOLD THE DIGITS, so it holds a DOT
+   (MEASURED, not guessed: at 320pt a tab is 72px and 64px of content box,
+   where "BUG FIXES" plus the compact badge wants 76.5px — and with `nowrap`
+   above it does not wrap, it OVERFLOWS, which PHOTOGRAPHED as the word sitting
+   on top of DELIVERED). Her
+   own phone is 390 and this page's tests hit-test 375/390/430; below that the
+   row tightens its padding and the badge drops its number rather than dropping
+   the mark — "something new in here" is the half that must never go silent,
+   and the number is a screen tap away. */
+@media (max-width:359px){
+  #listrow .acctab{gap:2px; padding-left:2px; padding-right:2px;}
+  #listrow .acctab .cc-new{min-width:6px; width:6px; height:6px; padding:0;
+    border-radius:3px; font-size:0;}
+}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 0;}
 /* The archive count under a lit tag's pile — a footnote, not an empty
    state, so it does not take a screen's worth of padding. */
@@ -4358,7 +4386,48 @@ function trayPile(){ return listsOn() && listTab==='tray'; }
 // at — a door, not a state.
 var ICON_ACCTABS='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
 var ICON_LISTTABS='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>';
-function paintListTabs(){
+// HOW MANY CHATS IN A PILE HAVE ANSWERED HER AND ARE UNOPENED (2026-09-15,
+// Sophie: "add number new chats unread"). The account tabs have carried this
+// badge since Aug 2026 — and on 2026-09-15 the account row stopped being the
+// row on screen: `rowMode` defaults to the THREE LISTS, so the ONE count of
+// what has answered her was painted onto tabs she has to tap #rowtog to see.
+// Nothing else on that screen answers it: the hidden bar's "N new" counts what
+// is behind ITS fold, the MORE bar counts what is behind its own, and the
+// category chips count a folder — the list itself had no number at all. (How
+// many are unopened cannot be measured from outside her phone: `seen` is
+// localStorage, written by markSeen when she opens a chat, so this is the one
+// count no server read can check.)
+//
+// EACH TAB COUNTS ITS OWN PILE, exactly as an account tab does — "the tab she
+// is not on can still say there are three waiting over here" — so the rule
+// here is the same one the piles below use, never a second opinion:
+//   * MY TRAY is today's tray (trayNames), her hand-picked handful;
+//   * ALL is every live chat MINUS the bug-tagged ones, which is the ALL
+//     branch's own carve-out — so a bug chat's reply is counted once, on the
+//     tab that actually shows it;
+//   * BUG FIXES is the open bug pile, the archive left alone (her rule);
+//   * DELIVERED gets NO badge — its rows are films and pictures, not chats,
+//     so there is nothing here that could answer her.
+// A chat on her tray is also on ALL, so it can light both: that is the tray
+// being a subset, not a double count — each badge answers "is there something
+// new in THIS pile", which is the question a tab is asked.
+function listFresh(tab, g){
+  var names;
+  if(tab==='tray') names=trayNames(trayToday());
+  else if(tab==='bugs') names=Object.keys(chats).filter(function(n){
+    return chatBugTag(n) && !chatDeleted(n) && !(chats[n]&&chats[n].archived); });
+  else if(tab==='all') names=Object.keys(chats).filter(function(n){
+    return !chatBugTag(n) && !chatDeleted(n) && !(chats[n]&&chats[n].archived); });
+  else return 0;
+  var n=0;
+  names.forEach(function(x){ if(chatAnswered(x, lastOf(g,x))) n++; });
+  return n;
+}
+// `g` is optional: paintHomeChrome paints this row on EVERY repaint (a poll, a
+// note save, a search) and has no groups of its own, so it is built here only
+// once the row is really on screen — after the early return below, never on a
+// view that hides the row.
+function paintListTabs(g){
   var row=document.getElementById('listrow');
   var on=listsOn();
   var tog=document.getElementById('rowtog');
@@ -4372,9 +4441,18 @@ function paintListTabs(){
   // writers is exactly what put both rows on screen at once.
   if(!row || !on) return;
   row.setAttribute('data-on', listTab);
+  if(!g) g=groups();
   Array.prototype.forEach.call(row.querySelectorAll('.acctab'), function(b){
     var v=b.dataset.list;
     b.classList.toggle('on', v===listTab);
+    // The WORD is written here rather than in the markup so the badge can be
+    // rebuilt without losing it — and it is read off the element's own
+    // `data-label`, set from the html the first time, so this function never
+    // becomes a second place the four tab names are spelled.
+    if(!b.dataset.label) b.dataset.label=b.textContent.trim();
+    var fresh=listFresh(v,g);
+    b.innerHTML=esc(b.dataset.label)+(fresh?'<span class="cc-new">'+fresh+'</span>':'');
+    b.setAttribute('aria-label', b.dataset.label+(fresh ? ' \u2014 '+fresh+' answered you' : ''));
     b.onclick=function(){
       // The tray tab is TODAY's: opening it never resumes a past day, and a
       // re-tap while she is back in an earlier day returns her to today.
@@ -5429,7 +5507,7 @@ function renderHome(){
   // silently missing because it belongs to the other account is exactly the
   // filter she cannot see. She picked these — that IS the filter.
   if(trayPile()){
-    paintHomeChrome(); paintAcctTabs(g); paintListTabs(); paintCatRow(g);
+    paintHomeChrome(); paintAcctTabs(g); paintListTabs(g); paintCatRow(g);
     document.getElementById('selbtn').classList.toggle('on', selMode);
     paintSelBar();
     // WHICH DAY. A past day that has emptied under her (its last chat archived
@@ -5487,7 +5565,7 @@ function renderHome(){
     var pool=everyone.filter(function(n){ return chatInCat(n,cat) && !chatDeleted(n); });
     var pl=pool.filter(function(n){ return !(chats[n]&&chats[n].archived); });
     var plArch=pool.length-pl.length;
-    paintHomeChrome(); paintAcctTabs(g); paintListTabs(); paintCatRow(g);
+    paintHomeChrome(); paintAcctTabs(g); paintListTabs(g); paintCatRow(g);
     document.getElementById('selbtn').classList.toggle('on', selMode);
     paintSelBar();
     if(!pl.length){
@@ -5521,7 +5599,7 @@ function renderHome(){
   // them. It replaces the whole list rather than narrowing it.
   if(starOnly){
     var st=all.filter(chatStar);
-    paintHomeChrome(); paintAcctTabs(g); paintListTabs(); paintCatRow(g);
+    paintHomeChrome(); paintAcctTabs(g); paintListTabs(g); paintCatRow(g);
     document.getElementById('selbtn').classList.toggle('on', selMode);
     paintSelBar();
     if(!st.length){ el.innerHTML='<div class="state">No starred chats'+onAcct()+' — open one and tap the star in its header.</div>'; return; }
@@ -5563,7 +5641,7 @@ function renderHome(){
     // the open-pile-is-the-whole-screen rule are one implementation.
     var everyVis=every.filter(function(n){ return !chatHidden(n, lastOf(g,n)); });
     var everyHid=every.filter(function(n){ return chatHidden(n, lastOf(g,n)); });
-    paintHomeChrome(); paintAcctTabs(g); paintListTabs(); paintCatRow(g);
+    paintHomeChrome(); paintAcctTabs(g); paintListTabs(g); paintCatRow(g);
     document.getElementById('selbtn').classList.toggle('on', selMode);
     paintSelBar();
     if(!every.length){ el.innerHTML='<div class="state">No chats'+onAcct()+'.</div>'; return; }
@@ -5585,7 +5663,7 @@ function renderHome(){
   // handed over. It is the one tab whose rows are things rather than threads,
   // which is why it paints its own list instead of going through renderList.
   if(listsOn() && listTab==='delivered'){
-    paintHomeChrome(); paintAcctTabs(g); paintListTabs(); paintCatRow(g);
+    paintHomeChrome(); paintAcctTabs(g); paintListTabs(g); paintCatRow(g);
     document.getElementById('selbtn').classList.toggle('on', selMode);
     paintSelBar();
     renderDelivered(el);
@@ -5605,7 +5683,7 @@ function renderHome(){
   // That old reasoning is history now, not a rule; don't restore it.
   if(bugPile()){
     var bg=all.filter(function(n){ return chatBugTag(n) && !(chats[n]&&chats[n].archived) && !chatDeleted(n); });
-    paintHomeChrome(); paintAcctTabs(g); paintListTabs(); paintCatRow(g);
+    paintHomeChrome(); paintAcctTabs(g); paintListTabs(g); paintCatRow(g);
     document.getElementById('selbtn').classList.toggle('on', selMode);
     paintSelBar();
     if(!bg.length){ el.innerHTML='<div class="state">No open bug-fix chats'+onAcct()+' — finished ones are in the Archive.</div>'; return; }
@@ -5638,7 +5716,7 @@ function renderHome(){
   var arch=everyone.filter(function(n){ return chats[n]&&chats[n].archived; });
   if(cat) arch=arch.filter(function(n){ return chatInCat(n,cat); });
   paintHomeChrome();
-  paintAcctTabs(g); paintListTabs();
+  paintAcctTabs(g); paintListTabs(g);
   paintCatRow(g);
   document.getElementById('selbtn').classList.toggle('on', selMode);
   paintSelBar();
