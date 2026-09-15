@@ -59,7 +59,7 @@ const page = fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8');
 // ── SERVER, by source ─────────────────────────────────────────────────────
 {
   ok('/status hands out the balances only with the token', /balances: authed \? bal : null/.test(src));
-  ok('a replace onto a span another part already holds still writes the shortened list', /if \(already && !replacing\) return res\.json/.test(src) && /const shrank = replacing && live\.length !== kept2\.length;/.test(src));
+  ok('a replace onto a span another part already holds still writes the shortened list', /if \(already && !replacing\) \{/.test(src) && /const shrank = replacing && live\.length !== kept2\.length;/.test(src));
   ok('a poster that missed its bake is tried again, once per process', /posterTried\.has\(x\.id\)\) return;/.test(src) && /const posterTried = new Set\(\)/.test(src));
   ok('the poster bake and the floor encode ride the one-decode queue', /return gateTrim\(\(\) => bakePosterInner\(id, videoUrl\)\)/.test(src) && /await gateTrim\(\(\) => runBin\(bin, \['-y', '-i', src,/.test(src));
   ok('vote, project and hide UPDATE and answer 404 on a missing clip', (src.match(/\.update\(\{ (vote|project, folder|hidden) \}\)/g) || []).length === 3 && (src.match(/e\.code === 5\) return res\.status\(404\)/g) || []).length === 3);
