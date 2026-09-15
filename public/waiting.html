@@ -7,11 +7,10 @@
   (2026-09-14, Sophie: "shud go to a screen that says what the unmerged
   changes are · each chat contributes").
 
-  Two piles, under each other:
-    • NOT LIVE YET — merged into main, waiting for a deploy. This is the pile
-      the push counts, so the number here and the number on her phone are the
-      same number.
-    • STILL OPEN — PRs that have not merged at all.
+  ONE pile: everything merged into main and waiting for a deploy. It is the
+  pile the push counts, so the number here and the number on her phone are the
+  same number. (A STILL OPEN pile shipped under it on day one and she had it
+  taken off the same day — see render().)
 
   Each change sits under THE CHAT THAT WROTE IT. That join is derived from the
   attribution trailer every PR carries, so it needed nothing from any chat —
@@ -52,9 +51,9 @@
 </div>
 <div class="helpcard" id="helpcard" hidden>
   <b>What the “changes waiting” buzz is about.</b> Everything merged but not
-  live yet, and every pull request still open, under the chat that wrote it.
-  Tapping a change opens its pull request. Nothing here deploys anything —
-  say the word in any chat and it goes out.
+  live yet, under the chat that wrote it. Tapping a change opens its pull
+  request. Nothing here deploys anything — say the word in any chat and it
+  goes out.
 </div>
 
 <main class="wrap">
@@ -114,9 +113,13 @@
     }).join('');
   }
 
+  /* ONE PILE ONLY — what is merged and not live (2026-09-15, Sophie, looking
+     at the 30 old open PRs under it: "what's all the extra stuff at the bottom
+     · get rid of it"). Still-open PRs are not what the buzz is about, and the
+     list of them was three times as long as the answer. The server still
+     answers `open`; the page ignores it. */
   function render(j){
     var n = j.ahead || 0;
-    var open = (j.open || []).reduce(function(a,g){ return a + g.items.length; }, 0);
     var head = j.error === 'no-commit'
       ? '<p class="count">This box has no commit of its own, so it can’t say what is unshipped.</p>'
       : (j.error
@@ -125,8 +128,7 @@
           ' merged and not live yet.</p>');
     bodyEl.innerHTML = head +
       '<p class="sub">Live on ' + esc(j.live || '—') + ' · read ' + esc(when(j.at)) + '</p>' +
-      '<div class="sect">Not live yet</div>' + groups(j.groups || []) +
-      '<div class="sect">Still open · ' + open + '</div>' + groups(j.open || []);
+      '<div class="sect">Not live yet</div>' + groups(j.groups || []);
   }
 
   var help = document.getElementById('help'), card = document.getElementById('helpcard');
