@@ -98,7 +98,8 @@ function chromiumExe() {
   ok('the chat\'s display name heads its block', who.startsWith('witch reels'), who);
   ok('a chat with two changes says so', /2 changes/.test(who), who);
   const rows = page.locator('.ch');
-  ok('every change is drawn, unclaimed ones included', await rows.count() === 4, await rows.count());
+  // three merged-and-not-live changes; the payload's open PR is not drawn
+  ok('every change is drawn, unclaimed ones included', await rows.count() === 3, await rows.count());
 
   console.log('a chat\'s own line leads, and the commit subject is kept under it');
   const first = page.locator('.ch').first();
@@ -125,10 +126,15 @@ function chromiumExe() {
   ok('it says what it is', heads.some((h) => h.includes('not traced to a chat')), heads);
   ok('…and it is last in its section', heads[1].includes('not traced to a chat'), heads);
 
-  console.log('the still-open pile');
+  // ONE PILE ONLY (2026-09-15, Sophie: "what's all the extra stuff at the
+  // bottom · get rid of it"). The server still answers `open` — the stub above
+  // sends one — so this is the assertion that the page draws none of it.
+  console.log('the still-open pile is gone');
   const sects = await page.locator('.sect').allInnerTexts();
-  ok('two sections, counted', sects.length === 2 && /Still open · 1/i.test(sects[1]), sects);
-  ok('a draft is marked', (await page.locator('.ch.draft').count()) === 1);
+  ok('one section', sects.length === 1 && /not live yet/i.test(sects[0]), sects);
+  ok('no open row is drawn, though the payload carries one',
+    (await page.locator('.ch.draft').count()) === 0 &&
+    !(await page.locator('body').innerText()).includes('Ward: the reshoot plan'));
 
   console.log('a box with no commit of its own says so rather than inventing one');
   payload = { ok: true, live: '', ahead: 0, error: 'no-commit', at: '2026-09-15T02:00:00Z', groups: [], open: [] };
