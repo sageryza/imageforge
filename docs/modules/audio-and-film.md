@@ -3638,33 +3638,20 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   #2231, tag `motion-page-3f0fce9` — and it was NOT merged: one ask, one tile.)
   **THE FEED HAS THE PLAYGROUND'S SEARCH AND ITS FILTER DRAWER (2026-09-11,
   Sophie: "add a search button and filter like playground" · "single
-  magnifying glass button that expands" · "yea footage").** A GLASS in its own
-  box beside the ♥/✕ pair: a tap opens the field (beside it, or on its own
-  line when the row is full) and lights the glass in INK — a door, not a mark;
-  shutting it CLEARS the words, since a query she cannot see must never go on
-  hiding clips. The ✕ inside the field wipes the words and keeps her in it.
-  **AND THE FUNNEL IS ITS OWN BUTTON ON THAT BAR, NOT A SUB MENU OF THE GLASS
-  (2026-09-15, Sophie: "filter changed · change back · footage").** It was
-  tucked inside the glass from #2332 on her own "filter is sub menu of glass ·
-  only one main button", and she reversed that — **so the sub-menu design is
-  HISTORY, not a rule: don't put it back.** With it went the count the GLASS
-  wore while the funnel was hidden (`.qcount`, `paintSearchBtn`) — the chip is
-  on screen to wear its own, and the same answer twice is worse than once; the
-  glass is lit now for its own field and nothing else.
-  **THE COST IS A SECOND LINE ON THE BAR, and it is measured rather than
-  chosen**: the five controls already on the row (view switch · ♥✕ · glass ·
-  folder) end at x=315 at 390pt against an autoscroll pill starting at x=324,
-  so a sixth button can only sit under the rail — where the tap reaches the
-  pill, not the filter. The funnel keeps the pill's own 58px reserve and
-  therefore wraps to the next line at the LEFT, with its drawer opening
-  directly under it, exactly as the search field already does when the row has
-  no room; the field joins that line when the glass is open. Shrinking all
-  five neighbours to make room buys ~26px against the 39 needed and makes
-  every control on the bar a size nothing else in the app is — the view switch
-  alone is 137px and is the shared `/viewswitch.js`. `test-footage.js` pins
-  the line count at TWO (measuring the CHIP, since `#feedfilters` is
-  `display:contents` and its own rect is empty — a line count taken off the
-  bar's children alone cannot see the funnel at all). The house grammar, searched as she dictates (`/feedkit.js`); the loaded
+  magnifying glass button that expands" · "yea footage" · "filter is sub menu
+  of glass · only one main button").** A GLASS in its own box beside the ♥/✕
+  pair, and it is the ONLY main button this row grew: a tap opens the field
+  (beside it, or on its own line when the row is full) **and the FUNNEL at the
+  field's right end**, and lights the glass in INK — a door, not a mark;
+  shutting it takes the funnel with it and CLEARS the words, since a query she
+  cannot see must never go on hiding clips. The ✕ inside the field wipes the
+  words and keeps her in it. **A FILTER IS STICKY AND SURVIVES THE GLASS
+  SHUTTING, so the GLASS WEARS THE COUNT the funnel chip wears on the rows
+  below** (lit, with the digit beside the glyph) — tucking the funnel behind
+  the glass with nothing on screen saying a filter is on is exactly the silent
+  filter this app keeps getting burned by. The funnel STRETCHES to the field
+  beside it rather than keeping the shell's 34px (the door stretches to the row
+  it stands on), and the drawer she left open is left open. The house grammar, searched as she dictates (`/feedkit.js`); the loaded
   feed is narrowed AT ONCE and a beat later the server answers over the WHOLE
   log — `GET /jobs?q=` filters before the page is cut, up to 300 hits, and a
   hit the feed never paged in lands as a card like any other (the Assets
