@@ -5417,13 +5417,63 @@ function postJob(pin, box, job, resend) {
     loadStatus();
     return true;
   }).catch(function () {
-    // a non-JSON answer — a gateway page, a dropped connection — is the
-    // server not answering, and a toast that vanishes in three seconds is
-    // not a place to read that. It goes on the error line, and her words
-    // stay in the box.
-    showErr('The server did not answer — nothing was sent or charged. Try again in a minute.');
-    return false;
+    // A DROPPED ANSWER IS NOT A REFUSAL — ASK THE LOG (2026-09-15, Sophie,
+    // looking at the 16.5¢ clip's own row sitting right under this line: "it
+    // did answer tho"). A non-JSON answer — a gateway page, a dropped
+    // connection, a tunnel going away — means the page did not HEAR the
+    // answer, and every one of those can happen after the door has taken the
+    // job and charged for it. The old words said "nothing was sent or
+    // charged", which was never knowledge, only a guess, and on her clip it
+    // was the wrong one: she read it as a failed send with money in it. The
+    // server writes the job to the log the moment it goes, so the page asks
+    // instead of guessing. It re-sends nothing either way — her words and her
+    // references stay in the box, and the line says which it found.
+    showErr('The server did not answer — checking whether the clip went…');
+    return lookForSent(prompt).then(function (j) {
+      if (!j) {
+        showErr('The server did not answer, and no clip carrying these words has appeared in the feed. Look at the feed before sending again.');
+        return false;
+      }
+      clearErr();
+      justSent[j.id] = 1;
+      markSent(sentWords); paintBlockHeads();
+      setFold('refs', true);
+      applyFilt();
+      schedulePoll(true);
+      loadStatus();
+      toast('It did go through — the clip is in the feed');
+      return true;
+    });
   });
+}
+
+// DID IT GO? The log is the server's own record, written the moment a job is
+// sent, so a row carrying the EXACT prompt that left — the two heads included
+// — is that job and nothing else. Three reads over ~15s, because the record
+// lands a beat after the send and the connection that dropped may still be
+// coming back. Only the last five minutes count, so the same words sent
+// yesterday can never answer for today's tap, and the NEWEST match wins when
+// she has genuinely re-rolled the same scene. Free: it is the feed read the
+// poll already makes.
+function lookForSent(prompt, tries) {
+  tries = tries == null ? 3 : tries;
+  var again = function () {
+    if (tries <= 1) return null;
+    return new Promise(function (r) { setTimeout(r, 7000); }).then(function () { return lookForSent(prompt, tries - 1); });
+  };
+  return api('/jobs?limit=20' + projQ()).then(function (d) {
+    var hit = null;
+    ((d && d.jobs) || []).forEach(function (j) {
+      if (!j || !j.id || j.prompt !== prompt) return;
+      var at = Date.parse(j.sentAt || '');
+      if (!at || Date.now() - at > 5 * 60 * 1000) return;
+      if (!hit || String(j.sentAt) > String(hit.sentAt)) hit = j;
+    });
+    if (!hit) return again();
+    jobCard(hit);
+    paintFeed();
+    return hit;
+  }).catch(again);
 }
 
 // The doors that can still take THIS job, priced. `/estimate` is free and is
