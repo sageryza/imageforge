@@ -1,0 +1,105 @@
+{
+ "clips": [
+  {
+   "key": "opener",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789448171374-w2lm9d.mp4",
+   "title": "i have a lot of ideas",
+   "seconds": 8.1,
+   "in": 0,
+   "out": 8.1,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/footage/posters/e03f9367dc454748835e85bbbe186019.jpg"
+  },
+  {
+   "key": "chatgpt",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789447416035-31kgwp.mp4",
+   "title": "chatgpt is making it worse",
+   "seconds": 4.1,
+   "in": 0,
+   "out": 4.1,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/footage/posters/2fc7e35e2235453cac82ba9c699dd2e3.jpg"
+  },
+  {
+   "key": "site",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/b0dafe5baf5da18f6658b046ee5d4e6b.mp4",
+   "title": "so, i made this site",
+   "seconds": 11.83,
+   "in": 0,
+   "out": 11.83,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/b0dafe5baf5da18f6658b046ee5d4e6b-poster.jpg"
+  },
+  {
+   "key": "couch",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789448370937-2kpof5.mp4",
+   "title": "i send it to alibaba",
+   "seconds": 4.1,
+   "in": 0,
+   "out": 4.1,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/footage/posters/655979c0f11144f784932a04abfe79f6.jpg"
+  },
+  {
+   "key": "ali-quote",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/ca52aa1ae45d5296129bfb168cb9520e.mp4",
+   "title": "the alibaba chat, the quote",
+   "seconds": 4.0,
+   "in": 0,
+   "out": 4.0,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/ca52aa1ae45d5296129bfb168cb9520e-poster.jpg"
+  },
+  {
+   "key": "delivery",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789448396514-kbocc0.mp4",
+   "title": "two months later",
+   "seconds": 8.1,
+   "in": 0,
+   "out": 8.1,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/footage/posters/f29e8433d2d4499d99e59af634b932f0.jpg"
+  },
+  {
+   "key": "box",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789447416223-fil0u0.mp4",
+   "title": "wait",
+   "seconds": 4.1,
+   "in": 0,
+   "out": 4.1,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/footage/posters/18ca5a35bae7409c9cb28397f53194f9.jpg"
+  },
+  {
+   "key": "tocamera",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789447415937-rfvyzq.mp4",
+   "title": "ppl will just steal my designs",
+   "seconds": 4.1,
+   "in": 0,
+   "out": 4.1,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/footage/posters/fb626577a9f342ce9bf64caebf404468.jpg"
+  },
+  {
+   "key": "escalation",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a47e1d6b66aa03328be978b5aa4bf9ab.mp4",
+   "title": "design please",
+   "seconds": 8.95,
+   "in": 0,
+   "out": 8.95,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a47e1d6b66aa03328be978b5aa4bf9ab-poster.jpg"
+  },
+  {
+   "key": "title",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/da67d43be70dd1d0931bc076405d8cbe.mp4",
+   "title": "they can steal the idea",
+   "seconds": 4.0,
+   "in": 0,
+   "out": 4.0,
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/da67d43be70dd1d0931bc076405d8cbe-poster.jpg"
+  }
+ ],
+ "sounds": []
+}
