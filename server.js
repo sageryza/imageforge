@@ -951,6 +951,12 @@ app.get('/stitch', serveGated('stitch.html', { pill: true }));
 app.get('/vector', serveGated('vector.html', { pill: true }));
 // One screen, never scrolls — so no autoscroll pill, like /opinions.
 app.get('/crop', serveGated('crop.html'));
+// Alibaba chat: a fictional buyer/supplier chat drawn at real screenshot size
+// (1170x2532) for a staged reel. Client-side canvas only — no API, no money.
+// NO autoscroll pill, like /crop and /opinions: the page is one screen, and the
+// pill's fixed corner (x 324-374, y 14-192) lands on the phone preview's own
+// status bar — it would cover the battery she is checking.
+app.get('/alibaba', serveGated('alibaba.html'));
 // Shoebox: the polaroids in her Memory Library, on one shelf in the app. The
 // front for /api/shoebox; read-only over her memories.
 app.get('/shoebox', serveGated('shoebox.html', { pill: true }));
