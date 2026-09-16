@@ -229,6 +229,70 @@ lifted into a standalone tool later.
   fall back to data URLs and the `/draft` step refuses them. Same `STUDIO_TOKEN`
   gate as the POD pipeline (only `GET /status` is open).
 
+## Jewelry → Etsy (her mom's two-step page)
+- `jewelry.js` (`/api/jewelry`, page at `/jewelry`, no iOS tile) — 2026-09-16,
+  Sophie: "a simple user friendly website my mom can interact with, with clear
+  step by steps 1. upload jewelry 2. review details and approve sample photos".
+  Built on the photostudio track (a thing already MADE → an Etsy DRAFT), but
+  as ONE background job behind one tap, for a person who is not going to read
+  a page of controls.
+- **Step 1 — upload.** `<input type=file multiple accept=image/*>`; each
+  photo is normalized in the browser (Safari decodes HEIC; canvas ≤1536px;
+  JPEG 0.92 — photo.html's trick, because raw iPhone files are what the image
+  endpoints reject) and POSTed as raw bytes to `POST /items/:id/photo`,
+  md5-deduped, stored at `jewelry/<item>/ref-<md5>.jpg` + a 480px webp thumb.
+  Up to 8. A Notes box (empty, hers) rides the job as the seller's own words.
+- **The job (`POST /items/:id/make`, `startJob` from cutmarks.js, 20-minute
+  stale takeover):** (a) Claude reads every photo as base64 image blocks
+  through `anthropic.chatJSON` (a `messages` array with content blocks — the
+  first vision call through anthropic.js) and returns the listing:
+  kind · title · materials · style · colors · size · description · 13 tags ·
+  price; (b) the four shots draw in parallel (`Promise.allSettled`), each
+  landing on the doc the moment it exists (`shots.<key>`), so one failure
+  costs one shot. Progress rides `job.label` in her words ("Reading your
+  photos…", "Sample photos: 2 of 4").
+- **The shots.** `SHOTS` = main · detail · styled · model, each prompt
+  verbatim from her chat, every one prefixed by `FIDELITY` (the master
+  fidelity prompt). `shotPrompt(key, notes)` is the one builder; its record
+  (`prompt-record.js`: style = FIDELITY around `[content]`, content = the shot)
+  goes on the doc and INTO the PNG (`image-meta.js`). gpt-image-2, medium,
+  1024x1024, `output_format:png` (Etsy accepts png/jpg only), all references
+  as `image[]`. A 600px webp thumb is the page's copy. A Redo keeps the old
+  shot under `shotsHistory.<key>` (capped 6) — nothing paid for is deleted.
+  A safety refusal (`terminalRefusal`) or any 4xx is terminal; 429/5xx retry
+  once.
+- **Step 2 — review.** Title / materials / price / description are editable
+  and autosave through `PATCH /items/:id` (`cleanDetails` whitelist — 140-char
+  title, 13 tags of ≤20, price a positive number, unknown keys dropped; a
+  poll never overwrites a field she is typing in). `POST /shot/:key
+  {approved}` marks a photo; `POST /shot/:key/redo` redraws one. `POST
+  /draft` sends the APPROVED shots, main first, as PNG urls through
+  `pipeline.publishDraft` with `etsy.getListingDefaults` (the shop needs one
+  active listing), and stamps `etsy.listing_id` + `status:'drafted'`. Her
+  last edits ride the same tap.
+- **The page** (`public/jewelry.html`, tool.css, `serveGated` with the pill):
+  two steps on the rail, the explanation behind the "?", boxes empty, buttons
+  hug their words. The piece id lives in `localStorage` so leaving the page
+  loses nothing; a poll every 2.5s while `job.status==='running'`, and a
+  visibility-change re-read. Repaints are signature-skipped (photos and shots
+  keep their nodes). "Earlier pieces" under the steps reopens any piece.
+  A done step she taps back open shows its body (`.step.done.open .body`)
+  — tool.css hides a done step outright, which after "sent to Etsy" hid the
+  photos and the Start-another button (measured in the test).
+- **Money and access.** ~50¢ a piece (four medium shots at ~4.1¢ + ~1.85¢ per
+  reference read, docs/modules/pictures.md; the read ~2¢), a Redo ≈ 12¢.
+  `/make` and `/redo` are behind selfcare.js's per-IP limit (`RATE_MAX` 12 an
+  hour). The page is served like `/photo`: `STUDIO_TOKEN` is off on the live
+  server so the plain link opens for her mom; turning that token on would
+  lock her out — the fruit.js `who=` token pattern is the answer then, and it
+  is deliberately not built until needed. `?account=<name>` on the link picks
+  the Etsy shop (`etsy.normAccount` / `shopIdForAccount`, never
+  `ETSY_SHOP_ID` directly).
+- **Not built, on purpose:** a fixed shop model for the worn shot (her chat
+  drew candidates — the zip's fifteen portraits; the worn shot invents an
+  understated model per the prompt until she picks one), an iOS tile, the
+  `who=` link. Tests: `node scripts/test-jewelry.js`.
+
 ## Blog Studio (SEO posts → the site blog and/or Shopify)
 - `blog.js` (`/api/blog`, page at `/blog`, hub tile "Blog Studio") turns a topic
   into an SEO blog post. **Primary destination (July 2026): the on-site blog at

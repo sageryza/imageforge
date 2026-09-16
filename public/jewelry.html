@@ -1,0 +1,323 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Jewelry</title>
+<link rel="stylesheet" href="/tool.css">
+<style>
+/* jewelry.html — the two-step page Sophie's mom walks: upload the piece,
+   then review its listing and approve the sample photos. Everything else
+   (the rail, the steps, the buttons, the "?") is tool.css. */
+.tool .photos{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px; }
+.tool .photos .cell{ aspect-ratio:1; }
+.tool .photos .x{ position:absolute; top:4px; right:4px; width:26px; height:26px; border-radius:6px;
+  border:0; background:rgba(255,255,255,.9); color:var(--ink); font:inherit; font-size:15px; line-height:1;
+  display:flex; align-items:center; justify-content:center; padding:0; cursor:pointer; }
+.tool .photos .add{ border:1px dashed var(--accent); background:transparent; color:var(--accent);
+  flex-direction:column; gap:4px; font-size:13px; font-weight:600; }
+.tool .photos .add svg{ width:26px; height:26px; }
+.tool .shots{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-top:6px; }
+.tool .shot .cell{ aspect-ratio:1; }
+.tool .shot .cell.ok{ outline:3px solid var(--green); outline-offset:-3px; }
+.tool .shot .cell.no{ opacity:.45; }
+.tool .shot .lab{ font-size:12px; color:var(--dim); margin-top:5px; text-align:center; }
+.tool .shot .row{ margin-top:6px; justify-content:center; gap:6px; }
+.tool .shot .btn{ font-size:13px; padding:7px 10px; }
+.tool .shot .btn.ok{ background:var(--green); }
+.tool .shot .btn svg{ width:15px; height:15px; }
+.tool .fields label:first-child{ margin-top:4px; }
+.tool .chip.tag{ cursor:default; background:var(--surface2); color:var(--ink); }
+.tool .earlier{ margin:22px 2px 0; }
+.tool .earlier h3{ font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--dim); margin:0 0 8px; font-weight:600; }
+.tool .earlier .it{ display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px solid var(--border); cursor:pointer; }
+.tool .earlier .it .ph{ width:44px; height:44px; border-radius:6px; background:var(--surface2); flex:0 0 auto; }
+.tool .earlier .it img{ width:44px; height:44px; border-radius:6px; object-fit:cover; background:var(--surface2); }
+.tool .earlier .it .t{ flex:1; font-size:14px; }
+.tool .earlier .it .s{ font-size:12px; color:var(--dim); }
+.tool .status a{ color:inherit; }
+.tool .big{ font-size:16px; padding:12px 16px; }
+/* A finished step she taps back open shows its body — tool.css hides a done
+   step's body outright, which after "sent to Etsy" hid the photos AND the
+   Start-another button (measured in the test). */
+.tool .step.done.open .body{ display:block; }
+</style>
+<body class="tool">
+
+<div class="head">
+  <div class="eyebrow tool-eyebrow">JEWELRY</div>
+  <button id="help" aria-label="What is this?">?</button>
+</div>
+<div class="helpcard" id="helpcard" hidden>
+  <b>1.</b> Add three to five photos of one piece of jewelry, from different sides, in good light. A coin or ruler next to it helps with size.
+  <b>2.</b> Tap <b>Make the listing</b>. In a few minutes you get the words for the listing and four sample photos of your exact piece.
+  Fix any words, tap <b>Looks good</b> on the photos you like, <b>Redo</b> the ones you don't, then <b>Send to Etsy</b>.
+  It lands in your Etsy drafts — nothing is live until you publish it there. Each piece costs about 50 cents to make.
+</div>
+
+<div class="rail" id="rail"><i class="on"></i><i></i></div>
+
+<main>
+  <!-- 1 -->
+  <section class="step open" id="s1">
+    <div class="cap" onclick="openStep(1)"><span class="n">1</span>
+      <span class="t">Upload your jewelry</span><span class="sum" id="sum1"></span></div>
+    <div class="body">
+      <input type="file" id="file" accept="image/*" multiple hidden>
+      <div class="photos" id="photos"></div>
+      <label>Notes</label>
+      <textarea id="notes"></textarea>
+      <div class="row">
+        <button class="btn star big" id="makeBtn" onclick="makeIt()"><svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg> Make the listing</button>
+        <span class="note" id="makeNote"></span>
+      </div>
+      <div id="makeStatus"></div>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="step shut" id="s2">
+    <div class="cap" onclick="openStep(2)"><span class="n">2</span>
+      <span class="t">Review &amp; approve</span><span class="sum" id="sum2"></span></div>
+    <div class="body">
+      <div class="fields">
+        <label>Title</label><input id="ftitle" type="text" maxlength="140">
+        <label>Materials</label><input id="fmaterials" type="text">
+        <label>Price $</label><input id="fprice" type="number" min="1" step="1">
+        <label>Description</label><textarea id="fdesc" style="min-height:120px"></textarea>
+        <label>Tags</label><div class="chips" id="ftags"></div>
+        <div class="row" style="margin-top:8px"><span class="note" id="saveNote"></span></div>
+      </div>
+      <label>Sample photos</label>
+      <div class="shots" id="shots"></div>
+      <div class="row">
+        <button class="btn big" id="draftBtn" onclick="sendToEtsy()">Send to Etsy</button>
+        <button class="btn ghost" id="againBtn" onclick="startOver()">Start another piece</button>
+      </div>
+      <div id="draftStatus"></div>
+    </div>
+  </section>
+
+  <div class="earlier" id="earlier" hidden><h3>Earlier pieces</h3><div id="earlierList"></div></div>
+</main>
+
+<script>
+(function(){
+const TOKEN='__STUDIO_TOKEN__', tok=TOKEN.indexOf('__')===0?'':TOKEN;
+const api=(p,o={})=>{ if(tok) o.headers={...(o.headers||{}),'x-studio-token':tok};
+  return fetch(p,o).then(async r=>({ok:r.ok,status:r.status,body:await r.json().catch(()=>({}))})).catch(()=>({ok:false,status:0,body:{}})); };
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const $=id=>document.getElementById(id);
+const ACCOUNT=new URLSearchParams(location.search).get('account')||'';
+const KEY='jewelry_item'+(ACCOUNT?'_'+ACCOUNT:'');
+const SHOTS=[['main','Main photo'],['detail','Close-up'],['styled','Styled'],['model','Worn']];
+const ICON_OK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+const ICON_REDO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>';
+const ICON_PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';
+
+$('help').onclick=()=>{ const c=$('helpcard'); c.hidden=!c.hidden; };
+document.addEventListener('pointerdown',e=>{ if(!$('helpcard').hidden && !e.target.closest('#helpcard,#help')) $('helpcard').hidden=true; },true);
+
+let item=null;          // the current piece's doc, as the server last sent it
+let pollT=null, saveT=null, uploading=0;
+let sigPhotos='', sigShots='';
+
+// ── steps ──
+function openStep(n){
+  for(let i=1;i<=2;i++){ const el=$('s'+i); el.classList.toggle('open',i===n); el.classList.toggle('shut',i!==n); }
+  [...$('rail').children].forEach((r,i)=>r.classList.toggle('on',i<n));
+}
+window.openStep=openStep;
+function markDone(n,s){ $('s'+n).classList.add('done'); $('sum'+n).textContent=s; }
+function status(el,k,html){ el.className='status '+k; el.innerHTML=(k==='work'?'<span class="spin"></span>':'')+html; }
+function clear(el){ el.className=''; el.innerHTML=''; }
+
+// ── the piece ──
+async function ensureItem(){
+  if(item&&item.id) return item;
+  const r=await api('/api/jewelry/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({account:ACCOUNT||undefined})});
+  if(!r.ok||!r.body.id) throw new Error(r.body.error||'could not start');
+  item=r.body; localStorage.setItem(KEY,item.id); return item;
+}
+async function load(id){
+  const r=await api('/api/jewelry/items/'+encodeURIComponent(id));
+  if(!r.ok){ if(r.status===404){ localStorage.removeItem(KEY); item=null; } return null; }
+  item=r.body; render(); return item;
+}
+
+// ── photos (step 1) ──
+// Every photo is normalized in the browser first: Safari decodes the iPhone's
+// HEIC, we redraw it on a canvas capped at 1536px and send a plain JPEG — the
+// same trick /photo uses, because raw iPhone files are what the image
+// endpoints reject ("invalid image file or mode").
+$('file').onchange=async()=>{ const fs=[...$('file').files]; $('file').value=''; for(const f of fs) await addPhoto(f); };
+function normalize(f){ return new Promise((res,rej)=>{
+  const img=new Image(), u=URL.createObjectURL(f);
+  img.onload=()=>{ URL.revokeObjectURL(u);
+    try{ const MAX=1536, w=img.naturalWidth||img.width, h=img.naturalHeight||img.height, sc=Math.min(1,MAX/Math.max(w,h));
+      const c=document.createElement('canvas'); c.width=Math.max(1,Math.round(w*sc)); c.height=Math.max(1,Math.round(h*sc));
+      const x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(img,0,0,c.width,c.height);
+      c.toBlob(b=>b?res(b):rej(new Error('encode')),'image/jpeg',0.92);
+    }catch(e){ rej(e); } };
+  img.onerror=()=>{ URL.revokeObjectURL(u); rej(new Error('read')); };
+  img.src=u; }); }
+async function addPhoto(f){
+  const n=$('makeNote');
+  if((item&&(item.photos||[]).length||0)+uploading>=8){ n.textContent='Eight photos is plenty.'; return; }
+  uploading++; renderPhotos();
+  try{
+    const blob=await normalize(f); const it=await ensureItem();
+    const r=await api('/api/jewelry/items/'+it.id+'/photo',{method:'POST',headers:{'Content-Type':'image/jpeg'},body:blob});
+    if(!r.ok) throw new Error(r.body.error||'upload failed');
+    item=r.body.item||item;
+  }catch(e){ n.textContent='That photo didn\'t go through — try again.'; }
+  uploading--; render();
+}
+async function removePhoto(k){
+  if(!item) return;
+  const r=await api('/api/jewelry/items/'+item.id+'/photo/'+encodeURIComponent(k),{method:'DELETE'});
+  if(r.ok) item=r.body.item||item; render();
+}
+window.__removePhoto=removePhoto;
+function renderPhotos(){
+  const ph=(item&&item.photos)||[];
+  const busy=item&&item.job&&item.job.status==='running';
+  const sig=ph.map(p=>p.key+'|'+p.thumb).join(',')+'#'+uploading+'#'+busy;
+  if(sig===sigPhotos) return; sigPhotos=sig;
+  let h=ph.map(p=>`<div class="cell"><img src="${esc(p.thumb||p.url)}">${busy?'':`<button class="x" onclick="event.stopPropagation();__removePhoto('${esc(p.key)}')" aria-label="Remove">✕</button>`}</div>`).join('');
+  for(let i=0;i<uploading;i++) h+='<div class="cell"><span class="spin"></span></div>';
+  if(!busy && ph.length+uploading<8) h+=`<button class="cell add" id="addBtn">${ICON_PLUS}<span>${ph.length?'Add another':'Add photos'}</span></button>`;
+  $('photos').innerHTML=h;
+  const a=$('addBtn'); if(a) a.onclick=()=>$('file').click();
+  $('makeBtn').disabled=!ph.length||!!uploading||!!busy;
+}
+
+async function makeIt(){
+  if(!item||!(item.photos||[]).length){ $('makeNote').textContent='Add a photo first.'; return; }
+  $('makeNote').textContent='';
+  const notes=$('notes').value.trim();
+  $('makeBtn').disabled=true;
+  const r=await api('/api/jewelry/items/'+item.id+'/make',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({notes})});
+  if(!r.ok){ $('makeBtn').disabled=false; status($('makeStatus'),'err',esc(r.body.error||'Couldn\'t start. Try again.')); return; }
+  item=r.body.item||item; render(); poll();
+}
+window.makeIt=makeIt;
+
+// ── polling: the work runs on the server; leaving the page loses nothing ──
+function poll(){
+  clearTimeout(pollT);
+  if(!item||!item.job||item.job.status!=='running') return;
+  pollT=setTimeout(async()=>{ await load(item.id); poll(); },2500);
+}
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&item){ load(item.id).then(poll); } });
+
+// ── step 2: details + shots ──
+function renderDetails(){
+  const d=(item&&item.details)||{};
+  if(document.activeElement&&document.activeElement.closest('.fields')) return; // never overwrite what she is typing
+  $('ftitle').value=d.title||''; $('fmaterials').value=(d.materials||[]).join(', ');
+  $('fprice').value=d.price||''; $('fdesc').value=d.description||'';
+  $('ftags').innerHTML=(d.tags||[]).map(t=>`<span class="chip tag">${esc(t)}</span>`).join('');
+}
+function fieldsPatch(){
+  return { title:$('ftitle').value.trim(), materials:$('fmaterials').value.split(',').map(s=>s.trim()).filter(Boolean),
+    price:Number($('fprice').value)||undefined, description:$('fdesc').value.trim() };
+}
+['ftitle','fmaterials','fprice','fdesc'].forEach(id=>$(id).addEventListener('input',()=>{
+  clearTimeout(saveT); $('saveNote').textContent='';
+  saveT=setTimeout(async()=>{
+    if(!item) return;
+    const r=await api('/api/jewelry/items/'+item.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({details:fieldsPatch()})});
+    $('saveNote').textContent=r.ok?'saved':'not saved — check your connection';
+    if(r.ok&&r.body.item){ item.details=r.body.item.details; }
+  },900);
+}));
+
+function renderShots(){
+  const sh=(item&&item.shots)||{};
+  const sig=SHOTS.map(([k])=>{ const s=sh[k]||{}; return k+'|'+s.thumb+'|'+s.status+'|'+s.approved; }).join(',');
+  if(sig===sigShots) return; sigShots=sig;
+  $('shots').innerHTML=SHOTS.map(([k,lab])=>{
+    const s=sh[k]||{}; const cls=s.approved===true?'ok':(s.approved===false?'no':'');
+    let inner='';
+    if(s.status==='done'&&s.thumb) inner=`<img src="${esc(s.thumb)}">`;
+    else if(s.status==='failed') inner='<span class="note">didn\'t work</span>';
+    else inner='<span class="spin"></span>';
+    const can=s.status==='done'||s.status==='failed';
+    return `<div class="shot" data-k="${k}"><div class="cell ${cls}">${inner}</div><div class="lab">${esc(lab)}</div>
+      <div class="row">
+        <button class="btn ${s.approved===true?'ok':'ghost'}" ${can&&s.status==='done'?'':'disabled'} onclick="__approve('${k}',${s.approved===true?'false':'true'})">${ICON_OK} ${s.approved===true?'Approved':'Looks good'}</button>
+        <button class="btn ghost" ${can?'':'disabled'} onclick="__redo('${k}')">${ICON_REDO} Redo</button>
+      </div></div>`; }).join('');
+  const nOk=SHOTS.filter(([k])=>sh[k]&&sh[k].approved===true).length;
+  $('draftBtn').disabled=!nOk||!!(item&&item.job&&item.job.status==='running');
+}
+async function approve(k,v){
+  if(!item) return;
+  const r=await api('/api/jewelry/items/'+item.id+'/shot/'+k,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({approved:v})});
+  if(r.ok){ item=r.body.item||item; render(); }
+}
+async function redo(k){
+  if(!item) return;
+  const r=await api('/api/jewelry/items/'+item.id+'/shot/'+k+'/redo',{method:'POST'});
+  if(r.ok){ item=r.body.item||item; render(); poll(); }
+  else status($('draftStatus'),'err',esc(r.body.error||'Couldn\'t redo that one.'));
+}
+window.__approve=approve; window.__redo=redo;
+
+async function sendToEtsy(){
+  if(!item) return;
+  clearTimeout(saveT);
+  const st=$('draftStatus');
+  $('draftBtn').disabled=true; status(st,'work','Sending to Etsy…');
+  const r=await api('/api/jewelry/items/'+item.id+'/draft',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({details:fieldsPatch()})});
+  if(r.ok&&r.body.ok){ item=r.body.item||item; render(); }
+  else { $('draftBtn').disabled=false; status(st,'err',esc(r.body.error||'Etsy didn\'t take it. Try again in a minute.')); }
+}
+window.sendToEtsy=sendToEtsy;
+
+function startOver(){
+  clearTimeout(pollT); item=null; localStorage.removeItem(KEY);
+  sigPhotos=''; sigShots=''; $('notes').value='';
+  ['s1','s2'].forEach(id=>$(id).classList.remove('done')); $('sum1').textContent=''; $('sum2').textContent='';
+  clear($('makeStatus')); clear($('draftStatus')); $('makeNote').textContent='';
+  render(); openStep(1); loadEarlier();
+}
+window.startOver=startOver;
+
+function render(){
+  renderPhotos();
+  if(!item){ $('makeBtn').disabled=true; return; }
+  $('notes').value===''&&item.notes&&($('notes').value=item.notes);
+  const job=item.job||{};
+  const ms=$('makeStatus');
+  if(job.status==='running'){ status(ms,'work',esc(job.label||'Working…')); $('makeBtn').disabled=true; }
+  else if(job.status==='failed'){ status(ms,'err',esc(job.error||'Something went wrong. Tap Make the listing again.')); }
+  else clear(ms);
+  const has=item.details&&item.details.title;
+  if(has||job.status==='running'){
+    markDone(1,(item.photos||[]).length+' photo'+((item.photos||[]).length===1?'':'s'));
+    renderDetails(); renderShots();
+    if(item.status==='drafted'){
+      markDone(2,'sent to Etsy');
+      status($('draftStatus'),'ok',`In your Etsy drafts ✓ — <a target="_blank" href="https://www.etsy.com/your/shops/me/tools/listings/draft">open Etsy</a>`);
+      $('draftBtn').disabled=true;
+    }
+    if(!$('s2').classList.contains('open')&&(job.status!=='running'||has)) openStep(2);
+  }
+}
+
+async function loadEarlier(){
+  const r=await api('/api/jewelry/items?limit=12'+(ACCOUNT?'&account='+encodeURIComponent(ACCOUNT):''));
+  const list=(r.ok&&r.body.items||[]).filter(x=>!item||x.id!==item.id);
+  $('earlier').hidden=!list.length;
+  $('earlierList').innerHTML=list.map(x=>`<div class="it" data-id="${esc(x.id)}">${x.thumb?`<img src="${esc(x.thumb)}" alt="">`:'<span class="ph"></span>'}<span class="t">${esc(x.title||'Untitled piece')}</span><span class="s">${esc(x.state||'')}</span></div>`).join('');
+  $('earlierList').querySelectorAll('.it').forEach(el=>el.onclick=async()=>{ localStorage.setItem(KEY,el.dataset.id); sigPhotos=''; sigShots=''; await load(el.dataset.id); poll(); loadEarlier(); window.scrollTo(0,0); });
+}
+
+(async function boot(){
+  render();
+  const id=localStorage.getItem(KEY);
+  if(id){ await load(id); poll(); }
+  loadEarlier();
+})();
+})();
+</script>
