@@ -3115,6 +3115,15 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   text block bug · rapid movement"): the shrink road measures on a twin
   textarea and writes the box only when its height really changed — a
   `height:auto` on a focused box is the jump. Same section of the doc.**
+  **AND THE ROOM IT BORROWS IS THE WHOLE KEYBOARD, NOT JUST THE CARET'S
+  SHORTFALL (2026-09-16, "no way to scroll down or split long or bottom
+  messages"): the layout viewport does not shrink when the keyboard opens, so
+  the foot of the page — the end of what she is writing and the Done bar
+  under it — sat a keyboard's height below the band with nothing left to
+  scroll (MEASURED at 390x844: 683 and 731 against a band ending at 482), and
+  a box fitted to its words fills the band, so there is no page left to drag
+  either. While a box is focused the page now borrows the keyboard itself.
+  Same section of the doc; `node scripts/test-caret-room.js`.**
 
 - **THE WAY OUT OF A BIG BOX STAYS ON SCREEN — `/stickybox.js`, ONE FILE,
   EVERY PAGE (2026-09-10, Sophie: "can we get a floating or sticky/pinned
