@@ -3883,8 +3883,16 @@ before working on that module. Nothing was deleted — the moved text is verbati
   Dashboard setup, which changes often — re-verify the UI before instructing).
 - **Photo -> Etsy** (`photostudio.js`, `/api/photostudio`, `/photo`) — a separate
   track from POD, for things Sophie already MADE: one photo of the real product ->
-  reviewable Etsy draft. Mockups use gpt-image-2 edits with `input_fidelity:high`
-  so the ACTUAL product is preserved, not hallucinated.
+  reviewable Etsy draft. Mockups use gpt-image-2 **edits**, which preserve the
+  ACTUAL product rather than hallucinating one. **NO `input_fidelity` — every
+  image surface here is gpt-image-2 and it refuses that flag BECAUSE it runs
+  every input at high fidelity automatically** (2026-09-16, Sophie: "use 2,
+  change everywhere and the docs"; OpenAI's own docs). This route led with
+  gpt-image-1 + the flag until that day, on a comment here calling gpt-image-2
+  "degraded" — backwards, and it had been filing `gpt-image-2` as the caption
+  on every mockup gpt-image-1 drew. gpt-image-2 is also cheaper ($8/1M image
+  in, $30/1M out, against $10 and $40). gpt-image-2.5-sunburst / -flare exist
+  on the key (2026-09-08) and are UNMEASURED here — hers to ask for.
   **Full details: `docs/modules/business.md`.**
 - **Jewelry → Etsy** (`jewelry.js`, `/api/jewelry`, page at `/jewelry`, no
   iOS tile — 2026-09-16, Sophie: "a simple user friendly website my mom can

@@ -6,8 +6,8 @@
 //
 //   photo of the real product
 //     → describe it (gpt-4o vision: what it is, materials, colors, keywords)
-//     → styled mockups (gpt-image-2 edits, input_fidelity high so the ACTUAL
-//       product is preserved): a clean white-background shot + prop flatlays
+//     → styled mockups (gpt-image-2 edits, which preserve the ACTUAL
+//       product): a clean white-background shot + prop flatlays
 //     → SEO listing content (title / 13 tags / description) — reuses pipeline.js
 //     → DRAFT Etsy listing with the mockups attached — reuses pipeline.js
 //
@@ -15,9 +15,9 @@
 // — Sophie fulfils these herself. Mounted at /api/photostudio by server.js.
 //
 // A note on faithfulness: the white-background and flatlay shots go through
-// gpt-image-2's IMAGE EDIT endpoint with `input_fidelity: high`, which keeps the
-// real product's shape/texture/label instead of hallucinating a new object. It
-// re-lights and re-stages the SAME item; it does not invent a different one.
+// gpt-image-2's IMAGE EDIT endpoint, which keeps the real product's
+// shape/texture/label instead of hallucinating a new object. It re-lights and
+// re-stages the SAME item; it does not invent a different one.
 
 const express = require('express');
 const fetch = require('node-fetch');
@@ -150,15 +150,21 @@ async function describeProduct({ image } = {}) {
 // ─── OpenAI image edits: re-stage the real product ──────────────────
 // Returns a PNG buffer (Etsy accepts png/jpg/gif, not webp).
 //
-// Faithfulness matters here — the point is to re-light/re-stage the ACTUAL
-// product, not hallucinate a new one. Only gpt-image-1 supports the
-// `input_fidelity: high` flag that preserves the real subject (gpt-image-2
-// rejects it — "does not support the 'input_fidelity' parameter"). So we edit
-// with gpt-image-1 first, and only fall back to gpt-image-2 (no fidelity flag)
-// if gpt-image-1 is ever unavailable on the account — degraded but not broken.
+// ONE MODEL, gpt-image-2 (2026-09-16, Sophie: "use 2, change everywhere and
+// the docs"). This block used to lead with gpt-image-1 + `input_fidelity:
+// high` and call gpt-image-2 a degraded fallback, on the reasoning that
+// gpt-image-2 "rejects the flag". Read against OpenAI's own docs that day, the
+// conclusion is backwards: gpt-image-2 refuses `input_fidelity` BECAUSE it
+// "processes every image input at high fidelity automatically" — there is
+// nothing to set, and nothing is lost by not setting it. It is also cheaper
+// ($8/1M image in, $30/1M out, against gpt-image-1's $10 and $40).
+//
+// AND THE CAPTION WAS ALREADY SAYING SO. Every mockup filed
+// `model: 'gpt-image-2'` (see makeMockups below) while gpt-image-1 drew it —
+// so until now this route's captions were wrong on every picture it ever made.
+// Keep the two in step: the model named here is the model named there.
 const EDIT_MODELS = [
-  { model: 'gpt-image-1', inputFidelity: true },  // faithful: preserves the real product
-  { model: 'gpt-image-2', inputFidelity: false }, // fallback if gpt-image-1 is unavailable
+  { model: 'gpt-image-2', inputFidelity: false },
 ];
 async function editImage({ buffer, mime, prompt, size = '1024x1024', quality = 'medium', retries = 1 }) {
   let lastErr;
@@ -170,6 +176,7 @@ async function editImage({ buffer, mime, prompt, size = '1024x1024', quality = '
         form.append('prompt', prompt);
         const ext = (mime.split('/')[1] || 'png').replace('jpeg', 'jpg');
         form.append('image', buffer, { filename: `product.${ext}`, contentType: mime });
+        // No `input_fidelity` — gpt-image-2 refuses it and is always high.
         if (cfg.inputFidelity) form.append('input_fidelity', 'high');
         form.append('size', size);
         form.append('quality', quality);
@@ -190,7 +197,7 @@ async function editImage({ buffer, mime, prompt, size = '1024x1024', quality = '
         if (attempt < retries) await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
       }
     }
-    // gpt-image-1 exhausted its retries — fall through to the gpt-image-2 fallback.
+    // This model exhausted its retries — fall through to the next, if any.
   }
   throw lastErr;
 }
