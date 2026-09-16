@@ -97,22 +97,22 @@ the girl has not said a word in the whole spot. She is the one who does.
 2026-09-16, Sophie: "need a short explanation conclusion saturnalia · maybe
 the girl starts talking."*
 
-26. back to the living room. mom and dad are staring at the tree. nobody says
-    anything.
+26. back to the living room. mom is still staring at the tree.
+    **mom:** "...we stole it?"
 
-27. the girl, still on the floor with the crystals, not looking up. first time
-    she speaks, bored, like everyone should know:
-    **girl:** "It's Saturnalia."
+27. the girl, on the floor with the crystals, not looking up. first time she
+    speaks in the whole spot, to her mum, bored, like mum should know this:
+    **girl:** "It's Saturnalia, Mum."
 
-28. the parents look at her. she keeps sorting the little bottles as she
-    talks.
+28. mom looks down at her. she keeps sorting the little bottles as she talks.
     **girl:** "The Romans did it. In December. Everyone got a week off and
-    gave each other presents. Then it got called Christmas."
+    gave each other presents. Then they called it Christmas."
 
-29. she goes back to the bottles.
+29. **mom:** "...who told you that?"
+    the girl shrugs. goes back to the bottles.
 
 30. dad, to mom, quiet: "...did you know that?"
-    mom does not answer. she is still looking at the tree.
+    mom does not answer.
 
 31. the girl points the wand at the tree again. the lights come back on,
     steady this time. she almost smiles.
@@ -125,17 +125,20 @@ the girl starts talking."*
 beat 1; landing it again after she has just proved it is the button. Hers to
 run it once or twice.
 
-**:05 cut** (for a 15s clip): 27, then "The Romans did it. In December.
+**:05 cut** (for a 15s clip): 26, 27, then "The Romans did it. In December.
 Everyone gave each other presents." — then 31 and the voiceover.
 
 **[Extra lines, same voice]**
 - "It was the seventeenth. Not the twenty-fifth. Whatever."
 - "They gave each other candles. And little clay dolls."
 - "The slaves got to be in charge for a week."
-- "My mum told me."
+- **mom:** "...who told you that?" **girl:** "You did." *(the witch reveal, if
+  mum is one — swaps for beat 29)*
 
 **How she talks (2026-09-16, Sophie: "too many metonymy's and literary
-devices · WHY would a girl talk like this"):** like a kid. Plain words, short
+devices · WHY would a girl talk like this" · "she's talking to her mum"):**
+like a kid, to her mum — she answers mum's "we stole it?", she is not
+addressing the room. Plain words, short
 sentences, facts in the order she thinks of them. No "changed the name on the
 door", no "a fool got to be king", no "puts the bottom on top", nothing that
 scans. If a line would look good on a poster, it is wrong for her.
