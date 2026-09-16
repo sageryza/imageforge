@@ -33,13 +33,70 @@ wants and the one thing she has no photo of.
 
 ## THE PIECE IS REAL, SO IT IS AN EDIT, NEVER A GENERATION
 
-Somebody made each of these by hand — so the new picture has to be of THAT
-piece, every bead in the same order. `jewelry-restage.js` walks photostudio.js's
-ladder: `images/edits` on **gpt-image-1 with `input_fidelity: high`**, falling
-back to gpt-image-2 without the flag only if gpt-image-1 is ever off the account
-(gpt-image-2 refuses the flag — "does not support the 'input_fidelity'
-parameter" — so the fallback is degraded, not equivalent). The run prints which
-model actually drew it, because the caption has to be true.
+OpenAI has two doors. `images/generations` draws from words alone.
+`images/edits` takes a picture in — her photo, and optionally a mask — and
+changes it. Somebody made each of these by hand, so the new picture has to be
+of THAT piece, every bead in the same order, and only the second door can do
+that. `jewelry-restage.js` uses it. The run prints which model actually drew
+it, because the caption has to be true.
+
+## THE FIRST RUN USED THE 2025 MODEL, ON THE STRENGTH OF A STALE NOTE (2026-09-16)
+
+`photostudio.js` says gpt-image-1 is the faithful one because gpt-image-2
+"refuses the `input_fidelity` flag, so the fallback is degraded". Read against
+OpenAI's own docs the same day (Sophie: "4 cents? so all inputs have been low
+fidelity" — the question that made me look):
+
+- **gpt-image-2 refuses the flag because it runs every image input at high
+  fidelity automatically.** There is nothing to set. Not degraded — the note's
+  conclusion is backwards.
+- **There is a newer pair on her key, `gpt-image-2.5-sunburst` and
+  `-flare`, dated 2026-09-08.** OpenAI: "Choose Sunburst for workflows where
+  editing precision matters most, and Flare for fast, high-quality everyday
+  image generation." Five quality rungs (low · medium · high · xhigh · max)
+  against gpt-image-2's three. Same token rates as gpt-image-2 — $8/1M image
+  in, $30/1M image out, against gpt-image-1's $10 and $40.
+- **So the first four pictures came off the oldest model available.** They
+  WERE high fidelity — gpt-image-1 accepted the flag on all four (the script
+  logs it only when the accepted request carried it), and 4¢ is exactly what
+  high fidelity costs there: OpenAI's table puts a square input at ~4,160
+  image tokens × $10/1M. Low would have been well under a cent. **But that 4¢
+  was an estimate off the table, not a reading** — the response's `usage`
+  block was never saved. The script saves it now and prices from it.
+- **The ladder leads with sunburst now**, then gpt-image-2, then gpt-image-1
+  with its flag; `--model` picks one outright. `photostudio.js` still leads
+  with gpt-image-1 and is **deliberately left alone** — it is a live tool and
+  changing what draws her Etsy mockups is hers to say.
+
+## A MASK IS GUIDANCE, NOT A LOCK — CORRECTING WHAT THE CHAT SAID FIRST
+
+The reply that proposed the mask said the necklace would "stay her actual
+pixels — no drift by construction". **Wrong through OpenAI's door.** Their
+docs: "Masking with GPT Image is entirely prompt-based. The model uses the
+mask as guidance, but may not follow its exact shape with complete precision."
+A mask makes the model TRY to leave the piece alone; it does not stop it
+repainting a bead. The only pixel-exact route is a composite we make
+ourselves — cut the piece out of her photo (a segmenter on Replicate, ~2¢),
+draw the scene around a stand-in, paste her cut-out back over it — which is
+free after the draw and is a separate step nobody has built or measured yet.
+Its own catch: the pasted piece keeps the lighting of her photo, so the scene
+has to be lit to match it (the dress-form shots are soft and even, which is
+the easy case).
+
+## WHAT TO TRY FOR "EXACT", IN ORDER — none of it run yet, her go first
+
+1. **Sunburst instead of gpt-image-1.** The biggest single change, and the
+   cheapest to test: the same two prompts again, one command each.
+2. **Take the warmth out of the scene prompt.** "warm neutral background,
+   natural daylight" was the chat's own wording and it tints silver; a neutral
+   studio light is a scene word (what no reference carries), so it is inside
+   the never-describe-the-reference rule.
+3. **A colour-accuracy line** — "colour-accurate, the metal keeps its true
+   tone" — positive wording, since a "do not tint" reads as weakly here as a
+   "does NOT appear" did on Wan.
+4. **Name the metal** ("sterling silver") — would likely help and is the one
+   that breaks her never-describe-the-reference rule. Hers to allow.
+5. **The composite** above, for a piece whose metal is the selling point.
 
 **The prompts say what happens to the piece, never what the piece looks like.**
 The photo carries the piece; words about its colour or its beads only argue with
