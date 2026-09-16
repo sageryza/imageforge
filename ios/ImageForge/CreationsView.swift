@@ -140,7 +140,7 @@ final class VideoSaver {
             // rebuild it from the originals. `clip-<random>` said nothing:
             // her first export needed every clip matched by length and shape,
             // and three of seven were ambiguous. Random only as a fallback.
-            let stem = url.deletingPathExtension().lastPathComponent
+            var stem = url.deletingPathExtension().lastPathComponent
                 .replacingOccurrences(of: "[^A-Za-z0-9._-]+", with: "-", options: .regularExpression)
             if stem.count < 6 { stem = "clip-\(UUID().uuidString)" }
             let tmp = FileManager.default.temporaryDirectory
