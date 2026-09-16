@@ -1,4 +1,10 @@
-# Christmas commercials — every script, in order
+# Christmas commercials — the chat-written alternates
+
+**HER script is `SCRIPT.md` next door** (2026-09-15, Sophie: "scripts = mine
+only" · "scripts from footage"). It is the one being shot. Everything in THIS
+file was written by a chat as options, and is kept as history rather than as
+the script.
+
 
 **Nine spots and one ending, collected 2026-09-15.** They were in three places
 before this — five in the repo doc, four only on a posted Compare page that
