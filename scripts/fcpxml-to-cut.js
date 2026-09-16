@@ -15,6 +15,8 @@
 // app named saved clips `clip-<random>.mp4` before that day's build). A
 // length+shape that fits two clips is SKIPPED and both are named — never
 // guessed. `--media` still rides on top; `--no-footage` turns the log off.
+// A "Full Media" zip settles those: the md5 of each clip in the zip is
+// matched against the candidates' Storage md5 (one HEAD each, no download).
 //
 // --dump reads the package OFF THE DUMP (2026-09-16, Sophie: "easiest,
 // period?"): she shares LumaFusion's XML Project Package straight to Deck
@@ -78,15 +80,55 @@ function loadXml(p) {
   }
   return fs.readFileSync(p, 'utf8');
 }
-async function loadXmlAsync(p) {
+async function loadXmlAsync(p) { return (await loadPackage(p)).xml; }
+
+// The whole package: the xml, plus the md5 of every media file that rides in
+// the zip (a "Full Media" export). Those bytes are the ORIGINALS the app
+// saved, so their md5 is the Storage object's own — the one join that cannot
+// be ambiguous (2026-09-16, when three of seven clips in her XML-only export
+// looked like dozens of others by length and shape).
+async function loadPackage(p) {
   if (/\.zip$/i.test(p) && fs.statSync(p).isFile()) {
     const JSZip = require('jszip');
+    const crypto = require('crypto');
     const zip = await JSZip.loadAsync(fs.readFileSync(p));
     const name = Object.keys(zip.files).find((n) => /\.fcpxml$/i.test(n) && !zip.files[n].dir);
     if (!name) throw new Error('no .fcpxml inside the zip');
-    return zip.files[name].async('string');
+    const md5s = {};
+    for (const n of Object.keys(zip.files)) {
+      if (zip.files[n].dir || /\.fcpxml$/i.test(n)) continue;
+      const buf = await zip.files[n].async('nodebuffer');
+      md5s[basename(n)] = crypto.createHash('md5').update(buf).digest('base64');
+    }
+    return { xml: await zip.files[name].async('string'), md5s };
   }
-  return loadXml(p);
+  return { xml: loadXml(p), md5s: {} };
+}
+
+// Storage answers a HEAD with `x-goog-hash: md5=<base64>` — no download.
+async function storageMd5(url) {
+  try {
+    const r = await fetch(url, { method: 'HEAD' });
+    const h = r.headers.get('x-goog-hash') || '';
+    const m = h.match(/md5=([A-Za-z0-9+/=]+)/);
+    return m ? m[1] : null;
+  } catch { return null; }
+}
+
+// Settle every ambiguous clip whose bytes rode in the zip: HEAD each
+// candidate, keep the one whose md5 is the file's. Pins the answer into the
+// media map under the asset's own filename, so the next parse joins by name.
+async function settleByHash(result, media, md5s, head) {
+  head = head || storageMd5;
+  let settled = 0;
+  for (const a of result.ambiguous || []) {
+    const want = md5s[a.file];
+    if (!want || media[a.file]) continue;
+    for (const c of a.candidates) {
+      if (await head(c.url) === want) { media[a.file] = c; settled += 1; break; }
+    }
+  }
+  return settled;
 }
 
 // The pure half: FCPXML text + filename→url map → {clips, sounds, skipped, gaps}
@@ -160,7 +202,7 @@ function fcpxmlToCut(xml, media, opts) {
   walk(root);
   if (!spine) throw new Error('no sequence/spine in the fcpxml');
 
-  const clips = [], sounds = [], skipped = [], gaps = [];
+  const clips = [], sounds = [], skipped = [], gaps = [], ambiguous = [];
   const media0 = media || {};
   const lookup = (asset) => {
     if (!asset) return null;
@@ -212,7 +254,7 @@ function fcpxmlToCut(xml, media, opts) {
   const pieceKeys = [];
   const addSound = (el, asset, laneNote) => {
     const m = lookup(asset);
-    if (!m || m.ambiguous) { skipped.push({ file: asset && asset.file, why: whyNot(asset, m) }); return; }
+    if (!m || m.ambiguous) { skipped.push({ file: asset && asset.file, why: whyNot(asset, m) }); if (m && m.ambiguous) ambiguous.push({ file: asset.file, candidates: m.ambiguous }); return; }
     const at = secs(el.offset) || 0, tIn = secs(el.start) || 0, dur = secs(el.duration);
     const s = { key: 's' + (sounds.length + 1), url: m.url, name: asset.name || asset.file, at: R3(at), in: R3(tIn), out: dur != null ? R3(tIn + dur) : null, gain: 0, fadeIn: 0, fadeOut: 0, mute: false };
     if (m.seconds) s.seconds = m.seconds;
@@ -239,7 +281,7 @@ function fcpxmlToCut(xml, media, opts) {
     if (!asset) { skipped.push({ file: ref, why: 'no asset for ref' }); continue; }
     if (!asset.hasVideo && asset.hasAudio) { addSound(el, asset, 'spine audio'); continue; }
     const m = lookup(asset);
-    if (!m || m.ambiguous) { skipped.push({ file: asset.file, why: whyNot(asset, m) }); attached(el); continue; }
+    if (!m || m.ambiguous) { skipped.push({ file: asset.file, why: whyNot(asset, m) }); if (m && m.ambiguous) ambiguous.push({ file: asset.file, candidates: m.ambiguous }); attached(el); continue; }
     n += 1;
     const key = 'p' + n;
     const tIn = secs(el.start) || 0;
@@ -256,7 +298,7 @@ function fcpxmlToCut(xml, media, opts) {
     pieceKeys.push(key);
     attached(el);
   }
-  return { clips, sounds, skipped, gaps, total: R3(clips.reduce((a, c) => a + (c.kind === 'image' ? c.out : c.out - c.in), 0)) };
+  return { clips, sounds, skipped, gaps, ambiguous, total: R3(clips.reduce((a, c) => a + (c.kind === 'image' ? c.out : c.out - c.in), 0)) };
 }
 
 // The newest zip in the Dump (or the one she named), downloaded to a temp
@@ -322,7 +364,7 @@ async function fromFootage() {
   return map;
 }
 
-module.exports = { fcpxmlToCut, secs, basename, pickDump, fromFootage, shapeOf, shapeOfCard, fingerprintMatch };
+module.exports = { fcpxmlToCut, secs, basename, pickDump, fromFootage, shapeOf, shapeOfCard, fingerprintMatch, loadPackage, settleByHash, storageMd5 };
 
 if (require.main === module) {
   (async () => {
@@ -335,8 +377,12 @@ if (require.main === module) {
     // a --media file rides on top of it and wins on a name clash
     const media = Object.assign({}, args.includes('--no-footage') ? {} : await fromFootage(),
       flag('--media') ? JSON.parse(fs.readFileSync(flag('--media'), 'utf8')) : {});
-    const xml = await loadXmlAsync(src);
-    const r = fcpxmlToCut(xml, media);
+    const { xml, md5s } = await loadPackage(src);
+    let r = fcpxmlToCut(xml, media);
+    if (r.ambiguous.length && Object.keys(md5s).length) {
+      const n = await settleByHash(r, media, md5s);
+      if (n) { console.log(`${n} clip(s) settled by md5 against the zip's media`); r = fcpxmlToCut(xml, media); }
+    }
     const out = flag('--out') || 'cut.json';
     fs.writeFileSync(out, JSON.stringify({ clips: r.clips, sounds: r.sounds }, null, 1));
     console.log(`${r.clips.length} pieces · ${r.sounds.length} sounds · ${r.total}s → ${out}`);

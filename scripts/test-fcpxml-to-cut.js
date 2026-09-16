@@ -125,4 +125,25 @@ assert.ok(/j4 · j5/.test(rr.skipped[0].why));
 // a name that IS in the map still wins over any fingerprint
 const named = fcpxmlToCut(REAL.replace('clip-AAAA.mp4', 'full1.mp4').replace('./clip-AAAA.mp4', './full1.mp4'), LOG);
 assert.strictEqual(named.clips[0].url, 'https://x/full1.mp4');
-console.log('test-fcpxml-to-cut: ok');
+// A FULL-MEDIA ZIP SETTLES A TIE BY md5: the zip's bytes are the originals,
+// so the Storage object with the same md5 is the clip, whatever it is named.
+const { settleByHash } = require('./fcpxml-to-cut.js');
+(async () => {
+  const media = Object.assign({}, LOG);
+  const tie = fcpxmlToCut(REAL, media);
+  assert.strictEqual(tie.ambiguous.length, 1);
+  assert.strictEqual(tie.ambiguous[0].file, 'clip-CCCC.mp4');
+  const heads = { 'https://x/m3.mp4': 'AAA=', 'https://x/m4.mp4': 'BBB=' };
+  const n = await settleByHash(tie, media, { 'clip-CCCC.mp4': 'BBB=' }, async (u) => heads[u] || null);
+  assert.strictEqual(n, 1);
+  assert.strictEqual(media['clip-CCCC.mp4'].url, 'https://x/m4.mp4');
+  const done = fcpxmlToCut(REAL, media);
+  assert.strictEqual(done.clips.length, 3);
+  assert.strictEqual(done.clips[2].url, 'https://x/m4.mp4');
+  assert.strictEqual(done.skipped.length, 0);
+  // an md5 nothing matches settles nothing and guesses nothing
+  const m2 = Object.assign({}, LOG);
+  assert.strictEqual(await settleByHash(fcpxmlToCut(REAL, m2), m2, { 'clip-CCCC.mp4': 'ZZZ=' }, async () => 'AAA='), 0);
+  assert.strictEqual(fcpxmlToCut(REAL, m2).clips.length, 2);
+  console.log('test-fcpxml-to-cut: ok');
+})().catch((e) => { console.error(e); process.exit(1); });
