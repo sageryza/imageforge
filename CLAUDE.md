@@ -3889,22 +3889,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
 - **Jewelry → Etsy** (`jewelry.js`, `/api/jewelry`, page at `/jewelry`, no
   iOS tile — 2026-09-16, Sophie: "a simple user friendly website my mom can
   interact with, with clear step by steps 1. upload jewelry 2. review details
-  and approve sample photos") — her MOM's two-step page. Three to five phone
-  photos of ONE piece go in; one tap ("Make the listing") runs ONE background
-  job: Claude reads the photos and writes the listing (title, materials,
-  description, 13 tags, a price guess — words a human reads, so Claude), then
-  gpt-image-2 edits draw four sample photos (main · close-up · styled · worn)
-  with EVERY upload attached as `image[]` under the MASTER FIDELITY PROMPT
-  from her jewelry pipeline chat ("the jewelry item is immutable… only the
-  background, lighting, framing, camera position, and surrounding scene may
-  change"). She fixes the words, taps "Looks good"/"Redo" per photo, and
-  SEND TO ETSY makes a DRAFT with the approved photos (the photostudio path:
+  and approve sample photos" · "the chatgpt model makes the pics" · "she only
+  uploads one") — her MOM's two-step page. ONE phone photo of the piece goes
+  in; one tap ("Make the listing") runs ONE background job: Claude reads the
+  photo and writes the listing (title, materials, description, 13 tags, a
+  price guess — words a human reads, so Claude), then gpt-image-2 (the
+  ChatGPT image model) draws FIVE sample photos (main · close-up · styled ·
+  another angle · worn) with the photo attached as `image[]` under the MASTER
+  FIDELITY PROMPT from her jewelry pipeline chat ("the jewelry item is
+  immutable… only the background, lighting, framing, camera position, and
+  surrounding scene may change") — the five prompts of that chat, verbatim.
+  She fixes the words, taps "Looks good"/"Redo" per photo, and SEND TO ETSY
+  makes a DRAFT with the approved photos (the photostudio path:
   `pipeline.publishDraft`, defaults off an active listing). Nothing goes live.
-  **About 50¢ a piece** (four medium shots with four references at ~12¢ each,
-  the read ~2¢); a Redo ≈ 12¢. Four things to know: the prompt NEVER
-  describes the photos (the never-describe-a-reference rule — the photos are
+  **About 30¢ a piece** (five medium shots with one reference at ~6¢ each,
+  the read ~1¢); a Redo ≈ 6¢. Four things to know: the prompt NEVER
+  describes the photo (the never-describe-a-reference rule — the photo is
   the description; only the seller's own notes ride, as "scale information");
-  gpt-image-2 rejects `input_fidelity`, so the fidelity is prompt + references,
+  gpt-image-2 rejects `input_fidelity`, so the fidelity is prompt + reference,
   which is what her chat settled on; a shot is saved as a stamped PNG (Etsy
   takes no webp) plus a 600px webp thumb the page shows; the page is served
   like `/photo` (studio gate off live, so the link just opens — if

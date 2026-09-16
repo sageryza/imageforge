@@ -3,15 +3,17 @@
 // my mom can interact with, with clear step by steps 1. upload jewelry
 // 2. review details and approve sample photos").
 //
-//   1. UPLOAD — three to five phone photos of ONE piece, from different sides.
-//      Each is normalized in the browser (HEIC → JPEG, ≤1536px) and POSTed as
-//      raw bytes; stored once per md5 under jewelry/<item>/.
+//   1. UPLOAD — ONE phone photo of the piece (Sophie: "she only uploads
+//      one"). Normalized in the browser (HEIC → JPEG, ≤1536px) and POSTed as
+//      raw bytes; stored once per md5 under jewelry/<item>/. The route takes
+//      more, but the page asks for one.
 //   2. MAKE THE LISTING — one tap, one background job, two things:
 //        a. Claude reads every photo (vision) and writes the listing: what it
 //           is, materials, a title, a description, thirteen tags, a price
 //           guess. Words a human reads → Claude (the house rule).
-//        b. gpt-image-2 edits draw four sample photos — main, close-up,
-//           styled, worn — with EVERY upload attached as `image[]` and the
+//        b. gpt-image-2 (the ChatGPT image model — "the chatgpt model makes
+//           the pics") draws FIVE sample photos — main, close-up, styled,
+//           another angle, worn — with the upload attached as `image[]` and the
 //           MASTER FIDELITY PROMPT from Sophie's own pipeline chat on top:
 //           the jewelry is immutable, only the scene may change. The prompt
 //           never describes what is in the photos (the never-describe-a-
@@ -23,8 +25,8 @@
 //      Nothing ever goes live from here.
 //
 // WHAT IT COSTS (gpt-image-2 medium square 4.1¢ + ~1.85¢ per reference read,
-// docs/modules/pictures.md): a shot with four references ≈ 12¢, the four
-// shots ≈ 50¢, the Claude read ≈ 2¢. About 50¢ a piece; a Redo ≈ 12¢.
+// docs/modules/pictures.md): a shot with one reference ≈ 6¢, the five shots
+// ≈ 30¢, the Claude read ≈ 1¢. About 30¢ a piece; a Redo ≈ 6¢.
 //
 // GOTCHAS
 // - gpt-image-2 REJECTS `input_fidelity` (photostudio.js measured it); the
@@ -52,7 +54,7 @@
 //   PATCH  /items/:id {details, notes}   EDITABLE whitelist, her edits win
 //   POST   /items/:id/photo (raw bytes)  one reference photo; md5-deduped
 //   DELETE /items/:id/photo/:key
-//   POST   /items/:id/make {notes}       the job: read + four shots (rate-limited)
+//   POST   /items/:id/make {notes}       the job: read + five shots (rate-limited)
 //   POST   /items/:id/shot/:key {approved}
 //   POST   /items/:id/shot/:key/redo     redraw one shot (rate-limited)
 //   POST   /items/:id/draft {details?}   the Etsy DRAFT with the approved shots
@@ -129,6 +131,16 @@ Place it in a subtle, natural setting appropriate for handmade jewelry. Keep the
 Use soft natural light, realistic depth of field, and believable contact shadows.
 
 The jewelry itself must remain completely unchanged from the references.`,
+  },
+  angle: {
+    label: 'Another angle',
+    prompt: `Create a professional product photograph of the exact jewelry item from a different useful viewing angle.
+
+Infer the object's three-dimensional form only from the supplied reference photographs. Do not invent unseen construction or decorative details.
+
+Use a clean neutral background, soft realistic lighting, and natural shadows.
+
+Preserve the exact object's proportions, materials, construction, colors, and imperfections.`,
   },
   model: {
     label: 'Worn',
@@ -253,9 +265,9 @@ async function thumbOfBuffer(buf, width = 600) {
   const sharp = require('sharp');
   return sharp(buf).rotate().resize({ width, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
 }
-// A reference is sent to the models as a ≤1024 JPEG — the edits endpoint reads
-// every reference as image tokens (~1.85¢ each), and a phone photo's extra
-// pixels buy nothing there.
+// The reference is sent to the models as a ≤1024 JPEG — the edits endpoint
+// reads it as image tokens (~1.85¢), and a phone photo's extra pixels buy
+// nothing there.
 async function referenceJpeg(buf, max = 1024) {
   const sharp = require('sharp');
   return sharp(buf).rotate().resize({ width: max, height: max, fit: 'inside', withoutEnlargement: true })
@@ -268,7 +280,7 @@ async function fetchBuffer(url) {
 }
 
 // ─── Claude reads the photos and writes the listing ────────────────
-const READ_SYSTEM = `You write Etsy listings for a small handmade jewelry shop. You are shown several photos of ONE piece of jewelry, from different sides. Describe only what the photos show; when something is not visible or not certain, say so briefly in the description rather than inventing it. Plain, warm, specific words a shopper trusts — no hype, no exclamation marks, no clichés.
+const READ_SYSTEM = `You write Etsy listings for a small handmade jewelry shop. You are shown a photo of ONE piece of jewelry (sometimes more than one photo of the same piece). Describe only what the photos show; when something is not visible or not certain, say so briefly in the description rather than inventing it. Plain, warm, specific words a shopper trusts — no hype, no exclamation marks, no clichés.
 
 Return STRICT JSON with exactly these keys:
 {
@@ -290,7 +302,7 @@ async function readPhotos(refs, notes) {
     content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: buf.toString('base64') } });
   }
   const n = String(notes || '').trim();
-  content.push({ type: 'text', text: `These ${refs.length} photos show one piece of jewelry.`
+  content.push({ type: 'text', text: (refs.length === 1 ? 'This photo shows one piece of jewelry.' : `These ${refs.length} photos show one piece of jewelry.`)
     + (n ? ` The seller adds: ${n}` : '') + ' Write the listing.' });
   const out = await anthropic.chatJSON({ system: READ_SYSTEM, messages: [{ role: 'user', content }], maxTokens: 1500 });
   const d = cleanDetails(out || {});
@@ -422,18 +434,18 @@ async function loadRefs(doc) {
   return Promise.all(photos.map(p => fetchBuffer(p.url).then(referenceJpeg)));
 }
 
-// The job behind "Make the listing": the words, then the four shots. Each shot
+// The job behind "Make the listing": the words, then the five shots. Each shot
 // lands on the doc as it finishes; one failed shot costs that shot, not the run.
 async function makeAll(id, progress) {
   const doc = await loadDoc(id);
   const refs = await loadRefs(doc);
-  await progress(0, 5, 'Reading your photos…');
+  await progress(0, 6, 'Reading your photo…');
   const details = await readPhotos(refs, doc.notes);
   await patchDoc(id, { details, detailsAt: nowIso(), detailsBy: 'claude' });
-  await progress(1, 5, 'Taking the sample photos… (a few minutes)');
+  await progress(1, 6, 'Taking the sample photos… (a few minutes)');
   let done = 1;
   const results = await Promise.allSettled(SHOT_KEYS.map(k => makeShot(id, k, refs, doc.notes)
-    .then(s => { done++; progress(done, 5, `Sample photos: ${done - 1} of ${SHOT_KEYS.length}`); return s; })));
+    .then(s => { done++; progress(done, 6, `Sample photos: ${done - 1} of ${SHOT_KEYS.length}`); return s; })));
   const ok = results.filter(r => r.status === 'fulfilled').length;
   await patchDoc(id, { status: 'review' });
   if (!ok) throw new Error('None of the sample photos came out: ' + (results[0].reason && results[0].reason.message));

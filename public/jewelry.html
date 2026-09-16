@@ -7,7 +7,7 @@
 /* jewelry.html — the two-step page Sophie's mom walks: upload the piece,
    then review its listing and approve the sample photos. Everything else
    (the rail, the steps, the buttons, the "?") is tool.css. */
-.tool .photos{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px; }
+.tool .photos{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:10px; }
 .tool .photos .cell{ aspect-ratio:1; }
 .tool .photos .x{ position:absolute; top:4px; right:4px; width:26px; height:26px; border-radius:6px;
   border:0; background:rgba(255,255,255,.9); color:var(--ink); font:inherit; font-size:15px; line-height:1;
@@ -47,10 +47,10 @@
   <button id="help" aria-label="What is this?">?</button>
 </div>
 <div class="helpcard" id="helpcard" hidden>
-  <b>1.</b> Add three to five photos of one piece of jewelry, from different sides, in good light. A coin or ruler next to it helps with size.
-  <b>2.</b> Tap <b>Make the listing</b>. In a few minutes you get the words for the listing and four sample photos of your exact piece.
+  <b>1.</b> Add one photo of the piece, in good light, the whole thing in frame. A coin or ruler next to it helps with size.
+  <b>2.</b> Tap <b>Make the listing</b>. In a few minutes you get the words for the listing and five sample photos of your exact piece.
   Fix any words, tap <b>Looks good</b> on the photos you like, <b>Redo</b> the ones you don't, then <b>Send to Etsy</b>.
-  It lands in your Etsy drafts — nothing is live until you publish it there. Each piece costs about 50 cents to make.
+  It lands in your Etsy drafts — nothing is live until you publish it there. Each piece costs about 30 cents to make.
 </div>
 
 <div class="rail" id="rail"><i class="on"></i><i></i></div>
@@ -61,7 +61,7 @@
     <div class="cap" onclick="openStep(1)"><span class="n">1</span>
       <span class="t">Upload your jewelry</span><span class="sum" id="sum1"></span></div>
     <div class="body">
-      <input type="file" id="file" accept="image/*" multiple hidden>
+      <input type="file" id="file" accept="image/*" hidden>
       <div class="photos" id="photos"></div>
       <label>Notes</label>
       <textarea id="notes"></textarea>
@@ -108,7 +108,7 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;'
 const $=id=>document.getElementById(id);
 const ACCOUNT=new URLSearchParams(location.search).get('account')||'';
 const KEY='jewelry_item'+(ACCOUNT?'_'+ACCOUNT:'');
-const SHOTS=[['main','Main photo'],['detail','Close-up'],['styled','Styled'],['model','Worn']];
+const SHOTS=[['main','Main photo'],['detail','Close-up'],['styled','Styled'],['angle','Another angle'],['model','Worn']];
 const ICON_OK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
 const ICON_REDO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>';
 const ICON_PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';
@@ -148,7 +148,7 @@ async function load(id){
 // HEIC, we redraw it on a canvas capped at 1536px and send a plain JPEG — the
 // same trick /photo uses, because raw iPhone files are what the image
 // endpoints reject ("invalid image file or mode").
-$('file').onchange=async()=>{ const fs=[...$('file').files]; $('file').value=''; for(const f of fs) await addPhoto(f); };
+$('file').onchange=async()=>{ const f=$('file').files[0]; $('file').value=''; if(f) await addPhoto(f); };
 function normalize(f){ return new Promise((res,rej)=>{
   const img=new Image(), u=URL.createObjectURL(f);
   img.onload=()=>{ URL.revokeObjectURL(u);
@@ -160,11 +160,12 @@ function normalize(f){ return new Promise((res,rej)=>{
   img.onerror=()=>{ URL.revokeObjectURL(u); rej(new Error('read')); };
   img.src=u; }); }
 async function addPhoto(f){
-  const n=$('makeNote');
-  if((item&&(item.photos||[]).length||0)+uploading>=8){ n.textContent='Eight photos is plenty.'; return; }
+  const n=$('makeNote'); n.textContent='';
   uploading++; renderPhotos();
   try{
     const blob=await normalize(f); const it=await ensureItem();
+    // One photo per piece: a new one replaces the old.
+    for(const p of (item.photos||[])) await api('/api/jewelry/items/'+it.id+'/photo/'+encodeURIComponent(p.key),{method:'DELETE'});
     const r=await api('/api/jewelry/items/'+it.id+'/photo',{method:'POST',headers:{'Content-Type':'image/jpeg'},body:blob});
     if(!r.ok) throw new Error(r.body.error||'upload failed');
     item=r.body.item||item;
@@ -183,8 +184,9 @@ function renderPhotos(){
   const sig=ph.map(p=>p.key+'|'+p.thumb).join(',')+'#'+uploading+'#'+busy;
   if(sig===sigPhotos) return; sigPhotos=sig;
   let h=ph.map(p=>`<div class="cell"><img src="${esc(p.thumb||p.url)}">${busy?'':`<button class="x" onclick="event.stopPropagation();__removePhoto('${esc(p.key)}')" aria-label="Remove">✕</button>`}</div>`).join('');
-  for(let i=0;i<uploading;i++) h+='<div class="cell"><span class="spin"></span></div>';
-  if(!busy && ph.length+uploading<8) h+=`<button class="cell add" id="addBtn">${ICON_PLUS}<span>${ph.length?'Add another':'Add photos'}</span></button>`;
+  if(uploading) h+='<div class="cell"><span class="spin"></span></div>';
+  if(!busy && !ph.length && !uploading) h+=`<button class="cell add" id="addBtn">${ICON_PLUS}<span>Add a photo</span></button>`;
+  else if(!busy && ph.length && !uploading) h+=`<button class="cell add" id="addBtn">${ICON_PLUS}<span>Change photo</span></button>`;
   $('photos').innerHTML=h;
   const a=$('addBtn'); if(a) a.onclick=()=>$('file').click();
   $('makeBtn').disabled=!ph.length||!!uploading||!!busy;

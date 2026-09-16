@@ -35,7 +35,7 @@ function ok(c, msg) { if (c) { pass++; } else { failed++; console.log('  ✗ ' +
   ok(!/notes from the seller/i.test(r.full), 'no notes line when she wrote none');
   const n = J.shotPrompt('model', '  pendant is 2 cm across ');
   ok(/Notes from the seller about this piece: pendant is 2 cm across$/.test(n.full), 'her notes ride, trimmed, at the end');
-  ok(J.SHOT_KEYS.join() === 'main,detail,styled,model', 'four shots in Etsy order');
+  ok(J.SHOT_KEYS.join() === 'main,detail,styled,angle,model', 'five shots in Etsy order');
   ok(/immutable/.test(J.FIDELITY) && /Do NOT redesign/.test(J.FIDELITY), 'the master fidelity prompt is hers');
   let threw = false; try { J.shotPrompt('nope'); } catch { threw = true; } ok(threw, 'an unknown shot refuses');
 }
@@ -143,7 +143,7 @@ const JPEG = Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDB
           polls++;
           if (polls === 1) { item.details = { title: 'Moonstone drop earrings', materials: ['silver', 'moonstone'], price: 42, description: 'Two words.', tags: ['moonstone earrings', 'silver drops'] }; item.job.label = 'Taking the sample photos…'; }
           if (polls === 2) { item.shots.main = { status: 'done', thumb: 'data:image/jpeg;base64,' + JPEG.toString('base64'), url: 'https://x/main.png', approved: null }; }
-          if (polls >= 3) { for (const k of ['detail', 'styled', 'model']) item.shots[k] = { status: 'done', thumb: 'data:image/jpeg;base64,' + JPEG.toString('base64'), url: 'https://x/' + k + '.png', approved: null }; item.job.status = 'done'; item.status = 'review'; }
+          if (polls >= 3) { for (const k of ['detail', 'styled', 'angle', 'model']) item.shots[k] = { status: 'done', thumb: 'data:image/jpeg;base64,' + JPEG.toString('base64'), url: 'https://x/' + k + '.png', approved: null }; item.job.status = 'done'; item.status = 'review'; }
         }
         return send(200, pub());
       }
@@ -168,7 +168,7 @@ const JPEG = Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDB
   ok(await page.$eval('#helpcard', el => el.hidden), 'the explanation is behind the ?');
   ok(await page.$eval('.tool .eyebrow', el => el.textContent.trim()) === 'JEWELRY', 'the title, once');
   const rect = await page.$eval('#addBtn', el => { const r = el.getBoundingClientRect(); return { w: r.width, h: r.height }; });
-  ok(rect.w > 80 && rect.h > 80, 'the add-photos tile is a real tap target (' + Math.round(rect.w) + 'x' + Math.round(rect.h) + ')');
+  ok(rect.w > 80 && rect.h > 80, 'the add-a-photo tile is a real tap target (' + Math.round(rect.w) + 'x' + Math.round(rect.h) + ')');
   ok((await page.$$eval('#earlierList .it', els => els.length)) === 1, 'earlier pieces are listed');
   if (process.env.JEWELRY_SHOTS) { fs.mkdirSync(process.env.JEWELRY_SHOTS, { recursive: true }); await page.click('#help'); await page.screenshot({ path: path.join(process.env.JEWELRY_SHOTS, 'step1-help.png') }); await page.mouse.click(10, 800); }
 
@@ -179,6 +179,7 @@ const JPEG = Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDB
   ok(up && /image\/jpeg/.test(up.ct) && up.len > 100, 'the photo POSTs as a raw JPEG body');
   ok(calls.some(c => c.p === '/api/jewelry/items' && c.m === 'POST'), 'the piece was created first');
   ok(!(await page.$eval('#makeBtn', el => el.disabled)), 'Make the listing lights up');
+  ok((await page.$eval('#addBtn span', el => el.textContent)) === 'Change photo', 'one photo per piece — the tile offers to change it, not add more');
   ok(await page.evaluate(() => localStorage.getItem('jewelry_item')) === 'it1', 'the piece id is remembered');
 
   // the job
@@ -194,11 +195,11 @@ const JPEG = Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDB
   ok((await page.$eval('#sum1', el => el.textContent)) === '1 photo', 'step 1 says its photo count');
   ok((await page.$$eval('#ftags .chip', els => els.length)) === 2, 'the tags are chips');
   ok(await page.$eval('#draftBtn', el => el.disabled), 'Send to Etsy waits for an approval');
-  await page.waitForFunction(() => document.querySelectorAll('#shots .shot img').length === 4, null, { timeout: 12000 });
+  await page.waitForFunction(() => document.querySelectorAll('#shots .shot img').length === 5, null, { timeout: 12000 });
   if (process.env.JEWELRY_SHOTS) { fs.mkdirSync(process.env.JEWELRY_SHOTS, { recursive: true }); await page.screenshot({ path: path.join(process.env.JEWELRY_SHOTS, 'step2-review.png'), fullPage: true }); }
   ok(await page.$eval('#makeStatus', el => el.textContent === ''), 'the working line clears when the job is done');
   const labels = await page.$$eval('#shots .lab', els => els.map(e => e.textContent));
-  ok(labels.join('|') === 'Main photo|Close-up|Styled|Worn', 'four labeled shots: ' + labels.join('|'));
+  ok(labels.join('|') === 'Main photo|Close-up|Styled|Another angle|Worn', 'five labeled shots: ' + labels.join('|'));
   const two = await page.$eval('#shots', el => getComputedStyle(el).gridTemplateColumns.split(' ').length);
   ok(two === 2, 'shots sit two across');
 
