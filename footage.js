@@ -2140,6 +2140,64 @@ router.get('/jobs', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── HAVE THESE WORDS GONE? — the WHOLE log, for the red SENT / UNSENT
+// (2026-09-16, Sophie: "sent/unsent seems to be wrong or backwards") ──────
+// The page's three sources for the mark all had a window: the local bank
+// keeps the last 20 sends, a story part's `hist` needs a part, and the feed
+// index reads the forty clips on screen. Measured on her screen that night:
+// block 2 and block 4 had gone out inside twelve longer clips over two days —
+// and every one of those clips sat past the newest forty in ALL, so both read
+// UNSENT beside a block 7 that had just gone. Three sources that each forget,
+// and the log that never does was only ever read through the feed's window.
+// So the page asks the log itself: every block's words in, and back comes the
+// subset that a clip on the log really carried. THE MATCH IS THE PAGE'S OWN —
+// a whole prompt, the block's own `words`, or a contiguous run of the prompt's
+// `\n\n` paragraphs — never a phrase floating inside one (a loose "contains"
+// would read SENT off any clip that happened to say those words, and a false
+// SENT is the direction that costs her a shot). A failed or refused clip is
+// skipped, the bank's own rule. Pure and exported for the test; the route is
+// one collection read, no model call, and it writes nothing.
+const SENT_SEGS_MAX = 80;   // a prompt of more paragraphs than this counts whole, never by run
+function normWords(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+function sentAmong(rows, texts) {
+  const want = Object.create(null);
+  (Array.isArray(texts) ? texts : []).forEach((t) => { const n = normWords(t); if (n) want[n] = 1; });
+  const hit = Object.create(null);
+  let left = Object.keys(want).length;
+  if (!left) return hit;
+  const take = (n) => { if (n && want[n] && !hit[n]) { hit[n] = true; left -= 1; } };
+  for (const x of rows) {
+    if (left <= 0) break;
+    const d = (x && x.d) || {};
+    if (statusOf(d) === 'failed') continue;
+    take(normWords(d.words));
+    const raw = String(d.prompt || '');
+    if (!raw) continue;
+    take(normWords(raw));
+    const segs = raw.split('\n\n');
+    if (segs.length > SENT_SEGS_MAX) continue;
+    for (let i = 0; i < segs.length && left > 0; i++) {
+      let run = '';
+      for (let m = i; m < segs.length; m++) {
+        run = m === i ? segs[m] : run + '\n\n' + segs[m];
+        take(normWords(run));
+      }
+    }
+  }
+  return hit;
+}
+router.post('/sent', async (req, res) => {
+  try {
+    const texts = (Array.isArray(req.body && req.body.texts) ? req.body.texts : []).slice(0, 60)
+      .map((t) => String(t || '').slice(0, 6000));
+    if (!texts.length) return res.json({ ok: true, sent: {} });
+    const snap = await coll().get();
+    const rows = snap.docs.map((d) => ({ id: d.id, d: d.data() }));
+    res.set('Cache-Control', 'no-store');
+    res.json({ ok: true, sent: sentAmong(rows, texts) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── THE POSTER SHEET'S FACES (2026-09-13, Sophie: "i like poster" · "more per
 // row so all fit") ────────────────────────────────────────────────────────
 // The picker is a sheet of poster TILES now, so every project and every
@@ -2433,4 +2491,5 @@ module.exports = {
   canvasFrom, pageJobs, outsideCount, hayOf, foldersOf, shelfOf, folderSlug, statusOf, staleJob, STALE_MS, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, cutArgs, TRIM_CAP, frameSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
   trimRoom, waitTrimRoom, TRIM_NEED_MB, BOX_MB, bakeStale, BAKE_STALE_MS,
   framePlan, framePath, pullFrame, grabFrame, FRAME_FOLDER, FRAME_END_PAD,
+  sentAmong, normWords, SENT_SEGS_MAX,
 };

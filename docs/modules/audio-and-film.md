@@ -4204,9 +4204,26 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   one built before the feed arrived, which is exactly how this read UNSENT on
   a page whose own feed held the clip. `sentDirty` is set only when a LIVE
   index was thrown away, so an ordinary poll that added nothing repaints
-  nothing. **THE SCOPE IS THE FEED SHE IS LOOKING AT** — narrowed by project,
-  and paged, so a clip from further back than she has walked is not known;
-  a server lookup for an ordinary block is hers to ask for.
+  nothing. **THE SCOPE OF THAT INDEX IS THE FEED SHE IS LOOKING AT** —
+  narrowed by project, and paged, so a clip from further back than she has
+  walked is not in it.
+  **AND THE FOURTH SOURCE IS THE LOG ITSELF, ASKED (2026-09-16, Sophie:
+  "sent/unsent seems to be wrong or backwards").** Measured on her screen that
+  night: block 2 and block 4 had gone out inside twelve longer clips over two
+  days, every one of them past the newest forty in ALL — and the bank had
+  rolled them off too (20 sends, and she had sent more than that since) — so
+  both read UNSENT beside a block 7 that had just gone, which is exactly
+  "backwards". Every source the mark had was a window; the log never forgets
+  and was only ever read through the feed's. `POST /api/footage/sent
+  {texts:[…]}` answers off the WHOLE collection with the page's own match
+  (`sentAmong` in footage.js — a whole prompt, the `words`, a run of `\n\n`
+  paragraphs, never a phrase inside one, never a failed clip), and the page
+  banks the answer in `sentFar`. It asks ONLY for words it does not already
+  know (a SENT is permanent; an UNSENT answer is held a minute), debounced
+  700ms off `paintBlockHeads` and the keystroke, so a page whose blocks are
+  all known asks nothing. No model call; one collection read. Test:
+  `node scripts/test-footage-sent-far.js` (the helper pure, then the real page
+  against an EMPTY feed — SENT has to come off the ask alone).
   A story part's
   own `hist` — every clip sent from that part, read off the log by
   `loadHistory`, whose `words` is the block's text before the heads — so a part
