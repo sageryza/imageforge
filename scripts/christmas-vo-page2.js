@@ -17,17 +17,21 @@
 // job ids, which are stable, so there is no way for a rebuild to re-point her
 // answers at different content (the rule a verdict sheet's name exists for).
 //
-// A MARK OF HERS IS NEVER SILENTLY DROPPED. Two takes carry a note that is
-// neither a maybe nor a no ("giftt", "ggloom"); they get their own short pile
-// with her words shown, rather than being filed into a pile she did not put
-// them in or vanishing off the page.
+// TWO PILES MEANS TWO PILES (2026-09-16, Sophie on the first cut of this page:
+// "u added non maybe s"). Two takes carry a note that is neither a maybe nor a
+// no ("giftt", "ggloom"), and they were given a third pile UNDER the maybes —
+// which put things she had not called maybes on the tab labelled Maybes. The
+// rule is the simple one she stated: MARKED AND NOT A MAYBE IS OFF THE PAGE,
+// exactly like the nos. Nothing of hers is destroyed by that — her note is on
+// the verdict sheet, which this build reads, so the moment she says what those
+// two words meant they sort into whichever pile she names.
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
 const CHAT = 'christmas-voiceovers-audio';
 const SHEET = 'xmas-vo-v1';           // deliberately v1 — see the note above
-const TITLE = 'Christmas voiceovers v2 — the maybes, and the ones with no mark';
+const TITLE = 'Christmas voiceovers v3 — the maybes, and the ones with no mark';
 const HOST = 'imageforge-q125.onrender.com';
 const BASE = `https://${HOST}`;
 
@@ -97,11 +101,10 @@ function takeRow(o) {
     + (sub ? `\n  <p class="asked">${esc(sub)}</p>` : '') + '\n'
     + list.map(takeRow).join('\n') + '\n';
 
-  const body = sec(piles.maybe, 'My maybes', '')
-    + sec(piles.other, 'The two I wrote something else on', '');
+  const body = sec(piles.maybe, 'My maybes', '');
   const body2 = sec(piles.nomark, 'No mark yet', '');
 
-  const rows = piles.maybe.concat(piles.other).map((o, i) => ({ id: o.id, u: o.audio, l: `Take ${i + 1}`, m: `${o.dur}s` }));
+  const rows = piles.maybe.map((o, i) => ({ id: o.id, u: o.audio, l: `Take ${i + 1}`, m: `${o.dur}s` }));
   const rows2 = piles.nomark.map((o, i) => ({ id: o.id, u: o.audio, l: `Take ${i + 1}`, m: `${o.dur}s` }));
 
   const html = `<!doctype html>
@@ -183,8 +186,8 @@ function takeRow(o) {
 
   window.__compareNotes({ chat: '${CHAT}', sheet: '${SHEET}' });
   window.__compareHelp({ html: '<b>Same notes, same takes.</b> This is the same sheet as v1, '
-    + 'so everything you typed is still on the take you typed it on — the six you said no to are '
-    + 'just off the page.'
+    + 'so everything you typed is still on the take you typed it on. Anything you marked that '
+    + 'was not a maybe is just off the page.'
     + '<br><br><b>The seconds under a take are where each beat lands</b>, measured from the audio '
     + 'itself, so a line can be slid onto footage from a different clip.'
     + '<br><br><b>&ldquo;Voice sits clear&rdquo; means the music under the line is quiet enough to lift the '
