@@ -23,3 +23,12 @@ Storage urls. Two ways her cut comes back:
   both of us edit one cut. Test: `node scripts/test-fcpxml-to-cut.js`. Not yet
   driven against a real LumaFusion export — the first one she sends is the
   measurement.
+  **THE EASIEST WAY IN IS THE SHARE SHEET (2026-09-16, Sophie: "easiest,
+  period?"):** on LumaFusion's export sheet, XML Project Package → media
+  **No Relinkable Media** (every clip is already in our Storage — we sent
+  them to her — so the zip is kilobytes, not a re-upload of the footage) →
+  Share → Deck Factory. It lands in the Dump as a `file` (needs the TestFlight
+  build carrying the DumpShare zip rule), and the chat reads it with
+  `node scripts/fcpxml-to-cut.js --dump latest --media lumafusion-media.json
+  --out cut.json [--set <cutId>]`. Until that build is on her phone: Save to
+  Files → Google Drive, and the chat reads it through the Drive connector.

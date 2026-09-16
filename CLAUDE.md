@@ -4133,6 +4133,13 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `node scripts/test-transcribe-media.js` (the cache key and the Story Room
   mirror pinned against the REAL expressions in both files, since a drifted key
   is invisible — it just pays twice).
+  **AND IT TAKES A FILE — a zip or a PDF files whole as `media:'file'`
+  (2026-09-16, the LumaFusion zip door).** The share extension accepts a zip
+  (a TestFlight build carries it), the Dump page draws a file as its name with
+  a save link, and `scripts/fcpxml-to-cut.js --dump latest` reads her
+  LumaFusion XML Project Package straight off the Dump — exported with **No
+  Relinkable Media**, since every clip is already in our Storage. Test:
+  `node scripts/test-dump-file.js`.
   **Full details: `docs/modules/inbox-and-misc.md`.**
 - **THE UPDATE BUTTON** (`brief.js`, `/api/brief`, page at `/brief`) —
   **ITS DOOR WENT WITH THE UPDATE TAB (2026-09-14)**: the **Update** row that

@@ -7,6 +7,14 @@
 //
 //   node scripts/fcpxml-to-cut.js <project.fcpxml | folder.fcpxmld | package.zip> \
 //        --media media.json [--out cut.json] [--set <cutId>]
+//   node scripts/fcpxml-to-cut.js --dump latest|<dropId> --media media.json …
+//
+// --dump reads the package OFF THE DUMP (2026-09-16, Sophie: "easiest,
+// period?"): she shares LumaFusion's XML Project Package straight to Deck
+// Factory from the export sheet and it lands in the Dump as a `file`;
+// `latest` is the newest zip there, an id is one she named. Export it with
+// "No Relinkable Media" — every clip is already in our Storage (we sent them
+// to her), so the zip is kilobytes and the upload is a second.
 //
 // media.json maps the FILENAMES she imported to their Storage urls (the zip we
 // handed her names them, so this is a dictionary we already hold):
@@ -172,13 +180,35 @@ function fcpxmlToCut(xml, media, opts) {
   return { clips, sounds, skipped, gaps, total: R3(clips.reduce((a, c) => a + (c.kind === 'image' ? c.out : c.out - c.in), 0)) };
 }
 
-module.exports = { fcpxmlToCut, secs, basename };
+// The newest zip in the Dump (or the one she named), downloaded to a temp
+// file. Pure lookup + one download; nothing here spends money.
+const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
+function pickDump(items, which) {
+  const zips = items.filter((i) => /\.zip$/i.test(String(i.filename || i.storagePath || '')));
+  if (which && which !== 'latest') return zips.find((i) => i.id === which) || items.find((i) => i.id === which) || null;
+  return zips.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0] || null;
+}
+async function fromDump(which) {
+  const r = await fetch(`${BASE}/api/drop/items?media=file`);
+  if (!r.ok) throw new Error(`dump list: HTTP ${r.status}`);
+  const it = pickDump((await r.json()).items || [], which);
+  if (!it) throw new Error(which === 'latest' ? 'no zip in the Dump yet' : `no Dump file ${which}`);
+  const f = await fetch(`${BASE}/api/drop/file/${it.id}`);
+  if (!f.ok) throw new Error(`dump download: HTTP ${f.status}`);
+  const dest = path.join(require('os').tmpdir(), `dump-${it.id}.zip`);
+  fs.writeFileSync(dest, Buffer.from(await f.arrayBuffer()));
+  console.log(`Dump ${it.id} · ${it.filename || ''} · ${new Date(it.createdAt || 0).toISOString()} → ${dest}`);
+  return dest;
+}
+
+module.exports = { fcpxmlToCut, secs, basename, pickDump };
 
 if (require.main === module) {
   (async () => {
     const args = process.argv.slice(2);
     const flag = (k) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : null; };
-    const src = args.find((a) => !a.startsWith('--') && args[args.indexOf(a) - 1] !== '--media' && args[args.indexOf(a) - 1] !== '--out' && args[args.indexOf(a) - 1] !== '--set');
+    let src = args.find((a) => !a.startsWith('--') && !['--media', '--out', '--set', '--dump'].includes(args[args.indexOf(a) - 1]));
+    if (flag('--dump')) src = await fromDump(flag('--dump'));
     if (!src) { console.error('usage: fcpxml-to-cut.js <file.fcpxml|bundle.fcpxmld|package.zip> --media media.json [--out cut.json] [--set <cutId>]'); process.exit(1); }
     const media = flag('--media') ? JSON.parse(fs.readFileSync(flag('--media'), 'utf8')) : {};
     const xml = await loadXmlAsync(src);

@@ -284,6 +284,13 @@ function toggle(i){
         return '<button class="f aud" data-id="'+esc(f.id)+'" data-url="'+esc(f.url)+'" data-m="audio">'+
           '<span class="audm">♪</span><span class="audn">'+esc(nm)+'</span></button>';
       }
+      // A FILE (a zip, a PDF) has no picture either — its name, and a tap
+      // saves it (2026-09-16, the LumaFusion zip door).
+      if(f.media==='file'){
+        const nm=String(f.name||f.filename||'file');
+        return '<a class="f aud" href="/api/drop/file/'+esc(f.id)+'" data-m="file">'+
+          '<span class="audm">⇩</span><span class="audn">'+esc(nm)+'</span></a>';
+      }
       const src=f.media==='video'?(f.posterUrl||''):f.url;
       return '<button class="f'+(f.media==='video'?' vid':'')+'" data-id="'+esc(f.id)+'" data-url="'+esc(f.url)+'" data-m="'+esc(f.media)+'">'+
         '<img src="'+esc(src)+'" loading="lazy" alt=""></button>';
