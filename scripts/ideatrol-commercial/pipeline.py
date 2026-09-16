@@ -112,7 +112,10 @@ def gen_still(sid):
     style, content = STILLS[sid]
     for attempt in range(3):
         try:
-            model = "gpt-image-2" if attempt < 2 else "gpt-image-1"
+            # gpt-image-2 on every attempt (2026-09-16, Sophie: "use 2").
+            # The third try used to drop to gpt-image-1, which draws a
+            # different-looking picture into the same spot for more money.
+            model = "gpt-image-2"
             r = requests.post("https://api.openai.com/v1/images/generations",
                 headers={"Authorization": f"Bearer {OA_KEY}"},
                 json={"model": model, "prompt": style + content,

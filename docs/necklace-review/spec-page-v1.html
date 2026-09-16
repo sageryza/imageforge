@@ -1,0 +1,79 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The necklace review — what you asked for</title>
+<link rel="stylesheet" href="/compare.css">
+
+<div class="wrap">
+  <h1>The necklace review — what you asked for</h1>
+
+  <div class="card" data-item="which">
+    <h3>Which necklaces</h3>
+    <p class="mini">The necklace folder in Lightroom. Title is <b>N</b> and a number and nothing else.</p>
+  </div>
+
+  <div class="card" data-item="out">
+    <h3>Left out</h3>
+    <div class="chips">
+      <span class="chip warn">sold</span><span class="chip warn">sample bag</span><span class="chip warn">gave</span><span class="chip warn">gifted</span><span class="chip warn">donated</span>
+    </div>
+    <p class="mini">Any title carrying one of those words.</p>
+  </div>
+
+  <div class="card" data-item="card">
+    <h3>One card per necklace, every photo of it on it</h3>
+    <p class="mini">Front and back where that is all there is; all five where there are five. One swipe does the whole item.</p>
+    <div class="shots">
+      <span class="sh"></span><span class="sh"></span><span class="sh"></span><span class="sh"></span><span class="sh"></span>
+    </div>
+  </div>
+
+  <div class="card" data-item="size">
+    <h3>Thumbnails, not too small</h3>
+    <p class="mini">No big cover shot — you know the piece. Big enough to tell them apart.</p>
+  </div>
+
+  <div class="card" data-item="where">
+    <h3>On the computer</h3>
+    <p class="mini">Not the phone — you can't see the photos well enough there. (The five-minutes-a-day streak was Mom's; it needs the phone.)</p>
+  </div>
+
+  <div class="card" data-item="buttons">
+    <h3>Four answers</h3>
+    <div class="btnrow">
+      <button type="button">yes</button>
+      <button type="button">maybe</button>
+      <button type="button">no</button>
+      <button type="button">star</button>
+    </div>
+    <p class="mini">Your preference. Mom offered 0&#8239;/&#8239;1&#8239;/&#8239;2&#8239;/&#8239;3 and said she has none.</p>
+  </div>
+
+  <div class="card" data-item="twenty">
+    <h3>Then a starting twenty</h3>
+    <p class="mini">Pick most of them, then a top 20 to actually list, so it isn't a hundred thousand dollars at once.</p>
+  </div>
+
+  <div class="big" data-item="export">
+    <b>What it needs before it can run</b>
+    The photos have to come out of Lightroom — the N-numbered necklace folder, grouped by item. That is the one step only your Mac can do; it's on the desktop queue.
+  </div>
+</div>
+
+<style>
+  /* The injected pill owns the top-right corner (x 324-374, y 14-~230 at
+     390pt) — PHOTO'd: card 1's text ran under it and was unreadable. The
+     two cards inside that band reserve the column. */
+  .wrap > .card:nth-of-type(1), .wrap > .card:nth-of-type(2) { padding-right: 64px; }
+  .shots { display: flex; gap: 6px; margin-top: 10px; }
+  .shots .sh { width: 46px; height: 58px; border-radius: 6px; border: 1px solid var(--line); background: #efe8db; display: block; }
+  .btnrow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+</style>
+
+<script src="/compare.js"></script>
+<script>
+(function () {
+  window.__compareNotes({ chat: 'transcribe-display-preferences', sheet: 'necklace-review-spec' });
+  window.__compareHelp({ html: '<b>Read back off the 17th St tape.</b> Each line is a decision from that conversation — leave a note on any one that is wrong and it changes before anything gets built.' });
+})();
+</script>

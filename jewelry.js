@@ -29,9 +29,13 @@
 // ≈ 30¢, the Claude read ≈ 1¢. About 30¢ a piece; a Redo ≈ 6¢.
 //
 // GOTCHAS
-// - gpt-image-2 REJECTS `input_fidelity` (photostudio.js measured it); the
-//   fidelity here is the prompt plus every reference, which is what Sophie's
-//   pipeline chat settled on. A safety refusal is terminal — no retry.
+// - gpt-image-2 REJECTS `input_fidelity` — and that is not a loss: OpenAI's
+//   docs say it "processes every image input at high fidelity automatically",
+//   so there is nothing to set. (photostudio.js led with gpt-image-1 + the
+//   flag until 2026-09-16, Sophie: "use 2, change everywhere and the docs";
+//   every image surface in this repo is gpt-image-2 now.) The fidelity here
+//   is the prompt plus every reference, which is what Sophie's pipeline chat
+//   settled on. A safety refusal is terminal — no retry.
 // - Etsy takes png/jpg, never webp, so a shot is saved as PNG (the Etsy copy,
 //   stamped with its prompt — image-meta.js) plus a 600px webp THUMB for the
 //   page (the derived display copy the never-serve-a-raw-PNG rule wants).

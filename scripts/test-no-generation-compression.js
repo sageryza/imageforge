@@ -68,8 +68,15 @@ const hits = [];
     if (st.isDirectory()) { walk(full); continue; }
     if (!name.endsWith('.js') || full === __filename) continue;
     fs.readFileSync(full, 'utf8').split('\n').forEach((line, i) => {
+      // A COMMENT IS NOT A CALL (2026-09-16). A file that documented the rule
+      // in prose — "NO output_compression: the house rule" — failed the test
+      // enforcing it, and a guard that is red for everyone catches nothing.
+      // ONLY a WHOLE-LINE comment is skipped (`//…` or a jsdoc `*…`): a
+      // trailing `//` is not stripped, because `https://` lives mid-line and
+      // cutting there would hide a real call sitting beside a url.
+      const code = /^\s*(\/\/|\*)/.test(line) ? '' : line;
       for (const c of CHECKS) {
-        if (c.re.test(line)) hits.push(`${path.relative(ROOT, full)}:${i + 1}  [${c.name}]  ${line.trim()}`);
+        if (c.re.test(code)) hits.push(`${path.relative(ROOT, full)}:${i + 1}  [${c.name}]  ${line.trim()}`);
       }
     });
   }
