@@ -184,7 +184,13 @@ const isVideoCT = (ct) => /^video\//i.test(String(ct || ''));
 const isAudioCT = (ct) => /^audio\//i.test(String(ct || ''));
 // The ONE answer to "what kind of thing is this", so the doc's `media` and any
 // caller asking the same question can never disagree.
-const mediaKind = (ct) => (isAudioCT(ct) ? 'audio' : isVideoCT(ct) ? 'video' : 'image');
+// 'file' is anything that is NOT a picture, a clip or a recording — a zip, a
+// PDF (2026-09-16, the LumaFusion zip door: her XML Project Package shares
+// straight into the Dump, and a tile that draws a zip as an <img> is the
+// same broken picture the PDF print sheets were). A doc written before this
+// carries 'image' for those and is left as it is.
+const isFileCT = (ct) => /^application\/(zip|x-zip-compressed|pdf)/i.test(String(ct || ''));
+const mediaKind = (ct) => (isAudioCT(ct) ? 'audio' : isVideoCT(ct) ? 'video' : isFileCT(ct) ? 'file' : 'image');
 
 // data: URL or http(s) URL → { buf, ct }
 async function toBuffer(ref) {
@@ -1107,6 +1113,6 @@ module.exports = {
   newSession, sessionLabel, uploadLabels, KNOWN_TRACKS, orderTracks,
   // the type tables, exported so the audio rules have a test that needs no
   // Firestore and no bytes (2026-08-24)
-  ctForName, extFor, isVideoCT, isAudioCT, mediaKind, IMAGE_RE, VIDEO_RE, AUDIO_RE,
+  ctForName, extFor, isVideoCT, isAudioCT, isFileCT, mediaKind, IMAGE_RE, VIDEO_RE, AUDIO_RE,
   downloadName,
 };
