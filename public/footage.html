@@ -4173,8 +4173,48 @@ function wasSent(t, w) {
   t = normText(t);
   if (!t) return false;
   if (sentTexts.indexOf(t) >= 0) return true;
+  if (sentFar[t]) return true;
   if (histOf(w).some(function (c) { return normText(c && (c.words || c.prompt)) === t; })) return true;
   return !!sentIndex()[t];
+}
+// AND THE FOURTH SOURCE IS THE LOG ITSELF, ASKED (2026-09-16, Sophie:
+// "sent/unsent seems to be wrong or backwards"). Every source above has a
+// window: the bank keeps the last 20 sends, a part's `hist` needs a part, and
+// the feed index reads the forty clips on screen. Measured on her screen that
+// night: block 2 and block 4 had gone out inside twelve longer clips over two
+// days, every one of them past the newest forty in ALL — so both read UNSENT
+// beside a block 7 that had just gone, which is exactly "backwards". The log
+// never forgets, and it was only ever read through the feed's window. So the
+// page asks `POST /sent` with every block's words and banks the answer in
+// `sentFar` (one flag per normalized text). It asks ONLY for words it does
+// not already know: a SENT is permanent, and an UNSENT answer is held for a
+// minute before it is asked again (a send from THIS phone banks locally the
+// moment the door answers, so nothing waits on the re-ask). Debounced, so a
+// keystroke run is one request after she stops, and a page whose blocks are
+// all known asks nothing at all. The match is the same one the feed index
+// makes — a paragraph-boundary run, never a phrase inside one — done on the
+// server over the WHOLE log with no paging and no segment cap to speak of.
+var sentFar = Object.create(null), sentAskedAt = Object.create(null), sentAskT = null, SENT_ASK_AGAIN = 60 * 1000;
+function askSentSoon() { clearTimeout(sentAskT); sentAskT = setTimeout(askSent, 700); }
+function askSent() {
+  sentAskT = null;
+  var now = Date.now(), want = [], seen = {};
+  blocks().forEach(function (w) {
+    var box = w.querySelector('.pblock'), t = normText(box && box.value);
+    if (!t || seen[t] || sentFar[t] || sentTexts.indexOf(t) >= 0) return;
+    if (sentAskedAt[t] && now - sentAskedAt[t] < SENT_ASK_AGAIN) return;
+    seen[t] = 1; want.push(box.value);
+  });
+  if (!want.length) return Promise.resolve();
+  want.forEach(function (t) { sentAskedAt[normText(t)] = now; });
+  return api('/sent', { method: 'POST', body: JSON.stringify({ texts: want }) }).then(function (d) {
+    var got = d && d.sent && typeof d.sent === 'object' ? d.sent : {}, added = false;
+    Object.keys(got).forEach(function (k) { var n = normText(k); if (got[k] && n && !sentFar[n]) { sentFar[n] = true; added = true; } });
+    if (added) paintBlockHeads();
+  }).catch(function () {
+    // a dropped answer is asked again on the next change, not held for a minute
+    want.forEach(function (t) { delete sentAskedAt[normText(t)]; });
+  });
 }
 // AND THE THIRD SOURCE IS THE FEED ITSELF, WHICH IS WHY EVERY BLOCK READ
 // UNSENT (2026-09-15, Sophie: "they all read unsent"). The two sources this
@@ -4282,6 +4322,7 @@ function paintBlockHeads() {
   ws.forEach(function (w, i) { paintBlockHead(w, i + 1, ws.length); });
   paintJoinRows();
   paintGo();
+  askSentSoon();   // words the page does not know about go to the log — nothing, when it knows them all
 }
 // ── THE BLOCKS SHE PICKED, APPENDED INTO ONE CLIP ─────────────────────────
 // 2026-09-15, Sophie: "how do i select multiple non adjacent text blocks in
@@ -4647,7 +4688,7 @@ function mountBlock(w) {
     // no beforeinput (an older engine, a synthetic event) → the safe road
     var grow = !full && !!(e && e.inputType) && e.inputType.indexOf('insert') === 0;
     full = false;
-    fitBox(box, grow); saveDraft(); typedInBlock(); paintSent(w);
+    fitBox(box, grow); saveDraft(); typedInBlock(); paintSent(w); askSentSoon();
   });
   paint();
 }
