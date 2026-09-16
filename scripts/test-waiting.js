@@ -189,14 +189,36 @@ console.log('waiting: the last five deploys, and what rode in each');
 // what a second tap is refused with.
 console.log('waiting: the deploy button knows whether it can work');
 {
-  const had = process.env.RENDER_API_KEY;
-  delete process.env.RENDER_API_KEY;
-  ok('no key on the server → the page is told so', W.deployState().key === false);
+  const had = process.env.RENDER_API_KEY, hadH = process.env.RENDER_DEPLOY_HOOK;
+  delete process.env.RENDER_API_KEY; delete process.env.RENDER_DEPLOY_HOOK;
+  ok('nothing on the server → the page is told so', W.deployState().key === false);
+  ok('…and there is no door to walk through', W.deployDoor() === null);
+
   process.env.RENDER_API_KEY = 'rnd_x';
-  ok('a key → it can deploy', W.deployState().key === true);
+  ok('the account key works as the fallback', W.deployState().how === 'key');
+
+  // THE HOOK IS PREFERRED, and that is the point: this page is open, so the
+  // secret behind its button should be the one that can only deploy THIS
+  // service — never the account-wide key, which could also delete her
+  // services.
+  process.env.RENDER_DEPLOY_HOOK = 'https://api.render.com/deploy/srv-abc?key=zzz';
+  ok('a deploy hook wins over the account key', W.deployState().how === 'hook');
+  ok('…and it is the url that is POSTed', W.deployDoor().url.includes('srv-abc'));
+
+  // A hook is a URL this server will POST to on a stranger's tap, so it is
+  // checked against Render's own host rather than trusted because it is in
+  // the env. A typo'd or pasted-wrong value must not turn the button into a
+  // POST at somebody else's box.
+  process.env.RENDER_DEPLOY_HOOK = 'https://evil.example/deploy/srv-abc';
+  ok('a hook that is not Render\'s is ignored, not POSTed to',
+    W.deployState().how === 'key', W.deployState());
+  process.env.RENDER_DEPLOY_HOOK = 'http://api.render.com/deploy/x';
+  ok('…nor a plain-http one', W.deployState().how === 'key', W.deployState());
+
   ok('nothing fired yet → no cooldown', W.deployState().cooling === 0, W.deployState());
   ok('the cooldown is five minutes', W.COOL_MS === 5 * 60 * 1000, W.COOL_MS);
   if (had === undefined) delete process.env.RENDER_API_KEY; else process.env.RENDER_API_KEY = had;
+  if (hadH === undefined) delete process.env.RENDER_DEPLOY_HOOK; else process.env.RENDER_DEPLOY_HOOK = hadH;
 }
 
 console.log('waiting: readAhead asks GitHub once and orders newest first');

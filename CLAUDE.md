@@ -4311,10 +4311,28 @@ before working on that module. Nothing was deleted — the moved text is verbati
     the second sends), `POST /api/waiting/deploy` with no body, and Render's
     own `preDeployCommand` guard does the waiting on a draw exactly as it does
     for a chat's `render-deploy.js`. **It is drawn only when there is
-    something to ship AND the server carries a `RENDER_API_KEY`** — a button
-    that can only answer "no key" is a dead control. Two guards, because
-    STUDIO_TOKEN is off live and the page is therefore open: nothing waiting
-    is refused, and one deploy per five minutes per process. **The chat-side
+    something to ship AND the server can deploy at all** — a button that can
+    only answer "no key" is a dead control. Two guards, because STUDIO_TOKEN
+    is off live and the page is therefore open: nothing waiting is refused,
+    and one deploy per five minutes per process.
+  - **THE SECRET IT NEEDS IS THE SMALL ONE — `RENDER_DEPLOY_HOOK`, and it is
+    ONE FIELD OF HERS.** Render's per-service deploy hook (its Settings page,
+    the "Deploy Hook" row) is a url that can do exactly one thing: deploy THIS
+    service. That is why it is preferred over `RENDER_API_KEY`, which is
+    account-wide and could also delete her services — on a public route the
+    secret behind the button should be the smallest one that does the job.
+    `RENDER_API_KEY` still works as the fallback, and is what a chat's own
+    container uses for `render-deploy.js`, where the blast radius is a
+    container rather than an open url. A hook that is not on
+    `https://api.render.com/deploy/` is IGNORED rather than POSTed to — the
+    value is a url this server sends a stranger's tap at, so it is checked
+    rather than trusted. **Measured 2026-09-16: the service carried neither,
+    so the button is not drawn until she pastes one.** Her two screens:
+    https://dashboard.render.com/web/srv-d660igvgi27c73a5u6eg/settings (copy
+    the Deploy Hook) →
+    https://dashboard.render.com/web/srv-d660igvgi27c73a5u6eg/env (add it as
+    `RENDER_DEPLOY_HOOK`). **A chat cannot do this for her** — writing a
+    secret into a store is refused in a session container. **The chat-side
     rule this retires is in *ASK BEFORE YOU DEPLOY* — stop asking; say it is
     merged and not live in one line.**
 

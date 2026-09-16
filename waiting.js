@@ -89,11 +89,21 @@ const TTL_MS = 5 * 60 * 1000;
 // route does not re-implement that wait — it would only make her watch a
 // spinner for something the platform already does on its own.
 //
-// WHY THE KEY IS NOT HERE YET: the service's env carries no RENDER_API_KEY
-// (measured 2026-09-16 — ATLASCLOUD_API_KEY · FIREBASE_SERVICE_ACCOUNT ·
-// MALLOC_ARENA_MAX · OPENAI_API_KEY · OPENROUTER_API_KEY · REPLICATE_API_TOKEN).
-// With no key the button is not drawn at all and `deploy.key` says why — a
-// button that answers 503 is worse than no button.
+// WHAT IT NEEDS FROM THE ENV, and the SAFE one is first:
+//   · RENDER_DEPLOY_HOOK — Render's own per-service deploy hook url, off the
+//     service's Settings page. It can do exactly ONE thing: deploy THIS
+//     service. That is the whole reason it is preferred. This page is open
+//     (STUDIO_TOKEN is off live), so the secret standing behind its button
+//     should be the smallest one that does the job, never a key that could
+//     also delete her services.
+//   · RENDER_API_KEY — the account-wide key, the fallback. It is what
+//     scripts/render-deploy.js uses from a chat's own container, where the
+//     blast radius is a container rather than a public route.
+// Measured 2026-09-16 the service carried NEITHER (its whole env was
+// ATLASCLOUD_API_KEY · FIREBASE_SERVICE_ACCOUNT · MALLOC_ARENA_MAX ·
+// OPENAI_API_KEY · OPENROUTER_API_KEY · REPLICATE_API_TOKEN), so the button
+// is not drawn at all until Sophie pastes one — `deploy.key` is false and the
+// page draws nothing rather than a control that can only answer 503.
 //
 // TWO GUARDS, because STUDIO_TOKEN is off on the live server and this page is
 // therefore open to anyone who finds it:
@@ -111,7 +121,18 @@ let firedAt = 0;
  *  cooldown is a clock and build()'s answer is five minutes old. */
 function deployState() {
   const left = Math.max(0, COOL_MS - (Date.now() - firedAt));
-  return { key: !!process.env.RENDER_API_KEY, cooling: left, firedAt: firedAt || 0 };
+  const d = deployDoor();
+  return { key: !!d, how: d ? d.how : '', cooling: left, firedAt: firedAt || 0 };
+}
+
+/** Which door this box can deploy through, if any. The hook wins — it is the
+ *  one that can only ever deploy this service. */
+function deployDoor() {
+  const hook = String(process.env.RENDER_DEPLOY_HOOK || '').trim();
+  if (/^https:\/\/api\.render\.com\/deploy\//.test(hook)) return { how: 'hook', url: hook };
+  const key = String(process.env.RENDER_API_KEY || '').trim();
+  if (key) return { how: 'key', key };
+  return null;
 }
 
 const db = () => admin.firestore();
@@ -427,8 +448,8 @@ router.post('/', async (req, res) => {
 // start a plain deploy of whatever main is, which is the whole of its safety.
 router.post('/deploy', async (req, res) => {
   try {
-    const key = process.env.RENDER_API_KEY;
-    if (!key) return res.status(503).json({ error: 'no-key' });
+    const door = deployDoor();
+    if (!door) return res.status(503).json({ error: 'no-key' });
     const left = Math.max(0, COOL_MS - (Date.now() - firedAt));
     if (left > 0) return res.status(429).json({ error: 'cooling', cooling: left });
 
@@ -444,11 +465,15 @@ router.post('/deploy', async (req, res) => {
     }
 
     firedAt = Date.now();
-    const r = await fetch(`https://api.render.com/v1/services/${SRV}/deploys`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clearCache: 'do_not_clear' }),
-    });
+    // The hook takes no body and no auth — the url IS the secret. The API
+    // route is the same POST scripts/render-deploy.js makes.
+    const r = door.how === 'hook'
+      ? await fetch(door.url, { method: 'POST' })
+      : await fetch(`https://api.render.com/v1/services/${SRV}/deploys`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${door.key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clearCache: 'do_not_clear' }),
+      });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) {
       // A refused deploy never spends the cooldown — she should be able to try
@@ -457,11 +482,11 @@ router.post('/deploy', async (req, res) => {
       return res.status(502).json({ error: 'render ' + r.status, why: String(JSON.stringify(j)).slice(0, 200) });
     }
     const dep = j.deploy || j;
-    res.json({ ok: true, id: String(dep.id || ''), ahead });
+    res.json({ ok: true, id: String(dep.id || ''), how: door.how, ahead });
   } catch (e) {
     firedAt = 0;
     res.status(500).json({ error: e.message });
   }
 });
 
-module.exports = { router, parseCommit, parsePull, cleanTitle, sidIndex, groupRows, readAhead, readOpen, readRecent, readDeploys, deployRuns, build, bareSid, DEPLOYS, deployState, COOL_MS };
+module.exports = { router, parseCommit, parsePull, cleanTitle, sidIndex, groupRows, readAhead, readOpen, readRecent, readDeploys, deployRuns, build, bareSid, DEPLOYS, deployState, deployDoor, COOL_MS };
