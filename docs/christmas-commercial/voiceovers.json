@@ -1,0 +1,1601 @@
+[
+ {
+  "id": "21fd5949bbf74a7ba6804817890e3153",
+  "scene": "stairs",
+  "hasVO": false,
+  "text": "WILLY NOISES",
+  "dur": 4,
+  "start": 0,
+  "end": 1.8,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/67-xmas-stairs-04-21fd5949.m4a",
+  "name": "xmas-stairs-04-21fd5949.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789512667940-417evt.mp4",
+  "sentAt": "2026-09-15T22:47:53.023Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "0dabd2917c484933b4bfc2584e4415a5",
+  "scene": "stairs",
+  "hasVO": false,
+  "text": "[\"Mozart Mass and string music,\" in the distance, makes sudden noise.]",
+  "dur": 4,
+  "start": 2.18,
+  "end": 3.1,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/66-xmas-stairs-03-0dabd291.m4a",
+  "name": "xmas-stairs-03-0dabd291.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789512376362-hubj7n.mp4",
+  "sentAt": "2026-09-15T22:40:51.356Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "1b42e26dd9d14e608b2987e9e070bd4c",
+  "scene": "stairs",
+  "hasVO": false,
+  "text": "you",
+  "dur": 4,
+  "start": 0,
+  "end": 0.22,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/65-xmas-stairs-02-1b42e26d.m4a",
+  "name": "xmas-stairs-02-1b42e26d.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789512376530-ex38op.mp4",
+  "sentAt": "2026-09-15T22:40:00.622Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "1ea7df8853f04622915bcec3f8d04e0e",
+  "scene": "stairs",
+  "hasVO": false,
+  "text": "시청해 주셔서 감사합니다.",
+  "dur": 8,
+  "start": 7,
+  "end": 7.12,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/64-xmas-stairs-01-1ea7df88.m4a",
+  "name": "xmas-stairs-01-1ea7df88.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789511975693-zl8lro.mp4",
+  "sentAt": "2026-09-15T22:37:14.037Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "262c7742113a409aa1972abb675adcc4",
+  "scene": "vo-parents",
+  "hasVO": true,
+  "text": "Honey, you get her a witch kit for Christmas? What? What? She said she wanted one. Actually, Christmas was originally a pagan holiday. Where do you think that tree came from? The Boy Scouts? No, not quite. We... stole it? And that's not the only thing.",
+  "dur": 15,
+  "start": 0,
+  "end": 14.82,
+  "beats": [
+   [
+    "mom: honeyyy",
+    0
+   ],
+   [
+    "dad: what?",
+    2.92
+   ],
+   [
+    "VO: ACTUALLY",
+    5.3
+   ],
+   [
+    "VO: where",
+    8.34
+   ],
+   [
+    "mom: boyscouts",
+    10.22
+   ],
+   [
+    "VO: nooot quite",
+    11.48
+   ],
+   [
+    "mom: we stole it",
+    12.76
+   ],
+   [
+    "VO: not the only thing",
+    14.36
+   ]
+  ],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/21-xmas-vo-parents-03-262c7742.m4a",
+  "name": "xmas-vo-parents-03-262c7742.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789455803831-2p4av6.mp4",
+  "sentAt": "2026-09-15T06:59:41.284Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -29,
+  "voiceDb": -17.2,
+  "spread": 11.8
+ },
+ {
+  "id": "f0e40c38a45c4b7d9e77c88e2ed71939",
+  "scene": "vo-parents",
+  "hasVO": true,
+  "text": "Honey, you get her a witch kit for Christmas? What? She said she wanted one. Actually, Christmas was originally a pagan holiday. Where do you think that tree came from? Um, the Boy Scouts? No, not quite. We stole it? And that's not the only thing.",
+  "dur": 15,
+  "start": 0,
+  "end": 14.98,
+  "beats": [
+   [
+    "mom: honeyyy",
+    0
+   ],
+   [
+    "dad: what?",
+    3.16
+   ],
+   [
+    "VO: ACTUALLY",
+    5.2
+   ],
+   [
+    "VO: where",
+    7.94
+   ],
+   [
+    "mom: boyscouts",
+    10.52
+   ],
+   [
+    "VO: nooot quite",
+    11.54
+   ],
+   [
+    "mom: we stole it",
+    12.82
+   ],
+   [
+    "VO: not the only thing",
+    14.54
+   ]
+  ],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/20-xmas-vo-parents-02-f0e40c38.m4a",
+  "name": "xmas-vo-parents-02-f0e40c38.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789455799395-venh6g.mp4",
+  "sentAt": "2026-09-15T06:59:39.332Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -28.2,
+  "voiceDb": -16.3,
+  "spread": 11.9
+ },
+ {
+  "id": "0db2e049ebb94ba1ab51a1727ac3134c",
+  "scene": "cottage",
+  "hasVO": false,
+  "text": "(*crackling llama noise*) (*flute music*)",
+  "dur": 15,
+  "start": 3.36,
+  "end": 8.4,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/28-xmas-cottage-04-0db2e049.m4a",
+  "name": "xmas-cottage-04-0db2e049.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789455361357-m1sudr.mp4",
+  "sentAt": "2026-09-15T06:53:13.875Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "540ede12bbee4721a03b95c1133fb361",
+  "scene": "cottage",
+  "hasVO": false,
+  "text": "He'd been rested hell's law Whoa! Ah! Ah! Ah!   Ah! Ah! Ah! Ah! Ah! Ah! Ah!  Ah!",
+  "dur": 12,
+  "start": 0,
+  "end": 11.7,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/27-xmas-cottage-03-540ede12.m4a",
+  "name": "xmas-cottage-03-540ede12.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789455031897-z9ryfr.mp4",
+  "sentAt": "2026-09-15T06:47:36.323Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "149159ab49b5463bb9a72eac567ed24c",
+  "scene": "cottage",
+  "hasVO": false,
+  "text": "Rodelphi Dralidu",
+  "dur": 15,
+  "start": 0,
+  "end": 4.5,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/26-xmas-cottage-02-149159ab.m4a",
+  "name": "xmas-cottage-02-149159ab.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789453915513-yomm9k.mp4",
+  "sentAt": "2026-09-15T06:29:26.748Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "00327f92b80e40618063f313d31023d5",
+  "scene": "cottage",
+  "hasVO": false,
+  "text": "😊 😊  😊 😊 😊",
+  "dur": 12,
+  "start": 0,
+  "end": 5.54,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/25-xmas-cottage-01-00327f92.m4a",
+  "name": "xmas-cottage-01-00327f92.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789453474210-jygnop.mp4",
+  "sentAt": "2026-09-15T06:21:38.654Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "774e1718a1e148269cad475181225048",
+  "scene": "vo-cottage",
+  "hasVO": true,
+  "text": "Presents? Apple cider?",
+  "dur": 12,
+  "start": 0,
+  "end": 2.54,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/22-xmas-vo-cottage-01-774e1718.m4a",
+  "name": "xmas-vo-cottage-01-774e1718.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789453086900-2l83ow.mp4",
+  "sentAt": "2026-09-15T06:15:19.166Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -30.9,
+  "voiceDb": -13,
+  "spread": 17.9
+ },
+ {
+  "id": "89a8c7d270464310a90eaefcd6dda26a",
+  "scene": "vo-parents",
+  "hasVO": true,
+  "text": "Honey, you get her a witch kit for Christmas? What? She said she wanted one. Actually, Christmas was originally a pagan holiday. Where do you think that tree came from? Um, the Boy Scouts? Not quite. We stole it? And that's not the only thing. Presents? Apple pie?",
+  "dur": 15,
+  "start": 0,
+  "end": 13.56,
+  "beats": [
+   [
+    "mom: honeyyy",
+    0
+   ],
+   [
+    "dad: what?",
+    2.08
+   ],
+   [
+    "VO: ACTUALLY",
+    3.3
+   ],
+   [
+    "VO: where",
+    5.48
+   ],
+   [
+    "mom: boyscouts",
+    7.08
+   ],
+   [
+    "VO: nooot quite",
+    8.08
+   ],
+   [
+    "mom: we stole it",
+    9.5
+   ],
+   [
+    "VO: not the only thing",
+    11.58
+   ]
+  ],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/19-xmas-vo-parents-01-89a8c7d2.m4a",
+  "name": "xmas-vo-parents-01-89a8c7d2.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789430246543-syhwmc.mp4",
+  "sentAt": "2026-09-14T23:54:19.231Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -24.2,
+  "voiceDb": -15.3,
+  "spread": 8.9
+ },
+ {
+  "id": "f348865c5c934b0fbe03e34e5af1bd97",
+  "scene": "vo-gloomiest",
+  "hasVO": true,
+  "text": "This Christmas, even your gloomiest daughter can be happy. Give the gift of magic. You get a Christmas list? What, she said she wanted one. Actually, Christmas was originally a pagan holiday. Where do you think that tree came from? We stole it? And that's not the only thing. Presents? Apple cedar? No.",
+  "dur": 15,
+  "start": 0,
+  "end": 14.36,
+  "beats": [
+   [
+    "This Christmas…",
+    0
+   ],
+   [
+    "Give the gift…",
+    3.38
+   ]
+  ],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/18-xmas-vo-gloomiest-18-f348865c.m4a",
+  "name": "xmas-vo-gloomiest-18-f348865c.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789429183576-q58kai.mp4",
+  "sentAt": "2026-09-14T23:37:03.511Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -22.5,
+  "voiceDb": -14.9,
+  "spread": 7.6
+ },
+ {
+  "id": "edaf4a97f36546cdb9208a6401f9101c",
+  "scene": "vo-gloomiest",
+  "hasVO": true,
+  "text": "This Christmas, even your gloomiest daughter can be happy. Give the gift of magic. Seek Leah Witch. She already, she already knows.",
+  "dur": 15,
+  "start": 0,
+  "end": 12.96,
+  "beats": [
+   [
+    "This Christmas…",
+    0
+   ],
+   [
+    "Give the gift…",
+    6.1
+   ],
+   [
+    "She already knows",
+    12.2
+   ]
+  ],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/17-xmas-vo-gloomiest-17-edaf4a97.m4a",
+  "name": "xmas-vo-gloomiest-17-edaf4a97.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789422804480-soi1vi.mp4",
+  "sentAt": "2026-09-14T21:46:58.943Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -36.9,
+  "voiceDb": -12.9,
+  "spread": 24
+ },
+ {
+  "id": "68555971759942868d1240036f04c828",
+  "scene": "vo-gloomiest",
+  "hasVO": true,
+  "text": "This Christmas, even your gloomiest daughter can be happy. Give the gift of magic. Secretly a witch she already knows.",
+  "dur": 15,
+  "start": 0,
+  "end": 13.72,
+  "beats": [
+   [
+    "This Christmas…",
+    0
+   ],
+   [
+    "Give the gift…",
+    6.74
+   ],
+   [
+    "Secretly a witch",
+    11.36
+   ],
+   [
+    "She already knows",
+    12.88
+   ]
+  ],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/16-xmas-vo-gloomiest-16-68555971.m4a",
+  "name": "xmas-vo-gloomiest-16-68555971.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789422251286-3cj9mp.mp4",
+  "sentAt": "2026-09-14T21:38:23.837Z",
+  "model": "2.0 Mini",
+  "res": "720p",
+  "bedDb": -38.3,
+  "voiceDb": -14.4,
+  "spread": 23.9
+ },
+ {
+  "id": "d7d5856701554026810501ed20197f8e",
+  "scene": "vo-gloomiest",
+  "hasVO": true,
+  "text": "This Christmas, even your gloomiest daughter can be happy. Give the gift of magic. Secretly a witch she already knows.",
+  "dur": 15,
+  "start": 0,
+  "end": 12.9,
+  "beats": [
+   [
+    "This Christmas…",
+    0
+   ],
+   [
+    "Give the gift…",
+    6.2
+   ],
+   [
+    "Secretly a witch",
+    10.54
+   ],
+   [
+    "She already knows",
+    12.18
+   ]
+  ],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/15-xmas-vo-gloomiest-15-d7d58567.m4a",
+  "name": "xmas-vo-gloomiest-15-d7d58567.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789421354227-rqr7pm.mp4",
+  "sentAt": "2026-09-14T21:25:05.667Z",
+  "model": "bytedance/seedance-2.0/reference-to-video",
+  "res": "720p",
+  "bedDb": -38.9,
+  "voiceDb": -11.8,
+  "spread": 27.1
+ },
+ {
+  "id": "2cc65d64be024104a1290e8b266c262b",
+  "scene": "vo-gloomiest",
+  "hasVO": true,
+  "text": "This Christmas, even your gloomiest daughter can be happy. Give the gift of magic. Secretly a witch. She already knows.",
+  "dur": 15,
+  "start": 0,
+  "end": 12.68,
+  "beats": [
+   [
+    "This Christmas…",
+    0
+   ],
+   [
+    "Give the gift…",
+    5.6
+   ],
+   [
+    "Secretly a witch",
+    9.26
+   ],
+   [
+    "She already knows",
+    11.94
+   ]
+  ],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/14-xmas-vo-gloomiest-14-2cc65d64.m4a",
+  "name": "xmas-vo-gloomiest-14-2cc65d64.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789420434059-flmht1.mp4",
+  "sentAt": "2026-09-14T21:10:37.260Z",
+  "model": "2.0 Mini",
+  "res": "720p",
+  "bedDb": -37.9,
+  "voiceDb": -13.6,
+  "spread": 24.3
+ },
+ {
+  "id": "4c4a4bdc2097448db3e7d882f5f287cf",
+  "scene": "vo-gloomiest",
+  "hasVO": true,
+  "text": "This Christmas, even your gloomiest daughter can be happy. Give the gift of magic. Secretly a witch she already knows.",
+  "dur": 15,
+  "start": 0,
+  "end": 12.92,
+  "beats": [
+   [
+    "This Christmas…",
+    0
+   ],
+   [
+    "Give the gift…",
+    6.06
+   ],
+   [
+    "Secretly a witch",
+    10.92
+   ],
+   [
+    "She already knows",
+    12.16
+   ]
+  ],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/13-xmas-vo-gloomiest-13-4c4a4bdc.m4a",
+  "name": "xmas-vo-gloomiest-13-4c4a4bdc.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789415324378-p8dyj0.mp4",
+  "sentAt": "2026-09-14T19:44:54.638Z",
+  "model": "2.0 Mini",
+  "res": "720p",
+  "bedDb": -39.3,
+  "voiceDb": -15,
+  "spread": 24.3
+ },
+ {
+  "id": "3b57bd72659b487da375dc5c230a8e86",
+  "scene": "vo-gloomiest",
+  "hasVO": true,
+  "text": "This Christmas, even your gloomiest daughter can be happy. Give the gift of magic. Secretly a witch she already knows.",
+  "dur": 15,
+  "start": 0,
+  "end": 12.6,
+  "beats": [
+   [
+    "This Christmas…",
+    0
+   ],
+   [
+    "Give the gift…",
+    6.26
+   ],
+   [
+    "Secretly a witch",
+    10.1
+   ],
+   [
+    "She already knows",
+    11.88
+   ]
+  ],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/12-xmas-vo-gloomiest-12-3b57bd72.m4a",
+  "name": "xmas-vo-gloomiest-12-3b57bd72.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789414848017-6zg8fg.mp4",
+  "sentAt": "2026-09-14T19:37:38.823Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -38.1,
+  "voiceDb": -12.6,
+  "spread": 25.5
+ },
+ {
+  "id": "4cc924ae9c87403d815b1718681eefbe",
+  "scene": "vo-gloomiest",
+  "hasVO": true,
+  "text": "This Christmas, even your gloomiest daughter can be happy. Give the gift of magic. Which, secretly a witch, she already knows.",
+  "dur": 15,
+  "start": 0,
+  "end": 12.84,
+  "beats": [
+   [
+    "This Christmas…",
+    0
+   ],
+   [
+    "Give the gift…",
+    5.5
+   ],
+   [
+    "Secretly a witch",
+    10.72
+   ],
+   [
+    "She already knows",
+    12.02
+   ]
+  ],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/11-xmas-vo-gloomiest-11-4cc924ae.m4a",
+  "name": "xmas-vo-gloomiest-11-4cc924ae.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789413411043-qbvesi.mp4",
+  "sentAt": "2026-09-14T19:14:21.584Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -40.8,
+  "voiceDb": -16.1,
+  "spread": 24.7
+ },
+ {
+  "id": "033dd8d2a9b4445d99c01957d2c67bfc",
+  "scene": "vo-gloomiest",
+  "hasVO": true,
+  "text": "This Christmas, even your gloomiest daughter can be happy. Give the gift of magic. Secretly a witch she already knows.",
+  "dur": 15,
+  "start": 0,
+  "end": 14.8,
+  "beats": [
+   [
+    "This Christmas…",
+    0
+   ],
+   [
+    "Give the gift…",
+    5.92
+   ],
+   [
+    "Secretly a witch",
+    12.62
+   ],
+   [
+    "She already knows",
+    14.02
+   ]
+  ],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/10-xmas-vo-gloomiest-10-033dd8d2.m4a",
+  "name": "xmas-vo-gloomiest-10-033dd8d2.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789371937696-ibcp6o.mp4",
+  "sentAt": "2026-09-14T07:42:14.852Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -38.2,
+  "voiceDb": -14.8,
+  "spread": 23.4
+ },
+ {
+  "id": "3d91cff5370d4da8a9e4ea174172cd8a",
+  "scene": "vo-gloomiest",
+  "hasVO": true,
+  "text": "This Christmas, even your gloomiest daughter can be happy. Give the gift of magic, secretly a witch she already knows. This Christmas, give the gift of magic.",
+  "dur": 15,
+  "start": 0,
+  "end": 14.9,
+  "beats": [
+   [
+    "This Christmas…",
+    0
+   ],
+   [
+    "Give the gift…",
+    5
+   ],
+   [
+    "Secretly a witch",
+    7.18
+   ],
+   [
+    "She already knows",
+    8.5
+   ]
+  ],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/09-xmas-vo-gloomiest-09-3d91cff5.m4a",
+  "name": "xmas-vo-gloomiest-09-3d91cff5.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789371928598-nla89s.mp4",
+  "sentAt": "2026-09-14T07:42:11.369Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -35.8,
+  "voiceDb": -15.1,
+  "spread": 20.7
+ },
+ {
+  "id": "1efcc095262640e5b3952941bde70d9a",
+  "scene": "vo-gloomiest",
+  "hasVO": true,
+  "text": "This Christmas even your gloomiest daughter can be happy give the gift of magic Secretly a witch she already knows",
+  "dur": 15,
+  "start": 0,
+  "end": 13.4,
+  "beats": [
+   [
+    "This Christmas…",
+    0
+   ],
+   [
+    "Give the gift…",
+    4.94
+   ],
+   [
+    "Secretly a witch",
+    10.78
+   ],
+   [
+    "She already knows",
+    12.66
+   ]
+  ],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/08-xmas-vo-gloomiest-08-1efcc095.m4a",
+  "name": "xmas-vo-gloomiest-08-1efcc095.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789371928564-kdcfue.mp4",
+  "sentAt": "2026-09-14T07:41:20.821Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -38.7,
+  "voiceDb": -16.1,
+  "spread": 22.6
+ },
+ {
+  "id": "b4028a1ff04e45868057f5b9ee8d81d9",
+  "scene": "vo-gloomiest",
+  "hasVO": true,
+  "text": "This Christmas, even your gloomiest daughter can be happy. Give the gift of magic. Secretly a witch she already knows.",
+  "dur": 15,
+  "start": 0,
+  "end": 13.38,
+  "beats": [
+   [
+    "This Christmas…",
+    0
+   ],
+   [
+    "Give the gift…",
+    6.5
+   ],
+   [
+    "Secretly a witch",
+    11.46
+   ],
+   [
+    "She already knows",
+    12.8
+   ]
+  ],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/07-xmas-vo-gloomiest-07-b4028a1f.m4a",
+  "name": "xmas-vo-gloomiest-07-b4028a1f.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789371371968-1e8vur.mp4",
+  "sentAt": "2026-09-14T07:33:20.925Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -36,
+  "voiceDb": -16.1,
+  "spread": 19.9
+ },
+ {
+  "id": "3fd90d978b754580a57918398768f753",
+  "scene": "vo-gloomiest",
+  "hasVO": true,
+  "text": "This Christmas, even your gloomiest daughter can be happy. Give the gift of magic, secretly, a witch she already knows.",
+  "dur": 15,
+  "start": 0,
+  "end": 14.88,
+  "beats": [
+   [
+    "This Christmas…",
+    0
+   ],
+   [
+    "Give the gift…",
+    7.28
+   ],
+   [
+    "Secretly a witch",
+    11.76
+   ],
+   [
+    "She already knows",
+    14
+   ]
+  ],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/06-xmas-vo-gloomiest-06-3fd90d97.m4a",
+  "name": "xmas-vo-gloomiest-06-3fd90d97.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789371365172-zw8x61.mp4",
+  "sentAt": "2026-09-14T07:33:17.114Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -47.4,
+  "voiceDb": -16.1,
+  "spread": 31.3
+ },
+ {
+  "id": "36b0c39ece2c4d94b0b11a1bc38b3802",
+  "scene": "vo-gloomiest",
+  "hasVO": true,
+  "text": "This Christmas, even your gloomiest daughter can be happy. Give the gift of magic. Secretly a witch, she already knows.",
+  "dur": 15,
+  "start": 0,
+  "end": 14.44,
+  "beats": [
+   [
+    "This Christmas…",
+    0
+   ],
+   [
+    "Give the gift…",
+    7.64
+   ],
+   [
+    "Secretly a witch",
+    12.28
+   ],
+   [
+    "She already knows",
+    13.86
+   ]
+  ],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/05-xmas-vo-gloomiest-05-36b0c39e.m4a",
+  "name": "xmas-vo-gloomiest-05-36b0c39e.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789371364668-xczu78.mp4",
+  "sentAt": "2026-09-14T07:33:11.597Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -40.5,
+  "voiceDb": -15.8,
+  "spread": 24.7
+ },
+ {
+  "id": "3a1ba63747234f8bb61d5f37b5290290",
+  "scene": "tree-theft",
+  "hasVO": false,
+  "text": "Ohhh... Whooooa!",
+  "dur": 15,
+  "start": 2.6,
+  "end": 8.3,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/35-xmas-tree-theft-07-3a1ba637.m4a",
+  "name": "xmas-tree-theft-07-3a1ba637.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789368618139-jy1vzf.mp4",
+  "sentAt": "2026-09-14T06:39:48.706Z",
+  "model": "2.0 Mini",
+  "res": "720p"
+ },
+ {
+  "id": "5063fe3dbcbe47568755005b938ca969",
+  "scene": "tree-theft",
+  "hasVO": false,
+  "text": "Spooky Music",
+  "dur": 15,
+  "start": 3.58,
+  "end": 5.18,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/34-xmas-tree-theft-06-5063fe3d.m4a",
+  "name": "xmas-tree-theft-06-5063fe3d.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789368618262-hnbhue.mp4",
+  "sentAt": "2026-09-14T06:39:43.450Z",
+  "model": "bytedance/seedance-2.0-fast/reference-to-video",
+  "res": "720p"
+ },
+ {
+  "id": "26d264be5b1d4d1f969a074f9aab6f4b",
+  "scene": "druids",
+  "hasVO": false,
+  "text": "Thanks for listening!",
+  "dur": 8,
+  "start": 6.92,
+  "end": 7.04,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/41-xmas-druids-06-26d264be.m4a",
+  "name": "xmas-druids-06-26d264be.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789367446641-k0mwh7.mp4",
+  "sentAt": "2026-09-14T06:27:55.173Z",
+  "model": "2.0 Mini",
+  "res": "720p"
+ },
+ {
+  "id": "265669ae019d4e0396d024e96c50437a",
+  "scene": "druids",
+  "hasVO": false,
+  "text": "Thank you for watching!",
+  "dur": 4,
+  "start": 3.82,
+  "end": 3.92,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/40-xmas-druids-05-265669ae.m4a",
+  "name": "xmas-druids-05-265669ae.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789367194550-oqnkjq.mp4",
+  "sentAt": "2026-09-14T06:24:07.160Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "6176676ef7094823a7ac7bd468aab8c5",
+  "scene": "druids",
+  "hasVO": false,
+  "text": "Satsang with Mooji",
+  "dur": 8,
+  "start": 5.38,
+  "end": 5.52,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/39-xmas-druids-04-6176676e.m4a",
+  "name": "xmas-druids-04-6176676e.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789367177628-98v4a2.mp4",
+  "sentAt": "2026-09-14T06:24:00.843Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "b8bc040e3f4e4067878b1b47d2a4d24b",
+  "scene": "druids",
+  "hasVO": false,
+  "text": ".",
+  "dur": 8,
+  "start": 0,
+  "end": 0.74,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/38-xmas-druids-03-b8bc040e.m4a",
+  "name": "xmas-druids-03-b8bc040e.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789366974625-7rqktp.mp4",
+  "sentAt": "2026-09-14T06:20:53.217Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "529abcfeb02742ef9d97df628eabeeae",
+  "scene": "druids",
+  "hasVO": false,
+  "text": "Thanks for watching!",
+  "dur": 8,
+  "start": 7.32,
+  "end": 7.4,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/37-xmas-druids-02-529abcfe.m4a",
+  "name": "xmas-druids-02-529abcfe.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789366580150-y9bkrp.mp4",
+  "sentAt": "2026-09-14T06:14:31.964Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "fa344389bfff496fbc72f24f6006a015",
+  "scene": "druids",
+  "hasVO": false,
+  "text": "Thank you for watching!",
+  "dur": 4,
+  "start": 2.62,
+  "end": 4.02,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/36-xmas-druids-01-fa344389.m4a",
+  "name": "xmas-druids-01-fa344389.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789363890307-gdx5rt.mp4",
+  "sentAt": "2026-09-14T05:29:57.728Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "x4c9LZCM5W2KLjbhyeoa",
+  "scene": "tree-theft",
+  "hasVO": false,
+  "text": "♪ The wind frees us, set to stay. ♪  -♪♪ -♪♪  -♪♪",
+  "dur": 15,
+  "start": 0,
+  "end": 10.48,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/33-xmas-tree-theft-05-x4c9lzcm.m4a",
+  "name": "xmas-tree-theft-05-x4c9LZCM.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/openrouter-video/1789200897698-zejta1.mp4",
+  "sentAt": "2026-09-12T08:11:19.921Z",
+  "model": "bytedance/seedance-2.5",
+  "res": "720p"
+ },
+ {
+  "id": "ce252184280b4a969ebbaf822bab6810",
+  "scene": "tree-theft",
+  "hasVO": false,
+  "text": "🎵Teardrops is now down below🎵 –THUNDER DELLING– –यִוָֹּדָּ Hae— 🦄🦄🦄🦄🦄🦄🦄🦄🦄🦄🦄🦄 🦄🦄🦄🦄💃",
+  "dur": 15,
+  "start": 0,
+  "end": 15.08,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/32-xmas-tree-theft-04-ce252184.m4a",
+  "name": "xmas-tree-theft-04-ce252184.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789199593359-cutx2v.mp4",
+  "sentAt": "2026-09-12T07:50:00.356Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "df4e58c0a1b8414481cecf22b56de63d",
+  "scene": "tree-theft",
+  "hasVO": false,
+  "text": "COMING SOON YOU",
+  "dur": 15,
+  "start": 11.3,
+  "end": 15.08,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/31-xmas-tree-theft-03-df4e58c0.m4a",
+  "name": "xmas-tree-theft-03-df4e58c0.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789199565484-qmn90g.mp4",
+  "sentAt": "2026-09-12T07:49:55.748Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "de0c43a22f7a4bbb82c4115a55eec157",
+  "scene": "travel-kit",
+  "hasVO": false,
+  "text": "请不吝点赞 订阅 转发 打赏支持明镜与点点栏目",
+  "dur": 15,
+  "start": 5.66,
+  "end": 5.92,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/63-xmas-travel-kit-11-de0c43a2.m4a",
+  "name": "xmas-travel-kit-11-de0c43a2.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789192485603-s5zsmv.mp4",
+  "sentAt": "2026-09-12T05:52:11.477Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "6d5e470093f2401bb4eda09016f6cbf1",
+  "scene": "tree-theft",
+  "hasVO": false,
+  "text": "...",
+  "dur": 15,
+  "start": 0,
+  "end": 0.24,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/30-xmas-tree-theft-02-6d5e4700.m4a",
+  "name": "xmas-tree-theft-02-6d5e4700.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789189070088-q7hj9a.mp4",
+  "sentAt": "2026-09-12T04:55:19.772Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "83f115e780ec4950b1283e2ceb81ef54",
+  "scene": "tree-theft",
+  "hasVO": false,
+  "text": "🎵sad music plays🎵 🎵car engine roars🎵 🎵maniacal laughter🎵 💥         💥 💥 💥",
+  "dur": 15,
+  "start": 0,
+  "end": 11.66,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/29-xmas-tree-theft-01-83f115e7.m4a",
+  "name": "xmas-tree-theft-01-83f115e7.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789188612962-vjq7xu.mp4",
+  "sentAt": "2026-09-12T04:48:06.981Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "501e19d43eed4fef944f0ab23fa60854",
+  "scene": "boys",
+  "hasVO": false,
+  "text": "5'10 and three quarters. 5'10 and 6'8. Surprise!",
+  "dur": 15,
+  "start": 0,
+  "end": 13.64,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/71-xmas-boys-04-501e19d4.m4a",
+  "name": "xmas-boys-04-501e19d4.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789178644042-svtttm.mp4",
+  "sentAt": "2026-09-12T02:00:45.206Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "f231912e20fa4d559bb6e9641391ae14",
+  "scene": "boys",
+  "hasVO": false,
+  "text": "Hahaha Whoa whoa hahaHA Surprise!",
+  "dur": 15,
+  "start": 0,
+  "end": 13.6,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/70-xmas-boys-03-f231912e.m4a",
+  "name": "xmas-boys-03-f231912e.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789178216374-e38d87.mp4",
+  "sentAt": "2026-09-12T01:53:53.586Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "4bc2aeb3837d44a58a4bea5ce6a78640",
+  "scene": "boys",
+  "hasVO": false,
+  "text": "I'm 5'10 and 3 quarters, you're 5'10 and 6'8. Surprise!",
+  "dur": 15,
+  "start": 0,
+  "end": 13.92,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/69-xmas-boys-02-4bc2aeb3.m4a",
+  "name": "xmas-boys-02-4bc2aeb3.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789177705137-t4u8or.mp4",
+  "sentAt": "2026-09-12T01:45:41.157Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "b52e3f8c93d94975a234977274fb4e5f",
+  "scene": "boys",
+  "hasVO": false,
+  "text": "LAUGHTER SURPRISE! WAAAAAAAH!!",
+  "dur": 15,
+  "start": 0,
+  "end": 14.2,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/68-xmas-boys-01-b52e3f8c.m4a",
+  "name": "xmas-boys-01-b52e3f8c.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789177228789-9rn166.mp4",
+  "sentAt": "2026-09-12T01:37:39.741Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "6812aba9-9fc7-49c0-8b12-7557187a7c13",
+  "scene": "kit-open",
+  "hasVO": false,
+  "text": "Thank you for watching!",
+  "dur": 4,
+  "start": 3.74,
+  "end": 3.84,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/52-xmas-kit-open-11-6812aba9.m4a",
+  "name": "xmas-kit-open-11-6812aba9.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1789161699884-rjw803.mp4",
+  "sentAt": "2026-09-11T21:14:15.441Z",
+  "model": "seedance-2",
+  "res": "480p"
+ },
+ {
+  "id": "073ccdcdc29844e3b2c00083e4c63ff5",
+  "scene": "kit-open",
+  "hasVO": false,
+  "text": "오늘도 시청해 주셔서 감사합니다.",
+  "dur": 4,
+  "start": 2.66,
+  "end": 4.06,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/51-xmas-kit-open-10-073ccdcd.m4a",
+  "name": "xmas-kit-open-10-073ccdcd.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789161321020-ozm45n.mp4",
+  "sentAt": "2026-09-11T21:14:00.155Z",
+  "model": "bytedance/seedance-2.0-fast/reference-to-video",
+  "res": "480p"
+ },
+ {
+  "id": "ea7cd4465b66434c97f945dca05211f3",
+  "scene": "kit-open",
+  "hasVO": false,
+  "text": "Thanks for watching!",
+  "dur": 4,
+  "start": 3.56,
+  "end": 3.64,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/50-xmas-kit-open-09-ea7cd446.m4a",
+  "name": "xmas-kit-open-09-ea7cd446.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789161185525-9u84is.mp4",
+  "sentAt": "2026-09-11T21:10:53.720Z",
+  "model": "bytedance/seedance-2.0-fast/reference-to-video",
+  "res": "480p"
+ },
+ {
+  "id": "0eab8ac88bf740cbae9793c184b192b8",
+  "scene": "kit-open",
+  "hasVO": false,
+  "text": "Thanks for watching!",
+  "dur": 4,
+  "start": 2.96,
+  "end": 3.44,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/49-xmas-kit-open-08-0eab8ac8.m4a",
+  "name": "xmas-kit-open-08-0eab8ac8.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789160818576-f3kk6u.mp4",
+  "sentAt": "2026-09-11T21:03:24.187Z",
+  "model": "bytedance/seedance-2.5/reference-to-video",
+  "res": "480p"
+ },
+ {
+  "id": "4332d3c2ad734f5284d69da89f209711",
+  "scene": "kit-open",
+  "hasVO": false,
+  "text": "You",
+  "dur": 4,
+  "start": 0,
+  "end": 2,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/48-xmas-kit-open-07-4332d3c2.m4a",
+  "name": "xmas-kit-open-07-4332d3c2.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789158984712-o53vvd.mp4",
+  "sentAt": "2026-09-11T20:27:04.628Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "95d67c4ab91546b8a42a1e1bede03e63",
+  "scene": "kit-open",
+  "hasVO": false,
+  "text": "다음 영상에서 만나요!",
+  "dur": 4,
+  "start": 2.66,
+  "end": 4.06,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/47-xmas-kit-open-06-95d67c4a.m4a",
+  "name": "xmas-kit-open-06-95d67c4a.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789158335579-y9c8xi.mp4",
+  "sentAt": "2026-09-11T20:24:00.078Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "4fb5932bd8fa45b2a98b8f2a6a58440b",
+  "scene": "kit-open",
+  "hasVO": false,
+  "text": "Thank you for watching.",
+  "dur": 4,
+  "start": 2.64,
+  "end": 4.04,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/46-xmas-kit-open-05-4fb5932b.m4a",
+  "name": "xmas-kit-open-05-4fb5932b.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789158316402-dn8ks7.mp4",
+  "sentAt": "2026-09-11T20:23:33.166Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "82cd4be1ac3f42fcb1341772d4ebcdb3",
+  "scene": "kit-open",
+  "hasVO": false,
+  "text": "Thanks for watching!",
+  "dur": 4,
+  "start": 2.66,
+  "end": 4.06,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/45-xmas-kit-open-04-82cd4be1.m4a",
+  "name": "xmas-kit-open-04-82cd4be1.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789158289043-9kv79n.mp4",
+  "sentAt": "2026-09-11T20:22:50.034Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "68476dc98b164c8ab1bcdd18e5112deb",
+  "scene": "kit-open",
+  "hasVO": false,
+  "text": "Thanks for watching!",
+  "dur": 4,
+  "start": 2.66,
+  "end": 4.06,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/44-xmas-kit-open-03-68476dc9.m4a",
+  "name": "xmas-kit-open-03-68476dc9.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789157855433-p7xgsh.mp4",
+  "sentAt": "2026-09-11T20:14:35.253Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "865146a632bd435ba30ddd74ec693178",
+  "scene": "vo-sophie",
+  "hasVO": true,
+  "text": "Perhaps I just...",
+  "dur": 4,
+  "start": 0,
+  "end": 2,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/24-xmas-vo-sophie-02-865146a6.m4a",
+  "name": "xmas-vo-sophie-02-865146a6.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789157444082-wjtl8x.mp4",
+  "sentAt": "2026-09-11T20:09:15.023Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -36.8,
+  "voiceDb": -24.2,
+  "spread": 12.6
+ },
+ {
+  "id": "2f197c3de6824bdb820b757ba98cb8d4",
+  "scene": "vo-sophie",
+  "hasVO": true,
+  "text": "Have I just didn't want to know.",
+  "dur": 4,
+  "start": 2.8,
+  "end": 4.04,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/23-xmas-vo-sophie-01-2f197c3d.m4a",
+  "name": "xmas-vo-sophie-01-2f197c3d.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789157456806-ahljgd.mp4",
+  "sentAt": "2026-09-11T20:08:49.292Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -27.7,
+  "voiceDb": -25.4,
+  "spread": 2.3
+ },
+ {
+  "id": "e4e2ef2df9d8442287c2c77d83b8931f",
+  "scene": "travel-kit",
+  "hasVO": false,
+  "text": "Thanks for watching!",
+  "dur": 4,
+  "start": 3.78,
+  "end": 3.86,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/62-xmas-travel-kit-10-e4e2ef2d.m4a",
+  "name": "xmas-travel-kit-10-e4e2ef2d.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789151784632-87znen.mp4",
+  "sentAt": "2026-09-11T18:34:41.873Z",
+  "model": "2.0 Mini",
+  "res": "720p"
+ },
+ {
+  "id": "2d8cce10ca974e459dffb0246087e1ab",
+  "scene": "travel-kit",
+  "hasVO": true,
+  "text": "Your portable magic, always within reach.",
+  "dur": 4,
+  "start": 0,
+  "end": 3.62,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/61-xmas-travel-kit-09-2d8cce10.m4a",
+  "name": "xmas-travel-kit-09-2d8cce10.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789151616927-cttzed.mp4",
+  "sentAt": "2026-09-11T18:32:13.626Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -37,
+  "voiceDb": -11.3,
+  "spread": 25.7
+ },
+ {
+  "id": "b7009d1aa34a4b0995b62a640702c9fd",
+  "scene": "travel-kit",
+  "hasVO": true,
+  "text": "Your magic, wherever you go.",
+  "dur": 4,
+  "start": 0,
+  "end": 3.28,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/60-xmas-travel-kit-08-b7009d1a.m4a",
+  "name": "xmas-travel-kit-08-b7009d1a.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789150569310-hytnjx.mp4",
+  "sentAt": "2026-09-11T18:14:13.795Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -29.6,
+  "voiceDb": -11.8,
+  "spread": 17.8
+ },
+ {
+  "id": "b4feb0b8cd114559a7438169c9ff32b1",
+  "scene": "travel-kit",
+  "hasVO": false,
+  "text": "Sigh.",
+  "dur": 4,
+  "start": 0,
+  "end": 1.32,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/59-xmas-travel-kit-07-b4feb0b8.m4a",
+  "name": "xmas-travel-kit-07-b4feb0b8.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789137306210-azcqoz.mp4",
+  "sentAt": "2026-09-11T14:33:29.541Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "299269a61b8d437186047609d6245eaf",
+  "scene": "travel-kit",
+  "hasVO": false,
+  "text": "Thanks for watching!",
+  "dur": 15,
+  "start": 7.46,
+  "end": 7.54,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/58-xmas-travel-kit-06-299269a6.m4a",
+  "name": "xmas-travel-kit-06-299269a6.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789137294791-ocbkzi.mp4",
+  "sentAt": "2026-09-11T14:32:00.343Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "908d018c996a4aaaa8b98838380179f0",
+  "scene": "travel-kit",
+  "hasVO": false,
+  "text": "🐯 Sound Hodori 사운드 호돌이 サウンドゥ ホドリ",
+  "dur": 4,
+  "start": 0.76,
+  "end": 0.84,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/57-xmas-travel-kit-05-908d018c.m4a",
+  "name": "xmas-travel-kit-05-908d018c.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789137065721-s89lbd.mp4",
+  "sentAt": "2026-09-11T14:29:41.015Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "bwuhjYQrgkoG5gRiVoIY",
+  "scene": "travel-kit",
+  "hasVO": false,
+  "text": "오늘도 영상 봐주셔서 감사합니다!",
+  "dur": 15,
+  "start": 13.54,
+  "end": 14.94,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/56-xmas-travel-kit-04-bwuhjyqr.m4a",
+  "name": "xmas-travel-kit-04-bwuhjYQr.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/openrouter-video/1789136916595-ipsusw.mp4",
+  "sentAt": "2026-09-11T14:21:59.372Z",
+  "model": "bytedance/seedance-2.5",
+  "res": "720p"
+ },
+ {
+  "id": "461e27dd774540ebb89f4661b8bd3ba8",
+  "scene": "travel-kit",
+  "hasVO": false,
+  "text": "优优独播剧场——YoYo Television Series Exclusive",
+  "dur": 15,
+  "start": 13.68,
+  "end": 15.08,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/55-xmas-travel-kit-03-461e27dd.m4a",
+  "name": "xmas-travel-kit-03-461e27dd.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789136464649-cxombc.mp4",
+  "sentAt": "2026-09-11T14:18:52.717Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ },
+ {
+  "id": "2eeaac3830584356b01dfa6639162af9",
+  "scene": "travel-kit",
+  "hasVO": true,
+  "text": "Sigh Find your magic anywhere",
+  "dur": 10,
+  "start": 1.66,
+  "end": 9.62,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/54-xmas-travel-kit-02-2eeaac38.m4a",
+  "name": "xmas-travel-kit-02-2eeaac38.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789136321818-w13zf5.mp4",
+  "sentAt": "2026-09-11T14:17:02.308Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -34.9,
+  "voiceDb": -11.4,
+  "spread": 23.5
+ },
+ {
+  "id": "d4ae8a3b521944e78a541cdae31a7a3a",
+  "scene": "vo-gloomiest",
+  "hasVO": true,
+  "text": "This Christmas, even your gloomiest daughter can be happy. Give the gift of magic. Secretly a witch she already knows.",
+  "dur": 15,
+  "start": 0,
+  "end": 14.86,
+  "beats": [
+   [
+    "This Christmas…",
+    0
+   ],
+   [
+    "Give the gift…",
+    6.52
+   ],
+   [
+    "Secretly a witch",
+    11.42
+   ],
+   [
+    "She already knows",
+    14.04
+   ]
+  ],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/04-xmas-vo-gloomiest-04-d4ae8a3b.m4a",
+  "name": "xmas-vo-gloomiest-04-d4ae8a3b.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789135705094-va6z6r.mp4",
+  "sentAt": "2026-09-11T14:06:10.673Z",
+  "model": "bytedance/seedance-2.0-fast/reference-to-video",
+  "res": "480p",
+  "bedDb": -44.8,
+  "voiceDb": -14.3,
+  "spread": 30.5
+ },
+ {
+  "id": "43a9c5e37eb94ba0be613735628df476",
+  "scene": "kit-open",
+  "hasVO": true,
+  "text": "Discover your magic.",
+  "dur": 8,
+  "start": 5.82,
+  "end": 7.64,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/43-xmas-kit-open-02-43a9c5e3.m4a",
+  "name": "xmas-kit-open-02-43a9c5e3.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789135079469-88z0rf.mp4",
+  "sentAt": "2026-09-11T13:55:58.644Z",
+  "model": "2.0 Mini",
+  "res": "720p",
+  "bedDb": -38.3,
+  "voiceDb": -8.9,
+  "spread": 29.4
+ },
+ {
+  "id": "9e4c433039914d01bd5588dbb8860be7",
+  "scene": "vo-gloomiest",
+  "hasVO": true,
+  "text": "This Christmas, even your gloomiest daughter can be happy. Give the gift of magic. Secretly a witch she already knows.",
+  "dur": 15,
+  "start": 0,
+  "end": 14.66,
+  "beats": [
+   [
+    "This Christmas…",
+    0
+   ],
+   [
+    "Give the gift…",
+    6.54
+   ],
+   [
+    "Secretly a witch",
+    11.44
+   ],
+   [
+    "She already knows",
+    13.86
+   ]
+  ],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/03-xmas-vo-gloomiest-03-9e4c4330.m4a",
+  "name": "xmas-vo-gloomiest-03-9e4c4330.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789135045197-iurhwi.mp4",
+  "sentAt": "2026-09-11T13:55:05.837Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -37.2,
+  "voiceDb": -13.9,
+  "spread": 23.3
+ },
+ {
+  "id": "3c296db02e1d4d2a97186e25c630ce53",
+  "scene": "vo-gloomiest",
+  "hasVO": true,
+  "text": "这个圣诞节即使是你最忧郁的女女儿也能快乐起来送上这份魔法礼物 她其实是个女巫她自己知道",
+  "dur": 15,
+  "start": 0.92,
+  "end": 11,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/02-xmas-vo-gloomiest-02-3c296db0.m4a",
+  "name": "xmas-vo-gloomiest-02-3c296db0.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789135033347-m7zose.mp4",
+  "sentAt": "2026-09-11T13:55:03.201Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -37.6,
+  "voiceDb": -20.1,
+  "spread": 17.5
+ },
+ {
+  "id": "b272afdc46ed41c3bf4ba743f3dc6365",
+  "scene": "vo-gloomiest",
+  "hasVO": true,
+  "text": "This Christmas, even your gloomiest daughter can be happy. Give the gift of magic. Secretly a witch. She already knows.",
+  "dur": 15,
+  "start": 0,
+  "end": 14.68,
+  "beats": [
+   [
+    "This Christmas…",
+    0
+   ],
+   [
+    "Give the gift…",
+    7.12
+   ],
+   [
+    "Secretly a witch",
+    11.08
+   ],
+   [
+    "She already knows",
+    13.74
+   ]
+  ],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/01-xmas-vo-gloomiest-01-b272afdc.m4a",
+  "name": "xmas-vo-gloomiest-01-b272afdc.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789134745375-4ljwlt.mp4",
+  "sentAt": "2026-09-11T13:49:45.501Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -35.4,
+  "voiceDb": -11.5,
+  "spread": 23.9
+ },
+ {
+  "id": "1aba3711bf3a47978ae54b2e134e32f9",
+  "scene": "kit-open",
+  "hasVO": true,
+  "text": "Unlock your magic.",
+  "dur": 15,
+  "start": 13.1,
+  "end": 14.64,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/42-xmas-kit-open-01-1aba3711.m4a",
+  "name": "xmas-kit-open-01-1aba3711.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789134471658-2tjcr8.mp4",
+  "sentAt": "2026-09-11T13:45:08.322Z",
+  "model": "2.0 Mini",
+  "res": "480p",
+  "bedDb": -18.1,
+  "voiceDb": -6.8,
+  "spread": 11.3
+ },
+ {
+  "id": "5d57d76a05b4479ca4c386d0cf5cc63c",
+  "scene": "travel-kit",
+  "hasVO": false,
+  "text": "Thank you for watching!",
+  "dur": 15,
+  "start": 14.2,
+  "end": 14.3,
+  "beats": [],
+  "audio": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/audio/christmas-voiceovers/53-xmas-travel-kit-01-5d57d76a.m4a",
+  "name": "xmas-travel-kit-01-5d57d76a.m4a",
+  "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/atlascloud-video/1789134444174-0nyo2j.mp4",
+  "sentAt": "2026-09-11T13:44:47.477Z",
+  "model": "2.0 Mini",
+  "res": "480p"
+ }
+]
