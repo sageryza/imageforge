@@ -233,3 +233,22 @@ Mini now.
 4. Anastasia: is the blonde leotard photo in hop her dance photo?
 5. The ending: 49b (the bed moved, the smile) or 48 (the door), or
    something not written yet.
+
+## Added 2026-09-16 — for the trailer (Sophie, cutting v14)
+
+Three things the trailer needs that no clip on file carries (swept every
+ward job in Footage, the video log and the Dump that day):
+
+- **Her face talking in the cafeteria.** The cafeteria clip is a wide of
+  Michael and Anastasia at the tray; her lines ("I'm not sure why everyone
+  wants to leave so quickly") play over the two-shot.
+- **Her smiling on the pavement when the medics reach her — not crying on
+  her side.** The ambulance clip (`373492726e…`) has her face down on the
+  wet street; the smile exists only in the overhead (the sped 4s smile).
+- **Her getting a shot with a needle**, to open the pill sequence. No
+  needle, injection or syringe in any prompt or transcript on file.
+
+Found and used instead of shooting: the medics at the back gate (the
+socks clip's own source, `1789013992933-w5vfx8`, 0–1.7s) and the whole
+mirror scene with the assistant's "psychotic episode / very normal /
+normal life" (Footage 2.5, 30s, `1789112737644-nvah4z`).
