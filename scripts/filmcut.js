@@ -22,7 +22,7 @@
 //   node scripts/filmcut.js pin <id> --chat <slug> --session <sid> --title "v8 — …"
 //                                                    → pins the newest render WITH the cut id (the
 //                                                      editor door) — the checklist's 3a + 3c in one
-//   node scripts/filmcut.js export <id> [--dir <d>] [--no-upload]
+//   node scripts/filmcut.js export <id> [--pieces] [--dir <d>] [--no-upload]
 //                                                    → the cut for ANOTHER editor (cut-export.js): one
 //                                                      zip — media/ named in timeline order, the CUT
 //                                                      SHEET, an FCPXML — built here, uploaded to
@@ -163,6 +163,83 @@ async function probeStreams(file) {
   return r;
 }
 
+// EACH PIECE ITS OWN TRIMMED FILE (2026-09-16, Sophie: "each clip separate dd
+// so i can trim"). The mode below hands over whole sources; this one hands
+// over the CUT — clips/01…NN already trimmed, in order, so dropping the
+// folder on a LumaFusion timeline IS the cut and every edge is hers to drag.
+//
+// Each piece is RE-ENCODED, not stream-copied: a copy can only cut on a
+// keyframe, so half the pieces would arrive seconds long or short. Encode is
+// x264 crf 18 at the SOURCE's own size and rate (no 1280 cap — this is her
+// edit master, not a proxy), audio AAC 192k with the piece's own mute/gain
+// applied, so what she hears in LumaFusion is what the render sounds like.
+// A still is copied byte for byte and its hold is written in the sheet — a
+// picture has no length to cut.
+async function exportPieces(C) {
+  const { id, doc, lanes, names, folder, base, root, fe, E, opts, path, execFileSync } = C;
+  const pnames = E.pieceNames(doc);
+  const clips = path.join(root, 'clips');
+  const sound = path.join(root, 'sound');
+  fs.mkdirSync(clips, { recursive: true });
+  if (lanes.sounds.length) fs.mkdirSync(sound, { recursive: true });
+  const srcDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'filmcut-src-'));
+  const srcOf = {};
+  async function source(url) {
+    if (!srcOf[url]) {
+      const f = path.join(srcDir, require('crypto').createHash('sha1').update(url).digest('hex') + path.extname(new URL(url).pathname));
+      if (!fs.existsSync(f)) await fe.downloadSource(url, f);
+      srcOf[url] = f;
+    }
+    return srcOf[url];
+  }
+  process.stderr.write(`  ${lanes.clips.length} pieces → ${clips}\n`);
+  for (let i = 0; i < lanes.clips.length; i++) {
+    const p = lanes.clips[i];
+    const src = await source(p.url);
+    const out = path.join(clips, pnames[i]);
+    if (p.kind === 'image') { fs.copyFileSync(src, out); continue; }
+    const af = p.mute ? [] : (p.gain ? ['-af', `volume=${p.gain}dB`] : []);
+    const args = ['-y', '-i', src, '-ss', p.in.toFixed(3), '-to', p.out.toFixed(3),
+      '-c:v', 'libx264', '-crf', '18', '-preset', 'veryfast', '-pix_fmt', 'yuv420p'];
+    if (p.mute) args.push('-an'); else args.push('-c:a', 'aac', '-b:a', '192k', ...af);
+    args.push('-movflags', '+faststart', out);
+    execFileSync(fe.FFMPEG, args, { stdio: ['ignore', 'ignore', 'pipe'] });
+    await progressLine(i + 1, lanes.clips.length, pnames[i]);
+  }
+  for (const s of lanes.sounds) {
+    const src = await source(s.url);
+    fs.copyFileSync(src, path.join(sound, names[s.url]));
+  }
+  fs.rmSync(srcDir, { recursive: true, force: true });
+  fs.writeFileSync(path.join(root, 'CUT SHEET.txt'), E.pieceSheet(doc, pnames, names));
+  const zip = path.join(base, `${folder} (clips).zip`);
+  if (fs.existsSync(zip)) fs.unlinkSync(zip);
+  execFileSync('zip', ['-q', '-r', '-X', zip, folder], { cwd: base, stdio: 'inherit' });
+  const zipBytes = fs.statSync(zip).size;
+  const summary = `${lanes.clips.length} pieces each its own file · ${lanes.sounds.length} sounds · ${Math.round(zipBytes / 1048576)}MB`;
+  const upload = opts.upload && process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (!upload) { console.log(`${zip}\n${summary} · not uploaded`); return { zip, summary }; }
+  const editor = require('../editor');
+  const n = ((doc.exports || []).length || 0) + 1;
+  const url = await editor.uploadPublic(zip, `filmeditor/${id}/export-${n}-clips.zip`, 'application/zip');
+  const rec = { url, at: Date.now(), by: 'chat', bytes: zipBytes, files: lanes.clips.length + lanes.sounds.length, pieces: lanes.clips.length, sounds: lanes.sounds.length, mode: 'pieces' };
+  await fe.txField(id, 'exports', (cur) => [rec].concat(Array.isArray(cur) ? cur : []).slice(0, 12));
+  const chat = flag('chat') || doc.chat;
+  const session = flag('session') || (process.env.CLAUDE_CODE_REMOTE_SESSION_ID || '').replace(/^cse_/, '');
+  if (chat) {
+    const title = flag('title') || `${doc.title || 'Cut'} — every clip its own trimmed file (zip: clips in order + sound + cut sheet)`;
+    const { status, json } = await call(BASE + '/api/deliverables', { method: 'POST', body: { chat, session, url, title, kind: 'link', cut: id } });
+    if (status !== 200) process.stderr.write(`  deliverables → ${status} ${json.error || ''}\n`);
+  }
+  console.log(`${url}\n${summary}`);
+  if (!opts.dir) fs.rmSync(base, { recursive: true, force: true });
+  return { url, summary };
+}
+
+async function progressLine(i, total, name) {
+  process.stderr.write(`  piece ${i} of ${total} — ${String(name).slice(0, 60)}\n`);
+}
+
 // The export: every source downloaded ONCE into media/ under its timeline
 // name, probed, the sheet and the xml written beside it, zipped, uploaded.
 async function exportCut(id, opts) {
@@ -179,6 +256,7 @@ async function exportCut(id, opts) {
   const folder = E.slugTitle(doc.title || 'Cut') || 'Cut';
   const base = opts.dir || fs.mkdtempSync(path.join(os.tmpdir(), 'filmcut-export-'));
   const root = path.join(base, folder);
+  if (opts.pieces) return exportPieces({ id, doc, lanes, names, folder, base, root, fe, E, opts, os, path, execFileSync });
   const media = path.join(root, 'media');
   fs.mkdirSync(media, { recursive: true });
   const urls = Object.keys(names);
@@ -335,7 +413,7 @@ if (require.main === module) (async () => {
     return;
   }
   if (cmd === 'export') {
-    await exportCut(id, { dir: flag('dir'), upload: !has('no-upload') });
+    await exportCut(id, { dir: flag('dir'), upload: !has('no-upload'), pieces: has('pieces') });
     return;
   }
   if (cmd === 'pin') {
