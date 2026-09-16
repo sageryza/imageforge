@@ -184,6 +184,21 @@ console.log('waiting: the last five deploys, and what rode in each');
   ok('the changes are grouped by chat', Array.isArray(runs[0].groups) && !!runs[0].groups[0].items);
 }
 
+// THE DEPLOY BUTTON'S STATE (2026-09-16). The button is not drawn without a
+// key, so `key` is what stands between her and a dead control; `cooling` is
+// what a second tap is refused with.
+console.log('waiting: the deploy button knows whether it can work');
+{
+  const had = process.env.RENDER_API_KEY;
+  delete process.env.RENDER_API_KEY;
+  ok('no key on the server → the page is told so', W.deployState().key === false);
+  process.env.RENDER_API_KEY = 'rnd_x';
+  ok('a key → it can deploy', W.deployState().key === true);
+  ok('nothing fired yet → no cooldown', W.deployState().cooling === 0, W.deployState());
+  ok('the cooldown is five minutes', W.COOL_MS === 5 * 60 * 1000, W.COOL_MS);
+  if (had === undefined) delete process.env.RENDER_API_KEY; else process.env.RENDER_API_KEY = had;
+}
+
 console.log('waiting: readAhead asks GitHub once and orders newest first');
 {
   let asked = [];

@@ -103,8 +103,9 @@ still every time the work wraps up.
    need, doing}`. Telegraphic fragments, ~30-60 chars, the way she writes her
    own notes. `need` = what you need from her AND how big the ask is; send `""`
    when nothing is needed. **It goes to her LOCK SCREEN verbatim, so it asks
-   rather than orders** — `ok to deploy?`, never `deploy? one word`
-   (2026-09-15: "one word notification feels aggressive").
+   rather than orders** — `ok to pick a palette?`, never `pick one. one word`
+   (2026-09-15: "one word notification feels aggressive"). **And deploying is
+   not an ask any more — she has the Deploy button on /waiting (2026-09-16).**
 2. **Write your UPDATE CARD** — `POST /api/chatfeed/update {chat, session,
    asked, did, next}`. *Measured: only 15 of 224 chats had ever posted one.*
 3. **Spent real money this turn? Say how much.** ONLY then — a reply that
@@ -610,17 +611,24 @@ are separate steps and both are cheap:
   nothing, it is the same marker the docs-only rule uses, and it is the
   belt-and-braces if auto deploy is ever turned back on — but it is no longer
   what stands between your merge and her live site.
-- **THEN ASK.** Say the change is merged and not live, and deploy only when she
-  says. `node scripts/render-deploy.js` is the deploy (its `--dry` says what is
-  in flight). **"Not deployed" now means FROZEN until someone deploys** — no
-  other chat's merge carries it out any more, so don't tell her it will ride
-  along. The pile waiting to go live is
-  https://imageforge-q125.onrender.com/waiting.
-- **AND DEPLOYING IS HERS, NOT A JUDGEMENT CALL.** A fix she is actively
-  waiting on is still not a reason to ship it without her word — say it is
-  merged and ask. The two that shipped themselves on 2026-09-15 were both
-  fixes she had just asked for, and that is exactly the reasoning she ruled
-  out.
+- **THEN SAY IT IS NOT LIVE — AND STOP ASKING (2026-09-16, Sophie: "add a
+  button at top of merged changes that deploys to render so i can do it myself
+  and chats can stop asking").** A **Deploy** button now leads
+  https://imageforge-q125.onrender.com/waiting — two taps, and it sends
+  everything on that list live. So the ask that used to end every turn is
+  retired: write ONE line saying the change is merged and not live, and leave
+  the deciding where it already was. **Do not ask "ok to deploy?" and do not
+  put that question on her status card** — she has the button.
+  - **THE RULE THAT DID NOT MOVE: you still do not deploy on your own.** The
+    button is HERS. `node scripts/render-deploy.js` stays the chat's door for
+    when she says the word in the chat (her "go", "deploy it", "deploy
+    first"), which is still a go and still gets done that turn.
+  - **"Not deployed" means FROZEN until someone deploys** — no other chat's
+    merge carries it out any more, so never tell her it will ride along.
+  - **What "she is waiting on it" buys you is nothing, exactly as before.**
+    The two that shipped themselves on 2026-09-15 were both fixes she had just
+    asked for, and that is the reasoning she ruled out. The difference now is
+    that the fix to it is a button rather than a question.
 - **NAME WHAT RIDES ALONG (her third ask the same message: "when u merge make
   sure ur aware of what goes with it").** Before merging, read
   `git log HEAD..origin/main` (what landed under you) and
@@ -2266,6 +2274,9 @@ them off the reference sheet, not off the old filenames.
       when the ask is already one beat.
     - Telegraphic is still right. Short and asking is `ok to deploy?`; short
       and barking is `deploy? one word`. It is four characters between them.
+    - **That example is now HISTORY, not a card to write.** Deploying stopped
+      being an ask on 2026-09-16 — she has the Deploy button on /waiting — so
+      a `need` that asks to deploy is the wrong card whatever its wording.
   - `doing` = what you're on — "six lesson cards, drawing now". Clear it
     (`""`) when you finish.
   - `session` = `CLAUDE_CODE_REMOTE_SESSION_ID` without `cse_` — resolution
@@ -4291,8 +4302,21 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - The count is `ahead_by` off the same live commit push.js counts from, so
     the page and the buzz can never disagree. Two cached unauthenticated GitHub
     reads, no model call, no Firestore read unless a line was filed; opening it
-    spends nothing and deploys nothing. Tests: `node scripts/test-waiting.js`
+    spends nothing. Tests: `node scripts/test-waiting.js`
     and `node scripts/test-waiting-page.js`.
+  - **AND SHE DEPLOYS IT HERSELF FROM THE TOP OF IT (2026-09-16, Sophie: "add
+    a button at top of merged changes that deploys to render so i can do it
+    myself and chats can stop asking").** **Deploy** leads the page, above the
+    pile it would ship; two taps (the first ARMS it and says how many go live,
+    the second sends), `POST /api/waiting/deploy` with no body, and Render's
+    own `preDeployCommand` guard does the waiting on a draw exactly as it does
+    for a chat's `render-deploy.js`. **It is drawn only when there is
+    something to ship AND the server carries a `RENDER_API_KEY`** — a button
+    that can only answer "no key" is a dead control. Two guards, because
+    STUDIO_TOKEN is off live and the page is therefore open: nothing waiting
+    is refused, and one deploy per five minutes per process. **The chat-side
+    rule this retires is in *ASK BEFORE YOU DEPLOY* — stop asking; say it is
+    merged and not live in one line.**
 
 - **THE WORK LOG** (`GET /api/chatfeed/worklog`, page at `/worklog`, no
   iOS tile — 2026-09-02, Sophie: "i want to make a timeline of what i worked

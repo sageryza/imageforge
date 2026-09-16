@@ -40,6 +40,8 @@
 //   GET  /api/waiting/status     → { ok, firebase, live }
 //   POST /api/waiting            → { chat, session?, pr?, sha?, line } — a
 //        chat's own words for one change (200 chars). Re-posting replaces it.
+//   POST /api/waiting/deploy     → no body. Starts a Render deploy of main.
+//        Refused with `nothing-waiting`, `cooling` or `no-key`.
 //
 // Page: /waiting (serveGated, pill). Tests: node scripts/test-waiting.js
 
@@ -71,6 +73,46 @@ const DEPLOYS = 'forge-deploys';
 const REPO = process.env.FORGE_REPO || 'sageryza/imageforge';
 const BRANCH = process.env.FORGE_BRANCH || 'main';
 const TTL_MS = 5 * 60 * 1000;
+
+// THE BUTTON THAT DEPLOYS (2026-09-16, Sophie: "add a button at top of merged
+// changes that deploys to render so i can do it myself and chats can stop
+// asking"). Every deploy has been a chat running scripts/render-deploy.js from
+// its own container, which is why every chat ends its turn asking her for the
+// word. The page that already says WHAT is waiting is the place to let her send
+// it herself.
+//
+// IT IS THE SAME DOOR THE SCRIPT USES — POST to Render's deploys API — and the
+// SAME GUARD stands in front of it: `preDeployCommand` (scripts/deploy-guard.js)
+// runs after the build and before the new instance starts, holds while anything
+// is drawing or cutting, pauses image generation, and FAILS the deploy rather
+// than kill a draw. So a tap can never take a picture down with it, and this
+// route does not re-implement that wait — it would only make her watch a
+// spinner for something the platform already does on its own.
+//
+// WHY THE KEY IS NOT HERE YET: the service's env carries no RENDER_API_KEY
+// (measured 2026-09-16 — ATLASCLOUD_API_KEY · FIREBASE_SERVICE_ACCOUNT ·
+// MALLOC_ARENA_MAX · OPENAI_API_KEY · OPENROUTER_API_KEY · REPLICATE_API_TOKEN).
+// With no key the button is not drawn at all and `deploy.key` says why — a
+// button that answers 503 is worse than no button.
+//
+// TWO GUARDS, because STUDIO_TOKEN is off on the live server and this page is
+// therefore open to anyone who finds it:
+//   · NOTHING WAITING → refused. With the live commit level with main there is
+//     nothing to ship, so the blast radius of a stranger tapping is zero the
+//     moment the pile is empty — which is nearly always.
+//   · A COOLDOWN, in this process. One deploy per five minutes; the next one
+//     is refused with how long is left. A deploy takes longer than that to
+//     boot anyway, so it never stands in her way.
+const SRV = process.env.RENDER_SERVICE_ID || 'srv-d660igvgi27c73a5u6eg';
+const COOL_MS = 5 * 60 * 1000;
+let firedAt = 0;
+
+/** What the button should look like right now. Cheap, and never cached — the
+ *  cooldown is a clock and build()'s answer is five minutes old. */
+function deployState() {
+  const left = Math.max(0, COOL_MS - (Date.now() - firedAt));
+  return { key: !!process.env.RENDER_API_KEY, cooling: left, firedAt: firedAt || 0 };
+}
 
 const db = () => admin.firestore();
 const firebaseUp = () => admin.apps.length > 0;
@@ -345,7 +387,9 @@ router.get('/status', (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const data = await build({ fresh: req.query.fresh === '1' });
-    res.json({ ok: true, ...data });
+    // Fresh every time — build()'s answer is up to five minutes old and the
+    // cooldown is a clock.
+    res.json({ ok: true, ...data, deploy: deployState() });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -379,4 +423,45 @@ router.post('/', async (req, res) => {
   }
 });
 
-module.exports = { router, parseCommit, parsePull, cleanTitle, sidIndex, groupRows, readAhead, readOpen, readRecent, readDeploys, deployRuns, build, bareSid, DEPLOYS };
+// SHE DEPLOYS IT HERSELF. No body, nothing to pass — this route can only ever
+// start a plain deploy of whatever main is, which is the whole of its safety.
+router.post('/deploy', async (req, res) => {
+  try {
+    const key = process.env.RENDER_API_KEY;
+    if (!key) return res.status(503).json({ error: 'no-key' });
+    const left = Math.max(0, COOL_MS - (Date.now() - firedAt));
+    if (left > 0) return res.status(429).json({ error: 'cooling', cooling: left });
+
+    // Nothing waiting → nothing to ship. Read it FRESH: the cached answer can
+    // be five minutes old, and five minutes is exactly long enough for a merge
+    // to land under her while she looks at the page.
+    let ahead = 0;
+    const data = await build({ fresh: true }).catch(() => null);
+    if (data) {
+      if (data.error) return res.status(409).json({ error: 'no-baseline', why: data.error });
+      ahead = Number(data.ahead) || 0;
+      if (!ahead) return res.status(409).json({ error: 'nothing-waiting' });
+    }
+
+    firedAt = Date.now();
+    const r = await fetch(`https://api.render.com/v1/services/${SRV}/deploys`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clearCache: 'do_not_clear' }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      // A refused deploy never spends the cooldown — she should be able to try
+      // again the moment whatever refused it is fixed.
+      firedAt = 0;
+      return res.status(502).json({ error: 'render ' + r.status, why: String(JSON.stringify(j)).slice(0, 200) });
+    }
+    const dep = j.deploy || j;
+    res.json({ ok: true, id: String(dep.id || ''), ahead });
+  } catch (e) {
+    firedAt = 0;
+    res.status(500).json({ error: e.message });
+  }
+});
+
+module.exports = { router, parseCommit, parsePull, cleanTitle, sidIndex, groupRows, readAhead, readOpen, readRecent, readDeploys, deployRuns, build, bareSid, DEPLOYS, deployState, COOL_MS };
