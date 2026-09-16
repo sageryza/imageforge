@@ -6,12 +6,31 @@
  * WHY THE EDIT ENDPOINT, NOT A GENERATION
  * The piece is real and somebody made it by hand, so the picture has to be of
  * THAT piece — every bead in the same order, the same clasp, the same wire.
- * That is what `images/edits` with `input_fidelity: high` is for, and it is the
- * same ladder photostudio.js walks: gpt-image-1 keeps the real subject, and
- * gpt-image-2 is the fallback if gpt-image-1 is ever off the account (it
- * refuses the fidelity flag — "does not support the 'input_fidelity'
- * parameter" — so the fallback is degraded, not equivalent; the run says which
- * one drew it, because the caption has to be true).
+ * `images/generations` draws from words alone; `images/edits` takes her photo
+ * in and changes it, and that is the only door where the piece can survive.
+ *
+ * WHICH MODEL — read off OpenAI's own docs 2026-09-16, not off a repo note.
+ * The first run (2026-09-16) copied photostudio.js's ladder and led with
+ * gpt-image-1 + `input_fidelity: high`, on the strength of a comment there
+ * saying gpt-image-2 refuses the flag "so the fallback is degraded". Half
+ * true: gpt-image-2 does refuse the flag — BECAUSE IT RUNS EVERY INPUT AT HIGH
+ * FIDELITY AUTOMATICALLY, so there is nothing to set. And there is a newer
+ * pair, gpt-image-2.5-sunburst / -flare (on this key, dated 2026-09-08), which
+ * OpenAI describes as "Sunburst for workflows where editing precision matters
+ * most". So the ladder now leads with sunburst, then gpt-image-2, and only
+ * then gpt-image-1 with its flag — and `--model` picks one outright. The run
+ * prints which model really drew it, because the caption has to be true.
+ *
+ * A MASK IS GUIDANCE ON GPT IMAGE, NOT A LOCK. OpenAI: "Masking with GPT Image
+ * is entirely prompt-based. The model uses the mask as guidance, but may not
+ * follow its exact shape with complete precision." So a mask cannot promise
+ * her pixels come back untouched; a pixel-exact result is a composite WE make
+ * (cut the piece out of her photo, paste it over the drawn scene), not a flag.
+ *
+ * THE BILL IS READ BACK, NOT ESTIMATED. Every response carries `usage`; it is
+ * saved beside the picture and the price printed is computed from it. The
+ * first run estimated instead and could not answer "was that really high
+ * fidelity?" with a number — this is what makes the next one able to.
  *
  * THE PROMPTS SAY WHAT HAPPENS TO THE PIECE, NEVER WHAT THE PIECE LOOKS LIKE.
  * The photo carries the piece; words about its colour or its beads only argue
@@ -30,11 +49,27 @@ const fs = require('fs');
 const path = require('path');
 
 const KEY = process.env.OPENAI_API_KEY;
-// photostudio.js's ladder, same order and the same reason.
+// Newest first. Only gpt-image-1 takes (and needs) the fidelity flag; 2 and
+// 2.5 refuse it because they are always high. `--model` narrows this to one.
 const EDIT_MODELS = [
-  { model: 'gpt-image-1', inputFidelity: true },
+  { model: 'gpt-image-2.5-sunburst', inputFidelity: false },
   { model: 'gpt-image-2', inputFidelity: false },
+  { model: 'gpt-image-1', inputFidelity: true },
 ];
+// $ per 1M tokens, OpenAI pricing page 2026-09-16 (standard tier).
+const RATES = {
+  'gpt-image-2.5-sunburst': { text: 5, imageIn: 8, imageOut: 30 },
+  'gpt-image-2.5-flare':    { text: 5, imageIn: 8, imageOut: 30 },
+  'gpt-image-2':            { text: 5, imageIn: 8, imageOut: 30 },
+  'gpt-image-1':            { text: 5, imageIn: 10, imageOut: 40 },
+};
+// What the response's usage block says a request cost, in dollars.
+function costOf(model, usage) {
+  const r = RATES[model] || RATES['gpt-image-2'];
+  const d = (usage && usage.input_tokens_details) || {};
+  const textIn = d.text_tokens || 0, imgIn = d.image_tokens || 0, out = (usage && usage.output_tokens) || 0;
+  return { textIn, imgIn, out, usd: (textIn * r.text + imgIn * r.imageIn + out * r.imageOut) / 1e6 };
+}
 
 // Every scene is one situation, told short. "unchanged" is the load-bearing
 // word and it is in all of them.
@@ -78,18 +113,20 @@ const has = (name) => process.argv.includes(`--${name}`);
 
 const MIME = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp' };
 
-// gpt-image-1, Sept 2026: $10/1M image input tokens, $40/1M image output.
-// A square high-fidelity input is ~4160 tokens; a medium 1024x1024 output is
-// ~1056 and a medium 1024x1536 is ~1584. Rounded, and printed so a run says
-// what it costs before it costs it.
-function priceOf(size, quality) {
+// The --dry figure only. OpenAI's OLDER-model table (gpt-image-1): a square
+// high-fidelity input is ~4160 image tokens at $10/1M, a medium 1024x1024
+// output ~1056 and a medium 1024x1536 ~1584 at $40/1M. The 2.5 models price
+// the same request differently and publish no table — "use the response's
+// usage" — so the real number is read back after the run, never from here.
+function guessPrice(size, quality) {
   const out = { '1024x1024': { low: 272, medium: 1056, high: 4160 }, '1024x1536': { low: 408, medium: 1584, high: 6240 } }[size] || {};
   return ((out[quality] || 1056) * 40 + 4160 * 10) / 1e6;
 }
 
-async function editImage({ buffer, mime, prompt, size, quality, retries = 1 }) {
+async function editImage({ buffer, mime, prompt, size, quality, only, retries = 1 }) {
   let lastErr;
-  for (const cfg of EDIT_MODELS) {
+  const ladder = only ? [EDIT_MODELS.find(m => m.model === only) || { model: only, inputFidelity: /^gpt-image-1(?!\.)/.test(only) }] : EDIT_MODELS;
+  for (const cfg of ladder) {
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         const form = new FormData();
@@ -109,8 +146,9 @@ async function editImage({ buffer, mime, prompt, size, quality, retries = 1 }) {
         if (data.error) throw new Error(`${cfg.model}: ${data.error.message || 'edit error'}`);
         const b64 = data.data?.[0]?.b64_json;
         if (!b64) throw new Error(`${cfg.model} returned no image`);
-        // The model that DREW it, so the caption can be true.
-        return { buffer: Buffer.from(b64, 'base64'), model: cfg.model, fidelity: cfg.inputFidelity };
+        // The model that DREW it, so the caption can be true — and what it
+        // billed, so the price is a reading rather than a guess.
+        return { buffer: Buffer.from(b64, 'base64'), model: cfg.model, fidelity: cfg.inputFidelity, usage: data.usage || null };
       } catch (err) {
         lastErr = err;
         console.log(`  … ${err.message}`);
@@ -135,10 +173,12 @@ async function editImage({ buffer, mime, prompt, size, quality, retries = 1 }) {
   const stem = arg('name', path.basename(inFile).replace(/\.[^.]+$/, ''));
   const outFile = path.join(outDir, `${stem}--${sceneKey}.png`);
 
+  const only = arg('model');
+  const lead = only || EDIT_MODELS[0].model;
   console.log(`source   ${inFile}`);
   console.log(`scene    ${sceneKey} (${scene.label})`);
-  console.log(`model    gpt-image-1 · ${quality} · ${size} · input_fidelity high`);
-  console.log(`price    ~$${priceOf(size, quality).toFixed(2)}`);
+  console.log(`model    ${lead} · ${quality} · ${size}${only ? '' : ` (falls back: ${EDIT_MODELS.slice(1).map(m => m.model).join(' → ')})`}`);
+  console.log(`price    ~$${guessPrice(size, quality).toFixed(2)} by gpt-image-1's table; the real bill is read back after the run`);
   console.log(`prompt   ${scene.prompt}`);
   if (has('dry')) { console.log('\n--dry: nothing sent.'); return; }
   if (!KEY) { console.error('OPENAI_API_KEY not set'); process.exit(1); }
@@ -146,10 +186,14 @@ async function editImage({ buffer, mime, prompt, size, quality, retries = 1 }) {
   const buffer = fs.readFileSync(inFile);
   const mime = MIME[path.extname(inFile).toLowerCase()] || 'image/jpeg';
   const started = Date.now();
-  const { buffer: png, model, fidelity } = await editImage({ buffer, mime, prompt: scene.prompt, size, quality });
+  const { buffer: png, model, fidelity, usage } = await editImage({ buffer, mime, prompt: scene.prompt, size, quality, only });
   fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(outFile, png);
-  const meta = { source: inFile, scene: sceneKey, prompt: scene.prompt, model, inputFidelity: fidelity, quality, size, createdAt: started, ms: Date.now() - started, bytes: png.length };
+  const cost = costOf(model, usage);
+  const meta = { source: inFile, scene: sceneKey, prompt: scene.prompt, model, inputFidelity: fidelity, quality, size, createdAt: started, ms: Date.now() - started, bytes: png.length, usage, costUsd: usage ? +cost.usd.toFixed(4) : null };
   fs.writeFileSync(outFile.replace(/\.png$/, '.json'), JSON.stringify(meta, null, 1));
-  console.log(`\ndrew     ${outFile} (${(png.length / 1e6).toFixed(2)} MB, ${((Date.now() - started) / 1000).toFixed(0)}s, ${model}${fidelity ? ' · fidelity high' : ' · NO fidelity flag'})`);
+  const flag = /^gpt-image-1(?!\.)/.test(model) ? (fidelity ? ' · input_fidelity high' : ' · NO fidelity flag') : ' · always high fidelity';
+  console.log(`\ndrew     ${outFile} (${(png.length / 1e6).toFixed(2)} MB, ${((Date.now() - started) / 1000).toFixed(0)}s, ${model}${flag})`);
+  if (usage) console.log(`billed   $${cost.usd.toFixed(3)} — ${cost.imgIn} image tokens in, ${cost.textIn} text in, ${cost.out} out (read off the response)`);
+  else console.log('billed   (no usage block on the response — price unknown)');
 })().catch(err => { console.error(err.message); process.exit(1); });
