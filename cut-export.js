@@ -229,4 +229,63 @@ function fcpxml(doc, assets, opts) {
     '</fcpxml>', ''].join('\n');
 }
 
-module.exports = { mediaNames, cutSheet, fcpxml, slugTitle, tc, MUTE_DB };
+
+// ── EACH PIECE ITS OWN FILE (2026-09-16, Sophie: "each clip separate dd so i
+// can trim") ─────────────────────────────────────────────────────────────
+// The mode above hands the editor whole SOURCES, so a source cut into two
+// pieces arrives as one file she has to find the trim in again. LumaFusion
+// reads no timeline, so the only thing carrying the cut there is the file
+// names — which means the file has to BE the piece. `pieceNames` names one
+// file per piece in timeline order; filmcut.js `export --pieces` cuts each
+// one with ffmpeg. Still her trim to change: every piece keeps its own
+// handles by being a real file, so pulling its edge in LumaFusion is a drag.
+function pieceNames(doc) {
+  const lanes = M.readDoc(doc);
+  const used = new Set();
+  return lanes.clips.map((c, i) => {
+    const ext = c.kind === 'image' ? extOf(c.url) : 'mp4';
+    let base = `${String(i + 1).padStart(2, '0')} - ${slugTitle(c.title) || c.key}.${ext}`;
+    let name = base, n = 2;
+    while (used.has(name.toLowerCase())) name = base.replace(/(\.[^.]+)$/, ` (${n++})$1`);
+    used.add(name.toLowerCase());
+    return name;
+  });
+}
+
+// The sheet for that mode: the file IS the piece, so there is no trim column
+// to read — what she needs is where each one lands and what rides over it.
+function pieceSheet(doc, pnames, snames) {
+  const lanes = M.readDoc(doc);
+  pnames = pnames || pieceNames(doc);
+  snames = snames || mediaNames(doc);
+  const L = [];
+  L.push(`${doc.title || 'Cut'} — ${tc(M.totalSeconds(lanes.clips))}`);
+  L.push('');
+  L.push('PICTURE — every file in clips/ is ALREADY cut to length, in order. Drop the whole folder on the timeline and it is this cut.');
+  M.starts(lanes.clips).forEach((s, i) => {
+    const p = s.piece;
+    const lvl = p.mute ? '  muted' : (p.gain ? `  ${p.gain > 0 ? '+' : ''}${p.gain}dB` : '');
+    const hold = p.kind === 'image' ? `  still, hold ${p.out}s` : '';
+    L.push(`  ${tc(s.start).padStart(6)}  ${tc(s.dur).padStart(5)}  ${pnames[i]}${hold}${lvl}`);
+  });
+  L.push('');
+  L.push('SOUND — whole files, in sound/. Each starts at the timecode given, on top of the picture.');
+  lanes.sounds.forEach((s) => {
+    const len = M.soundSeconds(s);
+    const parts = [];
+    if (s.gain) parts.push(`${s.gain > 0 ? '+' : ''}${s.gain}dB`);
+    if (s.fadeIn) parts.push(`fade in ${s.fadeIn}s`);
+    if (s.fadeOut) parts.push(`fade out ${s.fadeOut}s`);
+    if (s.mute) parts.push('muted');
+    const trim = s.in > 0 || (s.seconds != null && s.out != null && s.out < s.seconds - 0.05)
+      ? `  trim ${tc(s.in)}–${tc(s.out)} of ${tc(s.seconds)}` : '';
+    if (s.anchor) {
+      const i = lanes.clips.findIndex((c) => c.key === s.anchor.piece);
+      if (i >= 0) parts.push(`rides ${pnames[i]}${s.anchor.offset ? ` +${s.anchor.offset}s` : ''}`);
+    }
+    L.push(`  ${tc(M.soundStart(s, lanes.clips)).padStart(6)}  ${(len == null ? '?' : tc(len)).padStart(5)}  ${snames[s.url]}${trim}${parts.length ? '  ' + parts.join(' · ') : ''}`);
+  });
+  return L.join('\n') + '\n';
+}
+
+module.exports = { mediaNames, pieceNames, cutSheet, pieceSheet, fcpxml, slugTitle, tc, MUTE_DB };

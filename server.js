@@ -354,6 +354,12 @@ loadConfig().then(() => {
   // Same hand-off for the mockup shots — the whole edit prompt is stored with
   // each one (the scene half is model-written and exists nowhere else).
   photostudio.init({ fileCreation: fileCreationDoc });
+  // Jewelry → Etsy draft, the two-step page for Sophie's mom (jewelry.js):
+  // upload the piece, review the words, approve the sample photos. Its shots
+  // file into My Creations the same way, whole prompt attached.
+  const jewelry = require('./jewelry');
+  jewelry.init({ fileCreation: fileCreationDoc });
+  app.use('/api/jewelry', jewelry.router);
   app.use('/api/movies', movies.router);
   app.use('/api/songs', songs.router);
   // Stories live on the boards now: hand the module the story-project
@@ -571,7 +577,7 @@ async function saveToFirebase(imageUrl, folder = 'images', stamp) {
   }
 }
 
-// Save a raw image buffer (e.g. gpt-image-1 base64 output) to Firebase and
+// Save a raw image buffer (e.g. gpt-image-2 base64 output) to Firebase and
 // return a permanent URL. Falls back to a data URL when Firebase isn't
 // configured, so the image still renders without any credentials set up.
 async function saveBufferToFirebase(buffer, contentType, folder = 'images', stamp) {
@@ -898,6 +904,10 @@ app.get('/dump', serveGated('dump.html', { pill: true }));
 // Photo → Etsy: turn a photo of a finished handmade item into a reviewable Etsy
 // draft (mockups + listing content). Same gate as the Studio.
 app.get('/photo', serveGated('photo.html', { pill: true }));
+// Jewelry → Etsy: the two-step page her mom walks — upload a piece, review
+// the listing and approve the sample photos (jewelry.js). Served like /photo:
+// the studio gate is off on the live server, so the plain link opens for her.
+app.get('/jewelry', serveGated('jewelry.html', { pill: true }));
 // Song Station: phone recording → cleaned vocal + melody-matched instrumental
 // → mixed song (keeps the real voice). Same gate as the Studio.
 app.get('/song', serveGated('song.html', { pill: true }));
@@ -8464,8 +8474,8 @@ async function openaiImage(body, retries = 2, timeoutOverride = 0) {
   throw lastErr;
 }
 
-// Generate one illustrated panel with gpt-image-1 (returns base64). If the
-// account can't use gpt-image-1 yet, surface a clear error rather than
+// Generate one illustrated panel with gpt-image-2 (returns base64). If the
+// account can't use gpt-image-2 yet, surface a clear error rather than
 // silently switching models (which would break the zine's visual style).
 // Load the style-reference image once (used to anchor the zine look, the way
 // ChatGPT fed it the uploaded panel). Lives outside /public so it's never
@@ -8553,7 +8563,7 @@ app.get('/api/talking/version', (req, res) => {
 // come back as big data URLs that have to live in the phone's browser.
 app.get('/api/talking/status', (req, res) => { res.json({ firebase: Boolean(bucket) }); });
 
-// Lightweight one-shot check: does this OpenAI account work with gpt-image-1?
+// Lightweight one-shot check: does this OpenAI account work with gpt-image-2?
 app.get('/api/talking/check', async (req, res) => {
   if (!OPENAI_API_KEY) return res.json({ ok: false, error: 'OPENAI_API_KEY not set on the server' });
   try {
@@ -8616,7 +8626,7 @@ const TALKING_STYLE_GRID =
   'caption boxes. Muted palette of gray-blue, tan, black, and pale yellow. Imperfect ' +
   'anatomy, awkward emotional faces, simple compositions, slightly eerie but intimate.';
 
-// Build one gpt-image-1 prompt for a page of 1–4 panels.
+// Build one gpt-image-2 prompt for a page of 1–4 panels.
 function buildPagePrompt(beats) {
   const n = beats.length;
   const layout = n >= 4 ? 'a 2x2 grid of four comic-style panels'

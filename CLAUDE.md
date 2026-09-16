@@ -3903,9 +3903,48 @@ before working on that module. Nothing was deleted — the moved text is verbati
   Dashboard setup, which changes often — re-verify the UI before instructing).
 - **Photo -> Etsy** (`photostudio.js`, `/api/photostudio`, `/photo`) — a separate
   track from POD, for things Sophie already MADE: one photo of the real product ->
-  reviewable Etsy draft. Mockups use gpt-image-2 edits with `input_fidelity:high`
-  so the ACTUAL product is preserved, not hallucinated.
+  reviewable Etsy draft. Mockups use gpt-image-2 **edits**, which preserve the
+  ACTUAL product rather than hallucinating one. **NO `input_fidelity` — every
+  image surface here is gpt-image-2 and it refuses that flag BECAUSE it runs
+  every input at high fidelity automatically** (2026-09-16, Sophie: "use 2,
+  change everywhere and the docs"; OpenAI's own docs). This route led with
+  gpt-image-1 + the flag until that day, on a comment here calling gpt-image-2
+  "degraded" — backwards, and it had been filing `gpt-image-2` as the caption
+  on every mockup gpt-image-1 drew. gpt-image-2 is also cheaper ($8/1M image
+  in, $30/1M out, against $10 and $40). gpt-image-2.5-sunburst / -flare exist
+  on the key (2026-09-08) and are UNMEASURED here — hers to ask for.
   **Full details: `docs/modules/business.md`.**
+- **Jewelry → Etsy** (`jewelry.js`, `/api/jewelry`, page at `/jewelry`, no
+  iOS tile — 2026-09-16, Sophie: "a simple user friendly website my mom can
+  interact with, with clear step by steps 1. upload jewelry 2. review details
+  and approve sample photos" · "the chatgpt model makes the pics" · "she only
+  uploads one") — her MOM's two-step page. ONE phone photo of the piece goes
+  in; one tap ("Make the listing") runs ONE background job: Claude reads the
+  photo and writes the listing (title, materials, description, 13 tags, a
+  price guess — words a human reads, so Claude), then gpt-image-2 (the
+  ChatGPT image model) draws FIVE sample photos (main · close-up · styled ·
+  another angle · worn) with the photo attached as `image[]` under the MASTER
+  FIDELITY PROMPT from her jewelry pipeline chat ("the jewelry item is
+  immutable… only the background, lighting, framing, camera position, and
+  surrounding scene may change") — the five prompts of that chat, verbatim.
+  She fixes the words, taps "Looks good"/"Redo" per photo, and SEND TO ETSY
+  makes a DRAFT with the approved photos (the photostudio path:
+  `pipeline.publishDraft`, defaults off an active listing). Nothing goes live.
+  **About 30¢ a piece** (five medium shots with one reference at ~6¢ each,
+  the read ~1¢); a Redo ≈ 6¢. Four things to know: the prompt NEVER
+  describes the photo (the never-describe-a-reference rule — the photo is
+  the description; only the seller's own notes ride, as "scale information");
+  gpt-image-2 rejects `input_fidelity`, so the fidelity is prompt + reference,
+  which is what her chat settled on; a shot is saved as a stamped PNG (Etsy
+  takes no webp) plus a 600px webp thumb the page shows; the page is served
+  like `/photo` (studio gate off live, so the link just opens — if
+  `STUDIO_TOKEN` is ever turned on, her mom needs the fruit.js `who=` pattern,
+  not built) and `/make` + `/redo` carry selfcare's per-IP rate limit (12 an
+  hour). `?account=<name>` on the link picks which Etsy shop the draft lands
+  in (`etsy.shopIdForAccount`). Every shot's exact prompt is on the doc AND
+  inside the PNG. Test: `node scripts/test-jewelry.js` (pure + the real page
+  headless against a stubbed API). **Full details:
+  `docs/modules/business.md` (Jewelry → Etsy).**
 - **Blog Studio** (`blog.js`, `/api/blog`, `/blog`) — topic -> long-tail keywords
   -> full SEO post -> image -> publish. **Primary destination is the on-site blog
   at secretlyawitch.com/blog**, so organic traffic builds the real domain;
@@ -4122,6 +4161,13 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `node scripts/test-transcribe-media.js` (the cache key and the Story Room
   mirror pinned against the REAL expressions in both files, since a drifted key
   is invisible — it just pays twice).
+  **AND IT TAKES A FILE — a zip or a PDF files whole as `media:'file'`
+  (2026-09-16, the LumaFusion zip door).** The share extension accepts a zip
+  (a TestFlight build carries it), the Dump page draws a file as its name with
+  a save link, and `scripts/fcpxml-to-cut.js --dump latest` reads her
+  LumaFusion XML Project Package straight off the Dump — exported with **No
+  Relinkable Media**, since every clip is already in our Storage. Test:
+  `node scripts/test-dump-file.js`.
   **Full details: `docs/modules/inbox-and-misc.md`.**
 - **THE UPDATE BUTTON** (`brief.js`, `/api/brief`, page at `/brief`) —
   **ITS DOOR WENT WITH THE UPDATE TAB (2026-09-14)**: the **Update** row that

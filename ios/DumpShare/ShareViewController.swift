@@ -66,7 +66,10 @@ final class ShareViewController: UIViewController {
             .flatMap { $0.attachments ?? [] }
             .filter { $0.hasItemConformingToTypeIdentifier(UTType.image.identifier)
                    || $0.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
-                   || $0.hasItemConformingToTypeIdentifier(UTType.audio.identifier) }
+                   || $0.hasItemConformingToTypeIdentifier(UTType.audio.identifier)
+                   // A ZIP — LumaFusion's XML Project Package shares straight
+                   // in (2026-09-16); the server files it whole as a `file`.
+                   || $0.hasItemConformingToTypeIdentifier(UTType.zip.identifier) }
         buildUI()
         observeKeyboard()
         loadFolders()
@@ -383,7 +386,9 @@ final class ShareViewController: UIViewController {
         let type = provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
             ? UTType.movie.identifier
             : provider.hasItemConformingToTypeIdentifier(UTType.audio.identifier)
-            ? UTType.audio.identifier : UTType.image.identifier
+            ? UTType.audio.identifier
+            : provider.hasItemConformingToTypeIdentifier(UTType.zip.identifier)
+            ? UTType.zip.identifier : UTType.image.identifier
         return try await withCheckedThrowingContinuation { cont in
             provider.loadFileRepresentation(forTypeIdentifier: type) { url, error in
                 if let error { return cont.resume(throwing: error) }
@@ -526,6 +531,7 @@ final class ShareViewController: UIViewController {
         case "opus":        return "audio/opus"
         case "flac":        return "audio/flac"
         case "amr":         return "audio/amr"
+        case "zip":         return "application/zip"
         default:            return "application/octet-stream"
         }
     }

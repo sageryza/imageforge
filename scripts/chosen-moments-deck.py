@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
-"""The date moments Sophie HEARTED, one swipe card each, cut to the action in it.
+"""EVERY date moment across the three Moments pages, one swipe card each.
 
-Her ticks live on the verdict sheets of the three Moments compare pages, and the
-moments themselves live in those pages' frozen `__pageData` — so the chosen set
-is READ live, never retyped:
+The face of a card is the date's name and ONE SHORT LINE — Sophie, 2026-09-15:
+"shorten each to main action, ex 'salamanders fucking in a cup'", then "not the
+action / just simpler / less description" and "all / not hearts". So the line
+is the plainest possible naming of the thing, not a sentence about it, and the
+deck holds all of them rather than only the ones she hearted.
 
-  GET /api/chatfeed/verdict?chat=<chat>&sheet=page-<pageId>   -> items {id: true}
+Everything longer rides behind the deck's one "?": her own note where she left
+one, the caption, then the moment as it was written. The moments themselves are
+READ live out of the source pages' frozen `__pageData`, and her notes off their
+verdict sheets, so nothing here is retyped:
+
   GET /api/chatfeed/page/<pageId>?embed=1                     -> __pageData.items
+  GET /api/chatfeed/verdict?chat=<chat>&sheet=page-<pageId>   -> texts {id: note}
 
-The SHORT LINE is the one thing written by hand (Sophie, 2026-09-15: "shorten
-each to main action, ex 'salamanders fucking in a cup'") — the action in the
-moment and nothing else. Everything longer rides behind the deck's one "?": her
-own note where she left one, then the moment as it was written. A card she
-hearted that has no short line here is REFUSED loudly rather than shipped with a
-sentence on it — a long line is the thing this deck exists to end.
+A moment with no short line here is REFUSED loudly rather than shipped carrying
+its long sentence — a long line is the thing this deck exists to end.
 
   python3 scripts/chosen-moments-deck.py              # print the POST body
   python3 scripts/chosen-moments-deck.py --post       # post it into the chat
@@ -30,7 +33,7 @@ import urllib.request
 
 LIVE = 'https://imageforge-q125.onrender.com'
 CHAT = 'date-moments-tinder-compare'
-TITLE = 'Chosen moments — the action in each (v1)'
+TITLE = 'Every date moment, said simply (v1)'
 
 PAGES = {
     'bBk6eDYXB34zP0w2F7oq': 'portland-dates-moments',
@@ -38,25 +41,87 @@ PAGES = {
     'pBOKEIZJ4SuNwI1swJTf': 'sophie-portland-dates-blake',
 }
 
-# The deck's ORDER is hers — the dates in book order, as the source pages deal
-# them — so this list is the running order as well as the copy.
+# The deck's ORDER is the dates in book order, as the source pages deal them —
+# so this list is the running order as well as the copy.
 SHORT = [
-    ('d-graters', 'two cheese graters for one block of cheddar'),
-    ('p-entry', 'sitting down next to her like a stranger'),
-    ('p-drink', 'swapping her drink for one without alcohol'),
-    ('p-paper', 'paying for the drinks she had before he got there'),
+    # David
+    ('d-graters', 'two cheese graters'),
+    ('d-cats', 'a car full of cats'),
+    ('d-carseat', 'a car seat in the living room'),
+    ('d-cm', 'his height in centimeters'),
+    ('d-chai', 'he drank her chai'),
+    ('d-goodbye', 'a goodbye in the kitchen'),
+    ('d-phones', 'two phones, cats and dreams'),
+    # Griffin
+    ('g-sala', 'salamanders fucking in a cup'),
+    ('g-chalk', 'a chalkboard of polite ways to say no'),
+    ('g-sloth', 'a sloth, not moving'),
+    ('g-chain', 'six cuddlers crossing the street'),
+    ('g-vote', 'everyone on their chairs but her'),
+    ('g-lego', 'a lego collection and eggs'),
+    # Jon
+    ('j-check', 'she paid'),
+    ('j-books', 'library returns'),
+    ('j-armor', 'armor made for a very small warrior'),
+    ('j-crowns', 'clay people at a table in crowns'),
+    ('j-rain', 'his rain gear and hers'),
+    ('j-alpha', 'one date standing up as the other sits down'),
+    # Pratfaller
+    ('p-entry', 'a stranger taking the next stool'),
+    ('p-drink', 'a drink with no alcohol in it'),
+    ('p-paper', 'one receipt for everything'),
     ('p-bike', 'falling off the back of his bike'),
-    ('p-couch', 'the roommate put on the couch for the night'),
-    ('p-cakes', 'pancakes next to a little speaker'),
-    ('s-beaverton', 'a man waiting in his parked car in Beaverton'),
-    ('m-bath', 'taking his call on the edge of the bathtub'),
-    ('k-chin', 'a chin coming to a point like a witch'),
+    ('p-couch', 'the roommate on the couch'),
+    ('p-cakes', 'pancakes and a little speaker'),
+    # Sean
+    ('s-outlet', 'an outlet at the bottom of a telephone pole'),
+    ('s-menu', 'asking for a dinner menu'),
+    ('s-beaverton', 'a man waiting in a parked car'),
+    ('s-corner', 'a bare corner, cars going past'),
+    ('s-wheel', 'a driver not smiling'),
+    ('s-dance', 'everyone dancing'),
+    # Matt
+    ('m-chickens', 'nothing but chickens'),
+    ('m-guitar', 'one blurry photo of a red guitar'),
+    ('m-perch', 'found at the telephone pole'),
+    ('m-sweaty', 'a girl sweating in her car'),
+    ('m-bath', 'a call taken on the bathtub'),
+    ('m-tab', 'a debit card left at the bar'),
+    # Kyle
+    ('k-curtsy', 'a curtsy in her evening gown'),
+    ('k-chin', 'a chin that comes to a point'),
+    ('k-solo', 'a drum solo in a tiny room'),
+    ('k-subs', 'a footlong and a six inch'),
+    ('k-chai', "a chai she didn't want"),
     ('k-stick', 'a drumstick in his belly button'),
-    ('ja-chess', 'one white pawn against ten black pieces'),
-    ('ja-thomas', "carrying her Thomas the Tank Engine backpack like a clutch"),
-    ('ja-hatch', 'her head through a hole in the loft floor'),
-    ('ja-table', 'alone at a four-person table'),
-    ('b-tree', 'sitting on a fallen tree for two hours'),
+    # Jake
+    ('ja-window', 'watching him smoke through the glass'),
+    ('ja-chess', 'one pawn against ten pieces'),
+    ('ja-thomas', 'a toy-train backpack held like a clutch'),
+    ('ja-koala', 'a koala hanging off him'),
+    ('ja-hatch', 'a head through a hole in the floor'),
+    ('ja-table', 'one person at a four-person table'),
+    # Blake
+    ('b-directions', 'directions past three fallen trees'),
+    ('b-wrongbus', 'the wrong side of the city'),
+    ('b-tree', 'a man sitting on a fallen tree'),
+    ('b-deer', 'drinking from the water fountain'),
+    ('b-storygame', 'stories on little pads of paper'),
+    ('b-bus', 'silence on the bus, his arm around her'),
+    # Louis
+    ('l-ball', 'a man on a yoga ball'),
+    ('l-job', 'a job application, mid-date'),
+    ('l-hats', 'trying on hats'),
+    ('l-hip', 'a hand on his hip'),
+    ('l-jungle', 'vines on the ceiling, ayahuasca next'),
+    ('l-breathing', 'asleep on the far side of the bed'),
+    # Robin
+    ('r-cider', 'a six pack at 4am'),
+    ('r-farm', 'plastic horses knocked down with a bowling pin'),
+    ('r-boner', 'the morning report'),
+    ('r-hockey', 'the co-captain he never got over'),
+    ('r-cardate', 'a date in a car with Sarah'),
+    ('r-eggs', 'broken eggs, burnt black'),
 ]
 
 HELP = ('The moments you chose, one per card, cut down to the action in it. '
@@ -88,32 +153,35 @@ def read_pages():
 def build():
     cards, chosen, notes = read_pages()
     short = dict(SHORT)
-    missing = [i for i in chosen if i not in short]
+    missing = [i for i in cards if i not in short]
     if missing:
-        raise SystemExit('hearted with no short line (write one, do not ship the '
+        raise SystemExit('a moment with no short line (write one, do not ship the '
                          'long one): ' + ', '.join(sorted(missing)))
     items = []
     for iid, line in SHORT:
-        if iid not in chosen:
-            continue          # she took the heart off; the card goes with it
-        src = cards.get(iid, {})
+        src = cards.get(iid)
+        if not src:
+            continue          # the source page dropped it
         said = []
         if notes.get(iid):
             said.append({'when': 'your note', 'text': notes[iid]})
+        if src.get('caption'):
+            said.append({'when': 'the caption', 'text': src['caption']})
         if src.get('text'):
             said.append({'when': 'the moment', 'text': src['text']})
         items.append({
             'id': iid,
             'who': src.get('who', ''),
+            # the face is the name and the line, nothing else (her "less
+            # description" — the caption is a second sentence on the card)
             'text': line,
-            'caption': src.get('caption', ''),
             'label': src.get('label', ''),
             'said': said,
         })
     return {
         'chat': CHAT, 'title': TITLE, 'template': 'deck',
-        # stamp off: this is a deck of things she ALREADY chose, so a GOOD
-        # stamp on every card would say nothing (the collection rule)
+        # stamp off: a deck of the whole pile is a collection, not a verdict
+        # she has already given
         'data': {'items': items, 'browse': True, 'stamp': False, 'help': HELP},
     }
 

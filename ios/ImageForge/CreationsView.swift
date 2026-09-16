@@ -133,8 +133,18 @@ final class VideoSaver {
             // Keep the real extension where there is one: Photos reads the
             // container off the file, and a clip named `.dat` is refused.
             let ext = url.pathExtension.isEmpty ? "mp4" : url.pathExtension
+            // THE FILE KEEPS ITS STORAGE NAME (2026-09-16). Photos keeps this
+            // filename and LumaFusion writes it into its FCPXML export, so a
+            // cut she makes on her phone names the exact clip in our Storage
+            // (`73fb93….mp4` — the Footage log's own key) and a chat can
+            // rebuild it from the originals. `clip-<random>` said nothing:
+            // her first export needed every clip matched by length and shape,
+            // and three of seven were ambiguous. Random only as a fallback.
+            let stem = url.deletingPathExtension().lastPathComponent
+                .replacingOccurrences(of: "[^A-Za-z0-9._-]+", with: "-", options: .regularExpression)
+            if stem.count < 6 { stem = "clip-\(UUID().uuidString)" }
             let tmp = FileManager.default.temporaryDirectory
-                .appendingPathComponent("clip-\(UUID().uuidString).\(ext)")
+                .appendingPathComponent("\(stem).\(ext)")
             URLSession.shared.downloadTask(with: url) { located, _, error in
                 guard let located else {
                     finish(.failed(error?.localizedDescription ?? "couldn’t download that clip")); return

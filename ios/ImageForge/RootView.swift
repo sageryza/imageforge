@@ -349,7 +349,7 @@ let forgePillPages: Set<String> = [
     "/assembly", "/assets", "/audio", "/blocks", "/blog", "/brief", "/character",
     "/chunking", "/clips", "/crystals", "/crystalsplit", "/cutmarks", "/cuttingroom",
     "/deliverables", "/desktop", "/dreams", "/dreams-archive", "/dump", "/editor",
-    "/films", "/footage", "/freeform", "/import", "/instagram", "/pausing", "/photo", "/playground",
+    "/films", "/footage", "/freeform", "/import", "/instagram", "/jewelry", "/pausing", "/photo", "/playground",
     "/promptlab", "/report", "/review", "/scratchpad", "/search", "/shoebox", "/song",
     "/stitch", "/storyroom", "/studio", "/timeline", "/vector", "/voice", "/waiting", "/worklog",
     // baked in-page from scripts/pill.py, not injected

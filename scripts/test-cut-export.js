@@ -108,4 +108,26 @@ const bare = E.fcpxml(doc, {});
 ok(/frameDuration="100\/2400s" width="1080" height="1920"/.test(bare), 'no probes: 24fps, a portrait phone frame');
 ok(/name="01 - Boy the opening\.mp4" [^>]*duration="24000\/2400s"/.test(bare), 'asset length from the doc\'s seconds');
 
+
+// ── each piece its own file (pieceNames / pieceSheet) ──────────────────────
+{
+  const doc = { title: 'Hospital night', clips: [
+    { key: 'a', url: 'https://x/one.mp4', title: 'the spinning', seconds: 20, in: 0, out: 3.75 },
+    { key: 'b', url: 'https://x/one.mp4', title: 'she falls',    seconds: 20, in: 5.1, out: 6.6 },
+    { key: 'c', kind: 'image', url: 'https://x/card.png', title: 'title — they caught you', out: 2.2, mute: true },
+  ], sounds: [ { key: 'vo', url: 'https://x/vo.m4a', name: 'her voice', at: 0, in: 0, out: 3.5, anchor: { piece: 'a', offset: 0 } } ] };
+  const pn = E.pieceNames(doc);
+  eq(pn.length, 3, 'one name per PIECE, not per source');
+  eq(pn[0], '01 - the spinning.mp4', 'numbered in timeline order');
+  eq(pn[1], '02 - she falls.mp4', 'the same source cut twice is two files');
+  ok(pn[2].endsWith('.png'), 'a still keeps its own extension');
+  ok(new Set(pn.map((n) => n.toLowerCase())).size === 3, 'names are unique');
+  const sheet = E.pieceSheet(doc, pn, E.mediaNames(doc));
+  ok(/ALREADY cut to length/.test(sheet), 'the sheet says the files are the cut');
+  ok(!/trim 0:0/.test(sheet.split('SOUND')[0]), 'no trim column on the picture half — the file IS the trim');
+  ok(sheet.includes('01 - the spinning.mp4') && sheet.includes('02 - she falls.mp4'), 'every piece is listed');
+  ok(/rides 01 - the spinning\.mp4/.test(sheet), 'an anchored sound names the piece FILE it rides');
+  ok(sheet.includes('still, hold 2.2s'), "a still's hold is written — a picture has no length to cut");
+}
+
 console.log(`test-cut-export: ${n} checks passed${lint ? '' : ' (xmllint not on this box — the well-formedness check was skipped)'}`);

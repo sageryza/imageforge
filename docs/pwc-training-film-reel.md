@@ -473,8 +473,10 @@ could look into"):
   the one paid step): the original card plus a mask over the stamp region
   only, and the model's pixels composited back ONLY inside that mask — the
   rest of the card is her original, untouched. Filed in the Assets tab with
-  its prompt. Note: **gpt-image-2 rejects `input_fidelity`** (that was a
-  gpt-image-1 parameter); the mask-and-composite does the same job.
+  its prompt. Note: **gpt-image-2 rejects `input_fidelity`** — not a loss, it
+  runs every input at high fidelity automatically (that flag was gpt-image-1's
+  way of asking); the mask-and-composite does a different job, pinning the
+  pixels outright.
 - **The stamp art is HER OWN, not a redraw** — extracted from the original
   card by red chroma (`r-g > 45 & r-b > 55`, softened near strong pixels;
   the stamp is the one saturated-red thing on a sepia card). So the settled

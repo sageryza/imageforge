@@ -68,6 +68,31 @@ them needs from her. Read-only; the queue is edited here, where it is run.
 
 ## OPEN
 
+### Export the necklace photos out of Lightroom (for the swipe review)
+- **Why:** the necklace review deck has nothing to show until these are out of
+  Lightroom. It is the one step only the Mac can do — Lightroom's catalog is
+  local and there is no API a cloud session can reach.
+- **Where:** Lightroom Classic, then ~/imageforge
+- **Run:**
+  1. In Lightroom, open the **necklace** folder.
+  2. Filter to titles that are **`N` + a number and nothing else** — leave out
+     anything whose title says *sold*, *sample bag*, *gave*, *gifted* or
+     *donated*.
+  3. Select all of them and **File → Export**: JPEG, quality 70, long edge
+     1600px, and set the **filename to the title** so every photo of one
+     necklace shares its `N<number>` stem (Lightroom appends `-1`, `-2`, … for
+     the extra shots, which is what groups them into one card).
+  4. Export to `~/Desktop/necklaces/`, then:
+  ```bash
+  cd ~/imageforge && ls ~/Desktop/necklaces | head -20 && ls ~/Desktop/necklaces | wc -l
+  ```
+  and tell the chat the count — it uploads them and builds the deck from the
+  `N<number>` stems.
+- **Needs from her:** the export above. Roughly how many necklaces there are is
+  the number she said she'd be curious about.
+- **Queued:** 2026-09-16 by transcribe-display-preferences
+
+
 ### Give `node` Full Disk Access so the scheduled push can read Voice Memos
 - **Why:** the auto-push agent is installed and running on schedule, but every
   run comes back empty-handed. macOS does not let a launchd job inherit
