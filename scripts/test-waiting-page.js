@@ -41,6 +41,22 @@ const DATA = {
         at: '2026-09-15T01:00:00Z', draft: true, line: '' },
     ] },
   ],
+  deploys: [
+    { sha: 'ae189c3', at: '2026-09-16T00:18:18Z', n: 2, groups: [
+      { chat: 'chats-unread', name: 'chats unread', at: '2026-09-16T00:10:00Z', items: [
+        { sha: 'e'.repeat(40), title: 'Chats: the unread count on the row on screen', pr: 2464,
+          session: 'z', at: '2026-09-16T00:10:00Z', line: '' },
+        { sha: 'f'.repeat(40), title: 'Waiting: one pile', pr: 2452,
+          session: 'z', at: '2026-09-15T21:00:00Z', line: '' },
+      ] },
+    ] },
+    { sha: 'bf70d78', at: '2026-09-15T21:18:46Z', n: 1, groups: [
+      { chat: 'footage-log', name: 'footage log', at: '2026-09-15T06:00:00Z', items: [
+        { sha: '1'.repeat(40), title: 'Footage: a dropped answer is not a refusal', pr: 2428,
+          session: 'w', at: '2026-09-15T06:00:00Z', line: '' },
+      ] },
+    ] },
+  ],
 };
 
 let fails = 0;
@@ -97,8 +113,11 @@ function chromiumExe() {
   const who = await page.locator('.sect').first().locator('xpath=following-sibling::*[1]').innerText();
   ok('the chat\'s display name heads its block', who.startsWith('witch reels'), who);
   ok('a chat with two changes says so', /2 changes/.test(who), who);
-  const rows = page.locator('.ch');
-  // three merged-and-not-live changes; the payload's open PR is not drawn
+  // Three merged-and-not-live changes; the payload's open PR is not drawn.
+  // Scoped OUT of the deploy log below, which draws the same `.ch` row for
+  // what has already shipped — a bare `.ch` count would silently pass whatever
+  // the top pile did once that section existed.
+  const rows = page.locator('.ch:not(.depbody .ch)');
   ok('every change is drawn, unclaimed ones included', await rows.count() === 3, await rows.count());
 
   console.log('a chat\'s own line leads, and the commit subject is kept under it');
@@ -131,10 +150,54 @@ function chromiumExe() {
   // sends one — so this is the assertion that the page draws none of it.
   console.log('the still-open pile is gone');
   const sects = await page.locator('.sect').allInnerTexts();
-  ok('one section', sects.length === 1 && /not live yet/i.test(sects[0]), sects);
+  ok('the waiting pile leads', /not live yet/i.test(sects[0]), sects);
+  ok('and the only other section is the deploy log',
+    sects.length === 2 && /last deployed/i.test(sects[1]), sects);
   ok('no open row is drawn, though the payload carries one',
     (await page.locator('.ch.draft').count()) === 0 &&
     !(await page.locator('body').innerText()).includes('Ward: the reshoot plan'));
+
+  // ── THE LAST FIVE DEPLOYS (2026-09-16, Sophie: "can i have collapsed rows
+  // under, up to five, showing what rode in the last 5 deployed"). MEASURED
+  // rather than asserted in source: a row whose markup is perfect but whose
+  // body was never hidden, and one whose tap handler never bound, both read
+  // identically in the file.
+  console.log('the last deploys are rows, and they start shut');
+  const deps = page.locator('.dep');
+  ok('one row per deploy', await deps.count() === 2, await deps.count());
+  // 12-hour PACIFIC, the house time rule — the stub's 2026-09-16T00:18Z is
+  // Sep 15, 5:18 pm where she is, and a row reading "Sep 16" would mean the
+  // page had drifted to UTC.
+  ok('it says when it went out, in her time',
+    /Sep 15, 5:18 pm/.test(await deps.first().innerText()),
+    await deps.first().innerText());
+  ok('…and how many rode in it', /2 changes/.test(await deps.first().innerText()),
+    await deps.first().innerText());
+  ok('SHUT by default — she asked for collapsed rows',
+    await page.locator('.depbody:visible').count() === 0);
+  ok('so a deployed change is not on screen yet',
+    !(await page.locator('body').innerText()).includes('the unread count on the row on screen'));
+
+  console.log('tapping a row opens it, and only it');
+  await deps.first().click();
+  ok('its changes are on screen now',
+    (await page.locator('body').innerText()).includes('the unread count on the row on screen'));
+  ok('grouped under the chat that wrote them',
+    (await page.locator('body').innerText()).includes('chats unread'));
+  ok('the OTHER row stayed shut', await page.locator('.depbody:visible').count() === 1);
+  await deps.first().click();
+  ok('tapping again puts it away', await page.locator('.depbody:visible').count() === 0);
+
+  // THE WAY OUT (2026-09-16, Sophie: "there's no way to exit the page"). The
+  // page shipped with none — pagehead.js only draws its chevron when
+  // `window.__forgeLeave` exists, so in Safari and on an older build there was
+  // nothing at all. Measured as VISIBLE, not merely present: it shipped
+  // `hidden` and is un-hidden by script.
+  console.log('there is a way out');
+  ok('the chevron is on screen', await page.locator('#back:visible').count() === 1);
+  ok('it is the house 34px box, not a 26px round plate',
+    (await page.locator('#back').boundingBox()).width === 34,
+    await page.locator('#back').boundingBox());
 
   console.log('a box with no commit of its own says so rather than inventing one');
   payload = { ok: true, live: '', ahead: 0, error: 'no-commit', at: '2026-09-15T02:00:00Z', groups: [], open: [] };
