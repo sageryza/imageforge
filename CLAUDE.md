@@ -533,15 +533,22 @@ than deploying by reflex.
   she is previewing. It is FROZEN at the moment it is posted, so re-post to
   update it, and supersede the old one.
 - **LIVE — the real deploy.** Everyone sees it, her saved place and her app
-  wrapper included. Do this when she says, or for a fix she is waiting on.
-  **A MERGE IS A DEPLOY AGAIN — measured 2026-09-02, 10:25pm and 10:27pm
-  Pacific: two merges, two `deploy_started` events each carrying the merge as
-  `newCommit`.** The 2026-09-01 note that Render was ignoring pushes
-  (`commit_ignored` on every commit) was true that day and is not true now;
-  do NOT also trigger a deploy after a merge — that is two restarts for one
-  change. `node scripts/render-deploy.js` is for the case a push really is
-  ignored (its `--dry` says what is in flight and it waits for it); never the
-  raw `POST …/deploys`.
+  wrapper included. **Do this when she says — and only then.** "A fix she is
+  waiting on" used to be a second reason here and is not one any more.
+  **A MERGE NO LONGER DEPLOYS — AUTO DEPLOY IS OFF AT RENDER SINCE 2026-09-15
+  (Sophie, looking at two changes that shipped themselves that evening: "it
+  shouldn't happen").** `autoDeploy` is `no` on the service (set by API and
+  written into `render.yaml` so a Blueprint sync cannot turn it back on), so
+  pushing and merging move NOTHING on her live site, whatever the squash title
+  says. **Every deploy is now a deliberate `node scripts/render-deploy.js`**,
+  which is the one door: it asks the live server what is drawing and waits
+  (`--dry` says what is in flight). Never the raw `POST …/deploys`.
+  **What this replaces, so an old note is not read as current:** from
+  2026-09-02 to 2026-09-15 a merge WAS a deploy, and the two measured that
+  evening (#2452, #2467) are what ended it — neither chat meant to ship, both
+  simply merged without `[skip render]`. Before that, 2026-09-01, Render was
+  ignoring pushes entirely. Three different régimes in a fortnight: **measure
+  the service's `autoDeploy` before repeating any of them.**
   **AND A DEPLOY MUST NOT KILL A DRAW (2026-09-02, Sophie: "i thought there
   was a check in place not to restart the server if things were being drawn?
   there shud be!!!!!!" · "why would a run ever be killed").** There was not.
@@ -563,9 +570,11 @@ than deploying by reflex.
   BEFORE the new instance starts, while the old one is still serving: it
   reads `/inflight` and holds the deploy until nothing is drawing or cutting
   — up to 25 minutes, then the deploy FAILS on purpose rather than kill a
-  draw (nothing shipped, nothing killed; the next merge carries it). So a
-  merge waits for her pictures by itself, for every chat, with nothing to
-  remember. Waiting costs pipeline minutes at $5/1,000 — cents. A server
+  draw (nothing shipped, nothing killed; the next deploy carries it). So a
+  deploy waits for her pictures by itself, for every chat, with nothing to
+  remember — and since auto deploy went off (2026-09-15) the guard runs on
+  the hand-called deploy rather than on a merge, which is the only thing that
+  changed. Waiting costs pipeline minutes at $5/1,000 — cents. A server
   with no `/inflight` (an old build, a box mid-restart) does not hold it.
   **AND IT PAUSES BEFORE IT LETS GO (her design, the same night: "instead of
   straight to deploy, chat sends to the queue. if it's clean, it deploys, but
@@ -595,14 +604,23 @@ work unmerged, where the next chat re-does it or main drifts under it. The two
 are separate steps and both are cheap:
 - **MERGE as usual** — CI green, merge your own PR (the standing permission is
   unchanged), so the work is on main where every other chat can see it.
-- **PUT `[skip render]` IN THE SQUASH-MERGE TITLE** and Render skips the deploy
-  entirely — zero build minutes, nothing on her live site moves. It is the same
-  marker the docs-only rule uses; nothing about it is docs-specific, and it is
-  the ONE way to merge without deploying now that a merge is a deploy again.
+- **A MERGE CANNOT DEPLOY ANY MORE — the brake is the SERVICE, not the title
+  (2026-09-15).** Auto deploy is off at Render, so merging is always safe.
+  **Keep putting `[skip render]` in the squash-merge title** — it costs
+  nothing, it is the same marker the docs-only rule uses, and it is the
+  belt-and-braces if auto deploy is ever turned back on — but it is no longer
+  what stands between your merge and her live site.
 - **THEN ASK.** Say the change is merged and not live, and deploy only when she
   says. `node scripts/render-deploy.js` is the deploy (its `--dry` says what is
-  in flight); the next ordinary merge by any chat also carries it out, so say
-  that too — "not deployed" means *not by me*, never *frozen*.
+  in flight). **"Not deployed" now means FROZEN until someone deploys** — no
+  other chat's merge carries it out any more, so don't tell her it will ride
+  along. The pile waiting to go live is
+  https://imageforge-q125.onrender.com/waiting.
+- **AND DEPLOYING IS HERS, NOT A JUDGEMENT CALL.** A fix she is actively
+  waiting on is still not a reason to ship it without her word — say it is
+  merged and ask. The two that shipped themselves on 2026-09-15 were both
+  fixes she had just asked for, and that is exactly the reasoning she ruled
+  out.
 - **NAME WHAT RIDES ALONG (her third ask the same message: "when u merge make
   sure ur aware of what goes with it").** Before merging, read
   `git log HEAD..origin/main` (what landed under you) and
@@ -1058,8 +1076,10 @@ worth putting in a reply.
   commit TITLE (Sophie's call, 2026-08-19).** Render skips the deploy
   entirely when the pushed head commit's message carries that marker, and a
   skipped deploy burns ZERO build minutes. Nothing under `docs/` is served,
-  so a docs-only diff never needs a deploy, and the next real merge carries
-  the docs out anyway. Measured: 88 of 604 pushes in two weeks (~15%) were
+  so a docs-only diff never needs a deploy, and the next deploy carries the
+  docs out anyway. **Since 2026-09-15 auto deploy is OFF, so no merge builds
+  at all and the marker saves nothing** — keep writing it as belt-and-braces,
+  but the build minutes are no longer what it is for. Measured: 88 of 604 pushes in two weeks (~15%) were
   docs-only. Use it when the WHOLE diff is **docs/ or a root `*.md`**
   (CLAUDE.md is not served either) — a mixed merge must build.
   **AND IT IS WORKING, WHICH ALSO MEANS IT IS NOT THE LEVER (measured
@@ -3095,6 +3115,15 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   text block bug · rapid movement"): the shrink road measures on a twin
   textarea and writes the box only when its height really changed — a
   `height:auto` on a focused box is the jump. Same section of the doc.**
+  **AND THE ROOM IT BORROWS IS THE WHOLE KEYBOARD, NOT JUST THE CARET'S
+  SHORTFALL (2026-09-16, "no way to scroll down or split long or bottom
+  messages"): the layout viewport does not shrink when the keyboard opens, so
+  the foot of the page — the end of what she is writing and the Done bar
+  under it — sat a keyboard's height below the band with nothing left to
+  scroll (MEASURED at 390x844: 683 and 731 against a band ending at 482), and
+  a box fitted to its words fills the band, so there is no page left to drag
+  either. While a box is focused the page now borrows the keyboard itself.
+  Same section of the doc; `node scripts/test-caret-room.js`.**
 
 - **THE WAY OUT OF A BIG BOX STAYS ON SCREEN — `/stickybox.js`, ONE FILE,
   EVERY PAGE (2026-09-10, Sophie: "can we get a floating or sticky/pinned

@@ -1124,6 +1124,31 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
     (padding on the scrolling element, given back when the keyboard goes):
     below the last line there is only the card's padding, so without it the
     one place she types most cannot be lifted over the keyboard at all.
+  - **AND THE ROOM IS THE WHOLE KEYBOARD, NOT JUST THE CARET'S SHORTFALL
+    (2026-09-16, Sophie, on a long message on her phone: "no way to scroll
+    down or split long or bottom messages").** The rule above borrows room
+    for the line she is TYPING, which is why nothing had ever borrowed any
+    for the line she is trying to READ: the layout viewport does not shrink
+    when the keyboard opens, so `scrollHeight - innerHeight` stops a
+    keyboard's height too early and the foot of the page simply cannot be
+    scrolled up. MEASURED on a belt-shaped page at 390x844 with a 336px
+    keyboard: with the page scrolled as far as it goes, the box's last line
+    sat at **683** and the Done bar under it at **731** against a band ending
+    at **482** — 250px of her own words with nowhere left to scroll. Her
+    finger cannot fix it either: a box fitted to its own words fills the
+    whole band, so there is no page left to drag. So while a box is focused
+    the page borrows the keyboard itself — enough that its LAST pixel lands
+    at the bottom of the band — and the same measurement now reads 321 and
+    369. Three things not to undo: it is a **FLOOR**, re-measured each pass
+    and never added to (a ratchet would walk the foot of the page away from
+    her a screen at a time, so the caret's own borrowing is tracked apart
+    from it); it is the **window's alone**, since an inner scroller has its
+    own end and padding the document would never reach it; and it reads
+    `band()` rather than `caretBand()`, because what puts the foot of the
+    page out of reach is the keyboard, and a floor that read the narrowed
+    band would chase stickybox's buttons up the screen. Test:
+    `node scripts/test-caret-room.js` (every assertion the place a line
+    LANDS once the page is scrolled to its end; verified failing 4 of 9).
   - **AND THE KEYBOARD IS NOT THE ONLY THING COVERING THE BOTTOM OF THE BAND
     — A PINNED BUTTON IS TOO (2026-09-13, Sophie's screenshot of a footage
     block: the ✕, the divide and the bigger-box buttons sitting ON the line

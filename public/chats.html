@@ -2321,8 +2321,22 @@ function md(t,m){
       if(p.lastIndexOf('<code>',0)===0) return p;
       p=p.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
       p=p.replace(/(^|[^"'>])(https?:\/\/[^\s<)\]]+[^\s<)\].,!?:;'"])/g,'$1<a href="$2" target="_blank" rel="noopener">$2</a>');
-      if(m&&m.id) p=quoteBlocks(p, m);
+      // THE TICKS RUN FIRST, AND THAT ORDER IS THE WHOLE FIX (2026-09-16,
+      // Sophie, looking at a Christmas script rendered twice: "formatting
+      // twice"). quoteBlocks packs the block's ORIGINAL words into
+      // `data-orig="…"`; run it first and tickList then walks the lines of
+      // that ATTRIBUTE VALUE — a numbered beat inside the block matches
+      // LIST_MARK — and injects `<button … class="mtick" …>` with RAW quotes
+      // into it. The first of those quotes closes data-orig and the button's
+      // own `>` closes the .mquote tag, so the rest of the original spills
+      // onto the screen as text, the literal `">` shows between the two, and
+      // the block then renders the same script AGAIN underneath — plus the
+      // eaten button's bare <svg>, which without `.mtick svg` is a checkmark
+      // the width of the message. Quoted lines open `&gt; `, which LIST_MARK
+      // cannot match, so ticking first leaves a script block alone entirely —
+      // which is right anyway: a block is ONE editable thing, not a checklist.
       if(m&&m.id) p=tickList(p, m);
+      if(m&&m.id) p=quoteBlocks(p, m);
       return p;
     }).join('');
   }).join('');

@@ -82,6 +82,14 @@
    sits under its own beat popup, would lift her caret clear of something she
    cannot see.
 
+   AND IT KEEPS THE FOOT OF THE PAGE REACHABLE, NOT ONLY THE CARET
+   (2026-09-16, Sophie, on a long message on her phone: "no way to scroll down
+   or split long or bottom messages"). The layout viewport does not shrink
+   when the keyboard opens, so `scrollHeight - innerHeight` stops a keyboard's
+   height too early: the end of what she is writing, and the Done bar under
+   it, sit behind the keys with no page left to scroll. See ROOM UNDER THE
+   LAST LINE below for the measurement and the three rules the floor keeps.
+
    Include it once, anywhere: `<script src="/caretkeep.js"></script>`. It
    wires itself to every text box on the page, present and future, and takes
    `data-nocaret` on a box (or any ancestor) as an opt-out. compare.js loads
@@ -286,7 +294,7 @@
   // writing. So the page borrows the room it is short of (padding on the
   // scrolling element, never the body: a flex or grid body would lay a spacer
   // out as one of its own children) and gives it back the moment she is done.
-  var room = 0, padWas = null;
+  var room = 0, padWas = null, extra = 0;   // `extra` = what the CARET has had to borrow
   function setRoom(px) {
     px = Math.max(0, Math.min(Math.round(px), window.innerHeight));
     if (px === room) return;
@@ -296,11 +304,45 @@
     de.style.paddingBottom = px ? px + 'px' : padWas;
   }
 
+  // AND THE ROOM IS THE WHOLE KEYBOARD, NOT JUST THE CARET'S SHORTFALL
+  // (2026-09-16, Sophie, on a long message on her phone: "no way to scroll
+  // down or split long or bottom messages").
+  //
+  // The half above borrows room when the CARET runs out of page — which keeps
+  // the line she is typing in view and does nothing at all for the line she is
+  // trying to READ. The layout viewport does not shrink when the keyboard
+  // opens, so `scrollHeight - innerHeight` still stops a keyboard's height too
+  // early: MEASURED on a belt-shaped page at 390x844 with a 336px keyboard,
+  // the page scrolled as far as it goes left the box's last line at 683 and
+  // the Done bar under it at 731 against a band ending at 482 — 250px of what
+  // she was writing with no way to reach it, and nothing on screen saying why.
+  // Her finger cannot fix it either: a box fitted to its own words fills the
+  // whole band, so there is no page left to drag.
+  //
+  // So while a box is focused the page simply borrows the keyboard: enough
+  // that its LAST pixel lands at the bottom of the visible band instead of
+  // behind the keys. It is a FLOOR, re-measured each pass and never added to
+  // (a ratchet would walk the foot of the page away from her a screen at a
+  // time), the window's alone — an inner scroller has its own end and padding
+  // the document would never reach it — and it goes back with the keyboard,
+  // like the room above it.
+  //
+  // `band()`, not `caretBand()`: what puts the foot of the page out of reach
+  // is the keyboard, and caretBand is narrowed by chrome pinned over the box
+  // (stickybox's own buttons), which would make the floor chase them.
+  var FLOOR_MIN = 80;      // less than this is the margin, not a keyboard
+  function roomFloor() {
+    var b = band();
+    var gap = window.innerHeight - b.bottom;
+    return gap > FLOOR_MIN ? Math.round(gap) : 0;
+  }
+
   function keep(el) {
     el = el || focused;
     if (!el || el !== document.activeElement || !boxy(el)) return 0;
     var h = host(el);
     if (h === false) return 0;
+    if (!h) setRoom(Math.max(extra, roomFloor()));   // the window is the scroller: give her the foot of the page
     var b = caretBand(el);
     var c = caretRect(el);
     var d = 0;
@@ -315,7 +357,11 @@
     var y = window.scrollY;
     var want = y + d;
     var max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-    if (want > max) { setRoom(room + (want - max)); max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight); }
+    if (want > max) {
+      extra = Math.max(extra, room + (want - max));
+      setRoom(Math.max(extra, roomFloor()));
+      max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    }
     var to = Math.max(0, Math.min(max, want));
     if (Math.abs(to - y) < 1) return 0;
     window.scrollTo(0, to);                 // the window only: never the deck
@@ -383,9 +429,9 @@
     // the borrowed room goes back with the keyboard, after it has gone: a
     // page that shortens under her thumb mid-blur jumps the words she is
     // reading
-    setTimeout(function () { if (!focused) setRoom(0); }, 400);
+    setTimeout(function () { if (!focused) { extra = 0; setRoom(0); } }, 400);
   }, true);
-  window.addEventListener('pagehide', function () { setRoom(0); });
+  window.addEventListener('pagehide', function () { extra = 0; setRoom(0); });
   document.addEventListener('input', function (e) {
     if (e.target === focused) soon();
   }, true);
