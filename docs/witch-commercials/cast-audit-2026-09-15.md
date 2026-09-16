@@ -86,9 +86,10 @@ The page: *Witch commercials — everyone but Sophie v1*, sheet
   coat, brown tie, badge — except ONE, where a grey-haired doctor in a blue
   shirt turned up instead (✕). He is the most consistent character in the whole
   project, and he has no still.
-- **The professor is two men.** The prompt says "about 40, with graying hair",
-  and the clips came back with a young man in an open white shirt in some and
-  an elderly white-haired man in others. Nothing on file to hold him.
+- **The professor is two men, and the PROMPT is why.** 13 clips say "the
+  professor is about 60, with graying hair, wearing a white button down black
+  pants untucked" and 5 say "about 40" — so the elderly man and the young man
+  are both faithful. Nothing on file to hold him either way.
 - **The gloomy daughter is two girls.** The hearted Christmas take is a calm
   girl on the stairs; the other is a wild-haired child in a ruffled nightgown
   (✕). Same line, two people.
@@ -99,6 +100,50 @@ The page: *Witch commercials — everyone but Sophie v1*, sheet
   consistently.
 - **The neighbour is a hand.** The only frame of her is a hand knocking on a
   door.
+
+### THE VARIATIONS — every look the prompts ask for, in their own words
+
+Her ask, 2026-09-16: "u forgot variations · ex - sophie as a young girl · no
+bag etc". These are LOOKS in the cast library's sense — the same person in
+different clothes or at a different age — and they are what a shelf entry
+carries. Page: *Witch commercials — the variations v1*, sheet
+`witch-looks-v1`. Counted off the prompts themselves.
+
+**Sophie — eleven variations across the witch clips:**
+
+1. **as the still** — nothing added; the chapel still brings its priest collar
+   with it, and that take is ✕.
+2. **"no handbag"** — 14 clips.
+3. **"no bag"** — 8 clips. (Same look, two wordings: **22 clips total**.)
+4. **"a younger version of [Image1]"** — 7 clips.
+5. **"wearing a school uniform"** — 9 clips.
+6. **"11 years old"** — the pool.
+7. **"the same school uniform as everyone else — a starched cream button down …
+   a thick woolen gray skirt, with a long black cloak, hooded, over it (NOT the
+   priest uniform she wears in the photo)"** — 2 clips.
+8. **"about 22 … shorter hair, like above her shoulders … a loose black tank
+   top, with a white triangle with an eye in it screen-printed on"** — 1 clip,
+   ✕, and the only look written out entirely in words with no reference at all.
+9. **"wearing different clothes"** — 11 clips, the examination-room cardigan.
+10. **"wearing the dress in [Image2]" / "the clothes in [Video2]"** — 6 clips.
+    The ONLY variation done with a picture instead of words, and it works.
+11. **"different clothes, appropriate for packing orders, vaguely witchy"** — 5.
+(A twelfth, **"but in plainclothes"**, belongs to the ideas-site reel, not this
+film.)
+
+**Two of the eleven are negations aimed at the same still** — the handbag (22
+clips) and the priest collar (2) — which is the 2026-09-11 Wan rule again: a
+negation does not take a thing out of a clip. Two crops of the chapel and tweed
+stills would retire both.
+
+**The others:**
+
+- **The doctor** — the white coat, and **"he is now in dark wizard clothes,
+  holding a magic wand"** (4 clips, ♥).
+- **The professor** — "about 60" (13) against "about 40" (5); see above.
+- **The gloomy daughter** — "about 26, sullen, wearing a white nightgown" (12).
+- **The women in the lecture film** — "older women, with gaunt wrinkled faces,
+  gray hair, wearing loose white hoods, about three of them" (18).
 
 ### THE PEOPLE WHO ACTUALLY RIDE A REFERENCE — the whole list
 
