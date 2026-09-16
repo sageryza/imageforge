@@ -39,7 +39,8 @@
 //     gap                → a hole: rendered as nothing, so we drop it and warn
 //     video (ref=still)  → a still, held for `duration`
 //   a clip with lane="-1"/"-2" (attached, below the spine) or an audio-only
-//   asset → the SOUND lane: {at: offset, in: start, out: start+duration}
+//   asset → the SOUND lane: {at: parent.at + offset - parent.start, in: start,
+//   out: start+duration, anchor: the piece it is connected to}
 //   adjust-volume amount="-6dB" → gain; audio-fade → fadeIn/fadeOut
 // Times are rationals like "3003/24000s" — every one is converted exactly.
 const fs = require('fs');
@@ -113,6 +114,36 @@ async function storageMd5(url) {
     const m = h.match(/md5=([A-Za-z0-9+/=]+)/);
     return m ? m[1] : null;
   } catch { return null; }
+}
+
+// Storage answers content-length on the same HEAD.
+async function storageBytes(url) {
+  try { const r = await fetch(url, { method: 'HEAD' }); return Number(r.headers.get('content-length') || 0) || null; } catch { return null; }
+}
+
+// Settle an ambiguous clip by FILE SIZE — the number the Files app shows
+// under a clip ("6.1 MB", one decimal, decimal megabytes), which she can
+// read off a screenshot when the bytes themselves cannot travel. `sizes` is
+// {filename: <MB as shown> | <bytes>}; a shown MB matches within its own
+// rounding (±0.05 MB, ±0.5 MB for a bare "1 MB"). One candidate in range →
+// settled; two → still a tie, never guessed.
+async function settleBySize(result, media, sizes, head) {
+  head = head || storageBytes;
+  let settled = 0;
+  const seen = new Set();
+  for (const a of result.ambiguous || []) {
+    if (seen.has(a.file) || media[a.file]) continue;
+    seen.add(a.file);
+    const raw = sizes[a.file]; if (raw == null) continue;
+    const shownMB = Number(raw) < 1e4;
+    const want = shownMB ? Number(raw) * 1e6 : Number(raw);
+    const tol = shownMB ? (Number.isInteger(Number(raw)) ? 0.5e6 : 0.05e6) + 1000 : 1;
+    const hits = [];
+    for (const c of a.candidates) { const n = await head(c.url); if (n && Math.abs(n - want) <= tol) hits.push(c); }
+    if (hits.length === 1) { media[a.file] = hits[0]; settled += 1; }
+    else if (hits.length > 1) a.candidates = hits;   // narrowed for the next join
+  }
+  return settled;
 }
 
 // Settle every ambiguous clip whose bytes rode in the zip: HEAD each
@@ -217,10 +248,15 @@ function fcpxmlToCut(xml, media, opts) {
     let fp = fingerprintMatch(asset, media0);
     // a cut is one project: when the SURE matches all sit in one project (or
     // one folder), an ambiguous clip is looked for there first
+    // A TIE-BREAKER ONLY: a cut can span projects (her christmas cut leaned
+    // on trims filed under one project and clips under another), so the
+    // same-project subset wins only when it is exactly one clip; otherwise
+    // the whole set stays, for the size and md5 joins to work over.
     if (fp.length > 1 && sureWhere.project) {
       const same = fp.filter((c) => c.project === sureWhere.project);
-      if (same.length) fp = same;
-      if (fp.length > 1 && sureWhere.folder) { const f = fp.filter((c) => c.folder === sureWhere.folder); if (f.length) fp = f; }
+      const inFolder = sureWhere.folder ? same.filter((c) => c.folder === sureWhere.folder) : [];
+      if (inFolder.length === 1) fp = inFolder;
+      else if (same.length === 1) fp = same;
     }
     if (fp.length === 1) return fp[0];
     if (fp.length > 1) return { ambiguous: fp };
@@ -252,11 +288,21 @@ function fcpxmlToCut(xml, media, opts) {
 
   let n = 0;
   const pieceKeys = [];
-  const addSound = (el, asset, laneNote) => {
+  // A CONNECTED SOUND'S `offset` IS IN ITS PARENT'S OWN TIME, NOT THE
+  // TIMELINE'S (2026-09-16, her second export). FCPXML places a child at
+  // `offset` on the parent clip's local timeline, whose first frame is the
+  // parent's `start` — so a sound at the head of a clip whose start is 5.2s
+  // carries offset="5.2s". Read as a timeline second that put every detached
+  // track 1-40s early. Timeline at = parent.at + (offset - parent.start);
+  // and the sound is ANCHORED to the piece it rode in on, so it follows the
+  // shot when she moves it (the film-cut skill's rule).
+  const addSound = (el, asset, laneNote, parent) => {
     const m = lookup(asset);
     if (!m || m.ambiguous) { skipped.push({ file: asset && asset.file, why: whyNot(asset, m) }); if (m && m.ambiguous) ambiguous.push({ file: asset.file, candidates: m.ambiguous }); return; }
-    const at = secs(el.offset) || 0, tIn = secs(el.start) || 0, dur = secs(el.duration);
+    const local = secs(el.offset) || 0, tIn = secs(el.start) || 0, dur = secs(el.duration);
+    const at = parent ? parent.at + (local - parent.start) : local;
     const s = { key: 's' + (sounds.length + 1), url: m.url, name: asset.name || asset.file, at: R3(at), in: R3(tIn), out: dur != null ? R3(tIn + dur) : null, gain: 0, fadeIn: 0, fadeOut: 0, mute: false };
+    if (parent && parent.key) s.anchor = { piece: parent.key, offset: R3(at - parent.at) };
     if (m.seconds) s.seconds = m.seconds;
     for (const v of arr(el['adjust-volume'])) s.gain = db(v.amount);
     for (const f of arr(el['audio-fade'])) { if (f['fade-in']) s.fadeIn = R3(secs(arr(f['fade-in'])[0].duration) || 0); if (f['fade-out']) s.fadeOut = R3(secs(arr(f['fade-out'])[0].duration) || 0); }
@@ -264,24 +310,25 @@ function fcpxmlToCut(xml, media, opts) {
     sounds.push(s);
   };
   // attached clips ride INSIDE the spine clip they are connected to
-  const attached = (el) => {
+  const attached = (el, parent) => {
     for (const tag of ['asset-clip', 'clip', 'audio', 'video']) for (const sub of arr(el[tag])) {
       if (sub.lane == null) continue;
       const asset = assets[sub.ref] || assets[(arr(sub.audio)[0] || arr(sub.video)[0] || {}).ref];
-      if (Number(sub.lane) < 0 || (asset && !asset.hasVideo)) addSound(sub, asset, 'lane ' + sub.lane);
+      if (Number(sub.lane) < 0 || (asset && !asset.hasVideo)) addSound(sub, asset, 'lane ' + sub.lane, parent);
       else skipped.push({ file: asset && asset.file, why: 'a picture on lane ' + sub.lane + ' (an overlay) — the cut doc has one picture lane' });
     }
   };
 
   for (const { tag, el } of items) {
     const dur = secs(el.duration);
-    if (tag === 'gap') { gaps.push({ at: R3(secs(el.offset) || 0), seconds: R3(dur || 0) }); attached(el); continue; }
+    const at = secs(el.offset) || 0;
+    if (tag === 'gap') { gaps.push({ at: R3(at), seconds: R3(dur || 0) }); attached(el, { at, start: secs(el.start) || 0, key: null }); continue; }
     const ref = el.ref || (arr(el.video)[0] || {}).ref || (arr(el.audio)[0] || {}).ref;
     const asset = assets[ref];
     if (!asset) { skipped.push({ file: ref, why: 'no asset for ref' }); continue; }
     if (!asset.hasVideo && asset.hasAudio) { addSound(el, asset, 'spine audio'); continue; }
     const m = lookup(asset);
-    if (!m || m.ambiguous) { skipped.push({ file: asset.file, why: whyNot(asset, m) }); if (m && m.ambiguous) ambiguous.push({ file: asset.file, candidates: m.ambiguous }); attached(el); continue; }
+    if (!m || m.ambiguous) { skipped.push({ file: asset.file, why: whyNot(asset, m) }); if (m && m.ambiguous) ambiguous.push({ file: asset.file, candidates: m.ambiguous }); attached(el, { at, start: secs(el.start) || 0, key: null }); continue; }
     n += 1;
     const key = 'p' + n;
     const tIn = secs(el.start) || 0;
@@ -293,10 +340,14 @@ function fcpxmlToCut(xml, media, opts) {
       if (m.seconds) piece.seconds = m.seconds;
       for (const v of arr(el['adjust-volume'])) piece.gain = db(v.amount);
       if (String(el.enabled) === '0' || (arr(el.audio)[0] || {}).enabled === '0') piece.mute = true;
+      // DETACHED AUDIO: LumaFusion writes the clip as <video> + its own
+      // <audio> on a lane, so the soundtrack rides the sound lane and the
+      // picture must not play it a second time.
+      if (tag === 'clip' && arr(el.audio).some((a) => a.lane != null && a.ref === ref)) piece.mute = true;
       clips.push(piece);
     }
     pieceKeys.push(key);
-    attached(el);
+    attached(el, { at, start: tIn, key });
   }
   return { clips, sounds, skipped, gaps, ambiguous, total: R3(clips.reduce((a, c) => a + (c.kind === 'image' ? c.out : c.out - c.in), 0)) };
 }
@@ -358,19 +409,29 @@ async function fromFootage() {
     }
   };
   await pages('');
+  // EVERY DOOR'S LOG TOO (forge-video-jobs): a clip a chat drew through
+  // Atlas / APIFRAME / OpenRouter that the Footage feed leaves out
+  try {
+    const d = await (await fetch(`${BASE}/api/apiframe/video-log?limit=2000`)).json();
+    for (const j of (d.jobs || [])) {
+      const pr = j.params || {};
+      const shape = shapeOfCard(pr.resolution || j.resolution, pr.aspect_ratio || pr.ratio || j.aspect || j.ratio);
+      put(j.video, pr.duration || j.seconds, shape, j.job || j.jobId || j.id, j.title || j.prompt, { project: j.project || '', folder: j.folder || '' });
+    }
+  } catch { /* the footage feed alone */ }
   let films = [];
   try { films = ((await (await fetch(`${BASE}/api/cast/films`)).json()).films || []).filter((f) => f.tucked); } catch { /* no shelf */ }
   for (const f of films) await pages(`&project=${encodeURIComponent(f.slug)}`);
   return map;
 }
 
-module.exports = { fcpxmlToCut, secs, basename, pickDump, fromFootage, shapeOf, shapeOfCard, fingerprintMatch, loadPackage, settleByHash, storageMd5 };
+module.exports = { fcpxmlToCut, secs, basename, pickDump, fromFootage, shapeOf, shapeOfCard, fingerprintMatch, loadPackage, settleByHash, storageMd5, settleBySize, storageBytes };
 
 if (require.main === module) {
   (async () => {
     const args = process.argv.slice(2);
     const flag = (k) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : null; };
-    let src = args.find((a) => !a.startsWith('--') && !['--media', '--out', '--set', '--dump'].includes(args[args.indexOf(a) - 1]));
+    let src = args.find((a) => !a.startsWith('--') && !['--media', '--out', '--set', '--dump', '--sizes'].includes(args[args.indexOf(a) - 1]));
     if (flag('--dump')) src = await fromDump(flag('--dump'));
     if (!src) { console.error('usage: fcpxml-to-cut.js <file.fcpxml|bundle.fcpxmld|package.zip> --media media.json [--out cut.json] [--set <cutId>]'); process.exit(1); }
     // the Footage log is always consulted (by filename, then by fingerprint);
@@ -382,6 +443,10 @@ if (require.main === module) {
     if (r.ambiguous.length && Object.keys(md5s).length) {
       const n = await settleByHash(r, media, md5s);
       if (n) { console.log(`${n} clip(s) settled by md5 against the zip's media`); r = fcpxmlToCut(xml, media); }
+    }
+    if (r.ambiguous.length && flag('--sizes')) {
+      const n = await settleBySize(r, media, JSON.parse(fs.readFileSync(flag('--sizes'), 'utf8')));
+      if (n) { console.log(`${n} clip(s) settled by file size`); r = fcpxmlToCut(xml, media); }
     }
     const out = flag('--out') || 'cut.json';
     fs.writeFileSync(out, JSON.stringify({ clips: r.clips, sounds: r.sounds }, null, 1));
