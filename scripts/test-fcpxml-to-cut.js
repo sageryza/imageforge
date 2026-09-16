@@ -82,4 +82,47 @@ if (cs) assert.strictEqual(cs.length, 1, 'cut-model kept the sound');
 
 // a document with no spine is refused, never an empty cut
 assert.throws(() => fcpxmlToCut('<fcpxml version="1.8"><resources/></fcpxml>', {}), /spine/);
+// BY FINGERPRINT (2026-09-16, her first real export): a clip the app saved as
+// `clip-<random>.mp4` joins by length + shape — when exactly ONE clip has them.
+const { shapeOf, shapeOfCard, fingerprintMatch } = require('./fcpxml-to-cut.js');
+assert.strictEqual(shapeOf(496, 864), '480p portrait');
+assert.strictEqual(shapeOf(720, 1280), '720p portrait');
+assert.strictEqual(shapeOf(864, 496), '480p landscape');
+assert.strictEqual(shapeOfCard('480p', '9:16'), '480p portrait');
+assert.strictEqual(shapeOfCard('720p', '16:9'), '720p landscape');
+const REAL = `<?xml version="1.0"?><!DOCTYPE fcpxml><fcpxml version="1.8"><resources>
+  <format id="f1" frameDuration="25/600s" width="720" height="1280"/>
+  <format id="r0" frameDuration="512/12288s" width="496" height="864"/>
+  <format id="r1" frameDuration="512/12288s" width="720" height="1280"/>
+  <asset id="p1" name="clip-AAAA.mp4" src="./clip-AAAA.mp4" format="r1" hasVideo="1" hasAudio="1" start="0s" duration="2900/600s"/>
+  <asset id="p2" name="clip-BBBB.mp4" src="./clip-BBBB.mp4" format="r0" hasVideo="1" hasAudio="1" start="0s" duration="184832/12288s"/>
+  <asset id="p3" name="clip-CCCC.mp4" src="./clip-CCCC.mp4" format="r0" hasVideo="1" hasAudio="1" start="0s" duration="49664/12288s"/>
+</resources><library><event name="e"><project name="p"><sequence format="f1"><spine>
+  <asset-clip name="a" offset="0s" start="0s" duration="1525/600s" ref="p1"/>
+  <asset-clip name="b" offset="1525/600s" start="0s" duration="2s" ref="p2"/>
+  <asset-clip name="c" offset="3s" start="0s" duration="2s" ref="p3"/>
+</spine></sequence></project></event></library></fcpxml>`;
+const LOG = {
+  'trim1.mp4': { url: 'https://x/trim1.mp4', file: 'trim1.mp4', seconds: 4.833, shape: '720p portrait', id: 'j1 trim', project: 'witch', folder: 'xmas' },
+  'full1.mp4': { url: 'https://x/full1.mp4', file: 'full1.mp4', seconds: 15, shape: '720p portrait', id: 'j1', project: 'witch', folder: 'xmas' },
+  'm1.mp4': { url: 'https://x/m1.mp4', file: 'm1.mp4', seconds: 15, shape: '480p portrait', id: 'j2', project: 'witch', folder: 'xmas' },
+  'm2.mp4': { url: 'https://x/m2.mp4', file: 'm2.mp4', seconds: 15, shape: '480p portrait', id: 'j3', project: 'ward', folder: '' },
+  'm3.mp4': { url: 'https://x/m3.mp4', file: 'm3.mp4', seconds: 4, shape: '480p portrait', id: 'j4', project: 'witch', folder: 'xmas' },
+  'm4.mp4': { url: 'https://x/m4.mp4', file: 'm4.mp4', seconds: 4, shape: '480p portrait', id: 'j5', project: 'witch', folder: 'xmas' },
+};
+// the trim's own length wins over the job's nominal 15 for the same shape
+assert.deepStrictEqual(fingerprintMatch({ seconds: 4.8333, w: 720, h: 1280 }, LOG).map((m) => m.id), ['j1 trim']);
+const rr = fcpxmlToCut(REAL, LOG);
+// p1: one 4.833s 720p clip → matched. p2: two 15s 480p clips, but the sure
+// match sits in `witch`, so the ward one drops and j2 is it. p3: two 4s
+// clips in the SAME folder → still ambiguous, never guessed, both named.
+assert.strictEqual(rr.clips.length, 2);
+assert.strictEqual(rr.clips[0].url, 'https://x/trim1.mp4');
+assert.strictEqual(rr.clips[1].url, 'https://x/m1.mp4');
+assert.strictEqual(rr.skipped.length, 1);
+assert.ok(/2 clips are 4\.042s 480p portrait/.test(rr.skipped[0].why), rr.skipped[0].why);
+assert.ok(/j4 · j5/.test(rr.skipped[0].why));
+// a name that IS in the map still wins over any fingerprint
+const named = fcpxmlToCut(REAL.replace('clip-AAAA.mp4', 'full1.mp4').replace('./clip-AAAA.mp4', './full1.mp4'), LOG);
+assert.strictEqual(named.clips[0].url, 'https://x/full1.mp4');
 console.log('test-fcpxml-to-cut: ok');
