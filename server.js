@@ -354,6 +354,12 @@ loadConfig().then(() => {
   // Same hand-off for the mockup shots — the whole edit prompt is stored with
   // each one (the scene half is model-written and exists nowhere else).
   photostudio.init({ fileCreation: fileCreationDoc });
+  // Jewelry → Etsy draft, the two-step page for Sophie's mom (jewelry.js):
+  // upload the piece, review the words, approve the sample photos. Its shots
+  // file into My Creations the same way, whole prompt attached.
+  const jewelry = require('./jewelry');
+  jewelry.init({ fileCreation: fileCreationDoc });
+  app.use('/api/jewelry', jewelry.router);
   app.use('/api/movies', movies.router);
   app.use('/api/songs', songs.router);
   // Stories live on the boards now: hand the module the story-project
@@ -898,6 +904,10 @@ app.get('/dump', serveGated('dump.html', { pill: true }));
 // Photo → Etsy: turn a photo of a finished handmade item into a reviewable Etsy
 // draft (mockups + listing content). Same gate as the Studio.
 app.get('/photo', serveGated('photo.html', { pill: true }));
+// Jewelry → Etsy: the two-step page her mom walks — upload a piece, review
+// the listing and approve the sample photos (jewelry.js). Served like /photo:
+// the studio gate is off on the live server, so the plain link opens for her.
+app.get('/jewelry', serveGated('jewelry.html', { pill: true }));
 // Song Station: phone recording → cleaned vocal + melody-matched instrumental
 // → mixed song (keeps the real voice). Same gate as the Studio.
 app.get('/song', serveGated('song.html', { pill: true }));
