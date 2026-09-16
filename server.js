@@ -360,6 +360,9 @@ loadConfig().then(() => {
   const jewelry = require('./jewelry');
   jewelry.init({ fileCreation: fileCreationDoc });
   app.use('/api/jewelry', jewelry.router);
+  // Her mom's Lightroom Classic catalog, synced by a script on her PC and
+  // picked on a screen (lightroom.js); the picks become jewelry items.
+  app.use('/api/lightroom', require('./lightroom').router);
   app.use('/api/movies', movies.router);
   app.use('/api/songs', songs.router);
   // Stories live on the boards now: hand the module the story-project
@@ -908,6 +911,9 @@ app.get('/photo', serveGated('photo.html', { pill: true }));
 // the listing and approve the sample photos (jewelry.js). Served like /photo:
 // the studio gate is off on the live server, so the plain link opens for her.
 app.get('/jewelry', serveGated('jewelry.html', { pill: true }));
+// The Lightroom picker — one judge card per necklace, all its photos on it,
+// her mom's four words; on her computer (lightroom.js).
+app.get('/lightroom', serveGated('lightroom.html', { pill: true }));
 // Song Station: phone recording → cleaned vocal + melody-matched instrumental
 // → mixed song (keeps the real voice). Same gate as the Studio.
 app.get('/song', serveGated('song.html', { pill: true }));
