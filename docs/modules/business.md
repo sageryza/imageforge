@@ -213,15 +213,33 @@ lifted into a standalone tool later.
   `/connect`, `/callback` open — the last two are browser redirects).
 
 ## Photo → Etsy pipeline (no POD)
+**THE MODEL IS gpt-image-2 AND THERE IS NO FIDELITY FLAG (2026-09-16, Sophie:
+"use 2, change everywhere and the docs").** `EDIT_MODELS` in `photostudio.js`
+led with **gpt-image-1 + `input_fidelity: high`** until that day and called
+gpt-image-2 a degraded fallback because it "rejects the flag". Read against
+OpenAI's own docs, that is backwards: **gpt-image-2 refuses `input_fidelity`
+BECAUSE it processes every image input at high fidelity automatically** — there
+is nothing to set and nothing is lost. Three things came with the switch:
+- **The captions were already lying.** `makeMockups` files
+  `model: 'gpt-image-2'` on every picture, so for as long as gpt-image-1 drew
+  them, every mockup this route ever made carried a wrong MODEL · QUALITY
+  caption. Nothing can backfill those. Keep the ladder and the filed caption
+  naming the same model.
+- **It is cheaper**: $8/1M image in and $30/1M out, against gpt-image-1's $10
+  and $40.
+- **gpt-image-2.5-sunburst / -flare are on the key** (dated 2026-09-08; OpenAI
+  calls Sunburst its pick "for workflows where editing precision matters most")
+  and are UNMEASURED on her products. Off the table until she says otherwise.
+`jewelry.js` was built on gpt-image-2 from the start and needed no change.
+
 - `photostudio.js` (`/api/photostudio`, page at `/photo`) is a **separate track**
   from the POD pipeline for items Sophie already MADE (a handmade pouch, a
   ceramic, a print she ships herself). One photo of the real product →
   reviewable Etsy draft. No Printify/Printful/Lulu, no auto-fulfilment.
 - **Flow:** `POST /describe` (gpt-4o vision → name/summary/category/materials/
   colors/keywords + 3 staging ideas); `POST /mockups` (gpt-image-2 **edits**
-  endpoint with `input_fidelity:high` so the ACTUAL product is preserved, not
-  hallucinated — a clean white-background shot + up to 2 styled flatlays, saved
-  to Firebase as PNGs); `POST /analyze` (describe + write listing content in one
+  endpoint — the ACTUAL product is preserved, not hallucinated — a clean
+  white-background shot + up to 2 styled flatlays, saved to Firebase as PNGs); `POST /analyze` (describe + write listing content in one
   call, reuses `pipeline.generateListingContent`); `POST /draft` (derives Etsy
   shipping/return/readiness/taxonomy defaults from an active listing, then
   reuses `pipeline.publishDraft` to create the DRAFT with the mockups attached).

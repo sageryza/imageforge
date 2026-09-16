@@ -9,16 +9,18 @@
  * `images/generations` draws from words alone; `images/edits` takes her photo
  * in and changes it, and that is the only door where the piece can survive.
  *
- * WHICH MODEL — read off OpenAI's own docs 2026-09-16, not off a repo note.
- * The first run (2026-09-16) copied photostudio.js's ladder and led with
- * gpt-image-1 + `input_fidelity: high`, on the strength of a comment there
+ * WHICH MODEL — gpt-image-2, and only gpt-image-2 (2026-09-16, Sophie: "use
+ * 2, change everywhere and the docs"). The first run led with gpt-image-1 +
+ * `input_fidelity: high`, copied from photostudio.js's ladder and its comment
  * saying gpt-image-2 refuses the flag "so the fallback is degraded". Half
  * true: gpt-image-2 does refuse the flag — BECAUSE IT RUNS EVERY INPUT AT HIGH
- * FIDELITY AUTOMATICALLY, so there is nothing to set. And there is a newer
- * pair, gpt-image-2.5-sunburst / -flare (on this key, dated 2026-09-08), which
- * OpenAI describes as "Sunburst for workflows where editing precision matters
- * most". So the ladder now leads with sunburst, then gpt-image-2, and only
- * then gpt-image-1 with its flag — and `--model` picks one outright. The run
+ * FIDELITY AUTOMATICALLY, so there is nothing to set and nothing is lost. It
+ * is also cheaper ($8/1M image in, $30/1M out, against gpt-image-1's $10 and
+ * $40) and it is the house model everywhere else in this repo.
+ * gpt-image-2.5-sunburst / -flare exist on the key (dated 2026-09-08) and
+ * OpenAI calls Sunburst its pick "for workflows where editing precision
+ * matters most" — UNMEASURED on her pieces, and off the table until she says
+ * otherwise. `--model` still sends one by name for a deliberate test; the run
  * prints which model really drew it, because the caption has to be true.
  *
  * A MASK IS GUIDANCE ON GPT IMAGE, NOT A LOCK. OpenAI: "Masking with GPT Image
@@ -49,18 +51,17 @@ const fs = require('fs');
 const path = require('path');
 
 const KEY = process.env.OPENAI_API_KEY;
-// Newest first. Only gpt-image-1 takes (and needs) the fidelity flag; 2 and
-// 2.5 refuse it because they are always high. `--model` narrows this to one.
+// The house model, alone. No `input_fidelity` — gpt-image-2 refuses it and is
+// always high. `--model` sends a different one by name for a deliberate test.
 const EDIT_MODELS = [
-  { model: 'gpt-image-2.5-sunburst', inputFidelity: false },
   { model: 'gpt-image-2', inputFidelity: false },
-  { model: 'gpt-image-1', inputFidelity: true },
 ];
-// $ per 1M tokens, OpenAI pricing page 2026-09-16 (standard tier).
+// $ per 1M tokens, OpenAI pricing page 2026-09-16 (standard tier). The others
+// are here so a `--model` run still prices itself honestly.
 const RATES = {
+  'gpt-image-2':            { text: 5, imageIn: 8, imageOut: 30 },
   'gpt-image-2.5-sunburst': { text: 5, imageIn: 8, imageOut: 30 },
   'gpt-image-2.5-flare':    { text: 5, imageIn: 8, imageOut: 30 },
-  'gpt-image-2':            { text: 5, imageIn: 8, imageOut: 30 },
   'gpt-image-1':            { text: 5, imageIn: 10, imageOut: 40 },
 };
 // What the response's usage block says a request cost, in dollars.
@@ -113,14 +114,13 @@ const has = (name) => process.argv.includes(`--${name}`);
 
 const MIME = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp' };
 
-// The --dry figure only. OpenAI's OLDER-model table (gpt-image-1): a square
-// high-fidelity input is ~4160 image tokens at $10/1M, a medium 1024x1024
-// output ~1056 and a medium 1024x1536 ~1584 at $40/1M. The 2.5 models price
-// the same request differently and publish no table — "use the response's
-// usage" — so the real number is read back after the run, never from here.
+// The --dry figure only. OpenAI's per-image table for gpt-image-2: a medium
+// 1024x1024 is $0.053 and a medium 1024x1536 $0.041, plus the reference photo
+// read at $8/1M image tokens (~1.85c for a square — docs/modules/pictures.md).
+// A real run reads its own `usage` back and prices from that, never from here.
 function guessPrice(size, quality) {
-  const out = { '1024x1024': { low: 272, medium: 1056, high: 4160 }, '1024x1536': { low: 408, medium: 1584, high: 6240 } }[size] || {};
-  return ((out[quality] || 1056) * 40 + 4160 * 10) / 1e6;
+  const out = { '1024x1024': { low: 0.006, medium: 0.053, high: 0.211 }, '1024x1536': { low: 0.005, medium: 0.041, high: 0.165 } }[size] || {};
+  return (out[quality] || 0.053) + 0.0185;
 }
 
 async function editImage({ buffer, mime, prompt, size, quality, only, retries = 1 }) {
@@ -177,8 +177,9 @@ async function editImage({ buffer, mime, prompt, size, quality, only, retries = 
   const lead = only || EDIT_MODELS[0].model;
   console.log(`source   ${inFile}`);
   console.log(`scene    ${sceneKey} (${scene.label})`);
-  console.log(`model    ${lead} · ${quality} · ${size}${only ? '' : ` (falls back: ${EDIT_MODELS.slice(1).map(m => m.model).join(' → ')})`}`);
-  console.log(`price    ~$${guessPrice(size, quality).toFixed(2)} by gpt-image-1's table; the real bill is read back after the run`);
+  const rest = EDIT_MODELS.slice(1).map(m => m.model).join(' → ');
+  console.log(`model    ${lead} · ${quality} · ${size}${!only && rest ? ` (falls back: ${rest})` : ''}`);
+  console.log(`price    ~$${guessPrice(size, quality).toFixed(2)} by OpenAI's table; the real bill is read back after the run`);
   console.log(`prompt   ${scene.prompt}`);
   if (has('dry')) { console.log('\n--dry: nothing sent.'); return; }
   if (!KEY) { console.error('OPENAI_API_KEY not set'); process.exit(1); }

@@ -577,7 +577,7 @@ async function saveToFirebase(imageUrl, folder = 'images', stamp) {
   }
 }
 
-// Save a raw image buffer (e.g. gpt-image-1 base64 output) to Firebase and
+// Save a raw image buffer (e.g. gpt-image-2 base64 output) to Firebase and
 // return a permanent URL. Falls back to a data URL when Firebase isn't
 // configured, so the image still renders without any credentials set up.
 async function saveBufferToFirebase(buffer, contentType, folder = 'images', stamp) {
@@ -8474,8 +8474,8 @@ async function openaiImage(body, retries = 2, timeoutOverride = 0) {
   throw lastErr;
 }
 
-// Generate one illustrated panel with gpt-image-1 (returns base64). If the
-// account can't use gpt-image-1 yet, surface a clear error rather than
+// Generate one illustrated panel with gpt-image-2 (returns base64). If the
+// account can't use gpt-image-2 yet, surface a clear error rather than
 // silently switching models (which would break the zine's visual style).
 // Load the style-reference image once (used to anchor the zine look, the way
 // ChatGPT fed it the uploaded panel). Lives outside /public so it's never
@@ -8563,7 +8563,7 @@ app.get('/api/talking/version', (req, res) => {
 // come back as big data URLs that have to live in the phone's browser.
 app.get('/api/talking/status', (req, res) => { res.json({ firebase: Boolean(bucket) }); });
 
-// Lightweight one-shot check: does this OpenAI account work with gpt-image-1?
+// Lightweight one-shot check: does this OpenAI account work with gpt-image-2?
 app.get('/api/talking/check', async (req, res) => {
   if (!OPENAI_API_KEY) return res.json({ ok: false, error: 'OPENAI_API_KEY not set on the server' });
   try {
@@ -8626,7 +8626,7 @@ const TALKING_STYLE_GRID =
   'caption boxes. Muted palette of gray-blue, tan, black, and pale yellow. Imperfect ' +
   'anatomy, awkward emotional faces, simple compositions, slightly eerie but intimate.';
 
-// Build one gpt-image-1 prompt for a page of 1–4 panels.
+// Build one gpt-image-2 prompt for a page of 1–4 panels.
 function buildPagePrompt(beats) {
   const n = beats.length;
   const layout = n >= 4 ? 'a 2x2 grid of four comic-style panels'

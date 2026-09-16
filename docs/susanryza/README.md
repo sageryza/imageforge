@@ -42,7 +42,7 @@ it, because the caption has to be true.
 
 ## THE FIRST RUN USED THE 2025 MODEL, ON THE STRENGTH OF A STALE NOTE (2026-09-16)
 
-`photostudio.js` says gpt-image-1 is the faithful one because gpt-image-2
+`photostudio.js` said gpt-image-1 was the faithful one because gpt-image-2
 "refuses the `input_fidelity` flag, so the fallback is degraded". Read against
 OpenAI's own docs the same day (Sophie: "4 cents? so all inputs have been low
 fidelity" — the question that made me look):
@@ -50,12 +50,6 @@ fidelity" — the question that made me look):
 - **gpt-image-2 refuses the flag because it runs every image input at high
   fidelity automatically.** There is nothing to set. Not degraded — the note's
   conclusion is backwards.
-- **There is a newer pair on her key, `gpt-image-2.5-sunburst` and
-  `-flare`, dated 2026-09-08.** OpenAI: "Choose Sunburst for workflows where
-  editing precision matters most, and Flare for fast, high-quality everyday
-  image generation." Five quality rungs (low · medium · high · xhigh · max)
-  against gpt-image-2's three. Same token rates as gpt-image-2 — $8/1M image
-  in, $30/1M image out, against gpt-image-1's $10 and $40.
 - **So the first four pictures came off the oldest model available.** They
   WERE high fidelity — gpt-image-1 accepted the flag on all four (the script
   logs it only when the accepted request carried it), and 4¢ is exactly what
@@ -63,10 +57,21 @@ fidelity" — the question that made me look):
   image tokens × $10/1M. Low would have been well under a cent. **But that 4¢
   was an estimate off the table, not a reading** — the response's `usage`
   block was never saved. The script saves it now and prices from it.
-- **The ladder leads with sunburst now**, then gpt-image-2, then gpt-image-1
-  with its flag; `--model` picks one outright. `photostudio.js` still leads
-  with gpt-image-1 and is **deliberately left alone** — it is a live tool and
-  changing what draws her Etsy mockups is hers to say.
+- **gpt-image-2 IS THE MODEL NOW, EVERYWHERE, AND THAT IS HER CALL** ("use 2,
+  change everywhere and the docs"). `EDIT_MODELS` in `jewelry-restage.js` is
+  gpt-image-2 alone; **`photostudio.js` moved with it** — and it had been
+  filing `gpt-image-2` as the caption on pictures gpt-image-1 drew, so that
+  route's captions were wrong on every mockup it ever made; the ideatrol
+  commercial scripts stopped dropping to gpt-image-1 on a third try.
+  gpt-image-2 is also cheaper: $8/1M image in and $30/1M image out, against
+  gpt-image-1's $10 and $40.
+- **`gpt-image-2.5-sunburst` and `-flare` are on her key, dated 2026-09-08,
+  and are NOT in use.** OpenAI: "Choose Sunburst for workflows where editing
+  precision matters most, and Flare for fast, high-quality everyday image
+  generation." Five quality rungs (low · medium · high · xhigh · max) against
+  gpt-image-2's three, at the same token rates. UNMEASURED on her pieces —
+  `--model gpt-image-2.5-sunburst` sends one for a deliberate test, and
+  adopting it anywhere is hers to say.
 
 ## A MASK IS GUIDANCE, NOT A LOCK — CORRECTING WHAT THE CHAT SAID FIRST
 
@@ -85,8 +90,9 @@ the easy case).
 
 ## WHAT TO TRY FOR "EXACT", IN ORDER — none of it run yet, her go first
 
-1. **Sunburst instead of gpt-image-1.** The biggest single change, and the
-   cheapest to test: the same two prompts again, one command each.
+1. **gpt-image-2 instead of gpt-image-1** — DONE, and the first thing to
+   re-shoot against: the same two prompts again, one command each. (The
+   unmeasured next rung is `--model gpt-image-2.5-sunburst`, hers to ask for.)
 2. **Take the warmth out of the scene prompt.** "warm neutral background,
    natural daylight" was the chat's own wording and it tints silver; a neutral
    studio light is a scene word (what no reference carries), so it is inside
@@ -105,6 +111,8 @@ it. Every scene is a staging instruction plus the word "unchanged".
 ## Measured on the first run (2026-09-16, four pictures, ~$0.38 all in)
 
 - **gpt-image-1 took every one at fidelity high** — no fallback, 15-21s each.
+  (That was the run BEFORE the switch above; the four filed pictures carry
+  `gpt-image-1 · medium · 1K` and that caption is true of them.)
 - **Medium, 1024x1024 for the lift and 1024x1536 for the worn shot** — both are
   the 1K tier, so the caption reads `gpt-image-1 · medium · 1K`.
 - **~8.4c for a 1024x1024 lift, ~10.5c for a 1024x1536 worn shot** (the input
