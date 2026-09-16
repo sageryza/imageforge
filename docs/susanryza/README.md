@@ -88,10 +88,29 @@ Its own catch: the pasted piece keeps the lighting of her photo, so the scene
 has to be lit to match it (the dress-form shots are soft and even, which is
 the easy case).
 
-## WHAT TO TRY FOR "EXACT", IN ORDER — none of it run yet, her go first
+## THE RE-SHOOT ON gpt-image-2 (2026-09-16, her go: "reshooting · relabel")
 
-1. **gpt-image-2 instead of gpt-image-1** — DONE, and the first thing to
-   re-shoot against: the same two prompts again, one command each. (The
+Same two pieces, same four prompts, same photos — only the model moved. **24¢
+for four, and every figure here is READ OFF the response's `usage` block rather
+than estimated:**
+
+- **5.4¢ a worn shot (1024x1536), 6.5¢ a lift (1024x1024)** — 1,372 and 1,756
+  output tokens at $30/1M, plus **1,521 image tokens for the reference** at
+  $8/1M (1.2¢) on all four. gpt-image-1's own table put the same square
+  reference at ~4,160 tokens and $10/1M, so the input is about a third of the
+  price here for the fidelity the docs say is automatic.
+- **32-37s each**, against gpt-image-1's 15-21s. Slower, and that is the trade.
+- **THE COLOUR DRIFT IS MOSTLY GONE.** The wire tube necklace's silver beads
+  read as silver in the worn shot now, where v1 came back champagne on both.
+  The white lift still runs slightly warm on the pale beads — better, not
+  perfect, and the next lever for it is naming the metal (item 4 below).
+- **The v1 four are KEPT**, relabelled `… v1 — superseded (gpt-image-1)` in
+  the Assets tab, carrying their true `gpt-image-1 · medium · 1K` caption. The
+  Compare page is v2 and v1 is superseded.
+
+## WHAT TO TRY FOR "EXACT", IN ORDER — 1 is done, the rest need her go
+
+1. **gpt-image-2 instead of gpt-image-1** — DONE and re-shot, see above. (The
    unmeasured next rung is `--model gpt-image-2.5-sunburst`, hers to ask for.)
 2. **Take the warmth out of the scene prompt.** "warm neutral background,
    natural daylight" was the chat's own wording and it tints silver; a neutral
