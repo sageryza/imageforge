@@ -101,17 +101,15 @@ the girl starts talking."*
     anything.
 
 27. the girl, still on the floor with the crystals, not looking up. first time
-    she speaks, flat, like it is obvious:
-    **girl:** "Saturnalia."
+    she speaks, bored, like everyone should know:
+    **girl:** "It's Saturnalia."
 
 28. the parents look at her. she keeps sorting the little bottles as she
     talks.
-    **girl:** "Romans. A week in December, when it gets dark at four. The
-    slaves ate first and a fool got to be king, and everybody gave everybody
-    candles and little clay dolls."
+    **girl:** "The Romans did it. In December. Everyone got a week off and
+    gave each other presents. Then it got called Christmas."
 
-29. she holds up a candle from the kit, looks at it, puts it down.
-    **girl:** "Then somebody changed the name on the door."
+29. she goes back to the bottles.
 
 30. dad, to mom, quiet: "...did you know that?"
     mom does not answer. she is still looking at the tree.
@@ -127,22 +125,20 @@ the girl starts talking."*
 beat 1; landing it again after she has just proved it is the button. Hers to
 run it once or twice.
 
-**:05 cut** (for a 15s clip): beats 27, 28 with the middle sentence only —
-"Romans. A week in December. The slaves ate first and a fool got to be king."
-— then 31 and the voiceover.
+**:05 cut** (for a 15s clip): 27, then "The Romans did it. In December.
+Everyone gave each other presents." — then 31 and the voiceover.
 
-**[Extra lines to swap in]**
-- "It was the seventeenth, not the twenty-fifth. Nobody copied. It just gets
-  dark at four, so everybody puts the bottom on top for a while." *(the
-  accurate correction from the alternates file — use it if the spot should
-  answer the comment section rather than agree with it)*
-- "They did presents too. That part actually is the same and nobody says that
-  one."
-- "My mum told me." *(the witch reveal said out loud)*
+**[Extra lines, same voice]**
+- "It was the seventeenth. Not the twenty-fifth. Whatever."
+- "They gave each other candles. And little clay dolls."
+- "The slaves got to be in charge for a week."
+- "My mum told me."
 
-**What she sounds like:** eleven, sullen, bored of knowing it. Short
-sentences, *and* between clauses, no summing-up, nothing that sounds looked
-up. No school anywhere in her lines.
+**How she talks (2026-09-16, Sophie: "too many metonymy's and literary
+devices · WHY would a girl talk like this"):** like a kid. Plain words, short
+sentences, facts in the order she thinks of them. No "changed the name on the
+door", no "a fool got to be king", no "puts the bottom on top", nothing that
+scans. If a line would look good on a poster, it is wrong for her.
 
 **One fact to know, not a rule:** the research sheet
 (`research-and-scripts.md`, DON'T SAY) has "Christmas is Saturnalia" as the
