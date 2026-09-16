@@ -45,4 +45,8 @@ Storage urls. Two ways her cut comes back:
   (2) `VideoSaver` now saves a clip under its STORAGE NAME (the trim key, the
   Atlas job file), so from that build on the FCPXML names the exact object
   and the join is by filename. A cut made from clips saved before the build
-  still needs her to name the ambiguous ones.
+  is settled by a **"Full Media"** export instead (Sophie, on being asked to
+  name the three: "i don't wanna do that"): the zip carries the original
+  bytes, the reader md5s each one and HEADs the candidates' Storage urls
+  (`x-goog-hash`), so the match is exact with nothing to describe. Trimmed
+  media is re-encoded and joins nothing — Full only.
