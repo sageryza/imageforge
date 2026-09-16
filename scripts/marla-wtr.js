@@ -38,6 +38,7 @@ const TRIGGER = 'wtr';
 
 const arg = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i !== -1 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : d; };
 
+const BARE = process.argv.includes('--bare');
 const plan = JSON.parse(fs.readFileSync(PLAN, 'utf8'));
 const rev = JSON.parse(fs.readFileSync(REV, 'utf8'));
 const sceneFor = (n) => rev.scenes[String(n)] || plan.pages.find((p) => p.n === n).scene;
@@ -116,16 +117,22 @@ async function run(imageUrl, prompt, strength) {
 
   for (const j of jobs) {
     const src = sourceArt(j.n, bucket);
-    const prompt = `${TRIGGER} ${sceneFor(j.n)}`;
+    // --bare sends ONLY the trigger word. Sophie asked what text the first
+    // run added and to try it without: the answer was a whole scene
+    // description per page ("a small boy sits on the wet step…"), which is
+    // very likely why the people came back as different people — the model
+    // had words to draw from, not just her picture. The trigger cannot be
+    // dropped as well; it is what activates the LoRA at all.
+    const prompt = BARE ? TRIGGER : `${TRIGGER} ${sceneFor(j.n)}`;
     process.stdout.write(`page ${j.n} @ strength ${j.strength} … `);
     try {
       const buf = await run(src, prompt, j.strength);
-      const url = await upload(buf, `storybook/marla/wtr/p${String(j.n).padStart(2, '0')}-${j.tag}.png`);
+      const url = await upload(buf, `storybook/marla/wtr/p${String(j.n).padStart(2, '0')}-${j.tag}${BARE ? '-bare' : ''}.png`);
       results.push({ n: j.n, strength: j.strength, src, url, prompt });
       console.log('✓');
     } catch (e) { console.log('FAILED —', e.message); }
   }
-  fs.writeFileSync(path.join(ROOT, 'docs/marla/wtr-tests.json'),
+  fs.writeFileSync(path.join(ROOT, BARE ? 'docs/marla/wtr-tests-bare.json' : 'docs/marla/wtr-tests.json'),
     JSON.stringify(results, null, 2) + '\n');
   console.log(`\n${results.length} done → docs/marla/wtr-tests.json`);
   process.exit(0);
