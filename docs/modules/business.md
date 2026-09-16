@@ -315,6 +315,88 @@ is nothing to set and nothing is lost. Three things came with the switch:
   understated model per the prompt until she picks one), an iOS tile, the
   `who=` link. Tests: `node scripts/test-jewelry.js`.
 
+## Lightroom → the picker (steps 1 and 2 of the jewelry pipeline)
+- `lightroom.js` (`/api/lightroom`, page at `/lightroom`, the client script
+  served at `/lightroom-sync.py` with `/lightroom-sync.bat`) — 2026-09-16,
+  Sophie: "step 1. extract images from her lightroom · best way?" → "too many
+  to export" → "she has tons of files" → "classic · 4000 pics", and "step 2.
+  tinder picker based on her specs to choose items". Her mom's specs, off the
+  recording another chat transcribed (the 3:44 m4a in this chat): the
+  necklace folder in Lightroom; only titles that are just N and a number;
+  nothing that says sold, sample bag, gave, gifted or donated; all of a
+  piece's photos on one screen; on her computer, not her phone; yes · maybe ·
+  no · star; "pick like top 20 to start with".
+- **No export.** `lightroom-sync.py` (stdlib only — the Microsoft Store
+  Python runs it; the .bat tries `py -3` then `python` and says what to
+  install if neither is there) copies the `.lrcat` (Lightroom keeps it open;
+  the copy is read-only), reads `Adobe_images` ⋈ `AgLibraryFile` ⋈
+  `AgLibraryFolder` ⋈ `AgLibraryRootFolder` for every picture, titles from
+  `AgLibraryIPTC` when that table carries a title column, else from
+  `Adobe_AdditionalMetadata.xmp` (`dc:title`), collections from
+  `AgLibraryCollectionImage` ⋈ `AgLibraryCollection`. Pictures whose folder
+  path or collection name contains `--match` (default `necklace`) are the
+  ones sent; `--all` sends every folder. The picture bytes come from the
+  preview cache — `<catalog> Previews.lrdata/previews.db` names each
+  picture's `uuid`/`digest`, the file is `<uuid[0]>/<uuid[0:4]>/<uuid>-<digest>.lrprev`,
+  and the JPEG pyramid levels inside it are found by scanning for JPEG
+  markers (no knowledge of the AgHg container needed); the smallest level at
+  least 1,000px wide is sent, else the largest. No preview and the original
+  is a JPEG under 8MB → the original; otherwise the picture is skipped and
+  counted. Resumable: `GET /have?catalog=` lists what the site holds and the
+  script skips those; `--limit N` sends a few; `--dry` prints the counts and
+  the first fifteen rows and sends nothing. Local test servers bypass any
+  proxy the machine names.
+- **THE SCHEMA IS AN ASSUMPTION THE TEST ENCODES, NOT PROVES.** No real
+  catalog was on hand; `scripts/test-lightroom.js` builds a synthetic one
+  with exactly those tables and drives the real script against a stub
+  server (the folder filter, the collection member from another folder, the
+  1,000px level over the 2,048, a 1,440-only pyramid, the XMP titles, the
+  skip, the resume, `--all`/`--limit`/`--name`). The first `--dry` on her
+  mom's real catalog is the measurement; the script prints table-level
+  diagnostics so a column that is not where this assumed reads as a number,
+  not a crash. Columns are read through `PRAGMA table_info`, so an absent
+  title column falls through to the XMP rather than failing.
+- **The server side.** `POST /photo?catalog=&image=&title=&folder=&file=&captured=&w=&h=&collections=&total=`
+  with the raw JPEG body: the title is classified (`classify` — piece `N<n>`
+  / excluded / other / untitled), the preview is kept byte for byte when it
+  is a JPEG ≤2048 on the long edge (else brought to 1600), stored at
+  `lightroom/<catalog>/<image>.jpg` + a 480px webp thumb, one doc per
+  picture in `forge-lightroom` (`<catalog>__<image>`), md5-deduped. The
+  catalog's own doc (`__cat__<catalog>`) and a per-piece doc
+  (`__piece__<catalog>__<key>`, the sent state) share the collection under
+  `kind`, so ONE equality filter (`catalog ==`) reads everything for a
+  catalog; a 30s cache sits over it.
+- **The picker is a judge page, not a new deck.** `public/lightroom.html`
+  links `/compare.css` + `/compare.js` + `/judge.js` and calls `__judge` with
+  `GET /pieces` → `items` (one card per piece: a plain card for one photo, a
+  `pair` spread of every photo for more, `front` under the first), `states`
+  = star · yes · maybe · no (her words, as chips), `pace:'quick'`, the help
+  behind the deck's own "?". Verdicts save where every judge page's do —
+  `forge-chat-verdicts/jewelry-upload-website__lr-<catalog>` — and the send
+  route reads them back from the same doc. `?catalog=` picks a catalog (else
+  the newest synced); `?account=` rides into the jewelry items for the Etsy
+  shop.
+- **Send starred — the one paid control.** The bar counts starred / yes /
+  maybe / no / sent from the verdict doc every 4s; the select says how many
+  (5 · 10 · 20 · 40); the first tap ARMS the button — "Yes — send 5 (about
+  $1.50)" — and the second sends `POST /send {catalog, pick:'star'|'yes',
+  limit, confirm:true}`. `sendPlan`: stars first, then yeses, never a piece
+  already sent, capped at `limit` (max 40), `keys:[…]` names pieces
+  outright. Each piece: `jewelry.createItem` (source `lightroom:<catalog>:<key>`)
+  → `jewelry.addPhoto` with the front photo's bytes → `jewelry.startMake`,
+  and the piece doc records the item. "Yes too" flips the pick to the yes
+  pile. The note after a send links `/jewelry?item=<id>` (the jewelry page
+  learned `?item=` for this).
+- **What to expect on her PC, honestly:** ~4,000 pictures × ~150KB ≈ 600MB
+  up her home connection, ten to thirty minutes, resumable if it stops. If
+  Lightroom never built previews for a folder (a 1:1-only or minimal
+  import), those pictures come through as originals only when they are
+  JPEGs; RAWs without a preview are skipped and counted — open the folder in
+  Lightroom's Library grid once and it builds them.
+- Tests: `node scripts/test-lightroom.js` (pure rules; the real script on a
+  synthetic catalog against a stub; the real page headless — the deck, her
+  chips, a verdict landing on the sheet, the arm-then-send).
+
 ## Blog Studio (SEO posts → the site blog and/or Shopify)
 - `blog.js` (`/api/blog`, page at `/blog`, hub tile "Blog Studio") turns a topic
   into an SEO blog post. **Primary destination (July 2026): the on-site blog at

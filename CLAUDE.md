@@ -3954,6 +3954,35 @@ before working on that module. Nothing was deleted — the moved text is verbati
   inside the PNG. Test: `node scripts/test-jewelry.js` (pure + the real page
   headless against a stubbed API). **Full details:
   `docs/modules/business.md` (Jewelry → Etsy).**
+- **Lightroom → the picker** (`lightroom.js`, `/api/lightroom`, page at
+  `/lightroom`, the script at `/lightroom-sync.py` + `/lightroom-sync.bat` —
+  2026-09-16, Sophie: "step 1. extract images from her lightroom" · "too many
+  to export" · "she has tons of files" · "classic · 4000 pics" · "step 2.
+  tinder picker based on her specs"). NO EXPORT: the script runs once on her
+  mom's Windows PC (double-click the .bat; Python from the Microsoft Store),
+  reads the Lightroom Classic catalog file (SQLite) for every picture's
+  title, folder and collections, lifts each picture's preview out of
+  Lightroom's own cache (`… Previews.lrdata`, the level around 1,000px) and
+  POSTs it to `/api/lightroom/photo`. Only folders/collections matching
+  "necklace" are sent; resumable (`GET /have`); `--dry` counts first,
+  `--limit 20` a few first. Her mom's rules (the recording, `lightroom.js`
+  `classify`): a title that is just N + a number is a piece (`N12`); sold /
+  sample bag / gave / gifted / donated are out; anything else is "other".
+  `/lightroom` is a JUDGE page (`/judge.js`, never a hand-rolled deck): one
+  card per piece with EVERY photo on it, her four words as the states — star
+  · yes · maybe · no — on her computer; verdicts on the chat verdict doc
+  (`jewelry-upload-website` / `lr-<catalog>`). **Send starred** turns picked
+  pieces into jewelry.js items (front photo = the ONE picture) and starts
+  each Make job — ~30¢ each, so the button arms on the first tap with the
+  count and the cost and sends on the second (`POST /send {confirm:true,
+  limit}`, default 5, max 40, never a piece twice). **THE CATALOG SCHEMA IS
+  AN ASSUMPTION** — the test builds a synthetic catalog from the tables the
+  script reads (Adobe_images · AgLibraryFile · AgLibraryFolder ·
+  AgLibraryRootFolder · Adobe_AdditionalMetadata's dc:title XMP ·
+  AgLibraryCollection* · previews.db's imageId/uuid/digest table); the first
+  `--dry` on her real catalog is the measurement. Test:
+  `node scripts/test-lightroom.js`. **Full details: `docs/modules/business.md`
+  (Lightroom → the picker).**
 - **Blog Studio** (`blog.js`, `/api/blog`, `/blog`) — topic -> long-tail keywords
   -> full SEO post -> image -> publish. **Primary destination is the on-site blog
   at secretlyawitch.com/blog**, so organic traffic builds the real domain;

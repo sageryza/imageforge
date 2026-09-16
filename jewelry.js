@@ -526,24 +526,49 @@ router.patch('/items/:id', express.json({ limit: '64kb' }), async (req, res) => 
   } catch (e) { fail(res, e); }
 });
 
+// One reference photo onto a piece: md5-deduped, stored once, thumbed.
+// Shared by the upload route and by lightroom.js's send (a picked piece's
+// preview becomes the ONE photo). Returns the new photo list.
+async function addPhoto(doc, buf, ct) {
+  const photos = doc.photos || [];
+  if (photos.length >= MAX_PHOTOS) throw new Error(`${MAX_PHOTOS} photos is the most`);
+  const md5 = crypto.createHash('md5').update(buf).digest('hex');
+  const key = md5.slice(0, 10);
+  if (photos.some(p => p.key === key)) return { photos, duplicate: true };
+  const ext = ct === 'image/png' ? 'png' : 'jpg';
+  const url = await saveBytes(`jewelry/${doc.id}/ref-${key}.${ext}`, buf, ct);
+  const thumb = await saveBytes(`jewelry/${doc.id}/ref-${key}.webp`, await thumbOfBuffer(buf, 480), 'image/webp');
+  const next = photos.concat([{ key, url, thumb, md5, bytes: buf.length, at: Date.now() }]);
+  await patchDoc(doc.id, { photos: next });
+  return { photos: next, duplicate: false };
+}
+async function createItem({ account = 'default', notes = '', source = '' } = {}) {
+  const d = db();
+  if (!d) throw new Error('Firebase unavailable');
+  const ref = d.collection(COL).doc();
+  const doc = { account, status: 'new', photos: [], notes: clip(notes, 1000), details: {}, shots: {},
+    source: clip(source, 120), createdAt: Date.now(), updatedAt: Date.now() };
+  await ref.set(doc);
+  return { id: ref.id, ...doc };
+}
+// The job behind "Make the listing", started for a piece that already has
+// its photo — the route below and lightroom.js's send both come through here.
+async function startMake(id, notes) {
+  if (!process.env.OPENAI_API_KEY) throw new Error('image generation unavailable');
+  if (!anthropic.available()) throw new Error('the listing writer is unavailable');
+  await patchDoc(id, { notes: clip(notes, 1000), status: 'working' });
+  return startJob(id, 'make', p => makeAll(id, p));
+}
+
 router.post('/items/:id/photo', express.raw({ type: () => true, limit: '12mb' }), async (req, res) => {
   try {
     if (!req.body || !req.body.length) return res.status(400).json({ error: 'empty body — POST the photo as the request body' });
     const doc = await loadDoc(req.params.id);
     if (!doc) return res.status(404).json({ error: 'no such piece' });
     if (doc.job && doc.job.status === 'running') return res.status(409).json({ error: 'Still working — add photos when it is done.' });
-    const photos = doc.photos || [];
-    if (photos.length >= MAX_PHOTOS) return res.status(400).json({ error: `${MAX_PHOTOS} photos is the most` });
-    const md5 = crypto.createHash('md5').update(req.body).digest('hex');
-    const key = md5.slice(0, 10);
-    if (photos.some(p => p.key === key)) return res.json({ ok: true, duplicate: true, item: publicItem(doc) });
     const ct = /png/i.test(req.get('content-type') || '') ? 'image/png' : 'image/jpeg';
-    const ext = ct === 'image/png' ? 'png' : 'jpg';
-    const url = await saveBytes(`jewelry/${doc.id}/ref-${key}.${ext}`, req.body, ct);
-    const thumb = await saveBytes(`jewelry/${doc.id}/ref-${key}.webp`, await thumbOfBuffer(req.body, 480), 'image/webp');
-    const next = photos.concat([{ key, url, thumb, md5, bytes: req.body.length, at: Date.now() }]);
-    await patchDoc(doc.id, { photos: next });
-    res.json({ ok: true, item: publicItem({ ...doc, photos: next }) });
+    const r = await addPhoto(doc, req.body, ct);
+    res.json({ ok: true, duplicate: r.duplicate, item: publicItem({ ...doc, photos: r.photos }) });
   } catch (e) { fail(res, e); }
 });
 
@@ -567,8 +592,7 @@ router.post('/items/:id/make', express.json({ limit: '16kb' }), async (req, res)
     if (!anthropic.available()) return res.status(503).json({ error: 'the listing writer is unavailable' });
     if (limited(req, res)) return;
     const notes = clip((req.body || {}).notes, 1000);
-    await patchDoc(doc.id, { notes, status: 'working' });
-    const job = await startJob(doc.id, 'make', p => makeAll(doc.id, p));
+    const job = await startMake(doc.id, notes);
     res.json({ ok: true, job, item: publicItem({ ...doc, notes, status: 'working', job }) });
   } catch (e) { fail(res, e); }
 });
@@ -649,6 +673,8 @@ router.post('/items/:id/draft', express.json({ limit: '64kb' }), async (req, res
 
 module.exports = {
   router, init,
+  // for lightroom.js's send: a picked piece becomes a jewelry item with its preview as the ONE photo
+  createItem, addPhoto, startMake, loadDoc, publicItem,
   // pure, for scripts/test-jewelry.js
   FIDELITY, SHOTS, SHOT_KEYS, shotPrompt, cleanDetails, stateOf, thumbOf, approvedImages, rateLimited, terminalRefusal,
   RATE_MAX, RATE_WINDOW_MS, MAX_PHOTOS,

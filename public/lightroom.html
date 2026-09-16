@@ -1,0 +1,105 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Necklaces</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+/* lightroom.html — her mom picks necklaces out of her Lightroom catalog on
+   her computer: one judge card per piece (all its photos on it), her four
+   words as the states. The deck is /judge.js; this page only feeds it and
+   carries the one paid control, Send to listings. */
+.wrap{ max-width:1100px; }
+.lr-bar{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:6px 0 10px; font-size:14px; color:var(--ink2); }
+.lr-bar .n{ color:var(--ink); }
+.lr-bar button{ display:inline-flex; align-items:center; gap:6px; font:inherit; font-size:14px; font-weight:600;
+  border:1px solid var(--chg); border-radius:6px; padding:8px 12px; background:var(--chg); color:#fff; cursor:pointer; }
+.lr-bar button.ghost{ background:transparent; color:var(--ink); border-color:var(--line); }
+.lr-bar button:disabled{ opacity:.5; }
+.lr-bar button svg{ width:16px; height:16px; }
+.lr-bar select{ font:inherit; font-size:14px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--surface); color:var(--ink); }
+.lr-note{ font-size:13px; color:var(--ink2); margin:0 0 8px; }
+.lr-note.err{ color:var(--rose); }
+[hidden]{ display:none !important; }
+</style>
+
+<div class="wrap">
+  <h1 id="title">Necklaces</h1>
+  <div class="lr-bar" id="bar" hidden>
+    <span id="counts"></span>
+    <select id="howmany"><option>5</option><option>10</option><option>20</option><option>40</option></select>
+    <button id="send"><svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg> <span id="sendLbl">Send starred</span></button>
+    <button class="ghost" id="sendYes">Yes too</button>
+  </div>
+  <p class="lr-note" id="note"></p>
+  <div id="judge"></div>
+</div>
+
+<script src="/compare.js"></script>
+<script src="/judge.js"></script>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const qs=new URLSearchParams(location.search);
+const ACCOUNT=qs.get('account')||'';
+let catalog=qs.get('catalog')||'', data=null, pick='star', armed=false;
+
+async function api(p,o){ try{ const r=await fetch(p,o); return {ok:r.ok,status:r.status,body:await r.json().catch(()=>({}))}; }catch(e){ return {ok:false,status:0,body:{}}; } }
+
+async function boot(){
+  if(!catalog){
+    const r=await api('/api/lightroom/catalogs');
+    const cats=(r.ok&&r.body.catalogs)||[];
+    if(!cats.length){ $('note').textContent='Nothing has been sent from Lightroom yet.'; return; }
+    catalog=cats[0].catalog;
+  }
+  const r=await api('/api/lightroom/pieces?catalog='+encodeURIComponent(catalog));
+  if(!r.ok){ $('note').className='lr-note err'; $('note').textContent=r.body.error||'Could not load the pieces.'; return; }
+  data=r.body;
+  const c=data.counts||{};
+  if(!(data.items||[]).length){ $('note').textContent='No necklaces with an N-number title yet ('+(c.photos||0)+' photos received).'; return; }
+  const sentSet=new Set((data.pieces||[]).filter(p=>p.sent).map(p=>p.key));
+  const items=data.items.map(it=>sentSet.has(it.id)?{...it,label:it.label+' · sent'}:it);
+  window.__judge({
+    chat:data.chat, sheet:data.sheet, mount:'#judge', items, states:data.states, pace:'quick',
+    help:'One necklace per card, every photo of it. Star the best, Yes the ones to sell, Maybe the unsure, No the rest. '+
+      'Anything titled sold, sample bag, gave, gifted or donated is already left out. '+
+      'Send starred turns the starred ones into listings, a few at a time; each costs about 30 cents.',
+  });
+  $('bar').hidden=false;
+  refreshCounts();
+  setInterval(refreshCounts,4000);
+}
+
+async function verdicts(){
+  const r=await api('/api/chatfeed/verdict?chat='+encodeURIComponent(data.chat)+'&sheet='+encodeURIComponent(data.sheet));
+  return (r.ok&&r.body.items)||{};
+}
+async function refreshCounts(){
+  const v=await verdicts();
+  const sent=new Set((data.pieces||[]).filter(p=>p.sent).map(p=>p.key));
+  let star=0,yes=0,maybe=0,no=0;
+  for(const p of data.pieces){ if(sent.has(p.key)) continue; const x=v[p.key]; if(x==='star')star++; else if(x==='yes')yes++; else if(x==='maybe')maybe++; else if(x==='no')no++; }
+  $('counts').innerHTML=`<span class="n">${data.pieces.length}</span> necklaces · <span class="n">${star}</span> starred · <span class="n">${yes}</span> yes · ${maybe} maybe · ${no} no · ${sent.size} sent`;
+  const n=Math.min(Number($('howmany').value)||5, pick==='star'?star:yes);
+  $('send').disabled=!n;
+  $('sendLbl').textContent=armed?`Yes — send ${n} (about $${(n*(data.costEach||0.3)).toFixed(2)})`:(pick==='star'?`Send starred`:`Send yes`);
+}
+$('howmany').onchange=()=>{ armed=false; refreshCounts(); };
+$('sendYes').onclick=()=>{ pick=pick==='star'?'yes':'star'; $('sendYes').textContent=pick==='star'?'Yes too':'Starred'; armed=false; refreshCounts(); };
+$('send').onclick=async()=>{
+  if(!armed){ armed=true; refreshCounts(); return; }
+  armed=false; $('send').disabled=true; $('note').className='lr-note'; $('note').textContent='Sending…';
+  const r=await api('/api/lightroom/send',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({catalog, pick, limit:Number($('howmany').value)||5, confirm:true, account:ACCOUNT||undefined})});
+  if(!r.ok||!r.body.ok){ $('note').className='lr-note err'; $('note').textContent=r.body.error||'That did not go through.'; refreshCounts(); return; }
+  const ok=(r.body.sent||[]).filter(x=>x.ok);
+  const bad=(r.body.sent||[]).filter(x=>!x.ok);
+  for(const x of ok){ const p=data.pieces.find(q=>q.key===x.key); if(p) p.sent={item:x.item}; }
+  $('note').innerHTML=`${ok.length} sent to listings — <a href="/jewelry?item=${esc(ok[0]&&ok[0].item||'')}${ACCOUNT?'&account='+esc(ACCOUNT):''}">open the first one</a>`
+    +(bad.length?` · ${bad.length} failed: ${esc(bad.map(b=>b.key+' ('+b.error+')').join(', '))}`:'');
+  refreshCounts();
+};
+boot();
+})();
+</script>

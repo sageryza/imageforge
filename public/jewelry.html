@@ -317,6 +317,9 @@ async function loadEarlier(){
 
 (async function boot(){
   render();
+  // ?item=<id> opens a given piece (the Lightroom picker's "open the first one")
+  const want=new URLSearchParams(location.search).get('item');
+  if(want) localStorage.setItem(KEY,want);
   const id=localStorage.getItem(KEY);
   if(id){ await load(id); poll(); }
   loadEarlier();
