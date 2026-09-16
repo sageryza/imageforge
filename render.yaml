@@ -10,6 +10,14 @@ services:
     plan: starter
     buildCommand: npm install
     startCommand: npm start
+    # A MERGE NO LONGER DEPLOYS (2026-09-15, Sophie, looking at two changes
+    # that shipped themselves the same evening: "it shouldn't happen"). Auto
+    # deploy on push is OFF — set live by API the same night, and here so a
+    # Blueprint sync cannot turn it back on. Every deploy is now a deliberate
+    # call to `node scripts/render-deploy.js`, which is the one door and asks
+    # the live server what is drawing first. `[skip render]` in a squash title
+    # is belt-and-braces now rather than the only brake.
+    autoDeploy: false
     # THE STOP GUARD BEFORE A DEPLOY (2026-09-02, Sophie: "why can't there be
     # a stop guard before a deploy that asks if anything's drawing"). Runs
     # after the build and BEFORE the new instance starts, while the old one
