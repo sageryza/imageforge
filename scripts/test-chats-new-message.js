@@ -173,21 +173,19 @@ const rowIn = (page, mid) => page.evaluate((id) =>
   await page.waitForTimeout(500);
   if (await barUp(page)) ok('scrolled down the home list, the banner still holds new rows back');
   else fail('the home list lost its new-message banner');
+  // IT IS ROSE, AND THAT IS SETTLED (2026-09-15: quieted to the now-playing
+  // bar's paper on "not magenta banne[r]", then "magenta was fine · back" the
+  // same hour). Pinned so nobody quiets it again on the strength of the first
+  // half of that exchange.
   const look = await page.evaluate(() => {
-    const b = document.getElementById('newbar'), cs = getComputedStyle(b);
-    const np = getComputedStyle(document.querySelector('.nowplaying'));
-    return { bg: cs.backgroundColor, border: cs.borderTopWidth, barbg: np.backgroundColor };
+    const cs = getComputedStyle(document.getElementById('newbar'));
+    const rose = getComputedStyle(document.documentElement).getPropertyValue('--rose').trim();
+    return { bg: cs.backgroundColor, rose };
   });
   const rgb = (s) => (s.match(/\d+/g) || []).map(Number);
-  const [r, g, bl] = rgb(look.bg);
-  // Magenta/rose reads as a strong red against a low green — the old
-  // var(--rose) slab. The quiet bar is the now-playing bar's own paper.
-  if (!(r > 120 && r - g > 40)) ok('the banner is not a magenta slab (' + look.bg + ')');
-  else fail('the banner is still rose: ' + look.bg);
-  if (look.bg === look.barbg) ok('it wears the now-playing bar’s own background');
-  else fail('banner ' + look.bg + ' against the now-playing bar ' + look.barbg);
-  if (parseFloat(look.border) > 0) ok('and its hairline border, not a borderless block');
-  else fail('no hairline border on the banner');
+  const [r, g] = rgb(look.bg);
+  if (r > 120 && r - g > 40) ok('the banner is the rose slab she kept (' + look.bg + ')');
+  else fail('the banner is no longer rose: ' + look.bg + ' (--rose is ' + look.rose + ')');
 
   // ── 5. THE BAR STILL WORKS WHERE IT IS RAISED ────────────────────────────
   await page.click('#newbar');
