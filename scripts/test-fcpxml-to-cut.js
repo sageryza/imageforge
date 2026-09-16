@@ -29,7 +29,7 @@ const XML = `<?xml version="1.0" encoding="UTF-8"?>
         <sequence format="r1" duration="60s" tcStart="0s">
           <spine>
             <asset-clip ref="r2" offset="0s" name="05 clip A v2" start="12/1s" duration="18s" format="r1">
-              <asset-clip ref="r4" lane="-1" offset="2s" name="jazz" start="30s" duration="40s">
+              <asset-clip ref="r4" lane="-1" offset="14s" name="jazz" start="30s" duration="40s">
                 <adjust-volume amount="-9dB"/>
                 <audio-fade><fade-in duration="1s"/><fade-out duration="2500/1000s"/></audio-fade>
               </asset-clip>
@@ -67,11 +67,44 @@ assert.strictEqual(r.clips[2].kind, 'image'); assert.strictEqual(r.clips[2].out,
 assert.strictEqual(r.total, 41);
 assert.deepStrictEqual(r.gaps, [{ at: 18, seconds: 2 }]);
 assert.strictEqual(r.skipped.length, 1); assert.strictEqual(r.skipped[0].file, 'not-in-the-map.mp4');
-// the connected audio: at = timeline offset, in/out source, gain and fades read
+// the connected audio: its offset (14s) is in the PARENT's local time, whose
+// first frame is the parent's start (12s) — so it lands 2s into the timeline,
+// anchored to the piece it rode in on; in/out source, gain and fades read
 assert.strictEqual(r.sounds.length, 1);
 const s = r.sounds[0];
 assert.strictEqual(s.url, 'https://x/jazz.mp3'); assert.strictEqual(s.at, 2); assert.strictEqual(s.in, 30); assert.strictEqual(s.out, 70);
+assert.deepStrictEqual(s.anchor, { piece: 'p1', offset: 2 });
 assert.strictEqual(s.gain, -9); assert.strictEqual(s.fadeIn, 1); assert.strictEqual(s.fadeOut, 2.5);
+
+// DETACHED AUDIO (2026-09-16, her second LumaFusion export): the clip is a
+// <video> plus its own <audio> on a lane — the sound lane carries it, at the
+// parent's timeline second, and the picture is muted so it never plays twice.
+// A sound connected to a spine asset-clip with start=0 lands at offset + at.
+const DETACHED = `<?xml version="1.0"?><!DOCTYPE fcpxml><fcpxml version="1.8"><resources>
+  <format id="r1" frameDuration="1/24s" width="720" height="1280"/>
+  <asset id="a" name="one.mp4" src="./one.mp4" format="r1" hasVideo="1" hasAudio="1" start="0s" duration="15s"/>
+  <asset id="b" name="two.mp4" src="./two.mp4" format="r1" hasVideo="1" hasAudio="1" start="0s" duration="15s"/>
+  <asset id="v" name="vo.mp3" src="./vo.mp3" hasAudio="1" start="0s" duration="5s"/>
+</resources><library><event name="e"><project name="p"><sequence format="r1"><spine>
+  <clip name="one" offset="10s" start="5s" duration="3s" format="r1">
+    <video offset="0s" ref="a" duration="15s"/>
+    <audio name="one" offset="6s" start="6s" duration="4s" ref="a" lane="-1"/>
+  </clip>
+  <asset-clip name="two" offset="13s" start="0s" duration="8s" ref="b" format="r1">
+    <asset-clip name="vo" offset="4s" start="1s" duration="2s" ref="v" lane="-1"/>
+  </asset-clip>
+</spine></sequence></project></event></library></fcpxml>`;
+const d = fcpxmlToCut(DETACHED, { 'one.mp4': { url: 'https://x/one.mp4', seconds: 15 }, 'two.mp4': { url: 'https://x/two.mp4', seconds: 15 }, 'vo.mp3': { url: 'https://x/vo.mp3', seconds: 5 } });
+assert.strictEqual(d.clips.length, 2);
+assert.strictEqual(d.clips[0].in, 5); assert.strictEqual(d.clips[0].out, 8); assert.strictEqual(d.clips[0].mute, true, 'a clip whose audio is detached is muted');
+assert.notStrictEqual(d.clips[1].mute, true);
+assert.strictEqual(d.sounds.length, 2);
+// one's audio: 1s into the clip (offset 6 against start 5), source 6-10, anchored to p1 at +1
+assert.strictEqual(d.sounds[0].at, 11); assert.strictEqual(d.sounds[0].in, 6); assert.strictEqual(d.sounds[0].out, 10);
+assert.deepStrictEqual(d.sounds[0].anchor, { piece: 'p1', offset: 1 });
+// the vo: 4s into a clip that starts at 0, on a piece at 13s → 17s, source 1-3
+assert.strictEqual(d.sounds[1].at, 17); assert.strictEqual(d.sounds[1].in, 1); assert.strictEqual(d.sounds[1].out, 3);
+assert.deepStrictEqual(d.sounds[1].anchor, { piece: 'p2', offset: 4 });
 
 // the result is a valid cut-model doc: every piece and sound survives cleaning
 const CutModel = require('../cut-model');
@@ -145,5 +178,33 @@ const { settleByHash } = require('./fcpxml-to-cut.js');
   const m2 = Object.assign({}, LOG);
   assert.strictEqual(await settleByHash(fcpxmlToCut(REAL, m2), m2, { 'clip-CCCC.mp4': 'ZZZ=' }, async () => 'AAA='), 0);
   assert.strictEqual(fcpxmlToCut(REAL, m2).clips.length, 2);
+  // BY FILE SIZE (2026-09-16, her Files screenshot): the size the Files app
+  // shows — decimal MB, one decimal, or a whole number under 10MB — narrows
+  // the candidates by a HEAD of each; one hit settles, several narrow.
+  const { settleBySize } = require('./fcpxml-to-cut.js');
+  const m3 = Object.assign({}, LOG);
+  const r3 = fcpxmlToCut(REAL, m3);
+  const before = r3.ambiguous.length;
+  assert.ok(before >= 1, 'the fixture has an ambiguous clip');
+  const amb = r3.ambiguous[0];
+  const cands = amb.candidates.map((c) => c.url);
+  // "1.2 MB" settles on the one candidate within 50KB of it
+  const sizes = {}; sizes[amb.file] = '1.2';
+  const fake = async (u) => (u === cands[0] ? 1234567 : 5000000);
+  assert.strictEqual(await settleBySize(r3, m3, sizes, fake), 1);
+  assert.strictEqual(m3[amb.file].url, cands[0]);
+  // "9 MB" (a whole number) is ±0.5MB, so two candidates at 8.9 and 8.95 both hit → narrowed, not settled
+  const m4 = Object.assign({}, LOG);
+  const r4 = fcpxmlToCut(REAL, m4);
+  const amb4 = r4.ambiguous[0];
+  const sizes4 = {}; sizes4[amb4.file] = 9;
+  const two = amb4.candidates.slice(0, 2).map((c) => c.url);
+  const fake4 = async (u) => (u === two[0] ? 8900000 : u === two[1] ? 8950000 : 100);
+  assert.strictEqual(await settleBySize(r4, m4, sizes4, fake4), 0);
+  assert.strictEqual(m4[amb4.file], undefined);
+  assert.deepStrictEqual(amb4.candidates.map((c) => c.url), two, 'narrowed to the two that fit');
+  // no size given → nothing touched, nothing guessed
+  const m5 = Object.assign({}, LOG);
+  assert.strictEqual(await settleBySize(fcpxmlToCut(REAL, m5), m5, {}, async () => 1), 0);
   console.log('test-fcpxml-to-cut: ok');
 })().catch((e) => { console.error(e); process.exit(1); });
