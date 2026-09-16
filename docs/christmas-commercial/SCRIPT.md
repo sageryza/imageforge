@@ -90,6 +90,69 @@ already knows."
 
 ---
 
+## The conclusion — the girl talks (Saturnalia)
+
+*Beat 25 leaves the women in the dark. Nobody has explained anything yet, and
+the girl has not said a word in the whole spot. She is the one who does.
+2026-09-16, Sophie: "need a short explanation conclusion saturnalia · maybe
+the girl starts talking."*
+
+26. back to the living room. mom and dad are staring at the tree. nobody says
+    anything.
+
+27. the girl, still on the floor with the crystals, not looking up. first time
+    she speaks, flat, like it is obvious:
+    **girl:** "Saturnalia."
+
+28. the parents look at her. she keeps sorting the little bottles as she
+    talks.
+    **girl:** "Romans. A week in December, when it gets dark at four. The
+    slaves ate first and a fool got to be king, and everybody gave everybody
+    candles and little clay dolls."
+
+29. she holds up a candle from the kit, looks at it, puts it down.
+    **girl:** "Then somebody changed the name on the door."
+
+30. dad, to mom, quiet: "...did you know that?"
+    mom does not answer. she is still looking at the tree.
+
+31. the girl points the wand at the tree again. the lights come back on,
+    steady this time. she almost smiles.
+
+**voiceover (baritone):** "secretly a witch. she already knows."
+
+> SUPER: *Secretly a Witch.*
+
+**The line at the top pays off here.** "she already knows" is the tag over
+beat 1; landing it again after she has just proved it is the button. Hers to
+run it once or twice.
+
+**:05 cut** (for a 15s clip): beats 27, 28 with the middle sentence only —
+"Romans. A week in December. The slaves ate first and a fool got to be king."
+— then 31 and the voiceover.
+
+**[Extra lines to swap in]**
+- "It was the seventeenth, not the twenty-fifth. Nobody copied. It just gets
+  dark at four, so everybody puts the bottom on top for a while." *(the
+  accurate correction from the alternates file — use it if the spot should
+  answer the comment section rather than agree with it)*
+- "They did presents too. That part actually is the same and nobody says that
+  one."
+- "My mum told me." *(the witch reveal said out loud)*
+
+**What she sounds like:** eleven, sullen, bored of knowing it. Short
+sentences, *and* between clauses, no summing-up, nothing that sounds looked
+up. No school anywhere in her lines.
+
+**One fact to know, not a rule:** the research sheet
+(`research-and-scripts.md`, DON'T SAY) has "Christmas is Saturnalia" as the
+debunked claim — Saturnalia was December 17, never the 25th. Beats 27-29 say
+what Saturnalia WAS and that the name changed, which is true, and stop short of
+saying it moved to the 25th, which is not. The first extra line is the fully
+corrected version if she wants the spot to say so.
+
+---
+
 ## Where each beat's wording comes from
 
 - **The spine** is the master, sent 2026-09-14 23:37 (and again 23:54) — the
