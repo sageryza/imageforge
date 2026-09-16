@@ -143,9 +143,51 @@ console.log('waiting: a filed line can also be keyed by sha');
   ok('a change with no PR is reached by its sha', g[0].items[0].line === 'said in her words', g[0].items[0]);
 }
 
+// ── THE DEPLOY LOG — what rode in each of the last five ──────────────────────
+// (2026-09-16, Sophie: "can i have collapsed rows under, up to five, showing
+// what rode in the last 5 deployed".)
+//
+// The run boundaries are the whole of it, and getting one wrong is INVISIBLE
+// on the page: a row that swallows a neighbour's changes looks exactly like a
+// busy deploy. So they are asserted commit by commit.
+console.log('waiting: the last five deploys, and what rode in each');
+{
+  // main, newest first: d, c, b, a. Deploys at c and a.
+  const mk = (sha, n) => ({ sha, title: 'change ' + n, pr: n, session: '', at: '2026-09-1' + n + 'T00:00:00Z' });
+  const commits = [mk('dddd', 4), mk('cccc', 3), mk('bbbb', 2), mk('aaaa', 1)];
+  const deploys = [{ sha: 'cccc', at: '2026-09-13T01:00:00Z' }, { sha: 'aaaa', at: '2026-09-11T01:00:00Z' }];
+  const runs = W.deployRuns(deploys, commits, {}, {}, 5);
+  ok('one row per deploy it can place', runs.length === 1, runs.length);
+  // `cccc` shipped cccc and bbbb — NOT dddd (merged after it, still waiting)
+  // and NOT aaaa (the deploy before it already had that one).
+  const rode = runs[0].groups.flatMap((g) => g.items.map((i) => i.sha));
+  ok('the run is this deploy down to the one before it', String(rode) === 'cccc,bbbb', rode);
+  ok('the count says the same thing', runs[0].n === 2, runs[0].n);
+  ok('a commit merged AFTER the deploy did not ride in it', !rode.includes('dddd'), rode);
+  ok('nor one the previous deploy already shipped', !rode.includes('aaaa'), rode);
+  ok('the row is stamped with when it went live, not when the commit landed',
+    runs[0].at === '2026-09-13T01:00:00Z', runs[0].at);
+  // The OLDEST deploy has no older one to bound it. Claiming the rest of the
+  // window rode in it would be a lie, so it is dropped — which is why the
+  // route asks for SIX and shows five.
+  ok('a run with no floor is dropped, never guessed',
+    W.deployRuns([{ sha: 'aaaa', at: 'x' }], commits, {}, {}, 5).length === 0);
+  // A deploy older than the 100 commits we read cannot be placed at all.
+  ok('a deploy outside the window is skipped, and the ones inside still show',
+    W.deployRuns([{ sha: 'zzzz', at: 'z' }, { sha: 'cccc', at: 'y' }, { sha: 'aaaa', at: 'x' }],
+      commits, {}, {}, 5).map((r) => r.sha).join() === 'cccc');
+  ok('never more than asked for',
+    W.deployRuns([{ sha: 'dddd', at: 'd' }, { sha: 'cccc', at: 'c' }, { sha: 'bbbb', at: 'b' }, { sha: 'aaaa', at: 'a' }],
+      commits, {}, {}, 2).length === 2);
+  // It groups by chat exactly as the pile above does — one renderer, so a
+  // change reads the same either side of going live.
+  ok('the changes are grouped by chat', Array.isArray(runs[0].groups) && !!runs[0].groups[0].items);
+}
+
 console.log('waiting: readAhead asks GitHub once and orders newest first');
 {
   let asked = [];
+
   const fakeFetch = async (url) => {
     asked.push(url);
     return { ok: true, json: async () => ({ ahead_by: 2, commits: [

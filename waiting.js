@@ -18,9 +18,17 @@
 // POST /api/waiting { chat, session, pr, line } — that line replaces the commit
 // subject on the row and nothing else.
 //
-// WHAT IT COSTS: two unauthenticated GitHub reads (60/hr is the limit), cached
-// 5 minutes in this process. No model call, no Firestore read unless a chat has
-// filed a line. Opening the page spends nothing.
+// WHAT IT COSTS: THREE unauthenticated GitHub reads (60/hr is the limit),
+// cached 5 minutes in this process — the compare behind the count, the open
+// PRs, and main's last 100 commits, which is what the deploy log slices its
+// runs out of. Three per miss and at most 12 misses an hour is 36 of the 60.
+// No model call, and no Firestore read beyond the deploy log and any filed
+// line. Opening the page spends nothing.
+// A REFUSED READ COSTS ONLY ITS OWN SECTION — each one catches to an empty
+// answer, so a 403 on the commit list drops the deploy rows and leaves the
+// count and the pile exactly as they were. Measured 2026-09-16: a chat's
+// container really does hit that 403 (a shared proxy IP), which is why the
+// fallback is not theoretical.
 //
 // THE LIVE COMMIT IS THIS INSTANCE'S OWN (`RENDER_GIT_COMMIT`) — the same
 // source behindCheck counts from, so the page and the push can never disagree
@@ -40,6 +48,26 @@ const admin = require('firebase-admin');
 
 const router = express.Router();
 const COLL = 'forge-waiting';
+// THE DEPLOY LOG (2026-09-16, Sophie: "can i have collapsed rows under, up to
+// five, showing what rode in the last 5 deployed"). One doc per commit that
+// has been LIVE on this service, id = the sha, `at` = the first moment an
+// instance running it answered.
+//
+// IT IS WRITTEN BY THE SERVER'S OWN BOOT, so it needs no key and no
+// discipline: a deploy IS a new instance, and a new instance reads a
+// RENDER_GIT_COMMIT nothing has recorded yet. Render's own deploy API would
+// have been the obvious source and is the wrong one — RENDER_API_KEY is NOT
+// on this service (measured 2026-09-16: its whole env is ATLASCLOUD_API_KEY ·
+// FIREBASE_SERVICE_ACCOUNT · MALLOC_ARENA_MAX · OPENAI_API_KEY ·
+// OPENROUTER_API_KEY · REPLICATE_API_TOKEN), so reading it would have meant
+// asking Sophie for a new secret to show her something she can already be
+// told for free.
+// A restart that ships no new commit writes nothing — the sha is already
+// there — which is right: nothing rode in it.
+// The history before this shipped was SEEDED ONCE from Render's deploy API in
+// a chat's own container (scripts/seed-deploy-log.js), so the page was full on
+// day one rather than in a week.
+const DEPLOYS = 'forge-deploys';
 const REPO = process.env.FORGE_REPO || 'sageryza/imageforge';
 const BRANCH = process.env.FORGE_BRANCH || 'main';
 const TTL_MS = 5 * 60 * 1000;
@@ -197,6 +225,72 @@ async function readAhead(fetchFn, sha) {
   };
 }
 
+/** The last N live commits, newest first. Cheap: one small ordered read. */
+async function readDeploys(n) {
+  if (!firebaseUp()) return [];
+  const snap = await db().collection(DEPLOYS).orderBy('at', 'desc').limit(Number(n) || 6).get();
+  return snap.docs.map((d) => {
+    const v = d.data() || {};
+    return { sha: String(v.sha || d.id), at: String(v.at || '') };
+  });
+}
+
+/** Record this instance's own commit the first time we are asked. */
+async function noteLive(sha) {
+  const id = String(sha || '').trim();
+  if (!id || !firebaseUp() || noteLive._done === id) return;
+  noteLive._done = id;
+  const ref = db().collection(DEPLOYS).doc(id.slice(0, 12));
+  const snap = await ref.get();
+  if (snap.exists) return;
+  await ref.set({ sha: id, at: new Date().toISOString() });
+}
+
+/** main's recent history, newest first — ONE read, whatever the deploy count. */
+async function readRecent(fetchFn) {
+  const j = await ghJson(`https://api.github.com/repos/${REPO}/commits?sha=${BRANCH}&per_page=100`, fetchFn);
+  return (Array.isArray(j) ? j : []).map(parseCommit);
+}
+
+/**
+ * The last `n` deploys and what rode in each, pure.
+ *
+ * `deploys` newest first, `commits` main newest first. A run is the commits
+ * from this deploy's own commit (included) down to the NEXT OLDER deploy's
+ * commit (excluded) — which is exactly "what this deploy shipped that the one
+ * before it did not".
+ *
+ * A run whose floor cannot be placed is DROPPED, never guessed: with no older
+ * deploy inside the window there is no way to tell where it started, and a row
+ * claiming the remaining ninety commits rode in one deploy would be a lie. So
+ * ask for one more deploy than you mean to show — the extra one is the oldest
+ * row's floor.
+ */
+function deployRuns(deploys, commits, chats, notes, n) {
+  const idx = new Map();
+  commits.forEach((c, i) => { if (c.sha && !idx.has(c.sha)) idx.set(c.sha, i); });
+  const at = (d) => idx.get(String(d.sha || ''));
+  const out = [];
+  for (let i = 0; i < deploys.length && out.length < (Number(n) || 5); i++) {
+    const here = at(deploys[i]);
+    if (here === undefined) continue;
+    let floor;
+    for (let k = i + 1; k < deploys.length; k++) {
+      const p = at(deploys[k]);
+      if (p !== undefined) { floor = p; break; }
+    }
+    if (floor === undefined || floor <= here) continue;
+    const rode = commits.slice(here, floor);
+    out.push({
+      sha: String(deploys[i].sha).slice(0, 7),
+      at: deploys[i].at,
+      n: rode.length,
+      groups: groupRows(rode, chats, notes),
+    });
+  }
+  return out;
+}
+
 /** Still open — the PRs that have not merged at all. */
 async function readOpen(fetchFn) {
   const j = await ghJson(`https://api.github.com/repos/${REPO}/pulls?state=open&per_page=50`, fetchFn);
@@ -215,13 +309,16 @@ async function build(opts) {
   const o = opts || {};
   const head = String(o.sha || process.env.RENDER_GIT_COMMIT || '').trim();
   if (!o.fresh && cache.data && cache.key === head && Date.now() - cache.at < TTL_MS) return cache.data;
-  const [ahead, open, notes, chats] = await Promise.all([
+  await noteLive(head).catch(() => {});
+  const [ahead, open, notes, chats, deploys, recent] = await Promise.all([
     readAhead(o.fetch, head).catch((e) => ({ error: e.message })),
     readOpen(o.fetch).catch(() => []),
     readNotes().catch(() => ({})),
     (async () => {
       try { return (await require('./chatfeed').registry()).chats || {}; } catch (e) { return {}; }
     })(),
+    readDeploys(6).catch(() => []),
+    readRecent(o.fetch).catch(() => []),
   ]);
   const data = {
     live: head ? head.slice(0, 7) : '',
@@ -231,6 +328,8 @@ async function build(opts) {
     error: (ahead && ahead.error) || (head ? '' : 'no-commit'),
     groups: ahead && !ahead.error ? groupRows(ahead.commits, chats, notes) : [],
     open: groupRows(open, chats, notes),
+    // Up to five, and honestly fewer when the log cannot place them.
+    deploys: deployRuns(deploys, recent, chats, notes, 5),
     at: new Date().toISOString(),
   };
   cache.at = Date.now(); cache.key = head; cache.data = data;
@@ -280,4 +379,4 @@ router.post('/', async (req, res) => {
   }
 });
 
-module.exports = { router, parseCommit, parsePull, cleanTitle, sidIndex, groupRows, readAhead, readOpen, build, bareSid };
+module.exports = { router, parseCommit, parsePull, cleanTitle, sidIndex, groupRows, readAhead, readOpen, readRecent, readDeploys, deployRuns, build, bareSid, DEPLOYS };

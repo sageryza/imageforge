@@ -43,17 +43,59 @@
   .ch .said + .t{ font-size:12px; color:var(--dim); margin-top:4px; }
   .draft{ color:var(--dim); }
   .empty{ color:var(--dim); font-size:14px; padding:12px 2px; }
+
+  /* THE LAST FIVE DEPLOYS, EACH SHUT (2026-09-16, Sophie: "can i have
+     collapsed rows under, up to five, showing what rode in the last 5
+     deployed"). THE ROW IS THE FOLD — the whole of it, never a caret to hit
+     (the pinned heading's rule, and judge.js's piles before it) — so it is a
+     <button> and the changes live in a sibling the tap unhides.
+     SHUT is the default and there is no memory: she asked for collapsed rows,
+     and this pile is history rather than the answer at the top of the page. */
+  .dep{ display:flex; align-items:center; gap:8px; width:100%; text-align:left;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--r); padding:9px 12px; margin:0 0 6px; color:var(--ink);
+    font:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .dep .d{ font-size:13px; }
+  .dep .c{ font-size:11px; color:var(--dim); letter-spacing:.03em; }
+  .dep .cv{ margin-left:auto; flex:0 0 auto; width:14px; height:14px; fill:none;
+    stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;
+    color:var(--dim); transition:transform .12s; }
+  .dep[aria-expanded="true"] .cv{ transform:rotate(180deg); }
+  /* the changes sit UNDER their row, indented so the shut rows still read as
+     one list when one of them is open */
+  .depbody{ margin:0 0 10px 10px; }
+  .depbody[hidden]{ display:none !important; }
+
+  /* THE WAY OUT (2026-09-16, Sophie: "there's no way to exit the page").
+     This page shipped with none: pagehead.js only draws its chevron when
+     `window.__forgeLeave` exists — the bridge in the build that also hides
+     Apple's bar — and in Safari, and on an older build, that is nothing at
+     all, so the page was a dead end from the moment the Chats icon opened it.
+     The instagram page's own `.backch` had solved exactly this and was the
+     thing to copy. HIDDEN when a native bar or pagehead.js already draws one:
+     two chevrons in one row is one too many.
+     It is the house 34px rounded square, the same box #help wears at the other
+     end of this row (tool.css) and the same box pagehead.js injects — never a
+     round plate, never a pill. */
+  .backch{ flex:0 0 auto; width:34px; height:34px; margin:0 0 0 -4px; padding:0;
+    display:inline-flex; align-items:center; justify-content:center;
+    border:1px solid var(--border); border-radius:6px; background:transparent;
+    color:var(--ink); cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .backch svg{ display:block; width:20px; height:20px; fill:none;
+    stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .backch[hidden]{ display:none !important; }
 </style>
 <body class="tool">
 <div class="head">
+  <button class="backch" id="back" type="button" aria-label="Back" hidden><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
   <span class="eyebrow tool-eyebrow">WAITING</span>
   <button id="help" type="button" aria-label="What this is">?</button>
 </div>
 <div class="helpcard" id="helpcard" hidden>
   <b>What the “changes waiting” buzz is about.</b> Everything merged but not
   live yet, under the chat that wrote it. Tapping a change opens its pull
-  request. Nothing here deploys anything — say the word in any chat and it
-  goes out.
+  request. Under it, the last five deploys — tap one to see what rode in it.
+  Nothing here deploys anything — say the word in any chat and it goes out.
 </div>
 
 <main class="wrap">
@@ -128,8 +170,53 @@
           ' merged and not live yet.</p>');
     bodyEl.innerHTML = head +
       '<p class="sub">Live on ' + esc(j.live || '—') + ' · read ' + esc(when(j.at)) + '</p>' +
-      '<div class="sect">Not live yet</div>' + groups(j.groups || []);
+      '<div class="sect">Not live yet</div>' + groups(j.groups || []) +
+      deploys(j.deploys || []);
   }
+
+  /* The way out. Shown only when nothing else is drawing one — embedded in a
+     native tool the bar owns it, and on the build that hands the header over
+     pagehead.js does.
+     HISTORY.LENGTH CANNOT DECIDE THE LAST STEP (pagehead.js's own lesson,
+     2026-08-20): after a round trip the page can sit at history INDEX 0 with
+     length 2, where back() is a silent no-op and the chevron reads as dead.
+     So it TRIES back and bails to /chats if nothing moved — the Chats list is
+     the only door into this page anyway, and a push that lands here directly
+     has no history at all. */
+  if (!/[?&]embed=1/.test(location.search) && !window.__forgeLeave) {
+    var back = document.getElementById('back');
+    back.hidden = false;
+    back.addEventListener('click', function(){
+      var here = location.href;
+      try { history.back(); } catch (e) {}
+      setTimeout(function(){ if (location.href === here) location.href = '/chats'; }, 400);
+    });
+  }
+
+  /* One shut row per deploy: when it went out and how many changes rode in it.
+     Tapping it shows those changes, grouped by the chat that wrote them —
+     the same rows the pile above uses, so a change reads the same either side
+     of going live. */
+  function deploys(list){
+    if (!list || !list.length) return '';
+    return '<div class="sect">Last deployed</div>' + list.map(function(d, i){
+      var id = 'dep' + i;
+      return '<button class="dep" type="button" aria-expanded="false" aria-controls="' + id + '">' +
+        '<span class="d">' + esc(when(d.at) || d.sha) + '</span>' +
+        '<span class="c">' + d.n + (d.n === 1 ? ' change' : ' changes') + ' · ' + esc(d.sha) + '</span>' +
+        '<svg class="cv" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>' +
+        '</button><div class="depbody" id="' + id + '" hidden>' + groups(d.groups || []) + '</div>';
+    }).join('');
+  }
+
+  bodyEl.addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('.dep') : null;
+    if (!b) return;
+    var body = document.getElementById(b.getAttribute('aria-controls'));
+    if (!body) return;
+    body.hidden = !body.hidden;
+    b.setAttribute('aria-expanded', body.hidden ? 'false' : 'true');
+  });
 
   var help = document.getElementById('help'), card = document.getElementById('helpcard');
   help.onclick = function(){ card.hidden = !card.hidden; };
