@@ -41,6 +41,7 @@ const DATA = {
         at: '2026-09-15T01:00:00Z', draft: true, line: '' },
     ] },
   ],
+  deploy: { key: true, cooling: 0 },
   deploys: [
     { sha: 'ae189c3', at: '2026-09-16T00:18:18Z', n: 2, groups: [
       { chat: 'chats-unread', name: 'chats unread', at: '2026-09-16T00:10:00Z', items: [
@@ -81,7 +82,17 @@ function chromiumExe() {
   if (!pw) { console.log('page tests skipped — playwright not installed'); return; }
 
   let payload = DATA;
+  // What POST /api/waiting/deploy answers, and every one it was sent. The
+  // count is what proves the SECOND tap is the one that sends.
+  let deployReply = { code: 200, body: { ok: true, id: 'dep-1', ahead: 3 } };
+  const fired = [];
   const server = http.createServer((req, res) => {
+    if (req.url.startsWith('/api/waiting/deploy')) {
+      fired.push(req.method);
+      res.statusCode = deployReply.code;
+      res.setHeader('content-type', 'application/json');
+      return res.end(JSON.stringify(deployReply.body));
+    }
     if (req.url.startsWith('/api/waiting')) {
       res.setHeader('content-type', 'application/json');
       return res.end(JSON.stringify(payload));
@@ -198,6 +209,75 @@ function chromiumExe() {
   ok('it is the house 34px box, not a 26px round plate',
     (await page.locator('#back').boundingBox()).width === 34,
     await page.locator('#back').boundingBox());
+
+  // ── THE DEPLOY BUTTON (2026-09-16, Sophie: "add a button at top of merged
+  // changes that deploys to render so i can do it myself and chats can stop
+  // asking"). MEASURED, not asserted in source: a button that fires on the
+  // FIRST tap, one whose arm never gives itself up, and one drawn on a page
+  // with nothing to ship all look correct in the markup — and the first of
+  // those restarts her server by mis-scroll.
+  console.log('the deploy button leads the page');
+  ok('it is on screen', await page.locator('#go:visible').count() === 1);
+  ok('it reads Deploy', (await page.locator('#go').innerText()).trim() === 'Deploy',
+    await page.locator('#go').innerText());
+  ok('it says how many go live', /3 changes go live/.test(await page.locator('#gonote').innerText()),
+    await page.locator('#gonote').innerText());
+  // ABOVE the count — "at top of merged changes" is the ask, and a button
+  // under the list is a button she has to scroll back up to.
+  const goBox = await page.locator('#go').boundingBox();
+  const cntBox = await page.locator('.count').boundingBox();
+  ok('…above everything it would ship', goBox.y + goBox.height <= cntBox.y + 1, { goBox, cntBox });
+  // It hugs its words (the house button rule) — never a full-width slab.
+  ok('it hugs its words', goBox.width < 200, goBox);
+
+  console.log('one tap arms it, it does not deploy');
+  await page.locator('#go').click();
+  ok('NOTHING was sent on the first tap', fired.length === 0, fired);
+  ok('it asks again', /tap again/i.test(await page.locator('#go').innerText()),
+    await page.locator('#go').innerText());
+
+  console.log('the second tap sends');
+  await page.locator('#go').click();
+  await page.waitForFunction(() => /Deploying/.test(document.getElementById('go').textContent));
+  ok('one POST, and only one', fired.length === 1 && fired[0] === 'POST', fired);
+  ok('it says it is going out', /Deploying/.test(await page.locator('#go').innerText()),
+    await page.locator('#go').innerText());
+  ok('…and that the guard waits on a draw by itself',
+    /drawing/.test(await page.locator('#gonote').innerText()),
+    await page.locator('#gonote').innerText());
+
+  console.log('the arm gives itself up');
+  await page.reload({ waitUntil: 'networkidle' });
+  fired.length = 0;
+  await page.locator('#go').click();
+  ok('armed', /tap again/i.test(await page.locator('#go').innerText()));
+  await page.waitForFunction(() => !/tap again/i.test(document.getElementById('go').textContent),
+    null, { timeout: 12000 });
+  ok('…after a few seconds it is a plain Deploy again',
+    (await page.locator('#go').innerText()).trim() === 'Deploy', await page.locator('#go').innerText());
+  await page.locator('#go').click();
+  ok('so the next tap only re-arms — it does not send', fired.length === 0, fired);
+
+  console.log('a refusal is said in words, and the button comes back');
+  deployReply = { code: 429, body: { error: 'cooling', cooling: 120000 } };
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.locator('#go').click();
+  await page.locator('#go').click();
+  await page.waitForFunction(() => /try again/.test(document.getElementById('gonote').textContent));
+  ok('it says how long is left', /try again in 2 min/.test(await page.locator('#gonote').innerText()),
+    await page.locator('#gonote').innerText());
+  ok('and she can tap it again', await page.locator('#go').isEnabled());
+
+  console.log('no button when there is nothing to ship, and none with no key');
+  deployReply = { code: 200, body: { ok: true, id: 'dep-2' } };
+  payload = Object.assign({}, DATA, { ahead: 0, groups: [] });
+  await page.reload({ waitUntil: 'networkidle' });
+  ok('nothing waiting → no button at all', await page.locator('#go:visible').count() === 0);
+  payload = Object.assign({}, DATA, { deploy: { key: false, cooling: 0 } });
+  await page.reload({ waitUntil: 'networkidle' });
+  ok('no Render key on the server → no dead control either',
+    await page.locator('#go:visible').count() === 0);
+  payload = DATA;
 
   console.log('a box with no commit of its own says so rather than inventing one');
   payload = { ok: true, live: '', ahead: 0, error: 'no-commit', at: '2026-09-15T02:00:00Z', groups: [], open: [] };
