@@ -977,6 +977,12 @@
      nothing on screen moved when it stopped being an <a>. */
   .acts .save{width:auto;height:auto;padding:0;border:0;background:none;font-size:12px;
               color:#6f675e;margin-left:auto;text-decoration:underline;text-underline-offset:2px}
+  /* UPSCALE IS A WORD TOO (2026-09-17, Sophie: "add upscale button to
+     footage"): the same paint as save, before it in the row, and only on a
+     finished clip that is not itself an upscale */
+  .acts .upsc{width:auto;height:auto;padding:0;border:0;background:none;font-size:12px;
+              color:#6f675e;margin-left:auto;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+  .acts .upsc + .save{margin-left:0}
   /* a word in the row of squares: the box hugs it (PHOTO'd 2026-09-10 —
      `.acts button{width:32px}` won and the word ran out of the box) */
   .acts button.again{width:auto;padding:0 10px;font-size:13px;white-space:nowrap}
@@ -1365,6 +1371,7 @@
   <p><b>Whichever door is cheapest</b> &mdash; the line beside the star names it. Right now that is <b>Atlas Cloud</b> for Mini and Fast and <b>OpenRouter</b> for 2.0 and 2.5, but nothing here is written down: the three doors are priced for the exact clip you have set up and the cheapest one gets it. If that door refuses a reference &mdash; free, before anything draws &mdash; the job stops there and the error says why, with the other doors that would still take it underneath it, priced. Tapping one sends that same job &mdash; your words, your references, that door. Nothing is ever sent through another door on its own, and never drawn without its references. OpenRouter refuses any person in a reference, Atlas Cloud takes a person and refuses only a famous face.</p>
   <p><b>Four models.</b> <b>2.0 Mini</b> is the default and much the cheapest. <b>2.0 Fast</b>, <b>2.0</b> and <b>2.5</b> climb from there &mdash; the line beside the star says what the tap costs before you make it. Two things worth knowing: <b>Fast is the strict one</b> (a plain prompt with no reference at all has come back refused there with a copyright line, free and unbilled, where the same words drew on Mini), and <b>2.0 is the only Seedance that does 1080p</b>.</p>
   <p><b>Wan 3.0</b> and <b>Wan 3.0 Prime</b> are Alibaba&rsquo;s model, on Atlas Cloud only. One clip runs <b>2 to 30 seconds</b> in a single pass, takes up to ten pictures, five videos and five audios, and does 480p, 720p and 1080p (no 21:9). With no reference it is text-to-video; with a first frame it is image-to-video; with references it is reference-to-video &mdash; the page picks the endpoint from what you attached. Its docs say nothing about faces: a real person in a reference went through without a word, and whether it draws a <i>famous</i> one is not yet measured. Prime is the dearer, stronger tier. <b>Wan 3.0 refuses any REAL face</b>, in a reference or in what it draws &mdash; measured. <b>Wan 2.2 Turbo</b> is the one that takes a real face (it runs on Atlas&rsquo;s own machines, with no Alibaba filter in front of it): one picture as the first frame plus your words, five seconds, no other references and no sound, 2&cent; a second at 480p. <b>Wan 2.7</b> is Alibaba-hosted again (expect the face gate), takes references plus one voice, 720p and up, 10&cent; a second.</p>
+  <p><b>MiniMax H3</b> is the door that takes a real person AND speaks a new line in their voice: a picture of them plus a short clip of them talking as references, and the prompt says what they say. 5 to 15 seconds, any shape, 480P or 768P (send 768P &mdash; MiniMax counts the short side, so its 480P is small), about 8&cent; a second at 768P. It always draws sound. <b>Upscale</b> on a finished clip&rsquo;s card sends it through Atlas&rsquo;s upscaler to 2K as a new clip beside it, about 3&cent; a second, sound and words untouched &mdash; it enlarges, it does not sharpen what the draw never had, so draw, keep what you like, then upscale the keepers.</p>
   <p><b>The last frame of a clip</b> &mdash; the small picture under its references, for chaining one shot into the next. Tap it to see it big and save it. It rides on Atlas Cloud only, so a clip that went out through another door has none and shows no picture.</p>
   <p><b>Shortest first.</b> Seconds open at the model's minimum &mdash; the length is the bill. Type the number, or tap &minus; and +.</p>
   <p><b>Sound is always on.</b></p>
@@ -1783,7 +1790,7 @@ function doorWord(d) { return d === 'openrouter' ? 'OpenRouter' : d === 'atlascl
 // list. 1.5 Pro stays off: it is on APIFRAME only.
 // FIRST IS THE DEFAULT and is what an unknown model falls back to — Mini,
 // because the draft is on Mini and the dear rows are her own tap.
-var PAGE_MODELS = ['mini', 'fast', '2.0', '2.5', 'wan', 'wan-prime', 'wan-2.2', 'wan-2.7'];
+var PAGE_MODELS = ['mini', 'fast', '2.0', '2.5', 'wan', 'wan-prime', 'wan-2.2', 'wan-2.7', 'minimax'];
 var PAGE_MODEL = PAGE_MODELS[0];
 var S = { model: PAGE_MODEL, seconds: 4, res: '480p', ratio: '3:4', project: '', folder: '' };
 // ── STORY BLOCKS (2026-09-14, Sophie: "replace footage blocks w story blocks,
@@ -5911,7 +5918,7 @@ $('v-search').addEventListener('click', function () { setSearchOpen(!searchOpen(
 // on the bar — her 2026-09-02 word on the Playground ("put the heart x
 // thing exactly where it was"). ──────────────────────────────────────────
 var SF = window.ForgeSearchFilters || null;
-var FILT_MODELS = { mini: 'Mini', fast: 'Fast', '2.0': '2.0', '2.5': '2.5', wan: 'Wan', 'wan-prime': 'Wan Prime', 'wan-2.2': 'Wan 2.2', 'wan-2.7': 'Wan 2.7' };
+var FILT_MODELS = { mini: 'Mini', fast: 'Fast', '2.0': '2.0', '2.5': '2.5', wan: 'Wan', 'wan-prime': 'Wan Prime', 'wan-2.2': 'Wan 2.2', 'wan-2.7': 'Wan 2.7', minimax: 'MiniMax' };
 function readList(k) { try { return (localStorage.getItem(k) || '').split(',').filter(Boolean); } catch (e) { return []; } }
 var FILT = SF ? SF.build($('feedfilters'), [
   { key: 'model', kind: 'chips', multi: true, label: 'Model',
@@ -6481,6 +6488,10 @@ function jobCard(j) {
     // opens a player she then has to long-press out of. Now `saveMedia`.
     // on a clip cut into several parts the card's word hands over the FIRST
     // one, so it says so; every part, and the whole clip, save from the trimmer
+    // UPSCALE (2026-09-17): a finished clip that is not itself an upscale
+    // goes to 2K as a new card; the word carries the price so the tap is
+    // never blind. `UPSCALE_CPS` is the server's measured 2.9¢/s.
+    (j.video && j.status === 'done' && !j.upscale ? '<button type="button" class="upsc" aria-label="Upscale this clip to 2K" title="Upscale to 2K">upscale 2K' + (j.seconds ? ' \u00b7 ~' + cents(Math.round(j.seconds * UPSCALE_CPS * 100) / 100) : '') + '</button>' : '') +
     (j.video ? '<button type="button" class="save">' + (jobParts(j).filter(function (t) { return t.status === 'ready'; }).length > 1 ? 'save part 1' : 'save') + '</button>' : '') +
     // MOVE IT (2026-09-11, Sophie: "can you also add the move project UI").
     // A drop-down of the same films the picker lists, the clip's own project
@@ -6546,6 +6557,8 @@ function jobCard(j) {
     // spends the transient activation and navigator.share rejects silently
     // (asset-actions.js's own lesson). Her finger going down is the head
     // start; in the app nothing is fetched here at all.
+    var up = el.querySelector('.acts .upsc');
+    if (up) up.addEventListener('click', function () { upscaleTap(j.id, up); });
     var sv = el.querySelector('.acts .save');
     if (sv) {
       sv.addEventListener('pointerdown', function () { var jj = jobsById[j.id] || j; if (jj.video) primeSave(jj.video); });
@@ -6622,6 +6635,23 @@ function resyncClamps() {
   requestAnimationFrame(function () {
     document.querySelectorAll('#feed .p[data-undecided]').forEach(decideClamp);
   });
+}
+// UPSCALE A FINISHED CLIP TO 2K (2026-09-17). One tap, one POST; the answer
+// is the new card, drawn at once so the feed shows it drawing beside its
+// source. A second tap while the first is in flight is ignored (the button
+// is disabled), and a refusal reads on a toast in the server's words.
+var UPSCALE_CPS = 2.9;
+function upscaleTap(id, btn) {
+  if (btn.disabled) return;
+  btn.disabled = true;
+  api('/jobs/' + encodeURIComponent(id) + '/upscale', { method: 'POST', body: JSON.stringify({ resolution: '2k' }) })
+    .then(function (d) {
+      if (!d || d.error) throw new Error((d && d.error) || 'The server did not answer');
+      if (d.job) { justSent[d.job.id] = 1; jobCard(d.job); paintRecent(); }
+      toast('Upscaling to 2K — it lands beside this clip');
+    })
+    .catch(function (e) { toast(String(e.message || e)); })
+    .then(function () { btn.disabled = false; });
 }
 function castVote(id, kind) {
   var j = jobsById[id]; if (!j) return;

@@ -3360,6 +3360,28 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   is the opposite of Seedance here: Seedance takes a real person and blocks a
   famous one, Wan blocks any real face either way. Every `alibaba/wan-*` id is
   a passthrough to Alibaba Model Studio and shares that gate, Prime included;
+  **THE ROW THAT DOES TAKE HIM AND SPEAKS — `MiniMax H3` (2026-09-17, Sophie:
+  "add minimax model we're using").** `minimax/h3/reference-to-video`, the
+  standard tier: a still of the person plus a short clip of their voice as
+  references, the prompt saying the line, 5-15s, any of the page's shapes,
+  480P/768P (MiniMax's own words, the SHORT side — the row spells them
+  lowercase and `atlasRes` puts the capitals back at the door; 768p leads the
+  list). Measured 40¢ for 5s at 768P (`resScale` 2.1 over the 3.8¢ list),
+  no sound flag (it always draws sound), `atlasCaps` 9/9/9 because its schema
+  states none. **AND `upscale 2K` ON EVERY FINISHED CARD** (same day, "add
+  upscale button to footage" · "can we upscale later if we like it ·
+  pipeline"): `POST /api/footage/jobs/:id/upscale {resolution:'2k'}` sends the
+  clip's url through `atlascloud/video-upscaler` on the Atlas module's TOOL
+  door (`buildToolRequest` — a lip-sync or an upscaler takes a finished clip,
+  no prompt) and files the answer as a NEW card beside the source (`parent`,
+  `upscale` on the doc; `cardOf` reads it as "Upscale 2K" with the source's
+  seconds and shape). `upscalePlan` is pure and refuses an unfinished clip,
+  an upscale of an upscale, and any size but 2k (1080p is unmeasured and not
+  offered). Measured: 5s 768x1024 → 1664x2216 in 35s for 14.4¢ (2.9¢/s, the
+  page's `UPSCALE_CPS`), sound and words untouched — and NO SHARPER: it
+  enlarges, it cannot put back what the source's encode dropped. So the
+  pipeline is draw at 768P, keep, upscale the keepers. Tests: the MiniMax and
+  upscale pins in `scripts/test-footage.js`, `scripts/test-atlascloud-tools.js`.
   the one Atlas hosts ITSELF — `atlascloud/wan-2.2/image-to-video`, 3¢/s,
   organization `ATLASCLOUD`, the open weights — is the Wan with no policy
   layer in front of it, and it is unmeasured.
