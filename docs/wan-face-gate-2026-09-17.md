@@ -89,6 +89,21 @@ key take a real famous face, and this one takes the voice too, which Wan 2.2
 cannot. Pinned as *Robert test v2*. MiniMax H3's own `refers` array is the
 same shape as Wan 3.0's, so `buildOtherRequest` sent it unchanged.
 
+**And at 768P (its native tier), the same still and voice:** 768x896 24fps,
+drew in 33s, same line in his voice, visibly sharper than the 480P run
+(480x576 — MiniMax's "480P" is the SHORT side, so it is ~1.5x fewer pixels
+than Seedance's 3:4 "480p" of 560x752; always send 768P). Pinned as *Robert
+test v3*. Wan 2.2 Turbo billed exactly the 10¢ estimated (`/spend`); the two
+MiniMax charges had not posted to Atlas's ledger at the time of writing, so
+whether 768P bills above the flat 1.5¢/s is still unmeasured. MiniMax H3's
+limits, off its schema: 5-15s whole seconds; 480P · 768P native, 1080p /
+1440p / 4k ESR tiers over a 768P source; ratios 21:9 · 16:9 · 4:3 · 1:1 ·
+3:4 · 9:16 · adaptive; `refers` any mix of png/jpg/webp, mp4/mov, mp3/wav
+with at least one picture or video (audio alone is refused), no stated cap
+on the count; `prompt_expansion` off by default. Family prices per second on
+the sale: developer 1.5¢ (5¢ list) · max-turbo 2.4¢ · h3 3.8¢ · fast 4.4¢ ·
+max 4.8¢.
+
 ## What shipped from this
 
 - `video-refusals.js` carries both new rows — the real-human-faces output gate
