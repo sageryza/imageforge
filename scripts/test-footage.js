@@ -113,7 +113,32 @@ function report() {
     F.estimate({ model: 'fast', resolution: '480p', ratio: '3:4', seconds: 4, door: 'atlascloud' }, three).cents === 36
     && F.estimate({ model: '2.0', resolution: '480p', ratio: '3:4', seconds: 4, door: 'atlascloud' }, three).cents === 44.8
     && F.estimate({ model: '2.5', resolution: '480p', ratio: '3:4', seconds: 4, door: 'atlascloud' }, three).cents === 66.8);
-  ok('publicModels flags every 2.x row for Atlas', F.publicModels().filter((m) => m.atlascloud).map((m) => m.id).join(',') === 'mini,fast,2.0,2.5');
+  ok('publicModels flags every 2.x row and both Wan rows for Atlas', F.publicModels().filter((m) => m.atlascloud).map((m) => m.id).join(',') === 'mini,fast,2.0,2.5,wan,wan-prime');
+  // WAN 3.0 (2026-09-17): Atlas only, 2-30s, three rungs, no 21:9, its own
+  // caps, and a price that scales by Alibaba's ladder rather than a canvas
+  const wan = F.modelOf('wan');
+  ok('Wan 3.0 is on Atlas alone, 2-30 seconds, 480p/720p/1080p', wan && !wan.or && !wan.af && /^alibaba\/wan-3\.0\/reference-to-video$/.test(wan.atlas)
+    && wan.secs[0] === 2 && wan.secs[1] === 30 && wan.res.join(',') === '480p,720p,1080p' && F.secondsOk(wan, 2) && F.secondsOk(wan, 30) && !F.secondsOk(wan, 31));
+  ok('Wan 3.0 draws no 21:9 — its own ratio list, and buildJob refuses rather than clamps',
+    F.ratiosOf(wan).indexOf('21:9') < 0 && F.ratiosOf(F.modelOf('mini')).indexOf('21:9') >= 0
+    && /21:9/.test(F.buildJob({ prompt: 'x', model: 'wan', ratio: '21:9' }).error || '') && !F.buildJob({ prompt: 'x', model: 'wan', ratio: '16:9', seconds: 2 }).error);
+  ok('Wan 3.0 defaults to its two-second floor', F.buildJob({ prompt: 'x', model: 'wan' }).seconds === 2);
+  ok('Wan\'s caps are its own (10/5/5) and Seedance\'s did not move (9/3/3)',
+    F.doorTakes('atlascloud', { images: 10 }, wan) && !F.doorTakes('atlascloud', { images: 11 }, wan) && F.doorTakes('atlascloud', { videos: 5, images: 1 }, wan)
+    && !F.doorTakes('atlascloud', { images: 10 }, F.modelOf('mini')) && !F.doorTakes('atlascloud', { images: 10 }) && F.atlasCapsOf(wan).video === 5 && F.atlasCapsOf().video === 3);
+  ok('Wan\'s price is the flat rate × seconds at 480p and Alibaba\'s ladder above it (×2 at 720p, ×4 at 1080p), never a canvas, always about',
+    (() => {
+      const a = F.estimate({ model: 'wan', resolution: '480p', ratio: '16:9', seconds: 30, door: 'atlascloud' }, three);
+      const b = F.estimate({ model: 'wan', resolution: '720p', ratio: '16:9', seconds: 30, door: 'atlascloud' }, three);
+      const c = F.estimate({ model: 'wan', resolution: '1080p', ratio: '3:4', seconds: 30, door: 'atlascloud' }, three);
+      return a.cents === 150 && b.cents === 300 && c.cents === 600 && a.about && F.resFactor(wan, '720p', '1:1') === 2 && F.resFactor(wan, '1080p', '9:16') === 4;
+    })());
+  ok('auto lands Wan on Atlas (the only door it has)', F.doorFor({ model: 'wan', door: 'auto', resolution: '480p', ratio: '16:9', seconds: 2 }, three).door === 'atlascloud'
+    && /only on Atlas/.test(F.doorFor({ model: 'wan', door: 'openrouter', resolution: '480p' }, three).error || ''));
+  ok('Wan 3.0 Prime is the same row at its own rate', (() => { const p = F.modelOf('wan-prime'); return p && p.atlas === 'alibaba/wan-3.0-prime/reference-to-video' && p.secs[1] === 30
+    && F.estimate({ model: 'wan-prime', resolution: '480p', ratio: '16:9', seconds: 10, door: 'atlascloud' }, three).cents === 68; })());
+  ok('cardOf reads a Wan job back onto its row by any of its three endpoint ids',
+    ['text', 'image', 'reference'].every((k) => F.cardOf('x', { prompt: 'p', model: `alibaba/wan-3.0/${k}-to-video`, provider: 'atlascloud', params: { duration: 2 }, status: 'completed' }).model === 'wan'));
   ok('cardOf reads an Atlas job back onto its row', (() => { const c = F.cardOf('x', { prompt: 'p', model: 'bytedance/seedance-2.0-mini/reference-to-video', provider: 'atlascloud', params: { duration: 4 }, status: 'completed' }); return c.model === 'mini' && c.door === 'atlascloud'; })());
   // EXACT IS THE CANVAS, NOT ONLY THE FORMULA (2026-09-11). Mini's canvas is
   // MEASURED onto the 2.5 table with ffprobe on every clip, and 2.5's is
@@ -258,7 +283,7 @@ function report() {
   // and 2.0/2.5 the second, so neither can reach the drop-down
   const atModels = F.publicModels().filter((m) => m.atlascloud).map((m) => m.id);
   ok('the Atlas table is what the page can draw from, and 1.5 Pro is not in it',
-    atModels.length === 4 && atModels.indexOf('1.5') < 0 && atModels.indexOf('mini') === 0);
+    atModels.length === 6 && atModels.indexOf('1.5') < 0 && atModels.indexOf('mini') === 0);
   const pmSrc = fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8');
   // a missing list is a NAMED failure, never a throw that takes the run with it
   const pmRaw = (pmSrc.match(/var PAGE_MODELS = (\[[^\]]*\])/) || [])[1];
@@ -871,7 +896,8 @@ async function pillSweep(pg, where) {
     && /\$35\.72/.test(await page.$eval('#balline', (e) => e.textContent))
     && !/credit/i.test(await page.$eval('#balline', (e) => e.textContent))
     && /Whichever door is cheapest/.test(await page.$eval('#helpcard', (e) => e.textContent))
-    && /Four models/.test(await page.$eval('#helpcard', (e) => e.textContent)));
+    && /Four models/.test(await page.$eval('#helpcard', (e) => e.textContent))
+    && /Wan 3\.0.*2 to 30 seconds/.test(await page.$eval('#helpcard', (e) => e.textContent)));
   ok('and it says where the last frame does and does not ride',
     /last frame[\s\S]{0,160}Atlas Cloud only/.test(await page.$eval('#helpcard', (e) => e.textContent)));
   await page.click('body', { position: { x: 5, y: 820 } });
@@ -896,11 +922,11 @@ async function pillSweep(pg, where) {
       rvalue: r.value };
   });
   ok('the model is a <select> and it holds the whole 2.x family — ' + sel.models.join(','),
-    sel.mTag === 'SELECT' && sel.models.join(',') === 'mini,fast,2.0,2.5' && sel.labels.join(',') === '2.0 Mini,2.0 Fast,2.0,2.5');
+    sel.mTag === 'SELECT' && sel.models.join(',') === 'mini,fast,2.0,2.5,wan,wan-prime' && sel.labels.join(',') === '2.0 Mini,2.0 Fast,2.0,2.5,Wan 3.0,Wan 3.0 Prime');
   ok('Mini leads and is what the page opens on', sel.mvalue === 'mini');
   ok('1.5 Pro is not on it — it is on APIFRAME only', sel.models.indexOf('1.5') < 0);
   ok('the list is the one line in source',
-    /var PAGE_MODELS = \['mini', 'fast', '2\.0', '2\.5'\]/.test(PAGE_SRC));
+    /var PAGE_MODELS = \['mini', 'fast', '2\.0', '2\.5', 'wan', 'wan-prime'\]/.test(PAGE_SRC));
   ok('the resolution is a <select>', sel.rTag === 'SELECT');
   ok('the native chrome is off and the box is the house 6px', sel.appearance === 'none' && sel.radius === '6px');
   // the project picker is a folder ICON since the folders landed (2026-09-11) and draws no chevron
@@ -1271,9 +1297,9 @@ async function pillSweep(pg, where) {
     const open = await funnelBox();
     ok('the glass opens the field AND the funnel beside it, the drawer shut — ' + JSON.stringify(dr.rows),
       dr.chip && dr.shut && dr.funnel && open.w > 20 && open.afterField && open.sameRow
-      && dr.rows[0] === 'Mini·Fast·2.0·2.5' && dr.rows[1] === 'Today·This week·This month');
+      && dr.rows[0] === 'Mini·Fast·2.0·2.5·Wan·Wan Prime' && dr.rows[1] === 'Today·This week·This month');
     ok('and the funnel stretches to the field beside it, not the shell’s 34 — ' + open.h + ' vs ' + open.qh, Math.abs(open.h - open.qh) <= 2);
-    ok('the model chips are the models the page offers, pinned to PAGE_MODELS', /var PAGE_MODELS = \['mini', 'fast', '2\.0', '2\.5'\]/.test(fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8')));
+    ok('the model chips are the models the page offers, pinned to PAGE_MODELS', /var PAGE_MODELS = \['mini', 'fast', '2\.0', '2\.5', 'wan', 'wan-prime'\]/.test(fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8')));
     await page.click('#feedfilters .filtchip');
     ok('the tap opens the drawer', !(await page.$eval('#feedfilters .filtdrawer', (e) => e.hidden)));
     await page.click('#feedfilters .filtcbtn[data-v="fast"]');

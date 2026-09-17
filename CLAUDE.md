@@ -292,7 +292,11 @@ Otherwise: a reference with a PERSON in it goes to Atlas or APIFRAME (ByteDance'
 own input filter refuses a real or photoreal face on 2.0 and a person VIDEO on
 every model — the refusal is free); a person-free job is cheapest on
 OpenRouter for 2.0/2.5 and on Atlas for Mini/Fast (its sale); a FAMOUS face is
-refused everywhere. `/footage` picks the cheapest door itself. **The "go"
+refused on every Seedance door (Atlas on the way in; Mini's OUTPUT gate blocked
+"a robert pattinson lookalike contest" 2026-09-16 after drawing two lookalikes)
+— **on Wan 3.0 it is UNMEASURED**, and Wan 3.0 / Wan 3.0 Prime are rows on
+`/footage` since 2026-09-17 (Atlas only, 2-30s, three endpoints picked by the
+shape; the Footage doc has it). `/footage` picks the cheapest door itself. **The "go"
 rule applies to every door word for word**, a refused job is never re-sent
 through another door or without its references, and nothing is ever
 "unblocked" by blurring eyes or a black bar on a video. Every measurement
