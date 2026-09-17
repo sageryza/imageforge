@@ -29,3 +29,28 @@ editor").** She is cutting in LumaFusion; the reader
 (`scripts/fcpxml-to-cut.js`) turns her export into a cut doc, and that doc
 was rendered once and pinned before she said so. What she gets back is
 sounds and clips to drop into LumaFusion, or an mp4 — not a cut to co-edit.
+## Where mom's "Presents? Apple cider?" goes (2026-09-17, her go)
+
+Her script asks for the two words on two quick zooms, and both zooms are
+really in the cottage clip (`0db2e049`, the one her cut uses whole):
+
+- **the present held up** — 2.75s to 3.45s into the clip
+- **the sip from the copper mug** — 3.5s to 4.7s
+- robbers from 4.8s, the women with nothing ~9.8s, back out the dark window
+  11s to 13s
+
+**The take cannot hit both as one piece.** Measured on the file (40ms RMS
+windows): "Presents?" runs 0.00–0.45 and "Apple cider?" 1.86–2.58, so the
+words are **1.86s apart** where the pictures are **0.85s apart**. It is split
+into two sound pieces instead, each landing ~0.15s after its cut so the
+picture registers first:
+
+- `Presents?` — in 0.00 / out 0.60, at **+2.90** into the clip
+- `Apple cider?` — in 1.80 / out 2.62, at **+3.70**
+
+**And the narrator's line moved with them.** It sat at +7.04 (over the
+robbery) because mom's take was parked at +4.2; with mom on her zooms it
+starts at **+8.00**, so "…before there was CHRISTmas" lands over the pull
+back out through the dark window and finishes before the boy speaks.
+Verified on the render: speech peaks at 45.8s and 46.6s against frames
+showing the present and the mug.
