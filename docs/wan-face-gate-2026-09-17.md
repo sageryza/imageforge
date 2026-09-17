@@ -136,3 +136,23 @@ it; the developer tier is for silent or ambient shots.
 - `atlascloud.js` refuses an m4a (or any container that is not wav/mp3) on a
   Wan job **before sending it**, so that round trip is never spent again.
   `WAN.AUDIO_EXTS` is the list.
+
+## MAX TAKES ONE STILL AND NO VOICE — and its file is 8x the bitrate (her go: "try max w the still alone")
+
+`minimax/h3-max/reference-to-video` does not exist (Atlas: `400 not found`;
+no schema file). Read off `static.atlascloud.ai/model/schema/`: **max and
+max-turbo have only `image-to-video`** (one `image`, optional `end_image`, no
+`refers`, so no voice reference), **fast has `reference-to-video` at 480P
+only**, developer and standard have it at 480P/768P; the SR tiers are
+developer (1440p) and max (1440p, 4K) — standard stops at 768P. So the top
+of the door that speaks in HIS voice is standard h3 at 768P.
+
+Max with the tied-up still alone, prompt `the man in the image says: "Are you
+kidnapping me?" — camera at eye level`, 5s 768P: drew in 16s, **38¢** (Atlas's
+`price`), 768x928, and it SAYS the line (whisper: exact) in an invented
+voice — a deeper, generic one, not his. **The file is 5,916 kb/s against the
+standard clip's 721 kb/s — 8x the bitrate at the same size** (3.9MB vs
+0.56MB for 5s). So "not that sharp" on standard is at least partly the
+ENCODE, not the draw; max ships its clip nearly uncompressed. Pinned as
+*Robert test v6*. Price chart v2 in the chat's Compare tab carries the
+corrected tier map.
