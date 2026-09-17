@@ -97,8 +97,9 @@ test v3*. Wan 2.2 Turbo billed exactly the 10¢ estimated (`/spend`). **The
 developer charges posted later that night: 31.5¢ for three 5s clips — one
 480P (7.5¢, the flat 1.5¢/s) and two 768P (12¢ each, 2.4¢/s)** — so 768P
 bills **1.6x** the listed rate on this family, the same shape as Atlas's
-Seedance/Wan ladder (720p 2x, 1080p 4x). The standard `h3` charge (v5, one 5s
-768P clip; ~30¢ if the 1.6x holds) had not posted at the time of writing.
+Seedance/Wan ladder (720p 2x, 1080p 4x). The standard `h3` charge posted later as **40¢ for one 5s 768P clip** — 8¢/s,
+2.1x its 3.8¢ list, so the 768P surcharge is not one fixed ratio across the
+family; the ledger is the read, the chart an estimate.
 MiniMax H3's
 limits, off its schema: 5-15s whole seconds; 480P · 768P native, 1080p /
 1440p / 4k ESR tiers over a 768P source; ratios 21:9 · 16:9 · 4:3 · 1:1 ·
@@ -176,3 +177,25 @@ the SR pass is the wait), **22.5¢** = 3x the tier's flat 480P rate
   0.35**. The SR file is bigger and still squashed; max's is ten times
   denser. So the sharp-file lever measured so far is the MAX TIER's encode,
   not resolution — and max takes no voice. Pinned as *Robert test v7*.
+
+## THE TWO SHARPNESS ROADS, MEASURED (her go: "go")
+
+Both through the new TOOL door on the Atlas module (`atlascloud.js`
+`buildToolRequest`: a lip-sync or an upscaler takes a finished clip, no
+prompt; `node scripts/test-atlascloud-tools.js`).
+- **`veed/lipsync` on the MAX clip (v6) with the container `line1.mp3`:**
+  drew in 56s. 768x928, **1,922 kb/s** (the max source re-encoded, but still
+  2.7x the standard tier's density), whisper: *"Are you kidnapping me?"* —
+  the mouth follows the container line. **It trims the video to the AUDIO's
+  length** (2.18s from a 5s clip; veed has no sync_mode field — `sync/
+  lipsync-v3` has `cut_off · loop · bounce · silence · remap`). So the audio
+  has to be as long as the shot, or the shot is cut to it. Pinned *Robert
+  test v8*.
+- **`atlascloud/video-upscaler` on the STANDARD clip (v5, his real voice) to
+  2k:** 35s. 1664x2216, **1,265 kb/s** — 0.014 bits per pixel per frame,
+  LOWER than the 768P source's 0.038. It enlarges; it does not put back what
+  the encode threw away. Pinned *Robert test v9*, his voice and words intact.
+Neither job carried a `price` on its record; the ledger (`/spend`) is the
+read. The sharp file remains the max tier's own encode, and the road to sharp
++ his words is **max draws → a lip-sync moves the mouth to the container
+line**, with the line cut to the shot's length.
