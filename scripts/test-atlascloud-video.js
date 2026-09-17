@@ -58,7 +58,8 @@ ok('the poll reads the log before downloading again', /logDoc\(id\)\.get\(\)/.te
 ok('the poll files tokens and never invents a dollar cost', /patch\.tokens = tokens/.test(src) && !/patch\.cost/.test(src));
 ok('the key is never sent to the CDN host', /fetch\(src, \{ agent: proxyAgent \|\| undefined \}\)/.test(src));
 ok('a content refusal names APIFRAME as the door for a person', /hint = kind === 'content'[^\n]*APIFRAME_ROUTE/.test(src));
-ok('a refusal is never retried or reshaped', !/retry/i.test(src.replace(/\/\/.*$/gm, '')));
+// (a 429's Retry-After header is handed on, not acted on — its name is not a retry)
+ok('a refusal is never retried or reshaped', !/retry/i.test(src.replace(/\/\/.*$/gm, '').replace(/retry-after|retryAfter/g, '')));
 const server = fs.readFileSync(__dirname + '/../server.js', 'utf8');
 ok('mounted at /api/atlascloud inside loadConfig', /app\.use\('\/api\/atlascloud', atlascloud\.router\)/.test(server));
 const cfg = fs.readFileSync(__dirname + '/../config-loader.js', 'utf8');

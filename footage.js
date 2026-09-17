@@ -234,8 +234,44 @@ const MODELS = [
   { id: '1.5', label: '1.5 Pro', or: null, af: 'seedance-1.5-pro',
     res: ['480p', '720p'], secs: [4, 8, 12], family: '2.0', audioDefault: false,
     afCents: { '480p': 1.5, '720p': 3.4 } },
+  // WAN 3.0 ON THE PAGE — ATLAS ONLY, THREE ENDPOINTS BEHIND ONE ROW
+  // (2026-09-17, Sophie: "wan endpoints atlas" · "3.0 30s?"). Alibaba's
+  // model on Atlas's door: 2-30 seconds in ONE pass, ten pictures + five
+  // videos + five audios, and NOT ONE SENTENCE ABOUT FACES IN ITS DOCS (the
+  // one job on file, 2026-09-11, took four person references without a word;
+  // whether it draws a FAMOUS face — Seedance Mini drew "a guy that looks
+  // suspiciously like robert pattinson" twice and blocked "a robert pattinson
+  // lookalike contest" at the output gate the same minute — is UNMEASURED
+  // and is exactly what this row is for). `atlas` is the reference-to-video
+  // id; atlascloud.js swaps it for text-to-video (no references) or
+  // image-to-video (a first frame) by the shape, so the row is all three.
+  // THE PRICE: Atlas publishes ONE flat figure per second (5¢ list, 4¢ on
+  // the sale — read live off `GET /models` like every other row) and its
+  // model page says "uniform across resolutions" — but Alibaba's own ladder
+  // is 5¢ / 10¢ / 20¢ at 480p / 720p / 1080p, and Atlas turned out to bill
+  // Seedance by resolution behind one flat figure (2.2x at 720p, measured).
+  // So `resScale` scales the flat rate by Alibaba's ladder — the safe
+  // direction, over-quoting until a 720p charge is read — and every figure
+  // is `about`, as all of Atlas's are. The one measurement: 15s 480p 16:9
+  // drew for 60¢, i.e. 4¢/s exactly. `atlasCaps` are Wan's own (Atlas's
+  // Seedance caps are 9/3/3). No 21:9 (Wan's ratio list has none);
+  // `adaptive` and -1 seconds exist on the door and are not offered here.
+  { id: 'wan', label: 'Wan 3.0', or: null, af: null,
+    atlas: 'alibaba/wan-3.0/reference-to-video',
+    res: ['480p', '720p', '1080p'], secs: [2, 30], family: 'wan', sizes: '2.5',
+    ratios: ['1:1', '3:4', '9:16', '4:3', '16:9'], resScale: { '480p': 1, '720p': 2, '1080p': 4 },
+    atlasCaps: { image: 10, video: 5, audio: 5 },
+    atlasCents: { '480p': 5, '720p': 5, '1080p': 5 } },
+  { id: 'wan-prime', label: 'Wan 3.0 Prime', or: null, af: null,
+    atlas: 'alibaba/wan-3.0-prime/reference-to-video',
+    res: ['480p', '720p', '1080p'], secs: [2, 30], family: 'wan', sizes: '2.5',
+    ratios: ['1:1', '3:4', '9:16', '4:3', '16:9'], resScale: { '480p': 1, '720p': 2, '1080p': 4 },
+    atlasCaps: { image: 10, video: 5, audio: 5 },
+    atlasCents: { '480p': 6.8, '720p': 6.8, '1080p': 6.8 } },
 ];
 const RATIOS = ['1:1', '3:4', '9:16', '4:3', '16:9', '21:9'];
+// The shapes ONE model takes — its own list when it has one, else the page's.
+function ratiosOf(m) { return (m && Array.isArray(m.ratios) && m.ratios.length) ? m.ratios : RATIOS; }
 // The canvas ByteDance renders for a shape at a resolution (OpenRouter's
 // `supported_sizes`, read 2026-09-09) — what the token count is made of. Mini
 // is MEASURED onto the 2.5 table (`sizes: '2.5'` above); the rest is the
@@ -383,6 +419,9 @@ function canvasOf(m, res, ratio) {
 // per-second rate, which is a 480p rate. 1:1 at 480p vs 720p on the 2.5
 // table is 640x640 -> 960x960 = 2.25x; 16:9 is 854x480 -> 1280x720 = 2.248x.
 function resFactor(m, res, ratio) {
+  // A ROW WITH ITS OWN LADDER (Wan: Alibaba's 1 / 2 / 4) is not a canvas
+  // question — its per-second rate is the published one per resolution.
+  if (m.resScale) return m.resScale[res] != null ? m.resScale[res] : 1;
   const r = RATIOS.includes(ratio) ? ratio : '1:1';
   const [w, h] = canvasOf(m, res, r);
   const [w0, h0] = canvasOf(m, '480p', r);
@@ -473,16 +512,21 @@ const REFUSED_WHY = { openrouter: 'a person in it', atlascloud: 'a famous face',
 // safe direction — never refuse a door for a cap that cannot be seen.
 // OpenRouter's and APIFRAME's own caps are UNMEASURED and are not modelled.
 const ATLAS_CAPS = { image: 9, video: 3, audio: 3 };
-function atlasCapRefusal({ images, videos, audios }) {
-  if (images > ATLAS_CAPS.image) return `Atlas Cloud takes at most ${ATLAS_CAPS.image} reference images`;
-  if (videos > ATLAS_CAPS.video) return `Atlas Cloud takes at most ${ATLAS_CAPS.video} reference videos`;
-  if (audios > ATLAS_CAPS.audio) return `Atlas Cloud takes at most ${ATLAS_CAPS.audio} reference audios`;
+// THE CAPS ARE PER MODEL ON THIS DOOR — Seedance's 9/3/3 unless the row
+// carries its own (`atlasCaps`; Wan 3.0 is 10/5/5). `m` is optional: a
+// caller that names no model gets Seedance's, exactly as before.
+function atlasCapsOf(m) { return (m && m.atlasCaps) || ATLAS_CAPS; }
+function atlasCapRefusal({ images, videos, audios }, m) {
+  const caps = atlasCapsOf(m);
+  if (images > caps.image) return `Atlas Cloud takes at most ${caps.image} reference images`;
+  if (videos > caps.video) return `Atlas Cloud takes at most ${caps.video} reference videos`;
+  if (audios > caps.audio) return `Atlas Cloud takes at most ${caps.audio} reference audios`;
   if (audios > 0 && !images && !videos) return 'a reference audio needs at least one reference image or video beside it';
   return '';
 }
-function doorTakes(door, shape) {
+function doorTakes(door, shape, m) {
   const { hasFirstFrame, hasLastFrame, hasRefs } = shape;
-  if (door === 'atlascloud' && atlasCapRefusal(countsOf(shape))) return false;
+  if (door === 'atlascloud' && atlasCapRefusal(countsOf(shape), m)) return false;
   if (!hasFirstFrame && !hasLastFrame) return true;
   if (door === 'apiframe') return true;
   if (hasRefs) return false;
@@ -497,11 +541,11 @@ function countsOf({ images, videos, audios }) {
 }
 // The line she reads when a keyframe leaves no door open — plain, and it
 // names what to change rather than what is wrong.
-function shapeRefusal(shape) {
+function shapeRefusal(shape, m) {
   const { hasFirstFrame, hasLastFrame, hasRefs } = shape;
   // A CAP IS THE LOUDEST REASON WHEN ONE IS BROKEN — "no door is configured"
   // would send her looking at env vars for a ten-picture job.
-  const cap = atlasCapRefusal(countsOf(shape));
+  const cap = atlasCapRefusal(countsOf(shape), m);
   if (cap) return `${cap} — and it is the only door open for that job. Take one off.`;
   if (hasRefs && (hasFirstFrame || hasLastFrame)) {
     return 'A first frame and references cannot ride one job — only APIFRAME takes both, and it is not open for that. Take the references off, or take the first frame off.';
@@ -519,12 +563,12 @@ function doorFor({ model, door, hasVideo, resolution, ratio, seconds, avoid, has
   // does not offer used to fail every door here and blame the configuration
   const res = m.res.includes(resolution) ? resolution : m.res[0];
   const shape = { hasFirstFrame: Boolean(hasFirstFrame), hasLastFrame: Boolean(hasLastFrame), hasRefs: Boolean(hasRefs), ...countsOf({ images, videos, audios }) };
-  const orOk = Boolean(m.or) && cfg.openrouter && m.res.includes(res) && doorTakes('openrouter', shape);
-  const afOk = Boolean(m.af) && cfg.apiframe && m.afCents && m.afCents[res] != null && doorTakes('apiframe', shape);
-  const atOk = Boolean(m.atlas) && cfg.atlascloud && m.atlasCents && m.atlasCents[res] != null && doorTakes('atlascloud', shape);
+  const orOk = Boolean(m.or) && cfg.openrouter && m.res.includes(res) && doorTakes('openrouter', shape, m);
+  const afOk = Boolean(m.af) && cfg.apiframe && m.afCents && m.afCents[res] != null && doorTakes('apiframe', shape, m);
+  const atOk = Boolean(m.atlas) && cfg.atlascloud && m.atlasCents && m.atlasCents[res] != null && doorTakes('atlascloud', shape, m);
   // A PINNED DOOR THAT CANNOT TAKE THE SHAPE SAYS SO IN THOSE TERMS — "it
   // does not offer that resolution" would be a wrong reason she then chases.
-  const pinShape = (d) => (doorTakes(d, shape) ? null : { error: shapeRefusal(shape) });
+  const pinShape = (d) => (doorTakes(d, shape, m) ? null : { error: shapeRefusal(shape, m) });
   if (want === 'openrouter') return pinShape('openrouter') || (orOk ? { door: 'openrouter', fallback: null, chain: [] } : { error: m.or ? 'OpenRouter is not configured for that' : (m.atlas ? `${m.label} is only on Atlas Cloud` : `${m.label} is only on APIFRAME`) });
   if (want === 'apiframe') return pinShape('apiframe') || (afOk ? { door: 'apiframe', fallback: null, chain: [] } : { error: 'APIFRAME does not offer that' });
   // A PINNED DOOR NEVER FALLS BACK — a refusal on a door she named is a
@@ -535,7 +579,7 @@ function doorFor({ model, door, hasVideo, resolution, ratio, seconds, avoid, has
   const open = [orOk && 'openrouter', atOk && 'atlascloud', afOk && 'apiframe'].filter(Boolean).filter((d) => !skip.has(d));
   if (!open.length) {
     if (skip.size) return { error: 'every door has refused it' };
-    return { error: (shape.hasFirstFrame || shape.hasLastFrame || atlasCapRefusal(shape)) ? shapeRefusal(shape) : 'no door is configured for that' };
+    return { error: (shape.hasFirstFrame || shape.hasLastFrame || atlasCapRefusal(shape, m)) ? shapeRefusal(shape, m) : 'no door is configured for that' };
   }
   // Ranked by what the tap really costs on each, cheapest first. A door whose
   // price cannot be worked out sorts LAST rather than winning by default.
@@ -697,6 +741,9 @@ function buildJob(b) {
   const m = modelOf(b.model || 'mini');
   if (!m) return { error: `unknown model "${b.model}"` };
   const res = m.res.includes(String(b.resolution)) ? String(b.resolution) : m.res[0];
+  // A SHAPE THIS MODEL DOES NOT DRAW IS REFUSED, NEVER CLAMPED (Wan has no
+  // 21:9): a clamp to 1:1 would draw a square she never asked for.
+  if (b.ratio != null && RATIOS.includes(String(b.ratio)) && !ratiosOf(m).includes(String(b.ratio))) return { error: `${m.label} does not draw ${b.ratio} — pick another shape` };
   const ratio = RATIOS.includes(String(b.ratio)) ? String(b.ratio) : '1:1';
   const seconds = b.seconds == null ? minSeconds(m) : Number(b.seconds);
   if (!secondsOk(m, seconds)) return { error: `${m.label} takes ${m.id === '1.5' ? m.secs.join(', ') : m.secs[0] + '–' + m.secs[1]} seconds` };
@@ -908,6 +955,20 @@ const DRAW_MAX = 1200;        // a bounded read of the newest clips
 const DRAW_ENOUGH = 3;        // below this a rung is used only as a last resort
 let drawCache = { at: 0, val: null };
 
+// A DOOR'S MODEL ID BACK ONTO ITS ROW. Each door writes its own spelling,
+// and ATLAS WRITES THE ENDPOINT IT REALLY USED — `…/image-to-video` for a
+// keyframe job, and for Wan 3.0 `…/text-to-video` / `…/image-to-video` /
+// `…/reference-to-video` by the shape (2026-09-17) — while the row carries
+// only the reference-to-video id. So the suffix is folded before the match:
+// a Wan text-to-video clip reads as the Wan row, and an Atlas keyframe clip
+// as its own model rather than a raw string. `ours` also matches OUR id (a
+// refusal footage files itself writes that).
+function rowOfDoorModel(id, ours) {
+  const s = String(id || '');
+  const folded = s.replace(/\/(image|text)-to-video$/, '/reference-to-video');
+  return MODELS.find((x) => (ours && x.id === s) || x.or === s || x.af === s || x.atlas === s || x.atlas === folded) || null;
+}
+
 function drawKeyOf(d) {
   // THE MODEL HAS TO BE THERE BEFORE IT IS MATCHED. A row on the table can
   // lack an `or` / `af` / `atlas` id, so `x.or === d.model` on a doc with NO
@@ -915,7 +976,7 @@ function drawKeyOf(d) {
   // model it was never drawn on. (`cardOf` runs the same find with the same
   // shape; there a miss only mislabels one card, so it is left alone.)
   if (!d || !d.model) return null;
-  const m = MODELS.find((x) => x.or === d.model || x.af === d.model || x.atlas === d.model) || null;
+  const m = rowOfDoorModel(d.model, false);
   const p = d.params || {};
   const door = d.door || d.provider || '';
   const secs = p.duration != null ? Number(p.duration) : Number(d.seconds);
@@ -1006,7 +1067,7 @@ function cardOf(id, d) {
   // refused clip came back with `model` left as a raw string, and the page
   // gates its own "Try again" on `modelOf(j.model)`: a refused Fast or 2.5
   // scene put back from its own card silently drew on Mini.
-  const m = MODELS.find((x) => x.id === d.model || x.or === d.model || x.af === d.model || x.atlas === d.model) || null;
+  const m = rowOfDoorModel(d.model, true);
   const p = d.params || {};
   // THE PARTS RIDE BESIDE THE CLIP, NEVER OVER IT: `video` is what she
   // plays, saves and hands on (the first baked part once there is one),
@@ -1897,7 +1958,8 @@ function publicModels() {
   return MODELS.map((m) => ({ id: m.id, label: m.label, openrouter: Boolean(m.or), apiframe: Boolean(m.af), atlascloud: Boolean(m.atlas),
     ...(m.atlas && atlasCache.val[m.id] ? { atlasPerSec: atlasCache.val[m.id].perSec, atlasPays: atlasCache.val[m.id].pays } : {}),
     res: m.res, secs: m.secs, family: m.family, sizes: m.sizes || m.family, orTok: m.orTok || null, discount: m.or ? discountOf(m.id) : 0,
-    afCents: m.afCents || null, afVid: m.afVid || null, audioDefault: m.audioDefault !== false }));
+    afCents: m.afCents || null, afVid: m.afVid || null, audioDefault: m.audioDefault !== false,
+    ratios: ratiosOf(m), atlasCaps: atlasCapsOf(m) }));
 }
 router.get('/status', async (req, res) => {
   res.set('Cache-Control', 'no-store');
@@ -2484,7 +2546,7 @@ router.post('/jobs/:id/frame', async (req, res) => {
 module.exports = {
   router, init,
   MODELS, RATIOS, SIZES, CHAT, OR_FEE,
-  modelOf, doorFor, doorTakes, shapeRefusal, atlasCapRefusal, ATLAS_CAPS, estimate, priceOn, DOOR_LOOSENESS, DOOR_REFUSAL_FREE, DOOR_WORDS, pollOne, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, resFactor, secondsOk, framesOf, projectSlug, HANDOFF_PROJECTS,
+  modelOf, rowOfDoorModel, doorFor, doorTakes, shapeRefusal, atlasCapRefusal, atlasCapsOf, ATLAS_CAPS, ratiosOf, estimate, priceOn, DOOR_LOOSENESS, DOOR_REFUSAL_FREE, DOOR_WORDS, pollOne, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, resFactor, secondsOk, framesOf, projectSlug, HANDOFF_PROJECTS,
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf, atlasCacheBust,
   drawStats, drawTimeFor, drawTimeFrom, drawKeyOf, medianOf,
   startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf, pausedNow,

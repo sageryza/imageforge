@@ -112,7 +112,28 @@ const WAN = {
   RESOLUTIONS: ['480p', '720p', '1080p', '720p-esr', '1080p-esr', '1440p-esr', '4k-esr'],
   RATIOS: ['adaptive', '16:9', '4:3', '1:1', '3:4', '9:16'],
 };
-function isWan(model) { return /^alibaba\/wan-3\.0(-prime)?\/reference-to-video$/.test(String(model || '')); }
+// WAN 3.0 IS THREE ENDPOINTS ON THIS DOOR, ONE FAMILY (2026-09-17, Sophie:
+// "wan endpoints atlas"). Atlas carries `alibaba/wan-3.0/text-to-video`,
+// `…/image-to-video` and `…/reference-to-video` (and the same three under
+// `wan-3.0-prime`), all on the one `POST /model/generateVideo`, the same
+// 2-30s, the same resolution and ratio lists, one price per second per
+// family (4¢ plain · 6.1¢ prime on the sale, 5¢ · 6.8¢ list — read off
+// Atlas's model pages the same day). Their schemas differ ONLY in what
+// carries the picture: text-to-video takes NONE, image-to-video takes
+// `image` (required) + `last_image`, reference-to-video takes `refers`. So
+// the SHAPE picks the endpoint (`wanEndpointOf`): a first frame → image-to-
+// video, references or a script file → reference-to-video, neither → text-
+// to-video. A caller's suffix is a hint, never a promise — a job naming
+// `text-to-video` with references on it goes to reference-to-video, because
+// the alternative is sending references under a key that endpoint does not
+// read (the silent drop this door refuses everywhere else).
+const WAN_RE = /^(alibaba\/wan-3\.0(?:-prime)?)\/(text|image|reference)-to-video$/;
+function isWan(model) { return WAN_RE.test(String(model || '')); }
+function wanRootOf(model) { const m = WAN_RE.exec(String(model || '')); return m ? m[1] : ''; }
+function wanEndpointOf(model, { first, refers, file }) {
+  const root = wanRootOf(model) || 'alibaba/wan-3.0';
+  return `${root}/${first ? 'image' : (refers || file) ? 'reference' : 'text'}-to-video`;
+}
 
 let proxyAgent = null;
 if (process.env.HTTPS_PROXY) {
@@ -144,6 +165,7 @@ function modelIdOf(m) {
   // names `wan` / `wan-3.0` / `wan3` / `alibaba/wan-3.0` onto the plain id.
   if (isWan(s)) return s;
   if (/^(alibaba\/)?wan[-_ ]?3(\.0)?$/.test(s) || s === 'wan') return WAN_MODEL;
+  if (/^(alibaba\/)?wan[-_ ]?3(\.0)?[-_ ]prime$/.test(s) || s === 'wan-prime') return 'alibaba/wan-3.0-prime/reference-to-video';
   const short = s.replace(/^bytedance\//, '').replace(/^seedance-?/, '').replace(/\/.*$/, '');
   if (short === '2.0-mini' || short === '2-mini' || short === 'mini') return DEFAULT_MODEL;
   return null;
@@ -151,10 +173,20 @@ function modelIdOf(m) {
 
 // Wan 3.0's body — the same route fields in, Atlas's Wan schema out. Answers
 // { body, params, model } or { error }; never throws, never sends.
-function buildWanRequest(b, prompt, model) {
+function buildWanRequest(b, prompt, model, kf) {
+  kf = kf || { first: '', last: '' };
   const imgs = (Array.isArray(b.referenceImageUrls) ? b.referenceImageUrls : []).map(String).filter(Boolean);
   const vids = (Array.isArray(b.referenceVideoUrls) ? b.referenceVideoUrls : []).map(String).filter(Boolean);
   const auds = (Array.isArray(b.referenceAudioUrls) ? b.referenceAudioUrls : []).map(String).filter(Boolean);
+  // A KEYFRAME IS WAN'S image-to-video, AND IT TAKES NO REFERENCES — the
+  // same rule as Seedance on this door, for the same reason: `refers` is
+  // not in that endpoint's schema, so a job carrying both would draw from
+  // the frame alone with her references gone and nothing on screen saying
+  // so. A last frame alone has nowhere to go (`image` is required).
+  if ((kf.first || kf.last) && (imgs.length || vids.length || auds.length)) {
+    return { error: 'Wan 3.0 takes a first frame OR references, never both on one job — take the references off, or send the frame as a reference image' };
+  }
+  if (kf.last && !kf.first) return { error: 'Wan 3.0 needs a FIRST frame to take a last one — mark the frame the clip starts on' };
   if (imgs.length > WAN.MAX_IMAGES) return { error: `Wan 3.0 takes at most ${WAN.MAX_IMAGES} reference images` };
   if (vids.length > WAN.MAX_VIDEOS) return { error: `Wan 3.0 takes at most ${WAN.MAX_VIDEOS} reference videos (15 seconds together)` };
   if (auds.length > WAN.MAX_AUDIOS) return { error: `Wan 3.0 takes at most ${WAN.MAX_AUDIOS} reference audios (15 seconds together)` };
@@ -182,16 +214,23 @@ function buildWanRequest(b, prompt, model) {
   const fileUrl = b.fileUrl ? String(b.fileUrl) : '';
   if (fileUrl && !/^https?:\/\//.test(fileUrl)) return { error: 'fileUrl must be a public https url' };
   if (fileUrl) params.file_url = fileUrl;
-  const body = { model, prompt, resolution: params.resolution, audio: params.generate_audio, seed: params.seed };
-  if (params.duration != null) body.duration = params.duration;
-  if (params.aspect_ratio) body.ratio = params.aspect_ratio;
   const refers = [
     ...imgs.map((url) => ({ url, type: 'image' })),
     ...vids.map((url) => ({ url, type: 'video' })),
     ...auds.map((url) => ({ url, type: 'audio' })),
   ];
+  // THE SHAPE PICKS THE ENDPOINT (see WAN_RE above); the log's `model` is the
+  // id that really went out, so a text-to-video clip reads as one.
+  model = wanEndpointOf(model, { first: kf.first, refers: refers.length > 0, file: Boolean(fileUrl) });
+  const body = { model, prompt, resolution: params.resolution, audio: params.generate_audio, seed: params.seed };
+  if (params.duration != null) body.duration = params.duration;
+  // image-to-video has no `ratio` in its schema — the frame is the shape.
+  if (params.aspect_ratio && !kf.first) body.ratio = params.aspect_ratio;
   if (refers.length) body.refers = refers;
   if (fileUrl) { body.file = fileUrl; body.enable_thinking = true; }
+  // the keyframes under Wan's own names, and under the log's shared ones
+  if (kf.first) { body.image = kf.first; params.start_image = kf.first; }
+  if (kf.last) { body.last_image = kf.last; params.end_image = kf.last; }
   return { body, params, model };
 }
 
@@ -237,13 +276,8 @@ function buildRequest(b) {
   if (!model) return { error: `unknown model "${b.model}" — Mini is the one id on file; pass a full bytedance/seedance-…/reference-to-video id for anything else, or wan-3.0` };
   const kf = framesOf(b);
   if (kf.error) return kf;
-  // WAN 3.0's image-to-video sibling is UNMEASURED on this door — its schema
-  // here is the reference-to-video one — so a keyframe on Wan is refused
-  // rather than sent under a key nothing has read back.
-  if (isWan(model)) {
-    if (kf.first || kf.last) return { error: 'Wan 3.0 on this door takes references, not a first or last frame — send it as a reference image, or use Seedance' };
-    return buildWanRequest(b, prompt, model);
-  }
+  // Wan 3.0: the three endpoints, picked by the shape (see WAN_RE).
+  if (isWan(model)) return buildWanRequest(b, prompt, model, kf);
   const imgs = (Array.isArray(b.referenceImageUrls) ? b.referenceImageUrls : []).map(String).filter(Boolean);
   const vids = (Array.isArray(b.referenceVideoUrls) ? b.referenceVideoUrls : []).map(String).filter(Boolean);
   const auds = (Array.isArray(b.referenceAudioUrls) ? b.referenceAudioUrls : []).map(String).filter(Boolean);
@@ -676,7 +710,9 @@ router.get('/status', (req, res) => {
   res.json({ ok: true, configured: Boolean(KEY), firebase: Boolean(bucketOrNull()), models: MODELS, base: BASE,
     resolutions: RESOLUTIONS, ratios: RATIOS,
     wan: { model: WAN_MODEL, seconds: [WAN.MIN_S, WAN.MAX_S], resolutions: WAN.RESOLUTIONS, ratios: WAN.RATIOS,
-      refs: { images: WAN.MAX_IMAGES, videos: WAN.MAX_VIDEOS, audios: WAN.MAX_AUDIOS } },
+      refs: { images: WAN.MAX_IMAGES, videos: WAN.MAX_VIDEOS, audios: WAN.MAX_AUDIOS },
+      endpoints: ['text-to-video', 'image-to-video', 'reference-to-video'], families: ['alibaba/wan-3.0', 'alibaba/wan-3.0-prime'],
+      note: 'the shape picks the endpoint: a first frame → image-to-video, references or a script → reference-to-video, neither → text-to-video' },
     note: 'nothing has been sent through this door yet — price, canvas and the face filter are unmeasured here',
     rule: `a reference with a person in it is expected to be refused (Atlas forwards to ByteDance) — that job goes through ${APIFRAME_ROUTE}` });
 });
@@ -852,7 +888,7 @@ router.get('/video-job/:id', async (req, res) => {
 module.exports = {
   router,
   configured: () => Boolean(KEY),
-  buildRequest, buildWanRequest, isWan, modelIdOf, apiframeStatus, refusalKind, splitOutputs,
+  buildRequest, buildWanRequest, isWan, wanRootOf, wanEndpointOf, modelIdOf, apiframeStatus, refusalKind, splitOutputs,
   imageToVideoOf, isImageToVideo, framesOf,
   api, startVideo, pollVideo, failedRecord,
   billApi, balance, spend, usage, rangePlan, costOf, BILL_BASE, MAX_DAYS,

@@ -82,7 +82,7 @@ const ROWS = [
     lineFor: (door) => `A reference PICTURE has a real face in it and ${doorName(door)} refuse${door ? 'd' : 's'} it${door === 'apiframe' ? ' after taking the job' : ''} — blur the eyes, or send it through ${elsewhere(door)}.`,
     seen: 'OpenRouter; APIFRAME ×2 on 2.5, 2026-09-11, on the POLL ~10s after the POST was accepted (Atlas drew the same three pictures)' },
   { re: /famous|public figure/i, kind: 'content', free: true,
-    line: 'A famous face in a reference — Atlas refuses public figures on the way in. A chat can try this one through APIFRAME.',
+    line: 'A famous face in a reference — Atlas refuses public figures on the way in on Seedance. A chat can try this one through APIFRAME, or on Wan 3.0 (unmeasured there).',
     seen: 'Atlas 2026-09-09 (Radcliffe), on the POST' },
   // ── output: drawn, then blocked ─────────────────────────────────────
   { code: 1012004, re: /generated video may be related to copyright|output video may be related to copyright/i, kind: 'output', free: true,
