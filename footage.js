@@ -295,6 +295,29 @@ const MODELS = [
     ratios: ['1:1', '3:4', '9:16', '4:3', '16:9'], resScale: { '720p': 1, '1080p': 1.5 },
     atlasCaps: { image: 3, video: 3, audio: 1 },
     atlasCents: { '720p': 10, '1080p': 10 } },
+  // MINIMAX H3, THE STANDARD TIER — THE DOOR THAT SPEAKS A NEW LINE IN A
+  // REAL PERSON'S VOICE (2026-09-17, Sophie: "add minimax model we're
+  // using"). Measured that night on a famous face: the still and a 15s clip
+  // of his own voice went in without a word, and the clip said the prompt's
+  // line in that voice with the mouth matching (docs/wan-face-gate-2026-09-17.md).
+  // The developer tier only replays the audio it is given and max takes no
+  // voice at all, so this is the one tier on the page. Its resolutions are
+  // MiniMax's own words — 480P and 768P, the SHORT side, so 768P is the one
+  // to send (its "480P" is fewer pixels than Seedance's 480p) — spelled
+  // lowercase on the page like every other row and put back into MiniMax's
+  // capitals at the door (`atlasRes`). 5-15 whole seconds, every shape the
+  // page offers, a mixed pile of pictures, videos and audios with no stated
+  // cap (an audio alone is refused). 3.8¢/s list; MEASURED 40¢ for 5s at
+  // 768P, i.e. 2.1x, so `resScale` carries that rather than a guess. No
+  // sound flag: it always draws sound. The upscale is not this row's —
+  // MiniMax has none on this tier; Atlas's own upscaler takes the finished
+  // clip instead (the card's `upscale` button).
+  { id: 'minimax', label: 'MiniMax H3', or: null, af: null,
+    atlas: 'minimax/h3/reference-to-video',
+    res: ['768p', '480p'], secs: [5, 15], family: 'minimax', sizes: '2.5',
+    atlasRes: { '480p': '480P', '768p': '768P' }, resScale: { '480p': 1, '768p': 2.1 },
+    atlasCaps: { image: 9, video: 9, audio: 9 },
+    atlasCents: { '480p': 3.8, '768p': 3.8 } },
 ];
 const RATIOS = ['1:1', '3:4', '9:16', '4:3', '16:9', '21:9'];
 // The shapes ONE model takes — its own list when it has one, else the page's.
@@ -1087,6 +1110,38 @@ function whyOf(d) {
   const e = videoRefusals.explain(d.error, d.errorCode != null ? d.errorCode : d.error_code, d.door || d.provider || '');
   return e && e.line ? e.line : '';
 }
+// ─── UPSCALE A FINISHED CLIP (2026-09-17, Sophie: "add upscale button to
+// footage" · "can we upscale later if we like it · pipeline") ─────────────
+// Atlas's own `atlascloud/video-upscaler` takes a finished clip's url and
+// hands back a bigger one, sound and words untouched — so the pipeline is
+// draw at 768P, keep what she likes, upscale only the keepers. It goes
+// through the Atlas module's tool door (the same send, poll and log as a
+// drawn clip), and the result is a NEW card on the feed beside the source,
+// its poster baked by the ordinary poll. MEASURED: 5s to 2K in 35s for
+// 14.4¢ (2.9¢/s), 1664x2216 from 768x1024. It ENLARGES; it does not put
+// back detail the source's encode dropped — the card's "?" says so.
+const UPSCALE_MODEL = 'atlascloud/video-upscaler';
+const UPSCALE_CENTS_PER_SEC = { '2k': 2.9 };   // measured; 1080p unmeasured and not offered
+function upscaleLabel(d) {
+  if (!d || String(d.model || '') !== UPSCALE_MODEL) return '';
+  const r = String((d.params && d.params.target_resolution) || d.upscale || '').toUpperCase();
+  return r ? `Upscale ${r}` : 'Upscale';
+}
+// Pure: what an upscale of THIS clip would be, or why not. Never sends.
+function upscalePlan(d, body) {
+  body = body || {};
+  if (!d) return { error: 'no such clip' };
+  if (String(d.model || '') === UPSCALE_MODEL) return { error: 'that clip is already an upscale' };
+  if (statusOf(d) !== 'done' || !d.video) return { error: 'the clip has to finish drawing first' };
+  const resolution = String(body.resolution || '2k').toLowerCase();
+  if (UPSCALE_CENTS_PER_SEC[resolution] == null) return { error: `upscale to ${Object.keys(UPSCALE_CENTS_PER_SEC).join(' or ')} — ${resolution} is not offered` };
+  const p = d.params || {};
+  const seconds = p.duration != null ? Number(p.duration) : (d.seconds != null ? Number(d.seconds) : null);
+  const estimate = Number.isFinite(seconds) ? Math.round(seconds * UPSCALE_CENTS_PER_SEC[resolution] * 100) / 100 : null;
+  return { source: d.video, resolution, seconds, estimate, aspect: p.aspect_ratio || d.aspect || '',
+    title: `${resolution.toUpperCase()} · ${d.title || titleOf(d.prompt || '')}`.slice(0, 120) };
+}
+
 function cardOf(id, d) {
   // BY OUR OWN ID AS WELL AS THE DOORS' (2026-09-13). Each door writes its
   // own model id, which is what the three spellings match — and a refusal
@@ -1104,9 +1159,12 @@ function cardOf(id, d) {
   const parts = trimsOf(d);
   const ready = parts.find((t) => t.status === 'ready' && t.url) || null;
   return {
-    id, prompt: d.prompt || '', model: m ? m.id : (d.model || ''), modelLabel: m ? m.label : (d.model || ''),
+    id, prompt: d.prompt || '', model: m ? m.id : (d.model || ''), modelLabel: m ? m.label : (upscaleLabel(d) || d.model || ''),
     door: d.door || d.provider || (d.model && String(d.model).startsWith('bytedance/') ? 'openrouter' : 'apiframe'),
-    seconds: p.duration != null ? Number(p.duration) : null, resolution: p.resolution || '', ratio: p.aspect_ratio || '',
+    // an UPSCALE carries no duration of its own — the clip it was made from
+    // does, and the route writes it on the doc (`seconds`)
+    seconds: p.duration != null ? Number(p.duration) : (d.seconds != null ? Number(d.seconds) : null),
+    resolution: p.resolution || p.target_resolution || '', ratio: p.aspect_ratio || d.aspect || '',
     sound: p.generate_audio !== false,
     // THE SEED THE CLIP REALLY CARRIED — hers if she typed one, else the one
     // the door minted. Nothing ever hands a seed back from the provider
@@ -1149,6 +1207,9 @@ function cardOf(id, d) {
     // the page's call, since a trimmed tail no longer ends on this frame.
     lastFrame: d.lastFrame || '',
     vote: d.vote || '', hidden: Boolean(d.hidden), title: d.title || '',
+    // AN UPSCALE SAYS WHICH CLIP IT CAME FROM, and an upscaled clip is not
+    // offered a second one (2026-09-17)
+    parent: String(d.parent || ''), upscale: String(d.upscale || ''),
     // A REFUSAL THAT WALKED ON — the id of the card the job was sent again as
     resentAs: d.resentAs || '',
     // WHICH PROJECT — the cast library's film slug; '' for a clip drawn
@@ -1938,7 +1999,9 @@ async function startJobInner(b) {
   // hands back one output (a measured no-op) and APIFRAME builds its own
   // body, so sending it there would be a key nothing reads.
   const req = { ...body, model: d.door === 'openrouter' ? m.or : d.door === 'atlascloud' ? m.atlas : m.af,
-    ...(d.door === 'atlascloud' ? { returnLastFrame: true } : {}) };
+    ...(d.door === 'atlascloud' ? { returnLastFrame: true } : {}),
+    // a row whose door spells its resolutions its own way (MiniMax's 768P)
+    ...(d.door === 'atlascloud' && m.atlasRes && m.atlasRes[res] ? { resolution: m.atlasRes[res] } : {}) };
   if (extra.note) req.note = extra.note;
   let r;
   try {
@@ -2555,6 +2618,37 @@ router.post('/jobs/:id/trim', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// POST /jobs/:id/upscale {resolution:'2k'} — a bigger copy of a finished
+// clip, as a NEW card beside it (see UPSCALE above). 202 with the new card.
+router.post('/jobs/:id/upscale', async (req, res) => {
+  try {
+    const id = String(req.params.id);
+    const snap = await coll().doc(id).get();
+    if (!snap.exists) return res.status(404).json({ error: 'no such clip' });
+    const d = snap.data();
+    const plan = upscalePlan(d, req.body || {});
+    if (plan.error) return res.status(400).json({ error: plan.error });
+    if (pausedNow()) return res.status(503).json({ error: PAUSED_WORDS, refusal: 'paused' });
+    const mod = getDoors().atlascloud;
+    if (!mod || !mod.startVideo) return res.status(503).json({ error: 'Atlas Cloud is not configured (ATLASCLOUD_API_KEY)' });
+    const body = { model: UPSCALE_MODEL, videoUrl: plan.source, resolution: plan.resolution, prompt: d.prompt || '',
+      chat: CHAT, title: plan.title, session: req.body && req.body.session ? String(req.body.session).slice(0, 80) : undefined,
+      project: projectSlug(d.project) || undefined, folder: projectSlug(d.project) ? folderSlug(d.folder) || undefined : undefined };
+    const extra = { door: 'atlascloud', footage: true, refs: [], estimate: plan.estimate, aspect: plan.aspect,
+      seconds: plan.seconds, parent: id, upscale: plan.resolution };
+    if (body.project) extra.project = body.project;
+    if (body.folder) extra.folder = body.folder;
+    if (d.story) { extra.story = d.story; if (d.unit) extra.unit = d.unit; }
+    const r = await mod.startVideo(body, extra);
+    balCache.at = 0;
+    shelfBust();
+    const made = await coll().doc(r.jobId).get();
+    res.status(202).json({ ok: true, jobId: r.jobId, job: cardOf(r.jobId, made.exists ? made.data() : { ...extra, model: UPSCALE_MODEL, prompt: d.prompt || '', status: 'sent', sentAt: new Date().toISOString(), params: r.params || {} }) });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message, refusal: e.refusal, hint: e.hint });
+  }
+});
+
 // POST /jobs/:id/frame — one frame out of a finished clip, answered as a
 // url the moment it is on Storage. Nothing on the clip's doc changes: the
 // frame lives in the references strip she drops it into (and in her draft).
@@ -2580,5 +2674,6 @@ module.exports = {
   canvasFrom, pageJobs, outsideCount, hayOf, foldersOf, shelfOf, folderSlug, statusOf, staleJob, STALE_MS, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, cutArgs, TRIM_CAP, frameSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
   trimRoom, waitTrimRoom, TRIM_NEED_MB, BOX_MB, bakeStale, BAKE_STALE_MS,
   framePlan, framePath, pullFrame, grabFrame, FRAME_FOLDER, FRAME_END_PAD,
+  upscalePlan, upscaleLabel, UPSCALE_MODEL, UPSCALE_CENTS_PER_SEC,
   sentAmong, normWords, SENT_SEGS_MAX,
 };

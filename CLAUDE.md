@@ -301,8 +301,15 @@ refused on every Seedance door (Atlas on the way in; Mini's OUTPUT gate blocked
 filter in front of it. Four Wan rows are on `/footage` since 2026-09-17: Wan
 3.0 / Prime (2-30s, three endpoints by the shape), Wan 2.2 Turbo (one picture,
 5s only, the one that takes a face) and Wan 2.7 (Alibaba-hosted, expect the
-gate). The whole measurement: `docs/wan-face-gate-2026-09-17.md`. `/footage`
-picks the cheapest door itself. **The "go"
+gate). **AND `MiniMax H3` (the standard tier, `minimax/h3/reference-to-video`)
+IS THE ROW THAT SPEAKS A NEW LINE IN A REAL PERSON'S VOICE** — his still plus
+a 15s clip of his voice as references, the line in the prompt, 5-15s, send
+768P (measured 40¢ for 5s; 8¢/s); the developer tier only replays the audio
+it is given, max takes no voice, and none of them upscale — so every
+finished card carries **upscale 2K** (Atlas's own upscaler as a NEW clip
+beside the source, ~3¢/s, measured 14¢ for 5s; it enlarges, it does not put
+back what the encode dropped). The whole measurement:
+`docs/wan-face-gate-2026-09-17.md`. `/footage` picks the cheapest door itself. **The "go"
 rule applies to every door word for word**, a refused job is never re-sent
 through another door or without its references, and nothing is ever
 "unblocked" by blurring eyes or a black bar on a video. Every measurement
