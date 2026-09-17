@@ -97,8 +97,9 @@ test v3*. Wan 2.2 Turbo billed exactly the 10¢ estimated (`/spend`). **The
 developer charges posted later that night: 31.5¢ for three 5s clips — one
 480P (7.5¢, the flat 1.5¢/s) and two 768P (12¢ each, 2.4¢/s)** — so 768P
 bills **1.6x** the listed rate on this family, the same shape as Atlas's
-Seedance/Wan ladder (720p 2x, 1080p 4x). The standard `h3` charge (v5, one 5s
-768P clip; ~30¢ if the 1.6x holds) had not posted at the time of writing.
+Seedance/Wan ladder (720p 2x, 1080p 4x). The standard `h3` charge posted later as **40¢ for one 5s 768P clip** — 8¢/s,
+2.1x its 3.8¢ list, so the 768P surcharge is not one fixed ratio across the
+family; the ledger is the read, the chart an estimate.
 MiniMax H3's
 limits, off its schema: 5-15s whole seconds; 480P · 768P native, 1080p /
 1440p / 4k ESR tiers over a 768P source; ratios 21:9 · 16:9 · 4:3 · 1:1 ·
