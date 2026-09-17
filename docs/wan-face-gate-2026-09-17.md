@@ -93,9 +93,13 @@ same shape as Wan 3.0's, so `buildOtherRequest` sent it unchanged.
 drew in 33s, same line in his voice, visibly sharper than the 480P run
 (480x576 — MiniMax's "480P" is the SHORT side, so it is ~1.5x fewer pixels
 than Seedance's 3:4 "480p" of 560x752; always send 768P). Pinned as *Robert
-test v3*. Wan 2.2 Turbo billed exactly the 10¢ estimated (`/spend`); the two
-MiniMax charges had not posted to Atlas's ledger at the time of writing, so
-whether 768P bills above the flat 1.5¢/s is still unmeasured. MiniMax H3's
+test v3*. Wan 2.2 Turbo billed exactly the 10¢ estimated (`/spend`). **The
+developer charges posted later that night: 31.5¢ for three 5s clips — one
+480P (7.5¢, the flat 1.5¢/s) and two 768P (12¢ each, 2.4¢/s)** — so 768P
+bills **1.6x** the listed rate on this family, the same shape as Atlas's
+Seedance/Wan ladder (720p 2x, 1080p 4x). The standard `h3` charge (v5, one 5s
+768P clip; ~30¢ if the 1.6x holds) had not posted at the time of writing.
+MiniMax H3's
 limits, off its schema: 5-15s whole seconds; 480P · 768P native, 1080p /
 1440p / 4k ESR tiers over a 768P source; ratios 21:9 · 16:9 · 4:3 · 1:1 ·
 3:4 · 9:16 · adaptive; `refers` any mix of png/jpg/webp, mp4/mov, mp3/wav
