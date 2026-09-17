@@ -294,9 +294,15 @@ every model — the refusal is free); a person-free job is cheapest on
 OpenRouter for 2.0/2.5 and on Atlas for Mini/Fast (its sale); a FAMOUS face is
 refused on every Seedance door (Atlas on the way in; Mini's OUTPUT gate blocked
 "a robert pattinson lookalike contest" 2026-09-16 after drawing two lookalikes)
-— **on Wan 3.0 it is UNMEASURED**, and Wan 3.0 / Wan 3.0 Prime are rows on
-`/footage` since 2026-09-17 (Atlas only, 2-30s, three endpoints picked by the
-shape; the Footage doc has it). `/footage` picks the cheapest door itself. **The "go"
+— **Wan 3.0 REFUSES ANY REAL FACE, both in a reference and in what it draws
+(measured 2026-09-17, three free refusals), and WAN 2.2 TURBO TAKES ONE**:
+`atlascloud/wan-2.2-turbo/image-to-video` drew his photograph moving, 5s at
+480p for ~10¢ — it is the open weights on Atlas's own machines with no Alibaba
+filter in front of it. Four Wan rows are on `/footage` since 2026-09-17: Wan
+3.0 / Prime (2-30s, three endpoints by the shape), Wan 2.2 Turbo (one picture,
+5s only, the one that takes a face) and Wan 2.7 (Alibaba-hosted, expect the
+gate). The whole measurement: `docs/wan-face-gate-2026-09-17.md`. `/footage`
+picks the cheapest door itself. **The "go"
 rule applies to every door word for word**, a refused job is never re-sent
 through another door or without its references, and nothing is ever
 "unblocked" by blurring eyes or a black bar on a video. Every measurement

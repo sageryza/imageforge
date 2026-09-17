@@ -113,7 +113,7 @@ function report() {
     F.estimate({ model: 'fast', resolution: '480p', ratio: '3:4', seconds: 4, door: 'atlascloud' }, three).cents === 36
     && F.estimate({ model: '2.0', resolution: '480p', ratio: '3:4', seconds: 4, door: 'atlascloud' }, three).cents === 44.8
     && F.estimate({ model: '2.5', resolution: '480p', ratio: '3:4', seconds: 4, door: 'atlascloud' }, three).cents === 66.8);
-  ok('publicModels flags every 2.x row and both Wan rows for Atlas', F.publicModels().filter((m) => m.atlascloud).map((m) => m.id).join(',') === 'mini,fast,2.0,2.5,wan,wan-prime');
+  ok('publicModels flags every 2.x row and both Wan rows for Atlas', F.publicModels().filter((m) => m.atlascloud).map((m) => m.id).join(',') === 'mini,fast,2.0,2.5,wan,wan-prime,wan-2.2,wan-2.7');
   // WAN 3.0 (2026-09-17): Atlas only, 2-30s, three rungs, no 21:9, its own
   // caps, and a price that scales by Alibaba's ladder rather than a canvas
   const wan = F.modelOf('wan');
@@ -137,6 +137,16 @@ function report() {
     && /only on Atlas/.test(F.doorFor({ model: 'wan', door: 'openrouter', resolution: '480p' }, three).error || ''));
   ok('Wan 3.0 Prime is the same row at its own rate', (() => { const p = F.modelOf('wan-prime'); return p && p.atlas === 'alibaba/wan-3.0-prime/reference-to-video' && p.secs[1] === 30
     && F.estimate({ model: 'wan-prime', resolution: '480p', ratio: '16:9', seconds: 10, door: 'atlascloud' }, three).cents === 68; })());
+  ok('Wan 2.2 Turbo: Atlas only, five seconds only, one picture, no sound by default, 2¢/s at 480p and 4¢ at 720p',
+    (() => { const w = F.modelOf('wan-2.2'); return w && w.atlas === 'atlascloud/wan-2.2-turbo/image-to-video' && F.secondsOk(w, 5) && !F.secondsOk(w, 4) && w.audioDefault === false
+      && F.atlasCapsOf(w).image === 1 && !F.doorTakes('atlascloud', { images: 2 }, w) && !F.doorTakes('atlascloud', { videos: 1, images: 1 }, w)
+      && F.estimate({ model: 'wan-2.2', resolution: '480p', ratio: '9:16', seconds: 5, door: 'atlascloud' }, three).cents === 10
+      && F.estimate({ model: 'wan-2.2', resolution: '720p', ratio: '9:16', seconds: 5, door: 'atlascloud' }, three).cents === 20; })());
+  ok('Wan 2.7: 720p and 1080p only, 2-15s, one voice, 10¢/s and 1.5x at 1080p',
+    (() => { const w = F.modelOf('wan-2.7'); return w && w.res.join(',') === '720p,1080p' && F.secondsOk(w, 2) && F.secondsOk(w, 15) && F.atlasCapsOf(w).audio === 1
+      && F.estimate({ model: 'wan-2.7', resolution: '720p', ratio: '16:9', seconds: 5, door: 'atlascloud' }, three).cents === 50
+      && F.estimate({ model: 'wan-2.7', resolution: '1080p', ratio: '16:9', seconds: 5, door: 'atlascloud' }, three).cents === 75
+      && F.buildJob({ prompt: 'x', model: 'wan-2.7', seconds: 5 }).res === '720p'; })());
   ok('cardOf reads a Wan job back onto its row by any of its three endpoint ids',
     ['text', 'image', 'reference'].every((k) => F.cardOf('x', { prompt: 'p', model: `alibaba/wan-3.0/${k}-to-video`, provider: 'atlascloud', params: { duration: 2 }, status: 'completed' }).model === 'wan'));
   ok('cardOf reads an Atlas job back onto its row', (() => { const c = F.cardOf('x', { prompt: 'p', model: 'bytedance/seedance-2.0-mini/reference-to-video', provider: 'atlascloud', params: { duration: 4 }, status: 'completed' }); return c.model === 'mini' && c.door === 'atlascloud'; })());
@@ -283,7 +293,7 @@ function report() {
   // and 2.0/2.5 the second, so neither can reach the drop-down
   const atModels = F.publicModels().filter((m) => m.atlascloud).map((m) => m.id);
   ok('the Atlas table is what the page can draw from, and 1.5 Pro is not in it',
-    atModels.length === 6 && atModels.indexOf('1.5') < 0 && atModels.indexOf('mini') === 0);
+    atModels.length === 8 && atModels.indexOf('1.5') < 0 && atModels.indexOf('mini') === 0);
   const pmSrc = fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8');
   // a missing list is a NAMED failure, never a throw that takes the run with it
   const pmRaw = (pmSrc.match(/var PAGE_MODELS = (\[[^\]]*\])/) || [])[1];
@@ -922,11 +932,11 @@ async function pillSweep(pg, where) {
       rvalue: r.value };
   });
   ok('the model is a <select> and it holds the whole 2.x family — ' + sel.models.join(','),
-    sel.mTag === 'SELECT' && sel.models.join(',') === 'mini,fast,2.0,2.5,wan,wan-prime' && sel.labels.join(',') === '2.0 Mini,2.0 Fast,2.0,2.5,Wan 3.0,Wan 3.0 Prime');
+    sel.mTag === 'SELECT' && sel.models.join(',') === 'mini,fast,2.0,2.5,wan,wan-prime,wan-2.2,wan-2.7' && sel.labels.join(',') === '2.0 Mini,2.0 Fast,2.0,2.5,Wan 3.0,Wan 3.0 Prime,Wan 2.2 Turbo,Wan 2.7');
   ok('Mini leads and is what the page opens on', sel.mvalue === 'mini');
   ok('1.5 Pro is not on it — it is on APIFRAME only', sel.models.indexOf('1.5') < 0);
   ok('the list is the one line in source',
-    /var PAGE_MODELS = \['mini', 'fast', '2\.0', '2\.5', 'wan', 'wan-prime'\]/.test(PAGE_SRC));
+    /var PAGE_MODELS = \['mini', 'fast', '2\.0', '2\.5', 'wan', 'wan-prime', 'wan-2\.2', 'wan-2\.7'\]/.test(PAGE_SRC));
   ok('the resolution is a <select>', sel.rTag === 'SELECT');
   ok('the native chrome is off and the box is the house 6px', sel.appearance === 'none' && sel.radius === '6px');
   // the project picker is a folder ICON since the folders landed (2026-09-11) and draws no chevron
@@ -1297,9 +1307,9 @@ async function pillSweep(pg, where) {
     const open = await funnelBox();
     ok('the glass opens the field AND the funnel beside it, the drawer shut — ' + JSON.stringify(dr.rows),
       dr.chip && dr.shut && dr.funnel && open.w > 20 && open.afterField && open.sameRow
-      && dr.rows[0] === 'Mini·Fast·2.0·2.5·Wan·Wan Prime' && dr.rows[1] === 'Today·This week·This month');
+      && dr.rows[0] === 'Mini·Fast·2.0·2.5·Wan·Wan Prime·Wan 2.2·Wan 2.7' && dr.rows[1] === 'Today·This week·This month');
     ok('and the funnel stretches to the field beside it, not the shell’s 34 — ' + open.h + ' vs ' + open.qh, Math.abs(open.h - open.qh) <= 2);
-    ok('the model chips are the models the page offers, pinned to PAGE_MODELS', /var PAGE_MODELS = \['mini', 'fast', '2\.0', '2\.5', 'wan', 'wan-prime'\]/.test(fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8')));
+    ok('the model chips are the models the page offers, pinned to PAGE_MODELS', /var PAGE_MODELS = \['mini', 'fast', '2\.0', '2\.5', 'wan', 'wan-prime', 'wan-2\.2', 'wan-2\.7'\]/.test(fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8')));
     await page.click('#feedfilters .filtchip');
     ok('the tap opens the drawer', !(await page.$eval('#feedfilters .filtdrawer', (e) => e.hidden)));
     await page.click('#feedfilters .filtcbtn[data-v="fast"]');

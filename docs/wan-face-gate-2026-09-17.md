@@ -63,6 +63,20 @@ are self-hosted for the same reason:
 refused is a reading of its model record, not a measurement — the measurement
 is one 2s clip on her go.
 
+## MEASURED, THE SAME NIGHT: WAN 2.2 TURBO TOOK HIM (her go: "try it until it works · budget $1")
+
+`atlascloud/wan-2.2-turbo/image-to-video`, his own photograph as the first
+frame, 5s at 480p, prompt `he shifts slightly in the chair and looks toward
+the camera, camera at eye level` — accepted on the POST, **drew**, 576x704
+30fps, 5.03s, him, moving, in the chair. ~10¢ (2¢/s). So the reading above
+was right: the gate is Alibaba Model Studio's, not the model's, and the Wan
+Atlas hosts itself has no such gate. Pinned in the chat as *Robert test v1*.
+It is a Footage row now (`Wan 2.2 Turbo`), beside `Wan 2.7` (Alibaba-hosted,
+unmeasured on a face, expect the gate). The playground also settled the
+resolution ladder Atlas's pages deny: it quoted every model at its 1080p
+default at 4x the 480p rate (wan-3.0 5s = $0.80 against 4¢/s), wan-2.2-turbo
+at its 720p default at 2x, and wan-2.7 at 1080P at 1.5x its 720P rate.
+
 ## What shipped from this
 
 - `video-refusals.js` carries both new rows — the real-human-faces output gate
