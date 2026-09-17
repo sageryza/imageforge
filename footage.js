@@ -268,6 +268,33 @@ const MODELS = [
     ratios: ['1:1', '3:4', '9:16', '4:3', '16:9'], resScale: { '480p': 1, '720p': 2, '1080p': 4 },
     atlasCaps: { image: 10, video: 5, audio: 5 },
     atlasCents: { '480p': 6.8, '720p': 6.8, '1080p': 6.8 } },
+  // WAN 2.2 TURBO — THE WAN THAT TAKES A REAL FACE (2026-09-17, measured on
+  // her go: his own photograph as the first frame, 5s at 480p, DREW — him,
+  // moving, in the chair — after Wan 3.0 had refused the same face both ways).
+  // It is `atlascloud/wan-2.2-turbo/image-to-video`: the open weights on
+  // Atlas's own GPUs (organization ATLASCLOUD), no Alibaba Model Studio in
+  // front of it, which is why. Image-to-video ONLY: one picture (the first
+  // frame, else the first reference picture) and the words — no other
+  // references, no sound, no shape (the picture is the shape), and FIVE
+  // SECONDS ONLY (its schema's one enum). 2¢/s at 480p; the playground showed
+  // 720p at 2x, so the ladder is 1 / 2 / 4.
+  { id: 'wan-2.2', label: 'Wan 2.2 Turbo', or: null, af: null,
+    atlas: 'atlascloud/wan-2.2-turbo/image-to-video',
+    res: ['480p', '720p', '1080p'], secs: [5, 5], family: 'wan', sizes: '2.5', audioDefault: false,
+    ratios: ['1:1', '3:4', '9:16', '4:3', '16:9'], resScale: { '480p': 1, '720p': 2, '1080p': 4 },
+    atlasCaps: { image: 1, video: 0, audio: 0 },
+    atlasCents: { '480p': 2, '720p': 2, '1080p': 2 } },
+  // WAN 2.7 — Alibaba-hosted (Model Studio, the same policy layer as 3.0, so
+  // the face gate is EXPECTED and unmeasured here), reference-to-video with
+  // ONE voice (`audio`, mp3/wav) and up to three videos; 720p and 1080p only
+  // (no 480p), 10¢/s at 720p and the playground showed 1080p at 1.5x. Three
+  // endpoints picked by the shape in atlascloud.js like 3.0's.
+  { id: 'wan-2.7', label: 'Wan 2.7', or: null, af: null,
+    atlas: 'alibaba/wan-2.7/reference-to-video',
+    res: ['720p', '1080p'], secs: [2, 15], family: 'wan', sizes: '2.5',
+    ratios: ['1:1', '3:4', '9:16', '4:3', '16:9'], resScale: { '720p': 1, '1080p': 1.5 },
+    atlasCaps: { image: 3, video: 3, audio: 1 },
+    atlasCents: { '720p': 10, '1080p': 10 } },
 ];
 const RATIOS = ['1:1', '3:4', '9:16', '4:3', '16:9', '21:9'];
 // The shapes ONE model takes — its own list when it has one, else the page's.
