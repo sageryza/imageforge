@@ -173,7 +173,169 @@ function modelIdOf(m) {
   if (/^(alibaba\/)?wan[-_ ]?3(\.0)?[-_ ]prime$/.test(s) || s === 'wan-prime') return 'alibaba/wan-3.0-prime/reference-to-video';
   const short = s.replace(/^bytedance\//, '').replace(/^seedance-?/, '').replace(/\/.*$/, '');
   if (short === '2.0-mini' || short === '2-mini' || short === 'mini') return DEFAULT_MODEL;
+  // ANY OTHER FULL ATLAS VIDEO ID IS PASSED THROUGH AS GIVEN (2026-09-17,
+  // Sophie: "research which wan model might take robert" — the answer is a
+  // model on this door that is neither Seedance nor Wan). Atlas carries ~70
+  // video families on the one key and the log is what makes a probe worth
+  // anything, so a `<vendor>/<model>/<endpoint>-to-video` id goes THROUGH
+  // this module rather than round a curl that files nothing. Atlas decides
+  // whether the id exists; a short name is still refused rather than guessed.
+  if (/^(alibaba\/)?wan[-_ ]?2\.7$/.test(s)) return WAN27_MODEL;
+  if (/^(atlascloud\/)?wan[-_ ]?2\.2$/.test(s)) return WAN22_MODEL;
+  if (/^(atlascloud\/)?wan[-_ ]?2\.2[-_ ]turbo$/.test(s)) return WAN22_TURBO_MODEL;
+  if (OTHER_MODEL.test(s)) return s;
   return null;
+}
+// WAN 2.7 AND WAN 2.2 (2026-09-17, Sophie: "add the endpoints · maybe 2.2 or
+// 2.7", after Wan 3.0 refused a real face on both ends). Two different
+// animals under one name:
+//   · `alibaba/wan-2.7/*` — Alibaba Model Studio again (the same policy layer
+//     as 3.0, so the face gate is EXPECTED there and unmeasured), three
+//     endpoints, its OWN field names: `images` (one per character) + `videos`
+//     (≤3) + ONE `audio` url for voice cloning on reference-to-video;
+//     `image` / `last_image` / `audio` on image-to-video; 720P / 1080P only
+//     (capital P), 10¢/s on the sale.
+//   · `atlascloud/wan-2.2/image-to-video` — the OPEN WEIGHTS on Atlas's own
+//     GPUs (organization ATLASCLOUD, no Model Studio in front of it), the one
+//     Wan with no known face policy. `image` + `prompt`, 480p / 720p, 3¢/s.
+//     `-turbo` is 5s only at 2¢/s, 480p / 720p / 1080p.
+const WAN27_MODEL = 'alibaba/wan-2.7/reference-to-video';
+const WAN27_RE = /^(alibaba\/wan-2\.7)\/(text|image|reference)-to-video$/;
+const WAN27 = { RESOLUTIONS: { '720p': '720P', '1080p': '1080P' }, RATIOS: ['16:9', '9:16', '1:1', '4:3', '3:4'], MAX_VIDEOS: 3, MIN_S: 2, MAX_S: 15 };
+function isWan27(model) { return WAN27_RE.test(String(model || '')); }
+const WAN22_MODEL = 'atlascloud/wan-2.2/image-to-video';
+const WAN22_TURBO_MODEL = 'atlascloud/wan-2.2-turbo/image-to-video';
+const WAN22 = { RESOLUTIONS: ['480p', '720p'], TURBO_RESOLUTIONS: ['480p', '720p', '1080p'], TURBO_S: 5 };
+function isWan22(model) { return /^atlascloud\/wan-2\.2(-turbo)?\/image-to-video$/.test(String(model || '')); }
+
+// Wan 2.7's body — the endpoint picked by the shape exactly as 3.0's is, but
+// under Alibaba's 2.7 names. Answers { body, params, model } or { error }.
+function buildWan27Request(b, prompt, model, kf) {
+  kf = kf || { first: '', last: '' };
+  const imgs = (Array.isArray(b.referenceImageUrls) ? b.referenceImageUrls : []).map(String).filter(Boolean);
+  const vids = (Array.isArray(b.referenceVideoUrls) ? b.referenceVideoUrls : []).map(String).filter(Boolean);
+  const auds = (Array.isArray(b.referenceAudioUrls) ? b.referenceAudioUrls : []).map(String).filter(Boolean);
+  if ((kf.first || kf.last) && (imgs.length || vids.length)) return { error: 'Wan 2.7 takes a first frame OR reference pictures/videos, never both on one job' };
+  if (kf.last && !kf.first) return { error: 'Wan 2.7 needs a FIRST frame to take a last one' };
+  if (vids.length > WAN27.MAX_VIDEOS) return { error: `Wan 2.7 takes at most ${WAN27.MAX_VIDEOS} reference videos` };
+  if (auds.length > 1) return { error: 'Wan 2.7 takes ONE reference sound (the voice)' };
+  const badAudio = auds.find((u) => { const ext = (String(u).split('?')[0].match(/\.([a-z0-9]+)$/i) || [])[1]; return ext && !WAN.AUDIO_EXTS.includes(ext.toLowerCase()); });
+  if (badAudio) return { error: `Wan 2.7 takes a reference sound as ${WAN.AUDIO_EXTS.join(' or ')} only — convert it first` };
+  const resIn = String(b.resolution || '720p').toLowerCase();
+  const resolution = WAN27.RESOLUTIONS[resIn];
+  if (!resolution) return { error: `Wan 2.7 resolution must be one of ${Object.keys(WAN27.RESOLUTIONS).join(', ')} (no 480p)` };
+  const params = { resolution: resIn };
+  if (b.duration != null) {
+    const d = Number(b.duration);
+    if (!Number.isInteger(d) || d < WAN27.MIN_S || d > WAN27.MAX_S) return { error: `Wan 2.7 duration is ${WAN27.MIN_S}-${WAN27.MAX_S} seconds` };
+    params.duration = d;
+  }
+  if (b.aspectRatio) {
+    const r = String(b.aspectRatio);
+    if (!WAN27.RATIOS.includes(r)) return { error: `Wan 2.7 aspectRatio must be one of ${WAN27.RATIOS.join(', ')}` };
+    params.aspect_ratio = r;
+  }
+  params.seed = videoSeed.seedFor(b.seed);
+  if (imgs.length) params.reference_image_urls = imgs;
+  if (vids.length) params.reference_video_urls = vids;
+  if (auds.length) params.reference_audio_urls = auds;
+  if (kf.first) params.start_image = kf.first;
+  if (kf.last) params.end_image = kf.last;
+  const root = 'alibaba/wan-2.7';
+  const kind = kf.first ? 'image' : (imgs.length || vids.length) ? 'reference' : 'text';
+  model = `${root}/${kind}-to-video`;
+  // prompt_extend is OFF everywhere: her words go verbatim (its default is on
+  // for text and image, and it rewrites the prompt)
+  const body = { model, prompt, resolution, seed: params.seed, prompt_extend: false };
+  if (params.duration != null) body.duration = params.duration;
+  if (kind === 'image') {
+    body.image = kf.first;
+    if (kf.last) body.last_image = kf.last;
+  } else {
+    if (params.aspect_ratio) body.ratio = params.aspect_ratio;
+    if (kind === 'reference') { if (imgs.length) body.images = imgs; if (vids.length) body.videos = vids; }
+  }
+  if (auds.length) body.audio = auds[0];
+  return { body, params, model };
+}
+
+// Wan 2.2 on Atlas's own GPUs — image-to-video only: ONE picture (the first
+// frame, else the first reference picture) and the words. No ratio (the
+// picture is the shape), no references list, no sound.
+function buildWan22Request(b, prompt, model, kf) {
+  kf = kf || { first: '', last: '' };
+  const imgs = (Array.isArray(b.referenceImageUrls) ? b.referenceImageUrls : []).map(String).filter(Boolean);
+  const one = kf.first || imgs[0];
+  if (!one) return { error: 'Wan 2.2 is image-to-video — it needs a first frame or one reference picture' };
+  if (kf.last) return { error: 'Wan 2.2 takes no last frame' };
+  const turbo = /-turbo\//.test(model);
+  const resolution = String(b.resolution || '480p').toLowerCase();
+  const allowed = turbo ? WAN22.TURBO_RESOLUTIONS : WAN22.RESOLUTIONS;
+  if (!allowed.includes(resolution)) return { error: `Wan 2.2${turbo ? ' Turbo' : ''} resolution must be one of ${allowed.join(', ')}` };
+  const params = { resolution };
+  if (b.duration != null) {
+    const d = Number(b.duration);
+    if (!Number.isInteger(d) || d < 1) return { error: 'duration must be a whole number of seconds' };
+    if (turbo && d !== WAN22.TURBO_S) return { error: `Wan 2.2 Turbo draws ${WAN22.TURBO_S}-second clips only` };
+    params.duration = d;
+  }
+  params.seed = videoSeed.seedFor(b.seed);
+  params.start_image = one;
+  if (imgs.length) params.reference_image_urls = imgs;
+  const body = { model, prompt, image: one, resolution, seed: params.seed };
+  if (params.duration != null) body.duration = params.duration;
+  return { body, params, model };
+}
+// `minimax/h3-developer/reference-to-video`, `atlascloud/wan-2.2/image-to-video`,
+// `xai/grok-imagine-video/reference-to-video` — the shape is the vendor's,
+// not ours, so the id is matched by shape and the body is built generically.
+const OTHER_MODEL = /^[a-z0-9-]+\/[a-z0-9.-]+\/[a-z0-9-]*(to-video|video-edit|video-extend)[a-z0-9-]*$/;
+function isOther(model) { const s = String(model || ''); return OTHER_MODEL.test(s) && !isWan(s) && !/^bytedance\/seedance/.test(s); }
+
+// A door this module has no schema for — the generic body. The fields every
+// Atlas video model on file shares (`prompt`, `duration`, `resolution`,
+// `seed`), plus the references in the ONE shape the vendors that take a mixed
+// set use (`refers`, Wan's and MiniMax H3's, byte for byte) and `image` for an
+// image-to-video id. Nothing is invented: a field the caller did not send is
+// not sent, so a model that wants none of them gets a prompt and a length.
+// The LOG keeps the shared APIFRAME-shaped vocabulary either way.
+function buildOtherRequest(b, prompt, model, kf) {
+  kf = kf || { first: '', last: '' };
+  const imgs = (Array.isArray(b.referenceImageUrls) ? b.referenceImageUrls : []).map(String).filter(Boolean);
+  const vids = (Array.isArray(b.referenceVideoUrls) ? b.referenceVideoUrls : []).map(String).filter(Boolean);
+  const auds = (Array.isArray(b.referenceAudioUrls) ? b.referenceAudioUrls : []).map(String).filter(Boolean);
+  const params = { resolution: String(b.resolution || '480p') };
+  if (b.duration != null) {
+    const d = Number(b.duration);
+    if (!Number.isInteger(d) || d < 1) return { error: 'duration must be a whole number of seconds' };
+    params.duration = d;
+  }
+  if (b.aspectRatio) params.aspect_ratio = String(b.aspectRatio);
+  params.seed = videoSeed.seedFor(b.seed);
+  if (imgs.length) params.reference_image_urls = imgs;
+  if (vids.length) params.reference_video_urls = vids;
+  if (auds.length) params.reference_audio_urls = auds;
+  if (kf.first) params.start_image = kf.first;
+  if (kf.last) params.end_image = kf.last;
+  const body = { model, prompt, resolution: params.resolution, seed: params.seed };
+  if (params.duration != null) body.duration = params.duration;
+  if (params.aspect_ratio && !isImageToVideo(model)) body.ratio = params.aspect_ratio;
+  // an image-to-video id takes ONE picture as `image`; the first frame wins,
+  // else the first reference picture, since that endpoint has no reference list
+  if (isImageToVideo(model)) {
+    const one = kf.first || imgs[0];
+    if (!one) return { error: 'that model is image-to-video — it needs a first frame or one reference picture' };
+    body.image = one;
+    if (kf.last) body.last_image = kf.last;
+  } else {
+    const refers = [
+      ...imgs.map((url) => ({ url, type: 'image' })),
+      ...vids.map((url) => ({ url, type: 'video' })),
+      ...auds.map((url) => ({ url, type: 'audio' })),
+    ];
+    if (refers.length) body.refers = refers;
+  }
+  return { body, params, model };
 }
 
 // Wan 3.0's body — the same route fields in, Atlas's Wan schema out. Answers
@@ -288,6 +450,10 @@ function buildRequest(b) {
   if (kf.error) return kf;
   // Wan 3.0: the three endpoints, picked by the shape (see WAN_RE).
   if (isWan(model)) return buildWanRequest(b, prompt, model, kf);
+  if (isWan27(model)) return buildWan27Request(b, prompt, model, kf);
+  if (isWan22(model)) return buildWan22Request(b, prompt, model, kf);
+  // a door this module has no schema for — the generic body
+  if (isOther(model)) return buildOtherRequest(b, prompt, model, kf);
   const imgs = (Array.isArray(b.referenceImageUrls) ? b.referenceImageUrls : []).map(String).filter(Boolean);
   const vids = (Array.isArray(b.referenceVideoUrls) ? b.referenceVideoUrls : []).map(String).filter(Boolean);
   const auds = (Array.isArray(b.referenceAudioUrls) ? b.referenceAudioUrls : []).map(String).filter(Boolean);
@@ -898,7 +1064,8 @@ router.get('/video-job/:id', async (req, res) => {
 module.exports = {
   router,
   configured: () => Boolean(KEY),
-  buildRequest, buildWanRequest, isWan, wanRootOf, wanEndpointOf, modelIdOf, apiframeStatus, refusalKind, splitOutputs,
+  buildRequest, buildWanRequest, buildWan27Request, buildWan22Request, buildOtherRequest, isWan, isWan27, isWan22, isOther, wanRootOf, wanEndpointOf, modelIdOf,
+  WAN27_MODEL, WAN22_MODEL, WAN22_TURBO_MODEL, apiframeStatus, refusalKind, splitOutputs,
   imageToVideoOf, isImageToVideo, framesOf,
   api, startVideo, pollVideo, failedRecord,
   billApi, balance, spend, usage, rangePlan, costOf, BILL_BASE, MAX_DAYS,
