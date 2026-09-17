@@ -77,6 +77,18 @@ resolution ladder Atlas's pages deny: it quoted every model at its 1080p
 default at 4x the 480p rate (wan-3.0 5s = $0.80 against 4¢/s), wan-2.2-turbo
 at its 720p default at 2x, and wan-2.7 at 1080P at 1.5x its 720P rate.
 
+## AND MINIMAX H3 (developer) TOOK HIM WITH HIS VOICE — the best result of the night
+
+`minimax/h3-developer/reference-to-video` (Atlas's own profile says
+"self-hosted"), his still + the 15s mp3 of his own voice, 5s at 480P, prompt
+`the man in the image speaks with the voice in the audio, camera at eye level`
+— drew in 16s: 480x576 24fps with SOUND, him in the chair from a new angle,
+talking, and the audio is his voice saying "I, uh, I saw a still" — the first
+words of the reference clip. ~8¢ (1.5¢/s). So two self-hosted doors on the
+key take a real famous face, and this one takes the voice too, which Wan 2.2
+cannot. Pinned as *Robert test v2*. MiniMax H3's own `refers` array is the
+same shape as Wan 3.0's, so `buildOtherRequest` sent it unchanged.
+
 ## What shipped from this
 
 - `video-refusals.js` carries both new rows — the real-human-faces output gate
