@@ -365,6 +365,24 @@
   .joinrow .joinb{width:26px;height:26px;padding:0;display:inline-flex;align-items:center;
              justify-content:center;background:#fdfbf7;color:#6f675e}
   .joinrow .joinb svg{width:14px;height:14px;display:block}
+  /* A NEW BLOCK AT THE BOTTOM, AND EVERY OTHER BLOCK PUT AWAY (2026-09-17,
+     Sophie: "add a button that makes a new text block at the bottom of
+     footage and collapses all other blocks"). The only way to a fresh block
+     was Divide here at the END of the last one, which leaves the scene she
+     just finished open above the empty box — four settled shots is four
+     screens of prose over the one she is about to write. One tap here: an
+     empty block under the last one, every other block folded to its heading
+     line, the gold line on the new one and the caret in it. Its own row, a
+     direct child of the panel below the last block, so the pill-gap fitter
+     judges it on its own rect and `addBlock`'s insert-after-the-last lands
+     the new block ABOVE it every time. The join mark's own shape and size —
+     the same rounded square, a Lucide plus — so it reads as the row's
+     sibling and not a second star. It is drawn with one block too: with one
+     block it is the one way to a second that leaves nothing to type. */
+  .newrow{display:flex;justify-content:center;padding:4px 0 6px}
+  .newrow .newb{width:26px;height:26px;padding:0;display:inline-flex;align-items:center;
+             justify-content:center;background:#fdfbf7;color:#6f675e}
+  .newrow .newb svg{width:14px;height:14px;display:block}
   /* THE STAR SENDS THE BLOCK SHE IS IN, and only with two or more blocks does
      that need saying: the active block wears the star's own gold line. One
      block wears nothing — the page looks exactly as it did. */
@@ -1389,6 +1407,8 @@
        this one, with a join mark in the gap. The star sends the block she is
        in — the one with the gold line — once there is more than one. -->
   <div class="promptwrap active"><button type="button" class="fold bfold" aria-expanded="true"><span class="bpick" role="checkbox" aria-checked="false" tabindex="0"></span><span class="chev"></span><span class="bflab">Block 1</span><span class="lw"></span><span class="bref"><span class="ic"></span><span class="n"></span></span><span class="bsent"></span></button><div class="hrow" hidden><button type="button" class="hprev" aria-label="An older prompt" title="An older prompt sent from this part">‹</button><span class="hpos"></span><button type="button" class="hnext" aria-label="A newer prompt" title="A newer prompt, back toward now">›</button></div><div class="hpast" hidden><div class="hwords"></div><div class="hmeta"><button type="button" class="hcard" title="Open that clip"></button><button type="button" class="wipe huse">use this</button></div></div><textarea id="prompt" class="pblock"></textarea><button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this block off" title="Take this block off — undo puts it back"></button><button type="button" id="divide" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block; at the end, an empty one"></button><button type="button" id="bigprompt" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
+  <!-- A NEW BLOCK AT THE BOTTOM (2026-09-17) — see `.newrow` and `newBlockBelow`. -->
+  <div class="newrow"><button type="button" class="newb" id="newblock" aria-label="New block" title="New block — an empty block under the last one; every other block folds away"></button></div>
 
   <!-- THE REFERENCES BLOCK — ITS HEADING, THE BAR, THE PICTURES (2026-09-14,
        Sophie: "references default collapsed · and collapse when job is sent" ·
@@ -1682,6 +1702,8 @@ $('seedclear').innerHTML = ICONS.x;
 $('rectog').innerHTML = ICONS.history;
 $('casttog').innerHTML = ICONS.users;
 document.querySelectorAll('.fold .chev').forEach(function (c) { c.innerHTML = ICONS.chev; });
+// the new-block button (2026-09-17) — `newBlockBelow`
+(function () { var nb = $('newblock'); if (!nb) return; nb.innerHTML = ICONS.plus; nb.addEventListener('click', function () { newBlockBelow(); }); })();
 document.querySelectorAll('.bref .ic').forEach(function (c) { c.innerHTML = ICONS.image; });
 document.querySelector('#player .pclose').innerHTML = ICONS.x;
 
@@ -4527,6 +4549,30 @@ function openBlock(box) {
   paintBlockHeads();
   saveDraft();
   if (window.__fitPillGap) window.__fitPillGap();
+}
+// A NEW BLOCK AT THE BOTTOM, AND EVERY OTHER BLOCK PUT AWAY (2026-09-17,
+// Sophie: "add a button that makes a new text block at the bottom of footage
+// and collapses all other blocks"). The empty block goes under the LAST one
+// whatever block she is standing in, carries nothing — no strip, no cast, no
+// mark: it is a new clip, not half of one, so the divide's copy rule does not
+// apply — and takes the gold line and the caret. Every other block is folded
+// to its heading line (`shut`, the same class her own tap writes, so the
+// draft banks it and a reload finds the page as she left it). `paintBlocks`
+// runs inside `addBlock`, so the headings are already drawn by the time the
+// folds are painted; the new block itself is never shut, so the lone-block
+// rule in `paintBlocks` has nothing to undo.
+function newBlockBelow() {
+  var was = blocks();
+  var nw = addBlock('', null);
+  was.forEach(function (w) { w.classList.add('shut'); });
+  setActive(nw);
+  paintBlockHeads();
+  paintJoinRows();
+  fitAll(); saveDraft();
+  if (window.__fitPillGap) window.__fitPillGap();
+  var nb = nw.querySelector('.pblock');
+  if (nb) nb.focus();
+  return nw;
 }
 // ── NEXT AND BACK THROUGH A PART'S OLD PROMPTS (2026-09-14, Sophie: "next
 // and back to see old prompts") ───────────────────────────────────────────
@@ -8131,8 +8177,13 @@ function fitPillGap() {
     // lands on `.bfold`/`.hfold` alone (see the stylesheet), so the rect that
     // has to clear the rail is the heading's. No heading drawn (one plain
     // block) → nothing reserves, and the box runs the panel's width.
+    // …and the new-block row (2026-09-17) is judged on its BUTTON: the row is
+    // the panel's width and a centred 26px plus is nowhere near the rail, so
+    // judging the row shifted the plus off-centre whenever the row happened
+    // to sit in the pill's band (PHOTOGRAPHED with one block).
     var judge = el.classList.contains('promptwrap') ? el.querySelector('.bfold')
-      : el.classList.contains('headwrap') ? el.querySelector('.hfold') : el;
+      : el.classList.contains('headwrap') ? el.querySelector('.hfold')
+      : el.classList.contains('newrow') ? el.querySelector('.newb') : el;
     if (!judge) { setGap(el, '--pillgap', '0px'); continue; }
     var r = judge.getBoundingClientRect();
     if (r.width && r.height) {

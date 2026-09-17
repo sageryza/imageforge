@@ -4179,6 +4179,28 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   A box is never fitted while it is folded (`scrollHeight`
   on a `display:none` box is 0, so it would come back one line tall), and the
   first divide gives back the height its own heading adds above the seam.
+  **AND A PLUS UNDER THE LAST BLOCK MAKES A NEW ONE AND PUTS EVERY OTHER
+  BLOCK AWAY (2026-09-17, Sophie: "add a button that makes a new text block
+  at the bottom of footage and collapses all other blocks" · "character and
+  setting shud be above the selected text block btw").** `#newblock`, a
+  rounded-square Lucide plus in its own `.newrow` under the last block (the
+  join mark's own shape and size), drawn with one block too. One tap
+  (`newBlockBelow`): an EMPTY block under the last one whatever block she is
+  standing in — it carries no strip, no cast and no mark, because it is a new
+  clip and not half of one, so the divide's copy rule does not apply — every
+  other block folded to its heading line with the same `shut` her own tap
+  writes (so the draft banks it), the gold line on the new block, the caret
+  in it, and the characters-and-setting wrap above it, which is `placeHeads`
+  doing what it has done since 09-14 (`markActive` moves the wrap above the
+  block that takes the gold line; the test measures it after the tap and
+  after tapping back into an older block). The pill fitter judges this row
+  on its BUTTON, as a block is judged on its heading: the row is the panel's
+  width and a centred plus is nowhere near the rail, so judging the row
+  shifted the plus 50px off-centre whenever the row sat in the pill's band
+  (PHOTOGRAPHED with one block). Test:
+  `node scripts/test-footage-new-block.js` (the real page headless — the
+  block, the folds, the gold line and the caret all MEASURED, the heads'
+  bottom meeting the active block's top, the draft, a reload).
   **AND EVERY BLOCK KEEPS ITS OWN PICTURES (2026-09-14, Sophie: "blocks in
   footage that have images attached shud keep attached images and the images
   return when block is selected").** The strip under the panel is the ACTIVE
