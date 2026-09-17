@@ -3350,6 +3350,19 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   faces and its one job took four person references without a word; whether
   it draws a FAMOUS face is UNMEASURED, and a 2s 480p text-to-video clip
   (~8¢) on her go is the measurement.
+  **MEASURED THE NEXT MORNING, AND IT IS A REAL-FACE GATE ON BOTH ENDS —
+  `docs/wan-face-gate-2026-09-17.md`.** Three free refusals: a text-only
+  `robert pattinson buying oranges` drew for 3m46s and was then blocked
+  (*"The output content is suspected to include real human faces"*), his own
+  photograph as a reference was blocked on the way IN with the same sentence,
+  and an m4a reference sound was refused for its container (Alibaba takes wav
+  and mp3 only — `atlascloud.js` now refuses one before sending). So Wan 3.0
+  is the opposite of Seedance here: Seedance takes a real person and blocks a
+  famous one, Wan blocks any real face either way. Every `alibaba/wan-*` id is
+  a passthrough to Alibaba Model Studio and shares that gate, Prime included;
+  the one Atlas hosts ITSELF — `atlascloud/wan-2.2/image-to-video`, 3¢/s,
+  organization `ATLASCLOUD`, the open weights — is the Wan with no policy
+  layer in front of it, and it is unmeasured.
   **HER OWN LIST THE SAME DAY IS WHY THE PAGE LOOKS LIKE THIS (2026-09-09).**
   "no button word labels above (eg seconds)" — every uppercase section label is
   gone and the controls stand on their own. "consolidate buttons. same row

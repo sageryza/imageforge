@@ -1,0 +1,73 @@
+# Which door takes a REAL famous face — measured 2026-09-17
+
+Sophie: *"allow robert pattinson"* · *"research which wan model might take
+robert"*. Three jobs sent through Atlas that evening, all free (every one was
+refused), and the answer is not the one the Wan 3.0 docs imply.
+
+## What Wan 3.0 actually does with a face
+
+| job | shape | what came back | when |
+| --- | --- | --- | --- |
+| `robert pattinson buying oranges` | 2s 480p 9:16, **no reference at all** | `The output content is suspected to include real human faces.` | after **3m46s** of drawing |
+| his still + his voice (m4a) | 2s, 1 image + 1 audio | `format m4a is not supported. Supported formats: ['wav', 'mp3']` | 21s |
+| the same with the voice as **mp3** | 2s, 1 image + 1 audio | `The input content is suspected to include real human faces.` | 15s |
+
+Three things follow, and none was on file before:
+
+1. **Wan 3.0 has a REAL-FACE gate, not a famous-face gate**, and it runs on
+   BOTH ends. The input one refused a photograph of a person; the output one
+   refused a clip drawn from nothing but words. Seedance on this door is the
+   opposite way round — it takes a real person in and only blocks a *famous*
+   face — so the two models are not interchangeable for anything with a
+   person in it.
+2. **The output gate is not free of TIME.** It let the model draw for nearly
+   four minutes and then threw the clip away. Money was not charged; the wait
+   was.
+3. **The 2026-09-11 test that "took four person references without a word"
+   is not contradicted — it is explained.** That job drew before this gate was
+   measured, on the same model id. Either the gate is probabilistic (like
+   ByteDance's copyright one) or it tightened. Both readings say the same
+   thing for planning: **Wan 3.0 cannot be relied on for a clip with a real
+   person in it.**
+
+## Which Wan model might take him
+
+Every `alibaba/wan-*` id on Atlas is a passthrough to **Alibaba Model
+Studio** — the model records say `organization: QWEN`,
+`parentFamilyName: qwen-wan` — so wan-2.5, wan-2.6, wan-2.7, wan-3.0 and
+wan-3.0-prime all sit behind the same policy layer that refused twice
+tonight. Prime is the same family as the model that refused; expecting a
+different answer from it is a guess, not a measurement.
+
+**The exception is the one Atlas hosts itself.** `atlascloud/wan-2.2/*` and
+`atlascloud/wan-2.2-turbo/*` carry `organization: ATLASCLOUD` and the profile
+*"Open and Advanced Large-Scale Video Generative Models"* — the OPEN-WEIGHTS
+Wan 2.2 running on Atlas's own GPUs, with no Model Studio in front of it. So
+the honest answer to "which wan model might take robert" is:
+
+- **`atlascloud/wan-2.2/image-to-video` — 3¢/s** (turbo 2¢/s), image + prompt,
+  no reference-to-video and no sound. A 2s test is ~6¢.
+
+Two non-Wan doors on the same key are worth naming beside it, because they
+are self-hosted for the same reason:
+
+- **`minimax/h3-developer/reference-to-video` — 1.5¢/s**, its own profile
+  says *"self-hosted"*, and it takes the mixed `refers` array (image + video +
+  audio, mp3/wav) that Wan 3.0 takes. The closest match to the job that was
+  refused, at a third of the price.
+- **`xai/grok-imagine-video/reference-to-video` — 5¢/s**, 1-7 reference
+  images, up to 10s. xAI's own policy on public figures is the loosest of the
+  majors.
+
+**Nothing here has been sent.** Every line above about a door that has not
+refused is a reading of its model record, not a measurement — the measurement
+is one 2s clip on her go.
+
+## What shipped from this
+
+- `video-refusals.js` carries both new rows — the real-human-faces output gate
+  (its own row, above the famous-face one) and the audio-container shape
+  refusal — each with the line Sophie reads on the card.
+- `atlascloud.js` refuses an m4a (or any container that is not wav/mp3) on a
+  Wan job **before sending it**, so that round trip is never spent again.
+  `WAN.AUDIO_EXTS` is the list.
