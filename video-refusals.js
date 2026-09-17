@@ -81,6 +81,17 @@ const ROWS = [
     line: 'A reference PICTURE has a real face in it and this door refuses it — refused, nothing drawn or charged. Atlas Cloud takes a real photo; a chat can send it there.',
     lineFor: (door) => `A reference PICTURE has a real face in it and ${doorName(door)} refuse${door ? 'd' : 's'} it${door === 'apiframe' ? ' after taking the job' : ''} — blur the eyes, or send it through ${elsewhere(door)}.`,
     seen: 'OpenRouter; APIFRAME ×2 on 2.5, 2026-09-11, on the POLL ~10s after the POST was accepted (Atlas drew the same three pictures)' },
+  // WAN 3.0's OWN OUTPUT GATE, AND IT IS ABOUT A REAL FACE RATHER THAN A
+  // FAMOUS ONE (2026-09-16, "allow robert pattinson"). A 2s 480p text-to-video
+  // clip on `alibaba/wan-3.0`, prompt `robert pattinson buying oranges`, no
+  // reference at all: ACCEPTED on the POST, drew for 3m46s, then failed with
+  // this sentence and `price` absent — so it is an OUTPUT gate and free. Wan's
+  // docs say nothing about faces; this is the measurement that says what it
+  // really does. Kept ABOVE the famous-face row because the words do not
+  // overlap and this one is the more specific sentence.
+  { re: /output content is suspected to include real human faces|suspected to include real human faces/i, kind: 'output', free: true,
+    line: 'Wan 3.0 drew the clip and then blocked it for a REAL HUMAN FACE — not a famous one, any real face it thinks it drew. Nothing charged. A Seedance door is the way round it.',
+    seen: 'Atlas 2026-09-16 ×1 (Wan 3.0, 2s, no references at all)' },
   { re: /famous|public figure/i, kind: 'content', free: true,
     line: 'A famous face in a reference — Atlas refuses public figures on the way in on Seedance. A chat can try this one through APIFRAME, or on Wan 3.0 (unmeasured there).',
     seen: 'Atlas 2026-09-09 (Radcliffe), on the POST' },
@@ -94,6 +105,12 @@ const ROWS = [
   { code: 1012009, re: /generated audio may be related to copyright|output audio may be related to copyright/i, kind: 'output', free: true,
     line: 'The clip drew but its SOUND was blocked as possible copyright — a song, a known voice. Not charged. Send again, or say in the prompt what the sound should be.',
     seen: 'Atlas ×1, APIFRAME ×2' },
+  // Alibaba's audio containers — measured the same evening: an m4a reference
+  // (what an iPhone voice memo is) was refused in 21s, free, before drawing.
+  // atlascloud.js now refuses it here rather than paying the round trip.
+  { re: /format m4a is not supported|Supported formats: \['wav', 'mp3'\]/i, kind: 'shape', free: true,
+    line: "Wan 3.0 takes a reference SOUND as wav or mp3 only — an m4a (an iPhone voice memo) is refused. Convert it and send again.",
+    seen: 'Atlas 2026-09-16 ×1 (Wan 3.0, an m4a reference audio)' },
   // ── down / other ────────────────────────────────────────────────────
   { re: /Polling timed out|is not answering|no answer in/i, kind: 'down', free: true,
     line: 'The door stopped answering. Nothing was drawn or charged — send it again.',

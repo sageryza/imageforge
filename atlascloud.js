@@ -109,6 +109,11 @@ const MAX_IMAGES = 9, MAX_VIDEOS = 3, MAX_AUDIOS = 3;
 const WAN_MODEL = 'alibaba/wan-3.0/reference-to-video';
 const WAN = {
   MAX_IMAGES: 10, MAX_VIDEOS: 5, MAX_AUDIOS: 5, MAX_REFERS: 20, MIN_S: 2, MAX_S: 30,
+  // ALIBABA TAKES A REFERENCE SOUND AS WAV OR MP3 ONLY (2026-09-16, measured:
+  // an m4a — what an iPhone voice memo is — came back "format m4a is not
+  // supported. Supported formats: ['wav', 'mp3']" in 21s, free). Refused here
+  // so the round trip is not spent on a container the door will not read.
+  AUDIO_EXTS: ['wav', 'mp3'],
   RESOLUTIONS: ['480p', '720p', '1080p', '720p-esr', '1080p-esr', '1440p-esr', '4k-esr'],
   RATIOS: ['adaptive', '16:9', '4:3', '1:1', '3:4', '9:16'],
 };
@@ -190,6 +195,11 @@ function buildWanRequest(b, prompt, model, kf) {
   if (imgs.length > WAN.MAX_IMAGES) return { error: `Wan 3.0 takes at most ${WAN.MAX_IMAGES} reference images` };
   if (vids.length > WAN.MAX_VIDEOS) return { error: `Wan 3.0 takes at most ${WAN.MAX_VIDEOS} reference videos (15 seconds together)` };
   if (auds.length > WAN.MAX_AUDIOS) return { error: `Wan 3.0 takes at most ${WAN.MAX_AUDIOS} reference audios (15 seconds together)` };
+  const badAudio = auds.find((u) => {
+    const ext = (String(u).split('?')[0].match(/\.([a-z0-9]+)$/i) || [])[1];
+    return ext && !WAN.AUDIO_EXTS.includes(ext.toLowerCase());
+  });
+  if (badAudio) return { error: `Wan 3.0 takes a reference sound as ${WAN.AUDIO_EXTS.join(' or ')} only — that one is .${(String(badAudio).split('?')[0].match(/\.([a-z0-9]+)$/i) || [])[1].toLowerCase()}. Convert it first.` };
   if (imgs.length + vids.length + auds.length > WAN.MAX_REFERS) return { error: `Wan 3.0 takes at most ${WAN.MAX_REFERS} references together` };
   const resolution = String(b.resolution || '480p');
   if (!WAN.RESOLUTIONS.includes(resolution)) return { error: `Wan 3.0 resolution must be one of ${WAN.RESOLUTIONS.join(', ')}` };
