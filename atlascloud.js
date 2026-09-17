@@ -184,6 +184,7 @@ function modelIdOf(m) {
   if (/^(atlascloud\/)?wan[-_ ]?2\.2$/.test(s)) return WAN22_MODEL;
   if (/^(atlascloud\/)?wan[-_ ]?2\.2[-_ ]turbo$/.test(s)) return WAN22_TURBO_MODEL;
   if (OTHER_MODEL.test(s)) return s;
+  if (TOOL_MODEL.test(s)) return s;
   return null;
 }
 // WAN 2.7 AND WAN 2.2 (2026-09-17, Sophie: "add the endpoints · maybe 2.2 or
@@ -291,6 +292,38 @@ function buildWan22Request(b, prompt, model, kf) {
 // not ours, so the id is matched by shape and the body is built generically.
 const OTHER_MODEL = /^[a-z0-9-]+\/[a-z0-9.-]+\/[a-z0-9-]*(to-video|video-edit|video-extend)[a-z0-9-]*$/;
 function isOther(model) { const s = String(model || ''); return OTHER_MODEL.test(s) && !isWan(s) && !/^bytedance\/seedance/.test(s); }
+
+// A TOOL ON THE SAME KEY — a lip-sync or an upscaler that takes a FINISHED
+// clip rather than drawing one (2026-09-17, Sophie: "any way to not squash"
+// · "any other models" · "go"). `veed/lipsync` and `sync/lipsync-v3` re-drive
+// an existing video's mouth to a new audio track; `atlascloud/video-upscaler`
+// (1080p · 2k), `byteplus/video/upscaler` and `tencent/video/upscaler`
+// enlarge one. Same `POST /model/generateVideo`, same poll, same log — so a
+// job through here is filed like any clip. No prompt: the clip is the input.
+// The field names are each schema's own (`video_url`/`audio_url` for the
+// lip-syncs, `video`/`target_resolution` for Atlas's upscaler); the route
+// takes `videoUrl` / `audioUrl` / `resolution`, or the first of the
+// reference lists, so a caller writes one shape for every door.
+const TOOL_MODEL = /^[a-z0-9-]+\/(?:video\/)?(?:lipsync[a-z0-9.-]*|video-upscaler|upscaler)$/;
+function isTool(model) { return TOOL_MODEL.test(String(model || '')); }
+function buildToolRequest(b, model) {
+  const vids = (Array.isArray(b.referenceVideoUrls) ? b.referenceVideoUrls : []).map(String).filter(Boolean);
+  const auds = (Array.isArray(b.referenceAudioUrls) ? b.referenceAudioUrls : []).map(String).filter(Boolean);
+  const video = String(b.videoUrl || vids[0] || '').trim();
+  const audio = String(b.audioUrl || auds[0] || '').trim();
+  if (!video) return { error: 'that model takes a finished clip — send videoUrl' };
+  const body = { model };
+  const params = { video };
+  if (/lipsync/.test(model)) {
+    if (!audio) return { error: 'a lip-sync takes the audio to move the mouth to — send audioUrl' };
+    body.video_url = video; body.audio_url = audio; params.audio = audio;
+    if (b.syncMode) { body.sync_mode = String(b.syncMode); params.sync_mode = body.sync_mode; }
+  } else {
+    body.video = video;
+    if (b.resolution) { body.target_resolution = String(b.resolution).toLowerCase(); params.target_resolution = body.target_resolution; }
+  }
+  return { body, params, model };
+}
 
 // A door this module has no schema for — the generic body. The fields every
 // Atlas video model on file shares (`prompt`, `duration`, `resolution`,
@@ -443,9 +476,11 @@ function framesOf(b) {
 function buildRequest(b) {
   b = b || {};
   const prompt = String(b.prompt == null ? '' : b.prompt);
-  if (!prompt.trim()) return { error: 'prompt is required' };
   let model = modelIdOf(b.model);
   if (!model) return { error: `unknown model "${b.model}" — Mini is the one id on file; pass a full bytedance/seedance-…/reference-to-video id for anything else, or wan-3.0` };
+  // a lip-sync or an upscaler takes a finished clip, not a prompt
+  if (isTool(model)) return buildToolRequest(b, model);
+  if (!prompt.trim()) return { error: 'prompt is required' };
   const kf = framesOf(b);
   if (kf.error) return kf;
   // Wan 3.0: the three endpoints, picked by the shape (see WAN_RE).
@@ -1064,7 +1099,7 @@ router.get('/video-job/:id', async (req, res) => {
 module.exports = {
   router,
   configured: () => Boolean(KEY),
-  buildRequest, buildWanRequest, buildWan27Request, buildWan22Request, buildOtherRequest, isWan, isWan27, isWan22, isOther, wanRootOf, wanEndpointOf, modelIdOf,
+  buildRequest, buildWanRequest, buildWan27Request, buildWan22Request, buildOtherRequest, buildToolRequest, isWan, isWan27, isWan22, isOther, isTool, wanRootOf, wanEndpointOf, modelIdOf,
   WAN27_MODEL, WAN22_MODEL, WAN22_TURBO_MODEL, apiframeStatus, refusalKind, splitOutputs,
   imageToVideoOf, isImageToVideo, framesOf,
   api, startVideo, pollVideo, failedRecord,
