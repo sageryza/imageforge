@@ -104,6 +104,26 @@ on the count; `prompt_expansion` off by default. Family prices per second on
 the sale: developer 1.5¢ (5¢ list) · max-turbo 2.4¢ · h3 3.8¢ · fast 4.4¢ ·
 max 4.8¢.
 
+## THE STANDARD MINIMAX H3 SAYS NEW WORDS IN HIS VOICE — the developer tier does not
+
+Same still, same 15s voice reference, the prompt asking him to say a NEW line
+(`"Are you kidnapping me?"`, his line from chapter one), 5s at 768P:
+- `h3-developer` (1.5¢/s): lip-synced the REFERENCE audio and smeared the
+  prompt over it — whisper hears *"I, uh, I saw a kid-nap in me"*. The cheap
+  tier plays the audio you give it; it cannot voice text.
+- `h3` (the standard model, 3.8¢/s, 2m11s to draw, 768x1024): **says "Are you
+  kidnapping me?" — clean, in the reference voice, mouth matching.** So the
+  standard tier CLONES the voice from the reference and speaks the prompt's
+  line, which is what a scripted film needs; no separate voice clone is
+  required for dialogue on this door. (It was accepted on the POST — no face
+  gate on the way in at this tier either.) Pinned as *Robert test v5*.
+
+Which is the answer to "why the lesser version": the developer tier was the
+one Atlas labels self-hosted and the cheapest probe for "does it take his
+face at all"; the standard tier turned out to take the face too AND do the
+one thing the cheap one cannot. Use `minimax/h3` for any clip with a line in
+it; the developer tier is for silent or ambient shots.
+
 ## What shipped from this
 
 - `video-refusals.js` carries both new rows — the real-human-faces output gate
