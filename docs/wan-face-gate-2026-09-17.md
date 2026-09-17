@@ -156,3 +156,23 @@ standard clip's 721 kb/s — 8x the bitrate at the same size** (3.9MB vs
 ENCODE, not the draw; max ships its clip nearly uncompressed. Pinned as
 *Robert test v6*. Price chart v2 in the chat's Compare tab carries the
 corrected tier map.
+
+## DEVELOPER AT 1440p-sr WITH THE CONTAINER LINE ("ok try ur plan")
+
+Same still, the Chatterbox `line1.mp3` (2.2s) as the one audio reference,
+`the man in the image speaks with the voice in the audio, camera at eye
+level`, 5s, `resolution: "1440p-sr"` on `minimax/h3-developer/
+reference-to-video`: accepted, drew in **4m57s** (the 768P runs took ~30s —
+the SR pass is the wait), **22.5¢** = 3x the tier's flat 480P rate
+(so the SR ladder on this family is 768P 1.6x, 1440p-sr 3x). 1440x1680
+24fps, 1,383 kb/s. **Two findings:**
+- **It filled the empty seconds with invented speech.** The reference held
+  2.2s of words in a 5s clip; whisper hears *"Alright, can we please stop
+  doing this? Are you kidnapping me?"* — the developer tier does not only
+  replay the audio it is given, it continues it when the clip is longer than
+  the words. Match the duration to the line, or give it a line that fills it.
+- **The upscale doubled the pixels, not the detail budget.** Bits per pixel
+  per frame: standard 768P 0.038 · developer 1440p-sr 0.024 · **max 768P
+  0.35**. The SR file is bigger and still squashed; max's is ten times
+  denser. So the sharp-file lever measured so far is the MAX TIER's encode,
+  not resolution — and max takes no voice. Pinned as *Robert test v7*.
