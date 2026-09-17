@@ -11,6 +11,8 @@
 // ones before it); a piece plays its own audio unless `mute`; a sound is laid
 // at `at` seconds with its in/out, gain (dB) and fades. Everything is scaled
 // and padded to one canvas. Sources are downloaded once into a cache dir.
+// The mix is summed (never normalised — her voice stays at unity) and then
+// held under -1 dB by a limiter, since a bed under a line can sum past 0.
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -86,7 +88,7 @@ async function render(cut, outFile, { size = '720x1280', fps = 24, cacheDir } = 
     f.push(`${parts[0]}${parts.slice(1).join(',')}[s${j}]`);
     mix.push(`[s${j}]`);
   });
-  f.push(`${mix.join('')}amix=inputs=${mix.length}:duration=first:normalize=0,atrim=0:${total}[aout]`);
+  f.push(`${mix.join('')}amix=inputs=${mix.length}:duration=first:normalize=0,alimiter=limit=0.891:level=false,atrim=0:${total}[aout]`);
   const args = ['-y', ...inputs, '-filter_complex', f.join(';'), '-map', '[vcat]', '-map', '[aout]',
     '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-t', String(total), outFile];
   const r = spawnSync(FF, args, { stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 64 * 1024 * 1024 });
