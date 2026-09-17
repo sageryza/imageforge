@@ -3320,6 +3320,36 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   a reference is named by its slot and never described), the model, the
   seconds, the size, the shape, the price of the tap, and **the star, which is
   the one button and sends on its tap**.
+  **WAN 3.0 IS ON THE PAGE — TWO ROWS, ATLAS ONLY, THREE ENDPOINTS BEHIND
+  EACH (2026-09-17, Sophie: "wan endpoints atlas" · "allow robert pattinson"
+  · "3.0 30s?").** `Wan 3.0` and `Wan 3.0 Prime` sit after 2.5 in the model
+  box: 2-30 seconds in ONE pass (the picker now runs 2 · 4 · 8 · 12 · 15 · 20
+  · 30, each model narrowed to its own range, so 2.5 finally reaches its 30
+  too), 480p / 720p / 1080p, no 21:9, ten pictures + five videos + five
+  audios (`atlasCaps` on the row; Seedance's 9/3/3 did not move). Atlas
+  carries `alibaba/wan-3.0/{text,image,reference}-to-video` and the same
+  three under `wan-3.0-prime`; the row holds the reference id and
+  **atlascloud.js picks the endpoint from the shape** (`wanEndpointOf`): no
+  reference → text-to-video, a first frame → image-to-video (`image` +
+  `last_image`, no `ratio`, and references beside it are REFUSED rather than
+  dropped, `refers` not being in that schema), references or a script file →
+  reference-to-video. The log's `model` is the id that really went out and
+  `rowOfDoorModel` folds it back onto the row (which also fixes an Atlas
+  Seedance keyframe clip reading as a raw string in `cardOf`). **THE PRICE
+  IS THE SAFE DIRECTION, NOT ATLAS'S PAGE:** Atlas lists one flat 4¢/s (5¢
+  list; Prime 6.1¢ / 6.8¢) "uniform across resolutions", but Alibaba's own
+  ladder is 5 / 10 / 20¢ and Atlas billed Seedance by resolution behind a
+  flat figure once already, so `resScale` quotes ×2 at 720p and ×4 at 1080p
+  until a real 720p charge is read; the one measurement is 15s 480p = 60¢.
+  A 30s clip is ~$1.20 at 480p. **WHY THE ROW EXISTS — the famous face.**
+  That evening Seedance Mini on Atlas drew *"a guy that looks suspiciously
+  like robert pattinson, but isn't actually him"* twice and blocked *"a
+  robert pattinson lookalike contest"* at the OUTPUT gate (copyright, drawn
+  then refused, free) — the same minute. Nothing in this repo blocks a name;
+  ByteDance's output gate does, sometimes. Wan 3.0's docs say nothing about
+  faces and its one job took four person references without a word; whether
+  it draws a FAMOUS face is UNMEASURED, and a 2s 480p text-to-video clip
+  (~8¢) on her go is the measurement.
   **HER OWN LIST THE SAME DAY IS WHY THE PAGE LOOKS LIKE THIS (2026-09-09).**
   "no button word labels above (eg seconds)" — every uppercase section label is
   gone and the controls stand on their own. "consolidate buttons. same row

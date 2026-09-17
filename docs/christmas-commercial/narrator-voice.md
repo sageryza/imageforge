@@ -29,7 +29,6 @@ editor").** She is cutting in LumaFusion; the reader
 (`scripts/fcpxml-to-cut.js`) turns her export into a cut doc, and that doc
 was rendered once and pinned before she said so. What she gets back is
 sounds and clips to drop into LumaFusion, or an mp4 — not a cut to co-edit.
-
 ## Where mom's "Presents? Apple cider?" goes (2026-09-17, her go)
 
 Her script asks for the two words on two quick zooms, and both zooms are

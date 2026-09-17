@@ -79,9 +79,18 @@ const base = { prompt: 'she walks out of the office, camera at eye level', durat
 
   ok('atlas: a url that is not https is refused rather than sent',
     Boolean(A.buildRequest({ ...base, model: 'mini', firstFrameUrl: 'ref.png' }).error));
-  // WAN's image-to-video sibling is unmeasured on this door
-  ok('atlas: a keyframe on Wan 3.0 is refused rather than sent under an unread key',
-    /Wan 3\.0/.test(A.buildRequest({ ...base, model: 'wan-3.0', firstFrameUrl: FIRST }).error || ''));
+  // WAN 3.0 (2026-09-17): a first frame is its image-to-video endpoint, with
+  // NO references beside it (`refers` is not in that schema) and no `ratio`
+  const wanKf = A.buildRequest({ ...base, model: 'wan-3.0', firstFrameUrl: FIRST, referenceImageUrls: [], referenceVideoUrls: [], referenceAudioUrls: [] });
+  ok('atlas: a first frame on Wan 3.0 swaps the id to image-to-video and rides as `image`, no ratio',
+    !wanKf.error && wanKf.model === 'alibaba/wan-3.0/image-to-video' && wanKf.body.model === wanKf.model && wanKf.body.image === FIRST
+    && !('refers' in wanKf.body) && !('ratio' in wanKf.body) && wanKf.params.start_image === FIRST);
+  const wanBoth = A.buildRequest({ ...base, model: 'wan-3.0', firstFrameUrl: FIRST, lastFrameUrl: LAST, referenceImageUrls: [], referenceVideoUrls: [], referenceAudioUrls: [] });
+  ok('atlas: a last frame beside it rides as `last_image`', !wanBoth.error && wanBoth.body.last_image === LAST && wanBoth.params.end_image === LAST);
+  ok('atlas: a first frame AND references on Wan 3.0 are refused rather than half-sent',
+    /never both/.test(A.buildRequest({ ...base, model: 'wan-3.0', firstFrameUrl: FIRST, referenceImageUrls: ['https://x/i.png'] }).error || ''));
+  ok('atlas: a last frame alone on Wan 3.0 is refused — `image` is required there',
+    /needs a FIRST frame/.test(A.buildRequest({ ...base, model: 'wan-3.0', lastFrameUrl: LAST, referenceImageUrls: [], referenceVideoUrls: [], referenceAudioUrls: [] }).error || ''));
   // an image-to-video id with nothing to start from is a shape error, not a draw
   ok('atlas: an image-to-video id with no first frame is refused',
     /needs a firstFrameUrl/.test(A.buildRequest({ ...base, model: 'bytedance/seedance-2.5/image-to-video' }).error || ''));

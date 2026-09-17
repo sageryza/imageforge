@@ -103,8 +103,9 @@ still every time the work wraps up.
    need, doing}`. Telegraphic fragments, ~30-60 chars, the way she writes her
    own notes. `need` = what you need from her AND how big the ask is; send `""`
    when nothing is needed. **It goes to her LOCK SCREEN verbatim, so it asks
-   rather than orders** — `ok to deploy?`, never `deploy? one word`
-   (2026-09-15: "one word notification feels aggressive").
+   rather than orders** — `ok to pick a palette?`, never `pick one. one word`
+   (2026-09-15: "one word notification feels aggressive"). **And deploying is
+   not an ask any more — she has the Deploy button on /waiting (2026-09-16).**
 2. **Write your UPDATE CARD** — `POST /api/chatfeed/update {chat, session,
    asked, did, next}`. *Measured: only 15 of 224 chats had ever posted one.*
 3. **Spent real money this turn? Say how much.** ONLY then — a reply that
@@ -291,7 +292,11 @@ Otherwise: a reference with a PERSON in it goes to Atlas or APIFRAME (ByteDance'
 own input filter refuses a real or photoreal face on 2.0 and a person VIDEO on
 every model — the refusal is free); a person-free job is cheapest on
 OpenRouter for 2.0/2.5 and on Atlas for Mini/Fast (its sale); a FAMOUS face is
-refused everywhere. `/footage` picks the cheapest door itself. **The "go"
+refused on every Seedance door (Atlas on the way in; Mini's OUTPUT gate blocked
+"a robert pattinson lookalike contest" 2026-09-16 after drawing two lookalikes)
+— **on Wan 3.0 it is UNMEASURED**, and Wan 3.0 / Wan 3.0 Prime are rows on
+`/footage` since 2026-09-17 (Atlas only, 2-30s, three endpoints picked by the
+shape; the Footage doc has it). `/footage` picks the cheapest door itself. **The "go"
 rule applies to every door word for word**, a refused job is never re-sent
 through another door or without its references, and nothing is ever
 "unblocked" by blurring eyes or a black bar on a video. Every measurement
@@ -610,17 +615,24 @@ are separate steps and both are cheap:
   nothing, it is the same marker the docs-only rule uses, and it is the
   belt-and-braces if auto deploy is ever turned back on — but it is no longer
   what stands between your merge and her live site.
-- **THEN ASK.** Say the change is merged and not live, and deploy only when she
-  says. `node scripts/render-deploy.js` is the deploy (its `--dry` says what is
-  in flight). **"Not deployed" now means FROZEN until someone deploys** — no
-  other chat's merge carries it out any more, so don't tell her it will ride
-  along. The pile waiting to go live is
-  https://imageforge-q125.onrender.com/waiting.
-- **AND DEPLOYING IS HERS, NOT A JUDGEMENT CALL.** A fix she is actively
-  waiting on is still not a reason to ship it without her word — say it is
-  merged and ask. The two that shipped themselves on 2026-09-15 were both
-  fixes she had just asked for, and that is exactly the reasoning she ruled
-  out.
+- **THEN SAY IT IS NOT LIVE — AND STOP ASKING (2026-09-16, Sophie: "add a
+  button at top of merged changes that deploys to render so i can do it myself
+  and chats can stop asking").** A **Deploy** button now leads
+  https://imageforge-q125.onrender.com/waiting — two taps, and it sends
+  everything on that list live. So the ask that used to end every turn is
+  retired: write ONE line saying the change is merged and not live, and leave
+  the deciding where it already was. **Do not ask "ok to deploy?" and do not
+  put that question on her status card** — she has the button.
+  - **THE RULE THAT DID NOT MOVE: you still do not deploy on your own.** The
+    button is HERS. `node scripts/render-deploy.js` stays the chat's door for
+    when she says the word in the chat (her "go", "deploy it", "deploy
+    first"), which is still a go and still gets done that turn.
+  - **"Not deployed" means FROZEN until someone deploys** — no other chat's
+    merge carries it out any more, so never tell her it will ride along.
+  - **What "she is waiting on it" buys you is nothing, exactly as before.**
+    The two that shipped themselves on 2026-09-15 were both fixes she had just
+    asked for, and that is the reasoning she ruled out. The difference now is
+    that the fix to it is a button rather than a question.
 - **NAME WHAT RIDES ALONG (her third ask the same message: "when u merge make
   sure ur aware of what goes with it").** Before merging, read
   `git log HEAD..origin/main` (what landed under you) and
@@ -2266,6 +2278,9 @@ them off the reference sheet, not off the old filenames.
       when the ask is already one beat.
     - Telegraphic is still right. Short and asking is `ok to deploy?`; short
       and barking is `deploy? one word`. It is four characters between them.
+    - **That example is now HISTORY, not a card to write.** Deploying stopped
+      being an ask on 2026-09-16 — she has the Deploy button on /waiting — so
+      a `need` that asks to deploy is the wrong card whatever its wording.
   - `doing` = what you're on — "six lesson cards, drawing now". Clear it
     (`""`) when you finish.
   - `session` = `CLAUDE_CODE_REMOTE_SESSION_ID` without `cse_` — resolution
@@ -4291,8 +4306,39 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - The count is `ahead_by` off the same live commit push.js counts from, so
     the page and the buzz can never disagree. Two cached unauthenticated GitHub
     reads, no model call, no Firestore read unless a line was filed; opening it
-    spends nothing and deploys nothing. Tests: `node scripts/test-waiting.js`
+    spends nothing. Tests: `node scripts/test-waiting.js`
     and `node scripts/test-waiting-page.js`.
+  - **AND SHE DEPLOYS IT HERSELF FROM THE TOP OF IT (2026-09-16, Sophie: "add
+    a button at top of merged changes that deploys to render so i can do it
+    myself and chats can stop asking").** **Deploy** leads the page, above the
+    pile it would ship; two taps (the first ARMS it and says how many go live,
+    the second sends), `POST /api/waiting/deploy` with no body, and Render's
+    own `preDeployCommand` guard does the waiting on a draw exactly as it does
+    for a chat's `render-deploy.js`. **It is drawn only when there is
+    something to ship AND the server can deploy at all** — a button that can
+    only answer "no key" is a dead control. Two guards, because STUDIO_TOKEN
+    is off live and the page is therefore open: nothing waiting is refused,
+    and one deploy per five minutes per process.
+  - **THE SECRET IT NEEDS IS THE SMALL ONE — `RENDER_DEPLOY_HOOK`, and it is
+    ONE FIELD OF HERS.** Render's per-service deploy hook (its Settings page,
+    the "Deploy Hook" row) is a url that can do exactly one thing: deploy THIS
+    service. That is why it is preferred over `RENDER_API_KEY`, which is
+    account-wide and could also delete her services — on a public route the
+    secret behind the button should be the smallest one that does the job.
+    `RENDER_API_KEY` still works as the fallback, and is what a chat's own
+    container uses for `render-deploy.js`, where the blast radius is a
+    container rather than an open url. A hook that is not on
+    `https://api.render.com/deploy/` is IGNORED rather than POSTed to — the
+    value is a url this server sends a stranger's tap at, so it is checked
+    rather than trusted. **Measured 2026-09-16: the service carried neither,
+    so the button is not drawn until she pastes one.** Her two screens:
+    https://dashboard.render.com/web/srv-d660igvgi27c73a5u6eg/settings (copy
+    the Deploy Hook) →
+    https://dashboard.render.com/web/srv-d660igvgi27c73a5u6eg/env (add it as
+    `RENDER_DEPLOY_HOOK`). **A chat cannot do this for her** — writing a
+    secret into a store is refused in a session container. **The chat-side
+    rule this retires is in *ASK BEFORE YOU DEPLOY* — stop asking; say it is
+    merged and not live in one line.**
 
 - **THE WORK LOG** (`GET /api/chatfeed/worklog`, page at `/worklog`, no
   iOS tile — 2026-09-02, Sophie: "i want to make a timeline of what i worked
