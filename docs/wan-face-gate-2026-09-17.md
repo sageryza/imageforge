@@ -176,3 +176,25 @@ the SR pass is the wait), **22.5¢** = 3x the tier's flat 480P rate
   0.35**. The SR file is bigger and still squashed; max's is ten times
   denser. So the sharp-file lever measured so far is the MAX TIER's encode,
   not resolution — and max takes no voice. Pinned as *Robert test v7*.
+
+## THE TWO SHARPNESS ROADS, MEASURED (her go: "go")
+
+Both through the new TOOL door on the Atlas module (`atlascloud.js`
+`buildToolRequest`: a lip-sync or an upscaler takes a finished clip, no
+prompt; `node scripts/test-atlascloud-tools.js`).
+- **`veed/lipsync` on the MAX clip (v6) with the container `line1.mp3`:**
+  drew in 56s. 768x928, **1,922 kb/s** (the max source re-encoded, but still
+  2.7x the standard tier's density), whisper: *"Are you kidnapping me?"* —
+  the mouth follows the container line. **It trims the video to the AUDIO's
+  length** (2.18s from a 5s clip; veed has no sync_mode field — `sync/
+  lipsync-v3` has `cut_off · loop · bounce · silence · remap`). So the audio
+  has to be as long as the shot, or the shot is cut to it. Pinned *Robert
+  test v8*.
+- **`atlascloud/video-upscaler` on the STANDARD clip (v5, his real voice) to
+  2k:** 35s. 1664x2216, **1,265 kb/s** — 0.014 bits per pixel per frame,
+  LOWER than the 768P source's 0.038. It enlarges; it does not put back what
+  the encode threw away. Pinned *Robert test v9*, his voice and words intact.
+Neither job carried a `price` on its record; the ledger (`/spend`) is the
+read. The sharp file remains the max tier's own encode, and the road to sharp
++ his words is **max draws → a lip-sync moves the mouth to the container
+line**, with the line cut to the shot's length.
