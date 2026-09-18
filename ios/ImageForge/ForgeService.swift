@@ -91,7 +91,7 @@ final class ForgeService {
     /// baked into the backend (reference images + style prompt); the app only
     /// sends the subject prompt and the quality. Returns the sheet URL plus the
     /// detected sticker boxes (for tap-to-redo).
-    func generateStickerSheet(prompt: String, quality: String) async throws -> StickerSheetResult {
+    func generateStickerSheet(prompt: String, quality: String, model: String = "gpt-image-2") async throws -> StickerSheetResult {
         try await ensureSignedIn()
         // Routed through forgeTestImage (style "sticker-sheet") because that
         // function already has the public-invoker binding the client SDK needs.
@@ -99,6 +99,7 @@ final class ForgeService {
             "prompt": prompt,
             "style": "sticker-sheet",
             "quality": quality,
+            "model": model,
         ])
         guard
             let data = result.data as? [String: Any],
