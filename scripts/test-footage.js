@@ -1026,6 +1026,17 @@ async function pillSweep(pg, where) {
   ok('every row is inside the served range ' + JSON.stringify(secRange),
     !!secRange && secBox.rows.every((v) => Number(v) >= secRange[0] && Number(v) <= secRange[1]));
   ok('the lengths are not a min/max typed into the markup', !/max="15"|min="4"/.test(PAGE_SRC));
+  // A MODEL'S OWN MINIMUM IS ALWAYS A ROW (2026-09-18, "there's no 5s
+  // button"): MiniMax runs 5-15 and none of the steps is 5, so its shortest
+  // clip was off the picker and the first row was 8s.
+  const secRowsOf = async (id) => {
+    await page.selectOption('#model', id);
+    await page.waitForTimeout(200);
+    return page.$eval('#secs', (b) => [...b.options].map((o) => o.value).join(','));
+  };
+  const secMini = { minimax: await secRowsOf('minimax'), wan22: await secRowsOf('wan-2.2'), mini: await secRowsOf('mini') };
+  ok('MiniMax offers 5s first, then the steps inside 5-15: ' + secMini.minimax, secMini.minimax === '5,8,12,15');
+  ok('a five-only model offers 5 alone, and Mini is unchanged', secMini.wan22 === '5' && secMini.mini === '4,8,12,15');
   await page.selectOption('#secs', '12');
   await page.waitForFunction(() => document.getElementById('secs').value === '12');
   ok('picking one takes', (await page.$eval('#secs', (e) => e.value)) === '12');
