@@ -199,3 +199,36 @@ Neither job carried a `price` on its record; the ledger (`/spend`) is the
 read. The sharp file remains the max tier's own encode, and the road to sharp
 + his words is **max draws → a lip-sync moves the mouth to the container
 line**, with the line cut to the shot's length.
+
+## THE CAR SCENE, 2026-09-18 — five things measured while shooting it on MiniMax standard
+
+1. **MiniMax cannot always fetch a `storage.googleapis.com` url.** Three
+   sends in a row failed free (`media not accessible (HTTP 403)`) on a
+   DIFFERENT file each time, including the voice mp3 that had worked an hour
+   earlier; every file was public and read fine from a container. Served
+   through our own box instead — `https://imageforge-q125.onrender.com/api/drop/file/<dump id>`
+   streams the bytes — the same job drew first time. **Every MiniMax
+   reference goes through `/api/drop/file/` now**; a reference not on the
+   Dump is put there first.
+2. **A 15s clip with a 3s line gets INVENTED DIALOGUE** on the standard tier
+   too (not only developer): "Arcee! We're trying to kidnap you!" over the
+   scramble. Give a clip only the seconds its line needs (8-10) and end the
+   prompt `no other dialogue`; both 10s takes with that line came back with
+   only the written words.
+3. **Words do not hold the staging.** "She drives from the left seat, he sits
+   in the right front passenger seat, camera head on through the windshield"
+   still swapped the seats once and shot from the side window three times out
+   of five. A frame of the one good take, grabbed free with
+   `POST /api/footage/jobs/:id/frame {at}` and sent as a reference with
+   `the shot is staged exactly as Image 4`, held the seats and the head-on
+   camera on the next car 1 take; car 2 with the same frame kept the seats
+   but still drifted to the side. So the still helps and is not a lock; the
+   next thing to try is the staging frame in the FIRST slot.
+4. **"same car, same road" means nothing** — every clip is a fresh model with
+   no memory; every prompt spells out the whole setup.
+5. **480P is 57¢ for 15s, 768P is $1.20**; her call for the drafts is 480P.
+
+Restaurant A (the wish, 10s 480P, plaid + woman + voice, no room reference)
+drew a booth with the two SIDE BY SIDE rather than across the table, every
+line intact. Its frame at 1s is the restaurant staging still on the Dump
+(`restaurant-staging-booth.png`) for the clips that follow.
