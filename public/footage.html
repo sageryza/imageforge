@@ -2737,9 +2737,13 @@ function secOptions(m) {
   m = m || modelOf(S.model);
   if (!m) return SEC_STEPS.slice();
   var rows = SEC_STEPS.filter(function (n) { return n >= m.secs[0] && n <= m.secs[1]; });
-  // A range holding none of the four still has to offer something she can
-  // send: its own minimum, rather than an empty picker.
-  return rows.length ? rows : [m.secs[0]];
+  // THE MODEL'S OWN MINIMUM IS ALWAYS A ROW (2026-09-18, Sophie on MiniMax:
+  // "there's no 5s button. it says 30 cents"). MiniMax runs 5-15 and the
+  // steps held no 5, so the shortest clip it sells — the minimum-seconds
+  // rule's default — was not on the picker and the first row was 8s. A
+  // range holding none of the steps still offers its minimum too.
+  if (rows.indexOf(m.secs[0]) < 0) rows.unshift(m.secs[0]);
+  return rows;
 }
 // SNAPS to the nearest offered length rather than clamping to the range: a
 // stored 9 (or a belt hand-off naming one) has to land on a row the picker
