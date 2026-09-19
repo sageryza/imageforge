@@ -37,6 +37,7 @@ Secrets are read from the environment — never commit them. See `.env.example`.
 | --- | --- | --- |
 | `OPENAI_API_KEY` | yes | Text generation + DALL·E images |
 | `REPLICATE_API_TOKEN` | yes | Replicate (custom LoRA) styles |
+| `MUAPI_API_KEY` | no | MuAPI FLUX Schnell image generation |
 | `FIREBASE_SERVICE_ACCOUNT` | optional | Save images permanently + gallery |
 | `PORT` | optional | Defaults to 3001 (Render sets this) |
 
@@ -56,8 +57,9 @@ Open http://localhost:3001 (or http://localhost:3001/book).
 This repo includes a `render.yaml` Blueprint.
 
 - **New setup:** Render Dashboard → New → Blueprint → pick this repo. It creates
-  the web service; set `OPENAI_API_KEY`, `REPLICATE_API_TOKEN`, and (optionally)
-  `FIREBASE_SERVICE_ACCOUNT` when prompted (they're marked `sync: false`).
+  the web service; set `OPENAI_API_KEY`, `REPLICATE_API_TOKEN`, and optionally
+  `MUAPI_API_KEY` and `FIREBASE_SERVICE_ACCOUNT` when prompted (they're marked
+  `sync: false`).
 - **Existing service:** if a Render service is already connected to this repo,
   it auto-deploys on each push to your default branch. Just make sure the env
   vars above are set under the service's **Environment** tab, then redeploy.

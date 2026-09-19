@@ -34,7 +34,7 @@ const MANAGED_KEYS = [
   'LULU_API_KEY', 'LULU_API_SECRET', 'LULU_BASE64', 'LULU_SANDBOX', 'LULU_API_BASE',
   'SHOPIFY_STORE', 'SHOPIFY_ADMIN_TOKEN', 'SHOPIFY_API_VERSION',
   'SHOPIFY_CLIENT_ID', 'SHOPIFY_CLIENT_SECRET',
-  'OPENAI_API_KEY', 'REPLICATE_API_TOKEN', 'ANTHROPIC_API_KEY',
+  'OPENAI_API_KEY', 'REPLICATE_API_TOKEN', 'MUAPI_API_KEY', 'ANTHROPIC_API_KEY',
   // APNs — the Chats app's push notifications (push.js). The .p8 auth key +
   // its ids; like everything here, Render env wins and Firestore fills gaps.
   'APNS_KEY', 'APNS_KEY_ID', 'APNS_TEAM_ID', 'APNS_TOPIC',
