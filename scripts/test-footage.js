@@ -417,7 +417,11 @@ let jobs = [
 ].concat([{
   // A CHAT'S CLIP IN HER FEED (2026-09-11) — filed under the ward by the
   // sort, sent by a chat, so its card has to say `from <chat>`
-  id: 'c1', chat: 'mom-character-clip', project: 'ward', prompt: 'her mother is the woman in [Image1]', model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', seconds: 8, resolution: '480p', ratio: '3:4',
+  // ITS RESOLUTION IS IN CAPITALS ON PURPOSE — MiniMax writes its own rungs
+  // that way and the door stores what it was sent, so 27 of her 200 newest
+  // clips are on file as `480P`/`768P` (measured 2026-09-18). The Resolution
+  // chips fold case, and this clip is the one that proves it.
+  id: 'c1', chat: 'mom-character-clip', project: 'ward', prompt: 'her mother is the woman in [Image1]', model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', seconds: 8, resolution: '480P', ratio: '3:4',
   sound: true, refs: [], status: 'done', video: 'http://127.0.0.1:PORT/clip.mp4', poster: 'http://127.0.0.1:PORT/ref.png',
   cost: 8.8, estimate: 8.8, sentAt: '2026-09-09T07:30:00.000Z', vote: '', hidden: false,
 }]).concat(Array.from({ length: 7 }, (_, i) => ({
@@ -1338,11 +1342,13 @@ async function pillSweep(pg, where) {
     const open = await funnelBox();
     ok('the glass opens the field AND the funnel beside it, the drawer shut — ' + JSON.stringify(dr.rows),
       dr.chip && dr.shut && dr.funnel && open.w > 20 && open.afterField && open.sameRow
-      && dr.rows[0] === 'Mini·Fast·2.0·2.5·Wan·Wan Prime·Wan 2.2·Wan 2.7·MiniMax' && dr.rows[1] === 'Today·This week·This month');
+      && dr.rows[0] === 'Mini·Fast·2.0·2.5·Wan·Wan Prime·Wan 2.2·Wan 2.7·MiniMax'
+      && dr.rows[1] === '480p·720p·768p·1080p·2K' && dr.rows[2] === 'Today·This week·This month');
     ok('and the funnel stretches to the field beside it, not the shell’s 34 — ' + open.h + ' vs ' + open.qh, Math.abs(open.h - open.qh) <= 2);
     ok('the model chips are the models the page offers, pinned to PAGE_MODELS', /var PAGE_MODELS = \['mini', 'fast', '2\.0', '2\.5', 'wan', 'wan-prime', 'wan-2\.2', 'wan-2\.7', 'minimax'\]/.test(fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8')));
     await page.click('#feedfilters .filtchip');
     ok('the tap opens the drawer', !(await page.$eval('#feedfilters .filtdrawer', (e) => e.hidden)));
+    if (process.env.SHOT_DIR) await page.screenshot({ path: require('path').join(process.env.SHOT_DIR, 'filter-drawer.png') }).catch(() => {});
     await page.click('#feedfilters .filtcbtn[data-v="fast"]');
     await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 1);
     ok('the Fast chip keeps only the Fast clip', (await visible()) === 'f4');
@@ -1352,6 +1358,30 @@ async function pillSweep(pg, where) {
     ok('Mini AND Fast together is both of them', (await visible()).split(',').length >= 8);
     await page.click('#feedfilters .filtcbtn[data-v="fast"]');
     await page.click('#feedfilters .filtcbtn[data-v="mini"]');
+    // RESOLUTION — the quality row (2026-09-18, Sophie: "add a filter by
+    // model and quality and resolution in footage"). f6 is the only 720p clip.
+    await page.click('#feedfilters .filtcbtn[data-v="720p"]');
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 1);
+    ok('the 720p chip keeps only the 720p clip', (await visible()) === 'f6');
+    // AND THE RUNG IS CASE-FOLDED — c1 is on file as `480P`, which is how a
+    // seventh of her real feed is stored. A literal match would drop it, and
+    // the drop is invisible: the chip still lights and clips still show.
+    await page.click('#feedfilters .filtcbtn[data-v="480p"]');
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length >= 8);
+    const bothRes = await visible();
+    ok('480p AND 720p is every clip, the `480P` one included — ' + bothRes, /\bc1\b/.test(bothRes) && /\bf6\b/.test(bothRes));
+    await page.click('#feedfilters .filtcbtn[data-v="720p"]');
+    await page.waitForFunction(() => { const e = document.getElementById('job-f6'); return e && e.hidden; });
+    const only480 = await visible();
+    ok('480p alone drops the 720p clip and keeps the capitalised one — ' + only480,
+      !/\bf6\b/.test(only480) && /\bc1\b/.test(only480) && only480.split(',').length >= 7);
+    // a rung nothing was drawn at empties the feed, and the note names SIZE
+    await page.click('#feedfilters .filtcbtn[data-v="480p"]');
+    await page.click('#feedfilters .filtcbtn[data-v="2k"]');
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 0 && !document.getElementById('feedempty').hidden);
+    ok('a rung with nothing on it empties the feed and the note names it', /resolution/.test(await page.$eval('#feedempty', (e) => e.textContent)));
+    await page.click('#feedfilters .filtcbtn[data-v="2k"]');
+    await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length >= 8);
     // WHEN — every clip on the page is dated 2026-09-09, so "today" empties
     // the feed, and the note has to say WHICH filter did it (a shut drawer is
     // exactly the thing she cannot see)

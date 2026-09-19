@@ -5753,7 +5753,7 @@ function applyFilt() {
   // her localStorage. It hides only on a page that has nothing to filter and
   // no filter on.
   var narrowed = !!(S.project || qGroups.length || likedOnly() || hideX()
-    || (FILT && ((FILT.get('model') || []).length || FILT.get('when'))));
+    || (FILT && ((FILT.get('model') || []).length || (FILT.get('res') || []).length || FILT.get('when'))));
   $('feedbar').hidden = !n && !narrowed;
   $('feedempty').hidden = !!any;
   // AN EMPTIED FEED SAYS WHICH FILTER EMPTIED IT — a shut drawer is exactly
@@ -5764,11 +5764,12 @@ function applyFilt() {
   // out — and it checked a query before the ♥, so hearting an unhearted set
   // blamed the search. Every rung now has to be a filter that is really on,
   // and a feed with clips but nothing passing says so plainly.
-  var fm = FILT && (FILT.get('model') || []).length, fw = FILT && FILT.get('when');
+  var fm = FILT && (FILT.get('model') || []).length, fr = FILT && (FILT.get('res') || []).length, fw = FILT && FILT.get('when');
   $('feedempty').textContent = !n ? (S.project ? 'Nothing in here yet.' : 'Nothing made here yet.')
     : likedOnly() ? 'Nothing hearted yet.'
     : qGroups.length ? ('Nothing matches that' + (S.project ? ' in ' + (S.folder ? folderName(S.folder) : projectName(S.project)) : '') + '.')
     : fm ? 'Nothing on that model.'
+    : fr ? 'Nothing at that resolution.'
     : fw ? 'Nothing that recent.'
     : hideX() ? 'Everything here is crossed out.' : 'Nothing to show here.';
 }
@@ -5888,7 +5889,9 @@ function searchOpen() { return !$('feedsearch').hidden; }
 // digit on the funnel can never say different things.
 function filtCount() {
   if (!FILT) return 0;
-  return ((FILT.get('model') || []).length ? 1 : 0) + (FILT.get('when') ? 1 : 0);
+  return ((FILT.get('model') || []).length ? 1 : 0)
+    + ((FILT.get('res') || []).length ? 1 : 0)
+    + (FILT.get('when') ? 1 : 0);
 }
 function paintSearchBtn() {
   var n = filtCount(), g = $('v-search'), c = g.querySelector('.qcount');
@@ -5914,21 +5917,46 @@ function setSearchOpen(open) {
 }
 $('v-search').addEventListener('click', function () { setSearchOpen(!searchOpen()); });
 
-// ── THE FILTER DRAWER — the shared shell, the Playground's own two rows
-// with this page's facts in them: MODEL (the four the page offers, chips,
-// several at once — a ladder is Mini beside 2.5) and WHEN (days back from
-// now). Sticky under `footage_filt_*`, like the ♥ and the ✕ beside them:
-// a filter over what she is LOOKING at costs nothing. The ♥ and the ✕ stay
-// on the bar — her 2026-09-02 word on the Playground ("put the heart x
-// thing exactly where it was"). ──────────────────────────────────────────
+// ── THE FILTER DRAWER — the shared shell, the Playground's own rows with
+// this page's facts in them: MODEL (the models the page offers, chips,
+// several at once — a ladder is Mini beside 2.5), RESOLUTION (the rung a clip
+// really came out at) and WHEN (days back from now). Sticky under
+// `footage_filt_*`, like the ♥ and the ✕ beside them: a filter over what she
+// is LOOKING at costs nothing. The ♥ and the ✕ stay on the bar — her
+// 2026-09-02 word on the Playground ("put the heart x thing exactly where it
+// was"). ──────────────────────────────────────────────────────────────────
+//
+// RESOLUTION IS THE QUALITY ROW, AND THERE IS ONLY ONE OF THEM (2026-09-18,
+// Sophie: "add a filter by model and quality and resolution in footage"). A
+// clip carries no quality field of its own the way a picture does — MEASURED
+// over her 200 newest clips, the facts on a card are the model, the
+// resolution, the shape, the seconds and the door, and nothing else. On
+// video the quality IS the rung: 480p · 720p · 768p · 1080p · 2K. So the
+// third word she named is this row, and the TIER (Mini against 2.5 against
+// Wan Prime) is the Model row she already has.
+//
+// AND THE RUNG IS CASE-FOLDED, which is not tidiness — MiniMax writes its
+// own resolutions in CAPITALS and the door stores what it was sent, so 27 of
+// those 200 clips are on file as `480P` / `768P` against 157 lowercase. A
+// chip matching the literal string would have hidden a seventh of her feed
+// while reading as a filter that works.
 var SF = window.ForgeSearchFilters || null;
 var FILT_MODELS = { mini: 'Mini', fast: 'Fast', '2.0': '2.0', '2.5': '2.5', wan: 'Wan', 'wan-prime': 'Wan Prime', 'wan-2.2': 'Wan 2.2', 'wan-2.7': 'Wan 2.7', minimax: 'MiniMax' };
+// The rungs the page's own models offer, plus 2K, which no model draws — it
+// is what the upscaler makes out of a finished clip.
+var PAGE_RES = ['480p', '720p', '768p', '1080p', '2k'];
+var FILT_RES = { '2k': '2K' };
+function resKey(v) { return String(v || '').trim().toLowerCase(); }
 function readList(k) { try { return (localStorage.getItem(k) || '').split(',').filter(Boolean); } catch (e) { return []; } }
 var FILT = SF ? SF.build($('feedfilters'), [
   { key: 'model', kind: 'chips', multi: true, label: 'Model',
     vals: PAGE_MODELS.slice(), words: PAGE_MODELS.map(function (id) { return FILT_MODELS[id] || id; }),
     get: function () { return readList('footage_filt_model'); },
     set: function (v) { try { localStorage.setItem('footage_filt_model', v.join(',')); } catch (e) {} } },
+  { key: 'res', kind: 'chips', multi: true, label: 'Resolution',
+    vals: PAGE_RES.slice(), words: PAGE_RES.map(function (r) { return FILT_RES[r] || r; }),
+    get: function () { return readList('footage_filt_res'); },
+    set: function (v) { try { localStorage.setItem('footage_filt_res', v.join(',')); } catch (e) {} } },
   { key: 'when', kind: 'chips', label: SF.WHEN.label, vals: SF.WHEN.vals, words: SF.WHEN.words,
     get: function () { try { return localStorage.getItem('footage_filt_when') || ''; } catch (e) { return ''; } },
     set: function (v) { try { localStorage.setItem('footage_filt_when', v || ''); } catch (e) {} } },
@@ -5938,6 +5966,8 @@ function passesFilt(j) {
   if (!FILT) return true;
   var ms = FILT.get('model') || [];
   if (ms.length && ms.indexOf(String(j.model || '')) < 0) return false;
+  var rs = FILT.get('res') || [];
+  if (rs.length && rs.indexOf(resKey(j.resolution)) < 0) return false;
   var since = SF.sinceMs(FILT.get('when'));
   if (since && !(Date.parse(j.sentAt || '') >= since)) return false;
   return true;
