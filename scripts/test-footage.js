@@ -1337,11 +1337,14 @@ async function pillSweep(pg, where) {
       const m = document.getElementById('feedfilters');
       const chip = m.querySelector('.filtchip'), drawer = m.querySelector('.filtdrawer');
       return { chip: !!chip, shut: drawer.hidden, funnel: !!chip.querySelector('svg'),
+        doors: Array.from(drawer.querySelectorAll('.filtdrop')).map((d) => d.dataset.k),
+        doorWords: Array.from(drawer.querySelectorAll('.filtdrop .filtdropn')).map((d) => d.textContent.trim()),
         rows: Array.from(drawer.querySelectorAll('.filtrow')).map((r) => Array.from(r.querySelectorAll('.filtcbtn')).map((b) => b.textContent.trim()).join('·')) };
     });
     const open = await funnelBox();
     ok('the glass opens the field AND the funnel beside it, the drawer shut — ' + JSON.stringify(dr.rows),
       dr.chip && dr.shut && dr.funnel && open.w > 20 && open.afterField && open.sameRow
+      && dr.doors.join(',') === 'model,res,when' && dr.doorWords.join('·') === 'Model·Resolution·When'
       && dr.rows[0] === 'Mini·Fast·2.0·2.5·Wan·Wan Prime·Wan 2.2·Wan 2.7·MiniMax'
       && dr.rows[1] === '480p·720p·768p·1080p·2K' && dr.rows[2] === 'Today·This week·This month');
     ok('and the funnel stretches to the field beside it, not the shell’s 34 — ' + open.h + ' vs ' + open.qh, Math.abs(open.h - open.qh) <= 2);
@@ -1349,17 +1352,59 @@ async function pillSweep(pg, where) {
     await page.click('#feedfilters .filtchip');
     ok('the tap opens the drawer', !(await page.$eval('#feedfilters .filtdrawer', (e) => e.hidden)));
     if (process.env.SHOT_DIR) await page.screenshot({ path: require('path').join(process.env.SHOT_DIR, 'filter-drawer.png') }).catch(() => {});
+    // THE ROWS ARE DROP-DOWNS (2026-09-18, Sophie: "buttons shud be drop downs
+    // to minimize space"). The drawer RESTS as one line of named doors with
+    // every row of chips shut, and the saving is MEASURED rather than assumed
+    // — three rows of chips is 266px on this phone.
+    const railAtRest = await page.evaluate(() => {
+      const d = document.querySelector('#feedfilters .filtdrawer');
+      const rail = document.querySelector('#feedfilters .filtdrops');
+      const rows = Array.from(document.querySelectorAll('#feedfilters .filtrow'));
+      return { drawerH: Math.round(d.getBoundingClientRect().height),
+        railH: Math.round(rail.getBoundingClientRect().height),
+        railLines: new Set(Array.from(document.querySelectorAll('#feedfilters .filtdrop')).map((b) => Math.round(b.getBoundingClientRect().top))).size,
+        rowsOpen: rows.filter((r) => r.getBoundingClientRect().height > 0).length,
+        doorH: Math.round(document.querySelector('#feedfilters .filtdrop').getBoundingClientRect().height) };
+    });
+    ok('the open drawer RESTS as one line of doors with every row shut — ' + JSON.stringify(railAtRest),
+      railAtRest.rowsOpen === 0 && railAtRest.railLines === 1 && railAtRest.drawerH <= 40 && railAtRest.doorH === 34);
+    // opening a door is what puts its chips on screen; only one is ever open
+    const openDoor = async (k) => {
+      await page.click('#feedfilters .filtdrop[data-k="' + k + '"]');
+      await page.waitForFunction((key) => {
+        const b = document.querySelector('#feedfilters .filtdrop[data-k="' + key + '"]');
+        return b && b.classList.contains('open');
+      }, k);
+    };
+    await openDoor('model');
+    const oneOpen = await page.evaluate(() => Array.from(document.querySelectorAll('#feedfilters .filtrow')).filter((r) => r.getBoundingClientRect().height > 0).length);
+    ok('a door opens its own chips and nothing else', oneOpen === 1);
+    if (process.env.SHOT_DIR) await page.screenshot({ path: require('path').join(process.env.SHOT_DIR, 'filter-open.png') }).catch(() => {});
     await page.click('#feedfilters .filtcbtn[data-v="fast"]');
     await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 1);
     ok('the Fast chip keeps only the Fast clip', (await visible()) === 'f4');
     ok('and the chip is lit', await page.$eval('#feedfilters .filtcbtn[data-v="fast"]', (e) => e.classList.contains('on')));
+    // ONE PICK SHOWS ITS WORD ON THE SHUT DOOR, several show the count — the
+    // door is the only thing on screen once its chips are folded away
+    const doorSays = (k) => page.evaluate((key) => {
+      const b = document.querySelector('#feedfilters .filtdrop[data-k="' + key + '"]');
+      return { v: b.querySelector('.filtdropv').textContent.trim(), on: b.classList.contains('on') };
+    }, k);
+    ok('one pick and the door wears the word', JSON.stringify(await doorSays('model')) === JSON.stringify({ v: 'Fast', on: true }));
     await page.click('#feedfilters .filtcbtn[data-v="mini"]');
     await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length >= 8);
     ok('Mini AND Fast together is both of them', (await visible()).split(',').length >= 8);
+    ok('two picks and the door wears the count', JSON.stringify(await doorSays('model')) === JSON.stringify({ v: '2', on: true }));
     await page.click('#feedfilters .filtcbtn[data-v="fast"]');
     await page.click('#feedfilters .filtcbtn[data-v="mini"]');
+    ok('cleared, the door says nothing and is unlit', JSON.stringify(await doorSays('model')) === JSON.stringify({ v: '', on: false }));
     // RESOLUTION — the quality row (2026-09-18, Sophie: "add a filter by
     // model and quality and resolution in footage"). f6 is the only 720p clip.
+    await openDoor('res');
+    const swapped = await page.evaluate(() => ({
+      model: document.querySelector('#feedfilters .filtdrop[data-k="model"]').classList.contains('open'),
+      open: Array.from(document.querySelectorAll('#feedfilters .filtrow')).filter((r) => r.getBoundingClientRect().height > 0).length }));
+    ok('opening another door shuts the one before it', !swapped.model && swapped.open === 1);
     await page.click('#feedfilters .filtcbtn[data-v="720p"]');
     await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 1);
     ok('the 720p chip keeps only the 720p clip', (await visible()) === 'f6');
@@ -1385,13 +1430,19 @@ async function pillSweep(pg, where) {
     // WHEN — every clip on the page is dated 2026-09-09, so "today" empties
     // the feed, and the note has to say WHICH filter did it (a shut drawer is
     // exactly the thing she cannot see)
+    await openDoor('when');
     await page.click('#feedfilters .filtcbtn[data-v="today"]');
     await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length === 0 && !document.getElementById('feedempty').hidden);
     ok('Today keeps only a clip sent today — none here — and the note names the filter', /recent/.test(await page.$eval('#feedempty', (e) => e.textContent)));
     // the chip wears the count while the drawer is SHUT
     await page.evaluate(() => document.body.click());
-    const worn = await page.evaluate(() => { const m = document.getElementById('feedfilters'); return { shut: m.querySelector('.filtdrawer').hidden, w: m.querySelector('.filtchipw').textContent.trim(), on: m.querySelector('.filtchip').classList.contains('on') }; });
+    const worn = await page.evaluate(() => { const m = document.getElementById('feedfilters'); return { shut: m.querySelector('.filtdrawer').hidden, w: m.querySelector('.filtchipw').textContent.trim(), on: m.querySelector('.filtchip').classList.contains('on'),
+      anyDoorOpen: !!m.querySelector('.filtdrop.open') }; });
     ok('tapping out shuts the drawer and the chip wears the count', worn.shut && worn.w === '1' && worn.on);
+    // AND THE DRAWER REOPENS AT ITS RESTING HEIGHT — her filter is untouched,
+    // the lid is not: a funnel that reopens however deep she left it is the
+    // stack of rows the doors exist to put away.
+    ok('shutting the drawer shut the door she left open', !worn.anyDoorOpen);
     // AND THE GLASS WEARS IT ONCE THE FUNNEL IS OFF THE BAR — a filter she
     // cannot see must never go on quietly hiding clips
     await page.click('#v-search');
@@ -1408,6 +1459,9 @@ async function pillSweep(pg, where) {
       && gw2.mountShut && gw2.count === '1' && gw2.on);
     await page.click('#v-search');
     await page.click('#feedfilters .filtchip');
+    ok('and it reopens with every row shut, however she left it',
+      (await page.evaluate(() => Array.from(document.querySelectorAll('#feedfilters .filtrow')).filter((r) => r.getBoundingClientRect().height > 0).length)) === 0);
+    await page.click('#feedfilters .filtdrop[data-k="when"]');
     await page.click('#feedfilters .filtcbtn[data-v="today"]');
     await page.evaluate(() => document.body.click());
     await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length >= 8);

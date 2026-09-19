@@ -5960,7 +5960,13 @@ var FILT = SF ? SF.build($('feedfilters'), [
   { key: 'when', kind: 'chips', label: SF.WHEN.label, vals: SF.WHEN.vals, words: SF.WHEN.words,
     get: function () { try { return localStorage.getItem('footage_filt_when') || ''; } catch (e) { return ''; } },
     set: function (v) { try { localStorage.setItem('footage_filt_when', v || ''); } catch (e) {} } },
-], function () { forgetSent(); paintFeed(); paintSearchBtn(); }, { label: 'Filters' }) : null;
+], function () { forgetSent(); paintFeed(); paintSearchBtn(); },
+   // THE ROWS ARE DROP-DOWNS HERE (2026-09-18, Sophie, looking at the three
+   // rows open on a 390pt phone: "buttons shud be drop downs to minimize
+   // space"). `layout:'drop'` is the shell's, so the chips inside are the
+   // same chips — MEASURED on this page: the open drawer is 34px at rest
+   // instead of 266, and the feed keeps a screenful either side of it.
+   { label: 'Filters', layout: 'drop' }) : null;
 paintSearchBtn();
 function passesFilt(j) {
   if (!FILT) return true;

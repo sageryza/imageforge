@@ -4750,6 +4750,32 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
     its own `get`/`set` when a filter is meant to survive a reload, so **no
     localStorage key lives in the shared file** and the Playground's existing
     `promptlab_liked`/`promptlab_hidex` keep meaning what they always meant.
+  - **AND A THIRD LAYOUT: `layout:'drop'`, THE ROWS AS DROP-DOWNS (2026-09-18,
+    Sophie, looking at the footage funnel three rows deep on her phone:
+    "buttons shud be drop downs to minimize space").** Every chips row folds
+    into a named door and the doors sit on ONE wrapping line — `MODEL ⌄` ·
+    `RESOLUTION ⌄` · `WHEN ⌄` — with the chips of the one she opens appearing
+    under it, one open at a time. **MEASURED on footage at 390pt: the open
+    drawer is 34px at rest against 266px of chips**, which is the difference
+    between the feed bar covering the send button and the whole composer plus
+    the first clip staying on screen.
+    - **THE CHIPS INSIDE DO NOT CHANGE.** Same `.filtcbtn`, same `data-v`,
+      same multi-select, same tap-the-lit-one-to-clear. A door is a LID over
+      the row, not a second kind of control — which is also what keeps every
+      rule above, and every page's tests, true of both layouts.
+    - **ONE PICK SHOWS ITS WORD, SEVERAL SHOW THE COUNT** (`MODEL · FAST`,
+      `MODEL · 2`), truncating rather than pushing the rail onto a second
+      line — the funnel chip's own rule, for its own reason. **Lit is the INK,
+      not the accent**, for the same reason again: a door is not a mark she
+      cast.
+    - **SHUTTING THE DRAWER SHUTS THE DOOR SHE LEFT OPEN**, so the funnel
+      always reopens at its one-line resting height. Her filters are untouched
+      — the lid is not the picks.
+    - **A TRI ROW KEEPS NO DOOR**: a three-way toggle with its word beside it
+      is already one short line, and a lid over one control saves nothing.
+    - **OPT IN, so nothing moved under the pages that did not ask.** Footage
+      passes it; the Playground, Meta Assets and the Chats app still draw
+      chips. Each is one word in its own `build` call when it wants the same.
   - **TWO KINDS OF ROW, and which one a filter gets is decided by whether it
     has an OFF state to spare.** `kind:'tri'` is the house three-way toggle
     (everything plus the two OPPOSITE narrowings — "whose messages", "the
