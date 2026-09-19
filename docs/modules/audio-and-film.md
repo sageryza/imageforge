@@ -3726,6 +3726,14 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   label and id, the door, `4s`, the size, the shape, the project, `seed N`,
   the status, `trimmed`, `video ref`, `first frame`. The `… older` door is
   off while a search stands (there is no page under a whole-log answer). The
+  **AND THE ROWS ARE DROP-DOWNS HERE (`layout:'drop'`, 2026-09-18, Sophie:
+  "buttons shud be drop downs to minimize space")** — one line of named doors,
+  `MODEL ⌄ · RESOLUTION ⌄ · WHEN ⌄`, each opening its own chips, one at a
+  time. MEASURED at 390pt: 34px of drawer at rest against 266px of chips, so
+  the composer's Go button and the first clip stay on screen with the funnel
+  open. The shell owns the shape (*THE ADVANCED SEARCH DRAWER* in
+  `docs/chats-app.md`); this page owns the one word that asks for it.
+  The
   funnel is `/searchfilters.js`, the one shell, with this page's three rows —
   MODEL (the `PAGE_MODELS`, several at once), RESOLUTION (`PAGE_RES`, the rung
   the clip came out at) and WHEN (the shell's own days-back chips) — sticky

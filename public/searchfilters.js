@@ -72,6 +72,12 @@
     + ' aria-hidden="true"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0'
     + ' 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"/></svg>';
 
+  // Lucide `chevron-down` — the house drop-down mark, the same one the
+  // composer's `.selwrap` draws beside a native `<select>`.
+  var CHEV = '<svg class="filtchev" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+    + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"'
+    + ' aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+
   function isMulti(s) { return s.kind === 'chips' && !!s.multi; }
   function neutralOf(s) {
     if (s.kind === 'tri') return s.neutral;
@@ -106,7 +112,22 @@
    * mount    an element to fill (emptied)
    * specs    [{key, kind, label, vals, words, neutral?, param?, multi?, get?, set?}]
    * onChange (state) => void
-   * opts     {chipClass?, label?}
+   * opts     {chipClass?, label?, layout?}
+   *
+   * layout:'drop' — EVERY CHIPS ROW FOLDS INTO A DROP-DOWN (2026-09-18,
+   * Sophie, looking at the footage funnel three rows deep: "buttons shud be
+   * drop downs to minimize space"). The rows become one wrapping line of
+   * named doors — `MODEL ⌄` · `RESOLUTION ⌄` · `WHEN ⌄` — and the chips for
+   * the one she opens appear under it, one open at a time. MEASURED on
+   * footage at 390pt: the drawer goes from 266pt to 34pt at rest.
+   *
+   * THE CHIPS THEMSELVES DO NOT CHANGE. Same `.filtcbtn`, same `data-v`, same
+   * multi-select, same tap-the-lit-one-to-clear — a drop-down is a lid over
+   * the row, not a second kind of control. That is also what keeps every
+   * page's tests and every rule above true of both layouts.
+   *
+   * A TRI ROW IS LEFT ALONE: a three-way toggle with its word beside it is
+   * already one short line, and a lid over one control saves nothing.
    */
   function build(mount, specs, onChange, opts) {
     opts = opts || {};
@@ -139,6 +160,16 @@
     drawer.className = 'filtdrawer';
     drawer.hidden = true;
     mount.appendChild(drawer);
+
+    // THE DROP-DOWN RAIL — one wrapping line of named doors, drawn only in
+    // `layout:'drop'`. It leads the drawer, and the row of the one she opens
+    // appears under it, so the drawer's resting height is this one line.
+    var drops = null, dropBtns = {}, openKey = '';
+    if (opts.layout === 'drop') {
+      drops = document.createElement('div');
+      drops.className = 'filtdrops';
+      drawer.appendChild(drops);
+    }
 
     function commit(s) {
       if (s.set) s.set(state[s.key]);
@@ -198,12 +229,41 @@
           };
           btns[v] = b; box.appendChild(b);
         });
-        if (s.label) row.appendChild(lab);
+        // The door names the filter in drop mode, so repeating it inside the
+        // row is the same answer twice — the drawer's own chip rule.
+        if (s.label && !drops) row.appendChild(lab);
         row.appendChild(box);
         rows[s.key] = { row: row, btns: btns };
+        if (drops) {
+          row.hidden = true;
+          row.classList.add('filtrow-drop');
+          var door = document.createElement('button');
+          door.type = 'button';
+          door.className = 'filtdrop';
+          door.dataset.k = s.key;
+          door.setAttribute('aria-expanded', 'false');
+          door.innerHTML = '<span class="filtdropn"></span><span class="filtdropv"></span>' + CHEV;
+          door.querySelector('.filtdropn').textContent = s.label || s.key;
+          door.onclick = function () { setDrop(openKey === s.key ? '' : s.key); };
+          dropBtns[s.key] = door;
+          drops.appendChild(door);
+        }
       }
       drawer.appendChild(row);
     });
+
+    // ONE OPEN AT A TIME. Two open rows is the stack of rows the doors exist
+    // to put away, and she is picking one filter at a time either way.
+    function setDrop(k) {
+      openKey = k || '';
+      specs.forEach(function (s) {
+        var r = rows[s.key], d = dropBtns[s.key];
+        if (!d) return;                      // a tri row keeps no door
+        r.row.hidden = openKey !== s.key;
+        d.classList.toggle('open', openKey === s.key);
+        d.setAttribute('aria-expanded', openKey === s.key ? 'true' : 'false');
+      });
+    }
 
     function narrowedKeys() {
       return specs.filter(function (s) { return !isNeutral(s, state[s.key]); }).map(function (s) { return s.key; });
@@ -225,6 +285,17 @@
           });
         }
         r.row.classList.toggle('on', on);
+        var d = dropBtns[s.key];
+        if (d) {
+          // ONE PICK SHOWS ITS WORD, SEVERAL SHOW THE COUNT. A door is wide
+          // enough for one answer and no wider — spelling out three of them
+          // is what pushed the funnel chip's own words off onto a second line
+          // (her 2026-09-02 "this looks awk"), and the words are one tap away.
+          var w = wordsOf(s, v);
+          d.querySelector('.filtdropv').textContent = w.length === 1 ? w[0] : (w.length ? String(w.length) : '');
+          d.classList.toggle('on', on);
+          d.setAttribute('aria-label', (s.label || s.key) + (on ? ' — ' + w.join(', ') : ''));
+        }
       });
       var on = narrowedKeys();
       var words = [];
@@ -251,6 +322,10 @@
 
     function setOpen(open) {
       drawer.hidden = !open;
+      // SHUTTING THE DRAWER SHUTS THE DOOR SHE LEFT OPEN, so the funnel always
+      // reopens at its one-line resting height rather than however deep she
+      // left it. Her filters are untouched — this is the lid, not the picks.
+      if (!open && drops) setDrop('');
       chip.setAttribute('aria-expanded', open ? 'true' : 'false');
       paint();   // the chip's WORDS depend on whether the drawer is shut
     }

@@ -104,3 +104,37 @@
    page. */
 .filtchip.on { color: var(--fsf-ink); border-color: var(--fsf-ink); }
 .filtchip.on .filtchipw { font-weight: 600; }
+
+/* ── THE DROP-DOWN LAYOUT (`layout:'drop'`, 2026-09-18, Sophie, looking at
+   the footage funnel three rows deep: "buttons shud be drop downs to minimize
+   space") ─────────────────────────────────────────────────────────────────
+   One wrapping line of named doors; the row of the one she opens appears
+   under it. MEASURED on footage at 390pt: 266px of drawer becomes 34px at
+   rest. The chips inside are untouched — a door is a lid over the row, not a
+   second kind of control. */
+.filtdrops { display: flex; flex-wrap: wrap; gap: 6px; }
+/* The door wears the chip's own box — 34px, 6px radius, the house control —
+   so the rail reads as the row of buttons it replaced, folded up. */
+.filtdrop {
+  font-family: -apple-system, sans-serif; font-size: 11px; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--fsf-ink2);
+  background: var(--fsf-paper); border: 1px solid var(--fsf-line); border-radius: 6px;
+  padding: 0 8px 0 11px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  display: inline-flex; align-items: center; gap: 5px;
+  min-height: 34px; box-sizing: border-box; max-width: 100%;
+}
+/* Its answer TRUNCATES rather than pushing the door wider than the rail — the
+   funnel chip's own rule, for the same reason: this line has to stay one line. */
+.filtdrop .filtdropv { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filtdrop .filtdropv:empty { display: none; }
+.filtdrop .filtdropv::before { content: "· "; }
+.filtdrop .filtchev { width: 14px; height: 14px; flex: none; transition: transform .15s ease; }
+.filtdrop.open .filtchev { transform: rotate(180deg); }
+/* LIT IS THE INK, NOT THE ACCENT — the funnel chip's rule, and for its reason:
+   a door is not a mark she cast. The rose stays on the chips inside that
+   really are her picks. */
+.filtdrop.on { color: var(--fsf-ink); border-color: var(--fsf-ink); }
+.filtdrop.on .filtdropv { font-weight: 600; }
+/* An opened row sits under the rail with no label of its own (the door said
+   the name) and no left inset — it is the same chips, one lid up. */
+.filtrow-drop { margin: 0; }
