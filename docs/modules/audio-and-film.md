@@ -3726,11 +3726,26 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   label and id, the door, `4s`, the size, the shape, the project, `seed N`,
   the status, `trimmed`, `video ref`, `first frame`. The `… older` door is
   off while a search stands (there is no page under a whole-log answer). The
-  funnel is `/searchfilters.js`, the one shell, with this page's two rows —
-  MODEL (the four `PAGE_MODELS`, several at once) and WHEN (the shell's own
-  days-back chips) — sticky under `footage_filt_*` like the ♥ and ✕ beside
-  them; an emptied feed names which of them emptied it. Both stay OUT of the
-  drawer (her 2026-09-02 word).
+  funnel is `/searchfilters.js`, the one shell, with this page's three rows —
+  MODEL (the `PAGE_MODELS`, several at once), RESOLUTION (`PAGE_RES`, the rung
+  the clip came out at) and WHEN (the shell's own days-back chips) — sticky
+  under `footage_filt_*` like the ♥ and ✕ beside them; an emptied feed names
+  which of them emptied it. Both stay OUT of the drawer (her 2026-09-02 word).
+  **RESOLUTION IS THE QUALITY ROW, AND THERE IS ONLY ONE OF THEM (2026-09-18,
+  Sophie: "add a filter by model and quality and resolution in footage").** A
+  clip carries no quality field the way a picture does — MEASURED over her 200
+  newest clips, a card's facts are the model, the resolution, the shape, the
+  seconds and the door, and nothing else — so on video the quality IS the
+  rung, `480p · 720p · 768p · 1080p · 2K`, and the TIER she picks between
+  (Mini against 2.5 against Wan Prime) is the MODEL row that was already
+  there. 2K is on the ladder although no model draws it: it is what the
+  upscaler makes out of a finished clip. **AND THE RUNG IS CASE-FOLDED**,
+  which is not tidiness: MiniMax writes its own resolutions in CAPITALS and
+  the door stores what it was sent, so **27 of those 200 clips are on file as
+  `480P` / `768P` against 157 lowercase** — a chip matching the literal string
+  would have hidden a seventh of her feed while reading as a filter that
+  works. (Two values on file match no chip and are meant to: `1440p-sr` from a
+  chat's developer-tier MiniMax job, and the empty string on a lipsync clip.)
   **AND THE PROJECT IS A FILTER TOO — A SEARCH INSIDE ONE SAYS HOW MANY IT
   FOUND OUTSIDE IT (2026-09-15, Sophie, standing in "Secretly a Witch" with
   `cider` typed and "Nothing matches that." under it: "where r the rest of my
