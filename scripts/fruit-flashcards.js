@@ -38,15 +38,31 @@ const WIDE_SET = [
   ['poiret', 'Poiret One', 'Poiret+One', 400],
   ['julius', 'Julius Sans One', 'Julius+Sans+One', 400],
 ];
+// --set short: SHORT AND WIDE — letters wider than tall (2026-09-20, Sophie,
+// on the wide set: "none are short and wide"). Two ways to get there: a font
+// with a real width axis pushed to its widest (Roboto Serif and Archivo go to
+// 150 / 125), a genuinely extended face (Krona One, Syncopate, Michroma), and
+// an elegant serif STRETCHED sideways with scaleX — the fifth field is extra
+// CSS on the name.
+const SHORT_SET = [
+  ['robotoserif', 'Roboto Serif · widest', 'Roboto+Serif:wdth,wght@150,400', 400, "font-family:'Roboto Serif',serif;font-stretch:150%;font-variation-settings:'wdth' 150"],
+  ['archivo', 'Archivo · expanded', 'Archivo:wdth,wght@125,400', 400, "font-family:'Archivo',sans-serif;font-stretch:125%;font-variation-settings:'wdth' 125"],
+  ['krona', 'Krona One', 'Krona+One', 400, "font-family:'Krona One',sans-serif;font-size:11px"],
+  ['syncopate', 'Syncopate', 'Syncopate', 400, "font-family:'Syncopate',sans-serif;font-size:10.5px"],
+  ['michroma', 'Michroma', 'Michroma', 400, "font-family:'Michroma',sans-serif;font-size:10.5px"],
+  ['gildawide', 'Gilda Display · stretched', 'Gilda+Display', 400, "font-family:'Gilda Display',serif;font-size:13px;display:inline-block;transform:scaleX(1.5)"],
+  ['cormwide', 'Cormorant Garamond · stretched', 'Cormorant+Garamond:wght@500', 500, "font-family:'Cormorant Garamond',serif;font-size:14px;display:inline-block;transform:scaleX(1.55)"],
+  ['bellewide', 'Bellefair · stretched', 'Bellefair', 400, "font-family:'Bellefair',serif;font-size:13px;display:inline-block;transform:scaleX(1.5)"],
+];
 const SET = flag('set', 'first');
-const FONT_SET = SET === 'wide' ? WIDE_SET : [
+const FONT_SET = SET === 'short' ? SHORT_SET : SET === 'wide' ? WIDE_SET : [
   ['cormorant', 'Cormorant Garamond', 'Cormorant+Garamond:wght@500', 500],
   ['ebgaramond', 'EB Garamond', 'EB+Garamond:wght@400;500', 400],
   ['playfair', 'Playfair Display', 'Playfair+Display:wght@400', 400],
   ['marcellus', 'Marcellus', 'Marcellus', 400],
 ];
-const FONTS_TITLE = SET === 'wide' ? `Fruit flash cards — ${FONT_SET.length} wide fonts, lower and caps` : 'Fruit flash cards — 4 fonts, lower and caps';
-const FONTS_SHEET = SET === 'wide' ? 'flashcard-fonts-wide-v1' : 'flashcard-fonts-v1';
+const FONTS_TITLE = SET === 'short' ? `Fruit flash cards — ${FONT_SET.length} short-and-wide, lower and caps` : SET === 'wide' ? `Fruit flash cards — ${FONT_SET.length} wide fonts, lower and caps` : 'Fruit flash cards — 4 fonts, lower and caps';
+const FONTS_SHEET = SET === 'short' ? 'flashcard-fonts-short-v1' : SET === 'wide' ? 'flashcard-fonts-wide-v1' : 'flashcard-fonts-v1';
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 (async () => {
@@ -143,7 +159,7 @@ async function postFonts(cards) {
   .face img{width:80%;height:auto;flex:1;min-height:0;object-fit:contain}
   .nm2{font-size:15px;letter-spacing:.12em;color:var(--ink);text-align:center;line-height:1.2;padding-top:12px}
   .caps .nm2{font-size:12.5px;letter-spacing:.2em}
-  ${FONT_SET.map(f => `.f-${f[0]} .nm2{font-family:'${f[1]}',Georgia,serif;font-weight:${f[3]}}`).join('\n  ')}
+  ${FONT_SET.map(f => `.f-${f[0]} .nm2{font-family:'${f[1]}',Georgia,serif;font-weight:${f[3]};${f[4] || ''}}`).join('\n  ')}
 </style>
 <div class="wrap">
   <h1>${esc(FONTS_TITLE)}</h1>
