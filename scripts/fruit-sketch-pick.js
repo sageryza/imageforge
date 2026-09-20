@@ -40,6 +40,10 @@ const CARRY = flag('carry');
 // separate finished deck"). Reads the marks off the --carry page; the pick
 // page keeps only the undecided cards, still carrying their marks.
 const FINISHED = args.includes('--finished');
+// --reopen a,b: cards that go BACK on the pick page whatever their marks —
+// she hearted the deck pomegranate before the high one was on the page
+// (2026-09-20), so the card is reopened with every version on it.
+const REOPEN = new Set((flag('reopen', '') || '').split(',').filter(Boolean));
 const SHEET = 'pick-one-v1';
 const DRY = args.includes('--dry');
 
@@ -67,6 +71,15 @@ for (const file of ['hq-uploaded.json', 'hq2-uploaded.json', 'hq3-uploaded.json'
 // sketches is a card of several pictures, the rest are one picture to keep or
 // not. The vegetables' earlier versions are the same drawing re-cut (v1-v3),
 // so only the card on the deck rides.
+// THE QUALITY-LADDER TESTS ARE VERSIONS TOO (2026-09-20, Sophie: "are u sure
+// that pomegranate is medium not high · was there other pomegranates") —
+// fruit/qtest holds strawberry, pomegranate and broccoli drawn at low, medium
+// and high for the ladder page; the deck's pomegranate is the ORIGINAL medium.
+// They ride as earlier versions on their cards.
+const QTEST = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/qtest/';
+for (const [id, name] of [['19-pomegranate', 'pomegranate'], ['01-strawberry', 'strawberry']]) {
+  for (const q of ['high', 'medium', 'low']) add(id, { url: `${QTEST}q-${name}-${q}.webp`, full: `${QTEST}q-${name}-${q}.webp`, name }, q + ' (quality test)');
+}
 const vegPoll = read('poll-veg-test.json'); // GET /api/fruit/poll/veg-test, saved 2026-09-20
 const fruitGroups = poll.fruits.map(f => {
   const id = f.id, name = f.name;
@@ -94,7 +107,9 @@ const retired = read('uploaded.json').filter(f => !deckUrl.has(f.id)).map(f => (
 fruitGroups.push(...retired);
 const vegGroups = vegPoll.fruits.map(v => ({ label: v.name, items: [{
   id: `${v.id}--vdeck`, img: v.url, full: v.url, url: v.url,
-  label: 'on the vegetable deck now · medium', model: 'gpt-image-2', quality: 'medium' }] }));
+  label: 'on the vegetable deck now · medium', model: 'gpt-image-2', quality: 'medium' },
+  ...(v.id === '02-broccoli' ? ['high', 'medium', 'low'].map(q => ({ id: `${v.id}--q${q}`, img: `${QTEST}q-broccoli-${q}.webp`, full: `${QTEST}q-broccoli-${q}.webp`, url: `${QTEST}q-broccoli-${q}.webp`,
+    label: `earlier version · ${q} (quality test)`, model: 'gpt-image-2', quality: q })) : [])] }));
 const groups = [...fruitGroups, ...vegGroups];
 const types = fruitGroups.length;
 
@@ -109,7 +124,8 @@ async function splitFinished() {
   const keep = [];
   for (const g of groups) {
     const picked = g.items.filter(it => marks[it.id] === true);
-    if (picked.length) finishedGroups.push({ label: g.label, items: picked.map(it => ({ ...it, label: it.label })) });
+    const reopened = g.items.some(it => REOPEN.has(it.id.split('--')[0].replace(/-sk\d$/, '')));
+    if (picked.length && !reopened) finishedGroups.push({ label: g.label, items: picked.map(it => ({ ...it, label: it.label })) });
     else keep.push(g);
   }
   groups.length = 0; groups.push(...keep);
@@ -130,6 +146,8 @@ if (DRY) {
         data: { groups: finishedGroups, help: 'The one you picked for each fruit. Heart or ✕ here still counts.' } }),
     });
     console.log('finished page', JSON.stringify(await fr.json()));
+    const OLD_FINISHED = flag('supersede-finished');
+    if (OLD_FINISHED) console.log('superseded finished', OLD_FINISHED, (await fetch(`${BASE}/api/chatfeed/page/${OLD_FINISHED}/supersede`, { method: 'POST' })).status);
   }
   const left = groups.length;
   const r = await fetch(`${BASE}/api/chatfeed/page`, {
