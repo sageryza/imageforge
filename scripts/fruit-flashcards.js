@@ -28,12 +28,25 @@ const V3 = args.includes('--v3');
 // "now try caps · and a couple other fonts in lower and caps · u can put in
 // compare tab").
 const FONTS = args.includes('--fonts');
-const FONT_SET = [
+// --set wide: letters wider than they are tall (2026-09-20, Sophie: "i'd
+// like a font that has wider letters more than tall and narrow · try a few").
+const WIDE_SET = [
+  ['gilda', 'Gilda Display', 'Gilda+Display', 400],
+  ['bellefair', 'Bellefair', 'Bellefair', 400],
+  ['forum', 'Forum', 'Forum', 400],
+  ['cinzel', 'Cinzel', 'Cinzel:wght@400', 400],
+  ['poiret', 'Poiret One', 'Poiret+One', 400],
+  ['julius', 'Julius Sans One', 'Julius+Sans+One', 400],
+];
+const SET = flag('set', 'first');
+const FONT_SET = SET === 'wide' ? WIDE_SET : [
   ['cormorant', 'Cormorant Garamond', 'Cormorant+Garamond:wght@500', 500],
   ['ebgaramond', 'EB Garamond', 'EB+Garamond:wght@400;500', 400],
   ['playfair', 'Playfair Display', 'Playfair+Display:wght@400', 400],
   ['marcellus', 'Marcellus', 'Marcellus', 400],
 ];
+const FONTS_TITLE = SET === 'wide' ? `Fruit flash cards — ${FONT_SET.length} wide fonts, lower and caps` : 'Fruit flash cards — 4 fonts, lower and caps';
+const FONTS_SHEET = SET === 'wide' ? 'flashcard-fonts-wide-v1' : 'flashcard-fonts-v1';
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 (async () => {
@@ -116,7 +129,7 @@ async function postFonts(cards) {
   const page = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Fruit flash cards — fonts, lower and caps</title>
+<title>${esc(FONTS_TITLE)}</title>
 <link rel="stylesheet" href="/compare.css">
 <link rel="stylesheet" href="${gf}">
 <style>
@@ -133,20 +146,20 @@ async function postFonts(cards) {
   ${FONT_SET.map(f => `.f-${f[0]} .nm2{font-family:'${f[1]}',Georgia,serif;font-weight:${f[3]}}`).join('\n  ')}
 </style>
 <div class="wrap">
-  <h1>Fruit flash cards — fonts, lower and caps</h1>
+  <h1>${esc(FONTS_TITLE)}</h1>
   ${FONT_SET.map(block).join('\n')}
 </div>
 <script src="/compare.js"></script>
 <script>
 (function () {
-  window.__compareNotes({ chat: ${JSON.stringify(CHAT)}, sheet: 'flashcard-fonts-v1' });
-  window.__compareHelp({ html: '<b>Four fonts, each in lowercase and caps</b>, on the same two cards. Heart the one you want; a note on any block says what to change.' });
+  window.__compareNotes({ chat: ${JSON.stringify(CHAT)}, sheet: ${JSON.stringify(FONTS_SHEET)} });
+  window.__compareHelp({ html: '<b>${FONT_SET.length} fonts, each in lowercase and caps</b>, on the same two cards. Heart the one you want; a note on any block says what to change.' });
 })();
 </script>`;
   if (DRY) { fs.writeFileSync('/tmp/fruit-flashcards-fonts.html', page); console.log('wrote /tmp/fruit-flashcards-fonts.html'); return; }
   const r = await fetch(`${BASE}/api/chatfeed/page`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat: CHAT, title: 'Fruit flash cards — 4 fonts, lower and caps', html: page }),
+    body: JSON.stringify({ chat: CHAT, title: FONTS_TITLE, html: page }),
   });
   console.log(JSON.stringify(await r.json(), null, 1));
 }
