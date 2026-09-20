@@ -54,15 +54,27 @@ const SHORT_SET = [
   ['cormwide', 'Cormorant Garamond · stretched', 'Cormorant+Garamond:wght@500', 500, "font-family:'Cormorant Garamond',serif;font-size:14px;display:inline-block;transform:scaleX(1.55)"],
   ['bellewide', 'Bellefair · stretched', 'Bellefair', 400, "font-family:'Bellefair',serif;font-size:13px;display:inline-block;transform:scaleX(1.5)"],
 ];
+// --set short2: the stretched serifs ran off the card (2026-09-20, Sophie:
+// "the stretched ones went off card · try again · also try architects
+// daughter") — the scale is smaller and the letter-spacing lighter, so a
+// ten-letter name fits inside a 170px card, and the stretch is MEASURED in
+// the page (any name wider than its card is shrunk to fit).
+const SHORT2_SET = [
+  ['syncopate', 'Syncopate', 'Syncopate', 400, "font-family:'Syncopate',sans-serif;font-size:10.5px"],
+  ['architects', 'Architects Daughter', 'Architects+Daughter', 400, "font-family:'Architects Daughter',cursive;font-size:14px;letter-spacing:.08em"],
+  ['gildawide', 'Gilda Display · stretched', 'Gilda+Display', 400, "font-family:'Gilda Display',serif;font-size:11.5px;letter-spacing:.05em;display:inline-block;transform:scaleX(1.4)"],
+  ['cormwide', 'Cormorant Garamond · stretched', 'Cormorant+Garamond:wght@500', 500, "font-family:'Cormorant Garamond',serif;font-size:12.5px;letter-spacing:.05em;display:inline-block;transform:scaleX(1.45)"],
+  ['bellewide', 'Bellefair · stretched', 'Bellefair', 400, "font-family:'Bellefair',serif;font-size:11.5px;letter-spacing:.05em;display:inline-block;transform:scaleX(1.4)"],
+];
 const SET = flag('set', 'first');
-const FONT_SET = SET === 'short' ? SHORT_SET : SET === 'wide' ? WIDE_SET : [
+const FONT_SET = SET === 'short2' ? SHORT2_SET : SET === 'short' ? SHORT_SET : SET === 'wide' ? WIDE_SET : [
   ['cormorant', 'Cormorant Garamond', 'Cormorant+Garamond:wght@500', 500],
   ['ebgaramond', 'EB Garamond', 'EB+Garamond:wght@400;500', 400],
   ['playfair', 'Playfair Display', 'Playfair+Display:wght@400', 400],
   ['marcellus', 'Marcellus', 'Marcellus', 400],
 ];
-const FONTS_TITLE = SET === 'short' ? `Fruit flash cards — ${FONT_SET.length} short-and-wide, lower and caps` : SET === 'wide' ? `Fruit flash cards — ${FONT_SET.length} wide fonts, lower and caps` : 'Fruit flash cards — 4 fonts, lower and caps';
-const FONTS_SHEET = SET === 'short' ? 'flashcard-fonts-short-v1' : SET === 'wide' ? 'flashcard-fonts-wide-v1' : 'flashcard-fonts-v1';
+const FONTS_TITLE = SET === 'short2' ? `Fruit flash cards — short-and-wide v2, lower and caps` : SET === 'short' ? `Fruit flash cards — ${FONT_SET.length} short-and-wide, lower and caps` : SET === 'wide' ? `Fruit flash cards — ${FONT_SET.length} wide fonts, lower and caps` : 'Fruit flash cards — 4 fonts, lower and caps';
+const FONTS_SHEET = SET === 'short2' ? 'flashcard-fonts-short-v2' : SET === 'short' ? 'flashcard-fonts-short-v1' : SET === 'wide' ? 'flashcard-fonts-wide-v1' : 'flashcard-fonts-v1';
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 (async () => {
@@ -138,7 +150,7 @@ async function postFonts(cards) {
   const sample = cards.slice(0, 2);
   const gf = 'https://fonts.googleapis.com/css2?' + FONT_SET.map(f => 'family=' + f[2]).join('&') + '&display=swap';
   const card = (c, key, caps) => `<div class="fc fc2 f-${key}${caps ? ' caps' : ''}"><span class="face front">
-      <img src="${esc(c.img)}" alt="${esc(c.name)}" loading="lazy" decoding="async"><span class="nm2">${esc(caps ? c.name.toUpperCase() : c.name.toLowerCase())}</span></span></div>`;
+      <img src="${esc(c.img)}" alt="${esc(c.name)}" loading="lazy" decoding="async"><span class="nmw"><span class="nm2">${esc(caps ? c.name.toUpperCase() : c.name.toLowerCase())}</span></span></span></div>`;
   const block = (f) => `<h2>${esc(f[1])}</h2>
     <div class="opt" data-item="${f[0]}-lower"><div class="lbl">lowercase</div><div class="cards">${sample.map(c => card(c, f[0], false)).join('')}</div></div>
     <div class="opt" data-item="${f[0]}-caps"><div class="lbl">caps</div><div class="cards">${sample.map(c => card(c, f[0], true)).join('')}</div></div>`;
@@ -159,9 +171,12 @@ async function postFonts(cards) {
   .face img{width:80%;height:auto;flex:1;min-height:0;object-fit:contain}
   .nm2{font-size:15px;letter-spacing:.12em;color:var(--ink);text-align:center;line-height:1.2;padding-top:12px}
   .caps .nm2{font-size:12.5px;letter-spacing:.2em}
+  .short2 .caps .nm2{letter-spacing:.12em}
+  .short2 .caps.f-architects .nm2{font-size:12px}
+  .nmw{display:block;width:100%;text-align:center;overflow:visible}
   ${FONT_SET.map(f => `.f-${f[0]} .nm2{font-family:'${f[1]}',Georgia,serif;font-weight:${f[3]};${f[4] || ''}}`).join('\n  ')}
 </style>
-<div class="wrap">
+<div class="wrap${SET === 'short2' ? ' short2' : ''}">
   <h1>${esc(FONTS_TITLE)}</h1>
   ${FONT_SET.map(block).join('\n')}
 </div>
@@ -169,6 +184,21 @@ async function postFonts(cards) {
 <script>
 (function () {
   window.__compareNotes({ chat: ${JSON.stringify(CHAT)}, sheet: ${JSON.stringify(FONTS_SHEET)} });
+  // A NAME NEVER RUNS OFF ITS CARD: measure each stretched name against the
+  // card's inner width once the fonts are in, and scale the wide ones down.
+  function fit() {
+    document.querySelectorAll('.nm2').forEach(function (n) {
+      var box = n.closest('.face'); if (!box) return;
+      var room = box.clientWidth - 16, w = n.getBoundingClientRect().width;
+      if (w > room) {
+        var t = getComputedStyle(n).transform, sx = 1;
+        if (t && t !== 'none') { var m = t.match(/matrix\(([^,]+)/); if (m) sx = parseFloat(m[1]) || 1; }
+        n.style.transform = 'scaleX(' + (sx * room / w).toFixed(3) + ')';
+      }
+    });
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit); else setTimeout(fit, 800);
+  window.addEventListener('resize', fit);
   window.__compareHelp({ html: '<b>${FONT_SET.length} fonts, each in lowercase and caps</b>, on the same two cards. Heart the one you want; a note on any block says what to change.' });
 })();
 </script>`;
