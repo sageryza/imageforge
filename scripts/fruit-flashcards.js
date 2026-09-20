@@ -15,6 +15,9 @@ const BASE = flag('base', 'https://imageforge-q125.onrender.com');
 const FROM = flag('from', '7wb6CDFTjMbeYwvsRLJQ');
 const SUPERSEDE = flag('supersede');
 const DRY = args.includes('--dry');
+// --front: v2 — the name on the FRONT, bottom, lowercase, no flip (2026-09-20,
+// Sophie: "try a version w name on front bottom lowercase").
+const FRONT = args.includes('--front');
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 (async () => {
@@ -25,16 +28,20 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&am
   const groups = JSON.parse(m[1]).groups || [];
   const cards = groups.map(g => ({ name: g.label, img: g.items[0].img })).filter(c => c.img);
 
-  const card = c => `<button class="fc" type="button" data-nostop aria-label="${esc(c.name)}">
+  const cardFront = c => `<div class="fc fc2"><span class="face front">
+      <img src="${esc(c.img)}" alt="${esc(c.name)}" loading="lazy" decoding="async"><span class="nm2">${esc(c.name.toLowerCase())}</span></span></div>`;
+  const cardFlip = c => `<button class="fc" type="button" data-nostop aria-label="${esc(c.name)}">
     <span class="fc-in">
       <span class="face front"><img src="${esc(c.img)}" alt="" loading="lazy" decoding="async"><span class="tag">?</span></span>
       <span class="face back"><span class="nm">${esc(c.name)}</span></span>
     </span></button>`;
 
+  const card = FRONT ? cardFront : cardFlip;
+  const V = FRONT ? 'v2 — name on the front' : 'mockup';
   const page = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Fruit flash cards — mockup</title>
+<title>Fruit flash cards — ${V}</title>
 <link rel="stylesheet" href="/compare.css">
 <style>
   .cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
@@ -49,9 +56,12 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&am
   .back{transform:rotateY(180deg);background:#fff}
   .back .nm{font-family:'Newsreader',Georgia,serif;font-size:24px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);text-align:center;padding:0 10px;line-height:1.2}
   .fc:focus-visible .face{outline:2px solid var(--chg)}
+  .fc2 .front{flex-direction:column;justify-content:flex-start;padding:10px 8px 12px;box-sizing:border-box}
+  .fc2 .front img{width:86%;height:auto;flex:1;min-height:0;object-fit:contain}
+  .fc2 .nm2{font-family:'Newsreader',Georgia,serif;font-size:19px;color:var(--ink);text-align:center;line-height:1.2;padding-top:8px}
 </style>
 <div class="wrap">
-  <h1>Fruit flash cards — mockup</h1>
+  <h1>Fruit flash cards — ${V}</h1>
   <div class="cards">${cards.map(card).join('\n')}</div>
 </div>
 <script src="/compare.js"></script>
@@ -60,14 +70,14 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&am
   document.querySelectorAll('.fc').forEach(function (b) {
     b.addEventListener('click', function () { b.classList.toggle('flip'); });
   });
-  window.__compareHelp({ html: '<b>A mockup, nothing drawn.</b> Each card is the picture you picked; tap it to flip to the name on the back. ' + ${JSON.stringify(cards.length)} + ' so far — the rest join as you finish them.' });
+  window.__compareHelp({ html: '<b>A mockup, nothing drawn.</b> Each card is the picture you picked' + (${JSON.stringify(FRONT)} ? ', its name under it. ' : '; tap it to flip to the name on the back. ') + ${JSON.stringify(cards.length)} + ' so far — the rest join as you finish them.' });
 })();
 </script>`;
 
   if (DRY) { fs.writeFileSync('/tmp/fruit-flashcards.html', page); console.log('wrote /tmp/fruit-flashcards.html', cards.length, 'cards'); return; }
   const r = await fetch(`${BASE}/api/chatfeed/page`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat: CHAT, title: `Fruit flash cards — mockup (${cards.length})`, html: page }),
+    body: JSON.stringify({ chat: CHAT, title: `Fruit flash cards — ${V} (${cards.length})`, html: page }),
   });
   console.log(JSON.stringify(await r.json(), null, 1));
   if (SUPERSEDE) console.log('superseded', SUPERSEDE, (await fetch(`${BASE}/api/chatfeed/page/${SUPERSEDE}/supersede`, { method: 'POST' })).status);
