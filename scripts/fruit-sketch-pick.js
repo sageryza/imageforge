@@ -67,6 +67,15 @@ for (const file of ['hq-uploaded.json', 'hq2-uploaded.json', 'hq3-uploaded.json'
 // sketches is a card of several pictures, the rest are one picture to keep or
 // not. The vegetables' earlier versions are the same drawing re-cut (v1-v3),
 // so only the card on the deck rides.
+// THE QUALITY-LADDER TESTS ARE VERSIONS TOO (2026-09-20, Sophie: "are u sure
+// that pomegranate is medium not high · was there other pomegranates") —
+// fruit/qtest holds strawberry, pomegranate and broccoli drawn at low, medium
+// and high for the ladder page; the deck's pomegranate is the ORIGINAL medium.
+// They ride as earlier versions on their cards.
+const QTEST = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/qtest/';
+for (const [id, name] of [['19-pomegranate', 'pomegranate'], ['01-strawberry', 'strawberry']]) {
+  for (const q of ['high', 'medium', 'low']) add(id, { url: `${QTEST}q-${name}-${q}.webp`, full: `${QTEST}q-${name}-${q}.webp`, name }, q + ' (quality test)');
+}
 const vegPoll = read('poll-veg-test.json'); // GET /api/fruit/poll/veg-test, saved 2026-09-20
 const fruitGroups = poll.fruits.map(f => {
   const id = f.id, name = f.name;
@@ -94,7 +103,9 @@ const retired = read('uploaded.json').filter(f => !deckUrl.has(f.id)).map(f => (
 fruitGroups.push(...retired);
 const vegGroups = vegPoll.fruits.map(v => ({ label: v.name, items: [{
   id: `${v.id}--vdeck`, img: v.url, full: v.url, url: v.url,
-  label: 'on the vegetable deck now · medium', model: 'gpt-image-2', quality: 'medium' }] }));
+  label: 'on the vegetable deck now · medium', model: 'gpt-image-2', quality: 'medium' },
+  ...(v.id === '02-broccoli' ? ['high', 'medium', 'low'].map(q => ({ id: `${v.id}--q${q}`, img: `${QTEST}q-broccoli-${q}.webp`, full: `${QTEST}q-broccoli-${q}.webp`, url: `${QTEST}q-broccoli-${q}.webp`,
+    label: `earlier version · ${q} (quality test)`, model: 'gpt-image-2', quality: q })) : [])] }));
 const groups = [...fruitGroups, ...vegGroups];
 const types = fruitGroups.length;
 
