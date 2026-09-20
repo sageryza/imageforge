@@ -17,7 +17,12 @@ const SUPERSEDE = flag('supersede');
 const DRY = args.includes('--dry');
 // --front: v2 — the name on the FRONT, bottom, lowercase, no flip (2026-09-20,
 // Sophie: "try a version w name on front bottom lowercase").
-const FRONT = args.includes('--front');
+const FRONT = args.includes('--front') || args.includes('--v3');
+// --v3: the name in a lighter serif (Cormorant Garamond), smaller, lifted a
+// little off the bottom, more letter-spacing and more air between the cards
+// (2026-09-20, Sophie: "more elegant font · smaller · a little higher · more
+// spacing").
+const V3 = args.includes('--v3');
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 (async () => {
@@ -37,12 +42,13 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&am
     </span></button>`;
 
   const card = FRONT ? cardFront : cardFlip;
-  const V = FRONT ? 'v2 — name on the front' : 'mockup';
+  const V = V3 ? 'v3 — lighter name' : FRONT ? 'v2 — name on the front' : 'mockup';
   const page = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Fruit flash cards — ${V}</title>
 <link rel="stylesheet" href="/compare.css">
+${V3 ? '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap">' : ''}
 <style>
   .cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
   .fc{all:unset;display:block;cursor:pointer;-webkit-tap-highlight-color:transparent;perspective:900px;aspect-ratio:3/4}
@@ -59,8 +65,12 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&am
   .fc2 .front{flex-direction:column;justify-content:flex-start;padding:10px 8px 12px;box-sizing:border-box}
   .fc2 .front img{width:86%;height:auto;flex:1;min-height:0;object-fit:contain}
   .fc2 .nm2{font-family:'Newsreader',Georgia,serif;font-size:19px;color:var(--ink);text-align:center;line-height:1.2;padding-top:8px}
+  .v3 .cards{gap:20px 18px}
+  .v3 .fc2 .front{padding:14px 10px 20px}
+  .v3 .fc2 .front img{width:80%}
+  .v3 .fc2 .nm2{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:15px;letter-spacing:.12em;color:var(--ink);padding-top:12px}
 </style>
-<div class="wrap">
+<div class="wrap${V3 ? ' v3' : ''}">
   <h1>Fruit flash cards — ${V}</h1>
   <div class="cards">${cards.map(card).join('\n')}</div>
 </div>
