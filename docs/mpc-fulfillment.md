@@ -211,6 +211,21 @@ Requires Pillow (`pip install Pillow`).
 Accepted input formats: png, jpg, jpeg, bmp, gif, tif, tiff. The desktop tool
 downscales to 800 DPI (MPC's press max); orders over 612 cards are split by it.
 
+## Trial run, measured 2026-09-20 — the fruit flash cards, no upscale
+
+Sophie: "i'm skeptical · upscale changes art · trial run in ur container would
+be good." The whole tail was run in a session container on the 15 picked fruit
+pictures (`fruit/full/*.webp`, 532-1024px square): `scripts/flashcard-compose.py`
+put each on a white poker card at 2in wide with its name under it,
+`mpc_card_prep.py --proof` stamped 825x1125 @ 300 DPI, `mpc_order_builder.py`
+wrote the order.xml, and the zip + proofs went to the Dump and a Compare page
+("Fruit flash cards — MPC trial v1"). **No model upscale is needed for a flash
+card**: the picture is not full-bleed, so its own pixels land at 260-500 DPI
+and the only resampling is a plain resize (lime, the smallest at 532px, is
+x1.13; everything else downscales). The step nobody has run yet is the browser
+upload — the desktop MPC Autofill on the zip, or `/api/mpc-upload` once
+`MPC_EMAIL`/`MPC_PASSWORD` are set and its selectors get their first live pass.
+
 ## Pricing — one deck at a time vs a batch run
 
 MPC bulk discounts are **per design**: one MPC order is *one deck design × a
