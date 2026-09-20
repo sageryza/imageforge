@@ -23,6 +23,17 @@ const FRONT = args.includes('--front') || args.includes('--v3');
 // (2026-09-20, Sophie: "more elegant font · smaller · a little higher · more
 // spacing").
 const V3 = args.includes('--v3');
+// --fonts: ONE compare page of the name in several fonts, lowercase and caps
+// side by side, two sample cards each, a ♥/✕ per option (2026-09-20, Sophie:
+// "now try caps · and a couple other fonts in lower and caps · u can put in
+// compare tab").
+const FONTS = args.includes('--fonts');
+const FONT_SET = [
+  ['cormorant', 'Cormorant Garamond', 'Cormorant+Garamond:wght@500', 500],
+  ['ebgaramond', 'EB Garamond', 'EB+Garamond:wght@400;500', 400],
+  ['playfair', 'Playfair Display', 'Playfair+Display:wght@400', 400],
+  ['marcellus', 'Marcellus', 'Marcellus', 400],
+];
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 (async () => {
@@ -84,6 +95,7 @@ ${V3 ? '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Co
 })();
 </script>`;
 
+  if (FONTS) return postFonts(cards);
   if (DRY) { fs.writeFileSync('/tmp/fruit-flashcards.html', page); console.log('wrote /tmp/fruit-flashcards.html', cards.length, 'cards'); return; }
   const r = await fetch(`${BASE}/api/chatfeed/page`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -92,3 +104,49 @@ ${V3 ? '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Co
   console.log(JSON.stringify(await r.json(), null, 1));
   if (SUPERSEDE) console.log('superseded', SUPERSEDE, (await fetch(`${BASE}/api/chatfeed/page/${SUPERSEDE}/supersede`, { method: 'POST' })).status);
 })().catch(e => { console.error(e); process.exit(1); });
+
+async function postFonts(cards) {
+  const sample = cards.slice(0, 2);
+  const gf = 'https://fonts.googleapis.com/css2?' + FONT_SET.map(f => 'family=' + f[2]).join('&') + '&display=swap';
+  const card = (c, key, caps) => `<div class="fc fc2 f-${key}${caps ? ' caps' : ''}"><span class="face front">
+      <img src="${esc(c.img)}" alt="${esc(c.name)}" loading="lazy" decoding="async"><span class="nm2">${esc(caps ? c.name.toUpperCase() : c.name.toLowerCase())}</span></span></div>`;
+  const block = (f) => `<h2>${esc(f[1])}</h2>
+    <div class="opt" data-item="${f[0]}-lower"><div class="lbl">lowercase</div><div class="cards">${sample.map(c => card(c, f[0], false)).join('')}</div></div>
+    <div class="opt" data-item="${f[0]}-caps"><div class="lbl">caps</div><div class="cards">${sample.map(c => card(c, f[0], true)).join('')}</div></div>`;
+  const page = `<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fruit flash cards — fonts, lower and caps</title>
+<link rel="stylesheet" href="/compare.css">
+<link rel="stylesheet" href="${gf}">
+<style>
+  h2{font-size:15px;margin:26px 0 6px}
+  .opt{position:relative;padding:8px 0 14px}
+  .lbl{font-size:12px;color:var(--ink2);letter-spacing:.06em;margin:0 0 8px}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:20px 18px}
+  .fc{display:block;aspect-ratio:3/4}
+  .face{position:relative;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;height:100%;box-sizing:border-box;
+    padding:14px 10px 20px;background:#fff;border:1px solid #e0d6c4;border-radius:10px;box-shadow:0 1px 3px rgba(38,34,28,.12);overflow:hidden}
+  .face img{width:80%;height:auto;flex:1;min-height:0;object-fit:contain}
+  .nm2{font-size:15px;letter-spacing:.12em;color:var(--ink);text-align:center;line-height:1.2;padding-top:12px}
+  .caps .nm2{font-size:12.5px;letter-spacing:.2em}
+  ${FONT_SET.map(f => `.f-${f[0]} .nm2{font-family:'${f[1]}',Georgia,serif;font-weight:${f[3]}}`).join('\n  ')}
+</style>
+<div class="wrap">
+  <h1>Fruit flash cards — fonts, lower and caps</h1>
+  ${FONT_SET.map(block).join('\n')}
+</div>
+<script src="/compare.js"></script>
+<script>
+(function () {
+  window.__compareNotes({ chat: ${JSON.stringify(CHAT)}, sheet: 'flashcard-fonts-v1' });
+  window.__compareHelp({ html: '<b>Four fonts, each in lowercase and caps</b>, on the same two cards. Heart the one you want; a note on any block says what to change.' });
+})();
+</script>`;
+  if (DRY) { fs.writeFileSync('/tmp/fruit-flashcards-fonts.html', page); console.log('wrote /tmp/fruit-flashcards-fonts.html'); return; }
+  const r = await fetch(`${BASE}/api/chatfeed/page`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat: CHAT, title: 'Fruit flash cards — 4 fonts, lower and caps', html: page }),
+  });
+  console.log(JSON.stringify(await r.json(), null, 1));
+}
