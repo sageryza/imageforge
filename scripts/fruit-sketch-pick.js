@@ -4,7 +4,16 @@
 // each type").
 //
 //   node scripts/fruit-sketch-pick.js [--chat fruits-vegetables-inventory] [--dry]
-//                                     [--supersede <pageId>]
+//                                     [--supersede <pageId>] [--carry <pageId>]
+//
+// AN ✕ TAKES THE PICTURE OFF THE CARD, INTO THE NO PILE (2026-09-20, Sophie,
+// on the first version: "if i x one it should disappear to the no pile") —
+// `spreadEach` + `spreadAll` (judge.js): every version of a fruit is one swipe
+// card, each picture wears its own ✕/♥, and a no leaves the card so the rest
+// can be compared. The page opens on SWIPE for that reason (start:'swipe';
+// the compare grid is still behind the switch). `--carry <pageId>` copies her
+// marks off the page it replaces (same item ids; a spread pick `s:<fruit>`
+// becomes a ♥ on that picture) — needs FIREBASE_SERVICE_ACCOUNT.
 //
 // The sheets were cut with fruit-cut.js (--cols 2 --rows 2) and uploaded to
 // fruit/full + fruit/card as `<deckId>-sk<N>` (N = which sheet); the records
@@ -24,6 +33,7 @@ const flag = (n, d) => { const i = args.indexOf('--' + n); return i >= 0 ? args[
 const CHAT = flag('chat', 'fruits-vegetables-inventory');
 const BASE = flag('base', 'https://imageforge-q125.onrender.com');
 const SUPERSEDE = flag('supersede');
+const CARRY = flag('carry');
 const SHEET = 'pick-one-v1';
 const DRY = args.includes('--dry');
 
@@ -45,10 +55,17 @@ for (const file of ['hq-uploaded.json', 'hq2-uploaded.json', 'hq3-uploaded.json'
   for (const f of read(file)) add(f.id, f, 'high');
 }
 
-const types = [...new Set(sketches.map(s => s.deck))].sort();
-const groups = types.map(id => {
-  const name = sketches.find(s => s.deck === id).name;
+// EVERY FRUIT AND EVERY VEGETABLE IS ON THE PAGE (2026-09-20, Sophie: "find
+// all my fruits and vegetables" · "where r veggie") — the 37 fruits off the
+// deck and the 28 vegetables off theirs, one card each; a fruit with new
+// sketches is a card of several pictures, the rest are one picture to keep or
+// not. The vegetables' earlier versions are the same drawing re-cut (v1-v3),
+// so only the card on the deck rides.
+const vegPoll = read('poll-veg-test.json'); // GET /api/fruit/poll/veg-test, saved 2026-09-20
+const fruitGroups = poll.fruits.map(f => {
+  const id = f.id, name = f.name;
   const olds = [...(existing.get(id) || new Map()).values()];
+  if (!olds.some(o => o.url === deckUrl.get(id))) olds.push({ url: f.url, full: f.url.replace('/card/', '/full/'), quality: 'medium' });
   const now = olds.filter(o => o.url === deckUrl.get(id));
   const prior = olds.filter(o => o.url !== deckUrl.get(id));
   const items = [
@@ -61,12 +78,17 @@ const groups = types.map(id => {
   ];
   return { label: name, items };
 });
+const vegGroups = vegPoll.fruits.map(v => ({ label: v.name, items: [{
+  id: `${v.id}--vdeck`, img: v.url, full: v.url, url: v.url,
+  label: 'on the vegetable deck now · medium', model: 'gpt-image-2', quality: 'medium' }] }));
+const groups = [...fruitGroups, ...vegGroups];
+const types = fruitGroups.length;
 
 const data = {
-  groups,
-  help: 'One row per fruit: the card on the deck now, any earlier version, then the new sketches. Heart the one you want on the deck.',
+  groups, spreadEach: true, spreadAll: true, start: 'swipe',
+  help: 'One card per fruit and per vegetable: the version on the deck now, any earlier one, then the new sketches. Heart the one you want on the deck; an ✕ takes a picture off the card into the No pile.',
 };
-const title = `Pick one of each — ${types.length} fruits, ${sketches.length} new sketches`;
+const title = `Pick one of each — ${fruitGroups.length} fruits, ${vegGroups.length} vegetables, ${sketches.length} new sketches`;
 
 if (DRY) {
   console.log(JSON.stringify(data, null, 1).slice(0, 3000));
@@ -78,7 +100,25 @@ if (DRY) {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat: CHAT, title, template: 'grid', sheet: SHEET, data }),
   });
-  console.log(JSON.stringify(await r.json(), null, 1));
+  const posted = await r.json();
+  console.log(JSON.stringify(posted, null, 1));
+  if (CARRY && posted.id) {
+    const admin = require('firebase-admin');
+    const key = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    admin.initializeApp({ credential: admin.credential.cert(key) });
+    const db = admin.firestore();
+    const old = (await db.collection('forge-chat-verdicts').doc(`${CHAT}__page-${CARRY}`).get()).data() || {};
+    const items = {};
+    for (const [k, v] of Object.entries(old.items || {})) if (!k.startsWith('s:') && v != null) items[k] = v;
+    // a spread pick on the old page ("this one") is a heart on that picture now
+    for (const [k, v] of Object.entries(old.items || {})) {
+      if (k.startsWith('s:') && typeof v === 'string' && v !== 'maybe' && items[v] == null) items[v] = true;
+    }
+    const patch = { items };
+    if (old.texts) patch.texts = old.texts;
+    await db.collection('forge-chat-verdicts').doc(`${CHAT}__page-${posted.id}`).set(patch, { merge: true });
+    console.log(`carried ${Object.keys(items).length} marks from ${CARRY}`);
+  }
   if (SUPERSEDE) {
     const s = await fetch(`${BASE}/api/chatfeed/page/${SUPERSEDE}/supersede`, { method: 'POST' });
     console.log('superseded', SUPERSEDE, s.status);
