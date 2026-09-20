@@ -34,6 +34,12 @@ const CHAT = flag('chat', 'fruits-vegetables-inventory');
 const BASE = flag('base', 'https://imageforge-q125.onrender.com');
 const SUPERSEDE = flag('supersede');
 const CARRY = flag('carry');
+// --finished: the cards she has decided (a ♥ on one of the group's pictures)
+// come OFF the pick page and go onto a separate FINISHED page, one picture
+// each (2026-09-20, Sophie: "take the ones i finished off · make them a
+// separate finished deck"). Reads the marks off the --carry page; the pick
+// page keeps only the undecided cards, still carrying their marks.
+const FINISHED = args.includes('--finished');
 const SHEET = 'pick-one-v1';
 const DRY = args.includes('--dry');
 
@@ -96,6 +102,18 @@ const data = {
   groups, spreadEach: true, spreadAll: true, start: 'swipe',
   help: 'One card per fruit and per vegetable: the version on the deck now, any earlier one, then the new sketches. Heart the one you want on the deck; an ✕ takes a picture off the card into the No pile.',
 };
+let finishedGroups = [];
+async function splitFinished() {
+  const r = await fetch(`${BASE}/api/chatfeed/verdict?chat=${CHAT}&sheet=page-${CARRY}`);
+  const marks = (await r.json()).items || {};
+  const keep = [];
+  for (const g of groups) {
+    const picked = g.items.filter(it => marks[it.id] === true);
+    if (picked.length) finishedGroups.push({ label: g.label, items: picked.map(it => ({ ...it, label: it.label })) });
+    else keep.push(g);
+  }
+  groups.length = 0; groups.push(...keep);
+}
 const title = `Pick one of each — ${fruitGroups.length} fruits, ${vegGroups.length} vegetables, ${sketches.length} new sketches`;
 
 if (DRY) {
@@ -104,9 +122,19 @@ if (DRY) {
   return;
 }
 (async () => {
+  if (FINISHED && CARRY) {
+    await splitFinished();
+    const fr = await fetch(`${BASE}/api/chatfeed/page`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat: CHAT, title: `Finished — ${finishedGroups.length} picked`, template: 'grid',
+        data: { groups: finishedGroups, help: 'The one you picked for each fruit. Heart or ✕ here still counts.' } }),
+    });
+    console.log('finished page', JSON.stringify(await fr.json()));
+  }
+  const left = groups.length;
   const r = await fetch(`${BASE}/api/chatfeed/page`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat: CHAT, title, template: 'grid', sheet: SHEET, data }),
+    body: JSON.stringify({ chat: CHAT, title: FINISHED ? `Pick one of each — ${left} left` : title, template: 'grid', sheet: SHEET, data }),
   });
   const posted = await r.json();
   console.log(JSON.stringify(posted, null, 1));
