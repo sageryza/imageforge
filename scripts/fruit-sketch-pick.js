@@ -78,6 +78,14 @@ const fruitGroups = poll.fruits.map(f => {
   ];
   return { label: name, items };
 });
+// THE 38TH FRUIT: dragon fruit was RETIRED off the deck (fruit-compare-page.js)
+// but its card is still in Storage — it rides last so "all my fruit" is all of
+// it (2026-09-20, Sophie: "r u sure that's all the fruit"). Measured that day:
+// fruit/card holds 38 deck ids and nothing else fruit-shaped lives in any chat.
+const retired = read('uploaded.json').filter(f => !deckUrl.has(f.id)).map(f => ({ label: f.name, items: [{
+  id: `${f.id}--retired`, img: f.url, full: f.full, url: f.full,
+  label: 'retired from the deck · medium', model: 'gpt-image-2', quality: 'medium' }] }));
+fruitGroups.push(...retired);
 const vegGroups = vegPoll.fruits.map(v => ({ label: v.name, items: [{
   id: `${v.id}--vdeck`, img: v.url, full: v.url, url: v.url,
   label: 'on the vegetable deck now · medium', model: 'gpt-image-2', quality: 'medium' }] }));
