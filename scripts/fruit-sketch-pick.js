@@ -40,6 +40,10 @@ const CARRY = flag('carry');
 // separate finished deck"). Reads the marks off the --carry page; the pick
 // page keeps only the undecided cards, still carrying their marks.
 const FINISHED = args.includes('--finished');
+// --reopen a,b: cards that go BACK on the pick page whatever their marks —
+// she hearted the deck pomegranate before the high one was on the page
+// (2026-09-20), so the card is reopened with every version on it.
+const REOPEN = new Set((flag('reopen', '') || '').split(',').filter(Boolean));
 const SHEET = 'pick-one-v1';
 const DRY = args.includes('--dry');
 
@@ -120,7 +124,8 @@ async function splitFinished() {
   const keep = [];
   for (const g of groups) {
     const picked = g.items.filter(it => marks[it.id] === true);
-    if (picked.length) finishedGroups.push({ label: g.label, items: picked.map(it => ({ ...it, label: it.label })) });
+    const reopened = g.items.some(it => REOPEN.has(it.id.split('--')[0].replace(/-sk\d$/, '')));
+    if (picked.length && !reopened) finishedGroups.push({ label: g.label, items: picked.map(it => ({ ...it, label: it.label })) });
     else keep.push(g);
   }
   groups.length = 0; groups.push(...keep);
@@ -141,6 +146,8 @@ if (DRY) {
         data: { groups: finishedGroups, help: 'The one you picked for each fruit. Heart or ✕ here still counts.' } }),
     });
     console.log('finished page', JSON.stringify(await fr.json()));
+    const OLD_FINISHED = flag('supersede-finished');
+    if (OLD_FINISHED) console.log('superseded finished', OLD_FINISHED, (await fetch(`${BASE}/api/chatfeed/page/${OLD_FINISHED}/supersede`, { method: 'POST' })).status);
   }
   const left = groups.length;
   const r = await fetch(`${BASE}/api/chatfeed/page`, {
