@@ -20,7 +20,10 @@
    ],
    "gap": 12,
    "dark": 210,
-   "traceDark": 205
+   "traceDark": 205,
+   "level": [
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+   ]
   }
  ]
 }
