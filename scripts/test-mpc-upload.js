@@ -22,7 +22,7 @@ const express = require('express');
 
 let chromium = null;
 try { ({ chromium } = require('playwright')); } catch { console.log('SKIP: playwright not installed'); process.exit(0); }
-const exe = fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined;
+const exe = process.env.MPC_TEST_EXE || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 
 const up = require('../mpc-upload');
 const sharp = require('sharp');
@@ -95,6 +95,18 @@ app.get('/api/save', (req, res) => { state.saves.push({ name: req.query.name, fa
   }
   fs.writeFileSync(path.join(dir, 'back.png'), await png(240, 230, 210));
   const sha = (p) => crypto.createHash('sha1').update(fs.readFileSync(p)).digest('hex').toUpperCase();
+
+  // the zip door the Render job uses: a real zip of this deck → the same folder shape
+  {
+    const JSZip = require('jszip'); const z = new JSZip();
+    for (const f of files) z.file('fruit_print/fronts/' + path.basename(f), fs.readFileSync(f));
+    z.file('fruit_print/back.png', fs.readFileSync(path.join(dir, 'back.png')));
+    z.file('fruit_print/order.xml', '<order/>'); z.file('__MACOSX/fruit_print/fronts/._01.png', 'junk');
+    const out = await up.deckDirFromZip(await z.generateAsync({ type: 'nodebuffer' }), fs.mkdtempSync(path.join(os.tmpdir(), 'mpc-zip-')));
+    const got = up.filesFromDir(out);
+    ok(got.fronts.length === 3 && got.fronts.map((f) => sha(f.path)).join() === files.map(sha).join(), 'zip → deck folder keeps the fronts in order, bytes intact');
+    ok(got.back && sha(got.back) === sha(path.join(dir, 'back.png')) && !fs.existsSync(path.join(out, '__MACOSX')), 'zip → shared back kept, Mac junk dropped');
+  }
 
   const flow = {
     loginUrl: `${base}/login.aspx`, startUrl: `${base}/design/custom-blank-card.html`,

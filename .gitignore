@@ -58,3 +58,6 @@ docs/storybooks/
 docs/mental-hospital/soap/*.mp4
 docs/mental-hospital/soap/run-af-*.log
 docs/mental-hospital/soap/af-*-final.json
+
+# Playwright's browser, downloaded by the Render build (mpc-upload.js findBrowser)
+.pw-browsers/
