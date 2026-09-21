@@ -370,7 +370,7 @@ loadConfig().then(() => {
   stories.init({ storyDb });
   app.use('/api/stories', stories.router);
   app.use('/api/mpc', mpc.router);
-  app.use('/api/mpc-upload', mpcUpload.router); // full auto-upload (stops at cart)
+  app.use('/api/mpc-upload', mpcUpload.router); // full auto-upload (saves the project, stops at review)
   app.use('/api/apiframe', apiframe.router); // Midjourney deck-art generator
   app.use('/api/openrouter', openrouter.router); // Seedance at ByteDance's price, no video references (the second door)
   app.use('/api/atlascloud', atlascloud.router); // Seedance through Atlas Cloud's reference-to-video (the third door; unmeasured)

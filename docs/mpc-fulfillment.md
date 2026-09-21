@@ -119,14 +119,27 @@ resolution — a 2×3 grid gives ~512×512 per card, far below the 750×1050 a p
 card needs. `prep-order` flags these in `warnings` ("~186 DPI — likely a
 grid/low-res source"). For print, generate each card at full resolution.
 
-## Full auto-upload — `/api/mpc-upload` (everything except paying)
+## Full auto-upload — `/api/mpc-upload` (saves the project; ordering stays hers)
 
 `mpc-upload.js` removes the last manual step: instead of downloading the ZIP and
 running the desktop tool, it drives a real (headless) browser in the cloud to log
 into MakePlayingCards, create the deck project, upload every prepped card, set the
-options, and land in the **cart** — then stops. Sophie logs in, reviews, and pays.
-**Payment is never automated** (by design and by request); the engine even has a
-payment-page guard that hard-stops if it ever lands on a pay screen.
+options, **save the project to the account** and stop on the review page. Sophie
+opens Saved Projects, reviews, and orders. Nothing in it touches the cart or a
+payment page (by design and by request).
+**Since 2026-09-20 the selectors are PORTED FROM MPC AUTOFILL's `driver.py`**
+(the community tool's own ids and JS calls: `#dro_paper_type` /
+`#dro_choosesize`, `doPersonalize(...)`, the `sysifm_loginFrame` card-count box,
+`#uploadId` + `oDesignImage.dn_getImageList()` keyed by the file's SHA-1,
+`PageLayout.prototype.applyDragPhoto(getElement3("dnImg", slot), 0, pid)`,
+`oDesign.setTemporarySave()` / `setNextStep()`), so the "calibration pass" below
+is by source, not a guess. `opts.deckDir` runs an already-prepped folder (the
+zip's contents) with no download. Login refuses to go on when the logout link
+does not appear. Still unmeasured on her real account: the container that tried
+was not permitted to sign in (2026-09-20), so the first real run is either her
+go for the container, or the desktop tool on her Mac (queued in
+`docs/desktop-tasks.md`). `node scripts/test-mpc-upload.js` drives the whole
+engine against a mock of MPC's editor.
 
 - `GET /api/mpc-upload/status` (open) — readiness (`playwright` present,
   credentials set) + the runtime/calibration caveats.
