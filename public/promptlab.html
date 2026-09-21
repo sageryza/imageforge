@@ -1133,6 +1133,21 @@
   // whole loaded list, newest first; "Older" asks the server for the page behind
   // the oldest one it holds.
   var PAGE = 40;
+  // "OLDER" REVEALS A SET NUMBER OF PICTURES, NEVER A STRETCH OF HISTORY
+  // (2026-09-21, Sophie: "make the older button reveal a set number not time
+  // period"). A tap used to append one server page — the 40 RUNS behind the
+  // cursor — and what that put on the wall was whatever those runs happened
+  // to hold once the heart, the ✕ and the drawer's chips had run over them:
+  // a hundred and sixty pictures one tap, three the next, none at all on a
+  // hearts-only wall. So a tap now adds MORE pictures, counted AFTER the
+  // filters and the same in both views: `shownPics` is the cap on what the
+  // feed draws (feedCells), a tap raises it by MORE, and loadMore keeps
+  // paging behind the cursor until the loaded feed holds that many or the
+  // history ends. There is no cap until the first tap — the first page is
+  // the server's, exactly as it always was.
+  var MORE = 40;          // pictures one tap of Older puts on the wall
+  var MORE_PASSES = 8;    // pages one tap will walk to find them
+  var shownPics = 0;      // the cap; 0 = none yet
   var feed = [];          // every run loaded so far, newest first
   var feedMore = true;    // the server had more behind the last page it gave
   var paging = false;     // an Older fetch is in flight
@@ -5067,7 +5082,14 @@
   function mergeRuns(fresh) {
     var byId = {};
     feed.forEach(function (r) { byId[r.id] = r; });
-    fresh.forEach(function (r) { shieldRun(r); byId[r.id] = r; });
+    // A run landing at the TOP of a capped feed grows the cap by what it
+    // brings, so it never pushes the oldest revealed picture off the bottom.
+    var top = feed.length ? (feed[0].createdAt || 0) : 0;
+    fresh.forEach(function (r) {
+      shieldRun(r);
+      if (shownPics && !byId[r.id] && (r.createdAt || 0) > top && !runIsPanels(r)) shownPics += runImages(r).length || 1;
+      byId[r.id] = r;
+    });
     feed = Object.keys(byId).map(function (k) { return byId[k]; })
       .sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
     // Merged, never replaced: a search hit can be an older run this feed has
@@ -5184,32 +5206,107 @@
   // history into `feed`, and a cursor taken off an ancient panels run would
   // skip every single-pic run between here and it. (Older only shows on the
   // Picture tab, so the walk is always the single runs'.)
-  function loadMore() {
-    if (paging || !feedMore) return;
-    var oldest = null;
+  function oldestSingleAt() {
     for (var i = feed.length - 1; i >= 0; i--) {
-      if (feed[i].createdAt && !runIsPanels(feed[i])) { oldest = feed[i].createdAt; break; }
+      if (feed[i].createdAt && !runIsPanels(feed[i])) return feed[i].createdAt;
     }
     // A LAST-RESORT CURSOR, so Older is never a dead button. Normally this is
     // the oldest SINGLE run; with none in the feed at all (an old cached page
     // whose first read came back all panels) the oldest run of ANY kind still
     // walks backwards, which is what unsticks it.
-    if (!oldest) {
-      for (var j = feed.length - 1; j >= 0; j--) {
-        if (feed[j].createdAt) { oldest = feed[j].createdAt; break; }
-      }
+    for (var j = feed.length - 1; j >= 0; j--) {
+      if (feed[j].createdAt) return feed[j].createdAt;
     }
-    if (!oldest) return;
+    return 0;
+  }
+  // The drawer's DATE chip is a floor: once the cursor is under it nothing
+  // behind can ever pass, so walking further would only spend requests.
+  function pastDateFloor() {
+    var since = SF.sinceMs(FILT.get('when'));
+    var o = oldestSingleAt();
+    return !!(since && o && o < since);
+  }
+  // A tap promises MORE pictures than are on the wall now. Raise the cap, and
+  // if what is already loaded cannot fill it, page behind the cursor until it
+  // does (or the history ends, or MORE_PASSES is spent — a second tap carries
+  // on from there). Each page paints as it lands.
+  function loadMore() {
+    if (paging) return;
+    shownPics = feedCells().items.length + MORE;
+    if (feedCells().capped || !feedMore || pastDateFloor()) { renderFeed(); return; }
     paging = true; renderMoreBtn();
+    walkMore(0);
+  }
+  function walkMore(pass) {
+    var oldest = oldestSingleAt();
+    if (!oldest) { paging = false; renderMoreBtn(); return; }
     fetch('/api/promptlab?limit=' + PAGE + '&before=' + oldest + '&kind=single')
       .then(function (r) { return r.json(); })
       .then(function (d) {
         feedMore = !!d.more;
-        paging = false;
         mergeRuns((d.runs || []).filter(function (r) { return r.status !== 'running'; }));
         renderFeed();
+        var short = feedCells().items.length < shownPics;
+        if (short && feedMore && !pastDateFloor() && pass + 1 < MORE_PASSES) return walkMore(pass + 1);
+        paging = false; renderMoreBtn();
       })
       .catch(function () { paging = false; renderMoreBtn(); });
+  }
+
+  // Is Older's cap in force? Only on the walk it governs: the Picture tab's
+  // browse feed. A search and the PANELS tab are answered whole.
+  function capOn() { return !!shownPics && !qGroups.length && !onPanels(); }
+
+  // One run's cells after the heart and the ✕ — the sheet in sheets mode, the
+  // uncut sheet while its panels are being cut, else its pictures.
+  function runCells(r, only, nox) {
+    if (sheetsMode()) {
+      var s = sheetCellOf(r);
+      if (!s) return [];
+      var sv = (r.votes || {})[s.i] || '';
+      if (only && sv !== 'like') return [];
+      if (nox && sv === 'dislike') return [];
+      return [{ key: r.id + '|s', src: thumbFor(s.src), vote: sv, runId: r.id, i: s.i, ar: sheetArOf(r) }];
+    }
+    var cutting = cuttingSheet(r);
+    if (cutting) {
+      if (only && cutting.vote !== 'like') return [];
+      if (nox && cutting.vote === 'dislike') return [];
+      return [cutting];
+    }
+    var votes = r.votes || {};
+    var out = [];
+    runImages(r).forEach(function (u, i) {
+      var v = votes[i];
+      if (only && v !== 'like') return;
+      if (nox && v === 'dislike') return;
+      out.push({ key: r.id + '|' + i, src: thumbFor(u), vote: v || '', runId: r.id, i: String(i), ar: arCss(r.aspectRatio) });
+    });
+    return out;
+  }
+
+  // Every picture the feed would draw, newest first, after the filters — cut
+  // at `shownPics` once Older has set a cap. ONE list for both views: the
+  // wall draws it as is and the boxes keep the cells that are in it, so a tap
+  // reveals the same pictures whichever view she is in. `capped` says the cut
+  // took something off, which is what keeps Older on screen past the end of
+  // the loaded history.
+  function feedCells() {
+    var items = [];
+    var only = likedOnly();
+    var nox = hideX();
+    var cap = capOn() ? shownPics : 0;
+    var over = false;
+    var runs = visibleRuns();
+    for (var k = 0; k < runs.length && !over; k++) {
+      if (runs[k].status === 'failed') continue;
+      var cells = runCells(runs[k], only, nox);
+      for (var c = 0; c < cells.length; c++) {
+        if (cap && items.length >= cap) { over = true; break; }
+        items.push(cells[c]);
+      }
+    }
+    return { items: items, capped: over };
   }
 
   function renderFeed() {
@@ -5225,11 +5322,23 @@
       var only = likedOnly();
       var nox = hideX();
       var items = [];
+      // Older's cap: the boxes keep exactly the cells the wall would draw. A
+      // failed run has no picture to count, so it shows while it sits above
+      // the last revealed run and folds away with everything behind it.
+      var fc = capOn() ? feedCells() : null;
+      var allow = null, lastPos = -1;
+      if (fc) {
+        allow = {};
+        var lastRun = null;
+        fc.items.forEach(function (c) { allow[c.key] = true; lastRun = c.runId; });
+        runs.forEach(function (r, i) { if (r.id === lastRun) lastPos = i; });
+      }
       groups.forEach(function (g) {
         var head = g.items[0];
         var cp = '<button class="copybtn" data-copy="' + head.id + '" aria-label="Put this prompt back in the box">' + ICONS.copy + '</button>';
         if (head.status === 'failed') {
           if (only) return;   // a failed run has no picture to have hearted
+          if (fc && runs.indexOf(head) > lastPos) return;
           items.push({ key: g.key, bodyHtml:
             '<div class="runhead"><span class="p clamp failed">' + esc(head.prompt) + '</span>' + cp +
             '<span class="tag">failed</span></div><div class="note">' + esc(head.error || 'generation failed') + '</div>' });
@@ -5240,35 +5349,11 @@
         // that picture's real settings and a ♥ goes on the right doc.
         var cells = [];
         g.items.slice().reverse().forEach(function (r) {
-          if (sheetsMode()) {
-            var s = sheetCellOf(r);
-            if (!s) return;
-            var sv = (r.votes || {})[s.i] || '';
-            if (only && sv !== 'like') return;
-            if (nox && sv === 'dislike') return;
-            cells.push({ key: r.id + '|s', src: thumbFor(s.src), vote: sv, runId: r.id, i: s.i, ar: sheetArOf(r) });
-            return;
-          }
-          // Its panels are still being cut: the sheet stands in for them. It
-          // is votable at -1 like the banked sheet, so it obeys the filters
-          // rather than being dropped whenever the heart is lit.
-          var cut = cuttingSheet(r);
-          if (cut) {
-            if (only && cut.vote !== 'like') return;
-            if (nox && cut.vote === 'dislike') return;
-            cells.push(cut); return;
-          }
-          var votes = r.votes || {};
-          runImages(r).forEach(function (u, i) {
-            var v = votes[i];
-            if (only && v !== 'like') return;
-            if (nox && v === 'dislike') return;
-            cells.push({ key: r.id + '|' + i, src: thumbFor(u), vote: v || '', runId: r.id, i: String(i), ar: arCss(r.aspectRatio) });
-          });
+          runCells(r, only, nox).forEach(function (c) { if (!allow || allow[c.key]) cells.push(c); });
         });
         // Nothing left to show in this run — everything hearted away or
         // crossed out — so the box goes with it rather than sitting empty.
-        if ((only || nox) && !cells.length) return;
+        if ((only || nox || allow) && !cells.length) return;
         items.push({ key: g.key, cells: cells,
           headHtml: '<span class="p clamp">' + esc(head.prompt) + '</span>' + cp +
             runParts(head).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') });
@@ -5300,7 +5385,11 @@
     // whole collection, so there is nothing behind it to page in. The PANELS
     // tab has no Older either — its sweep (loadPanelsSweep) answered the
     // tab's whole history in one read, like a search.
-    if (qGroups.length || onPanels() || !feed.length || !feedMore) { el.innerHTML = ''; return; }
+    if (qGroups.length || onPanels() || !feed.length) { el.innerHTML = ''; return; }
+    // Something to reveal: history behind the cursor the DATE chip does not
+    // rule out, or loaded pictures the cap is still holding back.
+    var behind = feedMore && !pastDateFloor();
+    if (!behind && !(capOn() && feedCells().capped)) { el.innerHTML = ''; return; }
     el.innerHTML = '<button class="morebtn"' + (paging ? ' disabled' : '') + '>' +
       (paging ? 'Loading…' : 'Older') + '</button>';
   }
@@ -5316,7 +5405,6 @@
   function renderTiles() {
     var items = [];
     var only = likedOnly();
-    var nox = hideX();
     // A picture on its way has not been hearted, so the waiting squares are a
     // list-of-everything thing: with the heart lit the wall is hearts only.
     // In sheets mode a drawing run is ONE square — the sheet on its way.
@@ -5325,34 +5413,9 @@
       var slots = sheetsMode() ? 1 : (p.count || OUTPUTS);
       for (var i = 0; i < slots; i++) items.push({ key: 'ph|' + p.id + '|' + i, ph: true, ar: arCss(p.ar) });
     });
-    // Straight off `feed` — it is already sorted newest-first. (Walking
-    // Object.keys of the id map relied on insertion order holding, which is a
-    // property of the map, not of the wall's intended order.)
-    visibleRuns().forEach(function (r) {
-      if (r.status === 'failed') return;
-      if (sheetsMode()) {
-        var s = sheetCellOf(r);
-        if (!s) return;
-        var sv = (r.votes || {})[s.i] || '';
-        if (only && sv !== 'like') return;
-        if (nox && sv === 'dislike') return;
-        items.push({ key: r.id + '|s', src: thumbFor(s.src), vote: sv, runId: r.id, i: s.i, ar: sheetArOf(r) });
-        return;
-      }
-      var cutting = cuttingSheet(r);
-      if (cutting) {
-        if (only && cutting.vote !== 'like') return;
-        if (nox && cutting.vote === 'dislike') return;
-        items.push(cutting); return;
-      }
-      var votes = r.votes || {};
-      runImages(r).forEach(function (u, i) {
-        var v = votes[i];
-        if (only && v !== 'like') return;
-        if (nox && v === 'dislike') return;
-        items.push({ key: r.id + '|' + i, src: thumbFor(u), vote: v || '', runId: r.id, i: String(i), ar: arCss(r.aspectRatio) });
-      });
-    });
+    // Straight off `feed` — it is already sorted newest-first — through
+    // feedCells, which is also where Older's cap is applied.
+    items = items.concat(feedCells().items);
     var box = document.getElementById('tiles');
     if (!items.length) box.innerHTML = emptyNote();
     else syncChildren(box, items, makeCell, updateCell);
