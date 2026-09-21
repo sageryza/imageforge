@@ -44,6 +44,13 @@ const FINISHED = args.includes('--finished');
 // she hearted the deck pomegranate before the high one was on the page
 // (2026-09-20), so the card is reopened with every version on it.
 const REOPEN = new Set((flag('reopen', '') || '').split(',').filter(Boolean));
+// --auto-single: a card with ONE picture and no mark counts as picked
+// (2026-09-21, Sophie, looking at 26 lone cards among the 33 left: "auto pick
+// the single ones"). An ✕ on a lone picture still keeps it on the pick page —
+// that is her "draw me another". The auto-picks are written as ♥ on the new
+// pick page's marks so the next rebuild keeps them finished.
+const AUTO_SINGLE = args.includes('--auto-single');
+const autoPicked = [];
 const SHEET = 'pick-one-v1';
 const DRY = args.includes('--dry');
 
@@ -134,6 +141,10 @@ async function splitFinished() {
     const picked = g.items.filter(it => marks[it.id] === true);
     const reopened = g.items.some(it => REOPEN.has(it.id.split('--')[0].replace(/-sk\d$/, '')));
     if (picked.length && !reopened) finishedGroups.push({ label: g.label, items: picked.map(it => ({ ...it, label: it.label })) });
+    else if (AUTO_SINGLE && !reopened && g.items.length === 1 && marks[g.items[0].id] !== false) {
+      finishedGroups.push({ label: g.label, items: [{ ...g.items[0] }] });
+      autoPicked.push(g.items[0].id);
+    }
     else keep.push(g);
   }
   groups.length = 0; groups.push(...keep);
@@ -176,10 +187,11 @@ if (DRY) {
     for (const [k, v] of Object.entries(old.items || {})) {
       if (k.startsWith('s:') && typeof v === 'string' && v !== 'maybe' && items[v] == null) items[v] = true;
     }
+    for (const id of autoPicked) if (items[id] == null) items[id] = true;
     const patch = { items };
     if (old.texts) patch.texts = old.texts;
     await db.collection('forge-chat-verdicts').doc(`${CHAT}__page-${posted.id}`).set(patch, { merge: true });
-    console.log(`carried ${Object.keys(items).length} marks from ${CARRY}`);
+    console.log(`carried ${Object.keys(items).length} marks from ${CARRY}` + (autoPicked.length ? ` (+${autoPicked.length} auto-picked singles)` : ''));
   }
   if (SUPERSEDE) {
     const s = await fetch(`${BASE}/api/chatfeed/page/${SUPERSEDE}/supersede`, { method: 'POST' });
