@@ -93,7 +93,7 @@ for (const [id, name] of [['19-pomegranate', 'pomegranate'], ['01-strawberry', '
 // broccoli on their own at 2K).
 const redos = fs.existsSync(path.join(__dirname, 'fruit-chart', 'redo-uploaded.json')) ? read('redo-uploaded.json') : [];
 const redoItems = deckId => redos.filter(r => r.deck === deckId).map(r => ({ id: r.id, img: r.url, full: r.full, url: r.full,
-  label: `redrawn · ${r.tag === 'cut1' ? 'whole + cut open' : 'on its own'} · ${r.quality} · ${r.size || '1K'}`, model: 'gpt-image-2', quality: r.quality, size: r.size || '1K' }));
+  label: `redrawn · ${r.tag === 'cut1' ? 'whole + cut open' : r.tag === 'few1' ? 'a few' : 'on its own'} · ${r.quality} · ${r.size || '1K'}`, model: 'gpt-image-2', quality: r.quality, size: r.size || '1K' }));
 const vegPoll = read('poll-veg-test.json'); // GET /api/fruit/poll/veg-test, saved 2026-09-20
 const fruitGroups = poll.fruits.map(f => {
   const id = f.id, name = f.name;

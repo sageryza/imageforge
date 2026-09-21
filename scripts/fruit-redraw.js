@@ -86,7 +86,7 @@ async function draw(prompt, quality, size) {
     const fullUrl = await put(stamped, `${pre}/full/${id}.webp`);
     const small = await sharp(stamped).resize(640, 640, { fit: 'inside' }).webp({ quality: 82 }).toBuffer();
     const url = await put(small, `${pre}/card/${id}.webp`);
-    const description = r.kind === 'cut' ? `${r.name} — redrawn, whole with one cut open (${quality})` : `${r.name} — redrawn on its own at ${tier(size)} (${quality})`;
+    const description = r.kind === 'cut' ? `${r.name} — redrawn, whole with one cut open (${quality} · ${tier(size)})` : r.size ? `${r.name} — redrawn on its own at ${tier(size)} (${quality})` : `${r.name} — redrawn, ${r.note} (${quality} · ${tier(size)})`;
     await fetch(`${BASE}/api/gallery`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ assetsOnly: true, chat: CHAT, session: SESSION, url: fullUrl, description, prompt: `gpt-image-2 · ${quality} · ${tier(size)}` }) });
     await fetch(`${BASE}/api/gallery/assets/prompt`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
