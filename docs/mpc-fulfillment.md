@@ -173,6 +173,44 @@ cache.
    exactly the fragility the ZIP hand-off avoids. Keep the ZIP path as the
    fallback.
 
+### Where it actually runs: a one-off Render JOB, not the web box (2026-09-21)
+
+Sophie: "try render" (the cloud container's browser cannot trust the sandbox
+proxy — every network level goes through it, per Anthropic's own docs — and
+"i don't like using my desktop cause it hurts my back"). **Measured before
+building:** the headless browser peaks at **~225MB PSS** on the mock editor with
+the low-memory launch flags (`scripts/test-mpc-upload.js` under a
+`/proc/*/smaps_rollup` sampler; the naive RSS sum reads 670-770MB and is wrong,
+shared pages counted per process), and the live Starter box idles near 300MB of
+its 512 — so the route on the web service would OOM the server under her
+draws. `POST /api/mpc-upload` now refuses above 150MB rss and says so.
+
+The door is a **one-off job**: `node scripts/render-job.js --cmd 'node
+scripts/mpc-upload-job.js --zip <dump save url> --name "Fruit flash cards v1"
+--stock superior'`. Render runs the command on a FRESH Starter instance of the
+same build and env (all 512MB to the browser), bills it by the second, and it
+exits. `mpc-upload-job.js` unpacks the prep zip, runs the engine with
+`deckDir`, puts every step screenshot in Storage and POSTs ONE Compare page into
+the chat titled with the outcome. Three things the build and env need, in
+order:
+
+1. **The browser in the build** — `buildCommand` is `npm install &&
+   (PLAYWRIGHT_BROWSERS_PATH=.pw-browsers npx playwright install
+   chromium-headless-shell || true)`; `findBrowser()` in `mpc-upload.js` looks
+   in `./.pw-browsers` first. The service is not Blueprint-managed, so this
+   was set by API and mirrored in `render.yaml`. **Whether Render's native
+   Node image has headless-shell's shared libraries is UNMEASURED until the
+   first deploy** — `GET /api/mpc-upload/status` answers `browser:true/false`
+   and the first job's log says which library is missing if one is.
+2. **`MPC_EMAIL` / `MPC_PASSWORD` in the Render env** — hers to paste
+   (https://dashboard.render.com/web/srv-d660igvgi27c73a5u6eg/env). A chat
+   never writes a secret into a store, and her password never goes in a chat.
+3. **A deploy** — the build has to run once for the browser to exist; her
+   Deploy button on /waiting.
+
+Then any chat with `RENDER_API_KEY` fires the job. It never touches the cart:
+the deck ends as a saved project in her MPC account, and she orders by hand.
+
 ## Before a full deck run — smoke-test 3 cards (IMPORTANT)
 
 The XML *structure* matches the published schema, but the desktop tool is the

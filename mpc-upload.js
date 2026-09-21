@@ -44,6 +44,30 @@ function bucketOrNull() {
   try { return admin.apps.length ? admin.storage().bucket() : null; } catch { return null; }
 }
 
+// Is a Chromium actually on disk for this Playwright? (The build installs
+// chromium-headless-shell with PLAYWRIGHT_BROWSERS_PATH=0; a build that could
+// not is honest here instead of failing on the first job.)
+// Where the browser is: MPC_BROWSER_PATH, then Playwright's own idea, then the
+// copy the Render build downloads into ./.pw-browsers (buildCommand sets
+// PLAYWRIGHT_BROWSERS_PATH=.pw-browsers so the artifact carries it — no env var
+// to remember at runtime), then the container's /opt/pw-browsers.
+function findBrowser() {
+  const cands = [];
+  if (process.env.MPC_BROWSER_PATH) cands.push(process.env.MPC_BROWSER_PATH);
+  if (chromium) { try { cands.push(chromium.executablePath()); } catch {} }
+  for (const root of [path.join(__dirname, '.pw-browsers'), '/opt/pw-browsers', path.join(os.homedir(), '.cache', 'ms-playwright')]) {
+    let dirs = [];
+    try { dirs = fs.readdirSync(root); } catch { continue; }
+    for (const d of dirs.sort().reverse()) {
+      for (const tail of ['chrome-linux/headless_shell', 'chrome-linux/chrome', 'chrome-headless-shell-linux64/chrome-headless-shell']) {
+        cands.push(path.join(root, d, tail));
+      }
+    }
+  }
+  return cands.find((c) => c && fs.existsSync(c)) || null;
+}
+function browserInstalled() { return Boolean(chromium && findBrowser()); }
+
 function mpcCreds() {
   return { email: process.env.MPC_EMAIL || '', password: process.env.MPC_PASSWORD || '' };
 }
@@ -150,6 +174,24 @@ function filesFromDir(dir) {
   return { fronts, backs, back };
 }
 
+// A prep zip (fronts/, back.png or backs/, order.xml) unpacked into a deck
+// folder the engine can run — what `scripts/mpc-upload-job.js` feeds it.
+async function deckDirFromZip(zipBuf, dir) {
+  const JSZip = require('jszip');
+  const zip = await JSZip.loadAsync(zipBuf);
+  const entries = Object.values(zip.files).filter((f) => !f.dir && !/(^|\/)__MACOSX\//.test(f.name) && /\.(png|jpe?g)$/i.test(f.name));
+  if (!entries.length) throw new Error('zip holds no card images');
+  for (const e of entries) {
+    // keep only the tail that matters: fronts/x.png · backs/x.png · back.png
+    const m = e.name.match(/(?:^|\/)((?:fronts|backs)\/[^/]+|back\.png)$/i);
+    if (!m) continue;
+    const out = path.join(dir, m[1]);
+    fs.mkdirSync(path.dirname(out), { recursive: true });
+    fs.writeFileSync(out, await e.async('nodebuffer'));
+  }
+  return dir;
+}
+
 const sha1Upper = (p) => crypto.createHash('sha1').update(fs.readFileSync(p)).digest('hex').toUpperCase();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -182,12 +224,22 @@ async function driveMpcUpload(spec, opts = {}) {
   say(`prepped ${quantity} front(s)` +
     (files.backs.length ? ` + ${files.backs.length} back(s)` : files.back ? ' + shared back' : ''));
 
+  // LOW-MEMORY LAUNCH. The live box is a 512MB Starter that idles near 300MB,
+  // so the browser gets one renderer, no GPU, no /dev/shm, a small JS heap and
+  // a viewport it never has to paint at full size. MPC_LAUNCH_ARGS adds more.
   const browser = await chromium.launch({
     headless: opts.headless !== false,
-    executablePath: opts.executablePath || process.env.MPC_BROWSER_PATH || undefined,
+    executablePath: opts.executablePath || findBrowser() || undefined,
+    args: [
+      '--disable-dev-shm-usage', '--disable-gpu', '--no-zygote', '--no-sandbox',
+      '--renderer-process-limit=1', '--disable-extensions', '--disable-background-networking',
+      '--disable-features=site-per-process,IsolateOrigins', '--js-flags=--max-old-space-size=96',
+      ...String(process.env.MPC_LAUNCH_ARGS || '').split(/\s+/).filter(Boolean),
+      ...(opts.args || []),
+    ],
   });
   try {
-    const page = await (await browser.newContext({ acceptDownloads: false, viewport: { width: 1280, height: 900 } })).newPage();
+    const page = await (await browser.newContext({ acceptDownloads: false, viewport: { width: 1100, height: 800 } })).newPage();
     page.setDefaultTimeout(opts.timeout || 30000);
     page.on('dialog', (d) => d.accept().catch(() => {}));  // the tool's alert_handler
 
@@ -436,8 +488,10 @@ router.get('/status', (req, res) => {
   const creds = mpcCreds();
   res.json({
     ok: true,
-    ready: Boolean(chromium),
+    ready: Boolean(chromium) && browserInstalled(),
     playwright: Boolean(chromium),
+    browser: browserInstalled(),
+    rss_mb: Math.round(process.memoryUsage().rss / 1048576),
     credentials: Boolean(creds.email && creds.password),
     note: 'Saves the deck as a project in the MPC account and stops on the review '
       + 'page; ordering is always manual. Needs a browser-capable host (not the '
@@ -448,8 +502,16 @@ router.get('/status', (req, res) => {
 // POST /api/mpc/upload  — start an upload job. Body = the same deck spec as
 // /api/mpc/prep-order (deckName, size, mode, quantity, fronts[], back|backs[]).
 router.post('/', (req, res) => {
-  if (!chromium) {
-    return res.status(501).json({ error: 'playwright not installed on this host (browser-capable runtime required)' });
+  if (!chromium || !browserInstalled()) {
+    return res.status(501).json({ error: 'no browser on this host — run it as a one-off job: node scripts/render-job.js --cmd "node scripts/mpc-upload-job.js --zip … --name …"' });
+  }
+  // MEASURED 2026-09-21: the browser peaks ~225MB PSS and this box idles near
+  // 300 of its 512 — running it here would OOM the server under her draws.
+  // The job (a fresh instance) is the door; this route only runs on a host
+  // with room, and says so otherwise.
+  const rssMb = process.memoryUsage().rss / 1048576;
+  if (!process.env.MPC_UPLOAD_INPROCESS && rssMb > 150) {
+    return res.status(503).json({ error: `this instance is at ${Math.round(rssMb)}MB; run the upload as a one-off Render job (scripts/render-job.js)` });
   }
   const spec = req.body || {};
   if (!Array.isArray(spec.fronts) || !spec.fronts.length) {
@@ -477,6 +539,10 @@ module.exports = {
   configured: () => Boolean(chromium),
   driveMpcUpload,
   prepToDir,
+  filesFromDir,
+  deckDirFromZip,
+  browserInstalled,
+  findBrowser,
   DEFAULT_FLOW,
   _jobs: jobs,
 };

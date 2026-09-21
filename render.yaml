@@ -8,7 +8,16 @@ services:
     # the dashboard (Settings -> General -> Instance Type) and this keeps the
     # repo from reverting it later.
     plan: starter
-    buildCommand: npm install
+    # THE MPC UPLOADER'S BROWSER RIDES IN THE BUILD (2026-09-21, Sophie: "try
+    # render"). Playwright is already an optionalDependency; this downloads
+    # chromium-headless-shell into ./.pw-browsers so the build artifact carries
+    # it and a one-off job can launch it (mpc-upload.js findBrowser looks
+    # there). `|| true` keeps a failed download from breaking every deploy —
+    # `GET /api/mpc-upload/status` reports `browser:false` instead. The service
+    # is NOT Blueprint-managed (measured 2026-09-21: its live buildCommand was
+    # the bare `npm install`): this line mirrors what render-job's first run
+    # set by API, so a sync cannot revert it.
+    buildCommand: npm install && (PLAYWRIGHT_BROWSERS_PATH=.pw-browsers npx playwright install chromium-headless-shell || true)
     startCommand: npm start
     # A MERGE NO LONGER DEPLOYS (2026-09-15, Sophie, looking at two changes
     # that shipped themselves the same evening: "it shouldn't happen"). Auto
@@ -44,6 +53,12 @@ services:
       # a Blueprint sync from dropping it.
       - key: MALLOC_ARENA_MAX
         value: "2"
+      # The MakePlayingCards account the upload job signs into. She pastes
+      # both in the dashboard herself; a job without them refuses to start.
+      - key: MPC_EMAIL
+        sync: false
+      - key: MPC_PASSWORD
+        sync: false
       # Set the values in the Render dashboard — never commit real keys.
       - key: OPENAI_API_KEY
         sync: false
