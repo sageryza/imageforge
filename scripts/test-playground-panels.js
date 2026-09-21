@@ -246,7 +246,7 @@ ok(/&kind=single/.test(pageSrc), "and the PICTURE tab's Older walk asks for sing
 ok(/!runIsPanels\(feed\[i\]\)/.test(pageSrc),
   "Older's cursor is the oldest SINGLE run — the sweep merges ancient panels runs into `feed`, "
   + 'and a cursor off one of those would skip every single run between here and it');
-ok(/qGroups\.length \|\| onPanels\(\) \|\|/.test(pageSrc),
+ok(/if \(onPanels\(\) \|\| !feed\.length\) \{ el\.innerHTML = ''; return; \}/.test(pageSrc),
   'Older is hidden on the panels tab (the sweep already answered everything)');
 ok(/&kind=' \+ \(onPanels\(\)/.test(pageSrc), 'a search is scoped to the tab server-side too');
 

@@ -8182,9 +8182,18 @@ app.post('/api/promptlab/:id/vote', async (req, res) => {
 //
 // Firestore has no text search, so this scans — which is affordable here and
 // nowhere near it on the big collections: the whole run history is a few
-// hundred docs of ~1KB. The scan is capped and held for a minute, so typing
+// thousand docs of ~1KB. The scan is capped and held for a minute, so typing
 // costs one read of it however many keystrokes land.
-const PL_SEARCH_SCAN = 1500;    // newest runs a search ever reads
+//
+// THE CAP HAS TO STAY AHEAD OF HER HISTORY, and it did not (measured
+// 2026-09-21: 2,276 runs, cap 1,500 — every run before 2026-08-24 was silently
+// unsearchable, and the PANELS tab reads its whole gallery out of the same
+// scan, so its oldest sheets would have gone the same way). ~40 runs a day,
+// so 6,000 is about three months of headroom; a search that hits the cap says
+// so (`capped` on the answer) rather than answering "nothing matches" as if
+// it had looked. Re-measure with the walk in the 2026-09-21 PR before raising
+// it again — the box has 512MB and this is held in memory.
+const PL_SEARCH_SCAN = 6000;    // newest runs a search ever reads
 const PL_SEARCH_MAX = 300;      // matches handed back
 const PL_FILL_PASSES = 12;      // pages a kind-filtered feed read will walk to fill one
 const plFeedFill = require('./pl-feed-fill');
@@ -8211,14 +8220,32 @@ async function promptlabScan() {
   plScan = { at: Date.now(), runs };
   return runs;
 }
+// THE LABEL SHE SEES ON THE CARD — the page's `runStyleLabel` twin, and it has
+// to be one (2026-09-21): the page filters the loaded runs by this label the
+// instant she types and the server answers a beat later, so a run the page
+// labels and the server does not MATCHES, THEN VANISHES. Two shapes were
+// missing here: a gpt run with no `gptStyle` on the doc (the original
+// ChatGPT tile, 71 live docs) is labeled Sandy mirror by the page — the
+// `evan` default — and a LoRA run (90 live docs) is labeled by its model's
+// row (WTR) or the retired name (Hoonie linocut), which no doc stores.
+const PL_LORA_RETIRED = { 'sageryza/hoonie': 'Hoonie linocut' };
+function plStyleLabel(r) {
+  if (r.engine === 'gptimage') {
+    const st = PL_GPT_STYLES[r.gptStyle || 'evan'];
+    return st ? st.label : '';
+  }
+  const row = PL_LORA.models[r.model];
+  if (row && row.label) return row.label;
+  if (PL_LORA_RETIRED[r.model]) return PL_LORA_RETIRED[r.model];
+  return r.model ? String(r.model).split('/').pop() : '';
+}
 // Everything a run's card says: her words, its style (by the label she sees
 // AND the key the doc stores), and the tags beside them.
 function promptlabHay(r) {
-  const st = PL_GPT_STYLES[r.gptStyle || ''] || null;
   // The canvas is stored as a ratio and shown to her as one, but the button
   // she picked it with says Portrait or Square — so both words find it.
   const shape = PL_SHAPE_WORD[r.aspectRatio] || '';
-  return [r.prompt, st && st.label, r.gptStyle, r.model, r.quality, r.aspectRatio, shape,
+  return [r.prompt, plStyleLabel(r), r.gptStyle, r.model, r.quality, r.aspectRatio, shape,
     r.status === 'failed' ? 'failed' : '', r.status === 'cancelled' ? 'cancelled' : '',
     r.photoRef ? 'photo ref' : '',
     // A panels run: every panel's own words, and the grid by name — so
@@ -8286,12 +8313,17 @@ app.get('/api/promptlab', async (req, res) => {
     // walk behind it, so the page hides "Older" while one is running.
     const search = String(req.query.q || '').trim();
     if (search) {
-      const hits = plSearchRuns(await promptlabScan(), search)
+      const scanned = await promptlabScan();
+      const hits = plSearchRuns(scanned, search)
         .filter((r) => plKindKeeps(kind, r));
       return res.json({
         runs: hits.slice(0, Math.min(Math.max(Number(req.query.limit) || PL_SEARCH_MAX, 1), PL_SEARCH_MAX)),
         more: false,
         matched: hits.length,
+        // The scan is capped (PL_SEARCH_SCAN): past it, a miss means "not in
+        // the newest N", and the page says so instead of "nothing matches".
+        capped: scanned.length >= PL_SEARCH_SCAN,
+        scanned: scanned.length,
       });
     }
     // kind=panels takes the SEARCH path's scan, not the `before` walk: panels

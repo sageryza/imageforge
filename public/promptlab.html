@@ -1594,8 +1594,12 @@
   // re-typing four letters.
   var query = '';        // exactly what she typed
   var qGroups = [];      // parsed — the house grammar
-  var hits = null;       // the server's answer for `query`; null until it lands
+  var hits = null;       // the server's newest answer; null until one lands
+  var hitsQ = '';        // …and the query it answered (see visibleRuns)
+  var hitsMatched = 0;   // how many the server found — it hands back at most 300
+  var hitsCapped = false;// the server's scan hit its cap, so a miss is "not in the newest N"
   var qSeq = 0, qTimer = null;
+  var hitsMatchedScan = 0; // how many runs that capped scan read
 
   // The house grammar (search-grammar.js parses it server-side): bare words
   // AND within one run, `OR` for either, `-word` to exclude, "quoted" for a
@@ -1673,13 +1677,36 @@
     // The drawer's QUALITY and DATE chips narrow runs wherever they came from
     // — the loaded feed or the server's search hits — because they are facts
     // about the run rather than about the words she typed.
-    var mine = (qGroups.length && hits ? hits.map(live) : feed).filter(tabKeepsRun).filter(runPassesFilt);
-    if (!qGroups.length) return mine;
-    if (hits) return mine;
-    return mine.filter(function (r) { return qmatch(runHay(r), qGroups); });
+    if (!qGroups.length) return feed.filter(tabKeepsRun).filter(runPassesFilt);
+    // The server's answer for THIS query is the feed, in its order.
+    if (hits && hitsQ === query) return hits.map(live).filter(tabKeepsRun).filter(runPassesFilt);
+    // BETWEEN KEYSTROKES THE LAST ANSWER STAYS ON THE WALL (2026-09-21). The
+    // server is asked 350ms after the last letter, and until it answers the
+    // page filters what it holds. That used to be the loaded page ALONE — the
+    // last answer was thrown away on every keystroke — so typing "yarn" past
+    // "yar" blanked the wall to "Nothing matches that" for the round trip,
+    // letter after letter, whenever the match was a run the browse feed had
+    // never paged in (which is the only case a search exists for). The pool
+    // is the last answer AND the loaded feed, filtered by the new words with
+    // the same rule the server applies: a run the old answer holds that still
+    // matches is a run the new answer will hold too, so nothing shown here is
+    // wrong, and anything missing lands a beat later exactly as before.
+    var seen = {}, pool = [];
+    (hits || []).concat(feed).forEach(function (r) {
+      if (seen[r.id]) return;
+      seen[r.id] = true; pool.push(live(r));
+    });
+    return pool.filter(tabKeepsRun).filter(runPassesFilt)
+      .filter(function (r) { return qmatch(runHay(r), qGroups); })
+      .sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
   }
   function emptyNote() {
-    if (qGroups.length) return '<div class="emptynote">Nothing matches that</div>';
+    if (qGroups.length) {
+      // A miss against a capped scan is "not in the newest N", not "nowhere".
+      return '<div class="emptynote">' + (hits && hitsQ === query && hitsCapped
+        ? 'Nothing matches that in the newest ' + hitsMatchedScan.toLocaleString() + ' runs'
+        : 'Nothing matches that') + '</div>';
+    }
     if (sheetsMode()) return '<div class="emptynote">No sheets yet</div>';
     // An emptied list SAYS WHICH FILTER emptied it — a drawer she has shut is
     // exactly the thing she cannot see, so "nothing here" would read as a lost
@@ -1711,7 +1738,9 @@
         // The lightbox and the copy button read runsById, and a hit may be an
         // older run the feed itself has never paged in.
         runs.forEach(function (r) { runsById[r.id] = r; });
-        hits = runs;
+        hits = runs; hitsQ = want;
+        hitsMatched = Number(d.matched) || runs.length;
+        hitsCapped = !!d.capped; hitsMatchedScan = Number(d.scanned) || 0;
         renderFeed();
       })
       .catch(function () { /* the client-filtered view stands */ });
@@ -1722,10 +1751,11 @@
     qGroups = qparse(query);
     document.getElementById('qclear').hidden = !query;
     box.classList.toggle('hasq', !!box.value);          // the ✕'s padding, only while it shows
-    hits = null;                                        // the loaded feed answers meanwhile
+    // `hits` is KEPT — visibleRuns filters it by the new words until the
+    // server answers (it knows the answer is stale by `hitsQ`).
     clearTimeout(qTimer);
     if (query) qTimer = setTimeout(runSearch, 350);
-    else qSeq++;                                        // and any answer still coming is dropped
+    else { qSeq++; hits = null; hitsQ = ''; }           // and any answer still coming is dropped
     renderPendings();
     renderFeed();
   }
@@ -1736,7 +1766,12 @@
   var qLive = liveInput(document.getElementById('q'), readSearch);
   // `qLive.sync()` inside it: the blur Return performs would otherwise be
   // liveInput's first sight of dictated text and would search a second time.
-  enterSubmits(document.getElementById('q'), function () { readSearch(); qLive.sync(); });
+  // Return asks the server NOW rather than after the 350ms typing pause — she
+  // has said she is done typing, so the pause is only a wait.
+  enterSubmits(document.getElementById('q'), function () {
+    readSearch(); qLive.sync();
+    if (query) { clearTimeout(qTimer); runSearch(); }
+  });
   document.getElementById('qclear').addEventListener('click', function () {
     var box = document.getElementById('q');
     box.value = ''; qLive.sync(); readSearch(); box.focus();
@@ -5385,7 +5420,17 @@
     // whole collection, so there is nothing behind it to page in. The PANELS
     // tab has no Older either — its sweep (loadPanelsSweep) answered the
     // tab's whole history in one read, like a search.
-    if (qGroups.length || onPanels() || !feed.length) { el.innerHTML = ''; return; }
+    if (qGroups.length) {
+      // The server hands back at most 300 of what it found (PL_SEARCH_MAX):
+      // past that the wall is a SAMPLE, and it says so rather than reading as
+      // the whole answer (2026-09-21 — "medium" alone matches 954 runs).
+      var hidden = hits && hitsQ === query && hits.length && hitsMatched > hits.length;
+      el.innerHTML = hidden
+        ? '<div class="emptynote">' + hits.length + ' of ' + hitsMatched.toLocaleString()
+          + ' shown — add a word to narrow it</div>' : '';
+      return;
+    }
+    if (onPanels() || !feed.length) { el.innerHTML = ''; return; }
     // Something to reveal: history behind the cursor the DATE chip does not
     // rule out, or loaded pictures the cap is still holding back.
     var behind = feedMore && !pastDateFloor();
