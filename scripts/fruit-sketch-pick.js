@@ -51,6 +51,7 @@ const REOPEN = new Set((flag('reopen', '') || '').split(',').filter(Boolean));
 // pick page's marks so the next rebuild keeps them finished.
 const AUTO_SINGLE = args.includes('--auto-single');
 const autoPicked = [];
+const autoFilled = [];
 const SHEET = 'pick-one-v1';
 const DRY = args.includes('--dry');
 
@@ -136,6 +137,28 @@ let finishedGroups = [];
 async function splitFinished() {
   const r = await fetch(`${BASE}/api/chatfeed/verdict?chat=${CHAT}&sheet=page-${CARRY}`);
   const marks = (await r.json()).items || {};
+  // HER ♥/✕ IN THE ASSETS TAB COUNT TOO (2026-09-21, Sophie: "i had already
+  // picked those · hearted sweet potato · u didn't check"). The grid's tiles
+  // open the Assets lightbox, and a heart made THERE lands on the asset vote
+  // (forge-asset-votes), not on this page's verdict doc — measured: sweet
+  // potato and pineapple were `like` on their cut-open redraws in the tab and
+  // unmarked on every page. So an asset vote fills a mark the page lacks,
+  // matched by the picture's filename; a mark on the page still wins.
+  try {
+    const a = await fetch(`${BASE}/api/gallery/assets?chat=${CHAT}&limit=1000`);
+    const assets = (await a.json()).assets || [];
+    const byFile = new Map();
+    for (const x of assets) if (x.vote && x.url) byFile.set(x.url.split('/').pop(), x.vote);
+    let filled = 0;
+    for (const g of groups) for (const it of g.items) {
+      if (marks[it.id] != null) continue;
+      const v = byFile.get(String(it.img || '').split('/').pop()) || byFile.get(String(it.full || '').split('/').pop());
+      if (v === 'like') { marks[it.id] = true; filled++; }
+      else if (v === 'dislike') { marks[it.id] = false; filled++; }
+    }
+    if (filled) console.log(`${filled} mark(s) taken from Assets-tab votes`);
+    autoFilled.push(...Object.entries(marks));
+  } catch (e) { console.log('assets votes unread: ' + e.message); }
   const keep = [];
   for (const g of groups) {
     const picked = g.items.filter(it => marks[it.id] === true);
@@ -188,6 +211,7 @@ if (DRY) {
       if (k.startsWith('s:') && typeof v === 'string' && v !== 'maybe' && items[v] == null) items[v] = true;
     }
     for (const id of autoPicked) if (items[id] == null) items[id] = true;
+    for (const [id, v] of autoFilled) if (items[id] == null && v != null) items[id] = v;
     const patch = { items };
     if (old.texts) patch.texts = old.texts;
     await db.collection('forge-chat-verdicts').doc(`${CHAT}__page-${posted.id}`).set(patch, { merge: true });
