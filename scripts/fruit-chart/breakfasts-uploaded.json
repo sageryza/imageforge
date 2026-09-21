@@ -1,0 +1,200 @@
+[
+ {
+  "id": "japan",
+  "country": "Japan",
+  "what": "a Japanese breakfast — a bowl of rice, a piece of grilled fish, a bowl of miso soup and a small dish of pickles",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/card/japan.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/full/japan.webp",
+  "sheet": 1,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/sheet/sheet-1.webp",
+  "size": "4K",
+  "quality": "medium"
+ },
+ {
+  "id": "turkey",
+  "country": "Turkey",
+  "what": "a Turkish breakfast spread — white cheese, olives, sliced tomatoes and cucumber, a simit and a glass of tea",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/card/turkey.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/full/turkey.webp",
+  "sheet": 1,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/sheet/sheet-1.webp",
+  "size": "4K",
+  "quality": "medium"
+ },
+ {
+  "id": "mexico",
+  "country": "Mexico",
+  "what": "a plate of chilaquiles with a fried egg on top",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/card/mexico.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/full/mexico.webp",
+  "sheet": 1,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/sheet/sheet-1.webp",
+  "size": "4K",
+  "quality": "medium"
+ },
+ {
+  "id": "england",
+  "country": "England",
+  "what": "a full English breakfast — eggs, bacon, sausage, beans, a grilled tomato and toast",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/card/england.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/full/england.webp",
+  "sheet": 1,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/sheet/sheet-1.webp",
+  "size": "4K",
+  "quality": "medium"
+ },
+ {
+  "id": "vietnam",
+  "country": "Vietnam",
+  "what": "a bowl of pho with herbs and lime on the side",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/card/vietnam.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/full/vietnam.webp",
+  "sheet": 1,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/sheet/sheet-1.webp",
+  "size": "4K",
+  "quality": "medium"
+ },
+ {
+  "id": "egypt",
+  "country": "Egypt",
+  "what": "a bowl of ful medames with flatbread",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/card/egypt.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/full/egypt.webp",
+  "sheet": 1,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/sheet/sheet-1.webp",
+  "size": "4K",
+  "quality": "medium"
+ },
+ {
+  "id": "india",
+  "country": "India",
+  "what": "idli with sambar and coconut chutney",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/card/india.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/full/india.webp",
+  "sheet": 1,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/sheet/sheet-1.webp",
+  "size": "4K",
+  "quality": "medium"
+ },
+ {
+  "id": "israel",
+  "country": "Israel",
+  "what": "a pan of shakshuka",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/card/israel.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/full/israel.webp",
+  "sheet": 1,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/sheet/sheet-1.webp",
+  "size": "4K",
+  "quality": "medium"
+ },
+ {
+  "id": "colombia",
+  "country": "Colombia",
+  "what": "arepas with scrambled eggs and a cup of hot chocolate",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/card/colombia.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/full/colombia.webp",
+  "sheet": 1,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/sheet/sheet-1.webp",
+  "size": "4K",
+  "quality": "medium"
+ },
+ {
+  "id": "nigeria",
+  "country": "Nigeria",
+  "what": "akara fritters with a bowl of pap",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/card/nigeria.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/full/nigeria.webp",
+  "sheet": 2,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/sheet/sheet-2.webp",
+  "size": "4K",
+  "quality": "medium"
+ },
+ {
+  "id": "sweden",
+  "country": "Sweden",
+  "what": "a Swedish breakfast — crispbread with cheese, a boiled egg and a cup of coffee",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/card/sweden.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/full/sweden.webp",
+  "sheet": 2,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/sheet/sheet-2.webp",
+  "size": "4K",
+  "quality": "medium"
+ },
+ {
+  "id": "jamaica",
+  "country": "Jamaica",
+  "what": "ackee and saltfish with fried dumplings",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/card/jamaica.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/full/jamaica.webp",
+  "sheet": 2,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/sheet/sheet-2.webp",
+  "size": "4K",
+  "quality": "medium"
+ },
+ {
+  "id": "australia",
+  "country": "Australia",
+  "what": "avocado toast with a poached egg",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/card/australia.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/full/australia.webp",
+  "sheet": 2,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/sheet/sheet-2.webp",
+  "size": "4K",
+  "quality": "medium"
+ },
+ {
+  "id": "france",
+  "country": "France",
+  "what": "a croissant and a bowl of café au lait",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/card/france.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/full/france.webp",
+  "sheet": 2,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/sheet/sheet-2.webp",
+  "size": "4K",
+  "quality": "medium"
+ },
+ {
+  "id": "usa",
+  "country": "USA",
+  "what": "a stack of pancakes with bacon and eggs",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/card/usa.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/full/usa.webp",
+  "sheet": 2,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/sheet/sheet-2.webp",
+  "size": "4K",
+  "quality": "medium"
+ },
+ {
+  "id": "ethiopia",
+  "country": "Ethiopia",
+  "what": "injera with firfir and a cup of coffee",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/card/ethiopia.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/full/ethiopia.webp",
+  "sheet": 2,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/sheet/sheet-2.webp",
+  "size": "4K",
+  "quality": "medium"
+ },
+ {
+  "id": "korea",
+  "country": "Korea",
+  "what": "a Korean breakfast — a bowl of rice, soup and small dishes of banchan",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/card/korea.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/full/korea.webp",
+  "sheet": 2,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/sheet/sheet-2.webp",
+  "size": "4K",
+  "quality": "medium"
+ },
+ {
+  "id": "morocco",
+  "country": "Morocco",
+  "what": "msemen flatbread with honey and a glass of mint tea",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/card/morocco.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/full/morocco.webp",
+  "sheet": 2,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/breakfasts/sheet/sheet-2.webp",
+  "size": "4K",
+  "quality": "medium"
+ }
+]
