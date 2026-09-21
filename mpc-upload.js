@@ -96,9 +96,14 @@ const DEFAULT_FLOW = {
   startUrl: process.env.MPC_PRODUCT_URL || 'https://www.makeplayingcards.com/design/custom-blank-card.html',
   acceptSettingsUrl: 'https://www.makeplayingcards.com/products/pro_item_process_flow.aspx',
   sel: {
-    email: '#txtEmail, #email, input[type=email], input[name*=email i]',
-    password: '#txtPassword, #password, input[type=password]',
-    loginSubmit: '#btnLogin, button[type=submit], input[type=submit]',
+    // Measured on the live login page 2026-09-21: the boxes are #txt_email /
+    // #txt_password, and the Login button is a HIDDEN input (#btn_submit,
+    // display:none) fired by a styled <a href="javascript:btn_submit_onclick()">
+    // — so the submit is a function call, never a visible button to click.
+    email: '#txt_email, #txtEmail, #email, input[type=email], input[name*=email i]',
+    password: '#txt_password, #txtPassword, #password, input[type=password]',
+    loginSubmitJs: 'btn_submit_onclick',
+    loginSubmit: 'a[href*="btn_submit_onclick"], #btnLogin, button[type=submit], input[type=submit]:not([style*="display: none"])',
     stock: '#dro_paper_type',        // select, by visible text ("(S30) Standard Smooth")
     bracket: '#dro_choosesize',      // select, values are the bracket sizes (18, 36, 55 …)
     effect: '#dro_product_effect',   // select; foil is value EF_055
@@ -238,8 +243,9 @@ async function driveMpcUpload(spec, opts = {}) {
       ...(opts.args || []),
     ],
   });
+  let page = null;
   try {
-    const page = await (await browser.newContext({ acceptDownloads: false, viewport: { width: 1100, height: 800 } })).newPage();
+    page = await (await browser.newContext({ acceptDownloads: false, viewport: { width: 1100, height: 800 } })).newPage();
     page.setDefaultTimeout(opts.timeout || 30000);
     page.on('dialog', (d) => d.accept().catch(() => {}));  // the tool's alert_handler
 
@@ -336,11 +342,21 @@ async function driveMpcUpload(spec, opts = {}) {
     // 1) LOGIN — and refuse to go on blind: everything after this writes into her account.
     say('login');
     await page.goto(flow.loginUrl, { waitUntil: 'domcontentloaded' });
-    await page.fill(flow.sel.email, creds.email);
-    await page.fill(flow.sel.password, creds.password);
+    await page.locator(flow.sel.email).first().fill(creds.email);
+    await page.locator(flow.sel.password).first().fill(creds.password);
+    await shot('login-form');
+    // Submit: the page's own function when it has one (MPC's real login), else
+    // a visible control, else Enter in the password box. Never a hidden button.
+    const submit = async () => {
+      const fn = flow.sel.loginSubmitJs;
+      if (fn && await page.evaluate((f) => typeof window[f] === 'function', fn)) { await page.evaluate((f) => window[f](), fn); return 'js:' + fn; }
+      const btn = page.locator(flow.sel.loginSubmit).first();
+      if (await btn.count() && await btn.isVisible().catch(() => false)) { await btn.click(); return 'click'; }
+      await page.locator(flow.sel.password).first().press('Enter'); return 'enter';
+    };
     await Promise.all([
       page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: flow.loginTimeout }).catch(() => {}),
-      page.click(flow.sel.loginSubmit),
+      submit().then((how) => say('submitted login via ' + how)),
     ]);
     await page.waitForLoadState('networkidle').catch(() => {});
     const signedIn = await page.locator(`a[href="${flow.logoutHref}"]`).first()
@@ -414,6 +430,11 @@ async function driveMpcUpload(spec, opts = {}) {
     const reviewUrl = page.url();
     say(`done: project "${projectName}" saved · review ${reviewUrl}`);
     return { ok: true, projectName, reviewUrl, shots, log, workDir };
+  } catch (e) {
+    // the screen at the moment it broke is the whole diagnosis — keep it
+    try { const p = page && await page.screenshot({ path: path.join(shotsDir, `${String(++shotN).padStart(2, '0')}_error.png`) }); if (p) shots.push({ step: 'error', path: path.join(shotsDir, `${String(shotN).padStart(2, '0')}_error.png`) }); } catch {}
+    e.shots = shots; e.log = log;
+    throw e;
   } finally {
     await browser.close();
   }

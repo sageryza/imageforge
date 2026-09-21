@@ -18,8 +18,8 @@
 // fronts/*.png (natural order = slot order), back.png or backs/*.png. Needs
 // MPC_EMAIL + MPC_PASSWORD in the environment (she pastes them into the Render
 // env herself — never into a chat, never into this repo), Playwright's
-// chromium-headless-shell installed by the build (`PLAYWRIGHT_BROWSERS_PATH=0`
-// puts it inside node_modules so the build artifact carries it), and
+// chromium-headless-shell installed by the build (into ./.pw-browsers, where
+// mpc-upload.js's findBrowser looks first), and
 // FIREBASE_SERVICE_ACCOUNT so the step screenshots land in Storage.
 //
 // When it ends it POSTs ONE Compare page into the chat — the screenshots in
@@ -73,7 +73,7 @@ if (!ZIP) { console.error('usage: --zip <url> --name "…" [--stock superior] [-
       deckDir, workDir, headless: true, timeout: 45000,
       onStep: (u) => { const l = u.log[u.log.length - 1]; if (l && l !== global.__last) { global.__last = l; say(l); } },
     });
-  } catch (e) { error = e.message; say('ERROR ' + error); }
+  } catch (e) { error = e.message; say('ERROR ' + error); result = { log: e.log || [], shots: e.shots || [] }; }
 
   // Screenshots → Storage → one Compare page in the chat.
   const shots = [];
@@ -89,7 +89,7 @@ if (!ZIP) { console.error('usage: --zip <url> --name "…" [--stock superior] [-
     } catch (e) { shots.push({ step: f, url: null }); }
   }
   const mins = ((Date.now() - t0) / 60000).toFixed(1);
-  const outcome = error ? `failed — ${error.slice(0, 80)}` : `saved as "${result.projectName}"`;
+  const outcome = error ? `failed — ${error.split('\n')[0].slice(0, 80)}` : `saved as "${result.projectName}"`;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const rows = [];
   const pics = shots.filter((s) => s.url);
