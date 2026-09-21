@@ -137,5 +137,14 @@
   "size": "2048x2048",
   "scene": "a head of broccoli. No text or lettering anywhere.",
   "note": "redo at 2k"
+ },
+ {
+  "id": "04-orange",
+  "name": "Orange",
+  "deck": "fruit",
+  "quality": "medium",
+  "kind": "cut",
+  "scene": "an orange, whole, with one cut open beside it. No text or lettering anywhere.",
+  "note": "also do orange (2026-09-21)"
  }
 ]
