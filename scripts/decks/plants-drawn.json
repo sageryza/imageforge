@@ -1,0 +1,302 @@
+[
+ {
+  "id": "01-monstera",
+  "name": "Monstera",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/01-monstera.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/01-monstera.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted monstera",
+  "at": "2026-09-21T05:54:49.441Z"
+ },
+ {
+  "id": "03-snake-plant",
+  "name": "Snake plant",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/03-snake-plant.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/03-snake-plant.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted snake plant",
+  "at": "2026-09-21T05:55:55.998Z"
+ },
+ {
+  "id": "04-fiddle-leaf-fig",
+  "name": "Fiddle leaf fig",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/04-fiddle-leaf-fig.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/04-fiddle-leaf-fig.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted fiddle leaf fig",
+  "at": "2026-09-21T05:55:56.869Z"
+ },
+ {
+  "id": "02-pothos",
+  "name": "Pothos",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/02-pothos.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/02-pothos.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted pothos with trailing vines",
+  "at": "2026-09-21T05:55:59.358Z"
+ },
+ {
+  "id": "05-zz-plant",
+  "name": "ZZ plant",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/05-zz-plant.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/05-zz-plant.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted ZZ plant",
+  "at": "2026-09-21T05:56:37.367Z"
+ },
+ {
+  "id": "07-spider-plant",
+  "name": "Spider plant",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/07-spider-plant.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/07-spider-plant.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a spider plant in a hanging pot",
+  "at": "2026-09-21T05:56:40.120Z"
+ },
+ {
+  "id": "06-peace-lily",
+  "name": "Peace lily",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/06-peace-lily.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/06-peace-lily.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted peace lily in bloom",
+  "at": "2026-09-21T05:56:41.929Z"
+ },
+ {
+  "id": "08-philodendron",
+  "name": "Philodendron",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/08-philodendron.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/08-philodendron.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted heartleaf philodendron",
+  "at": "2026-09-21T05:57:22.904Z"
+ },
+ {
+  "id": "09-rubber-plant",
+  "name": "Rubber plant",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/09-rubber-plant.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/09-rubber-plant.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted rubber plant",
+  "at": "2026-09-21T05:57:22.934Z"
+ },
+ {
+  "id": "10-aloe-vera",
+  "name": "Aloe vera",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/10-aloe-vera.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/10-aloe-vera.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted aloe vera",
+  "at": "2026-09-21T05:57:23.522Z"
+ },
+ {
+  "id": "11-jade-plant",
+  "name": "Jade plant",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/11-jade-plant.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/11-jade-plant.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted jade plant",
+  "at": "2026-09-21T05:58:05.725Z"
+ },
+ {
+  "id": "12-string-of-pearls",
+  "name": "String of pearls",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/12-string-of-pearls.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/12-string-of-pearls.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a string of pearls plant in a hanging pot",
+  "at": "2026-09-21T05:58:05.781Z"
+ },
+ {
+  "id": "13-bird-of-paradise",
+  "name": "Bird of paradise",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/13-bird-of-paradise.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/13-bird-of-paradise.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted bird of paradise plant",
+  "at": "2026-09-21T05:58:08.678Z"
+ },
+ {
+  "id": "15-boston-fern",
+  "name": "Boston fern",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/15-boston-fern.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/15-boston-fern.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a boston fern in a hanging pot",
+  "at": "2026-09-21T05:58:52.906Z"
+ },
+ {
+  "id": "14-calathea",
+  "name": "Calathea",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/14-calathea.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/14-calathea.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted calathea",
+  "at": "2026-09-21T05:58:53.297Z"
+ },
+ {
+  "id": "16-english-ivy",
+  "name": "English ivy",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/16-english-ivy.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/16-english-ivy.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted english ivy",
+  "at": "2026-09-21T05:58:56.213Z"
+ },
+ {
+  "id": "18-dracaena",
+  "name": "Dracaena",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/18-dracaena.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/18-dracaena.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted dracaena",
+  "at": "2026-09-21T05:59:36.012Z"
+ },
+ {
+  "id": "17-pilea",
+  "name": "Pilea",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/17-pilea.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/17-pilea.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted pilea, the chinese money plant",
+  "at": "2026-09-21T05:59:39.105Z"
+ },
+ {
+  "id": "19-croton",
+  "name": "Croton",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/19-croton.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/19-croton.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted croton",
+  "at": "2026-09-21T05:59:42.869Z"
+ },
+ {
+  "id": "20-orchid",
+  "name": "Orchid",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/20-orchid.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/20-orchid.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted moth orchid in bloom",
+  "at": "2026-09-21T06:00:21.196Z"
+ },
+ {
+  "id": "22-cactus",
+  "name": "Cactus",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/22-cactus.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/22-cactus.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a small potted cactus",
+  "at": "2026-09-21T06:00:25.361Z"
+ },
+ {
+  "id": "21-african-violet",
+  "name": "African violet",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/21-african-violet.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/21-african-violet.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted african violet in bloom",
+  "at": "2026-09-21T06:00:27.868Z"
+ },
+ {
+  "id": "23-echeveria",
+  "name": "Echeveria",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/23-echeveria.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/23-echeveria.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted echeveria succulent",
+  "at": "2026-09-21T06:01:06.365Z"
+ },
+ {
+  "id": "25-anthurium",
+  "name": "Anthurium",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/25-anthurium.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/25-anthurium.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted anthurium in bloom",
+  "at": "2026-09-21T06:01:11.162Z"
+ },
+ {
+  "id": "24-begonia",
+  "name": "Begonia",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/24-begonia.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/24-begonia.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted begonia",
+  "at": "2026-09-21T06:01:11.264Z"
+ },
+ {
+  "id": "26-dieffenbachia",
+  "name": "Dieffenbachia",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/26-dieffenbachia.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/26-dieffenbachia.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted dieffenbachia",
+  "at": "2026-09-21T06:01:51.426Z"
+ },
+ {
+  "id": "28-prayer-plant",
+  "name": "Prayer plant",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/28-prayer-plant.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/28-prayer-plant.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted prayer plant",
+  "at": "2026-09-21T06:01:57.747Z"
+ },
+ {
+  "id": "27-hoya",
+  "name": "Hoya",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/27-hoya.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/27-hoya.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted hoya with trailing vines",
+  "at": "2026-09-21T06:01:59.163Z"
+ },
+ {
+  "id": "29-parlor-palm",
+  "name": "Parlor palm",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/29-parlor-palm.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/29-parlor-palm.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted parlor palm",
+  "at": "2026-09-21T06:02:36.847Z"
+ },
+ {
+  "id": "30-yucca",
+  "name": "Yucca",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/card/30-yucca.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/plants/full/30-yucca.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a potted yucca",
+  "at": "2026-09-21T06:02:38.573Z"
+ }
+]
