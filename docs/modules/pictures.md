@@ -81,6 +81,24 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
   - **It is a TAP, deliberately not load-on-scroll** — the autoscroll pill
     would run the page to the bottom by itself and pull page after page of
     pictures over her data without her asking.
+  - **A TAP REVEALS A SET NUMBER OF PICTURES, NEVER A STRETCH OF HISTORY
+    (2026-09-21, Sophie: "make the older button reveal a set number not time
+    period").** The server still pages 40 RUNS behind the cursor, but what a
+    tap put on the wall was whatever those runs held once the heart, the ✕
+    and the drawer's chips had run over them — 160 pictures one tap, three
+    the next, none on a hearts-only wall. Now `MORE` (40) pictures land per
+    tap, counted AFTER the filters: `shownPics` caps what `feedCells()` draws
+    (ONE list for both views, so the boxes keep exactly the cells the wall
+    shows), a tap raises it by MORE, and `loadMore` walks page after page
+    (`MORE_PASSES`, 8) until the loaded feed holds that many or the history
+    ends. No cap until the first tap — the first page is the server's, as it
+    always was. A run landing at the top grows the cap by what it brings, so
+    nothing revealed falls off the bottom; Older stays on screen past the end
+    of the history while the cap still hides loaded pictures; and the
+    drawer's DATE chip is a floor the walk stops at (nothing behind the
+    cursor can pass it). Test: `node scripts/test-playground-older-count.js`
+    (four pictures a run with a tap measured at exactly 40, then hide-✕ lit
+    with one keeper in four, the walk measured at four pages).
   - Tests: `node scripts/test-playground-paging.js` (drives the real page in
     headless Chromium against a stub API; skips without Playwright).
 - **The feed has TWO views: LIST and TILES** (`promptlab_view` in
