@@ -211,6 +211,21 @@ order:
 Then any chat with `RENDER_API_KEY` fires the job. It never touches the cart:
 the deck ends as a saved project in her MPC account, and she orders by hand.
 
+**THE RESULT, MEASURED 2026-09-21 — TWO LIVE JOBS: THE JOB CANNOT SIGN IN.** The
+build carried the browser (`browser:true`, `credentials:true`, a job boots and
+opens MPC fine), but MPC's login runs **Google reCAPTCHA v3** before its
+postback (`btn_submit_onclick` → `oGrectcha.executeGrecaptcha` →
+`__doPostBack`), and a headless browser on a server scores as a bot: the page
+reloads with the password cleared and no message (the screenshots are on the
+"MPC upload — Fruit flash cards v1 — failed" pages in the chat). That gate is
+the site's own and is not ours to defeat, so the engine now STOPS before any
+attempt when the login page carries reCAPTCHA, rather than piling failed
+sign-ins on her account. This is exactly why the community desktop tool makes
+the human sign in: a real browser with a real person passes. **So the browser
+upload is a person's job, by hand on the phone (Upload images → drag 15) or
+the desktop tool on a Mac**; the job stays as the door for anything that does
+not need her login.
+
 ## Before a full deck run — smoke-test 3 cards (IMPORTANT)
 
 The XML *structure* matches the published schema, but the desktop tool is the
