@@ -1,64 +1,78 @@
 #!/usr/bin/env python3
-"""Turn a handwritten glyph sheet (one picture of the alphabet in rows) into a
-font — OTF (cubic) and TTF (quadratic) — with no font editor.
+"""Turn a handwritten (or lettered) glyph sheet into a font — OTF (cubic) and
+TTF (quadratic) — with no font editor.
 
-    python3 scripts/sheet-to-font.py docs/fonts/handwritten-sheet.png \
-        --name "Sophie Hand" --out public/fonts/sophie-hand
+    python3 scripts/sheet-to-font.py docs/fonts/sophie-hand.json
 
-How it reads the sheet: ink = dark AND unsaturated pixels (the green leaves
-drop out), the outer 4% is cropped (the drawn border), rows are found by the
-horizontal ink profile, each row is cut into glyphs by connected components
-merged across tiny gaps (an i's dot, a t's bar, a colon's two dots), and the
-glyphs are matched left-to-right to the ROWS spec below. Each glyph is
-upscaled 4x from the grey original, thresholded, traced with potrace, and
-scaled so the caps row's height is CAP_HEIGHT units. Baselines are per row
-(the median bottom of the row's glyphs, so descenders don't pull it down).
+The spec is JSON:
+  name        the family name
+  out         output path without extension (both .otf and .ttf are written)
+  sources     a list of sheets, in order. The FIRST is the base; every later
+              sheet ADDS glyphs the base lacks and files the ones it already
+              has as ALTERNATES (`a.alt1`, `a.alt2`…) behind a `calt` feature
+              that cycles them, so a repeated letter is drawn a different way
+              each time — the thing that makes a handwriting font read as
+              handwriting rather than a stamp (Sophie, 2026-09-21: "shud we add
+              these for variants").
+    sheet     the picture
+    rows      the characters of each glyph row, left to right, top to bottom
+    bands     which ink bands on the sheet those rows are (0-based, top down;
+              a title, a drawing or a rule line is a band too) — run with
+              --bands to print them
+    left      crop this fraction off the left (a sheet with labels down the
+              left edge); default 0.04, and 0.04 comes off every other edge
+    join      glyphs drawn as two strokes that should read as one: the pieces
+              are bridged at their closest points before tracing (the first
+              sheet's y had a gap between arm and stem — "y is bad")
+    gap       px between pieces that still count as one glyph (default 3; a
+              serif with hairlines that break up at the threshold wants ~16)
+    dark      grey level below which a pixel is ink when finding glyphs
+              (default 140; a light serif wants ~175) · traceDark the same
+              for the 4x trace (default 165)
+    alignTop  {glyph: otherGlyph} — lift a mark so its top matches another's
+              (the sheet's apostrophe hung at mid height: IT'S read as IT,S)
+  lowerToCaps a caps-only font draws lowercase with the caps (the title face)
+  capsToLower a lowercase-only font draws caps with the lowercase (the italic)
+
+How it reads a sheet: ink = dark AND unsaturated pixels (watercolour leaves and
+lemons drop out), rows are the horizontal ink profile, each row is cut into
+glyphs by connected components merged across tiny gaps (an i's dot, a t's bar,
+a colon's two dots), each glyph is upscaled 4x from the grey original,
+thresholded and traced with potrace, and scaled so the caps row is CAP_HEIGHT
+units (or the x-height X_HEIGHT units when a sheet has no caps). Baselines are
+per row (the median bottom of the row's glyphs, so descenders don't pull it).
 
 Needs: pip install fonttools pillow numpy opencv-python-headless potracer
 """
-import argparse, os, sys, statistics
+import argparse, json, os, sys, statistics
 import cv2, numpy as np, potrace
 from fontTools.fontBuilder import FontBuilder
+from fontTools.feaLib.builder import addOpenTypeFeaturesFromString
 from fontTools.pens.t2CharStringPen import T2CharStringPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.pens.cu2quPen import Cu2QuPen
 from fontTools.pens.boundsPen import BoundsPen
-from fontTools.pens.transformPen import TransformPen
 
-# The rows on the sheet, top to bottom, after the title rows. A row is a
-# string of the characters it holds, left to right. Edit this for a sheet
-# laid out differently.
-ROWS = [
-    'ABCDEFGHIJKLM',
-    'NOPQRSTUVWXYZ',
-    'abcdefghijklm',
-    'nopqrstuvwxyz',
-    '0123456789',
-    '.,!?&@#$%()-+=:;“”’',
-]
-SKIP_ROWS_BEFORE = 1   # title band(s) above the first glyph row
 UPM = 1000
 CAP_HEIGHT = 700
+X_HEIGHT = 460
 SIDE = 65              # sidebearing, font units
 SPACE = 300
-DESCENDERS = set('gjpqy,;()$@')
-ABOVE_X = set('bdfhklt')   # lowercase with ascenders (x-height is measured without them)
-# Glyphs drawn as two strokes that should read as one: the pieces are bridged
-# at their closest points before tracing (the sheet's y has a gap between its
-# arm and its stem, which at text size reads as a stray tick — Sophie: "y is
-# bad"). Dotted/two-part marks (i j ! ? : ; = % quotes) are NOT in here.
-JOIN = set('y')
-# A mark that is drawn lower on the sheet than it sits in type: align its TOP
-# with another glyph's top. The sheet's apostrophe hangs at mid height and
-# rendered "IT'S" as "IT,S".
-ALIGN_TOP = {'\u2019': '\u201d'}
+DESCENDERS = set('gjpqyf,;()[]{}$@Q/\\')
+CAP_REF = 'BDEFHIKLNPRTUZ'
+X_REF = 'nmuvwxz'
+# straight/ASCII marks drawn on no sheet → the curly ones that are
+ALIASES = {'"': '”', "'": '’', '‘': '’', '`': '’', '—': '-', '–': '-'}
 
-def ink_mask(im):
+def gname(c):
+    return 'uni%04X' % ord(c)
+
+def ink_mask(im, left, dark=140):
     hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
     gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-    ink = ((gray < 140) & (hsv[..., 1] < 90)).astype(np.uint8)
+    ink = ((gray < dark) & (hsv[..., 1] < 90)).astype(np.uint8)
     h, w = ink.shape
-    m = np.zeros_like(ink); m[int(h*.04):int(h*.96), int(w*.04):int(w*.96)] = 1
+    m = np.zeros_like(ink); m[int(h*.04):int(h*.96), int(w*left):int(w*.96)] = 1
     return ink & m, gray
 
 def bands(ink, minh=8, thresh=3):
@@ -82,130 +96,155 @@ def glyph_boxes(ink, y0, y1, gap=3):
         else: merged.append(c)
     return [(x0, x1, y0+t, y0+b) for (x0, x1, t, b) in merged]
 
-def trace(gray, box, scale=4, pad=3, join=False):
-    x0, x1, y0, y1 = box
-    crop = gray[y0-pad:y1+pad, x0-pad:x1+pad]
-    big = cv2.resize(crop, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
-    big = cv2.GaussianBlur(big, (3, 3), 0)
-    ink = big < 165
-    if join: ink = bridge(ink)
-    # potracer traces the False region as foreground
-    path = potrace.Bitmap(~ink).trace(turdsize=6, alphamax=1.0, opticurve=True, opttolerance=0.2)
-    origin = (x0-pad, y0-pad)
-    return path, origin, scale
-
 def bridge(ink):
     """Join the two largest pieces of a glyph with a stroke between their closest pixels."""
     n, lab, stats, _ = cv2.connectedComponentsWithStats(ink.astype(np.uint8), 8)
     if n <= 2: return ink
     big = sorted(range(1, n), key=lambda i: -stats[i][4])[:2]
     a = np.argwhere(lab == big[0]); b = np.argwhere(lab == big[1])
-    # closest pair (sizes are a few thousand px, so the full distance table is fine)
     d = ((a[:, None, :] - b[None, :, :]) ** 2).sum(-1)
     i, j = np.unravel_index(d.argmin(), d.shape)
-    # stroke width ≈ the median run of ink down the columns
     runs = [r for col in ink.T for r in np.diff(np.flatnonzero(np.diff(np.r_[0, col.astype(int), 0]))).tolist()[::2] if r > 0]
     w = max(3, int(np.median(runs)) if runs else 8)
     out = ink.astype(np.uint8).copy()
     cv2.line(out, (int(a[i][1]), int(a[i][0])), (int(b[j][1]), int(b[j][0])), 1, w)
     return out.astype(bool)
 
+def trace(gray, box, scale=4, pad=5, join=False, dark=165):
+    x0, x1, y0, y1 = box
+    crop = gray[max(0, y0-pad):y1+pad, max(0, x0-pad):x1+pad]
+    big = cv2.resize(crop, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+    big = cv2.GaussianBlur(big, (3, 3), 0)
+    ink = big < dark
+    if join: ink = bridge(ink)
+    # potracer traces the False region as foreground
+    path = potrace.Bitmap(~ink).trace(turdsize=6, alphamax=1.0, opticurve=True, opttolerance=0.2)
+    return path, (max(0, x0-pad), max(0, y0-pad)), scale
+
 def draw(pen, path, origin, scale, ox, oy, k):
-    """Feed potrace curves to a pen. Image px → font units: x' = (x/scale+ox0-ox)*k, y' = (oy - (y/scale+oy0))*k."""
+    """Image px → font units: x' = (x/scale+ox0-ox)*k, y' = (oy-(y/scale+oy0))*k."""
     ox0, oy0 = origin
-    def P(pt):
-        return ((pt.x/scale + ox0 - ox) * k, (oy - (pt.y/scale + oy0)) * k)
+    def P(pt): return ((pt.x/scale + ox0 - ox) * k, (oy - (pt.y/scale + oy0)) * k)
     for curve in path:
         pen.moveTo(P(curve.start_point))
         for seg in curve:
-            if seg.is_corner:
-                pen.lineTo(P(seg.c)); pen.lineTo(P(seg.end_point))
-            else:
-                pen.curveTo(P(seg.c1), P(seg.c2), P(seg.end_point))
+            if seg.is_corner: pen.lineTo(P(seg.c)); pen.lineTo(P(seg.end_point))
+            else: pen.curveTo(P(seg.c1), P(seg.c2), P(seg.end_point))
         pen.closePath()
+
+def read_sheet(src, print_bands=False):
+    """→ {char: (box, baseline_px)}, k (px→units), x-height px, gray image."""
+    im = cv2.imread(src['sheet'])
+    if im is None: sys.exit('no such sheet: ' + src['sheet'])
+    ink, gray = ink_mask(im, src.get('left', 0.04), src.get('dark', 140))
+    bs = bands(ink)
+    if print_bands:
+        for i, b in enumerate(bs): print(f'  band {i}: y {b[0]}-{b[1]} ({b[1]-b[0]}px)')
+        return None, None, None, None
+    idx = src.get('bands') or list(range(1, 1 + len(src['rows'])))
+    glyphs = {}
+    for chars, bi in zip(src['rows'], idx):
+        y0, y1 = bs[bi]
+        boxes = glyph_boxes(ink, max(0, y0-5), y1+5, gap=src.get('gap', 3))
+        if len(boxes) != len(chars):
+            sys.exit(f'{src["sheet"]} row {chars!r}: found {len(boxes)} glyphs, expected {len(chars)}: {[(b[0], b[1]-b[0]) for b in boxes]}')
+        base = statistics.median([b[3] for c, b in zip(chars, boxes) if c not in DESCENDERS] or [b[3] for b in boxes])
+        for c, b in zip(chars, boxes): glyphs[c] = (b, base)
+    caps = [glyphs[c][1] - glyphs[c][0][2] for c in CAP_REF if c in glyphs]
+    xs = [glyphs[c][1] - glyphs[c][0][2] for c in X_REF if c in glyphs]
+    if caps: k = CAP_HEIGHT / statistics.median(caps)
+    elif xs: k = X_HEIGHT / statistics.median(xs)
+    else: sys.exit('no letters to scale by')
+    xh = statistics.median(xs) * k if xs else X_HEIGHT
+    print(f'{os.path.basename(src["sheet"])}: {len(glyphs)} glyphs, k={k:.3f}, x-height {xh:.0f}u')
+    return glyphs, k, xh, gray
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('sheet'); ap.add_argument('--name', default='Sheet Hand')
-    ap.add_argument('--out', default='sheet-hand'); ap.add_argument('--debug', default='')
+    ap.add_argument('spec'); ap.add_argument('--bands', action='store_true', help='print the ink bands of each sheet and stop')
     a = ap.parse_args()
-    im = cv2.imread(a.sheet); ink, gray = ink_mask(im)
-    bs = bands(ink)[SKIP_ROWS_BEFORE:SKIP_ROWS_BEFORE+len(ROWS)]
-    if len(bs) < len(ROWS): sys.exit(f'found {len(bs)} rows, need {len(ROWS)}')
-    glyphs = {}   # char -> (box, baseline_px)
-    for chars, (y0, y1) in zip(ROWS, bs):
-        boxes = glyph_boxes(ink, max(0, y0-5), y1+5)
-        if len(boxes) != len(chars):
-            sys.exit(f'row {chars!r}: found {len(boxes)} glyphs, expected {len(chars)}: {[(b[0], b[1]-b[0]) for b in boxes]}')
-        bottoms = [b[3] for c, b in zip(chars, boxes) if c not in DESCENDERS]
-        base = statistics.median(bottoms)
-        for c, b in zip(chars, boxes): glyphs[c] = (b, base)
-    cap_px = statistics.median(glyphs[c][1] - glyphs[c][0][2] for c in 'BDEFHIKLNPRTUZ')
-    k = CAP_HEIGHT / cap_px
-    xh_px = statistics.median(glyphs[c][1] - glyphs[c][0][2] for c in 'nmuvwxz')
-    print(f'cap {cap_px:.1f}px → {CAP_HEIGHT}u (k={k:.3f}); x-height {xh_px*k:.0f}u')
-    if a.debug:
-        dbg = im.copy()
-        for c, (b, base) in glyphs.items():
-            cv2.rectangle(dbg, (b[0], b[2]), (b[1], b[3]), (0, 0, 255), 1)
-            cv2.line(dbg, (b[0], int(base)), (b[1], int(base)), (255, 0, 0), 1)
-        cv2.imwrite(a.debug, dbg)
+    spec = json.load(open(a.spec))
+    if a.bands:
+        for src in spec['sources']: print(src['sheet']); read_sheet(src, True)
+        return
 
-    order = ['.notdef', 'space'] + [c for row in ROWS for c in row]
-    names = {c: (f'uni{ord(c):04X}' if not c.isalnum() else (c if c.islower() or c.isdigit() else c + '.cap')) for row in ROWS for c in row}
-    # glyph names: caps get a plain name too; AGL-ish is fine for our use
-    names = {c: ('uni%04X' % ord(c)) for row in ROWS for c in row}
-    cmap = {ord(c): names[c] for c in names}
-    cmap[32] = 'space'
-    # aliases: straight quotes → the curly ones drawn on the sheet
-    cmap[ord('"')] = names['”']; cmap[ord("'")] = names['’']; cmap[ord('‘')] = names['’']
-    cmap[ord('`')] = names['’']
-    glyph_order = ['.notdef', 'space'] + [names[c] for row in ROWS for c in row]
-
-    cff_chars, tt_glyphs, widths, bounds = {}, {}, {}, {}
-    for c, (box, base) in glyphs.items():
-        path, origin, scale = trace(gray, box, join=(c in JOIN))
+    cff, ttg, widths = {}, {}, {}
+    def add(name, gray, box, base, k, join, dark=165):
+        path, origin, scale = trace(gray, box, join=join, dark=dark)
         x0, x1, y0, y1 = box
-        if c in ALIGN_TOP: base += y0 - glyphs[ALIGN_TOP[c]][0][2]   # lift so its top matches
         adv = int(round((x1 - x0) * k + 2*SIDE))
-        # draw into a recording via T2 pen (cubic) and TT pen via cu2qu
-        t2 = T2CharStringPen(adv, None)
-        draw(t2, path, origin, scale, x0 - SIDE/k, base, k)
-        cff_chars[names[c]] = t2.getCharString()
-        tt = TTGlyphPen(None)
-        draw(Cu2QuPen(tt, 1.0), path, origin, scale, x0 - SIDE/k, base, k)
-        tt_glyphs[names[c]] = tt.glyph()
-        widths[names[c]] = adv
-    for g in ('.notdef', 'space'):
-        widths[g] = SPACE
-        cff_chars[g] = T2CharStringPen(SPACE, None).getCharString()
-        tt_glyphs[g] = TTGlyphPen(None).glyph()
+        t2 = T2CharStringPen(adv, None); draw(t2, path, origin, scale, x0 - SIDE/k, base, k)
+        cff[name] = t2.getCharString()
+        tt = TTGlyphPen(None); draw(Cu2QuPen(tt, 1.0), path, origin, scale, x0 - SIDE/k, base, k)
+        ttg[name] = tt.glyph(); widths[name] = adv
 
-    asc, desc = 900, -250
-    family = a.name
+    base_chars = {}          # char → glyph name
+    alts = {}                # char → [alt glyph names]
+    xheight = X_HEIGHT
+    for si, src in enumerate(spec['sources']):
+        glyphs, k, xh, gray = read_sheet(src)
+        if si == 0: xheight = xh
+        join = set(src.get('join', '')); align = src.get('alignTop', {})
+        for c, (box, base) in glyphs.items():
+            if c in align and align[c] in glyphs: base += box[2] - glyphs[align[c]][0][2]
+            if c not in base_chars:
+                base_chars[c] = gname(c); add(gname(c), gray, box, base, k, c in join, src.get('traceDark', 165))
+            else:
+                n = gname(c) + '.alt%d' % (len(alts.get(c, [])) + 1)
+                alts.setdefault(c, []).append(n); add(n, gray, box, base, k, c in join, src.get('traceDark', 165))
+
+    for g in ('.notdef', 'space'):
+        widths[g] = SPACE; cff[g] = T2CharStringPen(SPACE, None).getCharString(); ttg[g] = TTGlyphPen(None).glyph()
+    order = ['.notdef', 'space'] + [base_chars[c] for c in base_chars] + [n for c in alts for n in alts[c]]
+    cmap = {32: 'space'}
+    for c, n in base_chars.items(): cmap[ord(c)] = n
+    for c, to in ALIASES.items():
+        if ord(c) not in cmap and to in base_chars: cmap[ord(c)] = base_chars[to]
+    if spec.get('lowerToCaps'):
+        for c in 'abcdefghijklmnopqrstuvwxyz':
+            if ord(c) not in cmap and c.upper() in base_chars: cmap[ord(c)] = base_chars[c.upper()]
+    if spec.get('capsToLower'):
+        for c in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+            if ord(c) not in cmap and c.lower() in base_chars: cmap[ord(c)] = base_chars[c.lower()]
+
+    # calt: cycle the alternates. With sets S0 (base) … Sn, a glyph from set i
+    # followed by one of the same character set moves it to set i+1 (mod n+1),
+    # so a run of letters walks through every drawing before repeating.
+    fea = ''
+    nalt = max((len(v) for v in alts.values()), default=0)
+    if nalt:
+        chars = [c for c in alts if len(alts[c]) == nalt]   # only chars every sheet drew
+        sets = [[base_chars[c] for c in chars]] + [[alts[c][i] for c in chars] for i in range(nalt)]
+        cls = ''.join(f'@s{i} = [{" ".join(s)}];\n' for i, s in enumerate(sets))
+        rules = ''.join(f'  sub @s{i} @s{i}\' by @s{(i+1) % (nalt+1)};\n' for i in range(nalt+1))
+        all_ = ' '.join(f'@s{i}' for i in range(nalt+1))
+        fea = f'{cls}feature calt {{\n  lookup cycle {{\n{rules}  }} cycle;\n}} calt;\n'
+        # the lookup fires left to right, so a run reads s0 s1 s2 s0 s1 …
+
+    family = spec['name']; asc, desc = 900, -250
     for fmt in ('otf', 'ttf'):
         fb = FontBuilder(UPM, isTTF=(fmt == 'ttf'))
-        fb.setupGlyphOrder(glyph_order)
-        fb.setupCharacterMap(cmap)
-        if fmt == 'ttf':
-            fb.setupGlyf(tt_glyphs)
-        else:
-            fb.setupCFF(family.replace(' ', ''), {'FullName': family, 'FamilyName': family}, cff_chars, {})
+        fb.setupGlyphOrder(order); fb.setupCharacterMap(cmap)
+        if fmt == 'ttf': fb.setupGlyf(ttg)
+        else: fb.setupCFF(family.replace(' ', ''), {'FullName': family, 'FamilyName': family}, cff, {})
         metrics = {}
-        for g in glyph_order:
-            if fmt == 'ttf':
-                gl = tt_glyphs[g]; lsb = gl.xMin if hasattr(gl, 'xMin') else 0
-            else:
-                bp = BoundsPen(None); cff_chars[g].draw(bp); lsb = int(bp.bounds[0]) if bp.bounds else 0
+        for g in order:
+            if fmt == 'ttf': gl = ttg[g]; lsb = getattr(gl, 'xMin', 0) or 0
+            else: bp = BoundsPen(None); cff[g].draw(bp); lsb = int(bp.bounds[0]) if bp.bounds else 0
             metrics[g] = (widths[g], lsb)
-        fb.setupHorizontalMetrics(metrics)
-        fb.setupHorizontalHeader(ascent=asc, descent=desc)
-        fb.setupNameTable({'familyName': family, 'styleName': 'Regular', 'uniqueFontIdentifier': f'{family} Regular', 'fullName': family, 'psName': family.replace(' ', '') + '-Regular', 'version': 'Version 1.0'})
-        fb.setupOS2(sTypoAscender=asc, sTypoDescender=desc, sTypoLineGap=0, usWinAscent=asc, usWinDescent=-desc, sxHeight=int(xh_px*k), sCapHeight=CAP_HEIGHT, achVendID='SOPH')
+        fb.setupHorizontalMetrics(metrics); fb.setupHorizontalHeader(ascent=asc, descent=desc)
+        style = spec.get('style', 'Regular')
+        fb.setupNameTable({'familyName': family, 'styleName': style, 'uniqueFontIdentifier': f'{family} {style}',
+                           'fullName': family if style == 'Regular' else f'{family} {style}',
+                           'psName': family.replace(' ', '') + '-' + style.replace(' ', ''), 'version': 'Version 1.0'})
+        fb.setupOS2(sTypoAscender=asc, sTypoDescender=desc, sTypoLineGap=0, usWinAscent=asc, usWinDescent=-desc,
+                    sxHeight=int(xheight), sCapHeight=CAP_HEIGHT, achVendID='SOPH',
+                    fsSelection=(0x40 if style == 'Regular' else 0x01) | 0x80)
         fb.setupPost()
         if fmt == 'ttf': fb.setupMaxp()
-        out = f'{a.out}.{fmt}'
-        fb.save(out); print('wrote', out, os.path.getsize(out), 'bytes')
+        if fea: addOpenTypeFeaturesFromString(fb.font, fea)
+        out = f'{spec["out"]}.{fmt}'; fb.save(out)
+        print('wrote', out, os.path.getsize(out), 'bytes', f'({len(order)} glyphs, {nalt} alternate sets)')
 
 if __name__ == '__main__':
     main()
