@@ -29,6 +29,11 @@ The spec is JSON:
     dark      grey level below which a pixel is ink when finding glyphs
               (default 140; a light serif wants ~175) · traceDark the same
               for the 4x trace (default 165)
+    level     groups of characters that share one height on a TYPESET sheet
+              (["A…Z0…9"] for caps, ["aceimnorsuvwxz", "bdfhklt"] for a
+              lowercase face): each glyph is scaled so its top meets the
+              group's median top. Not for handwriting — the unevenness is
+              the point there.
     alignTop  {glyph: otherGlyph} — lift a mark so its top matches another's
               (the sheet's apostrophe hung at mid height: IT'S read as IT,S)
   lowerToCaps a caps-only font draws lowercase with the caps (the title face)
@@ -119,7 +124,9 @@ def trace(gray, box, scale=4, pad=5, join=False, dark=165):
     if join: ink = bridge(ink)
     # potracer traces the False region as foreground
     path = potrace.Bitmap(~ink).trace(turdsize=6, alphamax=1.0, opticurve=True, opttolerance=0.2)
-    return path, (max(0, x0-pad), max(0, y0-pad)), scale
+    rows = np.flatnonzero(ink.any(axis=1))
+    top = max(0, y0-pad) + (rows[0] / scale if len(rows) else 0)
+    return path, (max(0, x0-pad), max(0, y0-pad)), scale, top
 
 def draw(pen, path, origin, scale, ox, oy, k):
     """Image px → font units: x' = (x/scale+ox0-ox)*k, y' = (oy-(y/scale+oy0))*k."""
@@ -169,8 +176,15 @@ def main():
         return
 
     cff, ttg, widths = {}, {}, {}
-    def add(name, gray, box, base, k, join, dark=165):
-        path, origin, scale = trace(gray, box, join=join, dark=dark)
+    def add(name, gray, box, base, k, join, dark=165, level=None):
+        path, origin, scale, top = trace(gray, box, join=join, dark=dark)
+        # LEVELLING (a typeset sheet): every glyph in a level group is scaled so
+        # its top lands where the group's median top lands — at 22px a serif's
+        # hairline top is caught on one letter and missed on the next, and the
+        # caps came out five different sizes (Sophie: "subtitles are all
+        # different sizes"). Uniform scale, so the shape is untouched.
+        if level:
+            k = k * level / ((base - top) * k)
         x0, x1, y0, y1 = box
         adv = int(round((x1 - x0) * k + 2*SIDE))
         t2 = T2CharStringPen(adv, None); draw(t2, path, origin, scale, x0 - SIDE/k, base, k)
@@ -185,13 +199,23 @@ def main():
         glyphs, k, xh, gray = read_sheet(src)
         if si == 0: xheight = xh
         join = set(src.get('join', '')); align = src.get('alignTop', {})
+        level = {}   # char → target top height (units) for the glyphs in a level group
+        for group in src.get('level', []):
+            tops = {}
+            for c in group:
+                if c in glyphs:
+                    _, _, _, top = trace(gray, glyphs[c][0], dark=src.get('traceDark', 165))
+                    tops[c] = (glyphs[c][1] - top) * k
+            if tops:
+                med = statistics.median(tops.values())
+                for c in tops: level[c] = med
         for c, (box, base) in glyphs.items():
             if c in align and align[c] in glyphs: base += box[2] - glyphs[align[c]][0][2]
             if c not in base_chars:
-                base_chars[c] = gname(c); add(gname(c), gray, box, base, k, c in join, src.get('traceDark', 165))
+                base_chars[c] = gname(c); add(gname(c), gray, box, base, k, c in join, src.get('traceDark', 165), level.get(c))
             else:
                 n = gname(c) + '.alt%d' % (len(alts.get(c, [])) + 1)
-                alts.setdefault(c, []).append(n); add(n, gray, box, base, k, c in join, src.get('traceDark', 165))
+                alts.setdefault(c, []).append(n); add(n, gray, box, base, k, c in join, src.get('traceDark', 165), level.get(c))
 
     for g in ('.notdef', 'space'):
         widths[g] = SPACE; cff[g] = T2CharStringPen(SPACE, None).getCharString(); ttg[g] = TTGlyphPen(None).glyph()
