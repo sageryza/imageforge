@@ -9,6 +9,7 @@
 /* The five tokens the shared pill styles itself from, kept even though this
    page opts out of the pill — a public page must never render it black if it
    is ever served with one. NO GRADIENTS anywhere (house rule). */
+@font-face{font-family:"Sophie Hand";src:url(/fonts/sophie-hand.ttf) format("truetype");font-display:swap}
 :root{
   --paper:#f7f3ec; --card:#fffdf9; --ink:#2b2622; --ink2:#8a7f72;
   --line:#e5ddd0; --rose:#c4566d; --chg:#c4566d; --green:#5c7d5a; --amber:#b08434;
@@ -17,7 +18,7 @@
 html,body{margin:0;height:100%;overflow:hidden}
 body{
   background:var(--paper); color:var(--ink);
-  font-family:Georgia,'Times New Roman',serif;
+  font-family:'Sophie Hand',Georgia,'Times New Roman',serif;
   display:flex; flex-direction:column;
   height:100dvh;
   padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
@@ -29,7 +30,7 @@ header{
   flex:0 0 auto; display:flex; align-items:center; gap:10px;
   padding:14px 18px 8px;
 }
-h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
+h1{margin:0;font-size:23px;font-weight:400;letter-spacing:.01em}
 #count{margin-left:auto;font-size:13px;color:var(--ink2);font-variant-numeric:tabular-nums}
 .qmark{
   width:22px;height:22px;border-radius:50%;border:1px solid var(--line);
@@ -61,14 +62,14 @@ h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
   padding:14px; user-select:none;
 }
 .card img{max-width:100%;max-height:calc(100% - 34px);object-fit:contain;pointer-events:none;display:block}
-.card b{margin-top:8px;font-size:17px;font-weight:400;letter-spacing:.02em}
+.card b{margin-top:8px;font-size:22px;font-weight:400;letter-spacing:.02em}
 .card.top{cursor:grab;z-index:3}
 .card.top:active{cursor:grabbing}
 .card.under{transform:scale(.965) translateY(8px);z-index:2}
 .card.under2{transform:scale(.93) translateY(16px);z-index:1}
 /* The verdict stamps that fade in as the card is dragged. */
 .stamp{
-  position:absolute;top:16px;font-size:13px;letter-spacing:.14em;
+  position:absolute;top:16px;font-size:16px;letter-spacing:.14em;
   border:2px solid;border-radius:6px;padding:5px 10px;opacity:0;
 }
 .stamp.yes{left:16px;color:var(--green);border-color:var(--green);transform:rotate(-11deg)}
@@ -102,12 +103,12 @@ h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
   position:absolute; inset:0; background:var(--paper);
   display:flex; flex-direction:column; z-index:5;
 }
-.panel h2{margin:0 0 10px;font-size:17px;font-weight:400;letter-spacing:.01em;flex:0 0 auto}
+.panel h2{margin:0 0 10px;font-size:21px;font-weight:400;letter-spacing:.01em;flex:0 0 auto}
 /* The ONLY place this page scrolls: the picks list can be 37 long, and it is a
    thing to look at rather than to answer, so it may run past one screen. */
 .pscroll{flex:1 1 auto; overflow-y:auto; min-height:0; padding-bottom:4px}
 .gl{
-  margin:2px 0 6px;font-family:-apple-system,system-ui,sans-serif;font-size:10px;
+  margin:2px 0 6px;font-family:inherit;font-size:13px;
   letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);
 }
 .gl + .pgrid{margin-bottom:14px}
@@ -117,13 +118,13 @@ h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
 .pgrid.small{grid-template-columns:repeat(auto-fill,minmax(58px,1fr)); opacity:.72}
 .pgrid figure{margin:0}
 .pgrid img{width:100%;aspect-ratio:1;object-fit:contain;display:block}
-.pgrid span{display:block;font-size:11px;color:var(--ink2);margin-top:3px;text-align:center}
+.pgrid span{display:block;font-size:13px;color:var(--ink2);margin-top:3px;text-align:center}
 .pgrid.small span{font-size:10px}
 
 /* A text button is only as wide as its words — never full width. */
 .btn{
   border:1px solid var(--ink);background:var(--ink);color:var(--card);
-  border-radius:6px;padding:11px 18px;font-family:inherit;font-size:15px;
+  border-radius:6px;padding:11px 18px;font-family:inherit;font-size:18px;
   cursor:pointer;align-self:flex-start;
 }
 .btn.ghost{background:var(--card);color:var(--ink)}
@@ -131,7 +132,7 @@ h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
 .row{display:flex;gap:10px;flex:0 0 auto;padding-top:12px;flex-wrap:wrap}
 
 #done{align-items:center;justify-content:center;text-align:center;padding:20px}
-#done p{margin:0 0 6px;font-size:17px;line-height:1.5}
+#done p{margin:0 0 6px;font-size:21px;line-height:1.5}
 #done small{color:var(--ink2);font-size:13px}
 #saving{
   position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));
