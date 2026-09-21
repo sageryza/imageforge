@@ -1,0 +1,48 @@
+[
+ {
+  "id": "09-pineapple-cut1",
+  "deck": "09-pineapple",
+  "name": "Pineapple",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/09-pineapple-cut1.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/09-pineapple-cut1.webp",
+  "quality": "medium",
+  "tag": "cut1",
+  "scene": "a pineapple, whole, with one cut open beside it. No text or lettering anywhere.",
+  "at": "2026-09-20T23:58:02.002Z"
+ },
+ {
+  "id": "10-sweetpotato-cut1",
+  "deck": "10-sweetpotato",
+  "name": "Sweet potato",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/10-sweetpotato-cut1.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/10-sweetpotato-cut1.webp",
+  "quality": "medium",
+  "tag": "cut1",
+  "scene": "a sweet potato, whole, with one cut open beside it. No text or lettering anywhere.",
+  "at": "2026-09-20T23:58:43.225Z"
+ },
+ {
+  "id": "01-asparagus-2k",
+  "deck": "01-asparagus",
+  "name": "Asparagus",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/01-asparagus-2k.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/full/01-asparagus-2k.webp",
+  "quality": "medium",
+  "size": "2K",
+  "tag": "2k",
+  "scene": "a bundle of asparagus spears. No text or lettering anywhere.",
+  "at": "2026-09-21T00:00:16.398Z"
+ },
+ {
+  "id": "02-broccoli-2k",
+  "deck": "02-broccoli",
+  "name": "Broccoli",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/02-broccoli-2k.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/full/02-broccoli-2k.webp",
+  "quality": "medium",
+  "size": "2K",
+  "tag": "2k",
+  "scene": "a head of broccoli. No text or lettering anywhere.",
+  "at": "2026-09-21T00:01:56.264Z"
+ }
+]
