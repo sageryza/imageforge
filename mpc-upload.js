@@ -44,6 +44,30 @@ function bucketOrNull() {
   try { return admin.apps.length ? admin.storage().bucket() : null; } catch { return null; }
 }
 
+// Is a Chromium actually on disk for this Playwright? (The build installs
+// chromium-headless-shell with PLAYWRIGHT_BROWSERS_PATH=0; a build that could
+// not is honest here instead of failing on the first job.)
+// Where the browser is: MPC_BROWSER_PATH, then Playwright's own idea, then the
+// copy the Render build downloads into ./.pw-browsers (buildCommand sets
+// PLAYWRIGHT_BROWSERS_PATH=.pw-browsers so the artifact carries it — no env var
+// to remember at runtime), then the container's /opt/pw-browsers.
+function findBrowser() {
+  const cands = [];
+  if (process.env.MPC_BROWSER_PATH) cands.push(process.env.MPC_BROWSER_PATH);
+  if (chromium) { try { cands.push(chromium.executablePath()); } catch {} }
+  for (const root of [path.join(__dirname, '.pw-browsers'), '/opt/pw-browsers', path.join(os.homedir(), '.cache', 'ms-playwright')]) {
+    let dirs = [];
+    try { dirs = fs.readdirSync(root); } catch { continue; }
+    for (const d of dirs.sort().reverse()) {
+      for (const tail of ['chrome-linux/headless_shell', 'chrome-linux/chrome', 'chrome-headless-shell-linux64/chrome-headless-shell']) {
+        cands.push(path.join(root, d, tail));
+      }
+    }
+  }
+  return cands.find((c) => c && fs.existsSync(c)) || null;
+}
+function browserInstalled() { return Boolean(chromium && findBrowser()); }
+
 function mpcCreds() {
   return { email: process.env.MPC_EMAIL || '', password: process.env.MPC_PASSWORD || '' };
 }
@@ -72,9 +96,14 @@ const DEFAULT_FLOW = {
   startUrl: process.env.MPC_PRODUCT_URL || 'https://www.makeplayingcards.com/design/custom-blank-card.html',
   acceptSettingsUrl: 'https://www.makeplayingcards.com/products/pro_item_process_flow.aspx',
   sel: {
-    email: '#txtEmail, #email, input[type=email], input[name*=email i]',
-    password: '#txtPassword, #password, input[type=password]',
-    loginSubmit: '#btnLogin, button[type=submit], input[type=submit]',
+    // Measured on the live login page 2026-09-21: the boxes are #txt_email /
+    // #txt_password, and the Login button is a HIDDEN input (#btn_submit,
+    // display:none) fired by a styled <a href="javascript:btn_submit_onclick()">
+    // — so the submit is a function call, never a visible button to click.
+    email: '#txt_email, #txtEmail, #email, input[type=email], input[name*=email i]',
+    password: '#txt_password, #txtPassword, #password, input[type=password]',
+    loginSubmitJs: 'btn_submit_onclick',
+    loginSubmit: 'a[href*="btn_submit_onclick"], #btnLogin, button[type=submit], input[type=submit]:not([style*="display: none"])',
     stock: '#dro_paper_type',        // select, by visible text ("(S30) Standard Smooth")
     bracket: '#dro_choosesize',      // select, values are the bracket sizes (18, 36, 55 …)
     effect: '#dro_product_effect',   // select; foil is value EF_055
@@ -150,6 +179,24 @@ function filesFromDir(dir) {
   return { fronts, backs, back };
 }
 
+// A prep zip (fronts/, back.png or backs/, order.xml) unpacked into a deck
+// folder the engine can run — what `scripts/mpc-upload-job.js` feeds it.
+async function deckDirFromZip(zipBuf, dir) {
+  const JSZip = require('jszip');
+  const zip = await JSZip.loadAsync(zipBuf);
+  const entries = Object.values(zip.files).filter((f) => !f.dir && !/(^|\/)__MACOSX\//.test(f.name) && /\.(png|jpe?g)$/i.test(f.name));
+  if (!entries.length) throw new Error('zip holds no card images');
+  for (const e of entries) {
+    // keep only the tail that matters: fronts/x.png · backs/x.png · back.png
+    const m = e.name.match(/(?:^|\/)((?:fronts|backs)\/[^/]+|back\.png)$/i);
+    if (!m) continue;
+    const out = path.join(dir, m[1]);
+    fs.mkdirSync(path.dirname(out), { recursive: true });
+    fs.writeFileSync(out, await e.async('nodebuffer'));
+  }
+  return dir;
+}
+
 const sha1Upper = (p) => crypto.createHash('sha1').update(fs.readFileSync(p)).digest('hex').toUpperCase();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -182,12 +229,23 @@ async function driveMpcUpload(spec, opts = {}) {
   say(`prepped ${quantity} front(s)` +
     (files.backs.length ? ` + ${files.backs.length} back(s)` : files.back ? ' + shared back' : ''));
 
+  // LOW-MEMORY LAUNCH. The live box is a 512MB Starter that idles near 300MB,
+  // so the browser gets one renderer, no GPU, no /dev/shm, a small JS heap and
+  // a viewport it never has to paint at full size. MPC_LAUNCH_ARGS adds more.
   const browser = await chromium.launch({
     headless: opts.headless !== false,
-    executablePath: opts.executablePath || process.env.MPC_BROWSER_PATH || undefined,
+    executablePath: opts.executablePath || findBrowser() || undefined,
+    args: [
+      '--disable-dev-shm-usage', '--disable-gpu', '--no-zygote', '--no-sandbox',
+      '--renderer-process-limit=1', '--disable-extensions', '--disable-background-networking',
+      '--disable-features=site-per-process,IsolateOrigins', '--js-flags=--max-old-space-size=96',
+      ...String(process.env.MPC_LAUNCH_ARGS || '').split(/\s+/).filter(Boolean),
+      ...(opts.args || []),
+    ],
   });
+  let page = null;
   try {
-    const page = await (await browser.newContext({ acceptDownloads: false, viewport: { width: 1280, height: 900 } })).newPage();
+    page = await (await browser.newContext({ acceptDownloads: false, viewport: { width: 1100, height: 800 } })).newPage();
     page.setDefaultTimeout(opts.timeout || 30000);
     page.on('dialog', (d) => d.accept().catch(() => {}));  // the tool's alert_handler
 
@@ -284,11 +342,34 @@ async function driveMpcUpload(spec, opts = {}) {
     // 1) LOGIN — and refuse to go on blind: everything after this writes into her account.
     say('login');
     await page.goto(flow.loginUrl, { waitUntil: 'domcontentloaded' });
-    await page.fill(flow.sel.email, creds.email);
-    await page.fill(flow.sel.password, creds.password);
+    // MEASURED 2026-09-21 (two live jobs): MPC's login runs Google reCAPTCHA
+    // v3 before the postback (`oGrectcha.executeGrecaptcha` → `__doPostBack`),
+    // and a headless browser on a server scores as a bot — the page reloads
+    // with the password cleared and no message. That is the site's own
+    // anti-automation gate and it is not ours to defeat, so a login page that
+    // carries reCAPTCHA stops HERE, before any attempt, rather than hammering
+    // her account with failed sign-ins. The MPC Autofill desktop tool has the
+    // same limit, which is why it waits for a human to sign in.
+    const captcha = await page.locator('#ReCaptchaFrame, .g-recaptcha, iframe[src*="recaptcha"], script[src*="recaptcha/api.js"]').count().catch(() => 0);
+    if (captcha && !opts.allowCaptchaLogin) {
+      await shot('login-captcha');
+      throw new Error('MPC login is behind reCAPTCHA — a headless sign-in scores as a bot and is refused; sign in by hand (desktop tool) instead');
+    }
+    await page.locator(flow.sel.email).first().fill(creds.email);
+    await page.locator(flow.sel.password).first().fill(creds.password);
+    await shot('login-form');
+    // Submit: the page's own function when it has one (MPC's real login), else
+    // a visible control, else Enter in the password box. Never a hidden button.
+    const submit = async () => {
+      const fn = flow.sel.loginSubmitJs;
+      if (fn && await page.evaluate((f) => typeof window[f] === 'function', fn)) { await page.evaluate((f) => window[f](), fn); return 'js:' + fn; }
+      const btn = page.locator(flow.sel.loginSubmit).first();
+      if (await btn.count() && await btn.isVisible().catch(() => false)) { await btn.click(); return 'click'; }
+      await page.locator(flow.sel.password).first().press('Enter'); return 'enter';
+    };
     await Promise.all([
       page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: flow.loginTimeout }).catch(() => {}),
-      page.click(flow.sel.loginSubmit),
+      submit().then((how) => say('submitted login via ' + how)),
     ]);
     await page.waitForLoadState('networkidle').catch(() => {});
     const signedIn = await page.locator(`a[href="${flow.logoutHref}"]`).first()
@@ -362,6 +443,11 @@ async function driveMpcUpload(spec, opts = {}) {
     const reviewUrl = page.url();
     say(`done: project "${projectName}" saved · review ${reviewUrl}`);
     return { ok: true, projectName, reviewUrl, shots, log, workDir };
+  } catch (e) {
+    // the screen at the moment it broke is the whole diagnosis — keep it
+    try { const p = page && await page.screenshot({ path: path.join(shotsDir, `${String(++shotN).padStart(2, '0')}_error.png`) }); if (p) shots.push({ step: 'error', path: path.join(shotsDir, `${String(shotN).padStart(2, '0')}_error.png`) }); } catch {}
+    e.shots = shots; e.log = log;
+    throw e;
   } finally {
     await browser.close();
   }
@@ -436,8 +522,10 @@ router.get('/status', (req, res) => {
   const creds = mpcCreds();
   res.json({
     ok: true,
-    ready: Boolean(chromium),
+    ready: Boolean(chromium) && browserInstalled(),
     playwright: Boolean(chromium),
+    browser: browserInstalled(),
+    rss_mb: Math.round(process.memoryUsage().rss / 1048576),
     credentials: Boolean(creds.email && creds.password),
     note: 'Saves the deck as a project in the MPC account and stops on the review '
       + 'page; ordering is always manual. Needs a browser-capable host (not the '
@@ -448,8 +536,16 @@ router.get('/status', (req, res) => {
 // POST /api/mpc/upload  — start an upload job. Body = the same deck spec as
 // /api/mpc/prep-order (deckName, size, mode, quantity, fronts[], back|backs[]).
 router.post('/', (req, res) => {
-  if (!chromium) {
-    return res.status(501).json({ error: 'playwright not installed on this host (browser-capable runtime required)' });
+  if (!chromium || !browserInstalled()) {
+    return res.status(501).json({ error: 'no browser on this host — run it as a one-off job: node scripts/render-job.js --cmd "node scripts/mpc-upload-job.js --zip … --name …"' });
+  }
+  // MEASURED 2026-09-21: the browser peaks ~225MB PSS and this box idles near
+  // 300 of its 512 — running it here would OOM the server under her draws.
+  // The job (a fresh instance) is the door; this route only runs on a host
+  // with room, and says so otherwise.
+  const rssMb = process.memoryUsage().rss / 1048576;
+  if (!process.env.MPC_UPLOAD_INPROCESS && rssMb > 150) {
+    return res.status(503).json({ error: `this instance is at ${Math.round(rssMb)}MB; run the upload as a one-off Render job (scripts/render-job.js)` });
   }
   const spec = req.body || {};
   if (!Array.isArray(spec.fronts) || !spec.fronts.length) {
@@ -477,6 +573,10 @@ module.exports = {
   configured: () => Boolean(chromium),
   driveMpcUpload,
   prepToDir,
+  filesFromDir,
+  deckDirFromZip,
+  browserInstalled,
+  findBrowser,
   DEFAULT_FLOW,
   _jobs: jobs,
 };

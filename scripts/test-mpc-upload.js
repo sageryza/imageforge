@@ -22,7 +22,7 @@ const express = require('express');
 
 let chromium = null;
 try { ({ chromium } = require('playwright')); } catch { console.log('SKIP: playwright not installed'); process.exit(0); }
-const exe = fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined;
+const exe = process.env.MPC_TEST_EXE || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 
 const up = require('../mpc-upload');
 const sharp = require('sharp');
@@ -36,7 +36,9 @@ const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.raw({ type: 'application/octet-stream', limit: '20mb' }));
 const page = (body) => `<!doctype html><html><body>${state.loggedIn ? '<a href="https://www.makeplayingcards.com/logout.aspx">Log out</a>' : ''}${body}</body></html>`;
-app.get('/login.aspx', (req, res) => res.send(page(`<form method="post" action="/login.aspx"><input id="txtEmail" name="email"><input id="txtPassword" type="password" name="password"><input id="btnLogin" type="submit" value="Sign in"></form>`)));
+// MPC's real login (measured 2026-09-21): #txt_email / #txt_password, a HIDDEN
+// #btn_submit, and a styled anchor that calls btn_submit_onclick().
+app.get('/login.aspx', (req, res) => res.send(page(`<form method="post" action="/login.aspx" id="form1"><input id="txt_email" name="email"><input id="txt_password" type="password" name="password"><input id="btn_submit" type="button" value="Login" style="display: none;"><a href="javascript:btn_submit_onclick();"></a></form><script>function btn_submit_onclick(){ document.getElementById('form1').submit(); }</script>`)));
 app.post('/login.aspx', (req, res) => { state.loggedIn = req.body.email === 'me@example.com' && req.body.password === 'hunter2'; res.redirect('/account.aspx'); });
 app.get('/account.aspx', (req, res) => res.send(page('<h1>My account</h1>')));
 app.get('/design/custom-blank-card.html', (req, res) => res.send(page(`
@@ -95,6 +97,18 @@ app.get('/api/save', (req, res) => { state.saves.push({ name: req.query.name, fa
   }
   fs.writeFileSync(path.join(dir, 'back.png'), await png(240, 230, 210));
   const sha = (p) => crypto.createHash('sha1').update(fs.readFileSync(p)).digest('hex').toUpperCase();
+
+  // the zip door the Render job uses: a real zip of this deck → the same folder shape
+  {
+    const JSZip = require('jszip'); const z = new JSZip();
+    for (const f of files) z.file('fruit_print/fronts/' + path.basename(f), fs.readFileSync(f));
+    z.file('fruit_print/back.png', fs.readFileSync(path.join(dir, 'back.png')));
+    z.file('fruit_print/order.xml', '<order/>'); z.file('__MACOSX/fruit_print/fronts/._01.png', 'junk');
+    const out = await up.deckDirFromZip(await z.generateAsync({ type: 'nodebuffer' }), fs.mkdtempSync(path.join(os.tmpdir(), 'mpc-zip-')));
+    const got = up.filesFromDir(out);
+    ok(got.fronts.length === 3 && got.fronts.map((f) => sha(f.path)).join() === files.map(sha).join(), 'zip → deck folder keeps the fronts in order, bytes intact');
+    ok(got.back && sha(got.back) === sha(path.join(dir, 'back.png')) && !fs.existsSync(path.join(out, '__MACOSX')), 'zip → shared back kept, Mac junk dropped');
+  }
 
   const flow = {
     loginUrl: `${base}/login.aspx`, startUrl: `${base}/design/custom-blank-card.html`,
