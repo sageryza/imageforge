@@ -1,0 +1,20 @@
+[
+ {
+  "id": "bear",
+  "name": "bear",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/animals/card/bear.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/animals/full/bear.webp",
+  "sheet": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/animals/sheet/pair-bear-cheetah.webp",
+  "size": "4K",
+  "quality": "medium"
+ },
+ {
+  "id": "cheetah",
+  "name": "cheetah",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/animals/card/cheetah.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/animals/full/cheetah.webp",
+  "sheet": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/animals/sheet/pair-bear-cheetah.webp",
+  "size": "4K",
+  "quality": "medium"
+ }
+]
