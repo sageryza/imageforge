@@ -1,0 +1,141 @@
+[
+ {
+  "id": "13-pear",
+  "name": "Pear",
+  "deck": "fruit",
+  "quality": "medium",
+  "scene": "a pear, whole, with one cut open beside it. No text or lettering anywhere.",
+  "note": "cut open?",
+  "kind": "cut"
+ },
+ {
+  "id": "10-peach",
+  "name": "Peach",
+  "deck": "fruit",
+  "quality": "medium",
+  "scene": "a peach, whole, with one cut open beside it. No text or lettering anywhere.",
+  "note": "cut?",
+  "kind": "cut"
+ },
+ {
+  "id": "11-cherries",
+  "name": "Cherries",
+  "deck": "fruit",
+  "quality": "high",
+  "scene": "a few deep red cherries on their stems. No text or lettering anywhere.",
+  "note": "more red? redo high?"
+ },
+ {
+  "id": "07-grapes",
+  "name": "Grapes",
+  "deck": "fruit",
+  "quality": "medium",
+  "scene": "a small bunch of purple grapes, just a few. No text or lettering anywhere.",
+  "note": "less grapes"
+ },
+ {
+  "id": "09-pineapple",
+  "name": "Pineapple",
+  "deck": "fruit",
+  "quality": "medium",
+  "scene": "a pineapple, whole, with one cut open beside it. No text or lettering anywhere.",
+  "note": "cut",
+  "kind": "cut"
+ },
+ {
+  "id": "35-honeydew",
+  "name": "Honeydew",
+  "deck": "fruit",
+  "quality": "medium",
+  "scene": "a wedge of honeydew melon. No text or lettering anywhere.",
+  "note": "ew \u2014 redo?"
+ },
+ {
+  "id": "03-carrot",
+  "name": "Carrots",
+  "deck": "veg",
+  "quality": "medium",
+  "scene": "a few carrots with their green tops. No text or lettering anywhere.",
+  "note": "carrots plural"
+ },
+ {
+  "id": "06-cucumber",
+  "name": "Cucumber",
+  "deck": "veg",
+  "quality": "medium",
+  "scene": "a cucumber, whole, with one cut open beside it. No text or lettering anywhere.",
+  "note": "cut",
+  "kind": "cut"
+ },
+ {
+  "id": "10-sweetpotato",
+  "name": "Sweet potato",
+  "deck": "veg",
+  "quality": "medium",
+  "scene": "a sweet potato, whole, with one cut open beside it. No text or lettering anywhere.",
+  "note": "cut open",
+  "kind": "cut"
+ },
+ {
+  "id": "16-mushroom",
+  "name": "Mushrooms",
+  "deck": "veg",
+  "quality": "medium",
+  "scene": "a few mushrooms. No text or lettering anywhere.",
+  "note": "a few"
+ },
+ {
+  "id": "17-zucchini",
+  "name": "Zucchini",
+  "deck": "veg",
+  "quality": "medium",
+  "scene": "a zucchini, whole, with one cut open beside it. No text or lettering anywhere.",
+  "note": "cut open?",
+  "kind": "cut"
+ },
+ {
+  "id": "22-squash",
+  "name": "Squash",
+  "deck": "veg",
+  "quality": "medium",
+  "scene": "a squash, whole, with one cut open beside it. No text or lettering anywhere.",
+  "note": "cut open",
+  "kind": "cut"
+ },
+ {
+  "id": "24-artichoke",
+  "name": "Artichoke",
+  "deck": "veg",
+  "quality": "medium",
+  "scene": "an artichoke, whole, with one cut open beside it. No text or lettering anywhere.",
+  "note": "cut open",
+  "kind": "cut"
+ },
+ {
+  "id": "25-eggplant",
+  "name": "Eggplant",
+  "deck": "veg",
+  "quality": "medium",
+  "scene": "an eggplant, whole, with one cut open beside it. No text or lettering anywhere.",
+  "note": "cut open",
+  "kind": "cut"
+ },
+ {
+  "id": "01-asparagus",
+  "name": "Asparagus",
+  "deck": "veg",
+  "quality": "medium",
+  "size": "2048x2048",
+  "scene": "a bundle of asparagus spears. No text or lettering anywhere.",
+  "note": "the vegetables were done two at a time, very landscape \u2014 redo at 2k"
+ },
+ {
+  "id": "02-broccoli",
+  "name": "Broccoli",
+  "deck": "veg",
+  "quality": "medium",
+  "size": "2048x2048",
+  "scene": "a head of broccoli. No text or lettering anywhere.",
+  "note": "redo at 2k"
+ }
+]
