@@ -1,0 +1,26 @@
+{
+ "name": "Magic Subtitle",
+ "out": "public/fonts/magic-subtitle",
+ "lowerToCaps": true,
+ "sources": [
+  {
+   "sheet": "docs/fonts/magic-of-flowers-sheet.png",
+   "left": 0.215,
+   "rows": [
+    "ABCDEFGHIJKLM",
+    "NOPQRSTUVWXYZ",
+    "0123456789",
+    ".,;:!?&@’“”()-—/"
+   ],
+   "bands": [
+    9,
+    10,
+    11,
+    12
+   ],
+   "gap": 12,
+   "dark": 210,
+   "traceDark": 205
+  }
+ ]
+}
