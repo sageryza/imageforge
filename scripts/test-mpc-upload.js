@@ -36,7 +36,9 @@ const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.raw({ type: 'application/octet-stream', limit: '20mb' }));
 const page = (body) => `<!doctype html><html><body>${state.loggedIn ? '<a href="https://www.makeplayingcards.com/logout.aspx">Log out</a>' : ''}${body}</body></html>`;
-app.get('/login.aspx', (req, res) => res.send(page(`<form method="post" action="/login.aspx"><input id="txtEmail" name="email"><input id="txtPassword" type="password" name="password"><input id="btnLogin" type="submit" value="Sign in"></form>`)));
+// MPC's real login (measured 2026-09-21): #txt_email / #txt_password, a HIDDEN
+// #btn_submit, and a styled anchor that calls btn_submit_onclick().
+app.get('/login.aspx', (req, res) => res.send(page(`<form method="post" action="/login.aspx" id="form1"><input id="txt_email" name="email"><input id="txt_password" type="password" name="password"><input id="btn_submit" type="button" value="Login" style="display: none;"><a href="javascript:btn_submit_onclick();"></a></form><script>function btn_submit_onclick(){ document.getElementById('form1').submit(); }</script>`)));
 app.post('/login.aspx', (req, res) => { state.loggedIn = req.body.email === 'me@example.com' && req.body.password === 'hunter2'; res.redirect('/account.aspx'); });
 app.get('/account.aspx', (req, res) => res.send(page('<h1>My account</h1>')));
 app.get('/design/custom-blank-card.html', (req, res) => res.send(page(`
