@@ -11,7 +11,7 @@
 // Needs RENDER_API_KEY (the same key render-deploy.js uses). Never the raw
 // API from a chat by hand — this is the one door, so a job is always logged
 // here with its id and outcome. Render's own API: POST /v1/services/{id}/jobs
-// {startCommand, planId?} → {id, status}; GET /v1/jobs/{id} → status
+// {startCommand, planId?} → {id, status}; GET /v1/services/{id}/jobs/{jobId} → status
 // (pending · running · succeeded · failed · canceled), startedAt, finishedAt.
 const SRV = process.env.RENDER_SERVICE_ID || 'srv-d660igvgi27c73a5u6eg';
 const args = process.argv.slice(2);
@@ -35,7 +35,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   let last = '';
   while (Date.now() - t0 < 30 * 60000) {
     await sleep(10000);
-    const s = await fetch(`https://api.render.com/v1/jobs/${j.id}`, { headers: H }).then((x) => x.json()).catch(() => ({}));
+    // measured 2026-09-21: /v1/jobs/{id} is a 404; the read is service-scoped
+    const s = await fetch(`https://api.render.com/v1/services/${SRV}/jobs/${j.id}`, { headers: H }).then((x) => x.json()).catch(() => ({}));
     const line = `${s.status || '?'}${s.startedAt ? ' started ' + s.startedAt.slice(11, 19) : ''}${s.finishedAt ? ' finished ' + s.finishedAt.slice(11, 19) : ''}`;
     if (line !== last) { console.log(line); last = line; }
     if (['succeeded', 'failed', 'canceled'].includes(s.status)) {
