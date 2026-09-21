@@ -325,6 +325,29 @@ them needs from her. Read-only; the queue is edited here, where it is run.
 - **Queued:** 2026-08-27 by anthony-chene-video-download
 
 
+### Upload the fruit flash-card deck to MakePlayingCards with MPC Autofill
+- **Why:** the 15-card deck is print-ready (fronts, back, order.xml in one zip)
+  and the only step left is the browser upload into your MPC account. The
+  cloud container was not allowed to sign into your account, so this is the
+  Mac's job — OR say in the chat that the container may run it and it will.
+- **Where:** ~/Downloads, then the MPC Autofill desktop tool
+- **Run:**
+```
+cd ~/Downloads && curl -sL -o fruit-flashcards-mpc.zip "https://imageforge-q125.onrender.com/api/drop/file/oYvIWDfo9SB3bTuaDALu" && rm -rf fruit-flashcards-mpc && mkdir fruit-flashcards-mpc && cd fruit-flashcards-mpc && unzip -q ../fruit-flashcards-mpc.zip && ls
+```
+  Then get the desktop tool if it is not already here (mpcfill.com → download
+  the macOS build, or the desktop-tool folder of github.com/chilli-axe/mpc-autofill)
+  and run it from that folder:
+```
+cd ~/Downloads/fruit-flashcards-mpc && autofill --directory .
+```
+  It opens Chrome, asks you to sign in to MPC, fills all 15 fronts and the
+  shared back (S33 Superior Smooth, 18-card bracket), and saves the project.
+  Review it under Saved Projects and order by hand.
+- **Needs from her:** sign into MPC in the Chrome window it opens; nothing
+  else. The tool stops at the saved project on purpose.
+- **Queued:** 2026-09-20 by male-playing-cards-auto
+
 ## DONE
 
 ### Hand Apple's Voice Memos transcripts to the archive — SUPERSEDED, then solved another way
