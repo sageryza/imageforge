@@ -1,0 +1,27 @@
+{
+ "name": "Lemon Hand",
+ "out": "public/fonts/lemon-hand",
+ "sources": [
+  {
+   "sheet": "docs/fonts/handwritten-lemon-sheet.png",
+   "rows": [
+    "ABCDEFGHIJKLM",
+    "NOPQRSTUVWXYZ",
+    "abcdefghijklm",
+    "nopqrstuvwxyz",
+    "0123456789",
+    ".,!?:;-_’·“”()[]{}",
+    "@&+=/\\*♥"
+   ],
+   "bands": [
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ]
+  }
+ ]
+}
