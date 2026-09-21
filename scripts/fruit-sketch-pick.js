@@ -80,6 +80,12 @@ const QTEST = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.
 for (const [id, name] of [['19-pomegranate', 'pomegranate'], ['01-strawberry', 'strawberry']]) {
   for (const q of ['high', 'medium', 'low']) add(id, { url: `${QTEST}q-${name}-${q}.webp`, full: `${QTEST}q-${name}-${q}.webp`, name }, q + ' (quality test)');
 }
+// REDRAWS FROM HER NOTES ride as versions too (fruit-redraw.js appends to
+// redo-uploaded.json; 2026-09-20 — the cut-open pairs, asparagus and
+// broccoli on their own at 2K).
+const redos = fs.existsSync(path.join(__dirname, 'fruit-chart', 'redo-uploaded.json')) ? read('redo-uploaded.json') : [];
+const redoItems = deckId => redos.filter(r => r.deck === deckId).map(r => ({ id: r.id, img: r.url, full: r.full, url: r.full,
+  label: `redrawn · ${r.tag === 'cut1' ? 'whole + cut open' : r.size} · ${r.quality}`, model: 'gpt-image-2', quality: r.quality }));
 const vegPoll = read('poll-veg-test.json'); // GET /api/fruit/poll/veg-test, saved 2026-09-20
 const fruitGroups = poll.fruits.map(f => {
   const id = f.id, name = f.name;
@@ -94,6 +100,7 @@ const fruitGroups = poll.fruits.map(f => {
       label: `earlier version · ${o.quality}`, model: 'gpt-image-2', quality: o.quality })),
     ...sketches.filter(s => s.deck === id).map(s => ({ id: s.id, img: s.url, full: s.full, url: s.full,
       label: `new · sheet ${s.sheet}` })),
+    ...redoItems(id),
   ];
   return { label: name, items };
 });
@@ -109,7 +116,8 @@ const vegGroups = vegPoll.fruits.map(v => ({ label: v.name, items: [{
   id: `${v.id}--vdeck`, img: v.url, full: v.url, url: v.url,
   label: 'on the vegetable deck now · medium', model: 'gpt-image-2', quality: 'medium' },
   ...(v.id === '02-broccoli' ? ['high', 'medium', 'low'].map(q => ({ id: `${v.id}--q${q}`, img: `${QTEST}q-broccoli-${q}.webp`, full: `${QTEST}q-broccoli-${q}.webp`, url: `${QTEST}q-broccoli-${q}.webp`,
-    label: `earlier version · ${q} (quality test)`, model: 'gpt-image-2', quality: q })) : [])] }));
+    label: `earlier version · ${q} (quality test)`, model: 'gpt-image-2', quality: q })) : []),
+  ...redoItems(v.id)] }));
 const groups = [...fruitGroups, ...vegGroups];
 const types = fruitGroups.length;
 
