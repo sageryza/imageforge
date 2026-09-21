@@ -59,22 +59,31 @@ function liftConst(name) {
   return m[0] + '\n';
 }
 const PL_GPT_STYLES = { evan: { label: 'ChatGPT' }, dreamy: { label: 'Dreamy' } };
+const PL_LORA = { models: { 'sageryza/watercolordrawings': { label: 'WTR' } } };
 /* eslint-disable no-eval */
 const { promptlabHay, plSearchRuns } = eval(
-  '(function (searchGrammar, PL_GPT_STYLES) {'
-  + liftConst('PL_SHAPE_WORD')
-  + lift('promptlabHay') + lift('plCompileQuery') + lift('plSearchRuns')
+  '(function (searchGrammar, PL_GPT_STYLES, PL_LORA) {'
+  + liftConst('PL_SHAPE_WORD') + liftConst('PL_LORA_RETIRED')
+  + lift('plStyleLabel') + lift('promptlabHay') + lift('plCompileQuery') + lift('plSearchRuns')
   + 'return { promptlabHay, plSearchRuns };})'
-)(searchGrammar, PL_GPT_STYLES);
+)(searchGrammar, PL_GPT_STYLES, PL_LORA);
 /* eslint-enable no-eval */
 
 const RUNS = [
-  { id: 'a', prompt: 'a brown horse in the desert', gptStyle: 'dreamy', model: 'gpt-image-2',
+  { id: 'a', prompt: 'a brown horse in the desert', engine: 'gptimage', gptStyle: 'dreamy', model: 'gpt-image-2',
     quality: 'medium', aspectRatio: '2:3' },
-  { id: 'b', prompt: 'a crow on a fence', gptStyle: 'evan', model: 'gpt-image-2',
+  { id: 'b', prompt: 'a crow on a fence', engine: 'gptimage', gptStyle: 'evan', model: 'gpt-image-2',
     quality: 'low', aspectRatio: '1:1', photoRef: 'x.png' },
   { id: 'c', prompt: 'boundaries between two houses', model: 'sageryza/watercolordrawings',
     quality: null, aspectRatio: null, status: 'failed' },
+  // The two shapes the server's haystack MISSED until 2026-09-21 — labeled on
+  // the page, unlabeled here, so they matched as she typed and vanished when
+  // the server answered: a gpt run with no gptStyle on the doc (the original
+  // ChatGPT tile — the page labels it by the `evan` default) and a retired
+  // LoRA, whose name no doc stores.
+  { id: 'd', prompt: 'a lighthouse at dusk', engine: 'gptimage', model: 'gpt-image-2',
+    quality: 'medium' },
+  { id: 'e', prompt: 'a fox in linocut', model: 'sageryza/hoonie' },
 ];
 const ids = (q) => plSearchRuns(RUNS, q).map((r) => r.id).join('');
 
@@ -88,12 +97,15 @@ ok(ids('"brown horse"') === 'a', 'a quoted phrase keeps its words adjacent');
 ok(ids('"horse brown"') === '', 'and in that order');
 ok(ids('aries') === '', '"aries" does not find "boundaries" — terms anchor at a word START');
 ok(ids('bound') === 'c', 'but the prefix "bound" still finds it');
-ok(ids('') === 'abc' && ids('   ') === 'abc', 'an empty query filters nothing');
+ok(ids('') === 'abcde' && ids('   ') === 'abcde', 'an empty query filters nothing');
 
 console.log('what a search reaches');
 ok(ids('dreamy') === 'a', 'the style by its key');
-ok(ids('chatgpt') === 'b', 'and by the LABEL she sees, which no doc stores');
-ok(ids('medium') === 'a' && ids('low') === 'b', 'the quality');
+ok(ids('chatgpt') === 'bd', 'and by the LABEL she sees, which no doc stores — '
+  + 'including a gpt run whose doc has no gptStyle (the page labels it by the evan default)');
+ok(ids('wtr') === 'c', 'a LoRA run by the label on its card (its model row), which no doc stores');
+ok(ids('linocut') === 'e', 'and a retired LoRA by the name the page still gives it');
+ok(ids('medium') === 'ad' && ids('low') === 'b', 'the quality');
 ok(ids('square') === 'b' && ids('portrait') === 'a',
   'the canvas by the word on the button, not just the stored ratio');
 ok(ids('1:1') === 'b', 'and by the ratio the card shows');
@@ -116,6 +128,15 @@ const srvHay = lift('promptlabHay');
 ok(/PL_SHAPE_WORD\[r\.aspectRatio\]/.test(pageHayBody)
   && /PL_SHAPE_WORD\[r\.aspectRatio\]/.test(srvHay),
   'and both read the canvas the same way');
+// The label is a FUNCTION of the run on both sides (runStyleLabel on the
+// page, plStyleLabel here) — a bare `st.label` lookup on one side is how the
+// LoRA and no-gptStyle runs went missing.
+ok(/runStyleLabel\(r\)/.test(pageHayBody) && /plStyleLabel\(r\)/.test(srvHay),
+  'and both search the style LABEL through the same kind of lookup');
+const srvLabel = lift('plStyleLabel');
+ok(/gptStyle \|\| 'evan'/.test(srvLabel), "the server's label defaults a gpt run to `evan`, as the page does");
+ok(/PL_LORA\.models\[r\.model\]/.test(srvLabel) && /PL_LORA_RETIRED/.test(srvLabel),
+  'and names a LoRA run by its model row or its retired name');
 // The 2 option's panels are landscape (sheet-grid.js pins that grid's shape),
 // so the word has to reach them — asserted on the haystack rather than by
 // adding a run to the fixture above, which every count here reads.
@@ -160,7 +181,14 @@ const OLD = { id: 'r9', prompt: 'a horse nobody has scrolled back to', engine: '
       res.writeHead(200, { 'Content-Type': 'application/json' });
       if (q) {
         const hits = plSearchRuns(LOADED.concat([OLD]), q);
-        return res.end(JSON.stringify({ runs: hits, more: false, matched: hits.length }));
+        // A real answer takes a round trip; the between-keystroke check below
+        // needs a moment in which the page has the new words and no answer.
+        // `sample` answers as a TRUNCATED search: the server hands back at
+        // most 300 of what it found, and says how many it found.
+        const body = q === 'sample'
+          ? { runs: LOADED, more: false, matched: 954, capped: true, scanned: 6000 }
+          : { runs: hits, more: false, matched: hits.length };
+        return setTimeout(() => res.end(JSON.stringify(body)), 250);
       }
       return res.end(JSON.stringify({ runs: LOADED, more: false }));
     }
@@ -237,6 +265,43 @@ const OLD = { id: 'r9', prompt: 'a horse nobody has scrolled back to', engine: '
   const tiles = await page.$$eval('#tiles img[data-run]', (els) => els.map((e) => e.dataset.run));
   ok(tiles.length === 2 && tiles.indexOf('r2') < 0, 'the wall is the same filtered feed');
   await page.click('#v-list');
+
+  console.log('\nbetween keystrokes the last answer stays (2026-09-21)');
+  // "nobody" is answered by the OLD run alone — a run the browse feed never
+  // paged in. Typing on to "nobody has" used to throw that answer away and
+  // filter the loaded page, which holds no such run: "Nothing matches that"
+  // flashed for the round trip on every letter. Now the last answer is the
+  // pool until the server speaks again.
+  await page.fill('#q', 'nobody');
+  await page.waitForFunction(() => document.querySelectorAll('#runs .run').length === 1
+    && /nobody has scrolled/.test(document.getElementById('runs').textContent));
+  await page.fill('#q', 'nobody has');
+  await page.waitForTimeout(60);          // liveInput has fired; the server (250ms) has not
+  const between = await page.evaluate(() => ({
+    n: document.querySelectorAll('#runs .run').length,
+    text: document.getElementById('runs').textContent }));
+  ok(between.n === 1 && /nobody has scrolled/.test(between.text),
+    'the run the last answer held is still on the wall while the next answer is in flight');
+  ok(!/Nothing matches/.test(between.text), 'and "Nothing matches" does not flash between letters');
+  await page.waitForTimeout(700);
+  ok((await page.textContent('#runs')).indexOf('nobody has scrolled') >= 0,
+    'and it is still there once the server has answered');
+  // The pool is FILTERED by the new words, not shown whole: a letter that no
+  // longer matches the held run drops it at once.
+  await page.fill('#q', 'nobody hasx');
+  await page.waitForTimeout(60);
+  ok(/Nothing matches/.test(await page.textContent('#runs')),
+    'a word the held run does not carry drops it before the server is asked');
+
+  console.log('\na truncated answer says so');
+  await page.fill('#q', 'sample');
+  await page.waitForFunction(() => /of 954 shown/.test(document.getElementById('more').textContent));
+  ok(/2 of 954 shown/.test(await page.textContent('#more')),
+    'the wall says how many the server found when it hands back only some of them');
+  await page.fill('#q', 'zzzznothing');
+  await page.waitForFunction(() => /Nothing matches/.test(document.getElementById('runs').textContent)
+    && !/of 954/.test(document.getElementById('more').textContent));
+  ok(true, 'and the note goes with the answer it described');
 
   console.log('\nno match, and getting out');
   await page.fill('#q', 'zzzznothing');
