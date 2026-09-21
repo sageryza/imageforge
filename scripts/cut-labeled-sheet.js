@@ -5,6 +5,9 @@
 //   node scripts/cut-labeled-sheet.js <sheet.png> <outdir> --cols 5 --rows 4 \
 //        --names "monstera,pothos,…"        (reading order; defaults to cell-01…)
 //        [--tol 30] [--mincomp 80] [--band 0.14]
+//        [--cards]   keep each cell WHOLE as a card — frame line, label and paper,
+//                    cut down the middle of the gutters (Sophie, 2026-09-21:
+//                    "no keep as cards" to the transparent cutouts)
 //
 // Built 2026-09-21 for Sophie's 5x4 houseplant sheet ("cut them out"). How it
 // finds things, because every number here was measured on that sheet:
@@ -32,13 +35,14 @@ const fs = require('fs'), path = require('path');
 const argv = process.argv.slice(2), opt = {};
 const pos = [];
 for (let i = 0; i < argv.length; i++) {
-  if (argv[i].startsWith('--')) { opt[argv[i].slice(2)] = argv[i + 1]; i++; } else pos.push(argv[i]);
+  if (argv[i].startsWith('--')) { const k = argv[i].slice(2); if (argv[i + 1] === undefined || argv[i + 1].startsWith('--')) opt[k] = true; else { opt[k] = argv[i + 1]; i++; } } else pos.push(argv[i]);
 }
 const [SRC, OUT] = pos;
 if (!SRC || !OUT) { console.error('usage: cut-labeled-sheet.js <sheet> <outdir> --cols N --rows N [--names a,b,…] [--tol 30] [--mincomp 80] [--band 0.14]'); process.exit(1); }
 const COLS = +(opt.cols || 5), ROWS = +(opt.rows || 4);
 const NAMES = opt.names ? opt.names.split(',').map((s) => s.trim()) : Array.from({ length: COLS * ROWS }, (_, i) => 'cell-' + String(i + 1).padStart(2, '0'));
 if (NAMES.length !== COLS * ROWS) { console.error(`--names must hold ${COLS * ROWS} entries`); process.exit(1); }
+const CARDS = 'cards' in opt;
 const TOL = +(opt.tol || 30), MINCOMP = +(opt.mincomp || 80), LABEL_BAND = +(opt.band || 0.14), INSET = 6, PAD = 8;
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -60,6 +64,21 @@ fs.mkdirSync(OUT, { recursive: true });
   for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
     const name = NAMES[r*COLS+c];
     const fl=vl[c][1], fr=vl[c+1][0], ft=hl[r][1], fb=hl[r+1][0];
+    if (CARDS) {
+      // outer edge of each cell = the middle of the gutter cluster (its first stroke
+      // belongs to this cell, its last to the next); the sheet's own edge outside.
+      const mid=(cl)=>Math.round((cl[0]+cl[1])/2);
+      const L=c===0?0:mid(vl[c]), R=c===COLS-1?W:mid(vl[c+1]), T=r===0?0:mid(hl[r]), B=r===ROWS-1?H:mid(hl[r+1]);
+      // even margin around the frame line: the smallest gap the gutters allow
+      const m=Math.max(2, Math.min(vl[c][1]-vl[c][0], hl[r][1]-hl[r][0], 6));
+      const cx0=Math.max(L, vl[c][0]-m), cx1=Math.min(R, vl[c+1][1]+m+1), cy0=Math.max(T, hl[r][0]-m), cy1=Math.min(B, hl[r+1][1]+m+1);
+      const file=path.join(OUT, name.replace(/[^a-z0-9]+/g,'-')+'.png');
+      // the SHEET's paper (its four corners averaged) — a pixel beside one frame can land on a splatter or a stroke and pad the card in a different cream (measured on three of twenty)
+      const paper=[0,1,2].map(j=>Math.round([samp(2,2),samp(W-3,2),samp(2,H-3),samp(W-3,H-3)].reduce((t,q)=>t+q[j],0)/4));
+      report.push({name,file,card:[cx0,cy0,cx1,cy1],paper});
+      console.log(name.padEnd(18),'card',[cx0,cy0,cx1,cy1].join(','),(cx1-cx0)+'x'+(cy1-cy0));
+      continue;
+    }
     const x0=0,y0=0;
     const px0=x0+fl+INSET, px1=x0+fr-INSET, py0=y0+ft+INSET, py1=y0+fb-INSET;
     const w=px1-px0, h=py1-py0, N=w*h;
@@ -89,6 +108,18 @@ fs.mkdirSync(OUT, { recursive: true });
     const kept=comps.filter((cc,i)=>!drop[i]).map(cc=>cc.n).sort((a,b)=>b-a);
     report.push({name,file,frame:[x0+fl,y0+ft,x0+fr,y0+fb],bg:bg.map(Math.round),kept,droppedSmall,droppedLabel,box:[bx1-bx0+1,by1-by0+1]});
     console.log(name.padEnd(18), 'frame', [x0+fl,y0+ft,x0+fr,y0+fb].join(','), 'kept', kept.length, kept.slice(0,4).join('/'), 'small', droppedSmall, 'label', droppedLabel, 'box', bx1-bx0+1+'x'+(by1-by0+1));
+  }
+  if (CARDS) {
+    // every card the same size: the largest cell, the rest padded on their own paper colour
+    const cw=Math.max(...report.map(r=>r.card[2]-r.card[0])), chh=Math.max(...report.map(r=>r.card[3]-r.card[1]));
+    for (const r of report) {
+      const [x0,y0,x1,y1]=r.card, w=x1-x0, h=y1-y0, dx=cw-w, dy=chh-h;
+      const [pr,pg,pb]=r.paper;
+      await sharp(SRC).extract({left:x0,top:y0,width:w,height:h})
+        .extend({left:Math.floor(dx/2),right:Math.ceil(dx/2),top:Math.floor(dy/2),bottom:Math.ceil(dy/2),background:{r:pr,g:pg,b:pb,alpha:1}})
+        .png().toFile(r.file);
+    }
+    console.log('cards', cw+'x'+chh);
   }
   fs.writeFileSync(path.join(OUT,'report.json'), JSON.stringify(report,null,1));
 })();
