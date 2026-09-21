@@ -151,8 +151,10 @@ const post = (url, body) => fetch(`${BASE}${url}`, { method: 'POST', headers: { 
     }
   }
   // the grid page — one group per sheet, ♥/✕ a card
-  const groups = SHEETS.map(n => ({ label: `Sheet ${n}`, items: recs.filter(r => r.sheet === n).map(r => ({ id: r.id, img: r.url, full: r.full, url: r.full, label: `${r.country} — ${r.what}`, model: 'gpt-image-2', quality: r.quality })) }));
+  const groups = SHEETS.map(n => ({ label: `Sheet ${n}`, items: recs.filter(r => r.sheet === n).map(r => ({ id: r.id, img: r.url, full: r.full, url: r.full, label: `${r.country} — ${r.what} · ${r.quality} · ${r.size} sheet ÷ 9`, model: 'gpt-image-2', quality: r.quality, size: r.size })) }));
+  const OLD = flag('supersede');
   const r = await post('/api/chatfeed/page', { chat: CHAT, title: `${DECK.title} — ${recs.length} to evaluate (${tier(SIZE)})`, template: 'grid',
     data: { groups, help: `3x3 sheets at ${tier(SIZE)}, cut into cards. Heart the ones that work; a note on a card says what is wrong with it.` } });
   console.log(JSON.stringify(r));
+  if (OLD && r.ok) console.log('superseded', OLD, (await fetch(`${BASE}/api/chatfeed/page/${OLD}/supersede`, { method: 'POST' })).status);
 })().catch(e => { console.error(e); process.exit(1); });

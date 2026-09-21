@@ -393,7 +393,7 @@
               + 'src="' + esc(tileSrc(it.img)) + '" alt="' + esc(it.label || '') + '"'
               + (it.full ? ' data-full="' + esc(it.full) + '"' : '') + '>'
             : '<div class="gd-txt">' + esc(it.text || '') + '</div>';
-          var cap = [it.model, it.quality].filter(Boolean).join(' · ');
+          var cap = [it.model, it.quality, it.size].filter(Boolean).join(' · ');
           // the two lines under the picture = what changed on this one; the
           // caption fills in only when no label was given (it still reads in
           // the lightbox and atop the PROMPT overlay either way)
@@ -479,7 +479,7 @@
         ov.addEventListener('click', function (e) { if (e.target === ov) hidePrompt(); });
         document.body.appendChild(ov);
       }
-      var mq = [it.model, it.quality].filter(Boolean).join(' · ');
+      var mq = [it.model, it.quality, it.size].filter(Boolean).join(' · ');
       var hasC = !!it.promptContent, hasS = !!it.promptStyle;
       // "[compressed]" leads the caption and each prompt half when this
       // picture's only copy was encoded lossily before it reached us. The flag
@@ -698,8 +698,8 @@
               it.promptContent = as.promptContent || '';
               // …and the caption too, when the page never carried one
               if (!it.model && !it.quality) {
-                var cap = /^([^·]{1,60}?)\s*·\s*([a-z0-9-]{1,20})$/i.exec(String(as.prompt || '').trim());
-                if (cap) { it.model = cap[1].trim(); it.quality = cap[2].trim().toLowerCase(); }
+                var cap = /^([^·]{1,60}?)\s*·\s*([a-z0-9-]{1,20})(?:\s*·\s*([1-9]K))?$/i.exec(String(as.prompt || '').trim());
+                if (cap) { it.model = cap[1].trim(); it.quality = cap[2].trim().toLowerCase(); if (cap[3]) it.size = cap[3].toUpperCase(); }
               }
               repaintActs(id);   // the PROMPT button exists now
             });
