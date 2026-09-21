@@ -342,6 +342,19 @@ async function driveMpcUpload(spec, opts = {}) {
     // 1) LOGIN — and refuse to go on blind: everything after this writes into her account.
     say('login');
     await page.goto(flow.loginUrl, { waitUntil: 'domcontentloaded' });
+    // MEASURED 2026-09-21 (two live jobs): MPC's login runs Google reCAPTCHA
+    // v3 before the postback (`oGrectcha.executeGrecaptcha` → `__doPostBack`),
+    // and a headless browser on a server scores as a bot — the page reloads
+    // with the password cleared and no message. That is the site's own
+    // anti-automation gate and it is not ours to defeat, so a login page that
+    // carries reCAPTCHA stops HERE, before any attempt, rather than hammering
+    // her account with failed sign-ins. The MPC Autofill desktop tool has the
+    // same limit, which is why it waits for a human to sign in.
+    const captcha = await page.locator('#ReCaptchaFrame, .g-recaptcha, iframe[src*="recaptcha"], script[src*="recaptcha/api.js"]').count().catch(() => 0);
+    if (captcha && !opts.allowCaptchaLogin) {
+      await shot('login-captcha');
+      throw new Error('MPC login is behind reCAPTCHA — a headless sign-in scores as a bot and is refused; sign in by hand (desktop tool) instead');
+    }
     await page.locator(flow.sel.email).first().fill(creds.email);
     await page.locator(flow.sel.password).first().fill(creds.password);
     await shot('login-form');
