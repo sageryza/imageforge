@@ -1,0 +1,101 @@
+[
+ {
+  "id": "fruitstand",
+  "country": "Fruit stand",
+  "what": "a fruit stand piled with fruit",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/card/fruitstand.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/full/fruitstand.webp",
+  "sheet": 1,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/sheet/sheet-1.webp",
+  "size": "1K",
+  "quality": "medium"
+ },
+ {
+  "id": "flowercart",
+  "country": "Flower cart",
+  "what": "a flower cart with buckets of flowers",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/card/flowercart.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/full/flowercart.webp",
+  "sheet": 1,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/sheet/sheet-1.webp",
+  "size": "1K",
+  "quality": "medium"
+ },
+ {
+  "id": "newsstand",
+  "country": "Newsstand",
+  "what": "a newsstand hung with magazines",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/card/newsstand.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/full/newsstand.webp",
+  "sheet": 1,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/sheet/sheet-1.webp",
+  "size": "1K",
+  "quality": "medium"
+ },
+ {
+  "id": "tacotruck",
+  "country": "Taco truck",
+  "what": "a taco truck with its window open",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/card/tacotruck.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/full/tacotruck.webp",
+  "sheet": 1,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/sheet/sheet-1.webp",
+  "size": "1K",
+  "quality": "medium"
+ },
+ {
+  "id": "pretzel",
+  "country": "Pretzel cart",
+  "what": "a pretzel cart",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/card/pretzel.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/full/pretzel.webp",
+  "sheet": 1,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/sheet/sheet-1.webp",
+  "size": "1K",
+  "quality": "medium"
+ },
+ {
+  "id": "icecream",
+  "country": "Ice cream cart",
+  "what": "an ice cream cart with a striped umbrella",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/card/icecream.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/full/icecream.webp",
+  "sheet": 1,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/sheet/sheet-1.webp",
+  "size": "1K",
+  "quality": "medium"
+ },
+ {
+  "id": "coffee",
+  "country": "Coffee kiosk",
+  "what": "a small coffee kiosk",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/card/coffee.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/full/coffee.webp",
+  "sheet": 1,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/sheet/sheet-1.webp",
+  "size": "1K",
+  "quality": "medium"
+ },
+ {
+  "id": "fishmonger",
+  "country": "Fish stall",
+  "what": "a fish stall with fish on ice",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/card/fishmonger.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/full/fishmonger.webp",
+  "sheet": 1,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/sheet/sheet-1.webp",
+  "size": "1K",
+  "quality": "medium"
+ },
+ {
+  "id": "balloons",
+  "country": "Balloon seller",
+  "what": "a bunch of balloons on strings held by a seller",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/card/balloons.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/full/balloons.webp",
+  "sheet": 1,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selling/sheet/sheet-1.webp",
+  "size": "1K",
+  "quality": "medium"
+ }
+]
