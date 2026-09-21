@@ -196,7 +196,11 @@ function cleanItem(raw, taken, fallback) {
   // the Assets-tab identity: explicit url wins; a storage img is its own
   const url = STR(raw.url, 500) || (STORAGE_URL.test(img) ? img : '');
   if (url) it.url = url;
-  for (const k of ['model', 'quality']) { const v = STR(raw[k], 60); if (v) it[k] = v; }
+  // `size` is the required third caption slot (1K / 2K / 4K) — it was dropped
+  // here and every template page read as "gpt-image-2 · medium" with no
+  // resolution (2026-09-21, Sophie: "huge problem those didn't have their
+  // resolution").
+  for (const k of ['model', 'quality', 'size']) { const v = STR(raw[k], 60); if (v) it[k] = v; }
   for (const k of ['promptStyle', 'promptContent']) { const v = STR(raw[k], 1500); if (v) it[k] = v; }
   // This picture's only copy was encoded lossily before it reached us. Carried
   // so a freshly built page marks it without waiting for grid.js's live fill;
