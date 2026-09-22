@@ -692,6 +692,8 @@
               // (the lightbox view is built lazily from `it` by asset-view.js,
               // so setting it here is enough — same as the prompt fill below)
               if (as.compressedAtBirth) it.compressedAtBirth = true;
+              // …and the photo(s) it was drawn from, for the Playground door
+              if (as.photoRef && !it.photoRef) { it.photoRef = as.photoRef; it.photoRefs = as.photoRefs || []; }
               if (it.promptContent || it.promptStyle) return;
               if (!as.promptContent && !as.promptStyle) return;
               it.promptStyle = as.promptStyle || '';

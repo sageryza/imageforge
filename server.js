@@ -2231,7 +2231,9 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
   }
   try {
     const { url, image, prompt, created, style, type, dry, chat, assetsOnly, session, explicit,
-      fullPrompt, promptPrefix, promptSuffix } = req.body || {};
+      fullPrompt, promptPrefix, promptSuffix, photoRef, photoRefs } = req.body || {};
+    // A chat that drew in its own container names the photo(s) it drew from.
+    const photoFields = photoRefFields(photoRef, photoRefs);
     const createdMs = Number(created) || Date.now();
     const description = assetDescription(req.body && req.body.description);
     let chatName = chat ? String(chat).slice(0, 60) : '';
@@ -2273,6 +2275,7 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
         if (nextCap) patch.prompt = nextCap.slice(0, 500);
         if (description && description !== existing.data().description) patch.description = description;
         if (kind && !existing.data().kind) patch.kind = kind;
+        if (photoFields.photoRef && !existing.data().photoRef) Object.assign(patch, photoFields);
         // A record with no prompt on file, for a picture that carries its own
         // (image-meta.js): the file fills the halves and the caption.
         if (!existing.data().promptContent && !existing.data().promptStyle && kind !== 'audio') {
@@ -2341,6 +2344,7 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
         }
       }
       if (description || autoDescription) wipDoc.description = description || autoDescription;
+      Object.assign(wipDoc, photoFields);
       await acol.add(wipDoc);
       const curatedCap = String(prompt || '').trim();
       if (curatedCap && !/^from /.test(curatedCap)) {
@@ -2548,6 +2552,10 @@ app.get('/api/gallery/assets', async (req, res) => {
         // "[compressed]" the client draws in front of the caption and the
         // prompt is presentation.
         if (a.compressedAtBirth) o.compressedAtBirth = true;
+        // The photo(s) the picture was drawn from — what the Playground door
+        // re-attaches (asset-actions.js), so a re-run carries the reference.
+        if (a.photoRef) o.photoRef = a.photoRef;
+        if (a.photoRefs && a.photoRefs.length) o.photoRefs = a.photoRefs;
         return o;
       });
     // Direct thumbnail URLs: the thumb path is content-addressed, so we can
@@ -6548,7 +6556,26 @@ async function fileCreationDoc({ url, type, prompt, poster, model, quality, styl
 // writes, with `source:'playground'` so they're identifiable. De-dupes by url.
 // Best-effort by design: a gallery hiccup must never fail a run whose images
 // are already saved and on the page.
-async function fileRunToCreations(images, { prompt, style, model, quality, size, fullPrompt, promptPrefix, promptSuffix, createdMs } = {}) {
+// THE PHOTO REFERENCE RIDES ONTO THE RECORD (2026-09-22, Sophie, sending a
+// picture back to the Playground from its tile: "did not include original
+// reference"). The run doc has always held `photoRef` / `photoRefs` — the
+// picture(s) she attached — and the creation filed from it dropped them, so the
+// Playground door (asset-actions.js) had a prompt to port and no photo. https
+// only, first one as `photoRef`, the list only when there are several — the
+// run doc's own shape, so every reader that knows one keeps working.
+function photoRefList(one, many) {
+  const list = (Array.isArray(many) && many.length ? many : [one])
+    .map((u) => (u == null ? '' : String(u)))
+    .filter((u) => /^https?:\/\//.test(u));
+  return list.slice(0, 8);
+}
+function photoRefFields(one, many) {
+  const refs = photoRefList(one, many);
+  if (!refs.length) return {};
+  return refs.length > 1 ? { photoRef: refs[0], photoRefs: refs } : { photoRef: refs[0] };
+}
+
+async function fileRunToCreations(images, { prompt, style, model, quality, size, fullPrompt, promptPrefix, promptSuffix, createdMs, photoRef, photoRefs } = {}) {
   const sizeTier = require('./size-tier');
   try {
     if (!images || !images.length) return;
@@ -6594,6 +6621,7 @@ async function fileRunToCreations(images, { prompt, style, model, quality, size,
         doc.canvas = String(size).slice(0, 40);
         doc.size = sizeTier.captionSize(size) || doc.canvas;
       }
+      Object.assign(doc, photoRefFields(photoRef, photoRefs));
       await col.add(doc);
     }
   } catch (err) {
@@ -6652,7 +6680,7 @@ async function reconcileCreationFiling() {
         prompt: r.prompt, style: styleSlot,
         model: r.model || (r.gptStyle ? PL_GPT.id : ''),
         quality: r.quality, size: r.size, fullPrompt: r.fullPrompt,
-        createdMs,
+        createdMs, photoRef: r.photoRef, photoRefs: r.photoRefs,
       });
     }
     const ffMod = require('./freeform');
@@ -6858,6 +6886,7 @@ async function runPromptLabGptJob(docRef, cfg) {
       fullPrompt: cfg.fullPrompt,
       promptPrefix: cfg.head != null ? cfg.head : st.prefix,
       promptSuffix: cfg.tail != null ? cfg.tail : st.suffix,
+      photoRef: cfg.photoUrl, photoRefs: cfg.photoUrls,
     });
   } catch (err) {
     console.warn('promptlab gpt job failed:', err.message);
