@@ -4,6 +4,30 @@
  "paste": true,
  "sources": [
   {
+   "sheet": "docs/fonts/magic-subtitle-caps-sheet.png",
+   "left": 0.02,
+   "gap": 30,
+   "dark": 140,
+   "traceDark": 130,
+   "blur": false,
+   "rows": [
+    "ABCDE",
+    "FGHIK",
+    "LNOPR",
+    "STUW&"
+   ],
+   "level": [
+    "ABCDEFGHIKLNOPRSTUW"
+   ],
+   "side": 148,
+   "bands": [
+    0,
+    1,
+    2,
+    3
+   ]
+  },
+  {
    "sheet": "docs/fonts/magic-subtitle-big-sheet.png",
    "left": 0.04,
    "gap": [
@@ -40,7 +64,8 @@
    ],
    "side": 148,
    "thin": 1,
-   "rowDark": 200
+   "rowDark": 200,
+   "alternates": false
   }
  ],
  "space": 592
