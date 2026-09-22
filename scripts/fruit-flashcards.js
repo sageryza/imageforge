@@ -31,7 +31,12 @@ const V3 = args.includes('--v3');
 // since #2552) instead of Cormorant Garamond.
 const CARDS = flag('cards');
 const TITLE = flag('title', 'Fruit flash cards');
-const HAND = args.includes('--hand');
+const HAND = args.includes('--hand') || Boolean(flag('face'));
+// --face lemon|sophie [--caps]: which of her own faces the name wears
+// (2026-09-22, Sophie: "try lemon caps"). --hand alone is Sophie Hand.
+const FACE = flag('face', 'sophie');
+const FACE_FILE = { sophie: 'sophie-hand.ttf', lemon: 'lemon-hand.ttf', title: 'magic-title.ttf', subtitle: 'magic-subtitle.ttf' }[FACE] || FACE;
+const CAPS = args.includes('--caps');
 // --fonts: ONE compare page of the name in several fonts, lowercase and caps
 // side by side, two sample cards each, a ♥/✕ per option (2026-09-20, Sophie:
 // "now try caps · and a couple other fonts in lower and caps · u can put in
@@ -100,7 +105,7 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&am
   }
 
   const cardFront = c => `<div class="fc fc2"><span class="face front">
-      <img src="${esc(c.img)}" alt="${esc(c.name)}" loading="lazy" decoding="async"><span class="nm2${HAND ? ' hand' : ''}">${esc(c.name.toLowerCase())}</span></span></div>`;
+      <img src="${esc(c.img)}" alt="${esc(c.name)}" loading="lazy" decoding="async"><span class="nm2${HAND ? ' hand' : ''}">${esc(CAPS ? c.name.toUpperCase() : c.name.toLowerCase())}</span></span></div>`;
   const cardFlip = c => `<button class="fc" type="button" data-nostop aria-label="${esc(c.name)}">
     <span class="fc-in">
       <span class="face front"><img src="${esc(c.img)}" alt="" loading="lazy" decoding="async"><span class="tag">?</span></span>
@@ -116,8 +121,8 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&am
 <link rel="stylesheet" href="/compare.css">
 ${V3 && !HAND ? '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap">' : ''}
 <style>
-  ${HAND ? `@font-face{font-family:"Sophie Hand";src:url(/fonts/sophie-hand.ttf) format("truetype");font-display:swap}
-  .v3 .fc2 .nm2.hand{font-family:'Sophie Hand',Georgia,serif;font-weight:400;font-size:17px;letter-spacing:.06em}` : ''}
+  ${HAND ? `@font-face{font-family:"Her Hand";src:url(/fonts/${FACE_FILE}) format("truetype");font-display:swap}
+  .v3 .fc2 .nm2.hand{font-family:'Her Hand',Georgia,serif;font-weight:400;font-size:${CAPS ? 15 : 17}px;letter-spacing:${CAPS ? '.1em' : '.06em'}}` : ''}
   .cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
   .fc{all:unset;display:block;cursor:pointer;-webkit-tap-highlight-color:transparent;perspective:900px;aspect-ratio:3/4}
   .fc-in{position:relative;display:block;width:100%;height:100%;transition:transform .45s;transform-style:preserve-3d}
