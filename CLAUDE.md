@@ -4011,6 +4011,28 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `--dry` on her real catalog is the measurement. Test:
   `node scripts/test-lightroom.js`. **Full details: `docs/modules/business.md`
   (Lightroom → the picker).**
+- **The hat store** (`hats.js`, `/api/hats`, page at `/hats` — PUBLIC, no
+  tile; 2026-09-22, Sophie: "if i wanted to make a hat store for my friend" ·
+  "no etsy no printify · it's thru instagram" · "use my buy button?" · "build
+  the hats page") — her friend's hats, sold from an Instagram bio link. The
+  hats live in SOPHIE'S Shopify (cod-god-inc): the page reads the collection
+  whose handle is `hats`, or, until that exists, every product TAGGED `hats`
+  (measured 2026-09-22: the store had neither, so the page opens on "No hats
+  yet" until the first one is tagged and published to the Online Store
+  channel). Buying is the Buy-Button model the witch app's Shop tab already
+  uses — a fresh cart on the public Storefront API, then Shopify's own
+  checkout — so money lands in her shop and she pays her friend out; nothing
+  on the page spends, and no card number touches this server. Two across on
+  a phone, a hat opens as a sheet (a picture strip that snaps, a chip row per
+  real option with a sold-out combination struck through, Buy off until every
+  option is picked, Buy hugging its words), and `/hats#<handle>` opens on one
+  hat, which is the link for a post. Instagram itself is by hand (product
+  TAGGING ties a catalog to one account — hers — and the API needs a Meta app
+  review); the bio link works from any account. Ten-minute product cache;
+  `POST /api/hats/refresh` after adding a hat. Test:
+  `node scripts/test-hats.js` (the shape pure, the router over a stubbed
+  store, the real page headless with every check measured).
+  **Full details: `docs/modules/business.md` (The hat store).**
 - **Blog Studio** (`blog.js`, `/api/blog`, `/blog`) — topic -> long-tail keywords
   -> full SEO post -> image -> publish. **Primary destination is the on-site blog
   at secretlyawitch.com/blog**, so organic traffic builds the real domain;

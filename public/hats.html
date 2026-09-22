@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<title>Hats</title>
+<meta name="description" content="Hats. Tap one, pick a size, buy.">
+<style>
+/* hats.html — the hat store (hats.js). A PUBLIC page: the link in an
+   Instagram bio. Its own look (a public app never wears the studio's
+   forge.css). Flat solid colours only, 6px corners, buttons hug their
+   words, the title once with nothing above it, the how-to behind the "?".
+   The five pill tokens are defined even though nothing injects a pill here,
+   so the page can never render one black. */
+:root{
+  --paper:#f6f1e7; --card:#fffdf8; --ink:#17140f; --ink2:#7d7568;
+  --line:#e3dccd; --accent:#e2531f; --accent-ink:#fff; --sold:#b3aa9b;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--paper);color:var(--ink)}
+body{
+  font-family:-apple-system,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
+  padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  -webkit-font-smoothing:antialiased;
+}
+body.locked{overflow:hidden;position:fixed;inset:0}
+[hidden]{display:none !important}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+
+/* ── the title, once ─────────────────────────────────────────────────── */
+header{display:flex;align-items:center;gap:10px;padding:18px 16px 6px}
+h1{margin:0;font-size:30px;font-weight:800;letter-spacing:-.02em;text-transform:uppercase}
+#help{
+  width:24px;height:24px;border-radius:6px;border:1.5px solid var(--ink);
+  font-size:13px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;
+}
+#helpcard{position:fixed;inset:0;background:rgba(23,20,15,.45);z-index:60;display:flex;align-items:center;justify-content:center;padding:26px}
+#helpcard div{background:var(--card);border-radius:6px;padding:20px 22px;max-width:340px;font-size:15px;line-height:1.5}
+#helpcard p{margin:0 0 10px}
+#helpcard p:last-child{margin:0}
+
+/* ── the grid: two across, a picture and its name and price ───────────── */
+#grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:10px 16px 40px}
+@media (min-width:700px){#grid{grid-template-columns:repeat(3,1fr);max-width:900px;margin:0 auto}}
+.hat{display:block;text-align:left;width:100%}
+.hat .pic{aspect-ratio:1;border-radius:6px;background:var(--card);border:1px solid var(--line);overflow:hidden;position:relative}
+.hat img{width:100%;height:100%;object-fit:cover;display:block}
+.hat .name{margin:8px 2px 0;font-size:15px;font-weight:700;line-height:1.25}
+.hat .price{margin:2px 2px 0;font-size:14px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.hat .price s{margin-left:6px;color:var(--sold)}
+.hat.out .pic{opacity:.5}
+.hat.out .price::after{content:"sold out";margin-left:8px;color:var(--accent);font-weight:700}
+#empty,#err{padding:40px 16px;text-align:center;color:var(--ink2);font-size:16px}
+
+/* ── the hat sheet ───────────────────────────────────────────────────── */
+#sheet{position:fixed;inset:0;z-index:50;background:var(--paper);overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:env(safe-area-inset-bottom)}
+#close{
+  position:fixed;top:calc(env(safe-area-inset-top) + 12px);left:12px;z-index:52;
+  width:36px;height:36px;border-radius:6px;background:var(--card);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;
+}
+#close svg{width:18px;height:18px;stroke:var(--ink);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* the pictures: a strip that snaps one picture at a time */
+#pics{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:var(--card)}
+#pics::-webkit-scrollbar{display:none}
+#pics img{flex:0 0 100%;width:100%;aspect-ratio:1;object-fit:cover;scroll-snap-align:start;display:block}
+#dots{display:flex;gap:6px;justify-content:center;padding:10px 0 0}
+#dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}
+#dots i.on{background:var(--ink)}
+#body{padding:14px 16px 32px;max-width:600px;margin:0 auto}
+#title{margin:0;font-size:24px;font-weight:800;letter-spacing:-.01em;line-height:1.2}
+#sprice{margin:6px 0 0;font-size:18px;font-variant-numeric:tabular-nums}
+#sprice s{margin-left:8px;color:var(--sold);font-size:15px}
+.opt{margin-top:18px}
+.opt .lab{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);font-weight:700;margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  border:1.5px solid var(--line);border-radius:6px;padding:8px 12px;font-size:15px;font-weight:600;background:var(--card);
+}
+.chip.on{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+.chip.gone{color:var(--sold);text-decoration:line-through}
+#buyrow{display:flex;align-items:center;gap:14px;margin-top:22px}
+#buy{
+  background:var(--accent);color:var(--accent-ink);border-radius:6px;
+  padding:13px 20px;font-size:17px;font-weight:800;letter-spacing:.01em;
+}
+#buy:disabled{background:var(--sold);cursor:default}
+#buymsg{font-size:14px;color:var(--ink2)}
+#desc{margin-top:22px;font-size:15px;line-height:1.55;color:var(--ink)}
+#desc p{margin:0 0 10px}
+#desc img{max-width:100%;height:auto}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Hats</h1>
+  <button id="help" aria-label="How this works">?</button>
+</header>
+<div id="helpcard" hidden><div>
+  <p>Tap a hat to see it up close. Pick a size or colour if it has one.</p>
+  <p><b>Buy</b> opens a secure checkout — card, Apple Pay, the usual. Your order and shipping are handled there.</p>
+</div></div>
+
+<div id="grid"></div>
+<div id="empty" hidden>No hats yet.</div>
+<div id="err" hidden>Couldn't load the hats. Pull to try again.</div>
+
+<div id="sheet" hidden>
+  <button id="close" aria-label="Back to the hats"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+  <div id="pics"></div>
+  <div id="dots"></div>
+  <div id="body">
+    <h2 id="title"></h2>
+    <div id="sprice"></div>
+    <div id="opts"></div>
+    <div id="buyrow"><button id="buy">Buy</button><span id="buymsg"></span></div>
+    <div id="desc"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var $ = function(s){ return document.querySelector(s); };
+  var hats = [], cur = null, pick = {}, working = false;
+
+  function money(n, cur){
+    var v = Number(n); if (!isFinite(v)) return '';
+    var s = (Math.round(v*100)/100).toFixed(v % 1 ? 2 : 0);
+    return (cur === 'USD' || !cur ? '$' : cur + ' ') + s;
+  }
+  function priceLine(h){
+    var p = money(h.price, h.currency);
+    if (h.priceMax && h.priceMax !== h.price) p = p + '–' + money(h.priceMax, h.currency).replace(/^\$/, '');
+    return p;
+  }
+
+  // ── the grid ──
+  function paint(){
+    var g = $('#grid'); g.innerHTML = '';
+    $('#empty').hidden = hats.length > 0;
+    hats.forEach(function(h, i){
+      var b = document.createElement('button');
+      b.className = 'hat' + (h.available ? '' : ' out');
+      b.setAttribute('data-handle', h.handle);
+      var pic = document.createElement('div'); pic.className = 'pic';
+      if (h.image) { var im = document.createElement('img'); im.src = h.image; im.alt = h.title; im.loading = i > 5 ? 'lazy' : 'eager'; pic.appendChild(im); }
+      var name = document.createElement('div'); name.className = 'name'; name.textContent = h.title;
+      var price = document.createElement('div'); price.className = 'price'; price.textContent = priceLine(h);
+      b.appendChild(pic); b.appendChild(name); b.appendChild(price);
+      b.addEventListener('click', function(){ open(h); });
+      g.appendChild(b);
+    });
+  }
+
+  // ── the sheet ──
+  function variantFor(){
+    // the variant whose options are exactly what she picked; with no options
+    // there is one variant and it is the answer
+    if (!cur) return null;
+    if (!cur.options.length) return cur.variants[0] || null;
+    return cur.variants.find(function(v){
+      return cur.options.every(function(o){ return v.options[o.name] === pick[o.name]; });
+    }) || null;
+  }
+  function chipGone(o, val){
+    // a value no available variant can be reached through, given the OTHER picks
+    return !cur.variants.some(function(v){
+      if (!v.available || v.options[o.name] !== val) return false;
+      return cur.options.every(function(p){ return p.name === o.name || !pick[p.name] || v.options[p.name] === pick[p.name]; });
+    });
+  }
+  function paintOpts(){
+    var box = $('#opts'); box.innerHTML = '';
+    cur.options.forEach(function(o){
+      var w = document.createElement('div'); w.className = 'opt';
+      var lab = document.createElement('div'); lab.className = 'lab'; lab.textContent = o.name;
+      var chips = document.createElement('div'); chips.className = 'chips';
+      o.values.forEach(function(val){
+        var c = document.createElement('button'); c.className = 'chip'; c.textContent = val;
+        c.setAttribute('data-opt', o.name); c.setAttribute('data-val', val);
+        if (pick[o.name] === val) c.classList.add('on');
+        if (chipGone(o, val)) c.classList.add('gone');
+        c.addEventListener('click', function(){ pick[o.name] = val; paintOpts(); paintBuy(); });
+        chips.appendChild(c);
+      });
+      w.appendChild(lab); w.appendChild(chips); box.appendChild(w);
+    });
+  }
+  function paintBuy(){
+    var v = variantFor(), buy = $('#buy'), msg = $('#buymsg');
+    var unpicked = cur.options.filter(function(o){ return !pick[o.name]; });
+    if (unpicked.length) { buy.disabled = true; msg.textContent = 'pick a ' + unpicked[0].name.toLowerCase(); }
+    else if (!v || !v.available) { buy.disabled = true; msg.textContent = 'sold out'; }
+    else { buy.disabled = false; msg.textContent = ''; }
+    buy.textContent = v && v.price ? 'Buy · ' + money(v.price, cur.currency) : 'Buy';
+    var sp = $('#sprice'); sp.textContent = '';
+    var shown = v && v.price ? money(v.price, cur.currency) : priceLine(cur);
+    sp.appendChild(document.createTextNode(shown));
+    if (v && v.compareAt && Number(v.compareAt) > Number(v.price)) { var s = document.createElement('s'); s.textContent = money(v.compareAt, cur.currency); sp.appendChild(s); }
+    if (v && v.image) { var idx = cur.images.indexOf(v.image); if (idx >= 0) $('#pics').scrollTo({ left: idx * $('#pics').clientWidth, behavior: 'smooth' }); }
+  }
+  function open(h){
+    cur = h; pick = {};
+    // one value per option needs no pick
+    h.options.forEach(function(o){ if (o.values.length === 1) pick[o.name] = o.values[0]; });
+    $('#title').textContent = h.title;
+    var pics = $('#pics'); pics.innerHTML = '';
+    (h.images.length ? h.images : [h.image]).filter(Boolean).forEach(function(u){ var im = document.createElement('img'); im.src = u; im.alt = h.title; pics.appendChild(im); });
+    var dots = $('#dots'); dots.innerHTML = '';
+    if (h.images.length > 1) h.images.forEach(function(_, i){ var d = document.createElement('i'); if (!i) d.className = 'on'; dots.appendChild(d); });
+    $('#desc').innerHTML = h.descriptionHtml || '';
+    paintOpts(); paintBuy();
+    $('#sheet').hidden = false; $('#sheet').scrollTop = 0; pics.scrollLeft = 0;
+    document.body.classList.add('locked');
+    try { history.pushState({ hat: h.handle }, '', '#' + h.handle); } catch (e) {}
+  }
+  function close(){
+    if ($('#sheet').hidden) return;
+    $('#sheet').hidden = true; cur = null;
+    document.body.classList.remove('locked');
+    if (location.hash) { try { history.replaceState(null, '', location.pathname); } catch (e) {} }
+  }
+  $('#close').addEventListener('click', close);
+  // back closes the sheet; a hash that names a hat (a shared link, or a
+  // link tapped while the page is already open) opens it
+  function fromHash(){
+    var want = location.hash.replace(/^#/, '');
+    if (!want) return close();
+    var h = hats.find(function(x){ return x.handle === want; });
+    if (h && (!cur || cur.handle !== want)) open(h);
+  }
+  window.addEventListener('popstate', fromHash);
+  window.addEventListener('hashchange', fromHash);
+  $('#pics').addEventListener('scroll', function(){
+    var p = $('#pics'), i = Math.round(p.scrollLeft / Math.max(1, p.clientWidth));
+    Array.prototype.forEach.call($('#dots').children, function(d, k){ d.classList.toggle('on', k === i); });
+  }, { passive: true });
+
+  // ── buying: one hat → Shopify's checkout ──
+  $('#buy').addEventListener('click', function(){
+    var v = variantFor(); if (!v || working) return;
+    working = true; $('#buy').disabled = true; $('#buymsg').textContent = 'one sec…';
+    fetch('/api/hats/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ variantId: v.id, quantity: 1 }) })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        if (!j.checkoutUrl) throw new Error(j.error || 'no checkout');
+        location.href = j.checkoutUrl;
+      })
+      .catch(function(){ working = false; $('#buy').disabled = false; $('#buymsg').textContent = 'try again'; });
+  });
+
+  // ── the "?" ──
+  $('#help').addEventListener('click', function(){ $('#helpcard').hidden = false; });
+  $('#helpcard').addEventListener('click', function(){ $('#helpcard').hidden = true; });
+
+  // ── load ──
+  function load(){
+    fetch('/api/hats/products').then(function(r){ return r.json(); }).then(function(j){
+      if (j.error) throw new Error(j.error);
+      hats = j.hats || []; $('#err').hidden = true; paint();
+      fromHash();
+    }).catch(function(){ $('#err').hidden = false; });
+  }
+  load();
+  window.__hats = { open: open, close: close, variantFor: variantFor, get: function(){ return hats; } };
+})();
+</script>
+</body>
+</html>
