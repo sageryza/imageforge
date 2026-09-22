@@ -949,9 +949,13 @@ ink, NOT re-padded square, so `size` means the ink's longest side), `thumb`
 a 320px lossy copy, `w`/`h` the cut's box. The cut is `vectorize.cutout` —
 corner flood-fill at tol 22 — run in the background on filing
 (`status: cutting → ready | failed`); the page polls while any piece is
-cutting. Seeded 2026-09-22 with 73 of the fruit chart's drawings (the 27
-fruits, the animals, the hq/redo/2K passes, the v4 vegetables), one per name
-(the biggest), the 278px card-only ones skipped. `POST /pieces {name, kind,
+cutting. Seeded 2026-09-22 with 175 pictures — the card-pattern chat's decks
+(`scripts/decks/animals-drawn.json`, 72 animals; `plants-drawn.json`, 30
+plants; `fruits-finished.json`, her 15 finished fruit picks) and the fruit
+chart's records (the 27 fruits, the hq/redo/2K passes, the v4 vegetables) —
+one per name, the FIRST source in the script's preference order winning and an
+older twin hidden (8 were), card-only pictures under 500px skipped. Kinds:
+animal · fruit · vegetable · plant · other. `POST /pieces {name, kind,
 src}` files another; `PATCH /pieces/:id` renames, re-kinds or hides;
 `/pieces/:id/recut {tol}` for a cut that ate or left too much.
 

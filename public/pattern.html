@@ -141,6 +141,7 @@ canvas#tile{ display:block; width:100%; border:1px solid var(--border); border-r
         <button class="chip on" data-k="animal">animal</button>
         <button class="chip" data-k="fruit">fruit</button>
         <button class="chip" data-k="vegetable">vegetable</button>
+        <button class="chip" data-k="plant">plant</button>
         <button class="chip" data-k="other">other</button>
       </div>
       <div class="msg" id="shelfmsg"></div>
@@ -287,7 +288,7 @@ canvas#tile{ display:block; width:100%; border:1px solid var(--border); border-r
   function inPattern(id) { return !!(pattern && (pattern.items || []).some(function (it) { return it.piece === id; })); }
   function renderShelf() {
     var list = Object.values(pieces).filter(function (p) { return !p.hidden; });
-    var order = { animal: 0, fruit: 1, vegetable: 2, other: 3 };
+    var order = { animal: 0, fruit: 1, vegetable: 2, plant: 3, other: 4 };
     list.sort(function (a, b) { return (order[a.kind] - order[b.kind]) || String(a.name).localeCompare(String(b.name)); });
     var sig = list.map(function (p) { return p.id + p.status + (p.thumb || '') + (inPattern(p.id) ? 1 : 0); }).join('|');
     if (sig === shelfSig) return;

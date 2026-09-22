@@ -3620,11 +3620,14 @@ before working on that module. Nothing was deleted — the moved text is verbati
   piece at random within ±N°, SCATTER spreads them evenly) and REPEAT (the
   tiled preview, grid · half-drop · mirror on a tri toggle, the colour
   behind, EXPORT at 1K/2K/4K). **The shelf is the fruit chart's own
-  drawings, cut out**: `scripts/pattern-seed.js` filed 73 (2 animals, 36
-  fruits, 35 vegetables) on 2026-09-22 through `vectorize.cutout` — corner
-  flood-fill, so a coconut's white flesh stays — into `forge-pattern-pieces`
-  (id = sha1 of the source url; re-running is one shelf). A 278px card-only
-  picture is skipped (`--min 600`); a chat files any other picture with
+  drawings, cut out**: `scripts/pattern-seed.js` filed 175 (72 animals, 38
+  fruits, 35 vegetables, 30 plants — the card-pattern chat's decks under
+  `scripts/decks/` and the fruit chart's records, her finished fruit picks
+  first) on 2026-09-22 through `vectorize.cutout` — corner flood-fill, so a
+  coconut's white flesh stays — into `forge-pattern-pieces` (id = sha1 of
+  the source url; re-running is one shelf; an older twin under a name a
+  preferred picture holds is HIDDEN, never deleted). A card-only picture
+  under 500px is skipped (`--min`); a chat files any other picture with
   `POST /api/pattern/pieces {name, kind, src}` and it cuts in the
   background. **ONE ARITHMETIC, `pattern-plan.js`, served at
   `/pattern-plan.js` and required by the module** — the page's canvas and

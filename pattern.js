@@ -7,7 +7,7 @@
 // pattern-plan.js, the one arithmetic the page and this module share.
 //
 // TWO COLLECTIONS.
-//   forge-pattern-pieces — THE SHELF: one doc per animal / fruit / vegetable
+//   forge-pattern-pieces — THE SHELF: one doc per animal / fruit / vegetable / plant
 //     she can put in a pattern. `src` is the picture on its white paper (the
 //     fruit chart's own fruits, the animals, anything a chat POSTs), `cut` is
 //     the same picture lifted off the paper — a transparent lossless webp —
@@ -67,7 +67,7 @@ const plan = require('./pattern-plan');
 
 const PIECES = 'forge-pattern-pieces';
 const PATTERNS = 'forge-patterns';
-const KINDS = ['animal', 'fruit', 'vegetable', 'other'];
+const KINDS = ['animal', 'fruit', 'vegetable', 'plant', 'other'];
 const PIECE_EDITABLE = ['name', 'kind', 'hidden'];
 const PATTERN_EDITABLE = ['name', 'tile', 'layout', 'items'];
 const MAX_ITEMS = 60;
