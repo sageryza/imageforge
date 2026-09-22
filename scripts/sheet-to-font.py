@@ -25,7 +25,9 @@ The spec is JSON:
               are bridged at their closest points before tracing (the first
               sheet's y had a gap between arm and stem — "y is bad")
     gap       px between pieces that still count as one glyph (default 3; a
-              serif with hairlines that break up at the threshold wants ~16)
+              serif with hairlines that break up at the threshold wants ~16
+              on its caps rows), or a list with one gap per row — a caps row
+              needs a wide one and a punctuation row a narrow one ("? &")
     dark      grey level below which a pixel is ink when finding glyphs
               (default 140; a light serif wants ~175) · traceDark the same
               for the 4x trace (default 165)
@@ -180,9 +182,10 @@ def read_sheet(src, print_bands=False):
         return None, None, None, None
     idx = src.get('bands') or list(range(1, 1 + len(src['rows'])))
     glyphs = {}
-    for chars, bi in zip(src['rows'], idx):
+    gaps = src.get('gap', 3); gaps = gaps if isinstance(gaps, list) else [gaps] * len(src['rows'])
+    for chars, bi, gap in zip(src['rows'], idx, gaps):
         y0, y1 = bs[bi]
-        boxes = glyph_boxes(ink, max(0, y0-5), y1+5, gap=src.get('gap', 3))
+        boxes = glyph_boxes(ink, max(0, y0-5), y1+5, gap=gap)
         if len(boxes) != len(chars):
             sys.exit(f'{src["sheet"]} row {chars!r}: found {len(boxes)} glyphs, expected {len(chars)}: {[(b[0], b[1]-b[0]) for b in boxes]}')
         base = statistics.median([b[3] for c, b in zip(chars, boxes) if c not in DESCENDERS] or [b[3] for b in boxes])
