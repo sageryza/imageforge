@@ -65,6 +65,11 @@ later.
    paraphrase. Style = trigger words/prefix/suffix/character lines as sent
    (mark the seam with `[content]`, note attached refs + size/quality);
    content = her subject verbatim. No exact text on hand → file nothing.
+3b. **Drew it from a photo? File the photo too** — `photoRef` (and
+   `photoRefs` when several) on the same `POST /api/gallery { assetsOnly:true,
+   … }` call: https urls of the reference picture(s). It is what the Playground
+   door re-attaches beside the ported prompt (2026-09-22, "did not include
+   original reference"). No reference → leave it out.
 4. **Label every image.** The `description` is what she reviews by — a real
    scene description (`Penny — the blue Kleenex`), never `p01` or `image`.
    In reply prose, a Firebase image link's markdown text becomes the label —

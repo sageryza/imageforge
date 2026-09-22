@@ -402,6 +402,15 @@ chat's own `af-*-job.json` files. Test: `node scripts/test-video-log.js`.
    up, or by `node scripts/stamp-prompt.js <file> --full "…" --content "…"
    --model … --quality … --size …` BEFORE any other upload. Exact text only.
    Full rule: *THE PROMPT RIDES INSIDE THE PICTURE FILE* in Design rules.
+6b. **DREW IT FROM A PHOTO? FILE THE PHOTO AS `photoRef` (2026-09-22, Sophie,
+   sending a picture back to the Playground from its tile: "did not include
+   original reference").** The record carries the reference photo(s) it was
+   drawn from — `photoRef` (+ `photoRefs` when several, https urls) on the
+   same `POST /api/gallery { assetsOnly:true, … }` — and the Playground door
+   re-attaches them beside the ported prompt. The server files it for its own
+   runs (`fileRunToCreations`); a container-drawn picture is yours to file.
+   `node scripts/backfill-photo-ref.js` repairs older ones off the run docs
+   (dry by default); test `node scripts/test-photo-ref.js`.
 7. **If you added ANYTHING to a prompt she gave you, say so, word for word.**
 8. Run `node scripts/sweep-asset-captions.js --chat <your slug>` before you
    finish. It is read-only and it names what you missed.
