@@ -15,6 +15,17 @@ description: >
 
 # Building a new tool in Deck Factory
 
+**FIRST: THINGS START IN COMPARE (2026-09-22, Sophie: "does it need to be a
+page · can't it just be in compare · make a note saying things start in
+compare unless i explicitly ask for page").** Unless she said "page", "tool"
+or "tile" for it, a new thing is a Compare page posted with `POST
+/api/chatfeed/page` — no deploy, no tile, no build; its state on a verdict
+doc through the live `/api/chatfeed/verdict`, its files through the live
+Dump. `docs/pattern/pattern.tpl.html` + `scripts/pattern-page.js` is the
+worked example (a whole arranging tool with a canvas, a store and an
+export, as a posted page). The three pieces below are for the day she asks
+for a page.
+
 A tool is THREE pieces, and each has its own reference:
 
 - **The module** — `<thing>.js` at the repo root: an Express router, one

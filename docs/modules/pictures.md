@@ -906,19 +906,25 @@ panels fit under 4000 chars at ~350 each; twenty-five will not).
   rendered picture, not on the file), and `node scripts/test-vector-page.js`
   drives the real page end to end against a local server — both free to run.
 
-## Pattern (`/pattern`, `/api/pattern`) — animals and fruits on one tile, it repeats
+## Pattern — animals and fruits on one tile, it repeats (a Compare page)
 
 2026-09-22, Sophie: "we need to make a program that lets me choose and arrange
 animals and or fruits into a repeating pattern" · "i need to choose the
 constituents, choose how much to rotate, choose how far apart, and choose
-where they go". `pattern.js` (the module), `pattern-plan.js` (the arithmetic,
-shared), `public/pattern.html` (the page), `scripts/pattern-seed.js` (the
-shelf), `scripts/test-pattern.js`.
+where they go" · and, on the first cut (a served page with an iOS tile):
+"does it need to be a page · can't it just be in compare · make a note saying
+things start in compare unless i explicitly ask for page". So it is a COMPARE
+PAGE: `docs/pattern/pattern.tpl.html` built and posted by
+`scripts/pattern-page.js` into the animal-fruit-pattern-tool chat's Compare
+tab. Behind it, not needed by it: `pattern.js` (`/api/pattern` — the pieces
+list, a server-side sharp export, the paid DRAW of a new piece),
+`pattern-plan.js` (the arithmetic, inlined), `scripts/pattern-seed.js` (fills
+the pieces list), `scripts/test-pattern.js`.
 
 ### Her four choices are four fields
-An item on the tile is `{ k, piece, x, y, size, rot, flip }`:
-- **the constituents** — `piece`, ticked on the PIECES tab (tap a shelf tile;
-  tap again to take every copy of it off);
+An item on the tile is `{ piece, x, y, size, rot, flip }`:
+- **the constituents** — `piece`, ticked on the PIECES tab (tap a picture; tap
+  again to take every copy of it off);
 - **how much to rotate** — `rot`, degrees: the box under the tile takes a
   typed number, −15/+15 step it, **Spin** turns every piece at random within
   the ± she sets (seeded by the tap, so twice is two spins);
@@ -926,67 +932,66 @@ An item on the tile is `{ k, piece, x, y, size, rot, flip }`:
   FRACTIONS of the tile, so the **spacing** slider (tile side 500–2500 units)
   spreads every repeat without moving anything's place;
 - **where they go** — drag on the canvas; **Scatter** is an even staggered
-  grid to start from; **again** adds another of the selected piece at the
-  freest spot (the torus distance, since the tile wraps).
+  grid to start from; **+** adds another of the selected piece at the freest
+  spot (the torus distance, since the tile wraps).
+
+### No deploy, by construction
+- **Her patterns live on a verdict doc** — chat `animal-fruit-pattern-tool`,
+  sheet `pattern`, one JSON text per pattern config (`p:cfg:<id>`: name, tile,
+  layout, the last six exports) and one per item (`p:it:<id>:<k>`; a removed
+  item is blanked). Its OWN sheet and a `p:` prefix on every key, so the note
+  thread (`pattern-notes`, `__compareNotes`) can never overwrite one — the
+  2026-09-07 rule, and the page-kit warning that enforces it is part of the
+  test. A pattern never saved yet writes its config with its first item.
+- **The export is drawn on the page** — the output image on a canvas at
+  1024 / 2048 / 4096 px per tile width, `toBlob`, POSTed to
+  `/api/drop/upload-file?bundle=Patterns&filename=<name>-<size>-<layout>.png`
+  — so it has a permanent url and the Dump's save link. A 4K export is 16M
+  pixels on the phone; the page says "too big" and suggests 2K if the canvas
+  refuses.
+- **The pieces are baked in** — `pattern-page.js` reads every ready, unhidden
+  doc on `forge-pattern-pieces` (id, name, kind, thumb, cut, w, h — ~300 bytes
+  each) and inlines the list; a new piece reaches her through a re-post
+  (`--go --supersede <old id>`, the version off `docs/pattern/VERSIONS`).
+  `--pieces file.json` hands a list in (the test), `--out` writes the page.
 
 ### The plan is the file
-`pattern-plan.js` is loaded by the page (`/pattern-plan.js`, the
-pause-plan.js pattern) and required by the module. `tileDraws` lists every
-draw for the tile with its wrap copies (nine per item, the ones that cannot
-touch the tile dropped); `draws` lists the OUTPUT image for a layout — `grid`
-(w×h), `half` (2w×h, the second column dropped h/2 and wrapping), `mirror`
-(2w×2h, the copies carrying `mx`/`my` which the renderer applies as a scale
-OUTSIDE the item's own turn and flip — a reflection by construction). The page
-draws that list on a canvas (translate → mirror → rotate → flip → drawImage)
-and tiles the result with CSS for the previews; the server draws the same
-list with sharp for the export. The test rolls every item half a tile and
-requires the identical picture rolled, byte for byte — a seam is a failure.
+`pattern-plan.js` is inlined into the page and required by the module.
+`tileDraws` lists every draw for the tile with its wrap copies (nine per item,
+the ones that cannot touch the tile dropped); `draws` lists the OUTPUT image
+for a layout — `grid` (w×h), `half` (2w×h, the second column dropped h/2 and
+wrapping), `mirror` (2w×2h, the copies carrying `mx`/`my`, which the renderer
+applies as a scale OUTSIDE the item's own turn and flip — a reflection by
+construction). The page draws that list on a canvas (translate → mirror →
+rotate → flip → drawImage) and tiles the result with CSS for the previews;
+the module's `renderPattern` draws the same list with sharp. The test rolls
+every item half a tile and requires the identical picture rolled, byte for
+byte — a seam is a failure.
 
-### The shelf
+### The pieces list
 `forge-pattern-pieces`, one doc per piece, id = sha1(source url). `src` is
 the picture on its paper, `cut` a transparent LOSSLESS webp (trimmed to the
-ink, NOT re-padded square, so `size` means the ink's longest side), `thumb`
-a 320px lossy copy, `w`/`h` the cut's box. The cut is `vectorize.cutout` —
-corner flood-fill at tol 22 — run in the background on filing
-(`status: cutting → ready | failed`); the page polls while any piece is
-cutting. Seeded 2026-09-22 with 175 pictures — the card-pattern chat's decks
-(`scripts/decks/animals-drawn.json`, 72 animals; `plants-drawn.json`, 30
-plants; `fruits-finished.json`, her 15 finished fruit picks) and the fruit
+ink, NOT re-padded square, so `size` means the ink's longest side), `thumb` a
+320px lossy copy, `w`/`h` the cut's box. The cut is `vectorize.cutout` —
+corner flood-fill at tol 22 — run on filing (`status: cutting → ready |
+failed`). Seeded 2026-09-22 with 175 pictures — the card-pattern chat's
+decks (`scripts/decks/animals-drawn.json`, 72 animals; `plants-drawn.json`,
+30 plants; `fruits-finished.json`, her 15 finished fruit picks) and the fruit
 chart's records (the 27 fruits, the hq/redo/2K passes, the v4 vegetables) —
-one per name, the FIRST source in the script's preference order winning and an
-older twin hidden (8 were), card-only pictures under 500px skipped. Kinds:
-animal · fruit · vegetable · plant · other. `POST /pieces {name, kind,
-src}` files another; `PATCH /pieces/:id` renames, re-kinds or hides;
-`/pieces/:id/recut {tol}` for a cut that ate or left too much.
+one per name, the FIRST source in the script's preference order winning and
+an older twin hidden (8 were), card-only pictures under 500px skipped. Kinds:
+animal · fruit · vegetable · plant · other. Re-running the seed is one list.
+Once the module is deployed, `POST /api/pattern/pieces {name, kind, src}`
+files another and `POST /pieces/draw {name, kind}` draws one in the fruit
+chart's recipe (`scripts/fruit-redraw.js`: `refs/sage-sandy-mirror.png`,
+gpt-image-2, medium, 1024x1024, ~6c) — stamped, filed into My Creations, cut.
 
-### Money
-Nothing to open, arrange or export. **Draw** (`POST /pieces/draw {name,
-kind}`) is the one paid call — the fruit chart's recipe verbatim
-(`scripts/fruit-redraw.js`: `refs/sage-sandy-mirror.png` as the style
-reference, gpt-image-2, medium, 1024x1024, ~6c), content `a single <name>,
-whole, on a plain white background. No text or lettering anywhere.` The
-full stamped into the file (image-meta), filed into My Creations with both
-halves, then cut like any other piece.
-
-### The export
-`POST /patterns/:id/export {size}` is a background job on the pattern doc
-(`job`, poll `GET /patterns/:id`): the output image at 1024 / 2048 / 4096
-pixels per TILE width (a half-drop is twice as wide, a mirror twice as tall
-too), PNG, landed on `exports` (capped 12) with a 512px thumb that also
-becomes the pattern's own thumb. Each draw is its own sharp passes —
-resize, flop for flip, rotate, flop/flip for the mirror — because one sharp
-pipeline applies rotate before flip whatever order they are called; then
-clipped by hand to the canvas (sharp refuses an overlay hanging off it) and
-composited in one call.
-
-### The page
-tool.css, three `.acctabs` tabs (the line measured), the tri toggle for the
-layout (`/tritoggle.css` + `/tritoggle.js`, a tap lands on the stop under the
-thumb), flat swatches + a colour input for the background, the pattern
-picker in the header (a sheet: name, New, the list). Autosaves with a
-500ms debounce (`PATCH /patterns/:id` — name, tile, layout, items; the
-whitelist drops and names anything else). Remembers the tab and the pattern
-in localStorage. Served without the pill (a thing to touch, like /crop).
+### What the first cut was, so nobody rebuilds it
+A `public/pattern.html` at `/pattern` on tool.css with an iOS tile, merged
+2597/2599 and removed the same day (the route, the page, the `Tool` case,
+the applinks entries). The module and the seed stayed; the page moved into
+the Compare tab. That is the rule now — *THINGS START IN COMPARE* in
+CLAUDE.md's checklist.
 
 ## Card-deck art generator (Midjourney via APIFRAME)
 - `apiframe.js` (`/api/apiframe`) generates the deck card art with **Midjourney**,

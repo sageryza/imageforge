@@ -1,4 +1,5 @@
-/* test-pattern.js — the Pattern tool (pattern.js + pattern-plan.js + public/pattern.html).
+/* test-pattern.js — the Pattern tool (pattern.js + pattern-plan.js + the Compare page
+   built by scripts/pattern-page.js from docs/pattern/pattern.tpl.html).
 
    Pure half: the plan's arithmetic (wrap copies, the three layouts, scatter,
    the free spot, spin), the PATCH whitelist, and a real sharp render whose
@@ -7,11 +8,14 @@
    not seamless whatever the preview looked like.
 
    Page half (headless Chromium, skipped cleanly without playwright): the REAL
-   public/pattern.html against a stubbed /api/pattern — the shelf renders,
-   a tap ticks a piece onto the tile, a drag MOVES it (the saved x/y change),
-   the degrees box turns it, the spacing slider grows the tile, the tri toggle
-   changes the layout, Export starts a job and the poll lands the file. Every
-   check is a measurement off the page or off what the page POSTed.
+   built Compare page against a stubbed /api/chatfeed/verdict (her store) and
+   /api/drop/upload-file (the export's door) — the pieces render, a tap ticks
+   a piece onto the tile, a drag MOVES it (the saved x/y change), the degrees
+   box turns it, the spacing slider grows the tile, the tri toggle changes the
+   layout, Export POSTs a real PNG to the Dump and lists it, and a reload opens
+   on the same pattern from the store. Every check is a measurement off the
+   page or off what the page POSTed. The built page is also run through the
+   server's own page-kit warnings.
 
    Run: node scripts/test-pattern.js  (PATTERN_SHOTS=dir also photographs it) */
 const fs = require('fs');
@@ -130,6 +134,23 @@ function ok(c, msg) { if (c) { pass++; } else { failed++; console.log('  ✗ ' +
 
 // ── the page ──
 async function pageHalf() {
+  const { build } = require(path.join(__dirname, 'pattern-page.js'));
+  const shelf = [
+    { id: 'bear', name: 'bear', kind: 'animal', status: 'ready', cut: '/px/bear.png', thumb: '/px/bear.png', w: 80, h: 60 },
+    { id: 'pear', name: 'pear', kind: 'fruit', status: 'ready', cut: '/px/pear.png', thumb: '/px/pear.png', w: 80, h: 60 },
+    { id: 'kale', name: 'kale', kind: 'vegetable', status: 'ready', cut: '/px/kale.png', thumb: '/px/kale.png', w: 80, h: 60 },
+  ];
+  const html = build({ pieces: shelf, version: 'v0', chat: 'pattern-test' });
+  // the server's own page-kit rules, lifted from chatfeed.js by name
+  const cf = fs.readFileSync(path.join(ROOT, 'chatfeed.js'), 'utf8');
+  const fnStart = cf.indexOf('function kitWarnings(html)');
+  const fnEnd = cf.indexOf('\n}\n', fnStart) + 3;
+  const kitWarnings = new Function(cf.slice(fnStart, fnEnd) + '\nreturn kitWarnings;')();
+  const warns = kitWarnings(html);
+  ok(warns.length === 0, 'the built page passes the page-kit warnings: ' + warns.join(' | '));
+  ok(!/__PLAN__|__PIECES__|__CHAT__|__VERSION__/.test(html), 'every marker is filled');
+  ok(html.includes('<title>Pattern v0</title>') && html.includes("var CHAT = 'pattern-test'"), 'the title carries the version and the chat is baked in');
+
   let chromium;
   try { ({ chromium } = require('playwright')); } catch (_) {
     try { ({ chromium } = require('playwright-core')); } catch (__) {
@@ -149,39 +170,35 @@ async function pageHalf() {
   }
   const PUB = path.join(ROOT, 'public');
   const PNG = await sharp({ create: { width: 80, height: 60, channels: 4, background: { r: 60, g: 120, b: 60, alpha: 1 } } }).png().toBuffer();
-  const shelf = [
-    { id: 'bear', name: 'bear', kind: 'animal', status: 'ready', cut: '/px/bear.png', thumb: '/px/bear.png', w: 80, h: 60 },
-    { id: 'pear', name: 'pear', kind: 'fruit', status: 'ready', cut: '/px/pear.png', thumb: '/px/pear.png', w: 80, h: 60 },
-    { id: 'kale', name: 'kale', kind: 'vegetable', status: 'cutting', cut: null, thumb: null, w: null, h: null },
-  ];
-  const pat = { id: 'p1', name: '', tile: { w: 1000, h: 1000, bg: '#faf6ee' }, layout: { kind: 'grid' }, items: [], exports: [], job: null, updatedAt: 'now' };
+  // the store: one verdict doc, texts by key — exactly what the live route keeps
+  const texts = {};
   const calls = [];
-  let polls = 0;
+  const drops = [];
   const server = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://x');
     const send = (code, body) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(body)); };
     const chunks = [];
     req.on('data', c => chunks.push(c));
     req.on('end', () => {
-      const raw = Buffer.concat(chunks).toString();
-      const body = raw && /json/.test(req.headers['content-type'] || '') ? JSON.parse(raw) : null;
-      calls.push({ m: req.method, p: u.pathname, body });
-      if (u.pathname === '/pattern') { res.writeHead(200, { 'content-type': 'text/html' }); return res.end(fs.readFileSync(path.join(PUB, 'pattern.html'), 'utf8').replace('__STUDIO_TOKEN__', '')); }
-      if (u.pathname === '/pattern-plan.js') { res.writeHead(200, { 'content-type': 'application/javascript' }); return res.end(fs.readFileSync(path.join(ROOT, 'pattern-plan.js'))); }
+      const raw = Buffer.concat(chunks);
+      const body = raw.length && /json/.test(req.headers['content-type'] || '') ? JSON.parse(raw.toString()) : null;
+      calls.push({ m: req.method, p: u.pathname, body, len: raw.length, ct: req.headers['content-type'] || '' });
+      if (u.pathname === '/page') { res.writeHead(200, { 'content-type': 'text/html' }); return res.end(html); }
       if (u.pathname.startsWith('/px/')) { res.writeHead(200, { 'content-type': 'image/png' }); return res.end(PNG); }
       if (/\.(css|js)$/.test(u.pathname)) {
         const f = path.join(PUB, u.pathname);
         if (fs.existsSync(f)) { res.writeHead(200, { 'content-type': u.pathname.endsWith('.css') ? 'text/css' : 'application/javascript' }); return res.end(fs.readFileSync(f)); }
         res.writeHead(404); return res.end();
       }
-      if (u.pathname === '/api/pattern/pieces' && req.method === 'GET') return send(200, { pieces: shelf });
-      if (u.pathname === '/api/pattern/patterns' && req.method === 'GET') return send(200, { patterns: [{ id: 'p1', name: '', count: 0, layout: { kind: 'grid' } }] });
-      if (u.pathname === '/api/pattern/patterns/p1' && req.method === 'GET') {
-        if (pat.job && pat.job.status === 'running' && ++polls >= 1) { pat.job = { ...pat.job, status: 'done' }; pat.exports = [{ size: '2K', url: 'https://x/out.png', thumb: '/px/out.png', W: 2048, H: 2048, layout: pat.layout.kind }]; }
-        return send(200, { pattern: pat });
+      if (u.pathname === '/api/chatfeed/verdict' && req.method === 'GET') return send(200, { ok: true, items: {}, texts: u.searchParams.get('sheet') === 'pattern' ? texts : {}, at: '', textsWas: {} });
+      if (u.pathname === '/api/chatfeed/verdict' && req.method === 'POST') {
+        if (body.sheet === 'pattern') texts[body.item] = String(body.text || '').slice(0, 2000);
+        return send(200, { ok: true });
       }
-      if (u.pathname === '/api/pattern/patterns/p1' && req.method === 'PATCH') { const { patch } = M.cleanPatternPatch(body); Object.assign(pat, patch); return send(200, { pattern: pat, dropped: [] }); }
-      if (u.pathname === '/api/pattern/patterns/p1/export') { pat.job = { kind: 'export', size: body.size, status: 'running', startedAt: new Date().toISOString() }; return send(200, { pattern: pat }); }
+      if (u.pathname === '/api/drop/upload-file' && req.method === 'POST') {
+        drops.push({ q: Object.fromEntries(u.searchParams), len: raw.length, png: raw.slice(1, 4).toString() === 'PNG' });
+        return send(200, { ok: true, session: 's', duplicate: false, item: { id: 'f1', url: 'https://x/drops/f1.png' } });
+      }
       send(404, { error: 'no such route' });
     });
   });
@@ -190,81 +207,86 @@ async function pageHalf() {
   const browser = await chromium.launch({ executablePath: exe() });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   page.on('pageerror', e => { failed++; console.log('  ✗ page error: ' + e.message); });
-  await page.evaluate(() => { try { localStorage.clear(); } catch (e) { /* */ } }).catch(() => {});
-  await page.goto(base + '/pattern');
+  await page.goto(base + '/page');
   await page.waitForTimeout(400);
   const shots = process.env.PATTERN_SHOTS;
   if (shots) fs.mkdirSync(shots, { recursive: true });
   const shot = async (n) => { if (shots) await page.screenshot({ path: path.join(shots, n + '.png') }); };
+  const saved = () => calls.filter(c => c.p === '/api/chatfeed/verdict' && c.m === 'POST').map(c => c.body);
+  const store = () => {   // the pattern as the store holds it, parsed the way the page reads it back
+    const cfgKey = Object.keys(texts).find(k => k.startsWith('p:cfg:'));
+    const pid = cfgKey && cfgKey.slice(6);
+    const cfg = cfgKey && texts[cfgKey] ? JSON.parse(texts[cfgKey]) : null;
+    const items = Object.keys(texts).filter(k => k.startsWith('p:it:' + pid + ':') && texts[k]).map(k => JSON.parse(texts[k])).sort((a, b) => a.o - b.o);
+    return { pid, cfg, items };
+  };
 
   // the four rules
-  ok(await page.$eval('.tool .eyebrow', el => el.textContent.trim()) === 'PATTERN', 'the title, once');
-  ok(await page.$eval('#helpcard', el => el.hidden), 'the explanation is behind the ?');
+  ok((await page.$$eval('h1', els => els.length)) === 1 && (await page.$eval('h1', el => el.firstChild.textContent.trim())) === 'Pattern', 'the title, once, nothing above it');
+  ok(await page.$('.cmp-help') !== null, 'the explanation is behind the ?');
   ok((await page.$$eval('input[type=text]', els => els.map(el => el.value + (el.getAttribute('placeholder') || '')).join(''))) === '', 'every text box ships empty, no placeholder');
-  const btn = await page.$eval('#draw', el => el.getBoundingClientRect().width);
-  ok(btn < 120, 'the Draw button hugs its word (' + Math.round(btn) + 'px)');
+  const btn = await page.$eval('#export', el => el.getBoundingClientRect().width);
+  ok(btn < 120, 'the Export button hugs its word (' + Math.round(btn) + 'px)');
   const line = await page.$eval('#tabs', el => getComputedStyle(el, '::after').width);
   ok(parseFloat(line) > 60, 'the hairline tab row measured its line (' + line + ')');
+  ok(await page.$eval('.pick', el => el.textContent.startsWith('untitled')), 'with nothing stored, a fresh untitled pattern opens');
 
-  // the shelf
-  ok((await page.$$eval('.pc', els => els.length)) === 3, 'three pieces on the shelf');
+  // the pieces
+  ok((await page.$$eval('.pc', els => els.length)) === 3, 'three pieces on the list');
   ok((await page.$$eval('.kindh', els => els.map(e => e.textContent).join())) === 'animals,fruits,vegetables', 'grouped by kind');
-  ok((await page.$$eval('#kinds .chip', els => els.map(e => e.dataset.k).join())) === 'animal,fruit,vegetable,plant,other', 'every kind the server knows is a chip');
-  ok(await page.$eval('.pc[data-id=kale]', el => el.classList.contains('wait')), 'a piece still cutting is dimmed');
   await shot('1-pieces');
   await page.click('.pc[data-id=bear]');
   await page.waitForTimeout(700);
   ok(await page.$eval('.pc[data-id=bear]', el => el.classList.contains('on')), 'tapping a piece ticks it');
-  let saved = calls.filter(c => c.m === 'PATCH').pop();
-  ok(saved && saved.body.items.length === 1 && saved.body.items[0].piece === 'bear', 'the tick saved one item on the pattern');
+  let st = store();
+  ok(st.items.length === 1 && st.items[0].piece === 'bear', 'the tick saved one item on the verdict doc');
   await page.click('.pc[data-id=pear]');
   await page.waitForTimeout(700);
-  saved = calls.filter(c => c.m === 'PATCH').pop();
-  ok(saved.body.items.length === 2 && Math.abs(saved.body.items[0].x - saved.body.items[1].x) >= 0.2, 'the second piece lands away from the first');
-  await page.click('.pc[data-id=kale]');
-  await page.waitForTimeout(100);
-  ok(/cutting/.test(await page.$eval('#shelfmsg', el => el.textContent)), 'a piece still cutting says so instead of ticking');
+  st = store();
+  ok(st.items.length === 2 && Math.abs(st.items[0].x - st.items[1].x) >= 0.2, 'the second piece lands away from the first');
 
   // the tile
   await page.click('.acctab[data-t="1"]');
   await page.waitForTimeout(300);
-  ok(!(await page.$eval('#pane-tile', el => el.hidden)) && (await page.$eval('#pane-pieces', el => el.hidden)), 'the TILE tab shows the tile and hides the shelf');
+  ok(!(await page.$eval('#pane-tile', el => el.hidden)) && (await page.$eval('#pane-pieces', el => el.hidden)), 'the TILE tab shows the tile and hides the pieces');
   const cvr = await page.$eval('#tile', el => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
   ok(Math.abs(cvr.w - cvr.h) < 2, 'the tile is square on screen');
   ok((await page.$eval('#band', el => el.style.backgroundImage)).startsWith('url("data:image/png'), 'the repeat band is painted from the tile');
   await shot('2-tile');
-  // the pear is item 2; find it on screen from the saved x/y and drag it
-  const pear = saved.body.items[1];
+  const pear = st.items[1];
   const sx = cvr.x + pear.x * cvr.w, sy = cvr.y + pear.y * cvr.h;
   await page.mouse.move(sx, sy); await page.mouse.down();
   await page.mouse.move(sx + 40, sy + 30, { steps: 6 }); await page.mouse.move(sx + 80, sy + 60, { steps: 6 });
   await page.mouse.up();
   await page.waitForTimeout(700);
-  saved = calls.filter(c => c.m === 'PATCH').pop();
-  const moved = saved.body.items[1];
+  st = store();
+  const moved = st.items[1];
   ok(Math.abs(moved.x - (pear.x + 80 / cvr.w)) < 0.02 && Math.abs(moved.y - (pear.y + 60 / cvr.h)) < 0.02, 'dragging moved the pear by exactly the drag (' + moved.x.toFixed(3) + ',' + moved.y.toFixed(3) + ')');
   ok(!(await page.$eval('#selbox', el => el.hidden)) && (await page.$eval('#selname', el => el.textContent)) === 'pear', 'the touched piece is selected and named');
   await page.click('#rotp');
   await page.waitForTimeout(700);
-  saved = calls.filter(c => c.m === 'PATCH').pop();
-  ok(saved.body.items[1].rot === 15 && (await page.$eval('#rot', el => el.value)) === '15', '+15 turns the piece and the box says 15');
+  st = store();
+  ok(st.items[1].rot === 15 && (await page.$eval('#rot', el => el.value)) === '15', '+15 turns the piece and the box says 15');
   await page.fill('#rot', '200');
   await page.waitForTimeout(700);
-  saved = calls.filter(c => c.m === 'PATCH').pop();
-  ok(saved.body.items[1].rot === 200, 'a typed number is the turn');
+  ok(store().items[1].rot === 200, 'a typed number is the turn');
   await page.$eval('#space', el => { el.value = '1600'; el.dispatchEvent(new Event('input', { bubbles: true })); });
   await page.waitForTimeout(700);
-  saved = calls.filter(c => c.m === 'PATCH').pop();
-  ok(saved.body.tile.w === 1600 && saved.body.tile.h === 1600, 'spacing grows the tile');
-  ok(saved.body.items[1].x === moved.x, 'growing the tile leaves the fractions — the pieces spread');
+  st = store();
+  ok(st.cfg.tile.w === 1600 && st.cfg.tile.h === 1600, 'spacing grows the tile (saved on the config)');
+  ok(Math.abs(st.items[1].x - moved.x) < 1e-3, 'growing the tile leaves the fractions — the pieces spread');
   await page.click('#again');
   await page.waitForTimeout(700);
-  saved = calls.filter(c => c.m === 'PATCH').pop();
-  ok(saved.body.items.length === 3 && saved.body.items[2].piece === 'pear' && saved.body.items[2].rot === 200, '"again" adds another pear with the same turn');
+  st = store();
+  ok(st.items.length === 3 && st.items[2].piece === 'pear' && st.items[2].rot === 200, '"+" adds another pear with the same turn');
   await page.click('#spin');
   await page.waitForTimeout(700);
-  saved = calls.filter(c => c.m === 'PATCH').pop();
-  ok(saved.body.items.every((it, i) => { const was = [0, 200, 200][i]; const d = ((it.rot - was) % 360 + 540) % 360 - 180; return Math.abs(d) <= 20; }), 'spin keeps every piece within ±20 of where it was');
+  st = store();
+  ok(st.items.every((it, i) => { const was = [0, 200, 200][i]; const d = ((it.rot - was) % 360 + 540) % 360 - 180; return Math.abs(d) <= 20; }), 'spin keeps every piece within ±20 of where it was');
+  await page.click('#remove');
+  await page.waitForTimeout(700);
+  st = store();
+  ok(st.items.length === 2 && Object.keys(texts).some(k => k.startsWith('p:it:') && texts[k] === ''), 'remove takes the item off and blanks its text on the doc');
   await shot('3-tile-moved');
 
   // the repeat
@@ -274,30 +296,33 @@ async function pageHalf() {
   const tri = await page.$eval('#layout', el => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
   await page.mouse.click(tri.x + tri.w * 0.5, tri.y + tri.h / 2);
   await page.waitForTimeout(700);
-  saved = calls.filter(c => c.m === 'PATCH').pop();
-  ok(saved.body.layout.kind === 'half' && (await page.$eval('#layoutword', el => el.textContent)) === 'half-drop', 'a tap on the middle stop is half-drop');
+  ok(store().cfg.layout.kind === 'half' && (await page.$eval('#layoutword', el => el.textContent)) === 'half-drop', 'a tap on the middle stop is half-drop');
   await page.mouse.click(tri.x + tri.w * 0.85, tri.y + tri.h / 2);
   await page.waitForTimeout(700);
-  saved = calls.filter(c => c.m === 'PATCH').pop();
-  ok(saved.body.layout.kind === 'mirror', 'a tap on the right stop is mirror');
+  ok(store().cfg.layout.kind === 'mirror', 'a tap on the right stop is mirror');
   await page.click('.sw[data-c="#2a2620"]');
   await page.waitForTimeout(700);
-  saved = calls.filter(c => c.m === 'PATCH').pop();
-  ok(saved.body.tile.bg === '#2a2620', 'a swatch sets the colour behind');
+  ok(store().cfg.tile.bg === '#2a2620', 'a swatch sets the colour behind');
+  await page.click('.chip[data-s="1K"]');
   await page.click('#export');
-  await page.waitForTimeout(200);
-  const ex = calls.find(c => c.p === '/api/pattern/patterns/p1/export');
-  ok(ex && ex.body.size === '2K', 'Export asks for the lit size');
-  ok(await page.$eval('#export', el => el.disabled), 'Export is off while the job runs');
-  await page.waitForTimeout(2600);
-  ok((await page.$$eval('#exports a', els => els.length)) === 1 && (await page.$eval('#exports a', el => el.href)) === 'https://x/out.png', 'the poll lands the export as a link');
+  await page.waitForTimeout(1500);
+  ok(drops.length === 1 && drops[0].png && drops[0].len > 1000, 'Export POSTs a real PNG to the Dump (' + (drops[0] && drops[0].len) + ' bytes)');
+  ok(drops[0] && /-1K-mirror\.png$/.test(drops[0].q.filename) && drops[0].q.bundle === 'Patterns', 'the file is named by size and layout, in the Patterns album');
+  ok((await page.$$eval('#exports a', els => els.length)) === 1 && (await page.$eval('#exports a', el => el.href)) === 'https://x/drops/f1.png', 'the export is listed as a link');
+  ok(store().cfg.exports.length === 1 && store().cfg.exports[0].W === 2048 && store().cfg.exports[0].H === 2048, 'the export is remembered on the config (a 1K mirror is 2048 square)');
   ok(!(await page.$eval('#export', el => el.disabled)), 'Export is back on');
   await shot('4-repeat');
 
-  // reopen: the tab and the pattern are remembered
-  await page.reload(); await page.waitForTimeout(500);
+  // a name, then reopen: the tab and the pattern come back from the store
+  await page.click('#pick'); await page.waitForTimeout(100);
+  await page.fill('#pname', 'fruit salad'); await page.waitForTimeout(700);
+  ok(store().cfg.name === 'fruit salad', 'the name saves as she types');
+  await page.mouse.click(10, 10); await page.waitForTimeout(100);
+  await page.reload(); await page.waitForTimeout(600);
   ok(!(await page.$eval('#pane-repeat', el => el.hidden)), 'reopening lands on the tab she was on');
-  ok((await page.$eval('#layoutword', el => el.textContent)) === 'mirror', '…on the same pattern');
+  ok((await page.$eval('#layoutword', el => el.textContent)) === 'mirror' && (await page.$eval('.pick', el => el.textContent)).startsWith('fruit salad'), '…on the same pattern, from the verdict doc');
+  await page.click('.acctab[data-t="0"]'); await page.waitForTimeout(200);
+  ok((await page.$$eval('.pc.on', els => els.map(e => e.dataset.id).join())) === 'bear,pear', 'the ticks come back too');
 
   await browser.close();
   server.close();
