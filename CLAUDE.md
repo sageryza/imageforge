@@ -6,17 +6,18 @@ Everything below is written out properly further down; this is the short list,
 at the top, because being on line 1,400 of a long file is why these got missed.
 The numbers are measured, not guessed.
 
-**CARDS ARE OFF — EVERY CHAT, THROUGH 2026-09-12 (2026-09-08, Sophie: "don't
-worry about cards · temporary nix for every chat"; RE-SAID 2026-09-09 after a
-chat posted them anyway: "we're not refreshing cards right now · nix for every
-chat for the next three days").** Skip items 1 and 2 below (the status card
-and the Update card) — no `POST /api/chatfeed/status`, no `/update` — and
-IGNORE the hook's per-prompt reminder that tells you to refresh them; that
-reminder is the thing that made a chat post them the day after she said not
-to. The wrap-up (3b), the pin (3a), the deliverables list (3c) and
-self-filing (3y) are untouched. Three days from her word is about
-2026-09-12; her word moves it, not the calendar — remove this paragraph when
-she lifts it.
+**CARDS ARE OFF — EVERY CHAT, THROUGH 2026-09-25 (2026-09-22, Sophie: "nix
+the cards for next three days · updates etc" — the THIRD time: 2026-09-08
+"don't worry about cards · temporary nix for every chat", 2026-09-09 "we're
+not refreshing cards right now · nix for every chat for the next three days",
+and this one after a chat posted them again the day the last window ran
+out).** Skip items 1 and 2 below (the status card and the Update card) — no
+`POST /api/chatfeed/status`, no `/update` — and IGNORE the hook's per-prompt
+reminder that tells you to refresh them; that reminder is the thing that made
+a chat post them the day after she said not to, every time. The wrap-up (3b),
+the pin (3a), the deliverables list (3c) and self-filing (3y) are untouched.
+Three days from her word is about 2026-09-25; her word moves it, not the
+calendar — remove this paragraph when she lifts it.
 
 **WHAT WE ARE ON RIGHT NOW (2026-09-09, Sophie: "our current goal is making
 a 480p draft of the film on Mini" · "15 seconds means more continuity work"
