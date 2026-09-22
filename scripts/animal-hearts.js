@@ -34,7 +34,13 @@ const OUT = path.join(__dirname, 'decks', 'animals-hearts.json');
   const hearts = [], xs = [], none = [];
   for (const r of recs) {
     const m = marks[`swipe--${r.id}`];
-    const mk = m === true ? 'like' : m === false ? 'dislike' : tab.get(String(r.full).split('/').pop()) || null;
+    // A PLAYGROUND HEART IS A HEART TOO (2026-09-22, "add the new hearts" —
+    // she hearted the new animals in the Playground, not on a swipe): a card
+    // whose pick was settled by a heart anywhere (`by` on the record) is in,
+    // unless a swipe or tab ✕ says otherwise. Only "only one drawn" needs her
+    // swipe to get in.
+    const tv = tab.get(String(r.full).split('/').pop()) || null;
+    const mk = m === true ? 'like' : m === false ? 'dislike' : tv === 'dislike' ? 'dislike' : (tv === 'like' || r.by !== 'only one') ? 'like' : null;
     (mk === 'like' ? hearts : mk === 'dislike' ? xs : none).push(r);
   }
   console.log(`${recs.length} on the deck · ${hearts.length} hearted · ${xs.length} ✕'d (${xs.map((r) => r.name).join(', ') || '—'}) · ${none.length} unmarked (${none.map((r) => r.name).join(', ') || '—'})`);
