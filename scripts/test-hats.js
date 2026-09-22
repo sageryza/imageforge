@@ -151,6 +151,7 @@ ok(!('compare_at_price' in H.productPlan({ title: 'x', price: 27, compareAt: 20 
       if (u.pathname === '/hats') { res.writeHead(200, { 'content-type': 'text/html' }); return res.end(fs.readFileSync(path.join(ROOT, 'public', 'hats.html'))); }
       if (u.pathname === '/api/hats/products') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ hats, source: 'tag:hats' })); }
       if (u.pathname === '/api/hats/checkout') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ checkoutUrl: `http://127.0.0.1:${server.address().port}/checkout-landed` })); }
+      if (/^\/fonts\/.+\.ttf$/.test(u.pathname)) { const f = path.join(ROOT, 'public', u.pathname); if (fs.existsSync(f)) { res.writeHead(200, { 'content-type': 'font/ttf' }); return res.end(fs.readFileSync(f)); } }
       if (u.pathname === '/checkout-landed') { res.writeHead(200, { 'content-type': 'text/html' }); return res.end('<title>checkout</title>landed'); }
       res.writeHead(404); res.end();
     });
@@ -164,16 +165,21 @@ ok(!('compare_at_price' in H.productPlan({ title: 'x', price: 27, compareAt: 20 
   await page.goto(base2 + '/hats');
   await page.waitForFunction(() => document.querySelectorAll('#grid .hat').length === 3, null, { timeout: 5000 });
 
-  ok((await page.$$eval('h1', els => els.length)) === 1 && (await page.$eval('h1', el => el.textContent)) === 'Hats', 'the title, once');
+  ok((await page.$$eval('h1', els => els.length)) === 1 && (await page.$eval('h1', el => el.textContent)) === 'mister psychology', 'the title, once');
   ok(await page.$eval('#helpcard', el => el.hidden), 'the how-to is behind the ?');
   const cols = await page.$$eval('#grid .hat', els => new Set(els.map(e => Math.round(e.getBoundingClientRect().left))).size);
   ok(cols === 2, 'two across on a phone (measured ' + cols + ' columns)');
   ok((await page.$eval('#grid .hat:nth-child(1) .price', el => el.textContent)) === '$28–30', 'a range reads as one line ($28–30)');
+  ok((await page.$eval('#grid .hat:nth-child(1) .price s', el => !el).catch(() => true)), 'no was-price on the tile when only one variant carries one');
   ok(await page.$eval('#grid .hat:nth-child(3)', el => el.classList.contains('out')), 'a sold-out hat is marked');
   const r1 = await page.$eval('#grid .hat:nth-child(1) .pic', el => { const r = el.getBoundingClientRect(); return Math.abs(r.width - r.height) < 1; });
   ok(r1, 'the picture is square');
   const rad = await page.$eval('#grid .hat:nth-child(1) .pic', el => getComputedStyle(el).borderRadius);
-  ok(rad === '6px', 'house corners, 6px');
+  ok(rad === '0px', 'the grid photos are plain squares (an instagram grid, no frames)');
+  const ff = await page.$eval('h1', el => getComputedStyle(el).fontFamily);
+  ok(/Alte Haas Grotesk/.test(ff), 'the type is Alte Haas Grotesk (' + ff.split(',')[0] + ')');
+  const fontsOk = await page.evaluate(() => document.fonts.check('700 28px "Alte Haas Grotesk"'));
+  ok(fontsOk, 'and the font file really loaded');
   const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundImage);
   ok(bg === 'none', 'no gradients');
 
@@ -191,7 +197,7 @@ ok(!('compare_at_price' in H.productPlan({ title: 'x', price: 27, compareAt: 20 
   await page.click('.chip[data-opt="Color"][data-val="Black"]');
   ok(await page.$eval('#buy', el => el.disabled) && (await page.$eval('#buymsg', el => el.textContent)) === 'sold out', 'picking the struck one says sold out');
   await page.click('.chip[data-opt="Size"][data-val="M"]');
-  ok(!(await page.$eval('#buy', el => el.disabled)) && (await page.$eval('#buy', el => el.textContent)) === 'Buy · $30', 'M / Black is for sale at its own price');
+  ok(!(await page.$eval('#buy', el => el.disabled)) && (await page.$eval('#buy', el => el.textContent)) === 'buy · $30', 'M / Black is for sale at its own price');
   const bw = await page.$eval('#buy', el => el.getBoundingClientRect().width);
   ok(bw < 160, 'the Buy button hugs its words (' + Math.round(bw) + 'px)');
   await page.click('.chip[data-opt="Color"][data-val="Cream"]');

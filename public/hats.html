@@ -3,23 +3,31 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
-<title>Hats</title>
-<meta name="description" content="Hats. Tap one, pick a size, buy.">
+<title>mister psychology</title>
+<meta name="description" content="mister psychology — hats.">
 <style>
-/* hats.html — the hat store (hats.js). A PUBLIC page: the link in an
-   Instagram bio. Its own look (a public app never wears the studio's
-   forge.css). Flat solid colours only, 6px corners, buttons hug their
-   words, the title once with nothing above it, the how-to behind the "?".
-   The five pill tokens are defined even though nothing injects a pill here,
-   so the page can never render one black. */
+/* hats.html — the mister psychology hat store (hats.js). A PUBLIC page: the
+   link in an Instagram bio. Its own look (2026-09-22, Sophie: "i don't like
+   the graphic design of the website · it's for my friends mister psychology
+   instagram · makes fun of common tropes · use Alte Haas Grotesk"): the
+   deadpan clinical look of the account — Alte Haas Grotesk (Yann Le
+   Coroller's freeware Helvetica-as-printed-in-an-old-book, both weights in
+   /fonts with its licence beside them), lowercase, black on the same warm
+   off-white the hat photos are shot on so the hats float, an Instagram grid
+   of square photos with no frames, and hairlines. Flat colours only, the
+   house 6px on every BUTTON, the title once with nothing above it, the
+   how-to behind the "?". The five pill tokens are defined even though
+   nothing injects a pill here, so the page can never render one black. */
+@font-face{font-family:"Alte Haas Grotesk";src:url(/fonts/alte-haas-grotesk.ttf) format("truetype");font-weight:400;font-display:swap}
+@font-face{font-family:"Alte Haas Grotesk";src:url(/fonts/alte-haas-grotesk-bold.ttf) format("truetype");font-weight:700;font-display:swap}
 :root{
-  --paper:#f6f1e7; --card:#fffdf8; --ink:#17140f; --ink2:#7d7568;
-  --line:#e3dccd; --accent:#e2531f; --accent-ink:#fff; --sold:#b3aa9b;
+  --paper:#f1ede6; --card:#f1ede6; --ink:#111111; --ink2:#6f6a62;
+  --line:#111111; --accent:#111111; --accent-ink:#f1ede6; --sold:#a39d93; --red:#c8321e;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--paper);color:var(--ink)}
 body{
-  font-family:-apple-system,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-family:"Alte Haas Grotesk",Helvetica,"Helvetica Neue",Arial,sans-serif;
   padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
   -webkit-font-smoothing:antialiased;
 }
@@ -27,66 +35,66 @@ body.locked{overflow:hidden;position:fixed;inset:0}
 [hidden]{display:none !important}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
 
-/* ── the title, once ─────────────────────────────────────────────────── */
-header{display:flex;align-items:center;gap:10px;padding:18px 16px 6px}
-h1{margin:0;font-size:30px;font-weight:800;letter-spacing:-.02em;text-transform:uppercase}
+/* ── the title, once, on a hairline ──────────────────────────────────── */
+header{display:flex;align-items:baseline;gap:12px;padding:22px 14px 12px;border-bottom:1px solid var(--line);margin:0 14px}
+h1{margin:0;font-size:28px;font-weight:700;letter-spacing:-.035em;line-height:1;text-transform:lowercase}
 #help{
-  width:24px;height:24px;border-radius:6px;border:1.5px solid var(--ink);
-  font-size:13px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;
+  margin-left:auto;width:26px;height:26px;border-radius:6px;border:1.5px solid var(--ink);align-self:center;
+  font-size:14px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;
 }
-#helpcard{position:fixed;inset:0;background:rgba(23,20,15,.45);z-index:60;display:flex;align-items:center;justify-content:center;padding:26px}
-#helpcard div{background:var(--card);border-radius:6px;padding:20px 22px;max-width:340px;font-size:15px;line-height:1.5}
+#helpcard{position:fixed;inset:0;background:rgba(17,17,17,.5);z-index:60;display:flex;align-items:center;justify-content:center;padding:26px}
+#helpcard div{background:var(--paper);border:1.5px solid var(--ink);border-radius:6px;padding:20px 22px;max-width:340px;font-size:15px;line-height:1.45}
 #helpcard p{margin:0 0 10px}
 #helpcard p:last-child{margin:0}
 
-/* ── the grid: two across, a picture and its name and price ───────────── */
-#grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:10px 16px 40px}
-@media (min-width:700px){#grid{grid-template-columns:repeat(3,1fr);max-width:900px;margin:0 auto}}
+/* ── the grid: an instagram grid, square photos, no frames ───────────── */
+#grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px 12px;padding:16px 14px 48px}
+@media (min-width:700px){#grid{grid-template-columns:repeat(3,1fr);max-width:960px;margin:0 auto}}
 .hat{display:block;text-align:left;width:100%}
-.hat .pic{aspect-ratio:1;border-radius:6px;background:var(--card);border:1px solid var(--line);overflow:hidden;position:relative}
+.hat .pic{aspect-ratio:1;border-radius:0;background:var(--paper);overflow:hidden;position:relative}
 .hat img{width:100%;height:100%;object-fit:cover;display:block}
-.hat .name{margin:8px 2px 0;font-size:15px;font-weight:700;line-height:1.25}
-.hat .price{margin:2px 2px 0;font-size:14px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.hat .name{margin:8px 0 0;font-size:15px;font-weight:700;line-height:1.2;letter-spacing:-.01em;text-transform:lowercase}
+.hat .price{margin:3px 0 0;font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums}
 .hat .price s{margin-left:6px;color:var(--sold)}
-.hat.out .pic{opacity:.5}
-.hat.out .price::after{content:"sold out";margin-left:8px;color:var(--accent);font-weight:700}
-#empty,#err{padding:40px 16px;text-align:center;color:var(--ink2);font-size:16px}
+.hat.out .pic{opacity:.45}
+.hat.out .price::after{content:"sold out";margin-left:8px;color:var(--red);font-weight:700}
+#empty,#err{padding:48px 14px;text-align:center;color:var(--ink2);font-size:16px;text-transform:lowercase}
 
 /* ── the hat sheet ───────────────────────────────────────────────────── */
 #sheet{position:fixed;inset:0;z-index:50;background:var(--paper);overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:env(safe-area-inset-bottom)}
 #close{
   position:fixed;top:calc(env(safe-area-inset-top) + 12px);left:12px;z-index:52;
-  width:36px;height:36px;border-radius:6px;background:var(--card);border:1px solid var(--line);
+  width:36px;height:36px;border-radius:6px;background:var(--paper);border:1.5px solid var(--ink);
   display:flex;align-items:center;justify-content:center;
 }
-#close svg{width:18px;height:18px;stroke:var(--ink);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#close svg{width:18px;height:18px;stroke:var(--ink);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 /* the pictures: a strip that snaps one picture at a time */
-#pics{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:var(--card)}
+#pics{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:var(--paper)}
 #pics::-webkit-scrollbar{display:none}
 #pics img{flex:0 0 100%;width:100%;aspect-ratio:1;object-fit:cover;scroll-snap-align:start;display:block}
 #dots{display:flex;gap:6px;justify-content:center;padding:10px 0 0}
-#dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}
+#dots i{width:6px;height:6px;border-radius:50%;background:var(--sold)}
 #dots i.on{background:var(--ink)}
-#body{padding:14px 16px 32px;max-width:600px;margin:0 auto}
-#title{margin:0;font-size:24px;font-weight:800;letter-spacing:-.01em;line-height:1.2}
-#sprice{margin:6px 0 0;font-size:18px;font-variant-numeric:tabular-nums}
-#sprice s{margin-left:8px;color:var(--sold);font-size:15px}
-.opt{margin-top:18px}
-.opt .lab{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);font-weight:700;margin-bottom:8px}
+#body{padding:14px 14px 40px;max-width:600px;margin:0 auto}
+#title{margin:0;font-size:28px;font-weight:700;letter-spacing:-.035em;line-height:1.05;text-transform:lowercase}
+#sprice{margin:8px 0 0;font-size:18px;font-variant-numeric:tabular-nums}
+#sprice s{margin-left:8px;color:var(--sold);font-size:16px}
+.opt{margin-top:20px;padding-top:14px;border-top:1px solid var(--ink)}
+.opt .lab{font-size:12px;letter-spacing:.06em;text-transform:lowercase;color:var(--ink2);font-weight:700;margin-bottom:8px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{
-  border:1.5px solid var(--line);border-radius:6px;padding:8px 12px;font-size:15px;font-weight:600;background:var(--card);
+  border:1.5px solid var(--ink);border-radius:6px;padding:8px 12px;font-size:15px;font-weight:700;background:var(--paper);text-transform:lowercase;
 }
-.chip.on{border-color:var(--ink);background:var(--ink);color:var(--paper)}
-.chip.gone{color:var(--sold);text-decoration:line-through}
-#buyrow{display:flex;align-items:center;gap:14px;margin-top:22px}
+.chip.on{background:var(--ink);color:var(--paper)}
+.chip.gone{color:var(--sold);border-color:var(--sold);text-decoration:line-through}
+#buyrow{display:flex;align-items:center;gap:14px;margin-top:22px;padding-top:16px;border-top:1px solid var(--ink)}
 #buy{
   background:var(--accent);color:var(--accent-ink);border-radius:6px;
-  padding:13px 20px;font-size:17px;font-weight:800;letter-spacing:.01em;
+  padding:13px 18px;font-size:17px;font-weight:700;letter-spacing:-.01em;text-transform:lowercase;
 }
-#buy:disabled{background:var(--sold);cursor:default}
-#buymsg{font-size:14px;color:var(--ink2)}
-#desc{margin-top:22px;font-size:15px;line-height:1.55;color:var(--ink)}
+#buy:disabled{background:var(--sold);color:var(--paper);cursor:default}
+#buymsg{font-size:14px;color:var(--ink2);text-transform:lowercase}
+#desc{margin-top:22px;font-size:15px;line-height:1.5;color:var(--ink)}
 #desc p{margin:0 0 10px}
 #desc img{max-width:100%;height:auto}
 </style>
@@ -94,12 +102,12 @@ h1{margin:0;font-size:30px;font-weight:800;letter-spacing:-.02em;text-transform:
 <body>
 
 <header>
-  <h1>Hats</h1>
+  <h1>mister psychology</h1>
   <button id="help" aria-label="How this works">?</button>
 </header>
 <div id="helpcard" hidden><div>
   <p>Tap a hat to see it up close. Pick a size or colour if it has one.</p>
-  <p><b>Buy</b> opens a secure checkout — card, Apple Pay, the usual. Your order and shipping are handled there.</p>
+  <p><b>buy</b> opens a secure checkout — card, Apple Pay, the usual. Your order and shipping are handled there.</p>
 </div></div>
 
 <div id="grid"></div>
@@ -114,7 +122,7 @@ h1{margin:0;font-size:30px;font-weight:800;letter-spacing:-.02em;text-transform:
     <h2 id="title"></h2>
     <div id="sprice"></div>
     <div id="opts"></div>
-    <div id="buyrow"><button id="buy">Buy</button><span id="buymsg"></span></div>
+    <div id="buyrow"><button id="buy">buy</button><span id="buymsg"></span></div>
     <div id="desc"></div>
   </div>
 </div>
@@ -135,6 +143,11 @@ h1{margin:0;font-size:30px;font-weight:800;letter-spacing:-.02em;text-transform:
     return p;
   }
 
+  function wasPrice(h){
+    var vs = (h.variants || []).filter(function(v){ return v.compareAt && Number(v.compareAt) > Number(v.price); });
+    if (!vs.length || vs.length !== (h.variants || []).length) return null;
+    return String(Math.max.apply(null, vs.map(function(v){ return Number(v.compareAt); })));
+  }
   // ── the grid ──
   function paint(){
     var g = $('#grid'); g.innerHTML = '';
@@ -147,6 +160,8 @@ h1{margin:0;font-size:30px;font-weight:800;letter-spacing:-.02em;text-transform:
       if (h.image) { var im = document.createElement('img'); im.src = h.image; im.alt = h.title; im.loading = i > 5 ? 'lazy' : 'eager'; pic.appendChild(im); }
       var name = document.createElement('div'); name.className = 'name'; name.textContent = h.title;
       var price = document.createElement('div'); price.className = 'price'; price.textContent = priceLine(h);
+      // the struck-through 'was' price, when every variant carries one above its price
+      var was = wasPrice(h); if (was) { var st = document.createElement('s'); st.textContent = money(was, h.currency); price.appendChild(st); }
       b.appendChild(pic); b.appendChild(name); b.appendChild(price);
       b.addEventListener('click', function(){ open(h); });
       g.appendChild(b);
@@ -193,7 +208,7 @@ h1{margin:0;font-size:30px;font-weight:800;letter-spacing:-.02em;text-transform:
     if (unpicked.length) { buy.disabled = true; msg.textContent = 'pick a ' + unpicked[0].name.toLowerCase(); }
     else if (!v || !v.available) { buy.disabled = true; msg.textContent = 'sold out'; }
     else { buy.disabled = false; msg.textContent = ''; }
-    buy.textContent = v && v.price ? 'Buy · ' + money(v.price, cur.currency) : 'Buy';
+    buy.textContent = v && v.price ? 'buy · ' + money(v.price, cur.currency) : 'buy';
     var sp = $('#sprice'); sp.textContent = '';
     var shown = v && v.price ? money(v.price, cur.currency) : priceLine(cur);
     sp.appendChild(document.createTextNode(shown));
