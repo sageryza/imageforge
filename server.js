@@ -8198,7 +8198,8 @@ const PL_SEARCH_MAX = 300;      // matches handed back
 const PL_FILL_PASSES = 12;      // pages a kind-filtered feed read will walk to fill one
 const plFeedFill = require('./pl-feed-fill');
 const plScanPatch = require('./pl-scan-patch');
-let plScan = { at: 0, runs: null };
+const plScanEdge = require('./pl-scan-edge');
+let plScan = { at: 0, runs: null, edgeAt: 0 };
 // A VOTE REACHES THIS CACHE (2026-09-06, Sophie: "when i heart individual
 // panels the heart gets removed"). The Panels tab's gallery is read out of it,
 // and a vote used to write the doc and not the cache — so her next tap on the
@@ -8210,15 +8211,41 @@ function plScanApply(id, patch) {
     (v) => v instanceof admin.firestore.FieldValue);
 }
 async function promptlabScan() {
-  if (plScan.runs && Date.now() - plScan.at < 60000) return plScan.runs;
-  const snap = await admin.firestore().collection(PROMPTLAB)
-    .orderBy('createdAt', 'desc').limit(PL_SEARCH_SCAN).get();
-  const runs = snap.docs.map((d) => {
+  const col = admin.firestore().collection(PROMPTLAB);
+  const toRun = (d) => {
     const v = d.data();
     return { ...v, createdAt: v.createdAt?.toMillis?.() || null };
-  });
-  plScan = { at: Date.now(), runs };
-  return runs;
+  };
+  if (!(plScan.runs && Date.now() - plScan.at < 60000)) {
+    const snap = await col.orderBy('createdAt', 'desc').limit(PL_SEARCH_SCAN).get();
+    plScan = { at: Date.now(), runs: snap.docs.map(toRun), edgeAt: Date.now() };
+    return plScan.runs;
+  }
+  // THE LIVE EDGE IS RE-READ, THE HISTORY IS NOT (2026-09-22, "missing
+  // lion"): the cached runs still drawing, and anything created since the
+  // scan, are fetched fresh and folded into the cache in place — a run that
+  // finished inside the 60s window otherwise answers `running` (which the
+  // page drops) and one created inside it is not in the answer at all.
+  // pl-scan-edge.js is the rule. Throttled to a couple of seconds so a burst
+  // of keystrokes costs one read of the edge.
+  if (Date.now() - (plScan.edgeAt || 0) >= 2000) {
+    plScan.edgeAt = Date.now();
+    try {
+      const p = plScanEdge.plan(plScan.runs, plScan.at, Date.now());
+      const [newer, stale] = await Promise.all([
+        col.where('createdAt', '>', admin.firestore.Timestamp.fromMillis(p.since))
+          .orderBy('createdAt', 'desc').limit(200).get().then((s) => s.docs.map(toRun)),
+        p.ids.length
+          ? admin.firestore().getAll(...p.ids.map((id) => col.doc(id)))
+            .then((ds) => ds.filter((d) => d.exists).map(toRun))
+          : [],
+      ]);
+      plScanEdge.apply(plScan.runs, newer.concat(stale));
+    } catch (err) {
+      console.warn('promptlab scan edge:', err.message);   // the cache stands as it was
+    }
+  }
+  return plScan.runs;
 }
 // THE LABEL SHE SEES ON THE CARD — the page's `runStyleLabel` twin, and it has
 // to be one (2026-09-21): the page filters the loaded runs by this label the

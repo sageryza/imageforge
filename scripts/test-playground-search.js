@@ -293,6 +293,35 @@ const OLD = { id: 'r9', prompt: 'a horse nobody has scrolled back to', engine: '
   ok(/Nothing matches/.test(await page.textContent('#runs')),
     'a word the held run does not carry drops it before the server is asked');
 
+  console.log('\na run that lands while a search stands joins the wall (2026-09-22, "missing lion")');
+  // "horse" is answered; then a horse that was still DRAWING when the server
+  // answered finishes, and the poll lands it exactly as it does live. The
+  // answer never held it — and used to be the whole wall for as long as the
+  // words stood, so her newest picture was the one missing.
+  await page.fill('#q', 'horse');
+  await page.waitForTimeout(900);         // the 350ms debounce, then the server's 250ms
+  ok(await page.evaluate(() => document.querySelectorAll('#runs .run').length) === 2
+    && /nobody has scrolled/.test(await page.textContent('#runs')), 'the server has answered "horse"');
+  await page.evaluate(() => window.__plLandRun({ id: 'r7', prompt: 'a horse that just landed',
+    engine: 'gptimage', model: 'gpt-image-2', gptStyle: 'evan', quality: 'high', aspectRatio: '1:1',
+    status: 'done', createdAt: 9000,
+    images: ['data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='] }));
+  await page.waitForFunction(() => /just landed/.test(document.getElementById('runs').textContent),
+    null, { timeout: 3000 }).catch(() => {});
+  const landed = await page.$$eval('#runs .run .p', (els) => els.map((e) => e.textContent));
+  ok(landed.length === 3 && /just landed/.test(landed[0]),
+    'the landed run is on the wall, newest first, without retyping (' + landed.length + ' runs)');
+  await page.evaluate(() => window.__plLandRun({ id: 'r8', prompt: 'a crow that just landed',
+    engine: 'gptimage', model: 'gpt-image-2', gptStyle: 'evan', quality: 'high', aspectRatio: '1:1',
+    status: 'done', createdAt: 9500,
+    images: ['data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='] }));
+  await page.waitForTimeout(400);
+  ok(!/crow that just landed/.test(await page.textContent('#runs')),
+    'and one that does not match the words stays off it');
+  // The landed runs are in this page's feed now; the rest reads page one.
+  await page.goto(base + '/playground');
+  await page.waitForFunction(() => document.querySelectorAll('#runs .run').length === 2);
+
   console.log('\na truncated answer says so');
   await page.fill('#q', 'sample');
   await page.waitForFunction(() => /of 954 shown/.test(document.getElementById('more').textContent));
