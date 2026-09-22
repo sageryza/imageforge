@@ -25,112 +25,112 @@
    "x": 0.125,
    "y": 0.125,
    "rot": 5.1,
-   "scale": 0.88
+   "scale": 0.92
   },
   {
    "id": "picked:lemon",
    "x": 0.375,
    "y": 0.25,
    "rot": -19.9,
-   "scale": 0.79
+   "scale": 0.92
   },
   {
    "id": "picked:blueberries",
    "x": 0.625,
    "y": 0.125,
    "rot": 1.1,
-   "scale": 0.93
+   "scale": 0.92
   },
   {
    "id": "picked:kiwi",
    "x": 0.875,
    "y": 0.25,
    "rot": 19.2,
-   "scale": 0.68
+   "scale": 0.92
   },
   {
    "id": "picked:raspberries",
    "x": 0.125,
    "y": 0.375,
    "rot": 18.7,
-   "scale": 0.76
+   "scale": 0.92
   },
   {
    "id": "picked:lime",
    "x": 0.375,
    "y": 0.5,
    "rot": -8.8,
-   "scale": 0.73
+   "scale": 0.92
   },
   {
    "id": "picked:mango",
    "x": 0.625,
    "y": 0.375,
    "rot": 4.5,
-   "scale": 0.78
+   "scale": 0.92
   },
   {
    "id": "picked:banana",
    "x": 0.875,
    "y": 0.5,
    "rot": 8.8,
-   "scale": 1.06
+   "scale": 0.92
   },
   {
    "id": "picked:blueberries",
    "x": 0.125,
    "y": 0.625,
    "rot": -3,
-   "scale": 0.93
+   "scale": 0.92
   },
   {
    "id": "picked:kiwi",
    "x": 0.375,
    "y": 0.75,
    "rot": 19.8,
-   "scale": 0.68
+   "scale": 0.92
   },
   {
    "id": "picked:strawberry",
    "x": 0.625,
    "y": 0.625,
    "rot": -1.8,
-   "scale": 0.88
+   "scale": 0.92
   },
   {
    "id": "picked:lemon",
    "x": 0.875,
    "y": 0.75,
    "rot": -0.4,
-   "scale": 0.79
+   "scale": 0.92
   },
   {
    "id": "picked:mango",
    "x": 0.125,
    "y": 0.875,
    "rot": -14.4,
-   "scale": 0.78
+   "scale": 0.92
   },
   {
    "id": "picked:banana",
    "x": 0.375,
    "y": 0,
    "rot": -3.9,
-   "scale": 1.06
+   "scale": 0.92
   },
   {
    "id": "picked:raspberries",
    "x": 0.625,
    "y": 0.875,
    "rot": -10.1,
-   "scale": 0.76
+   "scale": 0.92
   },
   {
    "id": "picked:lime",
    "x": 0.875,
    "y": 0,
    "rot": -13.8,
-   "scale": 0.73
+   "scale": 0.92
   }
  ]
 }
