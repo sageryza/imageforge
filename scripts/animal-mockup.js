@@ -41,7 +41,10 @@ const ROOT = path.join(__dirname, '..');
 const tier = (s) => { const w = parseInt(s, 10); return w >= 4000 ? '4K' : w >= 2000 ? '2K' : '1K'; };
 // --material: the card stock, named (2026-09-22, "u might specify material").
 const MATERIAL = flag('material', 'thick matte white cardstock');
-const STYLE = `The attached image shows the product: a set of flash cards printed on ${MATERIAL}, with rounded corners. Keep every card exactly as it appears there — the drawings, the lettering, the white card face, the rounded corners — and do not add, change or invent any card. Draw a product photograph: [content]`;
+// EVERY CARD IS THE SAME SIZE, SAID OUT LOUD (2026-09-22, "wait the cards
+// aren't keeping size!" — set down loosely, the model redrew them at four
+// different proportions). A poker card is 2.5 x 3.5in, portrait, all alike.
+const STYLE = `The attached image shows the product: a set of flash cards printed on ${MATERIAL}, with rounded corners. Every card is identical in size and shape — a 2.5 by 3.5 inch portrait card, the same proportions as in the attached image — and none may be drawn larger, smaller, wider or squarer than the others. Keep every card exactly as it appears there — the drawings, the lettering, the white card face, the rounded corners — and do not add, change or invent any card. Draw a product photograph: [content]`;
 const FULL = STYLE.replace('[content]', SCENE);
 const post = (u, body) => fetch(`${BASE}${u}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 
