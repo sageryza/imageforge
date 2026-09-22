@@ -1,4 +1,11 @@
 {
+ "layout": "tossed",
+ "cols": 6,
+ "tile": 3072,
+ "bg": "#ffffff",
+ "cut": "rough",
+ "fill": 0.55,
+ "gap": 0.35,
  "name": "sea animals",
  "pick": [
   "animal:crab",
@@ -13,13 +20,6 @@
   "animal:whale",
   "animal:penguin"
  ],
- "layout": "tossed",
- "cols": 6,
- "tile": 3072,
- "bg": "#ffffff",
- "cut": "rough",
- "fill": 0.55,
- "gap": 0.35,
  "seed": 21,
  "tilt": 45,
  "rows": 6,
