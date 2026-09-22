@@ -198,6 +198,15 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
   background:var(--chg); color:var(--paper); font-size:9px; font-weight:700;
   letter-spacing:0;}
 #listrow .acctab{gap:3px;}
+/* The tab row and its toggle share one line (see #rowtog's note). The rows
+   keep their own margins; the toggle copies them and continues the hairline,
+   so the line still runs the full width under the tabs and the glyph. */
+.tabline{display:flex; align-items:stretch;}
+.tabline > .acctabs{flex:1 1 auto; min-width:0;}
+.rowtog{flex:none; width:30px; margin:-5px 0 10px; padding:0 0 2px; border:none;
+  border-bottom:1px solid var(--line); background:none; color:var(--ink2); cursor:pointer;
+  display:flex; align-items:center; justify-content:flex-end; -webkit-tap-highlight-color:transparent;}
+.rowtog svg{display:block; width:15px; height:15px;}
 #listrow .acctab .cc-new{min-width:13px; height:13px; padding:0 2px; border-radius:7px;}
 /* A PHONE NARROWER THAN 360 CANNOT HOLD THE DIGITS, so it holds a DOT
    (MEASURED, not guessed: at 320pt a tab is 72px and 64px of content box,
@@ -1946,17 +1955,6 @@ body.selecting > .float{display:none !important;}
                icon, which costs ~26px against the word's ~56px. -->
           <button id="trashlink" class="trashbtn" aria-label="Deleted chats"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
           <button id="acctog" class="tri" aria-label="Which Claude account is signed into the app"></button>
-          <!-- WHICH ROW THE TABS ARE (2026-08-28, Sophie: "also have a toggle
-               next to account switcher that goes back to 3 tabs 1 per
-               account"). One row under the header, two modes: the three LISTS
-               (All · Delivered · Bug fixes) and the accounts it has always
-               been. The glyph is what the tap GIVES her, not what she is
-               looking at, so the button reads as a door rather than a state.
-               Shown only on the chat list, where the row it swaps is on
-               screen — the header's control row is already five wide at
-               390pt, and a control that changes nothing is worse than none.
-               Sticky, so she comes back to the row she left. -->
-          <button id="rowtog" class="trashbtn rowtog" hidden aria-label="Show the account tabs"></button>
         </div>
       </div>
       <div class="rule"></div>
@@ -2051,6 +2049,7 @@ body.selecting > .float{display:none !important;}
          because two hairline rows stacked is 26px of chrome on the screen she
          opens to find out what happened. `.acctabs` verbatim, so the sliding
          line measures itself and nothing here declares a tab count. -->
+    <div class="tabline">
     <div id="listrow" class="acctabs" data-on="all" hidden>
       <!-- ON MY TRAY leads the row: it is the narrowest pile and the one about
            RIGHT NOW, so the row reads most-focused to broadest left to right.
@@ -2071,6 +2070,21 @@ body.selecting > .float{display:none !important;}
       <button class="acctab" data-acct="1"></button>
       <button class="acctab" data-acct="2"></button>
       <button class="acctab" data-acct="3"></button>
+    </div>
+    <!-- WHICH ROW THE TABS ARE (2026-08-28, Sophie: "also have a toggle
+         next to account switcher that goes back to 3 tabs 1 per account").
+         The glyph is what the tap GIVES her, not what she is looking at — a
+         door, not a state. Shown only on the chat list; sticky.
+         IT RIDES AT THE END OF THE ROW IT SWAPS, NOT IN THE MASTHEAD, SINCE
+         2026-09-22. Beside the account switch it was the control that tipped
+         the masthead over: measured at 390pt the controls started at x=83.8
+         while "Chats" runs to x=95.7, so a tap on the end of the title opened
+         Bookmarks (375pt: 69.5 against 95.0). The masthead's others are PLACES
+         the title then names (Bookmarks, To do, Archive, the trash) or the
+         app's account setting; this one only swaps the row under it, so it
+         sits on that row. Not the tool row either — a fourth icon there wraps
+         the Tags chip and drops the list 32px (test-chats-bug-tag.js). -->
+    <button id="rowtog" class="rowtog" hidden aria-label="Show the account tabs"></button>
     </div>
     <div id="grid"><div class="state">Loading&hellip;</div></div>
   </section>
