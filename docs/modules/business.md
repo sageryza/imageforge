@@ -247,6 +247,63 @@ is nothing to set and nothing is lost. Three things came with the switch:
   fall back to data URLs and the `/draft` step refuses them. Same `STUDIO_TOKEN`
   gate as the POD pipeline (only `GET /status` is open).
 
+## The hat store (`/hats`, her friend's hats through Instagram)
+
+**2026-09-22, Sophie: "if i wanted to make a hat store for my friend" → "no
+etsy no printify · it's thru instagram" → "forget what we have · a store" →
+"use my buy button? host page where" → "build the hats page".**
+
+- **What it is.** A public store page at `/hats`, the link in her friend's
+  Instagram bio. The hats are products in Sophie's own Shopify
+  (`cod-god-inc`), so orders, payment, shipping labels and payouts all run in
+  her shop; she pays her friend out. Instagram posting is by hand — the page
+  is where a post's link lands.
+- **Which products are hats: collection first, tag second** (`hats.js`
+  `fetchHats`). The Storefront collection with handle `hats`
+  (`HATS_COLLECTION` overrides) wins when it exists; otherwise every product
+  tagged `hats` (`HATS_TAG`), newest first, up to 60. So the friend's whole
+  Shopify job per hat is: add it, tag it `hats`, publish it to the Online
+  Store channel. Measured 2026-09-22 against the live store: no `hats`
+  collection and no `hats` tag yet, so the page opens on "No hats yet".
+- **Buying is the Buy-Button model** the witch app's Shop tab already uses
+  (server.js, `witchStorefront`): `POST /api/hats/checkout {variantId,
+  quantity}` runs `cartCreate` on the public Storefront API and answers
+  `checkoutUrl`; the page follows it to Shopify's own checkout. A fresh cart
+  every time — a bio-link store sells one hat at a time and the checkout page
+  itself takes a quantity. The variant id is checked against the
+  `gid://shopify/ProductVariant/<n>` shape before any cart is made; quantity
+  is capped at 20. The token is the same PUBLIC storefront token
+  (`WITCH_STOREFRONT_TOKEN` overrides).
+- **Public and ungated on purpose** (the `/fruit` pattern) — buyers have no
+  studio token, and nothing on the page spends: a Storefront read is free and
+  a cart is free. Ten-minute cache on the product list (`?fresh=1` or `POST
+  /refresh` after adding a hat).
+- **The page** (`public/hats.html`, its own look — a public app never wears
+  forge.css; flat colours, 6px corners, no gradients): the title once with
+  the "?" beside it, two across on a phone (three from 700px), a square
+  picture with the name and price under it, `sold out` on a hat with no
+  sellable variant. Tapping a hat opens its SHEET over a frozen page: a
+  picture strip that snaps one picture at a time with dots, the name, the
+  price (a variant's own once picked, the compare-at struck beside it), a
+  chip row per REAL option (Shopify's synthetic `Title: Default Title` is
+  never a row), a combination no available variant reaches struck through
+  given the other picks, **Buy off until every option is picked** with the
+  reason beside it (`pick a size`, `sold out`), Buy hugging its words and
+  carrying the price (`Buy · $30`), the description under it. The chevron
+  closes; back closes; `/hats#<handle>` opens on that hat (a hash change
+  while the page is open does too), which is the link for a post.
+- **What the Instagram half cannot do.** Product tagging in posts ties a Meta
+  catalog to ONE Instagram account, and connecting Shopify's catalog would
+  make that Sophie's account, not her friend's. The bio link works from any
+  account. Posting through the API needs a Meta business account and app
+  review, so nothing here posts.
+- Tests: `node scripts/test-hats.js` — `shapeProduct` pure on a Storefront
+  fixture; the real router over a stubbed store (collection wins, tag
+  fallback, cache, the gid check, the quantity cap, status never carries the
+  token); the real page headless (columns, corners, no gradient, the sheet,
+  the chips' struck state, Buy's gate and its width, the hash door, and Buy
+  POSTing the picked variant then following the checkout url — all measured).
+
 ## Jewelry → Etsy (her mom's two-step page)
 - `jewelry.js` (`/api/jewelry`, page at `/jewelry`, no iOS tile) — 2026-09-16,
   Sophie: "a simple user friendly website my mom can interact with, with clear

@@ -524,6 +524,7 @@ loadConfig().then(() => {
   // in/out, reorder, one audio track. Render is ffmpeg on our own box; free.
   app.use('/api/filmeditor', require('./filmeditor').router);
   app.use('/api/fruit', require('./fruit').router); // favorite-fruit poll: a swipe deck per person → the fridge chart
+  app.use('/api/hats', require('./hats').router); // the hat store: her friend's hats in Sophie's Shopify, sold from an Instagram bio link — public, Storefront cart → Shopify checkout
   require('./sms').init({ membryDb: storyDb });             // Twilio keys live in membry's config/twilio (the Xi chats put them there)
   app.use('/api/dominoes', require('./dominoes').router); // Similitude Dominoes for two people on two phones — public, anyone's table
   app.use('/api/similitude', require('./similitude-two').router); // Similitude for two phones — the same table, the dominoes deck, the draw capped at $1 a seat
@@ -688,6 +689,13 @@ app.get('/similitude/play', (req, res) => {
   res.sendFile(__dirname + '/public/similitude-two.html');
 });
 
+// The hat store (hats.js). PUBLIC like /fruit: it is the link in an Instagram
+// bio, so buyers have no token. It reads the store and hands off to Shopify's
+// own checkout; nothing on it spends.
+app.get('/hats', (req, res) => {
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/public/hats.html');
+});
 app.get('/fruit', (req, res) => {
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(__dirname + '/public/fruit.html');
