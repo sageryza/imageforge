@@ -57,6 +57,10 @@ const PAIRS = path.join(__dirname, 'fruit-chart', 'animals-uploaded.json');
 const ALIASES = {
   'tabby cat': 'cat', 'mare': 'horse', 'black bear': 'bear',
   'spotted cow': 'cow', 'black and white spotted cow': 'cow',
+  // the long names (2026-09-22, "hippo?" — she had drawn "hippopotamus")
+  'hippopotamus': 'hippo', 'rhinoceros': 'rhino', 'chimpanzee': 'monkey', 'bunny': 'rabbit',
+  'grizzly bear': 'bear', 'brown bear': 'bear', 'polar bear': 'polar bear', 'red fox': 'fox',
+  'grey wolf': 'wolf', 'gray wolf': 'wolf', 'house cat': 'cat', 'kitten': 'cat', 'puppy': 'dog',
 };
 const ANIMALS = new Set(['lamb', 'cat', 'gecko', 'lizard', 'wolf', 'sheep', 'lion', 'puma', 'panther',
   'raccoon', 'owl', 'horse', 'tiger', 'leopard', 'hyena', 'coyote', 'cow', 'flamingo', 'ostrich', 'frog',
@@ -68,7 +72,12 @@ const ANIMALS = new Set(['lamb', 'cat', 'gecko', 'lizard', 'wolf', 'sheep', 'lio
   'chameleon', 'squirrel', 'chipmunk', 'mouse', 'rat', 'hedgehog', 'bat', 'skunk', 'badger', 'mole',
   'dog', 'jaguar', 'lynx', 'bobcat', 'meerkat', 'sloth', 'armadillo', 'anteater', 'llama', 'alpaca',
   'ram', 'bull', 'ox', 'yak', 'walrus', 'whale', 'dolphin', 'shark', 'octopus', 'crab', 'lobster',
-  'jellyfish', 'starfish', 'seahorse', 'fish', 'salmon', 'trout', 'toad', 'salamander', 'newt']);
+  'jellyfish', 'starfish', 'seahorse', 'fish', 'salmon', 'trout', 'toad', 'salamander', 'newt',
+  'polar bear', 'orangutan', 'lemur', 'wombat', 'platypus', 'emu', 'ferret', 'weasel', 'porcupine',
+  'antelope', 'gazelle', 'elk', 'reindeer', 'buffalo', 'boar', 'warthog', 'hummingbird', 'woodpecker',
+  'stork', 'crane', 'vulture', 'falcon', 'magpie', 'pigeon', 'dove', 'puffin', 'kiwi', 'cockatoo',
+  'macaw', 'bee', 'butterfly', 'ladybug', 'ant', 'spider', 'snail', 'lobster', 'ray', 'stingray',
+  'manatee', 'narwhal', 'sea lion', 'clownfish', 'goldfish', 'koi', 'eel', 'squid']);
 
 function subjectOf(prompt) {
   let s = String(prompt || '').toLowerCase().replace(/\([^)]*\)/g, ' ').split(',')[0].trim();
