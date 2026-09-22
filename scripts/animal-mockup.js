@@ -58,6 +58,13 @@ const MATERIAL = flag('material', 'thick matte white cardstock');
 const TOPDOWN = args.includes('--topdown');
 const LAY = args.includes('--lay') || !!flag('from');
 const FROM = flag('from');   // an earlier record: re-lay its takes instead of drawing
+// --reference <file>: THE LAYOUT IS THE REFERENCE (2026-09-22, the answer to
+// "that's not what i meant"). Instead of a sheet of cards for the model to
+// arrange (and resize), it is handed a picture in which every card is ALREADY
+// laid at one exact size — the print files composited at 5:7, turned a little
+// — and told to photograph THAT, changing only the scene around them. The
+// model does the whole photograph; the geometry it keeps is ours.
+const REFERENCE = flag('reference');
 // EVERY CARD IS THE SAME SIZE, SAID OUT LOUD (2026-09-22, "wait the cards
 // aren't keeping size!" — set down loosely, the model redrew them at four
 // different proportions). A poker card is 2.5 x 3.5in, portrait, all alike.
@@ -66,7 +73,12 @@ const STYLE = `The attached image shows the product: a set of flash cards printe
 CARD SIZE — THIS IS THE MOST IMPORTANT RULE. All of the cards are physically identical: each one is a standard poker-size card, 2.5 inches wide by 3.5 inches tall, taller than it is wide in the ratio 5:7, exactly as they appear in the attached image. In the photograph every card must be drawn at the SAME size and the SAME 5:7 proportions as every other card: the same width, the same height, the same rounded-corner radius. Do not make any card wider, squarer, taller, larger or smaller than its neighbours. A card may be turned a little, but turning never changes its size or shape. Check every card against the others before finishing: if any two cards differ in size or proportion, the photograph is wrong.
 
 ${TOPDOWN ? 'The camera looks straight down at the table (a true top-down view, no perspective), so all the cards are seen at the same scale. ' : ''}Draw a product photograph: [content]`;
-const FULL = STYLE.replace('[content]', SCENE || '');
+const KEEP_STYLE = `The attached image is the exact layout of a product photograph: a set of flash cards printed on ${MATERIAL}, with rounded corners, already laid out. Every card in it is the same physical size — a standard poker-size card, 2.5 by 3.5 inches — and is already drawn at its correct size, position and angle.
+
+Turn this layout into a real product photograph. KEEP EVERY CARD EXACTLY AS IT IS: the same position, the same size, the same angle, the same drawing and lettering on it, the same rounded corners. Do not move, resize, redraw, add or remove any card. Only the surroundings change: replace the flat background with the scene below, and light the cards as real cards would be lit there, with soft natural shadows under them.
+
+Draw a product photograph: [content]`;
+const FULL = (REFERENCE ? KEEP_STYLE : STYLE).replace('[content]', SCENE || '');
 const post = (u, body) => fetch(`${BASE}${u}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 
 async function sheet() {
@@ -126,10 +138,11 @@ function lay(takePath, i) {
   const scene = prior ? prior.scene : SCENE;
   const full = prior ? prior.prompt : FULL;
   const quality = prior ? prior.quality : QUALITY, size = prior ? prior.size : SIZE;
-  const { out: sheetPath, n } = await sheet();
+  const { out: sheetPath, n } = REFERENCE ? { out: REFERENCE, n: fs.readdirSync(FRONTS).filter((f) => /\.png$/i.test(f)).length } : await sheet();
   console.log(`sheet: ${n} cards → ${sheetPath}\n${size} · ${quality} · ${prior ? `re-laying ${prior.takes.length} take(s) of ${FROM}` : `${TAKES} take(s)`}${LAY ? ' · laid' : ''}\n${full}`);
   if (DRY) return;
-  const sheetItem = prior ? { url: prior.sheet, thumb: prior.sheet } : await upload(fs.readFileSync(sheetPath), 'reference-sheet.png', 'image/png');
+  fs.mkdirSync(OUT, { recursive: true });   // --reference skips sheet(), which used to be what made it
+  const sheetItem = prior ? { url: prior.sheet, thumb: prior.sheet } : await upload(fs.readFileSync(sheetPath), REFERENCE ? 'reference-layout.png' : 'reference-sheet.png', 'image/png');
   const cap = `gpt-image-2 · ${quality} · ${tier(size)}`;
   const takes = [];
   const count = prior ? prior.takes.length : TAKES;
@@ -144,11 +157,11 @@ function lay(takePath, i) {
     } else {
       const d = await draw(sheetPath); usage = d.usage;
       fs.writeFileSync(tmp, d.buf);
-      execFileSync('node', [path.join(ROOT, 'scripts', 'stamp-prompt.js'), tmp, '--full', full, '--style', STYLE, '--content', scene, '--model', 'gpt-image-2', '--quality', quality, '--size', tier(size), '--chat', CHAT], { stdio: 'ignore' });
+      execFileSync('node', [path.join(ROOT, 'scripts', 'stamp-prompt.js'), tmp, '--full', full, '--style', REFERENCE ? KEEP_STYLE : STYLE, '--content', scene, '--model', 'gpt-image-2', '--quality', quality, '--size', tier(size), '--chat', CHAT], { stdio: 'ignore' });
       it = await upload(fs.readFileSync(tmp), `mockup-${i}.webp`, 'image/webp');
       const description = `animal deck mockup — ${scene}, take ${i}${LAY ? ', before laying' : ''} (${quality} · ${tier(size)})`;
       await post('/api/gallery', { assetsOnly: true, chat: CHAT, session: SESSION, url: it.url, description, prompt: cap });
-      await post('/api/gallery/assets/prompt', { chat: CHAT, url: it.url, style: STYLE, content: scene, full });
+      await post('/api/gallery/assets/prompt', { chat: CHAT, url: it.url, style: REFERENCE ? KEEP_STYLE : STYLE, content: scene, full });
     }
     const take = { i, url: it.url, thumb: it.thumb || it.url, usage };
     if (LAY) {
