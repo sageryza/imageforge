@@ -53,7 +53,7 @@ const SETS = [
   // Her CURRENT picks first — the Finished page's one picture per fruit
   // (2026-09-22: "ur also not using my current chosen fruits"), read into
   // decks/fruit-picked.json; a plain name resolves to these before the old deck.
-  ['picked', ['decks/fruit-picked.json']],
+  ['picked', ['decks/fruit-picked.json', 'decks/animals-picked.json']],
   ['fruit', ['fruit-chart/uploaded.json', 'fruit-chart/v2-uploaded.json', 'fruit-chart/v3-uploaded.json']],
   ['veg', ['fruit-chart/veg-uploaded.json']],
   ['animal', ['decks/animals-drawn.json']],

@@ -1,0 +1,302 @@
+{
+ "layout": "tossed",
+ "cols": 6,
+ "tile": 3072,
+ "bg": "#ffffff",
+ "cut": "rough",
+ "fill": 0.55,
+ "gap": 0.35,
+ "name": "woodland two",
+ "pick": [
+  "animal:deer",
+  "animal:fox",
+  "animal:rabbit",
+  "animal:owl",
+  "animal:squirrel",
+  "animal:raccoon",
+  "animal:moose",
+  "animal:skunk",
+  "animal:bear",
+  "animal:wolf",
+  "animal:mouse",
+  "animal:frog"
+ ],
+ "seed": 37,
+ "tilt": 45,
+ "rows": 6,
+ "placements": [
+  {
+   "id": "animal:deer",
+   "x": 0.0799,
+   "y": 0.0903,
+   "rot": -42.6,
+   "scale": 1.03,
+   "flip": true
+  },
+  {
+   "id": "animal:fox",
+   "x": 0.2517,
+   "y": 0.1383,
+   "rot": 41.3,
+   "scale": 0.99,
+   "flip": true
+  },
+  {
+   "id": "animal:rabbit",
+   "x": 0.4226,
+   "y": 0.1024,
+   "rot": -25,
+   "scale": 1.03
+  },
+  {
+   "id": "animal:owl",
+   "x": 0.5876,
+   "y": 0.1622,
+   "rot": -24.6,
+   "scale": 0.97
+  },
+  {
+   "id": "animal:squirrel",
+   "x": 0.72,
+   "y": 0.0453,
+   "rot": -31,
+   "scale": 0.99,
+   "flip": true
+  },
+  {
+   "id": "animal:raccoon",
+   "x": 0.9322,
+   "y": 0.1841,
+   "rot": 14.9,
+   "scale": 0.92
+  },
+  {
+   "id": "animal:moose",
+   "x": 0.1439,
+   "y": 0.2758,
+   "rot": -12.6,
+   "scale": 0.94,
+   "flip": true
+  },
+  {
+   "id": "animal:skunk",
+   "x": 0.2809,
+   "y": 0.3664,
+   "rot": -33.5,
+   "scale": 0.82
+  },
+  {
+   "id": "animal:bear",
+   "x": 0.4187,
+   "y": 0.2622,
+   "rot": 31.9,
+   "scale": 0.81,
+   "flip": true
+  },
+  {
+   "id": "animal:wolf",
+   "x": 0.5635,
+   "y": 0.3354,
+   "rot": 6,
+   "scale": 1.12
+  },
+  {
+   "id": "animal:mouse",
+   "x": 0.758,
+   "y": 0.2239,
+   "rot": -17.2,
+   "scale": 1.09
+  },
+  {
+   "id": "animal:frog",
+   "x": 0.9259,
+   "y": 0.3545,
+   "rot": 22,
+   "scale": 0.93,
+   "flip": true
+  },
+  {
+   "id": "animal:squirrel",
+   "x": 0.0746,
+   "y": 0.4268,
+   "rot": 10.6,
+   "scale": 0.84,
+   "flip": true
+  },
+  {
+   "id": "animal:mouse",
+   "x": 0.2214,
+   "y": 0.5138,
+   "rot": -1.8,
+   "scale": 0.87
+  },
+  {
+   "id": "animal:raccoon",
+   "x": 0.4253,
+   "y": 0.4425,
+   "rot": -3.6,
+   "scale": 0.93,
+   "flip": true
+  },
+  {
+   "id": "animal:deer",
+   "x": 0.5894,
+   "y": 0.5025,
+   "rot": 31.6,
+   "scale": 0.88,
+   "flip": true
+  },
+  {
+   "id": "animal:fox",
+   "x": 0.7308,
+   "y": 0.4055,
+   "rot": 38.2,
+   "scale": 1.02,
+   "flip": true
+  },
+  {
+   "id": "animal:rabbit",
+   "x": 0.868,
+   "y": 0.504,
+   "rot": -10.8,
+   "scale": 0.82,
+   "flip": true
+  },
+  {
+   "id": "animal:owl",
+   "x": 0.0702,
+   "y": 0.5992,
+   "rot": 42.5,
+   "scale": 1.05,
+   "flip": true
+  },
+  {
+   "id": "animal:fox",
+   "x": 0.2901,
+   "y": 0.6556,
+   "rot": -32.1,
+   "scale": 0.79,
+   "flip": true
+  },
+  {
+   "id": "animal:frog",
+   "x": 0.4406,
+   "y": 0.6083,
+   "rot": -37.4,
+   "scale": 0.85
+  },
+  {
+   "id": "animal:moose",
+   "x": 0.6006,
+   "y": 0.6652,
+   "rot": -7.4,
+   "scale": 0.89
+  },
+  {
+   "id": "animal:skunk",
+   "x": 0.7321,
+   "y": 0.573,
+   "rot": -3.4,
+   "scale": 0.82,
+   "flip": true
+  },
+  {
+   "id": "animal:bear",
+   "x": 0.9121,
+   "y": 0.6433,
+   "rot": -16.6,
+   "scale": 0.77,
+   "flip": true
+  },
+  {
+   "id": "animal:wolf",
+   "x": 0.0869,
+   "y": 0.7597,
+   "rot": -3.6,
+   "scale": 0.74,
+   "flip": true
+  },
+  {
+   "id": "animal:skunk",
+   "x": 0.2268,
+   "y": 0.815,
+   "rot": 14.6,
+   "scale": 0.77,
+   "flip": true
+  },
+  {
+   "id": "animal:bear",
+   "x": 0.4344,
+   "y": 0.7684,
+   "rot": -35.8,
+   "scale": 0.91,
+   "flip": true
+  },
+  {
+   "id": "animal:mouse",
+   "x": 0.6075,
+   "y": 0.8388,
+   "rot": 1.6,
+   "scale": 1.06
+  },
+  {
+   "id": "animal:raccoon",
+   "x": 0.7597,
+   "y": 0.7387,
+   "rot": 20,
+   "scale": 1.02
+  },
+  {
+   "id": "animal:frog",
+   "x": 0.9385,
+   "y": 0.8059,
+   "rot": 1.3,
+   "scale": 0.95,
+   "flip": true
+  },
+  {
+   "id": "animal:squirrel",
+   "x": 0.0882,
+   "y": 0.9176,
+   "rot": 26.2,
+   "scale": 0.88
+  },
+  {
+   "id": "animal:owl",
+   "x": 0.2595,
+   "y": 0.9668,
+   "rot": -19.7,
+   "scale": 0.8
+  },
+  {
+   "id": "animal:deer",
+   "x": 0.4111,
+   "y": 0.9309,
+   "rot": 44.2,
+   "scale": 0.82,
+   "flip": true
+  },
+  {
+   "id": "animal:frog",
+   "x": 0.5523,
+   "y": 0.0003,
+   "rot": 31.7,
+   "scale": 0.82
+  },
+  {
+   "id": "animal:fox",
+   "x": 0.8041,
+   "y": 0.9012,
+   "rot": 19.5,
+   "scale": 0.81,
+   "flip": true
+  },
+  {
+   "id": "animal:rabbit",
+   "x": 0.9217,
+   "y": 0.0143,
+   "rot": -9.3,
+   "scale": 1
+  }
+ ]
+}
