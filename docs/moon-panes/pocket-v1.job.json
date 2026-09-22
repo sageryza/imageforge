@@ -5,7 +5,7 @@
   "title": "I caught the moon v1",
   "prompt": "The window in [Image1] cuts itself out of the wall in one clean piece, the moon going with it, tips forward and falls, and drops into a jacket pocket at the bottom of the frame, seen from the pocket owner's point of view. Nothing else moves. Camera at eye level, still.",
   "model": "mini",
-  "seconds": 4,
+  "seconds": 8,
   "res": "480p",
   "ratio": "3:4",
   "audio": false,
