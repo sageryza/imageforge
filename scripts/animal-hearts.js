@@ -8,7 +8,11 @@
 // fruit-flashcards.js --cards then lays out. An ✕ and an unmarked card are
 // both left out; the names are printed so nothing drops silently.
 //
-//   node scripts/animal-hearts.js --swipe <pageId> [--chat animal-deck-heart-tiebreak] [--dry]
+//   node scripts/animal-hearts.js --swipe <pageId>[,<pageId>…] [--chat animal-deck-heart-tiebreak] [--dry]
+//        [--post-unmarked]   post a NEW swipe deck of the cards she has not marked yet
+//
+// --swipe takes several page ids: every swipe deck posted so far, oldest
+// first, since her marks stay on the page she made them on.
 const fs = require('fs');
 const path = require('path');
 const args = process.argv.slice(2);
@@ -22,7 +26,8 @@ const IN = path.join(__dirname, 'decks', 'animals-drawn.json');
 const OUT = path.join(__dirname, 'decks', 'animals-hearts.json');
 
 (async () => {
-  const marks = (await (await fetch(`${BASE}/api/chatfeed/verdict?chat=${CHAT}&sheet=page-${SWIPE}`)).json()).items || {};
+  const marks = {};
+  for (const id of SWIPE.split(',').filter(Boolean)) Object.assign(marks, (await (await fetch(`${BASE}/api/chatfeed/verdict?chat=${CHAT}&sheet=page-${id}`)).json()).items || {});
   const tab = new Map();
   for (const x of (await (await fetch(`${BASE}/api/gallery/assets?chat=${CHAT}&limit=1000`)).json()).assets || []) if (x.vote && x.url) tab.set(x.url.split('/').pop(), x.vote);
   const recs = JSON.parse(fs.readFileSync(IN, 'utf8')).sort((a, b) => a.name.localeCompare(b.name));
@@ -36,4 +41,9 @@ const OUT = path.join(__dirname, 'decks', 'animals-hearts.json');
   if (DRY) return;
   fs.writeFileSync(OUT, JSON.stringify(hearts.map((r) => ({ ...r, by: 'swipe ♥' })), null, 1));
   console.log(`wrote ${OUT}`);
+  if (args.includes('--post-unmarked') && none.length) {
+    const items = none.map((r) => ({ id: `swipe--${r.id}`, img: r.url, full: r.full, url: r.full, label: r.name, model: 'gpt-image-2', quality: r.quality, size: r.size }));
+    const posted = await (await fetch(`${BASE}/api/chatfeed/page`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: CHAT, title: `Animal deck — swipe the ${none.length} not marked yet`, template: 'deck', data: { items, start: 'swipe', help: 'The animals on the deck you have not hearted or crossed yet. A heart puts one on the hearts-only deck.' } }) })).json();
+    console.log('unmarked swipe page', JSON.stringify(posted));
+  }
 })().catch((e) => { console.error(e); process.exit(1); });

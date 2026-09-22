@@ -63,6 +63,13 @@ const ALIASES = {
   'grey wolf': 'wolf', 'gray wolf': 'wolf', 'house cat': 'cat', 'kitten': 'cat', 'puppy': 'dog',
   // "snowy owl is just owl" (2026-09-22) — a kind of owl is a version of the owl card
   'snowy owl': 'owl', 'barn owl': 'owl', 'great horned owl': 'owl',
+  // "stallion is horse" (2026-09-22) — the sexes and the young ride as versions
+  'sea horse': 'seahorse', 'stallion': 'horse', 'foal': 'horse', 'pony': 'horse', 'colt': 'horse', 'filly': 'horse',
+  'ewe': 'sheep', 'ram': 'sheep', 'billy goat': 'goat', 'nanny goat': 'goat', 'kid goat': 'goat',
+  'bull': 'cow', 'calf': 'cow', 'heifer': 'cow', 'boar': 'pig', 'sow': 'pig', 'piglet': 'pig',
+  'doe': 'deer', 'stag': 'deer', 'buck': 'deer', 'fawn': 'deer', 'lioness': 'lion', 'tigress': 'tiger',
+  'drake': 'duck', 'duckling': 'duck', 'gosling': 'goose', 'gander': 'goose', 'cygnet': 'swan',
+  'chick': 'chicken', 'cub': 'bear', 'bear cub': 'bear', 'joey': 'kangaroo', 'tomcat': 'cat',
 };
 const ANIMALS = new Set([
   'lamb', 'cat', 'gecko', 'lizard', 'wolf', 'sheep', 'lion', 'puma', 'panther', 'raccoon',
