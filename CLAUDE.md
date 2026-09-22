@@ -3630,7 +3630,8 @@ before working on that module. Nothing was deleted — the moved text is verbati
   the constituents, choose how much to rotate, choose how far apart, and
   choose where they go" · then "does it need to be a page · can't it just be
   in compare"). Three hairline tabs: PIECES (tap ticks a picture onto the
-  tile), TILE (drag to place, a degrees box and ±15 to turn, a size slider,
+  tile; a search box narrows the list as she types), TILE (drag to place, a
+  degrees box and ±15 to turn, a size slider,
   flip, "+" for another of the same, SPACING grows the tile under the pieces
   so the repeats land farther apart, SPIN turns every piece at random within
   ±N°, SCATTER spreads them evenly) and REPEAT (the tiled preview, grid ·
@@ -3645,10 +3646,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `forge-pattern-pieces` — 175 on 2026-09-22 (72 animals, 38 fruits, 35
   vegetables, 30 plants — the card-pattern chat's decks under
   `scripts/decks/` and the fruit chart's records, her finished fruit picks
-  first), cut out by `scripts/pattern-seed.js` through `vectorize.cutout`
-  (corner flood-fill, so a coconut's white flesh stays; id = sha1 of the
-  source url; an older twin under a name a preferred picture holds is HIDDEN,
-  never deleted; card-only pictures under 500px skipped). A new piece is a
+  first), filed by `scripts/pattern-seed.js` with TWO cuts each: `cut`, the
+  clean one (`vectorize.cutout`, the paper made see-through), and `rough`,
+  THE ONE THE PAGE DRAWS — the scissors cut ported verbatim from
+  `scripts/card-pattern.js --cut rough` (a loose 28-point polygon a 6%
+  margin out from the drawing, wobbled, the white paper kept inside it;
+  `pattern.js roughCut`, seeded by the piece's id) after her second look:
+  "use the rough cut method on white no transparent background".
+  `pattern-seed.js --rough` gives every piece without one its scissors cut
+  (id = sha1 of the source url; an older twin under a name a preferred
+  picture holds is HIDDEN, never deleted; card-only pictures under 500px
+  skipped). A new piece is a
   chat's job — seed it or `POST /api/pattern/pieces {name, kind, src}` once
   the module is live — and a re-post of the page. **ONE ARITHMETIC,
   `pattern-plan.js`**, inlined into the page and required by the module: a

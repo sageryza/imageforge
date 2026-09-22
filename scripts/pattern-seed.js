@@ -1,7 +1,9 @@
 // pattern-seed.js — put the animals and fruits already drawn onto the Pattern
 // tool's shelf (forge-pattern-pieces), cut out, from a container.
 //
-//   node scripts/pattern-seed.js [--dry] [--min 600] [--only bear,01-strawberry]
+//   node scripts/pattern-seed.js [--dry] [--min 500] [--only bear,01-strawberry]
+//   node scripts/pattern-seed.js --rough      give every piece on the list its
+//                                            scissors cut (the ones without one)
 //
 // Reads the fruit chart's own records (scripts/fruit-chart/*-uploaded.json) and
 // files every picture that has a FULL-SIZE copy: the 27 fruits, the animals,
@@ -57,7 +59,24 @@ async function widthOf(url) {
   try { return (await sharp(buf).metadata()).width || 0; } catch { return 0; }
 }
 
+async function roughAll() {
+  const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  admin.initializeApp({ credential: admin.credential.cert(sa), storageBucket: `${sa.project_id}.firebasestorage.app` });
+  const { roughPiece } = require(path.join(ROOT, 'pattern.js'));
+  const snap = await admin.firestore().collection('forge-pattern-pieces').get();
+  const todo = [];
+  snap.forEach((d) => { const p = d.data(); if (p.status === 'ready' && p.src && (!p.rough || args.includes('--force'))) todo.push({ id: d.id, ...p }); });
+  console.log(`${todo.length} to cut roughly`);
+  let n = 0, bad = 0;
+  for (const p of todo) {
+    const r = await roughPiece(p.id, p.src);
+    if (r) { n++; console.log(`  ✓ ${p.name} ${r.rw}x${r.rh}`); } else { bad++; console.log(`  ✗ ${p.name}`); }
+  }
+  console.log(`rough-cut ${n}, failed ${bad}`);
+}
+
 (async () => {
+  if (args.includes('--rough')) return roughAll();
   const rows = [];
   for (const s of SOURCES) {
     const j = JSON.parse(fs.readFileSync(path.join(s.file.startsWith('decks/') ? DECKS : CHART, s.file), 'utf8'));

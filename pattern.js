@@ -16,7 +16,11 @@
 //   forge-patterns — one doc per pattern: name, tile {w,h,bg}, layout {kind},
 //     items [{k, piece, x, y, size, rot, flip}], exports [{size, url, at}].
 //
-// THE CUT-OUT IS vectorize.cutout — corner flood-fill, never a white
+// TWO CUTS PER PIECE. `cut` is vectorize.cutout — the paper made see-through
+// — and `rough` is the scissors cut (below): a loose wobbly shape around the
+// drawing with its white paper kept inside, which is the one the page draws
+// (2026-09-22, Sophie: "use the rough cut method on white no transparent
+// background"). The clean one is vectorize.cutout — corner flood-fill, never a white
 // threshold, so the white INSIDE a drawing (a bear's belly, a lychee's flesh)
 // is kept and only paper a corner can reach is removed. It runs in the
 // background the moment a piece is filed (`status:'cutting'` → 'ready'), a
@@ -169,7 +173,93 @@ function cleanPiecePatch(body) {
 /** What the shelf answers for a piece — never the whole doc. */
 function pieceView(d) {
   return { id: d.id, name: d.name, kind: d.kind, src: d.src || null, cut: d.cut || null, thumb: d.thumb || null,
-    w: d.w || null, h: d.h || null, status: d.status, error: d.error || null, hidden: !!d.hidden, drawn: !!d.drawn, createdAt: d.createdAt };
+    w: d.w || null, h: d.h || null, rough: d.rough || null, roughThumb: d.roughThumb || null, rw: d.rw || null, rh: d.rh || null, status: d.status, error: d.error || null, hidden: !!d.hidden, drawn: !!d.drawn, createdAt: d.createdAt };
+}
+
+// ── the ROUGH cut: scissors around the drawing, the paper stays ─────────────
+// 2026-09-22, Sophie, on the first Pattern page (clean transparent cut-outs):
+// "use the rough cut method on white no transparent background". The method
+// is scripts/card-pattern.js's `--cut rough` (her "try some that cuts roughly
+// around and they stay white"), ported verbatim: the paper a corner can reach
+// is found by flood-fill (WHITE = 236), then the farthest drawn pixel in each
+// of 28 directions from the drawing's middle, pushed out by a 6% margin and
+// wobbled a little, is the cut line — a loose polygon — and everything inside
+// it keeps its own white paper. Seeded by the piece's id, so the same piece
+// always cuts the same way. Answers a PNG trimmed to the cut.
+const WHITE = 236;
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+async function roughCut(input, seedKey) {
+  const { data, info } = await sharp(input).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const W = info.width, H = info.height, N = W * H;
+  const light = new Uint8Array(N);
+  for (let i = 0; i < N; i++) {
+    const o = i * 4;
+    if (Math.min(data[o], data[o + 1], data[o + 2]) >= WHITE) light[i] = 1;
+  }
+  const bg = new Uint8Array(N);
+  const stack = [];
+  const push = (i) => { if (light[i] && !bg[i]) { bg[i] = 1; stack.push(i); } };
+  for (let x = 0; x < W; x++) { push(x); push((H - 1) * W + x); }
+  for (let y = 0; y < H; y++) { push(y * W); push(y * W + W - 1); }
+  while (stack.length) {
+    const i = stack.pop();
+    const x = i % W, y = (i - x) / W;
+    if (x > 0) push(i - 1);
+    if (x < W - 1) push(i + 1);
+    if (y > 0) push(i - W);
+    if (y < H - 1) push(i + W);
+  }
+  let sx = 0, sy = 0, n = 0;
+  for (let i = 0; i < N; i++) if (!bg[i]) { sx += i % W; sy += (i - i % W) / W; n++; }
+  if (!n) throw new Error('nothing but white');
+  const cx = sx / n, cy = sy / n, BINS = 28, far = new Array(BINS).fill(0);
+  for (let i = 0; i < N; i++) {
+    if (bg[i]) continue;
+    const dx = i % W - cx, dy = (i - i % W) / W - cy;
+    const b = Math.floor(((Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI)) * BINS) % BINS;
+    const r = Math.hypot(dx, dy);
+    if (r > far[b]) far[b] = r;
+  }
+  for (let b = 0; b < BINS; b++) if (!far[b]) far[b] = Math.max(far[(b + BINS - 1) % BINS], far[(b + 1) % BINS]);
+  const rnd = mulberry32(String(seedKey || '').length * 7919 + 13);
+  const margin = Math.max(W, H) * 0.06;
+  const pts = [];
+  for (let b = 0; b < BINS; b++) {
+    const a = -Math.PI + (b + 0.5) / BINS * 2 * Math.PI + (rnd() - 0.5) * 0.1;
+    const r = Math.max(far[b], far[(b + BINS - 1) % BINS] * 0.85, far[(b + 1) % BINS] * 0.85) + margin * (0.6 + rnd() * 0.8);
+    pts.push(`${(cx + Math.cos(a) * r).toFixed(1)},${(cy + Math.sin(a) * r).toFixed(1)}`);
+  }
+  const svg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><polygon points="${pts.join(' ')}" fill="#fff"/></svg>`);
+  const mask = await sharp(svg).ensureAlpha().raw().toBuffer();
+  let minX = W, minY = H, maxX = -1, maxY = -1;
+  for (let i = 0; i < N; i++) {
+    const o = i * 4;
+    data[o + 3] = mask[o + 3];
+    if (data[o + 3] > 8) { const x = i % W, y = (i - x) / W; if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
+  }
+  return sharp(data, { raw: { width: W, height: H, channels: 4 } })
+    .extract({ left: minX, top: minY, width: maxX - minX + 1, height: maxY - minY + 1 }).png().toBuffer();
+}
+
+/** File the rough cut of a piece beside its clean one: `rough` (lossless
+ *  webp), `roughThumb`, `rw`/`rh`. The page draws THIS one. */
+async function roughPiece(id, src) {
+  const ref = db().collection(PIECES).doc(id);
+  try {
+    const raw = await fetchBuf(src);
+    const png = await roughCut(raw, id);
+    const meta = await sharp(png).metadata();
+    const ts = Date.now();
+    const rough = await put(`pattern/pieces/${id}-${ts}-rough.webp`, await sharp(png).webp({ lossless: true }).toBuffer(), 'image/webp');
+    const roughThumb = await put(`pattern/pieces/${id}-${ts}-rough-thumb.webp`,
+      await sharp(png).resize(320, 320, { fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(), 'image/webp');
+    await ref.set({ rough, roughThumb, rw: meta.width, rh: meta.height, roughAt: nowIso() }, { merge: true });
+    return { rough, roughThumb, rw: meta.width, rh: meta.height };
+  } catch (err) {
+    console.warn(`pattern: rough cut ${id} failed —`, err.message);
+    await ref.set({ roughError: err.message }, { merge: true }).catch(() => {});
+    return null;
+  }
 }
 
 // ── the cut ─────────────────────────────────────────────────────────────────
@@ -189,6 +279,7 @@ async function cutPiece(id, src, { tol = 22 } = {}) {
     const cut = await put(`pattern/pieces/${id}-${ts}.webp`, cutBuf, 'image/webp');
     const thumb = await put(`pattern/pieces/${id}-${ts}-thumb.webp`, thumbBuf, 'image/webp');
     await db().collection(PIECES).doc(id).set({ status: 'ready', cut, thumb, w: meta.width, h: meta.height, tol, cutAt: nowIso() }, { merge: true });
+    await roughPiece(id, src);
   } catch (err) {
     console.warn(`pattern: cut ${id} failed —`, err.message);
     await db().collection(PIECES).doc(id).set({ status: 'failed', error: err.message }, { merge: true }).catch(() => {});
@@ -466,4 +557,4 @@ async function filePiece({ name, kind, src, tol = 22, recut = false }) {
   return { id, ...now.data() };
 }
 
-module.exports = { router, init, KINDS, EXPORT_PX, DRAW, cleanPatternPatch, cleanPiecePatch, pieceView, renderPattern, rasterDraw, hexRgb, filePiece, cutPiece };
+module.exports = { router, init, KINDS, EXPORT_PX, DRAW, cleanPatternPatch, cleanPiecePatch, pieceView, renderPattern, rasterDraw, hexRgb, filePiece, cutPiece, roughCut, roughPiece };

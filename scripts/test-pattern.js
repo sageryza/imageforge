@@ -85,8 +85,41 @@ function ok(c, msg) { if (c) { pass++; } else { failed++; console.log('  ✗ ' +
   ok(M.DRAW.style.includes('[content]') && M.DRAW.content('bear').includes('bear'), 'the prompt is style [content] with her word inside');
 }
 
+// ── the rough cut: scissors around the drawing, the paper stays ──
+async function roughHalf() {
+  // A white page with a rose blob in the middle and a white highlight inside
+  // the blob: the cut must keep paper around the blob AND the highlight, and
+  // make only the far corners see-through.
+  const W = 200, H = 200;
+  const raw = Buffer.alloc(W * H * 4, 255);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const o = (y * W + x) * 4;
+    const inBlob = Math.hypot(x - 100, y - 100) < 40;
+    const inHole = Math.hypot(x - 100, y - 100) < 10;
+    if (inBlob && !inHole) { raw[o] = 200; raw[o + 1] = 60; raw[o + 2] = 60; }
+  }
+  const src = await sharp(raw, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer();
+  const png = await M.roughCut(src, 'blob');
+  const { data, info } = await sharp(png).raw().toBuffer({ resolveWithObject: true });
+  const px = (x, y) => { const o = (y * info.width + x) * 4; return [data[o], data[o + 1], data[o + 2], data[o + 3]]; };
+  ok(info.width > 80 && info.width < 140 && info.height > 80 && info.height < 140, 'the cut is trimmed to the polygon, wider than the drawing (' + info.width + 'x' + info.height + ')');
+  const c = px(Math.round(info.width / 2), Math.round(info.height / 2));
+  ok(c[3] === 255 && c[0] > 240 && c[1] > 240, 'the white highlight INSIDE the drawing keeps its paper');
+  const ring = px(Math.round(info.width / 2) + 20, Math.round(info.height / 2));
+  ok(ring[3] === 255 && ring[0] > 150 && ring[1] < 120, 'the drawing itself is untouched');
+  // the polygon lies at least the 6% margin (12px) beyond the blob's 40px radius
+  const paper = px(Math.round(info.width / 2) + 45, Math.round(info.height / 2));
+  ok(paper[3] === 255 && paper[0] > 240, 'paper beyond the drawing stays, white and opaque');
+  ok(px(0, 0)[3] === 0 && px(info.width - 1, info.height - 1)[3] === 0, 'the corners outside the cut are see-through');
+  const again = await M.roughCut(src, 'blob');
+  ok(again.equals(png), 'the same piece cuts the same way twice (seeded)');
+  const other = await M.roughCut(src, 'a-longer-name');
+  ok(!other.equals(png), 'another piece gets its own wobble');
+}
+
 // ── the render, seam measured ──
 (async () => {
+  await roughHalf();
   // A 60x40 piece: solid rose, so any pixel of it is unmistakable.
   const piece = await sharp({ create: { width: 60, height: 40, channels: 4, background: { r: 200, g: 60, b: 60, alpha: 1 } } }).png().toBuffer();
   const pieces = { r: { id: 'r', cut: 'x', w: 60, h: 40 } };
@@ -136,7 +169,7 @@ function ok(c, msg) { if (c) { pass++; } else { failed++; console.log('  ✗ ' +
 async function pageHalf() {
   const { build } = require(path.join(__dirname, 'pattern-page.js'));
   const shelf = [
-    { id: 'bear', name: 'bear', kind: 'animal', status: 'ready', cut: '/px/bear.png', thumb: '/px/bear.png', w: 80, h: 60 },
+    { id: 'bear', name: 'bear', kind: 'animal', status: 'ready', cut: '/px/bear-clean.png', thumb: '/px/bear-clean.png', w: 40, h: 30, rough: '/px/bear.png', roughThumb: '/px/bear.png', rw: 80, rh: 60 },
     { id: 'pear', name: 'pear', kind: 'fruit', status: 'ready', cut: '/px/pear.png', thumb: '/px/pear.png', w: 80, h: 60 },
     { id: 'kale', name: 'kale', kind: 'vegetable', status: 'ready', cut: '/px/kale.png', thumb: '/px/kale.png', w: 80, h: 60 },
   ];
@@ -149,6 +182,7 @@ async function pageHalf() {
   const warns = kitWarnings(html);
   ok(warns.length === 0, 'the built page passes the page-kit warnings: ' + warns.join(' | '));
   ok(!/__PLAN__|__PIECES__|__CHAT__|__VERSION__/.test(html), 'every marker is filled');
+  ok(html.includes('"cut":"/px/bear.png"') && html.includes('"w":80') && !html.includes('bear-clean'), 'the page carries the ROUGH cut and its box, never the clean one, when a piece has both');
   ok(html.includes('<title>Pattern v0</title>') && html.includes("var CHAT = 'pattern-test'"), 'the title carries the version and the chat is baked in');
 
   let chromium;
@@ -233,11 +267,19 @@ async function pageHalf() {
 
   // the pieces
   ok((await page.$$eval('.pc', els => els.length)) === 3, 'three pieces on the list');
+  ok((await page.$$eval('.pc .tick svg', els => els.filter(e => getComputedStyle(e).display !== 'none').length)) === 0, 'no piece shows a check before it is ticked');
+  await page.fill('#search', 'pe'); await page.waitForTimeout(100);
+  ok((await page.$$eval('.pc', els => els.map(e => e.dataset.id).join())) === 'pear', 'search narrows the list as she types');
+  await page.fill('#search', 'zzz'); await page.waitForTimeout(100);
+  ok(/nothing called that/.test(await page.$eval('#shelf', el => el.textContent)), 'a search with no match says so');
+  await page.fill('#search', ''); await page.waitForTimeout(100);
+  ok((await page.$$eval('.pc', els => els.length)) === 3, 'clearing the search brings them all back');
   ok((await page.$$eval('.kindh', els => els.map(e => e.textContent).join())) === 'animals,fruits,vegetables', 'grouped by kind');
   await shot('1-pieces');
   await page.click('.pc[data-id=bear]');
   await page.waitForTimeout(700);
   ok(await page.$eval('.pc[data-id=bear]', el => el.classList.contains('on')), 'tapping a piece ticks it');
+  ok((await page.$$eval('.pc .tick svg', els => els.filter(e => getComputedStyle(e).display !== 'none').length)) === 1, 'exactly one check shows now');
   let st = store();
   ok(st.items.length === 1 && st.items[0].piece === 'bear', 'the tick saved one item on the verdict doc');
   await page.click('.pc[data-id=pear]');

@@ -37,7 +37,12 @@ const LEDGER = path.join(DIR, 'VERSIONS');
 
 /** What the page needs of a piece — never the whole doc. */
 function pieceRow(d) {
-  return { id: d.id, name: d.name || '', kind: d.kind || 'other', thumb: d.thumb || d.cut, cut: d.cut, w: d.w || 1, h: d.h || 1 };
+  // The page draws the ROUGH cut (the scissors one, paper kept) and falls
+  // back to the clean cut-out for a piece not rough-cut yet.
+  const rough = !!d.rough;
+  return { id: d.id, name: d.name || '', kind: d.kind || 'other',
+    thumb: (rough ? d.roughThumb : d.thumb) || d.rough || d.cut, cut: rough ? d.rough : d.cut,
+    w: (rough ? d.rw : d.w) || 1, h: (rough ? d.rh : d.h) || 1 };
 }
 
 function build(opts) {
@@ -45,7 +50,7 @@ function build(opts) {
   const tpl = fs.readFileSync(path.join(DIR, 'pattern.tpl.html'), 'utf8');
   const plan = fs.readFileSync(path.join(ROOT, 'pattern-plan.js'), 'utf8');
   for (const m of ['__PLAN__', '__PIECES__', '__CHAT__', '__VERSION__']) if (!tpl.includes(m)) throw new Error('template is missing ' + m);
-  const pieces = (opts.pieces || []).filter((p) => p.cut).map(pieceRow);
+  const pieces = (opts.pieces || []).filter((p) => p.cut || p.rough).map(pieceRow);
   // `</script>` inside a JSON string would end the page's script early.
   const json = JSON.stringify(pieces).replace(/<\//g, '<\\/');
   return tpl.replace('__PLAN__', () => plan).replace('__PIECES__', () => json)
