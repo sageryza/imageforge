@@ -12,6 +12,12 @@ description: >
 
 # Building a new page
 
+**THINGS START IN COMPARE (2026-09-22, Sophie).** A new tool or program she
+asks for is a Compare page first — posted, no deploy — and a served
+`public/*.html` tool page only when she explicitly asks for a page. See the
+`new-tool` skill's first paragraph; `docs/pattern/pattern.tpl.html` is a
+whole interactive tool built that way.
+
 **FIRST: if the page is a LIST to review, you may not need to build a page at
 all (Aug 2026).** The STOCK TEMPLATES take data, not HTML — `POST
 /api/chatfeed/page { chat, title, template:'deck'|'grid', data }` — and the

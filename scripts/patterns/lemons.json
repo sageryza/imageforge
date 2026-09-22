@@ -1,0 +1,295 @@
+{
+ "layout": "tossed",
+ "cols": 6,
+ "tile": 3072,
+ "bg": "#ffffff",
+ "cut": "rough",
+ "fill": 0.55,
+ "gap": 0.35,
+ "name": "lemons",
+ "pick": [
+  "picked:lemon"
+ ],
+ "seed": 5,
+ "spin": true,
+ "rows": 6,
+ "placements": [
+  {
+   "id": "picked:lemon",
+   "x": 0.0795,
+   "y": 0.0782,
+   "rot": 79.1,
+   "scale": 0.99,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.2755,
+   "y": 0.1554,
+   "rot": 164.9,
+   "scale": 1.1,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.4313,
+   "y": 0.1016,
+   "rot": 237.8,
+   "scale": 0.75,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.5781,
+   "y": 0.1802,
+   "rot": 103.7,
+   "scale": 1.04
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.7171,
+   "y": 0.0429,
+   "rot": 285.7,
+   "scale": 0.82,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.9224,
+   "y": 0.1661,
+   "rot": 357,
+   "scale": 0.84,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.0885,
+   "y": 0.2577,
+   "rot": 146.7,
+   "scale": 1.13,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.2547,
+   "y": 0.3344,
+   "rot": 312.9,
+   "scale": 1.03
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.4082,
+   "y": 0.2781,
+   "rot": 233.7,
+   "scale": 0.8
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.5508,
+   "y": 0.3527,
+   "rot": 280.4,
+   "scale": 0.98,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.7576,
+   "y": 0.2067,
+   "rot": 126,
+   "scale": 1.09,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.9168,
+   "y": 0.3383,
+   "rot": 100.4,
+   "scale": 1.14,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.0684,
+   "y": 0.4379,
+   "rot": 113.1,
+   "scale": 1,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.2222,
+   "y": 0.4968,
+   "rot": 188.9,
+   "scale": 0.84
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.3755,
+   "y": 0.45,
+   "rot": 343.4,
+   "scale": 0.86
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.6264,
+   "y": 0.5153,
+   "rot": 208.4,
+   "scale": 1.12
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.7436,
+   "y": 0.3822,
+   "rot": 105.9,
+   "scale": 0.95,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.9292,
+   "y": 0.5187,
+   "rot": 49.9,
+   "scale": 0.77,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.1055,
+   "y": 0.5946,
+   "rot": 148.5,
+   "scale": 0.78,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.2719,
+   "y": 0.6552,
+   "rot": 253,
+   "scale": 1.04,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.4249,
+   "y": 0.5951,
+   "rot": 218.1,
+   "scale": 0.79,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.5628,
+   "y": 0.6902,
+   "rot": 151.7,
+   "scale": 1.11,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.7877,
+   "y": 0.563,
+   "rot": 293.9,
+   "scale": 0.78
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.9672,
+   "y": 0.6621,
+   "rot": 214.7,
+   "scale": 0.78,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.1192,
+   "y": 0.7454,
+   "rot": 245.3,
+   "scale": 0.84,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.2641,
+   "y": 0.8326,
+   "rot": 163,
+   "scale": 1.04,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.4059,
+   "y": 0.75,
+   "rot": 7,
+   "scale": 0.8,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.6316,
+   "y": 0.8543,
+   "rot": 341.6,
+   "scale": 0.98
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.7819,
+   "y": 0.7247,
+   "rot": 23,
+   "scale": 0.81,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.9168,
+   "y": 0.8339,
+   "rot": 162.7,
+   "scale": 0.76
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.0641,
+   "y": 0.9032,
+   "rot": 322,
+   "scale": 1.05
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.2207,
+   "y": 0.994,
+   "rot": 289.8,
+   "scale": 0.85,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.4198,
+   "y": 0.9089,
+   "rot": 237,
+   "scale": 0.95,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.5572,
+   "y": 0.0076,
+   "rot": 291.4,
+   "scale": 0.97
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.7852,
+   "y": 0.9053,
+   "rot": 204.8,
+   "scale": 0.82,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.9154,
+   "y": 0.0026,
+   "rot": 22.6,
+   "scale": 0.98,
+   "flip": true
+  }
+ ]
+}

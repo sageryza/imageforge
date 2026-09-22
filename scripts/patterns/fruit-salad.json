@@ -1,0 +1,82 @@
+{
+ "layout": "tossed",
+ "once": true,
+ "tile": 2048,
+ "bg": "#ffffff",
+ "cut": "rough",
+ "fill": 0.62,
+ "gap": 0.3,
+ "name": "fruit salad",
+ "pick": [
+  "picked:strawberry",
+  "picked:lemon",
+  "picked:blueberries",
+  "picked:kiwi",
+  "picked:raspberries",
+  "picked:lime",
+  "picked:mango",
+  "picked:banana"
+ ],
+ "seed": 3,
+ "cols": 4,
+ "rows": 2,
+ "placements": [
+  {
+   "id": "picked:mango",
+   "x": 0.1297,
+   "y": 0.2138,
+   "rot": -7.9,
+   "scale": 0.78
+  },
+  {
+   "id": "picked:lime",
+   "x": 0.3541,
+   "y": 0.5562,
+   "rot": -60.9,
+   "scale": 0.86
+  },
+  {
+   "id": "picked:kiwi",
+   "x": 0.6011,
+   "y": 0.1629,
+   "rot": 38.5,
+   "scale": 0.94
+  },
+  {
+   "id": "picked:blueberries",
+   "x": 0.9477,
+   "y": 0.5071,
+   "rot": 34.3,
+   "scale": 0.86
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.1296,
+   "y": 0.7755,
+   "rot": 7.2,
+   "scale": 0.75
+  },
+  {
+   "id": "picked:strawberry",
+   "x": 0.3492,
+   "y": 0.0583,
+   "rot": 48.5,
+   "scale": 0.92
+  },
+  {
+   "id": "picked:banana",
+   "x": 0.5815,
+   "y": 0.6697,
+   "rot": 40.1,
+   "scale": 0.75,
+   "flip": true
+  },
+  {
+   "id": "picked:raspberries",
+   "x": 0.8626,
+   "y": 0.0327,
+   "rot": 18.5,
+   "scale": 1.02
+  }
+ ]
+}

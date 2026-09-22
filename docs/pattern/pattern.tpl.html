@@ -1,0 +1,650 @@
+<!doctype html>
+<!-- PATTERN — choose animals and fruits, arrange one tile, it repeats — as a
+     COMPARE PAGE (2026-09-22, Sophie: "does it need to be a page · can't it
+     just be in compare"). Built and posted by scripts/pattern-page.js: the
+     plan (pattern-plan.js) is inlined at the plan marker, the pieces list
+     (every cut-out on forge-pattern-pieces, read from Firestore) at the
+     pieces marker, the chat and the version at theirs. NO SERVER ROUTE OF ITS OWN
+     and no deploy: her patterns live on a verdict doc (sheet `pattern`, one
+     JSON text per pattern config and one per item), and an export is drawn
+     on a canvas here and filed into the Dump through /api/drop/upload-file,
+     which the live server already has. A new piece is a chat's job (the seed
+     script or POST /api/pattern/pieces) and a re-post of the page. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pattern __VERSION__</title>
+<link rel="stylesheet" href="/compare.css">
+<link rel="stylesheet" href="/tritoggle.css">
+<script src="/tritoggle.js"></script>
+<script>__PLAN__</script>
+<style>
+/* Three hairline tabs because there are three kinds of thing: the PIECES
+   she picks from, the TILE she arranges, and the REPEAT she judges. The four
+   choices she named are four controls on the TILE tab: which pieces (ticked),
+   how much to turn (the degrees box), how far apart (the spacing slider grows
+   the tile under the pieces) and where (drag). */
+.wrap{ padding-bottom:24px; }
+.pickrow{ display:flex; gap:8px; align-items:center; padding-right:64px; margin:2px 0 8px; }
+.pick{ font:inherit; font-size:13px; color:var(--ink); background:var(--surface);
+  border:1px solid var(--line); border-radius:6px; padding:6px 10px; max-width:70%;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
+.pick i{ font-style:normal; color:var(--ink2); margin-left:6px; }
+.acctabs{ position:relative; display:flex; border-bottom:1px solid var(--line); margin:0 0 10px; padding-right:64px; }
+.acctab{ flex:1 1 0; min-width:0; padding:8px 4px 10px; border:none; background:none; cursor:pointer; border-radius:0;
+  font:inherit; font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:var(--ink2); }
+.acctab.on{ color:var(--ink); }
+.acctabs::after{ content:''; position:absolute; left:0; bottom:-1px; height:2px; background:var(--ink);
+  width:var(--tw,0); transform:translateX(var(--tx,0)); }
+.acctabs.tl::after{ transition:transform .2s ease, width .2s ease; }
+[hidden]{ display:none !important; }
+
+/* ── the pieces ── */
+.kindh{ font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:var(--ink2); margin:12px 2px 6px; }
+.shelf{ display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; }
+.pc{ position:relative; border:1px solid var(--line); border-radius:6px; background:var(--surface);
+  padding:6px 4px 4px; cursor:pointer; text-align:center; -webkit-user-select:none; user-select:none; }
+.pc img{ width:100%; aspect-ratio:1; object-fit:contain; display:block; }
+.pc .nm{ font-size:11px; color:var(--ink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:3px; }
+.pc.on{ outline:2px solid var(--gold); outline-offset:-2px; }
+.pc.on .nm{ color:var(--ink); }
+.pc .tick{ position:absolute; top:4px; right:4px; width:18px; height:18px; border-radius:4px;
+  border:1px solid var(--line); background:var(--surface); display:flex; align-items:center; justify-content:center; }
+.pc.on .tick{ background:var(--gold); border-color:var(--gold); color:#fff; }
+.pc .tick svg{ width:12px; height:12px; display:none; }
+.pc.on .tick svg{ display:block; }
+.msg{ font-size:13px; color:var(--ink2); margin-top:8px; min-height:18px; }
+.ico{ width:20px; height:20px; color:var(--ink2); flex:none; display:inline-flex; }
+.ico svg{ width:20px; height:20px; }
+.msg.bad{ color:var(--rose); }
+
+/* ── the tile ── */
+.band{ height:64px; border:1px solid var(--line); border-radius:6px; background-repeat:repeat; margin-bottom:8px; }
+canvas#tile{ display:block; width:100%; border:1px solid var(--line); border-radius:6px;
+  touch-action:none; background:var(--surface); box-sizing:border-box; }
+.ctl{ margin-top:10px; }
+.row{ display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap; }
+.lbl{ font-size:11px; letter-spacing:1.4px; text-transform:uppercase; color:var(--ink2); width:64px; flex:none; }
+.who{ font-size:14px; color:var(--ink); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.word{ font-size:14px; color:var(--ink); }
+.dim{ color:var(--ink2); font-size:13px; }
+input[type=number]{ width:64px; padding:6px 8px; text-align:center; font:inherit; font-size:16px;
+  border:1px solid var(--line); border-radius:6px; background:var(--surface); color:var(--ink); }
+input[type=range]{ flex:1; min-width:100px; accent-color:var(--gold); }
+input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-size:16px;
+  border:1px solid var(--line); border-radius:6px; background:var(--surface); color:var(--ink); }
+.sq{ width:38px; height:34px; border-radius:6px; border:1px solid var(--line); background:var(--surface);
+  color:var(--ink); display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
+  touch-action:manipulation; padding:0; font:inherit; font-size:14px; flex:none; }
+.sq.on{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+.sq svg{ width:18px; height:18px; }
+.none{ font-size:13px; color:var(--ink2); padding:6px 2px; }
+.hr{ border-top:1px solid var(--line); margin:12px 0 4px; }
+
+/* ── the repeat ── */
+.big{ aspect-ratio:1; border:1px solid var(--line); border-radius:6px; background-repeat:repeat; }
+.tri{ --tri-fill:var(--surface); --tri-line:var(--ink); --tri-knob:var(--ink); --tri-ink:var(--paper); --tri-w:78px; --tri-k:26px; }
+.sw{ width:26px; height:26px; border-radius:6px; border:1px solid var(--line); padding:0; cursor:pointer; flex:none; }
+.sw.on{ outline:2px solid var(--ink); outline-offset:1px; }
+input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border-radius:6px; padding:2px; background:var(--surface); }
+.exports{ margin-top:12px; }
+.exports a{ display:flex; gap:10px; align-items:center; padding:8px 0; border-top:1px solid var(--line);
+  color:var(--ink); text-decoration:none; font-size:14px; }
+.exports a .m{ color:var(--ink2); font-size:12px; margin-left:auto; }
+
+/* ── the pattern sheet ── */
+.sheet{ position:fixed; inset:0; z-index:30; background:rgba(0,0,0,.25); display:flex; align-items:flex-end; }
+.sheet .box{ background:var(--surface); width:100%; max-height:70vh; overflow:auto; border-radius:12px 12px 0 0;
+  padding:14px 16px calc(16px + env(safe-area-inset-bottom)); }
+.sheet .list{ margin-top:12px; }
+.sheet .list button{ display:flex; width:100%; gap:10px; align-items:center; padding:9px 2px; border:none; border-radius:0;
+  border-top:1px solid var(--line); background:none; font:inherit; font-weight:400; font-size:14px; color:var(--ink); text-align:left; cursor:pointer; }
+.sheet .list button.on{ color:var(--gold); }
+.sheet .list button .m{ color:var(--ink2); font-size:12px; margin-left:auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Pattern</h1>
+  <div class="pickrow"><button class="pick" id="pick"></button></div>
+
+  <div class="acctabs" id="tabs">
+    <button class="acctab on" data-t="0">Pieces</button>
+    <button class="acctab" data-t="1">Tile</button>
+    <button class="acctab" data-t="2">Repeat</button>
+  </div>
+
+  <section id="pane-pieces">
+    <div class="row" style="margin:0 0 4px" data-nostop><span class="ico" id="searchico"></span><input type="text" id="search" autocomplete="off" autocapitalize="off" aria-label="Search the pieces"></div>
+    <div id="shelf"></div>
+    <div class="msg" id="shelfmsg"></div>
+  </section>
+
+  <section id="pane-tile" hidden>
+    <div class="band" id="band"></div>
+    <canvas id="tile" data-nostop></canvas>
+    <div class="ctl" data-nostop>
+      <div id="selbox" hidden>
+        <div class="row"><span class="lbl">piece</span><span class="who" id="selname"></span>
+          <button class="sq" id="flip" aria-label="Flip"></button>
+          <button class="sq" id="again" aria-label="Another of this one">+</button>
+          <button class="sq" id="remove" aria-label="Remove"></button></div>
+        <div class="row"><span class="lbl">turn</span>
+          <button class="sq" id="rotm" aria-label="Turn 15° left">−15</button>
+          <input type="number" id="rot" min="0" max="359" step="1" inputmode="numeric">
+          <button class="sq" id="rotp" aria-label="Turn 15° right">+15</button>
+          <span class="dim">°</span></div>
+        <div class="row"><span class="lbl">size</span><input type="range" id="size" min="60" max="900" step="5"></div>
+      </div>
+      <div class="none" id="selnone">tap a piece to turn or size it · drag to move</div>
+      <div class="hr"></div>
+      <div class="row"><span class="lbl">spacing</span><input type="range" id="space" min="500" max="2500" step="10"></div>
+      <div class="row"><span class="lbl">spin all</span>
+        <span class="dim">±</span>
+        <input type="number" id="spread" min="0" max="180" step="5" inputmode="numeric" value="20">
+        <span class="dim">°</span>
+        <button class="btn" id="spin">Spin</button>
+        <button class="btn" id="scatter">Scatter</button></div>
+    </div>
+  </section>
+
+  <section id="pane-repeat" hidden>
+    <div class="card" data-item="pattern" style="padding:0;border:0;background:none">
+      <div class="big" id="big"></div>
+    </div>
+    <div data-nostop>
+      <div class="row"><span class="lbl">layout</span>
+        <button class="tri" id="layout" data-n="0" data-i="G" aria-label="Layout"></button>
+        <span class="word" id="layoutword">grid</span></div>
+      <div class="row"><span class="lbl">colour</span><span id="swatches" class="row" style="margin:0"></span>
+        <input type="color" id="bg" aria-label="Background colour"></div>
+      <div class="row"><span class="lbl">export</span>
+        <span class="chips" id="sizes" style="margin:0"><button class="chip" data-s="1K">1K</button><button class="chip on" data-s="2K">2K</button><button class="chip" data-s="4K">4K</button></span>
+        <button class="btn" id="export">Export</button></div>
+      <div class="msg" id="repmsg"></div>
+      <div class="exports" id="exports"></div>
+    </div>
+  </section>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="box" data-nostop>
+    <div class="row" style="margin:0"><input type="text" id="pname" autocomplete="off"><button class="btn" id="newpat">New</button></div>
+    <div class="list" id="plist"></div>
+  </div>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+/* WRAPPED IN AN IIFE — the injected pill runs in this global scope. */
+(function () {
+  'use strict';
+  var CHAT = '__CHAT__';
+  var SHEET = 'pattern';
+  var P = window.__patternPlan;
+  var PIECES = __PIECES__;
+  var $ = function (id) { return document.getElementById(id); };
+  var SWATCHES = ['#faf6ee', '#ffffff', '#f3e9d2', '#e9dcc6', '#dfe8dc', '#dbe4ea', '#eadbe3', '#f2d9cf', '#2a2620'];
+  var LAYOUT_WORD = { grid: 'grid', half: 'half-drop', mirror: 'mirror' };
+  var LAYOUT_LETTER = { grid: 'G', half: 'H', mirror: 'M' };
+  var EXPORT_PX = { '1K': 1024, '2K': 2048, '4K': 4096 };
+  var MAX_JSON = 1900;
+
+  var LUCIDE = {
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+    flip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><path d="M12 20v2"/><path d="M12 14v2"/><path d="M12 8v2"/><path d="M12 2v2"/></svg>',
+    x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
+  };
+  $('searchico').innerHTML = LUCIDE.search;
+  $('flip').innerHTML = LUCIDE.flip;
+  $('remove').innerHTML = LUCIDE.x;
+
+  window.__compareHelp({ html: '<b>Pieces</b> — tap an animal or a fruit to put it in the pattern; tap again to take it out. '
+    + 'Each one is cut roughly around with its paper kept, like scissors. A new one is a chat’s job: ask, and it is drawn and put on the list.<br><br>'
+    + '<b>Tile</b> — one square that repeats. Drag a piece where you want it; the degrees box turns it, the size slider sizes it, '
+    + '<b>+</b> adds another of the same. <b>Spacing</b> grows the square under everything so the repeats land farther apart. '
+    + '<b>Spin</b> turns every piece a little, at random, within the degrees you set. A piece hanging off one edge comes back in on the other, '
+    + 'which is what makes the repeat seamless.<br><br>'
+    + '<b>Repeat</b> — how it looks tiled. Grid, half-drop or mirror; the colour behind; <b>Export</b> draws one seamless PNG and files it in the Dump. '
+    + 'Everything saves itself as you go.' });
+  window.__compareNotes({ chat: CHAT, sheet: SHEET + '-notes' });
+
+  // ── state ──
+  var pieces = {};
+  PIECES.forEach(function (p) { pieces[p.id] = p; });
+  var imgs = {};
+  var patterns = {};        // id → { id, name, tile, layout, items: [], exports: [], updatedAt }
+  var pattern = null;
+  var sel = null;
+  var dirtyT = null, dirtyItems = {}, dirtyCfg = false;
+  var exportSize = '2K';
+
+  function hdrs() { return { 'Content-Type': 'application/json' }; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function say(el, msg, bad) { el.textContent = msg || ''; el.classList.toggle('bad', !!bad); }
+  function key() { return Math.random().toString(36).slice(2, 10); }
+
+  // ── the store: one verdict doc, `p:cfg:<pid>` and `p:it:<pid>:<k>` texts.
+  // Its OWN sheet, and every key wears the `p:` prefix — never the note
+  // thread's slot (an item's text IS its note thread, 2026-09-07). ──
+  function putText(k, text) {
+    return fetch('/api/chatfeed/verdict', { method: 'POST', headers: hdrs(),
+      body: JSON.stringify({ chat: CHAT, sheet: SHEET, item: 'p:' + k, text: text }) })
+      .then(function (r) { if (!r.ok) throw new Error('save failed'); return r.json(); });
+  }
+  function load() {
+    return fetch('/api/chatfeed/verdict?chat=' + encodeURIComponent(CHAT) + '&sheet=' + SHEET)
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var texts = (d && d.texts) || {};
+        patterns = {};
+        Object.keys(texts).forEach(function (k) {
+          var m = /^p:cfg:([a-z0-9]+)$/.exec(k); if (!m || !texts[k]) return;
+          try { var c = JSON.parse(texts[k]); patterns[m[1]] = { id: m[1], name: c.name || '', tile: P.tileOf(c), layout: { kind: P.layoutOf(c) }, exports: c.exports || [], updatedAt: c.updatedAt || '', items: [] }; }
+          catch (e) { /* not one of ours */ }
+        });
+        Object.keys(texts).forEach(function (k) {
+          var m = /^p:it:([a-z0-9]+):([a-z0-9]+)$/.exec(k); if (!m || !texts[k] || !patterns[m[1]]) return;
+          try { var it = P.itemOf(JSON.parse(texts[k])); it.k = m[2]; patterns[m[1]].items.push(it); } catch (e) { /* */ }
+        });
+        Object.keys(patterns).forEach(function (id) { patterns[id].items.sort(function (a, b) { return (a.o || 0) - (b.o || 0); }); });
+      });
+  }
+  function cfgText(p) {
+    return JSON.stringify({ name: p.name || '', tile: p.tile, layout: p.layout, exports: (p.exports || []).slice(-6), updatedAt: p.updatedAt || '' });
+  }
+  function itemText(it, o) {
+    return JSON.stringify({ piece: it.piece, x: +it.x.toFixed(4), y: +it.y.toFixed(4), size: Math.round(it.size), rot: Math.round(it.rot), flip: !!it.flip, o: o });
+  }
+  function saveNow() {
+    if (!pattern) return Promise.resolve();
+    var p = pattern, jobs = [];
+    p.updatedAt = new Date().toISOString();
+    if (dirtyCfg) { dirtyCfg = false; jobs.push(putText('cfg:' + p.id, cfgText(p))); }
+    var ks = Object.keys(dirtyItems); dirtyItems = {};
+    ks.forEach(function (k) {
+      var i = p.items.findIndex(function (it) { return it.k === k; });
+      jobs.push(putText('it:' + p.id + ':' + k, i < 0 ? '' : itemText(p.items[i], i)));
+    });
+    return Promise.all(jobs).catch(function (err) { say($('repmsg'), 'not saved: ' + err.message, true); say($('shelfmsg'), 'not saved: ' + err.message, true); });
+  }
+  // A pattern never saved yet writes its config with its first item — an
+  // item whose config is not on the doc is skipped on the next open.
+  function touch(k) {
+    if (k) dirtyItems[k] = 1;
+    if (!k || !pattern.updatedAt) dirtyCfg = true;
+    clearTimeout(dirtyT); dirtyT = setTimeout(saveNow, 500);
+  }
+  function touchAll() { (pattern.items || []).forEach(function (it) { dirtyItems[it.k] = 1; }); touch(); }
+
+  // ── pieces ──
+  function dims() {
+    var d = {};
+    Object.keys(pieces).forEach(function (id) { if (pieces[id].w && pieces[id].h) d[id] = { w: pieces[id].w, h: pieces[id].h }; });
+    return d;
+  }
+  function imgFor(id) {
+    var pc = pieces[id];
+    if (!pc || !pc.cut) return null;
+    if (imgs[id]) return imgs[id];
+    var im = new Image();
+    im.crossOrigin = 'anonymous';
+    im.onload = function () { paint(); paintBand(); if (!$('pane-repeat').hidden) paintBig(); };
+    im.src = pc.cut;
+    imgs[id] = im;
+    return im;
+  }
+  var shelfSig = '';
+  function inPattern(id) { return !!(pattern && pattern.items.some(function (it) { return it.piece === id; })); }
+  var query = '';
+  function renderShelf() {
+    var q = query.trim().toLowerCase();
+    var list = PIECES.filter(function (p) { return !q || (p.name + ' ' + p.kind).toLowerCase().indexOf(q) >= 0; });
+    var order = { animal: 0, fruit: 1, vegetable: 2, plant: 3, other: 4 };
+    var rank = function (p) { return p.kind in order ? order[p.kind] : 4; };
+    list.sort(function (a, b) { return (rank(a) - rank(b)) || String(a.name).localeCompare(String(b.name)); });
+    var sig = q + '#' + list.map(function (p) { return p.id + (inPattern(p.id) ? 1 : 0); }).join('|');
+    if (sig === shelfSig) return;
+    shelfSig = sig;
+    var host = $('shelf'); host.innerHTML = '';
+    if (!list.length) { host.innerHTML = '<div class="msg">' + (q ? 'nothing called that' : 'nothing on the list yet') + '</div>'; return; }
+    var kind = null, grid = null;
+    list.forEach(function (p) {
+      if (p.kind !== kind) {
+        kind = p.kind;
+        var h = document.createElement('div'); h.className = 'kindh'; h.textContent = kind + 's'; host.appendChild(h);
+        grid = document.createElement('div'); grid.className = 'shelf'; host.appendChild(grid);
+      }
+      var b = document.createElement('div');
+      b.className = 'pc' + (inPattern(p.id) ? ' on' : '');
+      b.dataset.id = p.id;
+      b.innerHTML = '<img src="' + esc(p.thumb) + '" alt="" loading="lazy"><div class="tick">' + LUCIDE.check + '</div><div class="nm">' + esc(p.name) + '</div>';
+      grid.appendChild(b);
+    });
+  }
+  $('search').addEventListener('input', function () { query = $('search').value; renderShelf(); });
+  $('shelf').addEventListener('click', function (e) {
+    var b = e.target.closest('.pc'); if (!b || !pattern) return;
+    togglePiece(b.dataset.id);
+  });
+  function togglePiece(id) {
+    var items = pattern.items;
+    if (inPattern(id)) {
+      items.filter(function (it) { return it.piece === id; }).forEach(function (it) { dirtyItems[it.k] = 1; });
+      pattern.items = items.filter(function (it) { return it.piece !== id; });
+      if (sel && !pattern.items.some(function (it) { return it.k === sel; })) sel = null;
+      touch();
+    } else {
+      var at = P.freeSpot(items);
+      var it = { k: key(), piece: id, x: at.x, y: at.y, size: P.DEFAULT_SIZE, rot: 0, flip: false };
+      pattern.items.push(it); sel = it.k; touch(it.k);
+    }
+    imgFor(id);
+    changed(); shelfSig = ''; renderShelf();
+  }
+
+  // ── the pattern ──
+  function item(k) { return (pattern && pattern.items || []).find(function (it) { return it.k === k; }) || null; }
+  function changed() {
+    if (!pattern) return;
+    paint(); paintBand(); syncControls();
+    if (!$('pane-repeat').hidden) paintBig();
+  }
+  function newPattern() {
+    var id = key();
+    patterns[id] = { id: id, name: '', tile: P.tileOf({}), layout: { kind: 'grid' }, items: [], exports: [], updatedAt: '' };
+    return patterns[id];
+  }
+  function usePattern(p) {
+    pattern = p; sel = null;
+    try { localStorage.setItem('pattern.cur', p.id); } catch (e) { /* private mode */ }
+    $('pick').innerHTML = esc(p.name || 'untitled') + '<i>▾</i>';
+    $('pname').value = p.name || '';
+    p.items.forEach(function (it) { imgFor(it.piece); });
+    shelfSig = ''; renderShelf();
+    $('space').value = p.tile.w;
+    setLayoutUI(); setBgUI(); renderExports();
+    sizeCanvas(); changed();
+  }
+  function listPatterns() {
+    return Object.keys(patterns).map(function (id) { return patterns[id]; })
+      .sort(function (a, b) { return String(b.updatedAt).localeCompare(String(a.updatedAt)); });
+  }
+  function renderList() {
+    var host = $('plist'); host.innerHTML = '';
+    listPatterns().forEach(function (p) {
+      var b = document.createElement('button');
+      b.className = pattern && p.id === pattern.id ? 'on' : '';
+      b.innerHTML = '<span>' + esc(p.name || 'untitled') + '</span><span class="m">' + p.items.length + ' pieces · ' + LAYOUT_WORD[p.layout.kind] + '</span>';
+      b.addEventListener('click', function () { $('sheet').hidden = true; usePattern(p); });
+      host.appendChild(b);
+    });
+  }
+  $('pick').addEventListener('click', function () { renderList(); $('sheet').hidden = false; });
+  $('sheet').addEventListener('click', function (e) { if (e.target === $('sheet')) $('sheet').hidden = true; });
+  $('newpat').addEventListener('click', function () {
+    $('sheet').hidden = true; usePattern(newPattern()); touch(); showTab(0);
+  });
+  $('pname').addEventListener('input', function () {
+    if (!pattern) return;
+    pattern.name = $('pname').value.trim().slice(0, 60);
+    $('pick').innerHTML = esc(pattern.name || 'untitled') + '<i>▾</i>';
+    touch();
+  });
+
+  // ── tabs ──
+  var tabs = $('tabs');
+  function tabLine() {
+    var on = tabs.querySelector('.acctab.on'); if (!on) return;
+    var r = tabs.getBoundingClientRect(), t = on.getBoundingClientRect();
+    if (!t.width) return;
+    tabs.style.setProperty('--tw', t.width + 'px');
+    tabs.style.setProperty('--tx', (t.left - r.left - tabs.clientLeft) + 'px');
+    if (!tabs.__tl) { tabs.__tl = 1; requestAnimationFrame(function () { tabs.classList.add('tl'); }); }
+  }
+  function showTab(i) {
+    tabs.querySelectorAll('.acctab').forEach(function (b, j) { b.classList.toggle('on', j === i); });
+    $('pane-pieces').hidden = i !== 0; $('pane-tile').hidden = i !== 1; $('pane-repeat').hidden = i !== 2;
+    try { localStorage.setItem('pattern.tab', String(i)); } catch (e) { /* */ }
+    tabLine();
+    if (i === 1) { sizeCanvas(); paint(); paintBand(); }
+    if (i === 2) paintBig();
+  }
+  tabs.addEventListener('click', function (e) { var b = e.target.closest('.acctab'); if (b) showTab(Number(b.dataset.t)); });
+  window.addEventListener('resize', function () { tabs.classList.remove('tl'); tabs.__tl = 0; requestAnimationFrame(function () { tabLine(); sizeCanvas(); paint(); }); }, { passive: true });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(tabLine);
+
+  // ── the canvas ──
+  var cv = $('tile'), ctx = cv.getContext('2d');
+  var cssW = 0, cssH = 0, dpr = 1;
+  function sizeCanvas() {
+    if (!pattern || $('pane-tile').hidden) return;
+    var t = pattern.tile;
+    var bw = cv.getBoundingClientRect().width || (cv.parentElement && cv.parentElement.clientWidth) || 300;
+    cv.style.height = Math.round(bw * t.h / t.w) + 'px';
+    var w = cv.clientWidth, h = cv.clientHeight;
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (w === cssW && h === cssH && cv.width === Math.round(w * dpr)) return;
+    cssW = w; cssH = h;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  }
+  function drawOne(c, d, s, im) {
+    c.save();
+    c.translate(d.cx * s, d.cy * s);
+    c.scale(d.mx ? -1 : 1, d.my ? -1 : 1);
+    c.rotate(d.rot * Math.PI / 180);
+    c.scale(d.flip ? -1 : 1, 1);
+    if (im && im.complete && im.naturalWidth) c.drawImage(im, -d.w * s / 2, -d.h * s / 2, d.w * s, d.h * s);
+    else { c.strokeStyle = 'rgba(0,0,0,.25)'; c.setLineDash([4, 3]); c.strokeRect(-d.w * s / 2, -d.h * s / 2, d.w * s, d.h * s); }
+    c.restore();
+  }
+  function paint() {
+    if (!pattern || $('pane-tile').hidden) return;
+    sizeCanvas();
+    var t = pattern.tile, s = cv.width / t.w;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = t.bg; ctx.fillRect(0, 0, cv.width, cv.height);
+    var list = P.tileDraws(pattern, dims());
+    list.forEach(function (d) { drawOne(ctx, d, s, imgFor(d.piece)); });
+    var selD = list.find(function (d) { return d.home && d.k === sel; });
+    if (selD) {
+      ctx.save();
+      ctx.translate(selD.cx * s, selD.cy * s); ctx.rotate(selD.rot * Math.PI / 180);
+      ctx.strokeStyle = '#a8845c'; ctx.lineWidth = 2 * dpr; ctx.setLineDash([6 * dpr, 4 * dpr]);
+      ctx.strokeRect(-selD.w * s / 2 - 3, -selD.h * s / 2 - 3, selD.w * s + 6, selD.h * s + 6);
+      ctx.restore();
+    }
+  }
+  /** The OUTPUT image on an offscreen canvas; `px` = one tile's width in pixels. */
+  function renderOut(px) {
+    var out = P.draws(pattern, dims());
+    var s = px / pattern.tile.w;
+    var oc = document.createElement('canvas');
+    oc.width = Math.max(1, Math.round(out.W * s)); oc.height = Math.max(1, Math.round(out.H * s));
+    var c = oc.getContext('2d');
+    c.fillStyle = out.bg; c.fillRect(0, 0, oc.width, oc.height);
+    out.draws.forEach(function (d) { drawOne(c, d, s, imgFor(d.piece)); });
+    return { canvas: oc, W: oc.width, H: oc.height, tiles: out.W / pattern.tile.w, layout: out.layout };
+  }
+  function tileCss(el, per) {
+    var r; try { r = renderOut(240); } catch (e) { return; }
+    var url; try { url = r.canvas.toDataURL('image/png'); } catch (e) { el.style.backgroundImage = ''; return; }
+    var w = el.clientWidth || 300;
+    el.style.backgroundColor = pattern.tile.bg;
+    el.style.backgroundImage = 'url(' + url + ')';
+    el.style.backgroundSize = (w / per * r.tiles) + 'px auto';
+  }
+  function paintBand() { if (pattern && !$('pane-tile').hidden) tileCss($('band'), 3); }
+  function paintBig() { if (pattern) tileCss($('big'), 2.5); }
+
+  // ── touching the tile ──
+  var drag = null;
+  function hit(ux, uy) {
+    var list = P.tileDraws(pattern, dims());
+    for (var i = list.length - 1; i >= 0; i--) {
+      var d = list[i];
+      var dx = ux - d.cx, dy = uy - d.cy;
+      var a = -d.rot * Math.PI / 180;
+      var rx = dx * Math.cos(a) - dy * Math.sin(a), ry = dx * Math.sin(a) + dy * Math.cos(a);
+      if (Math.abs(rx) <= d.w / 2 && Math.abs(ry) <= d.h / 2) return d.k;
+    }
+    return null;
+  }
+  function unitsOf(e) {
+    var r = cv.getBoundingClientRect();
+    return { x: (e.clientX - r.left - cv.clientLeft) / cv.clientWidth * pattern.tile.w,
+      y: (e.clientY - r.top - cv.clientTop) / cv.clientHeight * pattern.tile.h };
+  }
+  function wrap(v) { return v - Math.floor(v); }
+  cv.addEventListener('pointerdown', function (e) {
+    if (!pattern) return;
+    var u = unitsOf(e);
+    var k = hit(u.x, u.y);
+    sel = k;
+    drag = k ? { k: k, x0: u.x, y0: u.y, ix: item(k).x, iy: item(k).y, moved: false } : null;
+    try { cv.setPointerCapture(e.pointerId); } catch (err) { /* */ }
+    paint(); syncControls();
+  });
+  cv.addEventListener('pointermove', function (e) {
+    if (!drag) return;
+    var u = unitsOf(e), it = item(drag.k); if (!it) return;
+    var dx = (u.x - drag.x0) / pattern.tile.w, dy = (u.y - drag.y0) / pattern.tile.h;
+    if (!drag.moved && Math.hypot(u.x - drag.x0, u.y - drag.y0) < 4) return;
+    drag.moved = true;
+    it.x = wrap(drag.ix + dx); it.y = wrap(drag.iy + dy);
+    paint();
+  });
+  function endDrag() { if (drag && drag.moved) { touch(drag.k); changed(); } drag = null; }
+  cv.addEventListener('pointerup', endDrag);
+  cv.addEventListener('pointercancel', endDrag);
+
+  // ── the controls ──
+  function syncControls() {
+    var it = sel ? item(sel) : null;
+    $('selbox').hidden = !it; $('selnone').hidden = !!it;
+    if (!it) return;
+    $('selname').textContent = (pieces[it.piece] || {}).name || '';
+    if (document.activeElement !== $('rot')) $('rot').value = Math.round(it.rot);
+    $('size').value = it.size;
+    $('flip').classList.toggle('on', !!it.flip);
+  }
+  function setRot(v) { var it = item(sel); if (!it) return; it.rot = ((Math.round(Number(v) || 0) % 360) + 360) % 360; touch(it.k); changed(); }
+  $('rot').addEventListener('input', function () { setRot($('rot').value); });
+  $('rotm').addEventListener('click', function () { var it = item(sel); if (it) setRot(it.rot - 15); });
+  $('rotp').addEventListener('click', function () { var it = item(sel); if (it) setRot(it.rot + 15); });
+  $('size').addEventListener('input', function () { var it = item(sel); if (!it) return; it.size = Number($('size').value); touch(it.k); changed(); });
+  $('flip').addEventListener('click', function () { var it = item(sel); if (!it) return; it.flip = !it.flip; touch(it.k); changed(); });
+  $('again').addEventListener('click', function () {
+    var it = item(sel); if (!it) return;
+    var at = P.freeSpot(pattern.items);
+    var copy = { k: key(), piece: it.piece, x: at.x, y: at.y, size: it.size, rot: it.rot, flip: it.flip };
+    pattern.items.push(copy); sel = copy.k; touch(copy.k); changed();
+  });
+  $('remove').addEventListener('click', function () {
+    if (!sel) return;
+    var k = sel;
+    pattern.items = pattern.items.filter(function (it) { return it.k !== k; });
+    sel = null; touch(k); changed(); shelfSig = ''; renderShelf();
+  });
+  $('space').addEventListener('input', function () {
+    var v = Number($('space').value);
+    pattern.tile.w = v; pattern.tile.h = v;
+    touch(); sizeCanvas(); changed();
+  });
+  $('spin').addEventListener('click', function () {
+    var rots = P.spin(pattern.items, Number($('spread').value), Date.now());
+    pattern.items.forEach(function (it, i) { it.rot = rots[i]; });
+    touchAll(); changed();
+  });
+  $('scatter').addEventListener('click', function () {
+    var at = P.scatter(pattern.items.length);
+    pattern.items.forEach(function (it, i) { it.x = at[i].x; it.y = at[i].y; });
+    touchAll(); changed();
+  });
+
+  // ── the repeat tab ──
+  function setLayoutUI() {
+    var k = pattern.layout.kind;
+    $('layout').dataset.n = String(P.LAYOUTS.indexOf(k));
+    $('layout').dataset.i = LAYOUT_LETTER[k];
+    $('layoutword').textContent = LAYOUT_WORD[k];
+  }
+  $('layout').addEventListener('click', function (e) {
+    var cur = P.LAYOUTS.indexOf(pattern.layout.kind);
+    var next = window.triNext($('layout'), P.LAYOUTS.length, e, cur);
+    if (next === cur) return;
+    pattern.layout = { kind: P.LAYOUTS[next] };
+    setLayoutUI(); touch(); changed();
+  });
+  function setBgUI() {
+    $('bg').value = pattern.tile.bg;
+    $('swatches').querySelectorAll('.sw').forEach(function (b) { b.classList.toggle('on', b.dataset.c === pattern.tile.bg); });
+  }
+  SWATCHES.forEach(function (c) {
+    var b = document.createElement('button'); b.className = 'sw'; b.dataset.c = c; b.style.background = c; b.setAttribute('aria-label', c);
+    b.addEventListener('click', function () { pattern.tile.bg = c; setBgUI(); touch(); changed(); });
+    $('swatches').appendChild(b);
+  });
+  $('bg').addEventListener('input', function () { pattern.tile.bg = $('bg').value.toLowerCase(); setBgUI(); touch(); changed(); });
+  $('sizes').addEventListener('click', function (e) {
+    var b = e.target.closest('.chip'); if (!b) return;
+    exportSize = b.dataset.s;
+    $('sizes').querySelectorAll('.chip').forEach(function (c) { c.classList.toggle('on', c === b); });
+  });
+  // EXPORT — drawn HERE, on a canvas, from the same list of draws the previews
+  // use, then filed into the Dump (the live /api/drop/upload-file) so it has a
+  // permanent url and a save link. No server render, no deploy.
+  $('export').addEventListener('click', function () {
+    if (!pattern) return;
+    if (!pattern.items.length) { say($('repmsg'), 'nothing on the tile yet'); return; }
+    var missing = pattern.items.some(function (it) { var im = imgFor(it.piece); return !(im && im.complete && im.naturalWidth); });
+    if (missing) { say($('repmsg'), 'the pictures are still loading — try again in a moment'); return; }
+    $('export').disabled = true;
+    say($('repmsg'), 'drawing ' + exportSize + '…');
+    var r;
+    try { r = renderOut(EXPORT_PX[exportSize]); }
+    catch (e) { say($('repmsg'), 'too big for this phone — try 2K', true); $('export').disabled = false; return; }
+    var name = (pattern.name || 'pattern').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'pattern';
+    var fname = name + '-' + exportSize + '-' + LAYOUT_WORD[r.layout].replace('-', '') + '.png';
+    r.canvas.toBlob(function (blob) {
+      if (!blob) { say($('repmsg'), 'could not draw the file', true); $('export').disabled = false; return; }
+      fetch('/api/drop/upload-file?bundle=' + encodeURIComponent('Patterns') + '&filename=' + encodeURIComponent(fname) + '&media=image',
+        { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: blob })
+        .then(function (res) { return res.json().then(function (j) { if (!res.ok || j.error) throw new Error(j.error || ('HTTP ' + res.status)); return j; }); })
+        .then(function (j) {
+          var it = j.item || {};
+          pattern.exports = (pattern.exports || []).concat([{ size: exportSize, layout: r.layout, W: r.W, H: r.H, url: it.url || '', id: it.id || '', at: new Date().toISOString() }]).slice(-6);
+          touch(); clearTimeout(dirtyT); saveNow();
+          renderExports(); say($('repmsg'), 'exported — it is in the Dump too');
+        })
+        .catch(function (err) { say($('repmsg'), err.message, true); })
+        .then(function () { $('export').disabled = false; });
+    }, 'image/png');
+  });
+  function renderExports() {
+    var host = $('exports'); host.innerHTML = '';
+    (pattern.exports || []).slice().reverse().forEach(function (x) {
+      var a = document.createElement('a');
+      a.href = x.url; a.target = '_blank'; a.rel = 'noopener';
+      a.innerHTML = '<span>' + x.size + ' · ' + (LAYOUT_WORD[x.layout] || x.layout) + '</span><span class="m">' + x.W + '×' + x.H + '</span>';
+      host.appendChild(a);
+    });
+  }
+
+  // ── go ──
+  load().then(function () {
+    var list = listPatterns();
+    var want = null; try { want = localStorage.getItem('pattern.cur'); } catch (e) { /* */ }
+    var pick = list.find(function (p) { return p.id === want; }) || list[0];
+    if (!pick) { pick = newPattern(); }
+    usePattern(pick);
+    var t = 0; try { t = Number(localStorage.getItem('pattern.tab') || 0); } catch (e) { /* */ }
+    showTab(t === 1 || t === 2 ? t : 0);
+  }).catch(function (err) { say($('shelfmsg'), err.message, true); });
+  tabLine();
+})();
+</script>
+</body>
+</html>

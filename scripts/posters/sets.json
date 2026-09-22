@@ -1,0 +1,154 @@
+{
+ "fruits": {
+  "title": "Fruits",
+  "from": "fruits"
+ },
+ "animals": {
+  "title": "Animals",
+  "from": "animals"
+ },
+ "sea": {
+  "title": "Sea Animals",
+  "from": "animals",
+  "pick": [
+   "crab",
+   "dolphin",
+   "fish",
+   "goldfish",
+   "octopus",
+   "sea lion",
+   "seahorse",
+   "squid",
+   "turtle",
+   "whale",
+   "penguin"
+  ]
+ },
+ "birds": {
+  "title": "Birds",
+  "from": "animals",
+  "pick": [
+   "blackbird",
+   "blue jay",
+   "chicken",
+   "duck",
+   "flamingo",
+   "hen",
+   "ostrich",
+   "owl",
+   "parrot",
+   "peacock",
+   "penguin",
+   "swan",
+   "toucan"
+  ]
+ },
+ "farm": {
+  "title": "Farm Animals",
+  "from": "animals",
+  "pick": [
+   "chicken",
+   "cow",
+   "donkey",
+   "duck",
+   "goat",
+   "hen",
+   "horse",
+   "lamb",
+   "pig",
+   "sheep"
+  ]
+ },
+ "pets": {
+  "title": "Pets",
+  "from": "animals",
+  "pick": [
+   "cat",
+   "dog",
+   "goldfish",
+   "guinea pig",
+   "hamster",
+   "rabbit"
+  ]
+ },
+ "woodland": {
+  "title": "Woodland Animals",
+  "from": "animals",
+  "pick": [
+   "bat",
+   "bear",
+   "coyote",
+   "deer",
+   "fox",
+   "moose",
+   "mouse",
+   "owl",
+   "rabbit",
+   "raccoon",
+   "skunk",
+   "squirrel",
+   "wolf"
+  ]
+ },
+ "cats": {
+  "title": "Big Cats",
+  "from": "animals",
+  "pick": [
+   "cheetah",
+   "leopard",
+   "lion",
+   "panther",
+   "puma",
+   "tiger"
+  ]
+ },
+ "reptiles": {
+  "title": "Reptiles & Amphibians",
+  "from": "animals",
+  "pick": [
+   "crocodile",
+   "frog",
+   "gecko",
+   "iguana",
+   "lizard",
+   "snake",
+   "turtle"
+  ]
+ },
+ "safari": {
+  "title": "Safari",
+  "from": "animals",
+  "pick": [
+   "camel",
+   "cheetah",
+   "elephant",
+   "giraffe",
+   "gorilla",
+   "hippo",
+   "hyena",
+   "leopard",
+   "lion",
+   "ostrich",
+   "rhino",
+   "zebra"
+  ]
+ },
+ "jungle": {
+  "title": "Jungle",
+  "from": "animals",
+  "pick": [
+   "monkey",
+   "lemur",
+   "sloth",
+   "gorilla",
+   "tiger",
+   "panther",
+   "parrot",
+   "toucan",
+   "snake",
+   "frog",
+   "iguana",
+   "gecko"
+  ]
+ }
+}

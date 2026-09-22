@@ -1,0 +1,49 @@
+{
+ "name": "exotic",
+ "pick": [
+  "animal:peacock",
+  "fruit:19-pomegranate",
+  "exotic:garnet",
+  "exotic:magnolia"
+ ],
+ "layout": "tossed",
+ "cols": 2,
+ "bg": "#ffffff",
+ "tile": 2048,
+ "fill": 0.8,
+ "seed": 1,
+ "cut": "rough",
+ "gap": 0.1,
+ "rows": 2,
+ "placements": [
+  {
+   "id": "animal:peacock",
+   "x": 0.2237,
+   "y": 0.2038,
+   "rot": 4.9,
+   "scale": 0.92
+  },
+  {
+   "id": "fruit:19-pomegranate",
+   "x": 0.7297,
+   "y": 0.4525,
+   "rot": 39.7,
+   "scale": 0.74
+  },
+  {
+   "id": "exotic:garnet",
+   "x": 0.1678,
+   "y": 0.7379,
+   "rot": -65,
+   "scale": 0.74,
+   "flip": true
+  },
+  {
+   "id": "exotic:magnolia",
+   "x": 0.71,
+   "y": 0.9635,
+   "rot": -77.9,
+   "scale": 0.73
+  }
+ ]
+}

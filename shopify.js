@@ -192,7 +192,7 @@ async function shopifyFetch(url, opts, isRetry = false) {
 }
 
 async function shopifyREST(path, { method = 'GET', body } = {}) {
-  if (!configured()) throw new Error('Shopify not configured (SHOPIFY_STORE + SHOPIFY_ADMIN_TOKEN, or SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET)');
+  if (!configured() && !(await loadOAuthToken())) throw new Error('Shopify not configured (SHOPIFY_STORE + SHOPIFY_ADMIN_TOKEN, or SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET)');
   const res = await shopifyFetch(`${base()}${path}`, {
     method,
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Connection': 'close' },
@@ -210,7 +210,7 @@ async function shopifyREST(path, { method = 'GET', body } = {}) {
 }
 
 async function shopifyGraphQL(query, variables = {}) {
-  if (!configured()) throw new Error('Shopify not configured (SHOPIFY_STORE + SHOPIFY_ADMIN_TOKEN, or SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET)');
+  if (!configured() && !(await loadOAuthToken())) throw new Error('Shopify not configured (SHOPIFY_STORE + SHOPIFY_ADMIN_TOKEN, or SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET)');
   const res = await shopifyFetch(`${base()}/graphql.json`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Connection': 'close' },
@@ -541,6 +541,8 @@ module.exports = {
   router,
   configured,
   connected,
+  shopifyREST,
+  shopifyGraphQL,
   listSubscribers,
   listProducts,
   listBlogs,

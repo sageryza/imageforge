@@ -1,0 +1,46 @@
+{
+ "scene": "the cards fanned out on a wood table, photographed from above in soft daylight",
+ "size": "1536x1024",
+ "quality": "medium",
+ "prompt": "The attached image shows the product: a set of printed flash cards with rounded corners. Keep every card exactly as it appears there — the drawings, the lettering, the white card face, the rounded corners — and do not add, change or invent any card. Draw a product photograph: the cards fanned out on a wood table, photographed from above in soft daylight",
+ "sheet": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/ea4e9c64434211c0e938f80a8dac2f07.png",
+ "takes": [
+  {
+   "i": 1,
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/abe6294fef2b7aa7327cacc4b77bee95.webp",
+   "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/abe6294fef2b7aa7327cacc4b77bee95.webp",
+   "usage": {
+    "input_tokens": 1609,
+    "input_tokens_details": {
+     "image_tokens": 1530,
+     "text_tokens": 79
+    },
+    "output_tokens": 1372,
+    "output_tokens_details": {
+     "image_tokens": 1372,
+     "text_tokens": 0
+    },
+    "total_tokens": 2981
+   }
+  },
+  {
+   "i": 2,
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/82bcffe09b3e39629b4cc86cd41f0fee.webp",
+   "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/82bcffe09b3e39629b4cc86cd41f0fee.webp",
+   "usage": {
+    "input_tokens": 1609,
+    "input_tokens_details": {
+     "image_tokens": 1530,
+     "text_tokens": 79
+    },
+    "output_tokens": 1372,
+    "output_tokens_details": {
+     "image_tokens": 1372,
+     "text_tokens": 0
+    },
+    "total_tokens": 2981
+   }
+  }
+ ],
+ "page": "xC4rIPyFYXAk2u0TxAEW"
+}

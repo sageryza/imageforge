@@ -1,0 +1,26 @@
+[
+ {
+  "id": "garnet",
+  "piece": "garnet",
+  "name": "garnet",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pieces/card/garnet.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pieces/full/garnet.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a rough garnet crystal as dug from the ground, a dark red twelve-sided lump with a matte surface, whole, on a plain white background. No text or lettering anywhere.",
+  "chat": "peacock-set-placement",
+  "at": "2026-09-22T21:51:55.263Z"
+ },
+ {
+  "id": "magnolia",
+  "piece": "magnolia",
+  "name": "magnolia",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pieces/card/magnolia.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pieces/full/magnolia.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "a single magnolia flower, whole, on a plain white background. No text or lettering anywhere.",
+  "chat": "peacock-set-placement",
+  "at": "2026-09-22T21:52:36.910Z"
+ }
+]

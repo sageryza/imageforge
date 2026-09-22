@@ -1,0 +1,146 @@
+{
+ "layout": "tossed",
+ "once": true,
+ "tile": 2048,
+ "bg": "#ffffff",
+ "cut": "rough",
+ "fill": 0.62,
+ "gap": 0.3,
+ "name": "all fifteen fruit",
+ "pick": [
+  "picked:strawberry",
+  "picked:banana",
+  "picked:apple",
+  "picked:mango",
+  "picked:watermelon",
+  "picked:blueberries",
+  "picked:raspberries",
+  "picked:kiwi",
+  "picked:lemon",
+  "picked:blackberries",
+  "picked:lime",
+  "picked:cherimoya",
+  "picked:guava",
+  "picked:passion-fruit",
+  "picked:mulberries"
+ ],
+ "seed": 4,
+ "cols": 4,
+ "rows": 4,
+ "placements": [
+  {
+   "id": "picked:blackberries",
+   "x": 0.1093,
+   "y": 0.1143,
+   "rot": -50.1,
+   "scale": 0.75,
+   "flip": true
+  },
+  {
+   "id": "picked:guava",
+   "x": 0.4901,
+   "y": 0.2303,
+   "rot": 85.3,
+   "scale": 0.96
+  },
+  {
+   "id": "picked:kiwi",
+   "x": 0.7355,
+   "y": 0.0916,
+   "rot": 41.8,
+   "scale": 1.05
+  },
+  {
+   "id": "picked:strawberry",
+   "x": 0.9332,
+   "y": 0.2946,
+   "rot": -1.7,
+   "scale": 1
+  },
+  {
+   "id": "picked:apple",
+   "x": 0.2348,
+   "y": 0.3379,
+   "rot": -27.4,
+   "scale": 1.02,
+   "flip": true
+  },
+  {
+   "id": "picked:blueberries",
+   "x": 0.4541,
+   "y": 0.4842,
+   "rot": -28.3,
+   "scale": 0.89,
+   "flip": true
+  },
+  {
+   "id": "picked:raspberries",
+   "x": 0.6688,
+   "y": 0.3953,
+   "rot": 47.5,
+   "scale": 0.76
+  },
+  {
+   "id": "picked:mango",
+   "x": 0.8443,
+   "y": 0.5218,
+   "rot": 8.5,
+   "scale": 0.74
+  },
+  {
+   "id": "picked:passion-fruit",
+   "x": 0.0886,
+   "y": 0.5886,
+   "rot": -63.6,
+   "scale": 1.08
+  },
+  {
+   "id": "picked:banana",
+   "x": 0.3452,
+   "y": 0.7191,
+   "rot": -56.5,
+   "scale": 0.97,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.6407,
+   "y": 0.6193,
+   "rot": 82.2,
+   "scale": 0.72,
+   "flip": true
+  },
+  {
+   "id": "picked:cherimoya",
+   "x": 0.8473,
+   "y": 0.7761,
+   "rot": 9.9,
+   "scale": 1.1,
+   "flip": true
+  },
+  {
+   "id": "picked:watermelon",
+   "x": 0.1085,
+   "y": 0.8681,
+   "rot": -6.4,
+   "scale": 0.99,
+   "flip": true
+  },
+  {
+   "id": "picked:mulberries",
+   "x": 0.3443,
+   "y": 0.0008,
+   "rot": 51.8,
+   "scale": 1.05,
+   "flip": true
+  },
+  {
+   "id": "picked:lime",
+   "x": 0.5788,
+   "y": 0.8594,
+   "rot": 86.2,
+   "scale": 0.95,
+   "flip": true
+  }
+ ]
+}

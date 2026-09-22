@@ -21,8 +21,13 @@ W,H=int(2.75*DPI),int(3.75*DPI)   # 825x1125
 TW,TH=int(2.5*DPI),int(3.5*DPI)   # 750x1050
 PIC=int(TW*0.80)                  # 600
 import argparse
-ap=argparse.ArgumentParser(); ap.add_argument('cards'); ap.add_argument('--src',default='src'); ap.add_argument('--full',default='full'); ap.add_argument('--font',required=True); ap.add_argument('--out',default='deck'); A=ap.parse_args()
-font=ImageFont.truetype(A.font, 64)
+ap=argparse.ArgumentParser(); ap.add_argument('cards'); ap.add_argument('--src',default='src'); ap.add_argument('--full',default='full'); ap.add_argument('--font',required=True); ap.add_argument('--out',default='deck')
+# --caps --size --track: the name in capitals, at a size and a letter-spacing
+# (em) that match the flash-card page (2026-09-22, the animal deck's Lemon
+# Hand caps at 10px/.24em on a 170px card ≈ 52px/.24em on this one).
+ap.add_argument('--caps',action='store_true'); ap.add_argument('--size',type=int,default=64); ap.add_argument('--track',type=float,default=0.12)
+A=ap.parse_args()
+font=ImageFont.truetype(A.font, A.size)
 try: font.set_variation_by_name('Medium')
 except Exception: pass
 names=[l.split('|') for l in open(A.cards).read().strip().split('\n')[1:]]
@@ -40,9 +45,9 @@ for i,(name,url) in enumerate(names,1):
     pic=im.resize((PIC,PIC),Image.LANCZOS)
     card=Image.new('RGB',(W,H),'white')
     d=ImageDraw.Draw(card)
-    text=name.lower(); ls=int(64*0.12)
+    text=name.upper() if A.caps else name.lower(); ls=int(A.size*A.track)
     tw=sum(d.textlength(c,font=font) for c in text)+ls*(len(text)-1)
-    th=64; gap=int(0.16*PIC)
+    th=A.size; gap=int(0.16*PIC)
     block=PIC+gap+th
     top=BLEED+(TH-block)//2
     card.paste(pic,((W-PIC)//2,top))

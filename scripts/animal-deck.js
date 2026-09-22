@@ -57,18 +57,56 @@ const PAIRS = path.join(__dirname, 'fruit-chart', 'animals-uploaded.json');
 const ALIASES = {
   'tabby cat': 'cat', 'mare': 'horse', 'black bear': 'bear',
   'spotted cow': 'cow', 'black and white spotted cow': 'cow',
+  // the long names (2026-09-22, "hippo?" — she had drawn "hippopotamus")
+  'hippopotamus': 'hippo', 'rhinoceros': 'rhino', 'chimpanzee': 'monkey', 'bunny': 'rabbit',
+  'grizzly bear': 'bear', 'brown bear': 'bear', 'polar bear': 'polar bear', 'red fox': 'fox',
+  'grey wolf': 'wolf', 'gray wolf': 'wolf', 'house cat': 'cat', 'kitten': 'cat', 'puppy': 'dog',
+  // "snowy owl is just owl" (2026-09-22) — a kind of owl is a version of the owl card
+  'snowy owl': 'owl', 'barn owl': 'owl', 'great horned owl': 'owl',
+  // "stallion is horse" (2026-09-22) — the sexes and the young ride as versions
+  'sea horse': 'seahorse', 'stallion': 'horse', 'foal': 'horse', 'pony': 'horse', 'colt': 'horse', 'filly': 'horse',
+  'ewe': 'sheep', 'ram': 'sheep', 'billy goat': 'goat', 'nanny goat': 'goat', 'kid goat': 'goat',
+  'bull': 'cow', 'calf': 'cow', 'heifer': 'cow', 'boar': 'pig', 'sow': 'pig', 'piglet': 'pig',
+  'doe': 'deer', 'stag': 'deer', 'buck': 'deer', 'fawn': 'deer', 'lioness': 'lion', 'tigress': 'tiger',
+  'drake': 'duck', 'duckling': 'duck', 'gosling': 'goose', 'gander': 'goose', 'cygnet': 'swan',
+  'chick': 'chicken', 'rooster': 'chicken',  // "call rooster chicken" (2026-09-22) 'cub': 'bear', 'bear cub': 'bear', 'joey': 'kangaroo', 'tomcat': 'cat',
 };
-const ANIMALS = new Set(['lamb', 'cat', 'gecko', 'lizard', 'wolf', 'sheep', 'lion', 'puma', 'panther',
-  'raccoon', 'owl', 'horse', 'tiger', 'leopard', 'hyena', 'coyote', 'cow', 'flamingo', 'ostrich', 'frog',
-  'emu', 'peacock', 'elephant', 'bear', 'zebra', 'cheetah', 'rhino', 'monkey', 'blue jay', 'blackbird',
-  'hare', 'robin', 'fox', 'deer', 'rabbit', 'giraffe', 'hippo', 'gorilla', 'kangaroo', 'koala', 'panda',
-  'penguin', 'seal', 'otter', 'beaver', 'moose', 'bison', 'camel', 'goat', 'pig', 'donkey', 'duck',
-  'goose', 'swan', 'turkey', 'chicken', 'rooster', 'hen', 'crow', 'sparrow', 'eagle', 'hawk', 'parrot',
-  'toucan', 'pelican', 'heron', 'turtle', 'tortoise', 'snake', 'crocodile', 'alligator', 'iguana',
-  'chameleon', 'squirrel', 'chipmunk', 'mouse', 'rat', 'hedgehog', 'bat', 'skunk', 'badger', 'mole',
-  'dog', 'jaguar', 'lynx', 'bobcat', 'meerkat', 'sloth', 'armadillo', 'anteater', 'llama', 'alpaca',
-  'ram', 'bull', 'ox', 'yak', 'walrus', 'whale', 'dolphin', 'shark', 'octopus', 'crab', 'lobster',
-  'jellyfish', 'starfish', 'seahorse', 'fish', 'salmon', 'trout', 'toad', 'salamander', 'newt']);
+const ANIMALS = new Set([
+  'lamb', 'cat', 'gecko', 'lizard', 'wolf', 'sheep', 'lion', 'puma', 'panther', 'raccoon',
+  'owl', 'horse', 'tiger', 'leopard', 'hyena', 'coyote', 'cow', 'flamingo', 'ostrich', 'frog',
+  'emu', 'peacock', 'elephant', 'bear', 'zebra', 'cheetah', 'rhino', 'monkey', 'blue jay',
+  'blackbird', 'hare', 'robin', 'fox', 'deer', 'rabbit', 'giraffe', 'hippo', 'gorilla',
+  'kangaroo', 'koala', 'panda', 'penguin', 'seal', 'otter', 'beaver', 'moose', 'bison', 'camel',
+  'goat', 'pig', 'donkey', 'duck', 'goose', 'swan', 'turkey', 'chicken', 'rooster', 'hen',
+  'crow', 'sparrow', 'eagle', 'hawk', 'parrot', 'toucan', 'pelican', 'heron', 'turtle',
+  'tortoise', 'snake', 'crocodile', 'alligator', 'iguana', 'chameleon', 'squirrel', 'chipmunk',
+  'mouse', 'rat', 'hedgehog', 'bat', 'skunk', 'badger', 'mole', 'dog', 'jaguar', 'lynx',
+  'bobcat', 'meerkat', 'sloth', 'armadillo', 'anteater', 'llama', 'alpaca', 'ram', 'bull', 'ox',
+  'yak', 'walrus', 'whale', 'dolphin', 'shark', 'octopus', 'crab', 'lobster', 'jellyfish',
+  'starfish', 'seahorse', 'fish', 'salmon', 'trout', 'toad', 'salamander', 'newt', 'polar bear',
+  'orangutan', 'lemur', 'wombat', 'platypus', 'ferret', 'weasel', 'porcupine', 'antelope',
+  'gazelle', 'elk', 'reindeer', 'buffalo', 'boar', 'warthog', 'hummingbird', 'woodpecker',
+  'stork', 'crane', 'vulture', 'falcon', 'magpie', 'pigeon', 'dove', 'puffin', 'kiwi',
+  'cockatoo', 'macaw', 'bee', 'butterfly', 'ladybug', 'ant', 'spider', 'snail', 'ray',
+  'stingray', 'manatee', 'narwhal', 'sea lion', 'clownfish', 'goldfish', 'koi', 'eel', 'squid',
+  'cobra', 'python', 'viper', 'rattlesnake', 'boa', 'komodo dragon', 'axolotl', 'scorpion',
+  'moth', 'dragonfly', 'grasshopper', 'cricket', 'beetle', 'worm', 'caterpillar', 'wasp',
+  'hornet', 'mosquito', 'fly', 'flea', 'tick', 'calf', 'foal', 'piglet', 'kid', 'duckling',
+  'gosling', 'chick', 'cub', 'joey', 'fawn', 'pony', 'mule', 'zebu', 'ibex', 'chamois',
+  'wildebeest', 'okapi', 'tapir', 'capybara', 'guinea pig', 'hamster', 'gerbil', 'chinchilla',
+  'opossum', 'possum', 'raccoon dog', 'wolverine', 'marten', 'mink', 'stoat', 'ermine',
+  'ocelot', 'serval', 'caracal', 'cougar', 'mountain lion', 'snow leopard', 'clouded leopard',
+  'jackal', 'dingo', 'arctic fox', 'fennec fox', 'sun bear', 'sloth bear', 'spectacled bear',
+  'giant panda', 'red panda', 'sea otter', 'river otter', 'muskrat', 'nutria', 'vole',
+  'lemming', 'shrew', 'echidna', 'cassowary', 'rhea', 'albatross', 'gull', 'seagull', 'tern',
+  'petrel', 'cormorant', 'gannet', 'booby', 'frigatebird', 'spoonbill', 'ibis', 'egret',
+  'mallard', 'teal', 'loon', 'grebe', 'coot', 'moorhen', 'rail', 'crake', 'bustard', 'pheasant',
+  'grouse', 'quail', 'partridge', 'peafowl', 'guineafowl', 'cuckoo', 'roadrunner', 'nightjar',
+  'swift', 'kingfisher', 'bee-eater', 'hoopoe', 'hornbill', 'parakeet', 'budgie', 'lovebird',
+  'kite', 'osprey', 'condor', 'buzzard', 'harrier', 'kestrel', 'raven', 'jay', 'jackdaw',
+  'rook', 'starling', 'mynah', 'oriole', 'thrush', 'nightingale', 'wren', 'finch', 'goldfinch',
+  'canary', 'cardinal', 'bunting', 'warbler', 'tit', 'chickadee', 'nuthatch', 'treecreeper',
+  'lark', 'pipit', 'wagtail', 'swallow', 'martin']);
 
 function subjectOf(prompt) {
   let s = String(prompt || '').toLowerCase().replace(/\([^)]*\)/g, ' ').split(',')[0].trim();
@@ -88,7 +126,18 @@ function decide(versions) {
   if (!alive.length) return { pick: null, out, tie: [], empty: true };
   return { pick: null, out, tie: alive, twoHearts: hearts.length > 1 };
 }
-module.exports = { decide, subjectOf, ALIASES, ANIMALS };
+// A HEART ON THE TIES PAGE OR IN THE ASSETS TAB IS HER NEWER WORD (2026-09-22,
+// "rhino has a heart" — both rhino runs wore a Playground ♥ from different
+// days, she hearted ONE on the ties surface, and the deck still called it two
+// hearts). When any version of an animal carries a ♥ made where the tie is
+// being broken, the other versions' Playground-only hearts stand down; a ✕
+// anywhere still stands.
+function settle(versions) {
+  const fresh = versions.some((v) => v.mark === 'like' && v.markFrom);
+  if (!fresh) return versions;
+  return versions.map((v) => (v.mark === 'like' && !v.markFrom ? { ...v, mark: null, stoodDown: true } : v));
+}
+module.exports = { decide, settle, subjectOf, ALIASES, ANIMALS };
 if (require.main !== module) return;
 
 const get = async (u) => (await fetch(u)).json();
@@ -153,13 +202,15 @@ async function playgroundRuns() {
     const pm = pageMarks[v.id];
     const tm = tabMarks.get(v.full.split('/').pop());
     const m = pm === true ? 'like' : pm === false ? 'dislike' : tm || null;
-    if (m && m !== v.mark) { v.mark = m; v.markFrom = pm != null ? 'ties page' : 'assets tab'; overrides++; }
+    // markFrom is set whenever she marked it HERE, even when it agrees with
+    // the Playground — `settle` needs to know which hearts are her newer word.
+    if (m) { if (m !== v.mark) overrides++; v.mark = m; v.markFrom = pm != null ? 'ties page' : 'assets tab'; }
   }
 
   const animals = [...byAnimal.keys()].sort();
   const picks = [], ties = [], empty = [];
   for (const a of animals) {
-    const vs = byAnimal.get(a).sort((x, y) => (y.at || 0) - (x.at || 0));
+    const vs = settle(byAnimal.get(a).sort((x, y) => (y.at || 0) - (x.at || 0)));
     const d = decide(vs);
     if (d.pick) picks.push({ animal: a, v: d.pick, auto: d.auto, of: vs.length });
     else if (d.empty) empty.push({ animal: a, of: vs.length });

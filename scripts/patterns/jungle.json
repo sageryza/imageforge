@@ -1,0 +1,121 @@
+{
+ "layout": "tossed",
+ "once": true,
+ "tile": 2048,
+ "bg": "#ffffff",
+ "cut": "rough",
+ "fill": 0.62,
+ "gap": 0.3,
+ "name": "jungle",
+ "pick": [
+  "animal:elephant",
+  "animal:gorilla",
+  "picked:cheetah",
+  "animal:tiger",
+  "animal:leopard",
+  "animal:monkey",
+  "animal:parrot",
+  "animal:toucan",
+  "animal:sloth",
+  "animal:snake",
+  "animal:lemur",
+  "animal:crocodile"
+ ],
+ "seed": 31,
+ "tilt": 45,
+ "cols": 4,
+ "rows": 3,
+ "placements": [
+  {
+   "id": "animal:gorilla",
+   "x": 0.068,
+   "y": 0.2131,
+   "rot": 22.5,
+   "scale": 0.65,
+   "flip": true
+  },
+  {
+   "id": "animal:parrot",
+   "x": 0.3297,
+   "y": 0.2474,
+   "rot": 38.8,
+   "scale": 0.9
+  },
+  {
+   "id": "animal:monkey",
+   "x": 0.5958,
+   "y": 0.2172,
+   "rot": 6.5,
+   "scale": 0.77
+  },
+  {
+   "id": "animal:elephant",
+   "x": 0.8708,
+   "y": 0.4296,
+   "rot": 23.4,
+   "scale": 0.91,
+   "flip": true
+  },
+  {
+   "id": "animal:lemur",
+   "x": 0.1519,
+   "y": 0.5227,
+   "rot": 24.5,
+   "scale": 0.9
+  },
+  {
+   "id": "picked:cheetah",
+   "x": 0.392,
+   "y": 0.5712,
+   "rot": -41.9,
+   "scale": 0.69,
+   "flip": true
+  },
+  {
+   "id": "animal:tiger",
+   "x": 0.6254,
+   "y": 0.5265,
+   "rot": -20,
+   "scale": 0.86
+  },
+  {
+   "id": "animal:crocodile",
+   "x": 0.9517,
+   "y": 0.7554,
+   "rot": 30.1,
+   "scale": 0.93,
+   "flip": true
+  },
+  {
+   "id": "animal:toucan",
+   "x": 0.1889,
+   "y": 0.9124,
+   "rot": -38.9,
+   "scale": 0.91,
+   "flip": true
+  },
+  {
+   "id": "animal:sloth",
+   "x": 0.4641,
+   "y": 0.9123,
+   "rot": -4.5,
+   "scale": 0.93
+  },
+  {
+   "id": "animal:leopard",
+   "x": 0.7036,
+   "y": 0.8075,
+   "rot": 3.4,
+   "scale": 0.76,
+   "flip": true
+  },
+  {
+   "id": "animal:snake",
+   "x": 0.8347,
+   "y": 0.0905,
+   "rot": 41.6,
+   "scale": 0.9,
+   "flip": true
+  }
+ ]
+}
