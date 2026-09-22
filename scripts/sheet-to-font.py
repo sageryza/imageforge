@@ -37,10 +37,16 @@ The spec is JSON:
     side      side bearing in font units (default 65) — measured off the
               sheet's own title lines so the default spacing IS the sheet's
               (title 140, subtitle 80) · space the space glyph's width
+    blur      false traces the plain cubic upscale with no smoothing, and with
+              traceDark at the mid-grey between paper and ink (~130) the
+              outline sits on the stroke's true edge — the sheet's own weight
+              (a photographed serif; handwriting keeps the default)
     thin      px shaved off each side of every stroke at the 4x trace; the
               hairlines a shave would erase are kept whole
     alignTop  {glyph: otherGlyph} — lift a mark so its top matches another's
               (the sheet's apostrophe hung at mid height: IT'S read as IT,S)
+  paste       also write <out>-paste.ttf: every glyph is its own PNG crop of
+              the sheet (sbix), the pixels untouched — see paste_font
   lowerToCaps a caps-only font draws lowercase with the caps (the title face)
   capsToLower a lowercase-only font draws caps with the lowercase (the italic)
 
@@ -62,6 +68,11 @@ from fontTools.pens.t2CharStringPen import T2CharStringPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.pens.cu2quPen import Cu2QuPen
 from fontTools.pens.boundsPen import BoundsPen
+from fontTools.ttLib.tables._s_b_i_x import table__s_b_i_x
+from fontTools.ttLib.tables.sbixStrike import Strike
+from fontTools.ttLib.tables.sbixGlyph import Glyph as SbixGlyph
+from PIL import Image
+import io
 
 UPM = 1000
 CAP_HEIGHT = 700
@@ -133,11 +144,11 @@ def bridge(ink):
     cv2.line(out, (int(a[i][1]), int(a[i][0])), (int(b[j][1]), int(b[j][0])), 1, w)
     return out.astype(bool)
 
-def trace(gray, box, scale=4, pad=5, join=False, dark=165, thin=0):
+def trace(gray, box, scale=4, pad=5, join=False, dark=165, thin=0, blur=True):
     x0, x1, y0, y1 = box
     crop = gray[max(0, y0-pad):y1+pad, max(0, x0-pad):x1+pad]
     big = cv2.resize(crop, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
-    big = cv2.GaussianBlur(big, (3, 3), 0)
+    if blur: big = cv2.GaussianBlur(big, (3, 3), 0)
     ink = big < dark
     if join: ink = bridge(ink)
     if thin: ink = thin_strokes(ink, thin)
@@ -194,9 +205,9 @@ def main():
         for src in spec['sources']: print(src['sheet']); read_sheet(src, True)
         return
 
-    cff, ttg, widths = {}, {}, {}
-    def add(name, gray, box, base, k, join, dark=165, level=None, thin=0, SIDE=SIDE):
-        path, origin, scale, top = trace(gray, box, join=join, dark=dark, thin=thin)
+    cff, ttg, widths, pasted = {}, {}, {}, {}
+    def add(name, gray, box, base, k, join, dark=165, level=None, thin=0, SIDE=SIDE, blur=True):
+        path, origin, scale, top = trace(gray, box, join=join, dark=dark, thin=thin, blur=blur)
         # LEVELLING (a typeset sheet): every glyph in a level group is scaled so
         # its top lands where the group's median top lands — at 22px a serif's
         # hairline top is caught on one letter and missed on the next, and the
@@ -231,10 +242,11 @@ def main():
         for c, (box, base) in glyphs.items():
             if c in align and align[c] in glyphs: base += box[2] - glyphs[align[c]][0][2]
             if c not in base_chars:
-                base_chars[c] = gname(c); add(gname(c), gray, box, base, k, c in join, src.get('traceDark', 165), level.get(c), src.get('thin', 0), src.get('side', SIDE))
+                base_chars[c] = gname(c); add(gname(c), gray, box, base, k, c in join, src.get('traceDark', 165), level.get(c), src.get('thin', 0), src.get('side', SIDE), src.get('blur', True))
+                pasted[gname(c)] = (gray, box, base, k, src.get('side', SIDE))
             else:
                 n = gname(c) + '.alt%d' % (len(alts.get(c, [])) + 1)
-                alts.setdefault(c, []).append(n); add(n, gray, box, base, k, c in join, src.get('traceDark', 165), level.get(c), src.get('thin', 0), src.get('side', SIDE))
+                alts.setdefault(c, []).append(n); add(n, gray, box, base, k, c in join, src.get('traceDark', 165), level.get(c), src.get('thin', 0), src.get('side', SIDE), src.get('blur', True))
 
     for g in ('.notdef', 'space'):
         sp = spec.get('space', SPACE); widths[g] = sp; cff[g] = T2CharStringPen(sp, None).getCharString(); ttg[g] = TTGlyphPen(None).glyph()
@@ -288,6 +300,48 @@ def main():
         if fea: addOpenTypeFeaturesFromString(fb.font, fea)
         out = f'{spec["out"]}.{fmt}'; fb.save(out)
         print('wrote', out, os.path.getsize(out), 'bytes', f'({len(order)} glyphs, {nalt} alternate sets)')
+    if spec.get('paste'):
+        paste_font(spec, pasted, order, cmap, widths, family, spec.get('style', 'Regular'), asc, desc, xheight)
+
+def paste_font(spec, entries, order, cmap, widths, family, style, asc, desc, xheight):
+    """PASTE, not trace: every glyph carries its own crop of the sheet as a PNG
+    (Apple's sbix table — iPhone, Mac, Safari; Chrome reads it too). The paper
+    is knocked out to alpha from the grey level, so the ink's weight, edges and
+    grain are the sheet's, byte for byte (Sophie: "why can't u paste the
+    characters in"). It does not scale past the sheet's own resolution — a
+    22px letter drawn at 200px is a soft 22px letter — which is what the vector
+    face is for; both are written."""
+    fb = FontBuilder(UPM, isTTF=True)
+    fb.setupGlyphOrder(order); fb.setupCharacterMap(cmap)
+    fb.setupGlyf({g: TTGlyphPen(None).glyph() for g in order})
+    fb.setupHorizontalMetrics({g: (widths[g], 0) for g in order})
+    fb.setupHorizontalHeader(ascent=asc, descent=desc)
+    fb.setupNameTable({'familyName': family + ' Paste', 'styleName': style, 'uniqueFontIdentifier': f'{family} Paste {style}',
+                       'fullName': family + ' Paste' if style == 'Regular' else f'{family} Paste {style}',
+                       'psName': family.replace(' ', '') + 'Paste-' + style.replace(' ', ''), 'version': 'Version 1.0'})
+    fb.setupOS2(sTypoAscender=asc, sTypoDescender=desc, sTypoLineGap=0, usWinAscent=asc, usWinDescent=-desc, sxHeight=int(xheight), sCapHeight=CAP_HEIGHT, achVendID='SOPH')
+    fb.setupPost(); fb.setupMaxp()
+    # one strike per sheet scale: ppem = px per em on that sheet
+    strikes = {}
+    for name, (gray, box, base, k, side) in entries.items():
+        ppem = int(round(UPM / k))
+        x0, x1, y0, y1 = box
+        crop = gray[y0:y1, x0:x1].astype(np.float32)
+        paper = float(np.percentile(gray, 90)); black = float(max(0, min(np.percentile(crop, 2), 60)))
+        alpha = np.clip((paper - crop) / (paper - black), 0, 1)
+        rgba = np.zeros((crop.shape[0], crop.shape[1], 4), np.uint8); rgba[..., 3] = (alpha * 255).astype(np.uint8)
+        buf = io.BytesIO(); Image.fromarray(rgba, 'RGBA').save(buf, 'PNG')
+        st = strikes.setdefault(ppem, Strike(ppem=ppem, resolution=72))
+        g = SbixGlyph(glyphName=name, graphicType='png ', imageData=buf.getvalue(),
+                      originOffsetX=int(round(side / k)), originOffsetY=int(round(base - y1)))
+        st.glyphs[name] = g
+    sbix = table__s_b_i_x(); sbix.version = 1; sbix.flags = 1; sbix.strikes = strikes
+    for st in strikes.values():
+        for g in order:
+            if g not in st.glyphs: st.glyphs[g] = SbixGlyph(glyphName=g)
+    fb.font['sbix'] = sbix
+    out = f'{spec["out"]}-paste.ttf'; fb.save(out)
+    print('wrote', out, os.path.getsize(out), 'bytes', f'(pasted, {len(strikes)} strike)')
 
 if __name__ == '__main__':
     main()

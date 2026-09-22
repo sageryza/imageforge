@@ -21,15 +21,17 @@
    ],
    "gap": 6,
    "dark": 210,
-   "traceDark": 150,
+   "traceDark": 130,
    "level": [
     "acemnorsuvwxz",
     "bdhkl",
     "0123456789"
    ],
-   "thin": 1,
-   "side": 80
+   "thin": 0,
+   "side": 80,
+   "blur": false
   }
  ],
- "space": 580
+ "space": 580,
+ "paste": true
 }
