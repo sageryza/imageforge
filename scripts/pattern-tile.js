@@ -151,49 +151,71 @@ async function cutout(rec) {
 // multiple of the cell's motif size — so the file reads the same at any tile
 // size and a hand-arranged page can write the same numbers.
 function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-function layout(spec) {
+// Two rules from her first look (2026-09-22: "they're too close and some
+// overlap and ones near each other are the same animal"): every picture keeps
+// a GAP from every other one, across the tile's edges too, and no picture
+// gets the same neighbour as itself within reach. `dims` is each cut-out's
+// width/height ratio, so the space a picture takes is its real shape.
+function layout(spec, dims) {
   const kind = spec.layout || 'tossed';
   const ids = spec.pick;
   let cols = Math.max(1, Math.round(spec.cols || 4));
   if (kind !== 'grid' && cols % 2) cols += 1; // a half-drop only repeats cleanly on an even column count
   const rows = cols;
   const rnd = mulberry32(Number(spec.seed || 1));
-  const out = [];
-  // Which picture goes in which cell: cycle through them in order for a grid
-  // or a half-drop (the repeat IS the point there), and for a tossed pattern
-  // pick by seed, never the same picture as the one to the left or above
-  // (the neighbours across the tile's edge count too, since it repeats).
-  const order = [];
-  const at = (r, c) => order[((r + rows) % rows) * cols + ((c + cols) % cols)];
+  const fill = Number(spec.fill == null ? 0.8 : spec.fill);
+  const gap = Number(spec.gap == null ? 0.1 : spec.gap); // in cells
+  const cell = 1 / cols;
+  const wrapD = (a, b) => { let dx = Math.abs(a.x - b.x), dy = Math.abs(a.y - b.y); dx = Math.min(dx, 1 - dx); dy = Math.min(dy, 1 - dy); return Math.hypot(dx, dy); };
+  // Where: a grid, a half-drop, or a half-drop with a small random nudge.
+  const P = [];
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-    const n = r * cols + c;
-    if (kind !== 'tossed' || ids.length < 3) { order.push(ids[(n + (cols % ids.length === 0 ? r : 0)) % ids.length]); continue; }
-    const avoid = new Set([at(r, c - 1), at(r - 1, c), c === cols - 1 ? at(r, 0) : null, r === rows - 1 ? at(0, c) : null].filter(Boolean));
-    const pool = ids.filter((id) => !avoid.has(id));
-    // Keep the counts even: prefer whichever allowed picture has been used least.
-    const used = new Map(ids.map((id) => [id, 0]));
-    for (const id of order) used.set(id, used.get(id) + 1);
-    const least = Math.min(...pool.map((id) => used.get(id)));
-    const best = pool.filter((id) => used.get(id) === least);
-    order.push(best[Math.floor(rnd() * best.length)]);
+    const drop = kind === 'grid' ? 0 : (c % 2 ? 0.5 : 0);
+    let x = (c + 0.5) / cols, y = (r + 0.5 + drop) / rows, rot = 0, scale = 1;
+    if (kind === 'tossed') {
+      x += (rnd() - 0.5) * 0.3 * cell;
+      y += (rnd() - 0.5) * 0.3 * cell;
+      rot = (rnd() - 0.5) * 2 * (spec.tilt == null ? 30 : Number(spec.tilt));
+      scale = 0.88 + rnd() * 0.2;
+    } else if (spec.tilt) rot = (rnd() - 0.5) * 2 * Number(spec.tilt);
+    P.push({ x: ((x % 1) + 1) % 1, y: ((y % 1) + 1) % 1, rot, scale });
   }
-  let i = 0;
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const drop = kind === 'grid' ? 0 : (c % 2 ? 0.5 : 0);
-      let x = (c + 0.5) / cols, y = (r + 0.5 + drop) / rows, rot = 0, scale = 1;
-      if (kind === 'tossed') {
-        x += (rnd() - 0.5) * 0.5 / cols;
-        y += (rnd() - 0.5) * 0.5 / rows;
-        rot = (rnd() - 0.5) * 2 * (spec.tilt == null ? 40 : Number(spec.tilt));
-        scale = 0.82 + rnd() * 0.24;
-      } else if (spec.tilt) {
-        rot = (rnd() - 0.5) * 2 * Number(spec.tilt);
-      }
-      out.push({ id: order[i++], x: ((x % 1) + 1) % 1, y: ((y % 1) + 1) % 1, rot: Math.round(rot * 10) / 10, scale: Math.round(scale * 100) / 100 });
+  // Who: farthest-from-its-own-kind. Each cell takes the picture whose
+  // nearest twin already placed is farthest away (least used breaks ties).
+  const used = new Map(ids.map((id) => [id, 0]));
+  for (let i = 0; i < P.length; i++) {
+    let best = null, bestScore = -1;
+    for (const id of ids) {
+      let near = Infinity;
+      for (let j = 0; j < i; j++) if (P[j].id === id) near = Math.min(near, wrapD(P[i], P[j]));
+      const score = (kind === 'tossed' || ids.length >= 3 ? near : 0) - used.get(id) * 0.01 + (kind === 'tossed' ? rnd() * 0.001 : 0);
+      if (score > bestScore) { bestScore = score; best = id; }
+    }
+    if (kind !== 'tossed' && ids.length < 3) best = ids[i % ids.length];
+    P[i].id = best; used.set(best, used.get(best) + 1);
+  }
+  // How big: the room a picture takes is half its fitted box's diagonal.
+  // Shrink everyone together until every pair keeps the gap, then nudge a
+  // tossed layout apart a few rounds so the spacing evens out.
+  const radius = (p, s) => { const d = dims[p.id] || { w: 1, h: 1 }; const m = Math.max(d.w, d.h); const w = d.w / m, h = d.h / m; return 0.5 * Math.hypot(w, h) * cell * fill * s * p.scale * 0.92; };
+  let shrink = 1;
+  const tooClose = () => { let worst = 0; for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) { const need = radius(P[i], shrink) + radius(P[j], shrink) + gap * cell; const d = wrapD(P[i], P[j]); if (d < need) worst = Math.max(worst, need / d); } return worst; };
+  for (let round = 0; round < 80 && (kind === 'tossed'); round++) {
+    for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) {
+      const need = radius(P[i], 1) + radius(P[j], 1) + gap * cell;
+      const d = wrapD(P[i], P[j]);
+      if (d >= need || d === 0) continue;
+      let dx = P[j].x - P[i].x, dy = P[j].y - P[i].y;
+      if (dx > 0.5) dx -= 1; if (dx < -0.5) dx += 1; if (dy > 0.5) dy -= 1; if (dy < -0.5) dy += 1;
+      const push = (need - d) / 2 * 0.7;
+      P[i].x -= dx / d * push; P[i].y -= dy / d * push; P[j].x += dx / d * push; P[j].y += dy / d * push;
+      for (const p of [P[i], P[j]]) { p.x = ((p.x % 1) + 1) % 1; p.y = ((p.y % 1) + 1) % 1; }
     }
   }
-  return { cols, rows, placements: out };
+  let worst = tooClose();
+  while (worst > 1 && shrink > 0.3) { shrink /= Math.min(worst, 1.05); worst = tooClose(); }
+  const out = P.map((p) => ({ id: p.id, x: Math.round(p.x * 1e4) / 1e4, y: Math.round(p.y * 1e4) / 1e4, rot: Math.round(p.rot * 10) / 10, scale: Math.round(p.scale * shrink * 100) / 100 }));
+  return { cols, rows, fill, gap, placements: out };
 }
 
 // ---- the drawing ----------------------------------------------------------
@@ -205,7 +227,7 @@ function hexToRgb(h) {
 async function render(spec, motifs) {
   const T = Number(spec.tile || 2048);
   const cell = T / spec.cols;
-  const fill = Number(spec.fill == null ? 0.78 : spec.fill);
+  const fill = Number(spec.fill == null ? 0.7 : spec.fill);
   const [br, bgG, bb] = hexToRgb(spec.bg);
   const tile = Buffer.alloc(T * T * 4);
   for (let i = 0; i < T * T; i++) { const o = i * 4; tile[o] = br; tile[o + 1] = bgG; tile[o + 2] = bb; tile[o + 3] = 255; }
@@ -278,13 +300,13 @@ function specsFromArgs() {
     spec.pick = spec.pick.map((q) => find(q).id);
     // A file that already carries placements is drawn as written — that is
     // the door a hand-arranged page comes in through.
-    if (!spec.placements) Object.assign(spec, layout(spec));
     spec.tile = Number(spec.tile || 2048);
     const file = path.join(SPECDIR, `${slug(spec.name)}.json`);
+    if (DRY) { console.log(`${spec.name}: ${spec.layout || 'as placed'} · ${spec.pick.length} cards · ${spec.bg || '#ffffff'} · ${spec.tile}px`); for (const id of spec.pick) console.log('   ', id, '←', find(id).url); continue; }
+    const motifs = {}, dims = {};
+    for (const id of spec.pick) { motifs[id] = await cutout(find(id)); const m = await sharp(motifs[id]).metadata(); dims[id] = { w: m.width, h: m.height }; }
+    if (!spec.placements) Object.assign(spec, layout(spec, dims));
     console.log(`${spec.name}: ${spec.layout || 'as placed'} · ${spec.placements.length} pictures from ${spec.pick.length} cards · ${spec.cols} across · ${spec.bg || '#ffffff'} · ${spec.tile}px`);
-    if (DRY) { for (const id of spec.pick) console.log('   ', id, '←', find(id).url); continue; }
-    const motifs = {};
-    for (const id of spec.pick) motifs[id] = await cutout(find(id));
     const tilePng = await (await render(spec, motifs)).toBuffer();
     const rep = await preview(tilePng, 3, 1536);
     const one = await sharp(tilePng).resize(1024, 1024).webp({ quality: 90 }).toBuffer();

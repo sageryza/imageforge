@@ -487,6 +487,13 @@ broken:
 5. **A WAKE THAT WAS YOUR OWN PR's ECHO (CI green, your merge landing) gets
    ONE line at most** — three replies saying "nothing to do" in a minute is
    what she reads as a chat talking to itself.
+6. **PLAIN WORDS, NO METONYMY (2026-09-22, Sophie: "can u stop using
+   metonymy it's getting on me nerves and i'm starting to hate u").** Call a
+   thing by its own name, never by a figure that stands for it: "the
+   pictures", not "the cast"; "the background", not "the ground"; "make the
+   white see-through", not "knock out the white"; "it goes into the shop
+   tools", not "it prints straight into the pipeline". Trade words and
+   stand-in phrases read as showing off, and she has to translate every one.
 Still standing, unchanged: no markdown tables · times in 12-hour Pacific ·
 files and images LAST · **asking HER something? plain text, never the
 questions/option-picker UI** · small question, short answer.

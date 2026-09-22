@@ -11,121 +11,122 @@
  "layout": "halfdrop",
  "cols": 4,
  "bg": "#f6efe3",
- "fill": 0.8,
+ "tile": 2048,
  "rows": 4,
+ "fill": 0.8,
+ "gap": 0.1,
  "placements": [
   {
    "id": "fruit:01-strawberry",
    "x": 0.125,
    "y": 0.125,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "fruit:15-lemon",
    "x": 0.375,
    "y": 0.25,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "fruit:11-cherries",
    "x": 0.625,
    "y": 0.125,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "fruit:08-blueberries",
    "x": 0.875,
    "y": 0.25,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "fruit:13-pear",
    "x": 0.125,
    "y": 0.375,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "fruit:04-orange",
    "x": 0.375,
    "y": 0.5,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "fruit:01-strawberry",
    "x": 0.625,
    "y": 0.375,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "fruit:15-lemon",
    "x": 0.875,
    "y": 0.5,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "fruit:11-cherries",
    "x": 0.125,
    "y": 0.625,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "fruit:08-blueberries",
    "x": 0.375,
    "y": 0.75,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "fruit:13-pear",
    "x": 0.625,
    "y": 0.625,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "fruit:04-orange",
    "x": 0.875,
    "y": 0.75,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
-   "id": "fruit:01-strawberry",
+   "id": "fruit:13-pear",
    "x": 0.125,
    "y": 0.875,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
-   "id": "fruit:15-lemon",
+   "id": "fruit:04-orange",
    "x": 0.375,
    "y": 0,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
-   "id": "fruit:11-cherries",
+   "id": "fruit:01-strawberry",
    "x": 0.625,
    "y": 0.875,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
-   "id": "fruit:08-blueberries",
+   "id": "fruit:15-lemon",
    "x": 0.875,
    "y": 0,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   }
- ],
- "tile": 2048
+ ]
 }

@@ -9,121 +9,122 @@
  "layout": "grid",
  "cols": 4,
  "bg": "#e4ecf3",
- "fill": 0.74,
+ "tile": 2048,
  "rows": 4,
+ "fill": 0.8,
+ "gap": 0.1,
  "placements": [
   {
    "id": "animal:cat",
    "x": 0.125,
    "y": 0.125,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "animal:dog",
    "x": 0.375,
    "y": 0.125,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "animal:mouse",
    "x": 0.625,
    "y": 0.125,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "animal:rabbit",
    "x": 0.875,
    "y": 0.125,
    "rot": 0,
-   "scale": 1
-  },
-  {
-   "id": "animal:dog",
-   "x": 0.125,
-   "y": 0.375,
-   "rot": 0,
-   "scale": 1
-  },
-  {
-   "id": "animal:mouse",
-   "x": 0.375,
-   "y": 0.375,
-   "rot": 0,
-   "scale": 1
-  },
-  {
-   "id": "animal:rabbit",
-   "x": 0.625,
-   "y": 0.375,
-   "rot": 0,
-   "scale": 1
-  },
-  {
-   "id": "animal:cat",
-   "x": 0.875,
-   "y": 0.375,
-   "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "animal:mouse",
    "x": 0.125,
-   "y": 0.625,
+   "y": 0.375,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "animal:rabbit",
    "x": 0.375,
-   "y": 0.625,
+   "y": 0.375,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "animal:cat",
    "x": 0.625,
-   "y": 0.625,
+   "y": 0.375,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "animal:dog",
    "x": 0.875,
-   "y": 0.625,
+   "y": 0.375,
    "rot": 0,
-   "scale": 1
-  },
-  {
-   "id": "animal:rabbit",
-   "x": 0.125,
-   "y": 0.875,
-   "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "animal:cat",
-   "x": 0.375,
-   "y": 0.875,
+   "x": 0.125,
+   "y": 0.625,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "animal:dog",
-   "x": 0.625,
-   "y": 0.875,
+   "x": 0.375,
+   "y": 0.625,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   },
   {
    "id": "animal:mouse",
+   "x": 0.625,
+   "y": 0.625,
+   "rot": 0,
+   "scale": 0.88
+  },
+  {
+   "id": "animal:rabbit",
+   "x": 0.875,
+   "y": 0.625,
+   "rot": 0,
+   "scale": 0.88
+  },
+  {
+   "id": "animal:mouse",
+   "x": 0.125,
+   "y": 0.875,
+   "rot": 0,
+   "scale": 0.88
+  },
+  {
+   "id": "animal:rabbit",
+   "x": 0.375,
+   "y": 0.875,
+   "rot": 0,
+   "scale": 0.88
+  },
+  {
+   "id": "animal:cat",
+   "x": 0.625,
+   "y": 0.875,
+   "rot": 0,
+   "scale": 0.88
+  },
+  {
+   "id": "animal:dog",
    "x": 0.875,
    "y": 0.875,
    "rot": 0,
-   "scale": 1
+   "scale": 0.88
   }
- ],
- "tile": 2048
+ ]
 }

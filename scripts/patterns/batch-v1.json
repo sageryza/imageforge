@@ -1,8 +1,8 @@
 [
- {"name":"fruit salad","pick":["strawberry","lemon","cherries","blueberries","pear","orange"],"layout":"tossed","cols":4,"bg":"#f6efe3","fill":0.86,"seed":3},
- {"name":"fruit salad in rows","pick":["strawberry","lemon","cherries","blueberries","pear","orange"],"layout":"halfdrop","cols":4,"bg":"#f6efe3","fill":0.8},
- {"name":"lemons","pick":["lemon"],"layout":"tossed","cols":4,"bg":"#ffffff","fill":0.8,"seed":5,"tilt":60},
- {"name":"woodland","pick":["fox","rabbit","owl","deer","squirrel","frog"],"layout":"tossed","cols":4,"bg":"#e7ecdf","fill":0.9,"seed":7,"tilt":18},
- {"name":"house pets","pick":["cat","dog","mouse","rabbit"],"layout":"grid","cols":4,"bg":"#e4ecf3","fill":0.74},
- {"name":"who eats what","pick":["monkey","banana","rabbit","carrot","bear","blueberries","mouse","strawberry"],"layout":"tossed","cols":4,"bg":"#f6efe3","fill":0.86,"seed":11,"tilt":25}
+ {"name":"fruit salad","pick":["strawberry","lemon","cherries","blueberries","pear","orange"],"layout":"tossed","cols":4,"bg":"#f6efe3","seed":3},
+ {"name":"fruit salad in rows","pick":["strawberry","lemon","cherries","blueberries","pear","orange"],"layout":"halfdrop","cols":4,"bg":"#f6efe3"},
+ {"name":"lemons","pick":["lemon"],"layout":"tossed","cols":4,"bg":"#ffffff","seed":5,"tilt":60},
+ {"name":"woodland","pick":["fox","rabbit","owl","deer","squirrel","frog"],"layout":"tossed","cols":4,"bg":"#e7ecdf","seed":7,"tilt":15},
+ {"name":"house pets","pick":["cat","dog","mouse","rabbit"],"layout":"grid","cols":4,"bg":"#e4ecf3"},
+ {"name":"who eats what","pick":["monkey","banana","rabbit","carrot","bear","blueberries","mouse","strawberry"],"layout":"tossed","cols":4,"bg":"#f6efe3","seed":11,"tilt":20}
 ]
