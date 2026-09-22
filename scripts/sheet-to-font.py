@@ -29,8 +29,10 @@ The spec is JSON:
               on its caps rows), or a list with one gap per row — a caps row
               needs a wide one and a punctuation row a narrow one ("? &")
     dark      grey level below which a pixel is ink when finding glyphs
-              (default 140; a light serif wants ~175) · traceDark the same
-              for the 4x trace (default 165)
+              (default 140; a light serif wants ~175) · rowDark the same for
+              cutting a row into glyphs once the bands are found (a small
+              light period needs ~200, which is too light to find bands
+              with) · traceDark the same for the 4x trace (default 165)
     level     groups of characters that share one height on a TYPESET sheet
               (["A…Z0…9"] for caps, ["aceimnorsuvwxz", "bdfhklt"] for a
               lowercase face): each glyph is scaled so its top meets the
@@ -156,7 +158,9 @@ def trace(gray, box, scale=4, pad=5, join=False, dark=165, thin=0, blur=True):
     if thin: ink = thin_strokes(ink, thin)
     # potracer traces the False region as foreground
     path = potrace.Bitmap(~ink).trace(turdsize=6, alphamax=1.0, opticurve=True, opttolerance=0.2)
-    rows = np.flatnonzero(ink.any(axis=1))
+    n, lab, st, _ = cv2.connectedComponentsWithStats(ink.astype(np.uint8), 8)
+    main = ink if n <= 2 else (lab == (1 + int(np.argmax(st[1:, 4]))))
+    rows = np.flatnonzero(main.any(axis=1))
     top = max(0, y0-pad) + (rows[0] / scale if len(rows) else 0)
     return path, (max(0, x0-pad), max(0, y0-pad)), scale, top
 
@@ -177,6 +181,7 @@ def read_sheet(src, print_bands=False):
     if im is None: sys.exit('no such sheet: ' + src['sheet'])
     ink, gray = ink_mask(im, src.get('left', 0.04), src.get('dark', 140))
     bs = bands(ink)
+    if src.get('rowDark'): ink, _ = ink_mask(im, src.get('left', 0.04), src['rowDark'])
     if print_bands:
         for i, b in enumerate(bs): print(f'  band {i}: y {b[0]}-{b[1]} ({b[1]-b[0]}px)')
         return None, None, None, None
