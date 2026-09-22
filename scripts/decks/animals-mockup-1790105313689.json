@@ -1,0 +1,29 @@
+{
+ "scene": "the cards set down loosely on a wood table by hand in soft daylight, photographed from straight above",
+ "size": "1536x1024",
+ "quality": "medium",
+ "prompt": "The attached image is the exact layout of a product photograph: a set of flash cards printed on thick matte white cardstock, with rounded corners, already laid out. Every card in it is the same physical size — a standard poker-size card, 2.5 by 3.5 inches — and is already drawn at its correct size, position and angle.\n\nTurn this layout into a real product photograph. KEEP EVERY CARD EXACTLY AS IT IS: the same position, the same size, the same angle, the same drawing and lettering on it, the same rounded corners. Do not move, resize, redraw, add or remove any card. Only the surroundings change: replace the flat background with the scene below, and light the cards as real cards would be lit there, with soft natural shadows under them.\n\nDraw a product photograph: the cards set down loosely on a wood table by hand in soft daylight, photographed from straight above",
+ "sheet": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8e22291a5ad01e67e3d6aeaa173b8308.png",
+ "laid": false,
+ "takes": [
+  {
+   "i": 1,
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1bf7a871233e25f60fcf2b49775bd6aa.webp",
+   "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1bf7a871233e25f60fcf2b49775bd6aa.webp",
+   "usage": {
+    "input_tokens": 1728,
+    "input_tokens_details": {
+     "image_tokens": 1536,
+     "text_tokens": 192
+    },
+    "output_tokens": 1372,
+    "output_tokens_details": {
+     "image_tokens": 1372,
+     "text_tokens": 0
+    },
+    "total_tokens": 3100
+   }
+  }
+ ],
+ "page": "yEEWOuhH8XVvAmOF9yoy"
+}
