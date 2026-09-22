@@ -2,7 +2,7 @@
 // test-animal-deck.js — the animal deck's one rule, pure (2026-09-22, "ties
 // break w heart"). No network.
 const assert = require('assert');
-const { decide, subjectOf } = require('./animal-deck.js');
+const { decide, settle, subjectOf } = require('./animal-deck.js');
 
 let n = 0;
 const ok = (c, m) => { n++; assert.ok(c, m); };
@@ -28,6 +28,14 @@ ok(!d.pick && d.empty && d.out.length === 2, 'all ✕ → empty, nothing picked'
 // a ✕'d heart is not a heart
 d = decide([V('a', 'dislike'), V('b')]);
 ok(d.pick.id === 'b', 'an ✕ never competes');
+
+// a heart made on the ties surface outranks an older Playground heart
+d = decide(settle([{ id: 'a', mark: 'like' }, { id: 'b', mark: 'like', markFrom: 'assets tab' }]));
+ok(d.pick && d.pick.id === 'b', 'her ♥ on the ties surface settles two Playground hearts');
+d = decide(settle([{ id: 'a', mark: 'like' }, { id: 'b', mark: 'like' }]));
+ok(!d.pick && d.twoHearts, 'two Playground hearts and nothing newer is still a tie');
+d = decide(settle([{ id: 'a', mark: 'like' }, { id: 'b', mark: 'dislike', markFrom: 'ties page' }]));
+ok(d.pick && d.pick.id === 'a', 'a ✕ on the ties surface does not stand a Playground ♥ down');
 
 // which prompts are animals
 ok(subjectOf('lion (full body, from the side)') === 'lion', 'shot note dropped');

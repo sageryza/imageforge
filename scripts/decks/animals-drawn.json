@@ -9,8 +9,8 @@
   "scene": "black bear (full body, from the side)",
   "run": "2Pcn3gGG7al1kGk0uj9F",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "blackbird",
@@ -23,7 +23,7 @@
   "run": "t53tKqrVgMUmFblbnXcW",
   "from": "playground",
   "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "blue-jay",
@@ -36,7 +36,7 @@
   "run": "NW9YmhA3e1jtGkphb6wa",
   "from": "playground",
   "by": "only one",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "camel",
@@ -48,8 +48,8 @@
   "scene": "camel (full body)",
   "run": "HgasKCtmgiN0CgaxFKUN",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "cat",
@@ -61,8 +61,8 @@
   "scene": "tabby cat, sitting",
   "run": "572wSEavN2lJpwLopIY1",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "cheetah",
@@ -74,8 +74,8 @@
   "scene": "cheetah (full body, from the side)",
   "run": "pcNpPw6nyYEYSWlMWuXT",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "chicken",
@@ -88,7 +88,7 @@
   "run": "NJZ6c8wlZwY5g24PGXC4",
   "from": "playground",
   "by": "only one",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "cow",
@@ -100,8 +100,8 @@
   "scene": "black and white spotted cow (full body, from the side)",
   "run": "U0fcmhRzrHPQ3jYcOeG5",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "coyote",
@@ -113,8 +113,8 @@
   "scene": "coyote (full body, from the side)",
   "run": "97Nvii0yJO7DFhik6PWl",
   "from": "playground",
-  "by": "only one",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "deer",
@@ -126,8 +126,8 @@
   "scene": "deer (full body)",
   "run": "Mt6EFtBAQnd2W5LPO5z0",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "dog",
@@ -139,8 +139,8 @@
   "scene": "dog (full body)",
   "run": "aZMcJwxnKqk58bhHMDAf",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "duck",
@@ -152,8 +152,8 @@
   "scene": "duck (full body)",
   "run": "yBhosk3gG5DFDjl4TDJK",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "elephant",
@@ -165,21 +165,8 @@
   "scene": "elephant (full body, from the side)",
   "run": "t3pGCkPgVJpReBItlZn2",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
- },
- {
-  "id": "emu",
-  "name": "emu",
-  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1790019445795-pdkxja.webp",
-  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1790019445795-pdkxja.webp",
-  "quality": "medium",
-  "size": "1K",
-  "scene": "emu (full body, from the side)",
-  "run": "evNffxlFWajUd2GVMaaS",
-  "from": "playground",
-  "by": "only one",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "flamingo",
@@ -191,8 +178,8 @@
   "scene": "flamingo (full body, from the side)",
   "run": "Yi8c90uzBBuUCEpm1rGh",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "fox",
@@ -204,8 +191,8 @@
   "scene": "fox (full body)",
   "run": "IxdGbpmJLFwH0ZHDPRM5",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "frog",
@@ -217,8 +204,8 @@
   "scene": "frog (full body, from the side)",
   "run": "MfFHd2ufOOKuVAYGKWmj",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "gecko",
@@ -230,8 +217,8 @@
   "scene": "gecko",
   "run": "uDllnpvE6ukt0MIygAPK",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "giraffe",
@@ -243,8 +230,8 @@
   "scene": "giraffe (full body)",
   "run": "JOzI9ex369kHBi5NsvDZ",
   "from": "playground",
-  "by": "only one",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "goat",
@@ -256,21 +243,8 @@
   "scene": "goat (full body)",
   "run": "zIyHnyxTPCORupylGNa3",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
- },
- {
-  "id": "hare",
-  "name": "hare",
-  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1789959860986-nwp93h.webp",
-  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1789959860986-nwp93h.webp",
-  "quality": "medium",
-  "size": "1K",
-  "scene": "hare",
-  "run": "NRWcoW31s7fUQKxNHya1",
-  "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "hen",
@@ -283,7 +257,7 @@
   "run": "uMjCBrd4Lu80RdlfA1D1",
   "from": "playground",
   "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "hippo",
@@ -296,7 +270,7 @@
   "run": "7Au5iYt6TzeLeflF0Jln",
   "from": "playground",
   "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "horse",
@@ -308,8 +282,8 @@
   "scene": "mare (full body, from the side)",
   "run": "HqNkKc1yrqczoYcfx7TO",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "hyena",
@@ -322,7 +296,7 @@
   "run": "bD9v4EioMIxD0fYzdTCt",
   "from": "playground",
   "by": "only one",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "iguana",
@@ -335,7 +309,7 @@
   "run": "Re8iD2Q9k068IGL8k3ai",
   "from": "playground",
   "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "kangaroo",
@@ -348,7 +322,7 @@
   "run": "jM0fbxhCV4IH1Cbh7b2E",
   "from": "playground",
   "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "koala",
@@ -361,7 +335,7 @@
   "run": "PLfIeasaTl74mAT0sG4f",
   "from": "playground",
   "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "lamb",
@@ -374,7 +348,7 @@
   "run": "DfzuVRbmScDwBXX6vXsA",
   "from": "playground",
   "by": "only one",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "lemur",
@@ -387,7 +361,7 @@
   "run": "LzilrCDVpHVhnPmp2mMD",
   "from": "playground",
   "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "leopard",
@@ -400,7 +374,7 @@
   "run": "IDvEvlIio4CXgpi4CH3t",
   "from": "playground",
   "by": "only one",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "lion",
@@ -413,7 +387,7 @@
   "run": "lvCqelamjutGsbuphmPt",
   "from": "playground",
   "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "lizard",
@@ -425,8 +399,8 @@
   "scene": "lizard (full body)",
   "run": "dlNxQISwbktLgkJKiyp0",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "monkey",
@@ -439,7 +413,7 @@
   "run": "pF6B9KmfI1TBnlvLbQlc",
   "from": "playground",
   "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "moose",
@@ -452,7 +426,7 @@
   "run": "0NMWYhQFGtbtqMcGPuQG",
   "from": "playground",
   "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "mouse",
@@ -465,7 +439,7 @@
   "run": "6bJjNpfo27wWtetb95eS",
   "from": "playground",
   "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "octopus",
@@ -477,8 +451,8 @@
   "scene": "octopus",
   "run": "fEKQobpnqd66RILNhODO",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "ostrich",
@@ -491,7 +465,7 @@
   "run": "hH9NxZRcRJZTTCBNBZP5",
   "from": "playground",
   "by": "only one",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "owl",
@@ -504,7 +478,7 @@
   "run": "OFnpkRqzgUoArhY4phes",
   "from": "playground",
   "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "panther",
@@ -517,7 +491,7 @@
   "run": "7i9omknM4JF7nUjsJKNp",
   "from": "playground",
   "by": "only one",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "peacock",
@@ -530,7 +504,7 @@
   "run": "7semR9RIImGY3zWTtKSr",
   "from": "playground",
   "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "pig",
@@ -543,7 +517,7 @@
   "run": "3FKt1U059T2pzCAdSBwK",
   "from": "playground",
   "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "puma",
@@ -556,7 +530,7 @@
   "run": "ZzSMEJ9K00pI3D7uLAcq",
   "from": "playground",
   "by": "only one",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "rabbit",
@@ -568,8 +542,8 @@
   "scene": "bunny (full body)",
   "run": "Rxv4HSaj2rhrZIJOBCke",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "raccoon",
@@ -582,7 +556,20 @@
   "run": "j4ZL1LIUZwdVCfge69pm",
   "from": "playground",
   "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
+ },
+ {
+  "id": "rhino",
+  "name": "rhino",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1790060552234-rv7l74.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1790060552234-rv7l74.webp",
+  "quality": "medium",
+  "size": "1K",
+  "scene": "rhinoceros (full body, from the side)",
+  "run": "N8tLzhbxihuowvlfLkzz",
+  "from": "playground",
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "rooster",
@@ -595,7 +582,7 @@
   "run": "dkw8iOTUGoRgsws1hW8b",
   "from": "playground",
   "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "sheep",
@@ -607,8 +594,8 @@
   "scene": "sheep (full body, from the side)",
   "run": "KcwYlArKkJCEdqweo41l",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "snake",
@@ -621,7 +608,7 @@
   "run": "A0XQyyXWWZzCQM3ub8Lg",
   "from": "playground",
   "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "squirrel",
@@ -634,7 +621,7 @@
   "run": "rTvOavYn6UUF66EFbyht",
   "from": "playground",
   "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "swan",
@@ -647,7 +634,7 @@
   "run": "gUWn7HIQtNmb0NVvTxn8",
   "from": "playground",
   "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "tiger",
@@ -659,8 +646,8 @@
   "scene": "tiger (full body, from the side)",
   "run": "NUxVV9k9gaV0kRPYONeV",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "turtle",
@@ -673,7 +660,7 @@
   "run": "eH7nmn3S1QGlbdbAwAqy",
   "from": "playground",
   "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "wolf",
@@ -685,8 +672,8 @@
   "scene": "wolf (full body, from the side)",
   "run": "QKuA8Ukx0jUCAXGsSYsa",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  },
  {
   "id": "zebra",
@@ -698,7 +685,7 @@
   "scene": "zebra (full body, from the side)",
   "run": "E038BumfIDiX3s4lpz34",
   "from": "playground",
-  "by": "playground ♥",
-  "at": "2026-09-22T08:01:47.211Z"
+  "by": "assets tab",
+  "at": "2026-09-22T08:07:17.665Z"
  }
 ]

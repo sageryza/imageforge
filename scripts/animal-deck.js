@@ -119,7 +119,18 @@ function decide(versions) {
   if (!alive.length) return { pick: null, out, tie: [], empty: true };
   return { pick: null, out, tie: alive, twoHearts: hearts.length > 1 };
 }
-module.exports = { decide, subjectOf, ALIASES, ANIMALS };
+// A HEART ON THE TIES PAGE OR IN THE ASSETS TAB IS HER NEWER WORD (2026-09-22,
+// "rhino has a heart" — both rhino runs wore a Playground ♥ from different
+// days, she hearted ONE on the ties surface, and the deck still called it two
+// hearts). When any version of an animal carries a ♥ made where the tie is
+// being broken, the other versions' Playground-only hearts stand down; a ✕
+// anywhere still stands.
+function settle(versions) {
+  const fresh = versions.some((v) => v.mark === 'like' && v.markFrom);
+  if (!fresh) return versions;
+  return versions.map((v) => (v.mark === 'like' && !v.markFrom ? { ...v, mark: null, stoodDown: true } : v));
+}
+module.exports = { decide, settle, subjectOf, ALIASES, ANIMALS };
 if (require.main !== module) return;
 
 const get = async (u) => (await fetch(u)).json();
@@ -184,13 +195,15 @@ async function playgroundRuns() {
     const pm = pageMarks[v.id];
     const tm = tabMarks.get(v.full.split('/').pop());
     const m = pm === true ? 'like' : pm === false ? 'dislike' : tm || null;
-    if (m && m !== v.mark) { v.mark = m; v.markFrom = pm != null ? 'ties page' : 'assets tab'; overrides++; }
+    // markFrom is set whenever she marked it HERE, even when it agrees with
+    // the Playground — `settle` needs to know which hearts are her newer word.
+    if (m) { if (m !== v.mark) overrides++; v.mark = m; v.markFrom = pm != null ? 'ties page' : 'assets tab'; }
   }
 
   const animals = [...byAnimal.keys()].sort();
   const picks = [], ties = [], empty = [];
   for (const a of animals) {
-    const vs = byAnimal.get(a).sort((x, y) => (y.at || 0) - (x.at || 0));
+    const vs = settle(byAnimal.get(a).sort((x, y) => (y.at || 0) - (x.at || 0)));
     const d = decide(vs);
     if (d.pick) picks.push({ animal: a, v: d.pick, auto: d.auto, of: vs.length });
     else if (d.empty) empty.push({ animal: a, of: vs.length });
