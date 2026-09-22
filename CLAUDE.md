@@ -2693,6 +2693,13 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   (`POST /page/:id/supersede`) instead of deleting it. A verdict sheet's name
   must carry the shape of the item set (`blocks-s96`), or a rebuild silently
   re-points her saved answers at different content.
+  **AND SUPERSEDE WHAT IS NO LONGER RELEVANT, NOT ONLY WHAT WAS REPLACED
+  (2026-09-22, Sophie: "supersede irrelevant pages and add that as a
+  note").** A comparison she has decided, a side-by-side that led to the one
+  she kept, a candidate she said no to: once it is settled it is superseded
+  by the page that won, so her Compare tab holds only the pages still in
+  play. The font chat that earned this had 14 live pages of fruit cards in
+  one tab, seven of them comparisons already settled by the eighth.
 - **`POST /page` answers `warnings`** when a page skips the kit. If yours comes
   back with one, fix the page and re-post before you finish the turn.
 - **A FIX TO A PAGE BUILDER REACHES NOTHING ALREADY POSTED — SWEEP THE LIVE
