@@ -367,10 +367,11 @@ function specsFromArgs() {
       dims[id] = { w: m.width, h: m.height, cover: side.cover || 0.3 };
     }
     // Same visible size: each picture is scaled so the area it covers matches
-    // the average, within limits (a mouse is never drawn as big as a horse's box).
+    // the average, within limits. OPT-IN per pattern (`evenSize: true`) — she asked
+    // for it on the house pets and NOT on the fruit (2026-09-22: "don't change sizes").
     const covers = spec.pick.map((id) => dims[id].cover);
     const mean = covers.reduce((a, b) => a + b, 0) / covers.length;
-    for (const id of spec.pick) dims[id].even = spec.evenSize === false ? 1 : Math.max(0.7, Math.min(1.35, Math.sqrt(mean / dims[id].cover)));
+    for (const id of spec.pick) dims[id].even = !spec.evenSize ? 1 : Math.max(0.7, Math.min(1.35, Math.sqrt(mean / dims[id].cover)));
     if (!spec.placements) Object.assign(spec, layout(spec, dims));
     console.log(`${spec.name}: ${spec.layout || 'as placed'} · ${spec.placements.length} pictures from ${spec.pick.length} cards · ${spec.cols} across · ${spec.bg || '#ffffff'} · ${spec.tile}px`);
     const tilePng = await (await render(spec, motifs)).toBuffer();

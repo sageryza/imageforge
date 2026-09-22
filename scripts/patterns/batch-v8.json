@@ -19,7 +19,8 @@
    "parrot"
   ],
   "seed": 9,
-  "tilt": 40
+  "tilt": 40,
+  "evenSize": true
  },
  {
   "layout": "tossed",
@@ -45,6 +46,7 @@
    "frog"
   ],
   "seed": 37,
-  "tilt": 45
+  "tilt": 45,
+  "evenSize": true
  }
 ]
