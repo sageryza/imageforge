@@ -127,7 +127,10 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&am
 ${V3 && !HAND ? '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap">' : ''}
 <style>
   ${HAND ? `@font-face{font-family:"Her Hand";src:url(/fonts/${FACE_FILE}) format("truetype");font-display:swap}
-  .v3 .fc2 .nm2.hand{font-family:'Her Hand',Georgia,serif;font-weight:400;font-size:${NM_SIZE}px;letter-spacing:${NM_TRACK}}` : ''}
+  .v3 .fc2 .nm2.hand{font-family:'Her Hand',Georgia,serif;font-weight:400;font-size:${NM_SIZE}px;letter-spacing:${NM_TRACK};text-indent:${NM_TRACK}}` : ''}
+  /* text-indent = letter-spacing: the tracking leaves a gap AFTER the last
+     letter too, so a centred box sits its letters half a gap left of centre
+     (MEASURED 2026-09-22, 1.2px at .24em on 10px: "are they centered"). */
   .cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
   .fc{all:unset;display:block;cursor:pointer;-webkit-tap-highlight-color:transparent;perspective:900px;aspect-ratio:3/4}
   .fc-in{position:relative;display:block;width:100%;height:100%;transition:transform .45s;transform-style:preserve-3d}
