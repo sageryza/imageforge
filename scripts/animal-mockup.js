@@ -12,7 +12,8 @@
 // the sheet go on one grid page.
 //
 //   node scripts/animal-mockup.js --fronts <dir> --scene "cards fanned out on a wood table"
-//        [--takes 2] [--size 1536x1024] [--quality medium] [--chat animal-deck-heart-tiebreak] [--dry]
+//        [--takes 2] [--size 1536x1024] [--quality medium] [--material "thick matte white cardstock"]
+//        [--chat animal-deck-heart-tiebreak] [--dry]
 //
 // NEVER run without her go for the scene. ~6-8¢ a take at medium; --dry
 // builds the sheet and prints the prompt, spending nothing.
@@ -38,7 +39,9 @@ const OUT = flag('out', path.join(process.env.CLAUDE_SCRATCH || '/tmp', 'animal-
 if (!FRONTS || !SCENE) { console.error('--fronts <dir> and --scene "…" are required'); process.exit(1); }
 const ROOT = path.join(__dirname, '..');
 const tier = (s) => { const w = parseInt(s, 10); return w >= 4000 ? '4K' : w >= 2000 ? '2K' : '1K'; };
-const STYLE = 'The attached image shows the product: a set of printed flash cards with rounded corners. Keep every card exactly as it appears there — the drawings, the lettering, the white card face, the rounded corners — and do not add, change or invent any card. Draw a product photograph: [content]';
+// --material: the card stock, named (2026-09-22, "u might specify material").
+const MATERIAL = flag('material', 'thick matte white cardstock');
+const STYLE = `The attached image shows the product: a set of flash cards printed on ${MATERIAL}, with rounded corners. Keep every card exactly as it appears there — the drawings, the lettering, the white card face, the rounded corners — and do not add, change or invent any card. Draw a product photograph: [content]`;
 const FULL = STYLE.replace('[content]', SCENE);
 const post = (u, body) => fetch(`${BASE}${u}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 
