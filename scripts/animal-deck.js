@@ -61,6 +61,8 @@ const ALIASES = {
   'hippopotamus': 'hippo', 'rhinoceros': 'rhino', 'chimpanzee': 'monkey', 'bunny': 'rabbit',
   'grizzly bear': 'bear', 'brown bear': 'bear', 'polar bear': 'polar bear', 'red fox': 'fox',
   'grey wolf': 'wolf', 'gray wolf': 'wolf', 'house cat': 'cat', 'kitten': 'cat', 'puppy': 'dog',
+  // "snowy owl is just owl" (2026-09-22) — a kind of owl is a version of the owl card
+  'snowy owl': 'owl', 'barn owl': 'owl', 'great horned owl': 'owl',
 };
 const ANIMALS = new Set([
   'lamb', 'cat', 'gecko', 'lizard', 'wolf', 'sheep', 'lion', 'puma', 'panther', 'raccoon',
@@ -80,7 +82,7 @@ const ANIMALS = new Set([
   'stork', 'crane', 'vulture', 'falcon', 'magpie', 'pigeon', 'dove', 'puffin', 'kiwi',
   'cockatoo', 'macaw', 'bee', 'butterfly', 'ladybug', 'ant', 'spider', 'snail', 'ray',
   'stingray', 'manatee', 'narwhal', 'sea lion', 'clownfish', 'goldfish', 'koi', 'eel', 'squid',
-  'snowy owl', 'barn owl', 'great horned owl', 'cobra', 'python', 'viper', 'rattlesnake', 'boa', 'komodo dragon', 'axolotl', 'scorpion',
+  'cobra', 'python', 'viper', 'rattlesnake', 'boa', 'komodo dragon', 'axolotl', 'scorpion',
   'moth', 'dragonfly', 'grasshopper', 'cricket', 'beetle', 'worm', 'caterpillar', 'wasp',
   'hornet', 'mosquito', 'fly', 'flea', 'tick', 'calf', 'foal', 'piglet', 'kid', 'duckling',
   'gosling', 'chick', 'cub', 'joey', 'fawn', 'pony', 'mule', 'zebu', 'ibex', 'chamois',
