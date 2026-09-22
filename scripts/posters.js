@@ -95,19 +95,17 @@ function itemsOf(set) {
   });
 }
 
-// Columns by count: a handful sits three across, a dozen four, the whole
-// animal kingdom eight. The sheet's inner width is what the cell divides.
-const colsFor = (n) => (n <= 6 ? 2 : n <= 16 ? 4 : n <= 30 ? 5 : n <= 42 ? 6 : n <= 56 ? 7 : 8);
-
+// The columns are not picked by count any more — the PAGE measures them
+// (v3, 2026-09-22, Sophie: "are u actually looking at the spacing · tons on
+// bottom"). v1 and v2 chose a column count from the count of animals and let
+// the pictures take whatever width that left, so a poster of six or twelve
+// ended with its bottom third empty. Now, for every column count from two
+// to eight, the page finds the biggest picture whose rows still fit the
+// sheet, keeps the count that gives the biggest picture, and spreads the
+// rows evenly down the sheet — so the animals FILL the poster, top to
+// bottom, whatever their number.
 function posterHtml(set, items, face, paper = '#fff') {
-  const cols = colsFor(items.length);
   const inner = W - 2 * 90; // border inset 40 + padding 50
-  const cell = Math.floor(inner / cols);
-  // More air around every animal (her note on v1: "needs more space around
-  // animals"): the picture takes ~72% of its cell, not all of it.
-  const pic = Math.round(cell * 0.72);
-  const nameSize = Math.max(13, Math.min(30, Math.round(cell * 0.11)));
-  const factSize = Math.max(9, Math.round(nameSize * 0.72));
   const fonts = face === 'hand'
     ? `@font-face{font-family:T;src:url(${fontUrl('sophie-hand.ttf')})}
        @font-face{font-family:N;src:url(${fontUrl('sophie-hand.ttf')})}
@@ -116,26 +114,60 @@ function posterHtml(set, items, face, paper = '#fff') {
        @font-face{font-family:N;src:url(${fontUrl('magic-subtitle.ttf')})}
        @font-face{font-family:F;src:url(${fontUrl('magic-subtitle-italic.ttf')})}`;
   const titleSize = face === 'hand' ? 58 : 54;
-  const rows = items.map((it) => `<div class="it" style="width:${cell}px">
-      <img src="${esc(it.img)}" data-w="${pic}" style="width:${pic}px;height:${pic}px">
+  const rows = items.map((it) => `<div class="it">
+      <img src="${esc(it.img)}">
       <div class="nm">${esc(it.name.toUpperCase())}</div>
       ${it.fact ? `<div class="ft">${esc(it.fact)}</div>` : ''}
     </div>`).join('');
   return `<!doctype html><meta charset="utf-8"><style>
   ${fonts}
+  :root{--cell:300px;--pic:216px;--nm:30px;--ft:22px;--gap:40px}
   html,body{margin:0;background:${paper}}
   body{width:${W}px;height:${H}px;position:relative;color:#111;font-family:N,serif;-webkit-font-smoothing:antialiased}
   .bd{position:absolute;inset:40px;border:2px solid #111;box-sizing:border-box}
   .in{position:absolute;inset:40px;padding:50px 50px 40px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center}
   h1{margin:0;flex-shrink:0;font-family:T,serif;font-weight:400;font-size:${titleSize}px;letter-spacing:.34em;text-indent:.34em;text-align:center;line-height:1.1}
-  .rule{flex-shrink:0;width:${Math.round(inner * 0.38)}px;height:1.5px;background:#111;margin:22px 0 46px}
-  .grid{display:flex;flex-wrap:wrap;justify-content:center;align-content:flex-start;width:${inner}px;flex:1;min-height:0;overflow:hidden}
-  .it{display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:${Math.round(cell * 0.2)}px}
-  .it img{object-fit:contain;display:block}
-  .nm{font-family:N,serif;font-size:${nameSize}px;letter-spacing:.18em;text-indent:.18em;margin-top:${Math.round(nameSize * 0.35)}px;line-height:1.2}
-  .ft{font-family:F,serif;font-size:${factSize}px;letter-spacing:${face === 'hand' ? '.02em' : '.06em'};color:#333;margin-top:${Math.round(factSize * 0.3)}px;line-height:1.3;padding:0 6px}
+  .rule{flex-shrink:0;width:${Math.round(inner * 0.38)}px;height:1.5px;background:#111;margin:22px 0 30px}
+  .grid{display:flex;flex-wrap:wrap;justify-content:center;align-content:space-evenly;width:${inner}px;flex:1;min-height:0;overflow:hidden}
+  .it{display:flex;flex-direction:column;align-items:center;text-align:center;width:var(--cell);padding:calc(var(--gap) / 2) 0;box-sizing:border-box}
+  .it img{object-fit:contain;display:block;width:var(--pic);height:var(--pic)}
+  .nm{font-family:N,serif;font-size:var(--nm);letter-spacing:.18em;text-indent:.18em;margin-top:.35em;line-height:1.2;white-space:nowrap}
+  .ft{font-family:F,serif;font-size:var(--ft);letter-spacing:${face === 'hand' ? '.02em' : '.06em'};color:#333;margin-top:.3em;line-height:1.3;padding:0 6px}
   </style><div class="bd"></div><div class="in"><h1>${esc(set.title.toUpperCase())}</h1><div class="rule"></div><div class="grid">${rows}</div></div>`;
 }
+
+// Runs IN the page: tries every column count, keeps the one whose biggest
+// fitting picture is biggest, then fits any name still wider than its cell.
+// Returns what it chose so the log can say it.
+const FIT = `(() => {
+  const g = document.querySelector('.grid'), R = document.documentElement.style, inner = g.clientWidth;
+  const its = [...document.querySelectorAll('.it')], nms = [...document.querySelectorAll('.nm')];
+  const fits = () => g.scrollHeight <= g.clientHeight + 1;
+  const apply = (cols, pic) => {
+    const cell = Math.floor(inner / cols);
+    const nm = Math.max(12, Math.min(30, Math.round(cell * 0.1)));
+    R.setProperty('--cell', cell + 'px'); R.setProperty('--pic', pic + 'px');
+    R.setProperty('--nm', nm + 'px'); R.setProperty('--ft', Math.max(9, Math.round(nm * 0.72)) + 'px');
+    R.setProperty('--gap', Math.round(cell * 0.14) + 'px');
+    for (const n of nms) n.style.fontSize = '';
+  };
+  let best = null;
+  for (let cols = 2; cols <= 8; cols++) {
+    if (cols > its.length) break;
+    const cell = Math.floor(inner / cols);
+    let lo = 40, hi = Math.round(cell * 0.8);
+    apply(cols, lo); if (!fits()) continue;
+    while (hi - lo > 1) { const mid = (lo + hi) >> 1; apply(cols, mid); if (fits()) lo = mid; else hi = mid; }
+    if (!best || lo > best.pic) best = { cols, pic: lo };
+  }
+  if (!best) best = { cols: 8, pic: 40 };
+  apply(best.cols, best.pic);
+  for (const nm of nms) {
+    let s = parseFloat(getComputedStyle(nm).fontSize);
+    while (nm.scrollWidth > nm.parentElement.clientWidth - 24 && s > 8) { s -= 0.5; nm.style.fontSize = s + 'px'; }
+  }
+  return { ...best, overflow: !fits() };
+})()`;
 
 const upload = async (buf, filename, ct) => {
   const q = new URLSearchParams({ session: 'posters', bundle: `posters v${VERSION}`, filename });
@@ -163,28 +195,12 @@ const upload = async (buf, filename, ct) => {
       fs.writeFileSync(hp, html);
       await page.goto('file://' + hp, { waitUntil: 'networkidle' });
       await page.evaluate(() => document.fonts.ready);
-      // Fit, measured on the real layout: a name wider than its cell loses
-      // size until it fits on one line; a grid taller than the sheet loses
-      // picture size until every row is on the poster.
-      const overflow = await page.evaluate(() => {
-        for (const nm of document.querySelectorAll('.nm')) {
-          let s = parseFloat(getComputedStyle(nm).fontSize);
-          nm.style.whiteSpace = 'nowrap';
-          while (nm.scrollWidth > nm.parentElement.clientWidth - 4 && s > 8) { s -= 0.5; nm.style.fontSize = s + 'px'; }
-        }
-        const g = document.querySelector('.grid');
-        const imgs = [...document.querySelectorAll('.it img')];
-        let k = 1, n = 0;
-        while (g.scrollHeight > g.clientHeight + 1 && n++ < 60) {
-          k *= 0.97;
-          for (const im of imgs) { im.style.width = im.style.height = Math.round(parseFloat(im.dataset.w) * k) + 'px'; }
-        }
-        return g.scrollHeight > g.clientHeight + 1;
-      });
+      const fit = await page.evaluate(FIT);
+      const { overflow } = fit;
       const png = path.join(OUT, `${key}-${face}.png`);
       await page.screenshot({ path: png, fullPage: false });
-      made.push({ key, face, set, count: items.length, png, overflow });
-      console.log(`${key} · ${face} · ${items.length} · ${colsFor(items.length)} across${overflow ? ' · OVERFLOWS' : ''} → ${png}`);
+      made.push({ key, face, set, count: items.length, png, overflow, cols: fit.cols, pic: fit.pic });
+      console.log(`${key} · ${face} · ${items.length} · ${fit.cols} across · pictures ${fit.pic}px${overflow ? ' · OVERFLOWS' : ''} → ${png}`);
     }
   }
   await browser.close();
