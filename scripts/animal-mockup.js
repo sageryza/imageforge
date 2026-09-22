@@ -44,7 +44,11 @@ const MATERIAL = flag('material', 'thick matte white cardstock');
 // EVERY CARD IS THE SAME SIZE, SAID OUT LOUD (2026-09-22, "wait the cards
 // aren't keeping size!" — set down loosely, the model redrew them at four
 // different proportions). A poker card is 2.5 x 3.5in, portrait, all alike.
-const STYLE = `The attached image shows the product: a set of flash cards printed on ${MATERIAL}, with rounded corners. Every card is identical in size and shape — a 2.5 by 3.5 inch portrait card, the same proportions as in the attached image — and none may be drawn larger, smaller, wider or squarer than the others. Keep every card exactly as it appears there — the drawings, the lettering, the white card face, the rounded corners — and do not add, change or invent any card. Draw a product photograph: [content]`;
+const STYLE = `The attached image shows the product: a set of flash cards printed on ${MATERIAL}, with rounded corners. Keep every card exactly as it appears there — the drawings, the lettering, the white card face, the rounded corners — and do not add, change or invent any card.
+
+CARD SIZE — THIS IS THE MOST IMPORTANT RULE. All of the cards are physically identical: each one is a standard poker-size card, 2.5 inches wide by 3.5 inches tall, taller than it is wide in the ratio 5:7, exactly as they appear in the attached image. In the photograph every card must be drawn at the SAME size and the SAME 5:7 proportions as every other card: the same width, the same height, the same rounded-corner radius. Do not make any card wider, squarer, taller, larger or smaller than its neighbours. A card may be turned a little, but turning never changes its size or shape. Check every card against the others before finishing: if any two cards differ in size or proportion, the photograph is wrong.
+
+The camera looks straight down at the table (a true top-down view, no perspective), so all the cards are seen at the same scale. Draw a product photograph: [content]`;
 const FULL = STYLE.replace('[content]', SCENE);
 const post = (u, body) => fetch(`${BASE}${u}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 
