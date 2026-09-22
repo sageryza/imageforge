@@ -37,6 +37,11 @@ const HAND = args.includes('--hand') || Boolean(flag('face'));
 const FACE = flag('face', 'sophie');
 const FACE_FILE = { sophie: 'sophie-hand.ttf', lemon: 'lemon-hand.ttf', title: 'magic-title.ttf', subtitle: 'magic-subtitle.ttf' }[FACE] || FACE;
 const CAPS = args.includes('--caps');
+// --size <px> --track <em>: the name's size and letter-spacing, over the
+// defaults (2026-09-22, Sophie, on Lemon Hand caps: "try it smaller and with
+// more space between letters" → 12px, .22em).
+const NM_SIZE = flag('size', CAPS ? '15' : '17');
+const NM_TRACK = flag('track', CAPS ? '.1em' : '.06em');
 // --fonts: ONE compare page of the name in several fonts, lowercase and caps
 // side by side, two sample cards each, a ♥/✕ per option (2026-09-20, Sophie:
 // "now try caps · and a couple other fonts in lower and caps · u can put in
@@ -122,7 +127,7 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&am
 ${V3 && !HAND ? '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap">' : ''}
 <style>
   ${HAND ? `@font-face{font-family:"Her Hand";src:url(/fonts/${FACE_FILE}) format("truetype");font-display:swap}
-  .v3 .fc2 .nm2.hand{font-family:'Her Hand',Georgia,serif;font-weight:400;font-size:${CAPS ? 15 : 17}px;letter-spacing:${CAPS ? '.1em' : '.06em'}}` : ''}
+  .v3 .fc2 .nm2.hand{font-family:'Her Hand',Georgia,serif;font-weight:400;font-size:${NM_SIZE}px;letter-spacing:${NM_TRACK}}` : ''}
   .cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
   .fc{all:unset;display:block;cursor:pointer;-webkit-tap-highlight-color:transparent;perspective:900px;aspect-ratio:3/4}
   .fc-in{position:relative;display:block;width:100%;height:100%;transition:transform .45s;transform-style:preserve-3d}
