@@ -38,7 +38,7 @@ const OUT = flag('out', path.join(process.env.CLAUDE_SCRATCH || '/tmp', 'animal-
 if (!FRONTS || !SCENE) { console.error('--fronts <dir> and --scene "…" are required'); process.exit(1); }
 const ROOT = path.join(__dirname, '..');
 const tier = (s) => { const w = parseInt(s, 10); return w >= 4000 ? '4K' : w >= 2000 ? '2K' : '1K'; };
-const STYLE = 'The attached image shows the product: a set of printed flash cards. Keep every card exactly as it appears there — the drawings, the lettering, the white card face — and do not add, change or invent any card. Draw a product photograph: [content]';
+const STYLE = 'The attached image shows the product: a set of printed flash cards with rounded corners. Keep every card exactly as it appears there — the drawings, the lettering, the white card face, the rounded corners — and do not add, change or invent any card. Draw a product photograph: [content]';
 const FULL = STYLE.replace('[content]', SCENE);
 const post = (u, body) => fetch(`${BASE}${u}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 
@@ -48,13 +48,18 @@ async function sheet() {
   const cw = 412, ch = 562, gap = 40; // half the 825x1125 print card
   const W = cols * cw + (cols + 1) * gap, H = rows * ch + (rows + 1) * gap;
   const layers = [];
+  // ROUNDED CORNERS (2026-09-22, "corners aren't round"): a printed poker
+  // card is cut with a 1/8in radius, and the model draws the corners it is
+  // shown — so the sheet's cards are masked round (37px at 825, half here).
+  const r = Math.round(cw * 37 / 825);
+  const mask = Buffer.from(`<svg width="${cw}" height="${ch}"><rect x="0" y="0" width="${cw}" height="${ch}" rx="${r}" ry="${r}" fill="#fff"/></svg>`);
   for (const [i, f] of files.entries()) {
-    const buf = await sharp(path.join(FRONTS, f)).resize(cw, ch).png().toBuffer();
+    const buf = await sharp(path.join(FRONTS, f)).resize(cw, ch).composite([{ input: mask, blend: 'dest-in' }]).png().toBuffer();
     layers.push({ input: buf, left: gap + (i % cols) * (cw + gap), top: gap + Math.floor(i / cols) * (ch + gap) });
   }
   const out = path.join(OUT, 'sheet.png');
   fs.mkdirSync(OUT, { recursive: true });
-  await sharp({ create: { width: W, height: H, channels: 3, background: '#f4efe6' } }).composite(layers).png().toFile(out);
+  await sharp({ create: { width: W, height: H, channels: 4, background: '#f4efe6' } }).composite(layers).flatten({ background: '#f4efe6' }).png().toFile(out);
   return { out, n: files.length };
 }
 
