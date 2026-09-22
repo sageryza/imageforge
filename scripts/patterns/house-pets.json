@@ -1,0 +1,291 @@
+{
+ "name": "house pets",
+ "pick": [
+  "animal:cat",
+  "animal:dog",
+  "animal:mouse",
+  "animal:rabbit",
+  "animal:hamster",
+  "animal:guinea-pig",
+  "animal:goldfish",
+  "animal:parrot"
+ ],
+ "layout": "tossed",
+ "cols": 6,
+ "tile": 3072,
+ "bg": "#e4ecf3",
+ "seed": 9,
+ "tilt": 40,
+ "rows": 6,
+ "fill": 0.8,
+ "gap": 0.1,
+ "placements": [
+  {
+   "id": "animal:cat",
+   "x": 0.0131,
+   "y": 0.0845,
+   "rot": -28.7,
+   "scale": 0.99
+  },
+  {
+   "id": "animal:dog",
+   "x": 0.1845,
+   "y": 0.171,
+   "rot": 33.6,
+   "scale": 0.74
+  },
+  {
+   "id": "animal:mouse",
+   "x": 0.4225,
+   "y": 0.1276,
+   "rot": -17.3,
+   "scale": 1.04,
+   "flip": true
+  },
+  {
+   "id": "animal:rabbit",
+   "x": 0.6064,
+   "y": 0.1676,
+   "rot": -10.6,
+   "scale": 0.89
+  },
+  {
+   "id": "animal:hamster",
+   "x": 0.7572,
+   "y": 0.1118,
+   "rot": 29.9,
+   "scale": 0.76
+  },
+  {
+   "id": "animal:guinea-pig",
+   "x": 0.8856,
+   "y": 0.1869,
+   "rot": 30.1,
+   "scale": 0.77
+  },
+  {
+   "id": "animal:goldfish",
+   "x": 0.0504,
+   "y": 0.255,
+   "rot": 26.7,
+   "scale": 0.95,
+   "flip": true
+  },
+  {
+   "id": "animal:parrot",
+   "x": 0.2968,
+   "y": 0.2937,
+   "rot": -15.2,
+   "scale": 0.93,
+   "flip": true
+  },
+  {
+   "id": "animal:guinea-pig",
+   "x": 0.4578,
+   "y": 0.288,
+   "rot": 5.4,
+   "scale": 0.75
+  },
+  {
+   "id": "animal:cat",
+   "x": 0.6013,
+   "y": 0.3311,
+   "rot": 24,
+   "scale": 0.9
+  },
+  {
+   "id": "animal:dog",
+   "x": 0.7508,
+   "y": 0.2652,
+   "rot": -0.3,
+   "scale": 0.76
+  },
+  {
+   "id": "animal:mouse",
+   "x": 0.8999,
+   "y": 0.3501,
+   "rot": 4.2,
+   "scale": 0.93
+  },
+  {
+   "id": "animal:rabbit",
+   "x": 0.1321,
+   "y": 0.3854,
+   "rot": 18.5,
+   "scale": 0.73
+  },
+  {
+   "id": "animal:hamster",
+   "x": 0.2634,
+   "y": 0.4851,
+   "rot": 18.8,
+   "scale": 1.03
+  },
+  {
+   "id": "animal:goldfish",
+   "x": 0.4235,
+   "y": 0.4234,
+   "rot": 36.6,
+   "scale": 0.74
+  },
+  {
+   "id": "animal:parrot",
+   "x": 0.5675,
+   "y": 0.512,
+   "rot": -12.3,
+   "scale": 0.97,
+   "flip": true
+  },
+  {
+   "id": "animal:goldfish",
+   "x": 0.7381,
+   "y": 0.4326,
+   "rot": -34.4,
+   "scale": 0.91
+  },
+  {
+   "id": "animal:guinea-pig",
+   "x": 0.8821,
+   "y": 0.5178,
+   "rot": -17.3,
+   "scale": 0.87,
+   "flip": true
+  },
+  {
+   "id": "animal:dog",
+   "x": 0.0628,
+   "y": 0.5418,
+   "rot": 5.7,
+   "scale": 1.04
+  },
+  {
+   "id": "animal:cat",
+   "x": 0.2718,
+   "y": 0.6659,
+   "rot": 7.7,
+   "scale": 0.94,
+   "flip": true
+  },
+  {
+   "id": "animal:mouse",
+   "x": 0.4116,
+   "y": 0.5839,
+   "rot": 11.4,
+   "scale": 0.69,
+   "flip": true
+  },
+  {
+   "id": "animal:rabbit",
+   "x": 0.5763,
+   "y": 0.6799,
+   "rot": -31.1,
+   "scale": 0.76,
+   "flip": true
+  },
+  {
+   "id": "animal:hamster",
+   "x": 0.7357,
+   "y": 0.6202,
+   "rot": -28.3,
+   "scale": 1.01
+  },
+  {
+   "id": "animal:parrot",
+   "x": 0.9191,
+   "y": 0.6817,
+   "rot": 35.8,
+   "scale": 0.89
+  },
+  {
+   "id": "animal:goldfish",
+   "x": 0.0996,
+   "y": 0.7396,
+   "rot": -19.8,
+   "scale": 1.03
+  },
+  {
+   "id": "animal:guinea-pig",
+   "x": 0.2606,
+   "y": 0.8391,
+   "rot": -12.3,
+   "scale": 1.02,
+   "flip": true
+  },
+  {
+   "id": "animal:dog",
+   "x": 0.4287,
+   "y": 0.7477,
+   "rot": 19,
+   "scale": 0.9
+  },
+  {
+   "id": "animal:cat",
+   "x": 0.5879,
+   "y": 0.8437,
+   "rot": 35.5,
+   "scale": 1.01
+  },
+  {
+   "id": "animal:mouse",
+   "x": 0.7817,
+   "y": 0.8133,
+   "rot": 22.3,
+   "scale": 1.01,
+   "flip": true
+  },
+  {
+   "id": "animal:rabbit",
+   "x": 0.9571,
+   "y": 0.8463,
+   "rot": -26.9,
+   "scale": 0.84
+  },
+  {
+   "id": "animal:parrot",
+   "x": 0.1022,
+   "y": 0.9295,
+   "rot": -36.9,
+   "scale": 0.88,
+   "flip": true
+  },
+  {
+   "id": "animal:hamster",
+   "x": 0.2587,
+   "y": 0.0252,
+   "rot": 13.1,
+   "scale": 0.92,
+   "flip": true
+  },
+  {
+   "id": "animal:rabbit",
+   "x": 0.4192,
+   "y": 0.9306,
+   "rot": -14.8,
+   "scale": 1.02,
+   "flip": true
+  },
+  {
+   "id": "animal:parrot",
+   "x": 0.5627,
+   "y": 0.0177,
+   "rot": -38.6,
+   "scale": 0.74,
+   "flip": true
+  },
+  {
+   "id": "animal:goldfish",
+   "x": 0.7037,
+   "y": 0.9694,
+   "rot": -3.1,
+   "scale": 0.76,
+   "flip": true
+  },
+  {
+   "id": "animal:dog",
+   "x": 0.8659,
+   "y": 0.9847,
+   "rot": 36,
+   "scale": 0.87
+  }
+ ]
+}

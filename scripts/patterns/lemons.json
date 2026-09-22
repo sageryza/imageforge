@@ -1,0 +1,294 @@
+{
+ "name": "lemons",
+ "pick": [
+  "fruit:15-lemon"
+ ],
+ "layout": "tossed",
+ "cols": 6,
+ "tile": 3072,
+ "bg": "#ffffff",
+ "seed": 5,
+ "spin": true,
+ "rows": 6,
+ "fill": 0.8,
+ "gap": 0.1,
+ "placements": [
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.0774,
+   "y": 0.0873,
+   "rot": 79.1,
+   "scale": 0.95,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.2604,
+   "y": 0.1464,
+   "rot": 164.9,
+   "scale": 1.06,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.4162,
+   "y": 0.0821,
+   "rot": 237.8,
+   "scale": 0.72,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.5801,
+   "y": 0.205,
+   "rot": 103.7,
+   "scale": 1
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.7417,
+   "y": 0.0199,
+   "rot": 285.7,
+   "scale": 0.79,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.9477,
+   "y": 0.1882,
+   "rot": 357,
+   "scale": 0.81,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.1033,
+   "y": 0.2726,
+   "rot": 146.7,
+   "scale": 1.09,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.2883,
+   "y": 0.3311,
+   "rot": 312.9,
+   "scale": 0.99
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.4142,
+   "y": 0.225,
+   "rot": 233.7,
+   "scale": 0.77
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.4951,
+   "y": 0.3668,
+   "rot": 280.4,
+   "scale": 0.95,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.7713,
+   "y": 0.1862,
+   "rot": 126,
+   "scale": 1.05,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.8809,
+   "y": 0.3545,
+   "rot": 100.4,
+   "scale": 1.1,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.046,
+   "y": 0.4554,
+   "rot": 113.1,
+   "scale": 0.97,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.2137,
+   "y": 0.4823,
+   "rot": 188.9,
+   "scale": 0.81
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.3699,
+   "y": 0.4804,
+   "rot": 343.4,
+   "scale": 0.82
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.6095,
+   "y": 0.5175,
+   "rot": 208.4,
+   "scale": 1.08
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.6913,
+   "y": 0.3515,
+   "rot": 105.9,
+   "scale": 0.92,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.9001,
+   "y": 0.5277,
+   "rot": 49.9,
+   "scale": 0.75,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.1226,
+   "y": 0.5992,
+   "rot": 148.5,
+   "scale": 0.75,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.2855,
+   "y": 0.6369,
+   "rot": 253,
+   "scale": 1,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.4496,
+   "y": 0.6071,
+   "rot": 218.1,
+   "scale": 0.76,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.5828,
+   "y": 0.7126,
+   "rot": 151.7,
+   "scale": 1.07,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.7683,
+   "y": 0.5882,
+   "rot": 293.9,
+   "scale": 0.75
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.9836,
+   "y": 0.6459,
+   "rot": 214.7,
+   "scale": 0.75,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.1132,
+   "y": 0.7459,
+   "rot": 245.3,
+   "scale": 0.81,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.2662,
+   "y": 0.8217,
+   "rot": 163,
+   "scale": 1,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.4156,
+   "y": 0.7509,
+   "rot": 7,
+   "scale": 0.77,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.6636,
+   "y": 0.8792,
+   "rot": 341.6,
+   "scale": 0.94
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.7781,
+   "y": 0.7366,
+   "rot": 23,
+   "scale": 0.78,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.9367,
+   "y": 0.7809,
+   "rot": 162.7,
+   "scale": 0.73
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.0482,
+   "y": 0.9047,
+   "rot": 322,
+   "scale": 1.01
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.205,
+   "y": 0.9814,
+   "rot": 289.8,
+   "scale": 0.82,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.4235,
+   "y": 0.9144,
+   "rot": 237,
+   "scale": 0.92,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.5625,
+   "y": 0.0238,
+   "rot": 291.4,
+   "scale": 0.93
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.8279,
+   "y": 0.8803,
+   "rot": 204.8,
+   "scale": 0.79,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.9079,
+   "y": 0.0263,
+   "rot": 22.6,
+   "scale": 0.95,
+   "flip": true
+  }
+ ]
+}
