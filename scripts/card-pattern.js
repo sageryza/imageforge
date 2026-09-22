@@ -15,7 +15,7 @@
 //
 //   node scripts/card-pattern.js --name "fruit salad" --pick strawberry,lemon,cherries
 //        [--layout tossed|halfdrop|grid] [--cols 4] [--bg "#f6efe3"] [--tile 2048]
-//        [--fill 0.78] [--seed 1] [--post] [--chat animal-fruit-patterns] [--dry]
+//        [--fill 0.78] [--gap 0.1] [--seed 1] [--cut rough] [--post] [--chat animal-fruit-patterns] [--dry]
 //   node scripts/card-pattern.js --batch scripts/patterns/batch-v1.json [--post]
 //   node scripts/card-pattern.js --file scripts/patterns/fruit-salad.json [--post]
 //
@@ -50,6 +50,10 @@ for (const d of [CACHE, CUT, OUT, SPECDIR]) fs.mkdirSync(d, { recursive: true })
 // Later files win on a shared id (a v2 redraw replaces the first take), the
 // same rule fruit-compare-page.js uses.
 const SETS = [
+  // Her CURRENT picks first — the Finished page's one picture per fruit
+  // (2026-09-22: "ur also not using my current chosen fruits"), read into
+  // decks/fruit-picked.json; a plain name resolves to these before the old deck.
+  ['picked', ['decks/fruit-picked.json']],
   ['fruit', ['fruit-chart/uploaded.json', 'fruit-chart/v2-uploaded.json', 'fruit-chart/v3-uploaded.json']],
   ['veg', ['fruit-chart/veg-uploaded.json']],
   ['animal', ['decks/animals-drawn.json']],
@@ -93,10 +97,14 @@ if (has('list')) {
 // highlight INSIDE a drawing is not, because the flood never reaches it. The
 // rim gets a soft edge from how light each pixel is, so the cut does not read
 // as a sticker with a hard outline.
+// `rough` (2026-09-22, Sophie: "try some that cuts roughly around and they
+// stay white"): instead of making the white see-through, cut a loose,
+// wobbly shape around the drawing and keep the white paper inside it — like
+// a picture cut out of a page with scissors.
 const WHITE = 236;
-async function cutout(rec) {
+async function cutout(rec, mode) {
   const safe = rec.id.replace(/[^a-z0-9]+/gi, '-');
-  const cutPath = path.join(CUT, `${safe}.png`);
+  const cutPath = path.join(CUT, `${safe}${mode === 'rough' ? '-rough' : ''}.png`);
   if (fs.existsSync(cutPath)) return cutPath;
   const src = path.join(CACHE, `${safe}${path.extname(new URL(rec.url).pathname) || '.webp'}`);
   if (!fs.existsSync(src)) {
@@ -125,9 +133,39 @@ async function cutout(rec) {
     if (y > 0) push(i - W);
     if (y < H - 1) push(i + W);
   }
-  // Soft rim: a foreground pixel next to background fades by its lightness.
   let minX = W, minY = H, maxX = -1, maxY = -1;
-  for (let i = 0; i < N; i++) {
+  if (mode === 'rough') {
+    // Where the drawing is, seen from its middle: the farthest drawn pixel in
+    // each of 28 directions, pushed out by a margin and wobbled a little, is
+    // the cut line. Everything inside keeps its own paper.
+    let sx = 0, sy = 0, n = 0;
+    for (let i = 0; i < N; i++) if (!bg[i]) { sx += i % W; sy += (i - i % W) / W; n++; }
+    if (!n) throw new Error(`${rec.id}: nothing but white`);
+    const cx = sx / n, cy = sy / n, BINS = 28, far = new Array(BINS).fill(0);
+    for (let i = 0; i < N; i++) {
+      if (bg[i]) continue;
+      const dx = i % W - cx, dy = (i - i % W) / W - cy;
+      const b = Math.floor(((Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI)) * BINS) % BINS;
+      const r = Math.hypot(dx, dy);
+      if (r > far[b]) far[b] = r;
+    }
+    for (let b = 0; b < BINS; b++) if (!far[b]) far[b] = Math.max(far[(b + BINS - 1) % BINS], far[(b + 1) % BINS]);
+    const rnd = mulberry32(safe.length * 7919 + 13);
+    const margin = Math.max(W, H) * 0.06;
+    const pts = [];
+    for (let b = 0; b < BINS; b++) {
+      const a = -Math.PI + (b + 0.5) / BINS * 2 * Math.PI + (rnd() - 0.5) * 0.1;
+      const r = Math.max(far[b], far[(b + BINS - 1) % BINS] * 0.85, far[(b + 1) % BINS] * 0.85) + margin * (0.6 + rnd() * 0.8);
+      pts.push(`${(cx + Math.cos(a) * r).toFixed(1)},${(cy + Math.sin(a) * r).toFixed(1)}`);
+    }
+    const svg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><polygon points="${pts.join(' ')}" fill="#fff"/></svg>`);
+    const mask = await sharp(svg).ensureAlpha().raw().toBuffer();
+    for (let i = 0; i < N; i++) {
+      const o = i * 4;
+      data[o + 3] = mask[o + 3];
+      if (data[o + 3] > 8) { const x = i % W, y = (i - x) / W; if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
+    }
+  } else for (let i = 0; i < N; i++) {
     const o = i * 4;
     if (bg[i]) { data[o + 3] = 0; continue; }
     const x = i % W, y = (i - x) / W;
@@ -139,7 +177,7 @@ async function cutout(rec) {
     if (data[o + 3] > 8) { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
   }
   if (maxX < 0) throw new Error(`${rec.id}: nothing but white`);
-  const pad = 2;
+  const pad = mode === 'rough' ? 0 : 2;
   const left = Math.max(0, minX - pad), top = Math.max(0, minY - pad);
   const width = Math.min(W, maxX + pad + 1) - left, height = Math.min(H, maxY + pad + 1) - top;
   await sharp(data, { raw: { width: W, height: H, channels: 4 } }).extract({ left, top, width, height }).png().toFile(cutPath);
@@ -295,7 +333,7 @@ function specsFromArgs() {
     name: flag('name', 'pattern'), pick: flag('pick').split(',').map((s) => s.trim()).filter(Boolean),
     layout: flag('layout', 'tossed'), cols: Number(flag('cols', 4)), bg: flag('bg', '#f6efe3'),
     tile: Number(flag('tile', 2048)), fill: flag('fill') ? Number(flag('fill')) : undefined,
-    seed: Number(flag('seed', 1)), tilt: flag('tilt') ? Number(flag('tilt')) : undefined,
+    seed: Number(flag('seed', 1)), cut: flag('cut'), gap: flag('gap') ? Number(flag('gap')) : undefined, tilt: flag('tilt') ? Number(flag('tilt')) : undefined,
   }];
 }
 
@@ -311,7 +349,7 @@ function specsFromArgs() {
     const file = path.join(SPECDIR, `${slug(spec.name)}.json`);
     if (DRY) { console.log(`${spec.name}: ${spec.layout || 'as placed'} · ${spec.pick.length} cards · ${spec.bg || '#ffffff'} · ${spec.tile}px`); for (const id of spec.pick) console.log('   ', id, '←', find(id).url); continue; }
     const motifs = {}, dims = {};
-    for (const id of spec.pick) { motifs[id] = await cutout(find(id)); const m = await sharp(motifs[id]).metadata(); dims[id] = { w: m.width, h: m.height }; }
+    for (const id of spec.pick) { motifs[id] = await cutout(find(id), spec.cut); const m = await sharp(motifs[id]).metadata(); dims[id] = { w: m.width, h: m.height }; }
     if (!spec.placements) Object.assign(spec, layout(spec, dims));
     console.log(`${spec.name}: ${spec.layout || 'as placed'} · ${spec.placements.length} pictures from ${spec.pick.length} cards · ${spec.cols} across · ${spec.bg || '#ffffff'} · ${spec.tile}px`);
     const tilePng = await (await render(spec, motifs)).toBuffer();
@@ -332,7 +370,7 @@ function specsFromArgs() {
     const tile = await upload(r.tilePng, `${r.base}-tile-${r.spec.tile}.png`, 'image/png');
     const rep = await upload(r.rep, `${r.base}-repeat.webp`, 'image/webp');
     const one = await upload(r.one, `${r.base}-one-tile.webp`, 'image/webp');
-    const what = `${r.spec.layout || 'hand placed'} · ${r.spec.pick.map((id) => find(id).name).join(', ')}`;
+    const what = `${r.spec.layout || 'hand placed'}${r.spec.cut === 'rough' ? ' · cut roughly around' : ''} · ${r.spec.pick.map((id) => find(id).name).join(', ')}`;
     for (const [it, label] of [[rep, `${r.spec.name} — the repeat (3x3)`], [one, `${r.spec.name} — one tile`]]) {
       await post(`${BASE}/api/gallery`, { assetsOnly: true, chat: CHAT, session: SESSION, url: it.url, description: `${label} · ${what}`, prompt: `card-pattern.js · ${r.spec.layout || 'placed'} · ${r.spec.tile}px` });
     }
