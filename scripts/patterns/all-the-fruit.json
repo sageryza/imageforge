@@ -1,0 +1,311 @@
+{
+ "layout": "tossed",
+ "once": true,
+ "tile": 2048,
+ "bg": "#ffffff",
+ "cut": "rough",
+ "fill": 0.62,
+ "gap": 0.3,
+ "name": "all the fruit",
+ "pick": [
+  "picked:strawberry",
+  "picked:banana",
+  "picked:apple",
+  "picked:mango",
+  "picked:watermelon",
+  "picked:grapes",
+  "picked:blueberries",
+  "picked:pineapple",
+  "picked:peach",
+  "picked:cherries",
+  "picked:raspberries",
+  "picked:pear",
+  "picked:kiwi",
+  "picked:lemon",
+  "picked:plum",
+  "picked:blackberries",
+  "picked:cantaloupe",
+  "picked:pomegranate",
+  "picked:avocado",
+  "picked:fig",
+  "picked:papaya",
+  "picked:apricot",
+  "picked:coconut",
+  "picked:lime",
+  "picked:nectarine",
+  "picked:cherimoya",
+  "picked:dates",
+  "picked:persimmon",
+  "picked:guava",
+  "picked:passion-fruit",
+  "picked:starfruit",
+  "picked:honeydew",
+  "picked:grapefruit",
+  "picked:mulberries",
+  "picked:kumquat"
+ ],
+ "seed": 4,
+ "cols": 6,
+ "rows": 6,
+ "placements": [
+  {
+   "id": "picked:blueberries",
+   "x": 0.1122,
+   "y": 0.1091,
+   "rot": -50.1,
+   "scale": 0.65,
+   "flip": true
+  },
+  {
+   "id": "picked:banana",
+   "x": 0.2464,
+   "y": 0.1713,
+   "rot": 85.3,
+   "scale": 0.83
+  },
+  {
+   "id": "picked:mango",
+   "x": 0.3808,
+   "y": 0.0617,
+   "rot": 41.8,
+   "scale": 0.92
+  },
+  {
+   "id": "picked:pomegranate",
+   "x": 0.6397,
+   "y": 0.1498,
+   "rot": -1.7,
+   "scale": 0.87
+  },
+  {
+   "id": "picked:dates",
+   "x": 0.8093,
+   "y": 0.0955,
+   "rot": -27.4,
+   "scale": 0.89,
+   "flip": true
+  },
+  {
+   "id": "picked:honeydew",
+   "x": 0.9737,
+   "y": 0.1314,
+   "rot": -28.3,
+   "scale": 0.78,
+   "flip": true
+  },
+  {
+   "id": "picked:avocado",
+   "x": 0.0949,
+   "y": 0.2479,
+   "rot": 47.5,
+   "scale": 0.66
+  },
+  {
+   "id": "picked:peach",
+   "x": 0.3016,
+   "y": 0.3173,
+   "rot": 8.5,
+   "scale": 0.65
+  },
+  {
+   "id": "picked:cherries",
+   "x": 0.448,
+   "y": 0.2198,
+   "rot": -63.6,
+   "scale": 0.94
+  },
+  {
+   "id": "picked:plum",
+   "x": 0.6067,
+   "y": 0.32,
+   "rot": -56.5,
+   "scale": 0.84,
+   "flip": true
+  },
+  {
+   "id": "picked:starfruit",
+   "x": 0.7651,
+   "y": 0.2483,
+   "rot": 82.2,
+   "scale": 0.63,
+   "flip": true
+  },
+  {
+   "id": "picked:pineapple",
+   "x": 0.9292,
+   "y": 0.3072,
+   "rot": 9.9,
+   "scale": 0.95,
+   "flip": true
+  },
+  {
+   "id": "picked:persimmon",
+   "x": 0.0804,
+   "y": 0.4133,
+   "rot": -6.4,
+   "scale": 0.86,
+   "flip": true
+  },
+  {
+   "id": "picked:apricot",
+   "x": 0.2522,
+   "y": 0.4737,
+   "rot": 51.8,
+   "scale": 0.91,
+   "flip": true
+  },
+  {
+   "id": "picked:lemon",
+   "x": 0.4401,
+   "y": 0.3995,
+   "rot": 86.2,
+   "scale": 0.83,
+   "flip": true
+  },
+  {
+   "id": "picked:raspberries",
+   "x": 0.5937,
+   "y": 0.5003,
+   "rot": -34.6,
+   "scale": 0.94
+  },
+  {
+   "id": "picked:nectarine",
+   "x": 0.7682,
+   "y": 0.4192,
+   "rot": -20.9,
+   "scale": 0.95
+  },
+  {
+   "id": "picked:coconut",
+   "x": 0.9142,
+   "y": 0.5141,
+   "rot": -75.3,
+   "scale": 0.63,
+   "flip": true
+  },
+  {
+   "id": "picked:lime",
+   "x": 0.0601,
+   "y": 0.599,
+   "rot": 72.2,
+   "scale": 0.94
+  },
+  {
+   "id": "picked:guava",
+   "x": 0.2373,
+   "y": 0.6597,
+   "rot": 30.6,
+   "scale": 0.93,
+   "flip": true
+  },
+  {
+   "id": "picked:cherimoya",
+   "x": 0.414,
+   "y": 0.5751,
+   "rot": 19.1,
+   "scale": 0.91
+  },
+  {
+   "id": "picked:kiwi",
+   "x": 0.5728,
+   "y": 0.6837,
+   "rot": 29.3,
+   "scale": 0.91,
+   "flip": true
+  },
+  {
+   "id": "picked:mulberries",
+   "x": 0.7519,
+   "y": 0.6121,
+   "rot": -22.3,
+   "scale": 0.96
+  },
+  {
+   "id": "picked:strawberry",
+   "x": 0.9122,
+   "y": 0.7197,
+   "rot": -17,
+   "scale": 0.93
+  },
+  {
+   "id": "picked:blackberries",
+   "x": 0.0895,
+   "y": 0.794,
+   "rot": -81.5,
+   "scale": 0.92
+  },
+  {
+   "id": "picked:passion-fruit",
+   "x": 0.2639,
+   "y": 0.8263,
+   "rot": 50.5,
+   "scale": 0.75,
+   "flip": true
+  },
+  {
+   "id": "picked:grapefruit",
+   "x": 0.3915,
+   "y": 0.7368,
+   "rot": -29.8,
+   "scale": 0.65
+  },
+  {
+   "id": "picked:papaya",
+   "x": 0.5854,
+   "y": 0.8516,
+   "rot": -33.3,
+   "scale": 0.78
+  },
+  {
+   "id": "picked:pear",
+   "x": 0.7454,
+   "y": 0.7961,
+   "rot": -12.6,
+   "scale": 0.92
+  },
+  {
+   "id": "picked:fig",
+   "x": 0.8851,
+   "y": 0.8977,
+   "rot": -27.7,
+   "scale": 0.78
+  },
+  {
+   "id": "picked:cantaloupe",
+   "x": 0.0356,
+   "y": 0.9713,
+   "rot": -26.2,
+   "scale": 0.78
+  },
+  {
+   "id": "picked:grapes",
+   "x": 0.2151,
+   "y": 0.9912,
+   "rot": -65.2,
+   "scale": 0.88
+  },
+  {
+   "id": "picked:watermelon",
+   "x": 0.4172,
+   "y": 0.8946,
+   "rot": -24.5,
+   "scale": 0.85,
+   "flip": true
+  },
+  {
+   "id": "picked:kumquat",
+   "x": 0.5415,
+   "y": 0.0135,
+   "rot": 69.3,
+   "scale": 0.78
+  },
+  {
+   "id": "picked:apple",
+   "x": 0.7056,
+   "y": 0.9661,
+   "rot": -55.6,
+   "scale": 0.75
+  }
+ ]
+}

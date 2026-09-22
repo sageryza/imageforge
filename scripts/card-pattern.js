@@ -54,10 +54,12 @@ for (const d of [CACHE, CUT, OUT, SPECDIR]) fs.mkdirSync(d, { recursive: true })
 // Later files win on a shared id (a v2 redraw replaces the first take), the
 // same rule fruit-compare-page.js uses.
 const SETS = [
-  // Her CURRENT picks first — the Finished page's one picture per fruit
-  // (2026-09-22: "ur also not using my current chosen fruits"), read into
-  // decks/fruit-picked.json; a plain name resolves to these before the old deck.
-  ['picked', ['decks/fruit-picked.json', 'decks/animals-picked.json']],
+  // Her CURRENT picks first — the Finished page's one picture per fruit and
+  // vegetable (2026-09-22: "ur also not using my current chosen fruits" ·
+  // "all 15? we have a whole deck...?" — the 63-picked page, 35 fruit and 28
+  // vegetables), read into decks/*-picked.json; a plain name resolves to
+  // these before the old deck.
+  ['picked', ['decks/fruit-picked.json', 'decks/veg-picked.json', 'decks/animals-picked.json']],
   ['fruit', ['fruit-chart/uploaded.json', 'fruit-chart/v2-uploaded.json', 'fruit-chart/v3-uploaded.json']],
   ['veg', ['fruit-chart/veg-uploaded.json']],
   ['animal', ['decks/animals-drawn.json']],
