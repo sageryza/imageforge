@@ -34,6 +34,11 @@ The spec is JSON:
               lowercase face): each glyph is scaled so its top meets the
               group's median top. Not for handwriting — the unevenness is
               the point there.
+    side      side bearing in font units (default 65) — measured off the
+              sheet's own title lines so the default spacing IS the sheet's
+              (title 140, subtitle 80) · space the space glyph's width
+    thin      px shaved off each side of every stroke at the 4x trace; the
+              hairlines a shave would erase are kept whole
     alignTop  {glyph: otherGlyph} — lift a mark so its top matches another's
               (the sheet's apostrophe hung at mid height: IT'S read as IT,S)
   lowerToCaps a caps-only font draws lowercase with the caps (the title face)
@@ -101,6 +106,19 @@ def glyph_boxes(ink, y0, y1, gap=3):
         else: merged.append(c)
     return [(x0, x1, y0+t, y0+b) for (x0, x1, t, b) in merged]
 
+def thin_strokes(ink, px):
+    """Take `px` off each side of every stroke, but leave anything the shave
+    would delete outright (hairlines, serif tips) at its full width. A
+    photographed serif traces fat — the anti-aliased halo and the upscale's
+    blur both land inside the threshold — measured 1.7x the sheet's stems on
+    the subtitle face (Sophie: "is the subtitle font thicker than i have u")."""
+    k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2*px+1, 2*px+1))
+    u8 = ink.astype(np.uint8)
+    core = cv2.erode(u8, k)
+    opened = cv2.dilate(core, k)
+    hair = u8 & (1 - opened)          # what an opening removes: the thin parts
+    return ((core | hair) > 0)
+
 def bridge(ink):
     """Join the two largest pieces of a glyph with a stroke between their closest pixels."""
     n, lab, stats, _ = cv2.connectedComponentsWithStats(ink.astype(np.uint8), 8)
@@ -115,13 +133,14 @@ def bridge(ink):
     cv2.line(out, (int(a[i][1]), int(a[i][0])), (int(b[j][1]), int(b[j][0])), 1, w)
     return out.astype(bool)
 
-def trace(gray, box, scale=4, pad=5, join=False, dark=165):
+def trace(gray, box, scale=4, pad=5, join=False, dark=165, thin=0):
     x0, x1, y0, y1 = box
     crop = gray[max(0, y0-pad):y1+pad, max(0, x0-pad):x1+pad]
     big = cv2.resize(crop, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
     big = cv2.GaussianBlur(big, (3, 3), 0)
     ink = big < dark
     if join: ink = bridge(ink)
+    if thin: ink = thin_strokes(ink, thin)
     # potracer traces the False region as foreground
     path = potrace.Bitmap(~ink).trace(turdsize=6, alphamax=1.0, opticurve=True, opttolerance=0.2)
     rows = np.flatnonzero(ink.any(axis=1))
@@ -176,8 +195,8 @@ def main():
         return
 
     cff, ttg, widths = {}, {}, {}
-    def add(name, gray, box, base, k, join, dark=165, level=None):
-        path, origin, scale, top = trace(gray, box, join=join, dark=dark)
+    def add(name, gray, box, base, k, join, dark=165, level=None, thin=0, SIDE=SIDE):
+        path, origin, scale, top = trace(gray, box, join=join, dark=dark, thin=thin)
         # LEVELLING (a typeset sheet): every glyph in a level group is scaled so
         # its top lands where the group's median top lands — at 22px a serif's
         # hairline top is caught on one letter and missed on the next, and the
@@ -204,7 +223,7 @@ def main():
             tops = {}
             for c in group:
                 if c in glyphs:
-                    _, _, _, top = trace(gray, glyphs[c][0], dark=src.get('traceDark', 165))
+                    _, _, _, top = trace(gray, glyphs[c][0], dark=src.get('traceDark', 165), thin=src.get('thin', 0))
                     tops[c] = (glyphs[c][1] - top) * k
             if tops:
                 med = statistics.median(tops.values())
@@ -212,13 +231,13 @@ def main():
         for c, (box, base) in glyphs.items():
             if c in align and align[c] in glyphs: base += box[2] - glyphs[align[c]][0][2]
             if c not in base_chars:
-                base_chars[c] = gname(c); add(gname(c), gray, box, base, k, c in join, src.get('traceDark', 165), level.get(c))
+                base_chars[c] = gname(c); add(gname(c), gray, box, base, k, c in join, src.get('traceDark', 165), level.get(c), src.get('thin', 0), src.get('side', SIDE))
             else:
                 n = gname(c) + '.alt%d' % (len(alts.get(c, [])) + 1)
-                alts.setdefault(c, []).append(n); add(n, gray, box, base, k, c in join, src.get('traceDark', 165), level.get(c))
+                alts.setdefault(c, []).append(n); add(n, gray, box, base, k, c in join, src.get('traceDark', 165), level.get(c), src.get('thin', 0), src.get('side', SIDE))
 
     for g in ('.notdef', 'space'):
-        widths[g] = SPACE; cff[g] = T2CharStringPen(SPACE, None).getCharString(); ttg[g] = TTGlyphPen(None).glyph()
+        sp = spec.get('space', SPACE); widths[g] = sp; cff[g] = T2CharStringPen(sp, None).getCharString(); ttg[g] = TTGlyphPen(None).glyph()
     order = ['.notdef', 'space'] + [base_chars[c] for c in base_chars] + [n for c in alts for n in alts[c]]
     cmap = {32: 'space'}
     for c, n in base_chars.items(): cmap[ord(c)] = n
