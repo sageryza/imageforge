@@ -5,7 +5,7 @@ import UIKit   // UIImage(systemName:) — the SF Symbol existence check in Tool
 /// fixed: Home (the grid) and Gallery at the ends, and the tools in `barTools`
 /// between them. Everything else is reached from the home grid or a deep link.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, pausing, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, assembly, filmeditor, timeline, review, crop, shoebox, footage, stitch, pattern
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, pausing, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, assembly, filmeditor, timeline, review, crop, shoebox, footage, stitch
     var id: String { rawValue }
 
     var title: String {
@@ -50,7 +50,6 @@ enum Tool: String, CaseIterable, Identifiable {
         case .shoebox:   return "Shoebox"
         case .footage:   return "Footage"
         case .stitch:    return "Stitch"
-        case .pattern:   return "Pattern"
         }
     }
 
@@ -96,7 +95,6 @@ enum Tool: String, CaseIterable, Identifiable {
         case .shoebox:   return "Every polaroid in your Memory Library — one shelf."
         case .footage:   return "Describe a clip, add references — Seedance draws it."
         case .stitch:    return "Pick clips, put them in order — one button joins them."
-        case .pattern:   return "Animals and fruits on one tile — it repeats."
         }
     }
 
@@ -151,8 +149,6 @@ enum Tool: String, CaseIterable, Identifiable {
         // Three frames in a row — clips put in order and joined. Distinct from
         // Assembly's two landing rectangles and the Film Editor's selected span.
         case .stitch:    return "rectangle.3.group"
-        // A grid of squares: one tile, repeated.
-        case .pattern:   return "square.grid.3x3"
         // A stack of playable pieces — the library of PARTS you already own.
         //
         // It was `rectangle.split.3x1`, which is the SAME symbol .blocks wears
@@ -261,10 +257,6 @@ enum Tool: String, CaseIterable, Identifiable {
         // window.__navBack, so the chevron goes shelf-ward before it leaves.
         case .stitch:    GatedWebTool(path: "/stitch", name: "Stitch", icon: "rectangle.3.group",
                                       navTitle: "Stitch")
-        // Pattern: choose animals and fruits, arrange one tile, it repeats. The
-        // page draws its own header via pagehead.js — no Apple bar (the Aug 2026 rule).
-        case .pattern:   GatedWebTool(path: "/pattern", name: "Pattern", icon: "square.grid.3x3",
-                                      navTitle: "Pattern")
         // Chunking: the clip library. A shelf + a search box, so the native
         // bar carries the name and the page never repeats it (?embed=1).
         case .chunking:  GatedWebTool(path: "/chunking", name: "Chunking", icon: "play.square.stack",
@@ -335,7 +327,6 @@ enum Tool: String, CaseIterable, Identifiable {
         case .shoebox:    return "/shoebox"
         case .footage:    return "/footage"
         case .stitch:     return "/stitch"
-        case .pattern:    return "/pattern"
         // Native screens — nothing to collide with.
         case .movie, .sticker, .coloring, .storybook, .greeting, .instagram,
              .ads, .test, .dump:
@@ -950,7 +941,7 @@ private struct HomeGrid: View {
     /// test tube beside the masthead. Playground and **Freeform** also sit on
     /// the DEFAULT home (Sophie, Aug 2026: "put Freeform in the default") —
     /// this filter narrows to them, it doesn't own them.
-    private static let imageTools: [Tool] = [.playground, .test, .freeform, .vector, .crop, .shoebox, .pattern]
+    private static let imageTools: [Tool] = [.playground, .test, .freeform, .vector, .crop, .shoebox]
 
     /// What the cards show: the normal list, or one filter's slice.
     private var shown: [Tool] {

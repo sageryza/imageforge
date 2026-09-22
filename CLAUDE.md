@@ -427,6 +427,19 @@ LIST ITEMS in your replies, `kind:'item'`; answer those with `POST
   with nothing above it, boxes empty, buttons hug their words. `POST /page`
   answers `warnings` — a page that comes back with one gets fixed before the
   turn ends.
+- **THINGS START IN COMPARE — a served page only when she EXPLICITLY asks
+  for one (2026-09-22, Sophie, on the Pattern tool built as a page: "does it
+  need to be a page · can't it just be in compare · make a note saying things
+  start in compare unless i explicitly ask for page").** A new tool, a
+  viewer, a little program, a picker: it is a Compare page posted with
+  `POST /api/chatfeed/page` FIRST — it lands in the chat's Compare tab, needs
+  no deploy, no tile, no TestFlight build, and its state lives on a verdict
+  doc (one JSON text per thing, the Head Games shape) through routes the live
+  server already has. A `public/*.html` route + iOS tile is what she gets
+  when she says the word "page" (or "tool", "tile") for it — not when the
+  thing seemed big enough to deserve one. Pattern (below) is the worked
+  example: built as `/pattern` + a tile, rebuilt the same day as
+  `docs/pattern/pattern.tpl.html` posted by `scripts/pattern-page.js`.
 - **Never block the turn on a wait** — background it, or her next message is
   silently swallowed.
 - **She is almost never at her desktop.** Anything that can only run on her Mac
@@ -3609,44 +3622,48 @@ before working on that module. Nothing was deleted — the moved text is verbati
   PICTURES filter) — crop pictures to square by TAPPING ARROWS.
   **Full details: *Squaring* in `docs/modules/pictures.md` (moved from CLAUDE.md).**
 
-- **Pattern** (`pattern.js`, `/api/pattern`, page at `/pattern`, iOS tile under
-  the PICTURES filter — 2026-09-22, Sophie: "a program that lets me choose and
+- **Pattern** (a COMPARE PAGE in the animal-fruit-pattern-tool chat, built
+  by `scripts/pattern-page.js` from `docs/pattern/pattern.tpl.html`; the
+  module `pattern.js` at `/api/pattern` behind it for the pieces and a
+  server export — 2026-09-22, Sophie: "a program that lets me choose and
   arrange animals and or fruits into a repeating pattern" · "i need to choose
   the constituents, choose how much to rotate, choose how far apart, and
-  choose where they go"). Three hairline tabs: PIECES (the shelf — tap ticks
-  a piece onto the tile), TILE (drag to place, a degrees box and ±15 to turn,
-  a size slider, flip, "again" for another of the same, SPACING grows the
-  tile under the pieces so the repeats land farther apart, SPIN turns every
-  piece at random within ±N°, SCATTER spreads them evenly) and REPEAT (the
-  tiled preview, grid · half-drop · mirror on a tri toggle, the colour
-  behind, EXPORT at 1K/2K/4K). **The shelf is the fruit chart's own
-  drawings, cut out**: `scripts/pattern-seed.js` filed 175 (72 animals, 38
-  fruits, 35 vegetables, 30 plants — the card-pattern chat's decks under
+  choose where they go" · then "does it need to be a page · can't it just be
+  in compare"). Three hairline tabs: PIECES (tap ticks a picture onto the
+  tile), TILE (drag to place, a degrees box and ±15 to turn, a size slider,
+  flip, "+" for another of the same, SPACING grows the tile under the pieces
+  so the repeats land farther apart, SPIN turns every piece at random within
+  ±N°, SCATTER spreads them evenly) and REPEAT (the tiled preview, grid ·
+  half-drop · mirror on a tri toggle, the colour behind, EXPORT at 1K/2K/4K —
+  drawn on the page's own canvas and filed into the Dump, album `Patterns`,
+  through the live `/api/drop/upload-file`). **NO DEPLOY, ever**: her
+  patterns are JSON texts on the verdict doc (sheet `pattern`, keys `p:cfg:
+  <id>` and `p:it:<id>:<k>`, its own sheet and its own prefix so a note can
+  never overwrite one), and `node scripts/pattern-page.js --go [--supersede
+  <id>]` posts a new version (ledger `docs/pattern/VERSIONS`). **The pieces
+  are baked into the page**: every ready, unhidden doc on
+  `forge-pattern-pieces` — 175 on 2026-09-22 (72 animals, 38 fruits, 35
+  vegetables, 30 plants — the card-pattern chat's decks under
   `scripts/decks/` and the fruit chart's records, her finished fruit picks
-  first) on 2026-09-22 through `vectorize.cutout` — corner flood-fill, so a
-  coconut's white flesh stays — into `forge-pattern-pieces` (id = sha1 of
-  the source url; re-running is one shelf; an older twin under a name a
-  preferred picture holds is HIDDEN, never deleted). A card-only picture
-  under 500px is skipped (`--min`); a chat files any other picture with
-  `POST /api/pattern/pieces {name, kind, src}` and it cuts in the
-  background. **ONE ARITHMETIC, `pattern-plan.js`, served at
-  `/pattern-plan.js` and required by the module** — the page's canvas and
-  the export draw from the same list of draws, so the preview is the file:
-  a piece over an edge is drawn again one tile over (nine copies listed, the
+  first), cut out by `scripts/pattern-seed.js` through `vectorize.cutout`
+  (corner flood-fill, so a coconut's white flesh stays; id = sha1 of the
+  source url; an older twin under a name a preferred picture holds is HIDDEN,
+  never deleted; card-only pictures under 500px skipped). A new piece is a
+  chat's job — seed it or `POST /api/pattern/pieces {name, kind, src}` once
+  the module is live — and a re-post of the page. **ONE ARITHMETIC,
+  `pattern-plan.js`**, inlined into the page and required by the module: a
+  piece over an edge is drawn again one tile over (nine copies listed, the
   ones that cannot touch dropped), a half-drop is the tile beside itself
   dropped h/2, a mirror is 2x2 reflected by `mx`/`my` flags the renderer
-  applies rather than a rotation someone worked out. Items are `{piece, x,
-  y, size, rot, flip}` with x/y as FRACTIONS of the tile, so growing the tile
-  spreads them. **Spends nothing to open, arrange or export** (sharp on our
-  box; each transform its own pass because one sharp pipeline orders rotate
-  before flip). **The one paid thing is DRAW** — a new piece she names, in
-  the fruit chart's exact recipe (`refs/sage-sandy-mirror.png`, gpt-image-2,
-  medium, 1024x1024, ~6c), stamped with its whole prompt and filed into My
-  Creations. Test: `node scripts/test-pattern.js` (the plan, the whitelist,
-  a real render whose SEAM is measured — rolled half a tile it must be the
-  same picture rolled — and the real page headless: a drag moves the saved
-  x/y by exactly the drag). **Full details: `docs/modules/pictures.md`
-  (Pattern).**
+  applies. Items are `{piece, x, y, size, rot, flip}` with x/y as FRACTIONS
+  of the tile, so growing the tile spreads them. Spends nothing; the module's
+  DRAW route (a new piece in the fruit chart's exact recipe, ~6c) is the one
+  paid thing and is not on the page. Test: `node scripts/test-pattern.js`
+  (the plan, the whitelist, a real sharp render whose SEAM is measured, the
+  built page through the server's own page-kit warnings, and the real page
+  headless against a stubbed verdict store and Dump: a drag moves the saved
+  x/y by exactly the drag, Export POSTs a real PNG). **Full details:
+  `docs/modules/pictures.md` (Pattern).**
 - **Freeform** (`freeform.js`, `/api/freeform`, `/freeform`) — the one image
   surface with **no opinion**: the prompt goes to gpt-image-2 verbatim, no prefix,
   no suffix, not even a trailing-period trim.
