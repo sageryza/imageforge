@@ -13,7 +13,7 @@
 //
 //   node scripts/animal-mockup.js --fronts <dir> --scene "cards fanned out on a wood table"
 //        [--takes 1] [--size 1536x1024] [--quality medium] [--material "thick matte white cardstock"]
-//        [--chat animal-deck-heart-tiebreak] [--dry]
+//        [--topdown] [--title "…"] [--chat animal-deck-heart-tiebreak] [--dry]
 //
 // NEVER run without her go for the scene. ~5-6¢ a take at medium, ONE take a scene; --dry
 // builds the sheet and prints the prompt, spending nothing.
@@ -41,6 +41,9 @@ const ROOT = path.join(__dirname, '..');
 const tier = (s) => { const w = parseInt(s, 10); return w >= 4000 ? '4K' : w >= 2000 ? '2K' : '1K'; };
 // --material: the card stock, named (2026-09-22, "u might specify material").
 const MATERIAL = flag('material', 'thick matte white cardstock');
+// --topdown: the table shots — a true overhead camera so every card sits at
+// one scale. Off for a scene with people, shelves or perspective.
+const TOPDOWN = args.includes('--topdown');
 // EVERY CARD IS THE SAME SIZE, SAID OUT LOUD (2026-09-22, "wait the cards
 // aren't keeping size!" — set down loosely, the model redrew them at four
 // different proportions). A poker card is 2.5 x 3.5in, portrait, all alike.
@@ -48,7 +51,7 @@ const STYLE = `The attached image shows the product: a set of flash cards printe
 
 CARD SIZE — THIS IS THE MOST IMPORTANT RULE. All of the cards are physically identical: each one is a standard poker-size card, 2.5 inches wide by 3.5 inches tall, taller than it is wide in the ratio 5:7, exactly as they appear in the attached image. In the photograph every card must be drawn at the SAME size and the SAME 5:7 proportions as every other card: the same width, the same height, the same rounded-corner radius. Do not make any card wider, squarer, taller, larger or smaller than its neighbours. A card may be turned a little, but turning never changes its size or shape. Check every card against the others before finishing: if any two cards differ in size or proportion, the photograph is wrong.
 
-The camera looks straight down at the table (a true top-down view, no perspective), so all the cards are seen at the same scale. Draw a product photograph: [content]`;
+${TOPDOWN ? 'The camera looks straight down at the table (a true top-down view, no perspective), so all the cards are seen at the same scale. ' : ''}Draw a product photograph: [content]`;
 const FULL = STYLE.replace('[content]', SCENE);
 const post = (u, body) => fetch(`${BASE}${u}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 
@@ -117,7 +120,7 @@ const upload = async (buf, filename, ct) => {
   const items = [
     ...takes.map((t) => ({ id: `mock-${t.i}`, img: t.thumb, full: t.url, url: t.url, label: `take ${t.i} · ${QUALITY} · ${tier(SIZE)}`, model: 'gpt-image-2', quality: QUALITY, size: tier(SIZE) })),
   ];
-  const page = await (await post('/api/chatfeed/page', { chat: CHAT, title: `Animal deck mockup — ${SCENE} (${TAKES})`, template: 'grid', data: {
+  const page = await (await post('/api/chatfeed/page', { chat: CHAT, title: `Animal deck mockup — ${flag('title', SCENE)}`, template: 'grid', data: {
     groups: [{ label: SCENE, items }, { label: 'the reference sheet they were drawn from', items: [{ id: 'mock-sheet', img: sheetItem.thumb || sheetItem.url, full: sheetItem.url, url: sheetItem.url, label: `${n} print cards on one sheet` }] }],
     help: 'The cards rode as one reference sheet; the prompt described only the scene. Heart the take you like.',
   } })).json();
