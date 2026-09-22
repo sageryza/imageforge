@@ -360,6 +360,14 @@ loadConfig().then(() => {
   const jewelry = require('./jewelry');
   jewelry.init({ fileCreation: fileCreationDoc });
   app.use('/api/jewelry', jewelry.router);
+  // Pattern — choose animals and fruits, arrange one tile, it repeats
+  // (pattern.js, 2026-09-22). The shelf's cut-outs and the export are sharp on
+  // our own box; the one paid thing is drawing a NEW piece in the fruit
+  // chart's recipe, which needs OPENAI_API_KEY hydrated first. Its drawn
+  // pieces file into My Creations with their whole prompt.
+  const patternMod = require('./pattern');
+  patternMod.init({ fileCreation: fileCreationDoc });
+  app.use('/api/pattern', patternMod.router);
   // Her mom's Lightroom Classic catalog, synced by a script on her PC and
   // picked on a screen (lightroom.js); the picks become jewelry items.
   app.use('/api/lightroom', require('./lightroom').router);
@@ -976,6 +984,10 @@ app.get('/stitch', serveGated('stitch.html', { pill: true }));
 app.get('/vector', serveGated('vector.html', { pill: true }));
 // One screen, never scrolls — so no autoscroll pill, like /opinions.
 app.get('/crop', serveGated('crop.html'));
+// Pattern: choose animals and fruits, arrange one tile, it repeats. A thing to
+// touch rather than read, so no autoscroll pill, like /crop. pattern.js is the
+// module; pattern-plan.js the arithmetic the page and the export share.
+app.get('/pattern', serveGated('pattern.html'));
 // Alibaba chat: a fictional buyer/supplier chat drawn at real screenshot size
 // (1170x2532) for a staged reel. Client-side canvas only — no API, no money.
 // NO autoscroll pill, like /crop and /opinions: the page is one screen, and the
@@ -3631,6 +3643,13 @@ app.get('/pause-plan.js', (req, res) => {
   res.type('application/javascript');
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(__dirname + '/pause-plan.js');
+});
+// The pattern arithmetic, shared the same way: the page's canvas and the
+// server's export draw from one list of draws (pattern-plan.js).
+app.get('/pattern-plan.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/pattern-plan.js');
 });
 // The character-reference rules, shared the same way (2026-08-27): the
 // Playground's Prompt panel prints the exact sentence the picked characters

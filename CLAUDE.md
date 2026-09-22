@@ -3609,6 +3609,41 @@ before working on that module. Nothing was deleted — the moved text is verbati
   PICTURES filter) — crop pictures to square by TAPPING ARROWS.
   **Full details: *Squaring* in `docs/modules/pictures.md` (moved from CLAUDE.md).**
 
+- **Pattern** (`pattern.js`, `/api/pattern`, page at `/pattern`, iOS tile under
+  the PICTURES filter — 2026-09-22, Sophie: "a program that lets me choose and
+  arrange animals and or fruits into a repeating pattern" · "i need to choose
+  the constituents, choose how much to rotate, choose how far apart, and
+  choose where they go"). Three hairline tabs: PIECES (the shelf — tap ticks
+  a piece onto the tile), TILE (drag to place, a degrees box and ±15 to turn,
+  a size slider, flip, "again" for another of the same, SPACING grows the
+  tile under the pieces so the repeats land farther apart, SPIN turns every
+  piece at random within ±N°, SCATTER spreads them evenly) and REPEAT (the
+  tiled preview, grid · half-drop · mirror on a tri toggle, the colour
+  behind, EXPORT at 1K/2K/4K). **The shelf is the fruit chart's own
+  drawings, cut out**: `scripts/pattern-seed.js` filed 73 (2 animals, 36
+  fruits, 35 vegetables) on 2026-09-22 through `vectorize.cutout` — corner
+  flood-fill, so a coconut's white flesh stays — into `forge-pattern-pieces`
+  (id = sha1 of the source url; re-running is one shelf). A 278px card-only
+  picture is skipped (`--min 600`); a chat files any other picture with
+  `POST /api/pattern/pieces {name, kind, src}` and it cuts in the
+  background. **ONE ARITHMETIC, `pattern-plan.js`, served at
+  `/pattern-plan.js` and required by the module** — the page's canvas and
+  the export draw from the same list of draws, so the preview is the file:
+  a piece over an edge is drawn again one tile over (nine copies listed, the
+  ones that cannot touch dropped), a half-drop is the tile beside itself
+  dropped h/2, a mirror is 2x2 reflected by `mx`/`my` flags the renderer
+  applies rather than a rotation someone worked out. Items are `{piece, x,
+  y, size, rot, flip}` with x/y as FRACTIONS of the tile, so growing the tile
+  spreads them. **Spends nothing to open, arrange or export** (sharp on our
+  box; each transform its own pass because one sharp pipeline orders rotate
+  before flip). **The one paid thing is DRAW** — a new piece she names, in
+  the fruit chart's exact recipe (`refs/sage-sandy-mirror.png`, gpt-image-2,
+  medium, 1024x1024, ~6c), stamped with its whole prompt and filed into My
+  Creations. Test: `node scripts/test-pattern.js` (the plan, the whitelist,
+  a real render whose SEAM is measured — rolled half a tile it must be the
+  same picture rolled — and the real page headless: a drag moves the saved
+  x/y by exactly the drag). **Full details: `docs/modules/pictures.md`
+  (Pattern).**
 - **Freeform** (`freeform.js`, `/api/freeform`, `/freeform`) — the one image
   surface with **no opinion**: the prompt goes to gpt-image-2 verbatim, no prefix,
   no suffix, not even a trailing-period trim.
