@@ -4029,7 +4029,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
   hat, which is the link for a post. Instagram itself is by hand (product
   TAGGING ties a catalog to one account — hers — and the API needs a Meta app
   review); the bio link works from any account. Ten-minute product cache;
-  `POST /api/hats/refresh` after adding a hat. Test:
+  `POST /api/hats/refresh` after adding a hat. **A hat goes IN with `POST
+  /api/hats/add {title, price, imageUrl}` (Admin token, tagged and
+  published) or, from a container with no deploy, `node scripts/hats-add.js
+  --title … --price … --image … [--dry]` — shopify.js treats its STORED
+  OAuth token as connected since 2026-09-22, so no app keys are needed.** Test:
   `node scripts/test-hats.js` (the shape pure, the router over a stubbed
   store, the real page headless with every check measured).
   **Full details: `docs/modules/business.md` (The hat store).**

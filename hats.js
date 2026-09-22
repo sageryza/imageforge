@@ -31,6 +31,11 @@
 //                               options,variants,available,tag}], source, at }
 //   POST /checkout            { variantId, quantity? } → { checkoutUrl }
 //   POST /refresh             drop the 10-minute cache (after adding a hat)
+//   POST /add                 { title, price, imageUrl, images?, tags?, publish?, dry? }
+//                             → creates the product in her Shopify through the
+//                             Admin token (shopify.js), tagged `hats`, published
+//                             to the Online Store, and drops the cache. Not
+//                             public: the studio token when one is set.
 const express = require('express');
 
 const STORE_DOMAIN = () => process.env.WITCH_STOREFRONT_DOMAIN || 'cod-god-inc.myshopify.com';
@@ -126,8 +131,57 @@ async function checkoutUrl(variantId, quantity) {
   return node.cart.checkoutUrl;
 }
 
+// The Admin half: a hat goes INTO the store from a photo url and a price
+// (2026-09-22, the five hats she sent as pictures). One REST product create —
+// the title, the `hats` tag, one variant at the price, the pictures Shopify
+// fetches from their public urls, published to the Online Store so the
+// Storefront read above sees it at once. PURE planner, so the test can pin
+// the body without a store.
+function productPlan({ title, price, imageUrl, images, tags, publish, description } = {}) {
+  const t = String(title || '').trim();
+  const p = Number(price);
+  if (!t) throw new Error('title required');
+  if (!Number.isFinite(p) || p <= 0) throw new Error('price required (a number above 0)');
+  const pics = [].concat(images || [], imageUrl || []).map(u => String(u || '').trim()).filter(u => /^https:\/\//.test(u));
+  const tagSet = new Set([TAG()].concat(tags || []).map(x => String(x).trim()).filter(Boolean));
+  return {
+    product: {
+      title: t,
+      body_html: description ? String(description) : '',
+      tags: [...tagSet].join(', '),
+      status: 'active',
+      published: publish !== false,
+      variants: [{ price: p.toFixed(2), inventory_management: null, requires_shipping: true }],
+      images: pics.map(src => ({ src, alt: t })),
+    },
+  };
+}
+async function addHat(fields) {
+  const plan = productPlan(fields);
+  const shopify = require('./shopify');
+  const out = await shopify.shopifyREST('/products.json', { method: 'POST', body: plan });
+  CACHE = { at: 0, data: null };
+  const pr = out && out.product ? out.product : {};
+  return { id: pr.id, handle: pr.handle, title: pr.title, status: pr.status, images: (pr.images || []).length, url: pr.handle ? `https://${STORE_DOMAIN()}/products/${pr.handle}` : null };
+}
+
 const router = express.Router();
 router.use(express.json({ limit: '32kb' }));
+
+// The one route that WRITES to her store keeps the studio gate when there is
+// one (the rest of the module is public on purpose).
+router.post('/add', (req, res, next) => {
+  const want = process.env.STUDIO_TOKEN;
+  if (want && req.get('x-studio-token') !== want && req.query.token !== want) return res.status(401).json({ error: 'unauthorized' });
+  next();
+}, async (req, res) => {
+  try {
+    if (req.body?.dry) return res.json({ dry: true, plan: productPlan(req.body) });
+    res.json(await addHat(req.body || {}));
+  } catch (err) {
+    res.status(/required/.test(err.message) ? 400 : 502).json({ error: err.message });
+  }
+});
 
 router.get('/status', (req, res) => {
   res.json({ ok: true, store: STORE_DOMAIN(), collection: COLLECTION(), tag: TAG(), cached: Boolean(CACHE.data && Date.now() - CACHE.at < TTL_MS) });
@@ -156,4 +210,4 @@ router.post('/checkout', async (req, res) => {
   }
 });
 
-module.exports = { router, shapeProduct, fetchHats, checkoutUrl, _cache: () => CACHE };
+module.exports = { router, shapeProduct, fetchHats, checkoutUrl, productPlan, addHat, _cache: () => CACHE };
