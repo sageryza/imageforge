@@ -37,6 +37,10 @@ The spec is JSON:
     side      side bearing in font units (default 65) — measured off the
               sheet's own title lines so the default spacing IS the sheet's
               (title 140, subtitle 80) · space the space glyph's width
+    blur      false traces the plain cubic upscale with no smoothing, and with
+              traceDark at the mid-grey between paper and ink (~130) the
+              outline sits on the stroke's true edge — the sheet's own weight
+              (a photographed serif; handwriting keeps the default)
     thin      px shaved off each side of every stroke at the 4x trace; the
               hairlines a shave would erase are kept whole
     alignTop  {glyph: otherGlyph} — lift a mark so its top matches another's
@@ -140,11 +144,11 @@ def bridge(ink):
     cv2.line(out, (int(a[i][1]), int(a[i][0])), (int(b[j][1]), int(b[j][0])), 1, w)
     return out.astype(bool)
 
-def trace(gray, box, scale=4, pad=5, join=False, dark=165, thin=0):
+def trace(gray, box, scale=4, pad=5, join=False, dark=165, thin=0, blur=True):
     x0, x1, y0, y1 = box
     crop = gray[max(0, y0-pad):y1+pad, max(0, x0-pad):x1+pad]
     big = cv2.resize(crop, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
-    big = cv2.GaussianBlur(big, (3, 3), 0)
+    if blur: big = cv2.GaussianBlur(big, (3, 3), 0)
     ink = big < dark
     if join: ink = bridge(ink)
     if thin: ink = thin_strokes(ink, thin)
@@ -202,8 +206,8 @@ def main():
         return
 
     cff, ttg, widths, pasted = {}, {}, {}, {}
-    def add(name, gray, box, base, k, join, dark=165, level=None, thin=0, SIDE=SIDE):
-        path, origin, scale, top = trace(gray, box, join=join, dark=dark, thin=thin)
+    def add(name, gray, box, base, k, join, dark=165, level=None, thin=0, SIDE=SIDE, blur=True):
+        path, origin, scale, top = trace(gray, box, join=join, dark=dark, thin=thin, blur=blur)
         # LEVELLING (a typeset sheet): every glyph in a level group is scaled so
         # its top lands where the group's median top lands — at 22px a serif's
         # hairline top is caught on one letter and missed on the next, and the
@@ -238,11 +242,11 @@ def main():
         for c, (box, base) in glyphs.items():
             if c in align and align[c] in glyphs: base += box[2] - glyphs[align[c]][0][2]
             if c not in base_chars:
-                base_chars[c] = gname(c); add(gname(c), gray, box, base, k, c in join, src.get('traceDark', 165), level.get(c), src.get('thin', 0), src.get('side', SIDE))
+                base_chars[c] = gname(c); add(gname(c), gray, box, base, k, c in join, src.get('traceDark', 165), level.get(c), src.get('thin', 0), src.get('side', SIDE), src.get('blur', True))
                 pasted[gname(c)] = (gray, box, base, k, src.get('side', SIDE))
             else:
                 n = gname(c) + '.alt%d' % (len(alts.get(c, [])) + 1)
-                alts.setdefault(c, []).append(n); add(n, gray, box, base, k, c in join, src.get('traceDark', 165), level.get(c), src.get('thin', 0), src.get('side', SIDE))
+                alts.setdefault(c, []).append(n); add(n, gray, box, base, k, c in join, src.get('traceDark', 165), level.get(c), src.get('thin', 0), src.get('side', SIDE), src.get('blur', True))
 
     for g in ('.notdef', 'space'):
         sp = spec.get('space', SPACE); widths[g] = sp; cff[g] = T2CharStringPen(sp, None).getCharString(); ttg[g] = TTGlyphPen(None).glyph()
