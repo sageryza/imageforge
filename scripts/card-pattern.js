@@ -177,10 +177,17 @@ async function cutout(rec, mode) {
     if (data[o + 3] > 8) { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
   }
   if (maxX < 0) throw new Error(`${rec.id}: nothing but white`);
+  // How much of its own square the drawing covers — a sitting cat fills most
+  // of its box, a standing dog a sliver — so the layout can make them read the
+  // same size (2026-09-22, Sophie: "cats are too big · they shud all be the
+  // same size"). Counted on the DRAWING (not the rough cut's paper).
+  let drawn = 0;
+  for (let i = 0; i < N; i++) if (!bg[i]) drawn++;
   const pad = mode === 'rough' ? 0 : 2;
   const left = Math.max(0, minX - pad), top = Math.max(0, minY - pad);
   const width = Math.min(W, maxX + pad + 1) - left, height = Math.min(H, maxY + pad + 1) - top;
   await sharp(data, { raw: { width: W, height: H, channels: 4 } }).extract({ left, top, width, height }).png().toFile(cutPath);
+  fs.writeFileSync(cutPath + '.json', JSON.stringify({ cover: drawn / Math.pow(Math.max(width, height), 2) }));
   return cutPath;
 }
 
@@ -241,7 +248,7 @@ function layout(spec, dims) {
   // How big: the room a picture takes is half its fitted box's diagonal.
   // Shrink everyone together until every pair keeps the gap, then nudge a
   // tossed layout apart a few rounds so the spacing evens out.
-  const radius = (p, s) => { const d = dims[p.id] || { w: 1, h: 1 }; const m = Math.max(d.w, d.h); const w = d.w / m, h = d.h / m; return 0.5 * Math.hypot(w, h) * cell * fill * s * p.scale * 0.92; };
+  const radius = (p, s) => { const d = dims[p.id] || { w: 1, h: 1, even: 1 }; const m = Math.max(d.w, d.h); const w = d.w / m, h = d.h / m; return 0.5 * Math.hypot(w, h) * cell * fill * s * p.scale * (d.even || 1) * 0.92; };
   let shrink = 1;
   const tooClose = () => { let worst = 0; for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) { const need = radius(P[i], shrink) + radius(P[j], shrink) + gap * cell; const d = wrapD(P[i], P[j]); if (d < need) worst = Math.max(worst, need / d); } return worst; };
   for (let round = 0; round < 80 && (kind === 'tossed'); round++) {
@@ -258,7 +265,7 @@ function layout(spec, dims) {
   }
   let worst = tooClose();
   while (worst > 1 && shrink > 0.3) { shrink /= Math.min(worst, 1.05); worst = tooClose(); }
-  const out = P.map((p) => ({ id: p.id, x: Math.round(p.x * 1e4) / 1e4, y: Math.round(p.y * 1e4) / 1e4, rot: Math.round(p.rot * 10) / 10, scale: Math.round(p.scale * shrink * 100) / 100, ...(p.flip ? { flip: true } : {}) }));
+  const out = P.map((p) => ({ id: p.id, x: Math.round(p.x * 1e4) / 1e4, y: Math.round(p.y * 1e4) / 1e4, rot: Math.round(p.rot * 10) / 10, scale: Math.round(p.scale * shrink * ((dims[p.id] || {}).even || 1) * 100) / 100, ...(p.flip ? { flip: true } : {}) }));
   return { cols, rows, fill, gap, placements: out };
 }
 
@@ -349,7 +356,17 @@ function specsFromArgs() {
     const file = path.join(SPECDIR, `${slug(spec.name)}.json`);
     if (DRY) { console.log(`${spec.name}: ${spec.layout || 'as placed'} · ${spec.pick.length} cards · ${spec.bg || '#ffffff'} · ${spec.tile}px`); for (const id of spec.pick) console.log('   ', id, '←', find(id).url); continue; }
     const motifs = {}, dims = {};
-    for (const id of spec.pick) { motifs[id] = await cutout(find(id), spec.cut); const m = await sharp(motifs[id]).metadata(); dims[id] = { w: m.width, h: m.height }; }
+    for (const id of spec.pick) {
+      motifs[id] = await cutout(find(id), spec.cut);
+      const m = await sharp(motifs[id]).metadata();
+      const side = fs.existsSync(motifs[id] + '.json') ? JSON.parse(fs.readFileSync(motifs[id] + '.json', 'utf8')) : {};
+      dims[id] = { w: m.width, h: m.height, cover: side.cover || 0.3 };
+    }
+    // Same visible size: each picture is scaled so the area it covers matches
+    // the average, within limits (a mouse is never drawn as big as a horse's box).
+    const covers = spec.pick.map((id) => dims[id].cover);
+    const mean = covers.reduce((a, b) => a + b, 0) / covers.length;
+    for (const id of spec.pick) dims[id].even = spec.evenSize === false ? 1 : Math.max(0.7, Math.min(1.35, Math.sqrt(mean / dims[id].cover)));
     if (!spec.placements) Object.assign(spec, layout(spec, dims));
     console.log(`${spec.name}: ${spec.layout || 'as placed'} · ${spec.placements.length} pictures from ${spec.pick.length} cards · ${spec.cols} across · ${spec.bg || '#ffffff'} · ${spec.tile}px`);
     const tilePng = await (await render(spec, motifs)).toBuffer();
@@ -377,7 +394,7 @@ function specsFromArgs() {
     items.push({ name: r.spec.name, what, rep: rep.url, one: one.url, save: `/api/drop/file/${tile.id}`, px: r.spec.tile, key: r.base });
     console.log(`  ${r.spec.name}: repeat ${rep.url}`);
   }
-  const title = `Patterns v${VERSION} — ${items.length} to look at`;
+  const title = flag('title') || `Patterns v${VERSION} — ${items.length} to look at`;
   const html = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
