@@ -1,0 +1,77 @@
+[
+ {
+  "id": "strawberry",
+  "name": "Strawberry",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/01-strawberry-sk4.webp"
+ },
+ {
+  "id": "banana",
+  "name": "Banana",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/02-banana.webp"
+ },
+ {
+  "id": "apple",
+  "name": "Apple",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/03-apple.webp"
+ },
+ {
+  "id": "mango",
+  "name": "Mango",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/05-mango-sk2.webp"
+ },
+ {
+  "id": "watermelon",
+  "name": "Watermelon",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/06-watermelon.webp"
+ },
+ {
+  "id": "blueberries",
+  "name": "Blueberries",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/08-blueberries-sk4.webp"
+ },
+ {
+  "id": "raspberries",
+  "name": "Raspberries",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/12-raspberries-hq.webp"
+ },
+ {
+  "id": "kiwi",
+  "name": "Kiwi",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/14-kiwi.webp"
+ },
+ {
+  "id": "lemon",
+  "name": "Lemon",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/15-lemon.webp"
+ },
+ {
+  "id": "blackberries",
+  "name": "Blackberries",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/17-blackberries-hq.webp"
+ },
+ {
+  "id": "lime",
+  "name": "Lime",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/25-lime-sk1.webp"
+ },
+ {
+  "id": "cherimoya",
+  "name": "Cherimoya",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/28-cherimoya-v3.webp"
+ },
+ {
+  "id": "guava",
+  "name": "Guava",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/31-guava-sk5.webp"
+ },
+ {
+  "id": "passion-fruit",
+  "name": "Passion fruit",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/32-passionfruit-v2.webp"
+ },
+ {
+  "id": "mulberries",
+  "name": "Mulberries",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/37-mulberries.webp"
+ }
+]

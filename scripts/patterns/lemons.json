@@ -9,285 +9,285 @@
  "bg": "#ffffff",
  "seed": 5,
  "spin": true,
+ "fill": 0.55,
+ "gap": 0.35,
  "rows": 6,
- "fill": 0.8,
- "gap": 0.1,
  "placements": [
   {
    "id": "fruit:15-lemon",
-   "x": 0.0774,
-   "y": 0.0873,
+   "x": 0.0866,
+   "y": 0.0794,
    "rot": 79.1,
-   "scale": 0.95,
+   "scale": 0.99,
    "flip": true
   },
   {
    "id": "fruit:15-lemon",
-   "x": 0.2604,
-   "y": 0.1464,
+   "x": 0.2759,
+   "y": 0.1563,
    "rot": 164.9,
-   "scale": 1.06,
-   "flip": true
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.4162,
-   "y": 0.0821,
-   "rot": 237.8,
-   "scale": 0.72,
-   "flip": true
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.5801,
-   "y": 0.205,
-   "rot": 103.7,
-   "scale": 1
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.7417,
-   "y": 0.0199,
-   "rot": 285.7,
-   "scale": 0.79,
-   "flip": true
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.9477,
-   "y": 0.1882,
-   "rot": 357,
-   "scale": 0.81,
-   "flip": true
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.1033,
-   "y": 0.2726,
-   "rot": 146.7,
-   "scale": 1.09,
-   "flip": true
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.2883,
-   "y": 0.3311,
-   "rot": 312.9,
-   "scale": 0.99
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.4142,
-   "y": 0.225,
-   "rot": 233.7,
-   "scale": 0.77
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.4951,
-   "y": 0.3668,
-   "rot": 280.4,
-   "scale": 0.95,
-   "flip": true
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.7713,
-   "y": 0.1862,
-   "rot": 126,
-   "scale": 1.05,
-   "flip": true
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.8809,
-   "y": 0.3545,
-   "rot": 100.4,
    "scale": 1.1,
    "flip": true
   },
   {
    "id": "fruit:15-lemon",
-   "x": 0.046,
-   "y": 0.4554,
+   "x": 0.4297,
+   "y": 0.099,
+   "rot": 237.8,
+   "scale": 0.75,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.5754,
+   "y": 0.1788,
+   "rot": 103.7,
+   "scale": 1.04
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.7182,
+   "y": 0.045,
+   "rot": 285.7,
+   "scale": 0.83,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.9181,
+   "y": 0.1662,
+   "rot": 357,
+   "scale": 0.84,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.088,
+   "y": 0.2584,
+   "rot": 146.7,
+   "scale": 1.14,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.2534,
+   "y": 0.3346,
+   "rot": 312.9,
+   "scale": 1.03
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.4115,
+   "y": 0.2835,
+   "rot": 233.7,
+   "scale": 0.8
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.5566,
+   "y": 0.3517,
+   "rot": 280.4,
+   "scale": 0.99,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.7547,
+   "y": 0.2089,
+   "rot": 126,
+   "scale": 1.09,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.9177,
+   "y": 0.3393,
+   "rot": 100.4,
+   "scale": 1.14,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.0693,
+   "y": 0.4378,
    "rot": 113.1,
-   "scale": 0.97,
+   "scale": 1.01,
    "flip": true
   },
   {
    "id": "fruit:15-lemon",
-   "x": 0.2137,
-   "y": 0.4823,
+   "x": 0.2224,
+   "y": 0.497,
    "rot": 188.9,
-   "scale": 0.81
+   "scale": 0.84
   },
   {
    "id": "fruit:15-lemon",
-   "x": 0.3699,
-   "y": 0.4804,
+   "x": 0.3726,
+   "y": 0.4505,
    "rot": 343.4,
-   "scale": 0.82
+   "scale": 0.86
   },
   {
    "id": "fruit:15-lemon",
-   "x": 0.6095,
-   "y": 0.5175,
+   "x": 0.6275,
+   "y": 0.5156,
    "rot": 208.4,
-   "scale": 1.08
+   "scale": 1.12
   },
   {
    "id": "fruit:15-lemon",
-   "x": 0.6913,
-   "y": 0.3515,
+   "x": 0.7454,
+   "y": 0.3839,
    "rot": 105.9,
-   "scale": 0.92,
+   "scale": 0.95,
    "flip": true
   },
   {
    "id": "fruit:15-lemon",
-   "x": 0.9001,
-   "y": 0.5277,
+   "x": 0.9305,
+   "y": 0.5177,
    "rot": 49.9,
-   "scale": 0.75,
-   "flip": true
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.1226,
-   "y": 0.5992,
-   "rot": 148.5,
-   "scale": 0.75,
-   "flip": true
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.2855,
-   "y": 0.6369,
-   "rot": 253,
-   "scale": 1,
-   "flip": true
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.4496,
-   "y": 0.6071,
-   "rot": 218.1,
-   "scale": 0.76,
-   "flip": true
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.5828,
-   "y": 0.7126,
-   "rot": 151.7,
-   "scale": 1.07,
-   "flip": true
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.7683,
-   "y": 0.5882,
-   "rot": 293.9,
-   "scale": 0.75
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.9836,
-   "y": 0.6459,
-   "rot": 214.7,
-   "scale": 0.75,
-   "flip": true
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.1132,
-   "y": 0.7459,
-   "rot": 245.3,
-   "scale": 0.81,
-   "flip": true
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.2662,
-   "y": 0.8217,
-   "rot": 163,
-   "scale": 1,
-   "flip": true
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.4156,
-   "y": 0.7509,
-   "rot": 7,
-   "scale": 0.77,
-   "flip": true
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.6636,
-   "y": 0.8792,
-   "rot": 341.6,
-   "scale": 0.94
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.7781,
-   "y": 0.7366,
-   "rot": 23,
    "scale": 0.78,
    "flip": true
   },
   {
    "id": "fruit:15-lemon",
-   "x": 0.9367,
-   "y": 0.7809,
-   "rot": 162.7,
-   "scale": 0.73
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.0482,
-   "y": 0.9047,
-   "rot": 322,
-   "scale": 1.01
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.205,
-   "y": 0.9814,
-   "rot": 289.8,
-   "scale": 0.82,
+   "x": 0.1061,
+   "y": 0.5938,
+   "rot": 148.5,
+   "scale": 0.78,
    "flip": true
   },
   {
    "id": "fruit:15-lemon",
-   "x": 0.4235,
-   "y": 0.9144,
-   "rot": 237,
-   "scale": 0.92,
+   "x": 0.2709,
+   "y": 0.6554,
+   "rot": 253,
+   "scale": 1.04,
    "flip": true
   },
   {
    "id": "fruit:15-lemon",
-   "x": 0.5625,
-   "y": 0.0238,
-   "rot": 291.4,
-   "scale": 0.93
-  },
-  {
-   "id": "fruit:15-lemon",
-   "x": 0.8279,
-   "y": 0.8803,
-   "rot": 204.8,
+   "x": 0.4259,
+   "y": 0.5933,
+   "rot": 218.1,
    "scale": 0.79,
    "flip": true
   },
   {
    "id": "fruit:15-lemon",
-   "x": 0.9079,
-   "y": 0.0263,
-   "rot": 22.6,
+   "x": 0.5623,
+   "y": 0.6891,
+   "rot": 151.7,
+   "scale": 1.11,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.789,
+   "y": 0.5593,
+   "rot": 293.9,
+   "scale": 0.78
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.9672,
+   "y": 0.6606,
+   "rot": 214.7,
+   "scale": 0.78,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.1123,
+   "y": 0.7443,
+   "rot": 245.3,
+   "scale": 0.84,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.2657,
+   "y": 0.8322,
+   "rot": 163,
+   "scale": 1.04,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.4057,
+   "y": 0.7479,
+   "rot": 7,
+   "scale": 0.8,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.6285,
+   "y": 0.8535,
+   "rot": 341.6,
+   "scale": 0.98
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.7819,
+   "y": 0.7247,
+   "rot": 23,
+   "scale": 0.81,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.9132,
+   "y": 0.8371,
+   "rot": 162.7,
+   "scale": 0.76
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.0707,
+   "y": 0.9053,
+   "rot": 322,
+   "scale": 1.05
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.2261,
+   "y": 0.9938,
+   "rot": 289.8,
+   "scale": 0.85,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.4216,
+   "y": 0.9058,
+   "rot": 237,
    "scale": 0.95,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.5562,
+   "y": 0.0069,
+   "rot": 291.4,
+   "scale": 0.97
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.781,
+   "y": 0.9058,
+   "rot": 204.8,
+   "scale": 0.82,
+   "flip": true
+  },
+  {
+   "id": "fruit:15-lemon",
+   "x": 0.9099,
+   "y": 0.0036,
+   "rot": 22.6,
+   "scale": 0.99,
    "flip": true
   }
  ]
