@@ -59,6 +59,18 @@ ok(b.variants[2].compareAt === '36.0' && b.variants[2].options.Color === 'Cream'
 ok(b.images.length === 2 && b.image === 'https://cdn/a.jpg', 'the first picture leads');
 ok(H.shapeProduct(null) === null, 'nothing in, nothing out');
 
+console.log('add');
+const plan = H.productPlan({ title: 'god complex', price: '32', imageUrl: 'https://storage/x.png', tags: ['cap'] });
+ok(plan.product.title === 'god complex' && plan.product.variants[0].price === '32.00', 'a hat plans as one product with one variant at the price');
+ok(/\bhats\b/.test(plan.product.tags) && /\bcap\b/.test(plan.product.tags), 'it is tagged hats, plus hers');
+ok(plan.product.published === true && plan.product.status === 'active', 'published to the Online Store, so the page sees it at once');
+ok(plan.product.images.length === 1 && plan.product.images[0].src === 'https://storage/x.png', 'the picture rides by its public url');
+let threw = ''; try { H.productPlan({ title: 'x' }); } catch (e) { threw = e.message; }
+ok(/price required/.test(threw), 'no price, no product');
+threw = ''; try { H.productPlan({ price: 3, imageUrl: 'http://insecure/x.png' }); } catch (e) { threw = e.message; }
+ok(/title required/.test(threw), 'no title, no product');
+ok(H.productPlan({ title: 'x', price: 3, imageUrl: 'http://insecure/x.png' }).product.images.length === 0, 'a non-https picture is dropped rather than sent');
+
 // ── 2. the router over a stubbed store ──
 (async () => {
   console.log('router');
@@ -100,6 +112,11 @@ ok(H.shapeProduct(null) === null, 'nothing in, nothing out');
   ok(c.status === 400, 'a variant id that is not a Shopify gid is refused before any cart is made');
   c = await post('/api/hats/checkout', { variantId: 'gid://shopify/ProductVariant/13', quantity: 999 });
   ok(sent[sent.length - 1].variables.lines[0].quantity === 20, 'quantity is capped');
+  const before = sent.length;
+  const dry = await post('/api/hats/add', { title: 'insecure', price: 30, imageUrl: 'https://storage/i.png', dry: true });
+  ok(dry.status === 200 && dry.j.dry === true && dry.j.plan.product.title === 'insecure' && sent.length === before, 'a dry add answers the plan and touches no store');
+  const bad = await post('/api/hats/add', { title: 'insecure' });
+  ok(bad.status === 400, 'an add with no price is a 400');
   const st = await get('/api/hats/status');
   ok(st.ok && st.collection === 'hats' && !('token' in st), 'status says the collection and never the token');
   srv.close();

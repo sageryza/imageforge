@@ -297,7 +297,21 @@ etsy no printify · it's thru instagram" → "forget what we have · a store" �
   make that Sophie's account, not her friend's. The bio link works from any
   account. Posting through the API needs a Meta business account and app
   review, so nothing here posts.
-- Tests: `node scripts/test-hats.js` — `shapeProduct` pure on a Storefront
+- **A hat goes IN through `POST /api/hats/add {title, price, imageUrl |
+  images, tags?, description?, dry?}`** — one Admin REST product create
+  through shopify.js's stored OAuth token (`write_products`, measured
+  granted): the title, the `hats` tag, one variant at the price, the pictures
+  fetched by Shopify from their public urls, `published` to the Online Store
+  so the page sees it at once, and the cache dropped. `dry:true` answers the
+  exact body. It keeps the studio gate when one is set (the rest of the module
+  is public). **From a chat's container with no deploy:** `node
+  scripts/hats-add.js --title "god complex" --price 32 --image <url> [--dry]`
+  (or `--file hats.json`) — shopify.js now treats a STORED token as connected,
+  so the app keys in Render env are not needed to use it (2026-09-22; before,
+  `configured()` demanded them and a container could never write). Her five
+  hat photos of that day are in the Dump under `hats`.
+- Tests: `node scripts/test-hats.js` — `productPlan` (the body, the tag, the
+  refusals with no price or title, a non-https picture dropped), `shapeProduct` pure on a Storefront
   fixture; the real router over a stubbed store (collection wins, tag
   fallback, cache, the gid check, the quantity cap, status never carries the
   token); the real page headless (columns, corners, no gradient, the sheet,
