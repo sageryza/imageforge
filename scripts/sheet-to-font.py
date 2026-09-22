@@ -33,6 +33,8 @@ The spec is JSON:
               cutting a row into glyphs once the bands are found (a small
               light period needs ~200, which is too light to find bands
               with) · traceDark the same for the 4x trace (default 165)
+    alternates false: a glyph the base already has is skipped, not filed as
+              an alternate (a typeset face fed a sharper sheet for some caps)
     level     groups of characters that share one height on a TYPESET sheet
               (["A…Z0…9"] for caps, ["aceimnorsuvwxz", "bdfhklt"] for a
               lowercase face): each glyph is scaled so its top meets the
@@ -252,6 +254,8 @@ def main():
             if c not in base_chars:
                 base_chars[c] = gname(c); add(gname(c), gray, box, base, k, c in join, src.get('traceDark', 165), level.get(c), src.get('thin', 0), src.get('side', SIDE), src.get('blur', True))
                 pasted[gname(c)] = (gray, box, base, k, src.get('side', SIDE))
+            elif src.get('alternates', True) is False:
+                continue      # a typeset face: the sharper sheet already drew it
             else:
                 n = gname(c) + '.alt%d' % (len(alts.get(c, [])) + 1)
                 alts.setdefault(c, []).append(n); add(n, gray, box, base, k, c in join, src.get('traceDark', 165), level.get(c), src.get('thin', 0), src.get('side', SIDE), src.get('blur', True))
