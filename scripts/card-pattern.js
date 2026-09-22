@@ -104,9 +104,13 @@ if (has('list')) {
 const WHITE = 236;
 async function cutout(rec, mode) {
   const safe = rec.id.replace(/[^a-z0-9]+/gi, '-');
-  const cutPath = path.join(CUT, `${safe}${mode === 'rough' ? '-rough' : ''}.png`);
+  const cutPath = path.join(CUT, `${safe}-${require('crypto').createHash('sha1').update(rec.url).digest('hex').slice(0, 10)}${mode === 'rough' ? '-rough' : ''}.png`);
   if (fs.existsSync(cutPath)) return cutPath;
-  const src = path.join(CACHE, `${safe}${path.extname(new URL(rec.url).pathname) || '.webp'}`);
+  // Keyed by the URL, never the id: when a pick moves to a new picture (her
+  // half-peeled banana), the old bytes must not be read back (2026-09-22,
+  // "why is there none w my new banana" — it was exactly this).
+  const urlKey = require('crypto').createHash('sha1').update(rec.url).digest('hex').slice(0, 10);
+  const src = path.join(CACHE, `${safe}-${urlKey}${path.extname(new URL(rec.url).pathname) || '.webp'}`);
   if (!fs.existsSync(src)) {
     const r = await fetch(rec.url);
     if (!r.ok) throw new Error(`${rec.id}: ${r.status} fetching ${rec.url}`);
@@ -395,28 +399,26 @@ function specsFromArgs() {
     console.log(`  ${r.spec.name}: repeat ${rep.url}`);
   }
   const title = flag('title') || `Patterns v${VERSION} — ${items.length} to look at`;
+  // ONE picture per pattern, two to a row, the name under it and nothing
+  // else (2026-09-22, Sophie: "i cant compare to each other when u add two
+  // sizes and all those words"). The single tile and the save link are in the
+  // Dump and the Assets tab; the page is for looking side by side.
+  const rows = [];
+  for (let i = 0; i < items.length; i += 2) rows.push(`  <div class="imgrow">${items.slice(i, i + 2).map((it) => `<figure data-item="${esc(it.key)}"><img src="${esc(it.rep)}" alt="${esc(it.name)}" width="1536" height="1536" loading="lazy"><figcaption>${esc(it.name)}</figcaption></figure>`).join('')}</div>`);
   const html = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${esc(title)}</title>
 <link rel="stylesheet" href="/compare.css">
-<style>figcaption{font-size:12px;color:var(--ink2);text-align:center;margin-top:4px}.imgrow figure{margin:0}h2{margin:18px 0 6px}.what{font-size:13px;color:var(--ink2);margin:0 0 8px}.save{font-size:13px;margin:6px 0 0}</style>
+<style>figcaption{font-size:13px;color:var(--ink2);text-align:center;margin-top:4px}.imgrow figure{margin:0 0 10px}</style>
 <div class="wrap">
   <h1>${esc(title)}</h1>
-${items.map((it) => `  <div class="card" data-item="${esc(it.key)}">
-    <h2>${esc(it.name)}</h2>
-    <p class="what">${esc(it.what)}</p>
-    <div class="imgrow">
-      <figure><img src="${esc(it.rep)}" alt="${esc(it.name)} repeated" width="1536" height="1536" loading="lazy"><figcaption>repeated 3x3</figcaption></figure>
-      <figure><img src="${esc(it.one)}" alt="${esc(it.name)} one tile" width="1024" height="1024" loading="lazy"><figcaption>one tile</figcaption></figure>
-    </div>
-    <p class="save"><a href="${esc(it.save)}">save the tile (png, ${it.px}px, repeats without a seam)</a></p>
-  </div>`).join('\n')}
+${rows.join('\n')}
 </div>
 <script src="/compare.js"></script>
 <script>(function(){
   if (window.__compareNotes) window.__compareNotes({ chat: ${JSON.stringify(CHAT)}, sheet: 'patterns-v${VERSION}' });
-  if (window.__compareHelp) window.__compareHelp({ html: '<b>Each pattern twice:</b> the left picture is the tile repeated three by three, so you see how it reads as fabric or paper; the right picture is the one tile it is built from. The save link under it is the full-size tile. Tap + on a pattern to say what to change.' });
+  if (window.__compareHelp) window.__compareHelp({ html: 'Each picture is the pattern repeated three by three. Tap + under one to say what to change. The full-size tile of each is in the Dump under patterns v${VERSION}.' });
 })();</script>
 `;
   const posted = await post(`${BASE}/api/chatfeed/page`, { chat: CHAT, session: SESSION, title, html });
