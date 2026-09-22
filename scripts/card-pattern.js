@@ -39,6 +39,10 @@ const DRY = has('dry');
 const POST = has('post');
 const VERSION = flag('v', '1');
 const SUPERSEDE = (flag('supersede', '') || '').split(',').filter(Boolean);
+// --reps N: how many repeats across the page's picture — 1 is one tile (the
+// default since "just one repeat not a million"), 2 is four repeats ("try
+// another page w four repeats").
+const REPS = Math.max(1, Number(flag('reps', 1)));
 const SCRATCH = process.env.CLAUDE_SCRATCH || path.join(process.env.TMPDIR || '/tmp', 'card-pattern');
 const CACHE = path.join(SCRATCH, 'cards');
 const CUT = path.join(SCRATCH, 'cut');
@@ -375,7 +379,7 @@ function specsFromArgs() {
     if (!spec.placements) Object.assign(spec, layout(spec, dims));
     console.log(`${spec.name}: ${spec.layout || 'as placed'} · ${spec.placements.length} pictures from ${spec.pick.length} cards · ${spec.cols} across · ${spec.bg || '#ffffff'} · ${spec.tile}px`);
     const tilePng = await (await render(spec, motifs)).toBuffer();
-    const rep = await preview(tilePng, 3, 1536);
+    const rep = await preview(tilePng, REPS > 1 ? REPS : 3, 1536);
     const one = await sharp(tilePng).resize(1024, 1024).webp({ quality: 90 }).toBuffer();
     const base = slug(spec.name);
     fs.writeFileSync(path.join(OUT, `${base}.png`), tilePng);
@@ -390,7 +394,7 @@ function specsFromArgs() {
   const items = [];
   for (const r of results) {
     const tile = await upload(r.tilePng, `${r.base}-tile-${r.spec.tile}.png`, 'image/png');
-    const rep = await upload(r.rep, `${r.base}-repeat.webp`, 'image/webp');
+    const rep = await upload(r.rep, `${r.base}-repeat-${REPS > 1 ? REPS : 3}x.webp`, 'image/webp');
     const one = await upload(r.one, `${r.base}-one-tile.webp`, 'image/webp');
     const what = `${r.spec.layout || 'hand placed'}${r.spec.cut === 'rough' ? ' · cut roughly around' : ''} · ${r.spec.pick.map((id) => find(id).name).join(', ')}`;
     for (const [it, label] of [[rep, `${r.spec.name} — the repeat (3x3)`], [one, `${r.spec.name} — one tile`]]) {
@@ -402,10 +406,11 @@ function specsFromArgs() {
   const title = flag('title') || `Patterns v${VERSION} — ${items.length} to look at`;
   // ONE picture per pattern, two to a row, the name under it and nothing
   // else (2026-09-22, Sophie: "i cant compare to each other when u add two
-  // sizes and all those words"). The single tile and the save link are in the
+  // sizes and all those words"), and that picture is ONE tile, not the 3x3
+  // ("just one repeat not a million"). The single tile and the save link are in the
   // Dump and the Assets tab; the page is for looking side by side.
   const rows = [];
-  for (let i = 0; i < items.length; i += 2) rows.push(`  <div class="imgrow">${items.slice(i, i + 2).map((it) => `<figure data-item="${esc(it.key)}"><img src="${esc(it.rep)}" alt="${esc(it.name)}" width="1536" height="1536" loading="lazy"><figcaption>${esc(it.name)}</figcaption></figure>`).join('')}</div>`);
+  for (let i = 0; i < items.length; i += 2) rows.push(`  <div class="imgrow">${items.slice(i, i + 2).map((it) => `<figure data-item="${esc(it.key)}"><img src="${esc(REPS > 1 ? it.rep : it.one)}" alt="${esc(it.name)}" width="1024" height="1024" loading="lazy"><figcaption>${esc(it.name)}</figcaption></figure>`).join('')}</div>`);
   const html = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -419,7 +424,7 @@ ${rows.join('\n')}
 <script src="/compare.js"></script>
 <script>(function(){
   if (window.__compareNotes) window.__compareNotes({ chat: ${JSON.stringify(CHAT)}, sheet: 'patterns-v${VERSION}' });
-  if (window.__compareHelp) window.__compareHelp({ html: 'Each picture is the pattern repeated three by three. Tap + under one to say what to change. The full-size tile of each is in the Dump under patterns v${VERSION}.' });
+  if (window.__compareHelp) window.__compareHelp({ html: '${REPS > 1 ? `Each picture is the pattern repeated ${REPS} by ${REPS}.` : 'Each picture is one tile of the pattern (it repeats without a seam).'} Tap + under one to say what to change. The full-size tile of each is in the Dump under patterns v${VERSION}.' });
 })();</script>
 `;
   const posted = await post(`${BASE}/api/chatfeed/page`, { chat: CHAT, session: SESSION, title, html });

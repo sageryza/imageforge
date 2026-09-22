@@ -36,7 +36,7 @@ const SIZE = flag('size', '1536x1024');
 const QUALITY = flag('quality', 'medium');
 const TAKES = Number(flag('takes', 1));
 const DRY = has('dry');
-const SCENE = flag('scene', 'a bedspread sewn from this fabric on a made double bed in a bright, plain bedroom, seen from the foot of the bed, soft daylight from a window to one side, the print repeating evenly across the whole bedspread with the drawings a few inches apart, plain white pillows');
+const SCENE = flag('scene', 'a bedspread sewn from this fabric on a made double bed in a bright, plain bedroom, seen from the foot of the bed, soft daylight from a window to one side, plain white pillows. The print is LARGE: each drawing on the fabric is about the size of a hand, and the attached image covers roughly one third of the width of the bed, so only a few repeats fit across it');
 const SCRATCH = process.env.CLAUDE_SCRATCH || path.join(process.env.TMPDIR || '/tmp', 'card-pattern');
 const OUT = path.join(SCRATCH, 'gpt-mockups');
 fs.mkdirSync(OUT, { recursive: true });
@@ -79,12 +79,11 @@ const post = (u, body) => fetch(`${BASE}${u}`, { method: 'POST', headers: { 'Con
     const key = slug(name);
     const tilePath = path.join(SCRATCH, 'out', `${key}.png`);
     if (!fs.existsSync(tilePath)) throw new Error(`no tile at ${tilePath} — draw "${name}" with card-pattern.js first`);
-    // The reference is the tile repeated 3x3 at 1536px, so the model is shown the print AS a repeat.
-    const each = 512;
-    const small = await sharp(tilePath).resize(each, each).png().toBuffer();
-    const comps = []; for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) comps.push({ input: small, left: c * each, top: r * each });
+    // The reference is ONE tile at 1536px (a 3x3 made the model print it tiny
+    // — 2026-09-22, "ur mockup was way too tiny"); the prompt says how big it
+    // sits on the bed.
     const refPath = path.join(OUT, `${key}-ref.png`);
-    await sharp({ create: { width: each * 3, height: each * 3, channels: 3, background: '#fff' } }).composite(comps).png().toFile(refPath);
+    await sharp(tilePath).resize(1536, 1536).png().toFile(refPath);
     console.log(`${name}: reference ${refPath}`);
     if (DRY) continue;
     const items = [];

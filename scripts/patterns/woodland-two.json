@@ -23,6 +23,7 @@
  ],
  "seed": 37,
  "tilt": 45,
+ "evenSize": true,
  "rows": 6,
  "placements": [
   {

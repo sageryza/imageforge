@@ -161,6 +161,19 @@ still every time the work wraps up.
    is meant to play goes where it plays inline — the pin, a Compare page
    with a player, the Assets tab — and the save link rides underneath for
    keeping a copy.
+3d3. **SUPERSEDE WHAT SHE NO LONGER NEEDS — HER COMPARE TAB HOLDS ONLY THE
+   CURRENT THINGS (2026-09-22, Sophie, looking at nine live pattern pages:
+   "supercede irrelevant and make that more strict for other chats").**
+   `POST /api/chatfeed/page/<id>/supersede` the moment a page stops being the
+   one she would open: a new version supersedes the old IN THE SAME CALL that
+   posts it (`--supersede <id>` on every page script), a picks page is
+   superseded once she has picked, a test or a wrong turn is superseded the
+   turn she says so, and two pages that show the same things are one page.
+   Superseding hides, never deletes, so the cost of a wrong supersede is one
+   tap in the archive; the cost of a stale page is her comparing the wrong
+   version. Before wrapping up, list the chat's pages
+   (`GET /api/chatfeed/pages?chat=`) and supersede every LIVE one that is not
+   the current version of something.
 3e. **A FINAL video being exported for posting gets a CLEAN COPY** —
    metadata stripped with a stream copy (pixels byte-identical, verified by
    hash), filed into the Dump with a real filename, direct save link
@@ -2690,7 +2703,8 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   `node scripts/test-verdict-text.js`, `node scripts/test-page-kit-warnings.js`.
 - **A new VERSION is a NEW page**, never an edit of the old one, and the title
   says which version it is. Supersede the one it replaces
-  (`POST /page/:id/supersede`) instead of deleting it. A verdict sheet's name
+  (`POST /page/:id/supersede`) instead of deleting it — IN THE SAME TURN,
+  and supersede any page she no longer needs (checklist 3d3). A verdict sheet's name
   must carry the shape of the item set (`blocks-s96`), or a rebuild silently
   re-points her saved answers at different content.
   **AND SUPERSEDE WHAT IS NO LONGER RELEVANT, NOT ONLY WHAT WAS REPLACED
