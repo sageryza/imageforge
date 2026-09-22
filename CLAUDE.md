@@ -2212,10 +2212,12 @@ them off the reference sheet, not off the old filenames.
   found in the same sitting and fixed with it: the category chip's red badge
   was still account-scoped while its pile went cross-account on 2026-08-31,
   and the **★ chip was a dead control on the default screen** (`if(starOnly)`
-  sat below the ALL branch, which returns). One measured and NOT changed: at
-  390pt the masthead's six controls start at x=84 and the word "Chats" runs to
-  x=95.7, so the bookmark button takes a tap on the end of the title — which
-  control gives way is hers.
+  sat below the ALL branch, which returns). One measured then and FIXED ON A
+  BRANCH, not merged (`claude/model-test-bug-x`, 2026-09-22): at 390pt the
+  masthead's five controls started at x=84 and the word "Chats" ran to x=95.7,
+  so the bookmark button took a tap on the end of the title — the ARCHIVE word
+  is the control that gives way, drawn as the archive-box icon; the reasoning
+  is in `docs/model-test/RESULT.md`. Merging it is hers.
   **Full details: *THE ACCOUNT FILTER FOLLOWS THE ACCOUNT ROW* in
   `docs/chats-app.md`.**
 

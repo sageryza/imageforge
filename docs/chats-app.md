@@ -4067,13 +4067,21 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
     moves off the bug/tray tabs so this pile can take over. It is seated with
     the other replace-the-list piles now, in front of ALL, where the lit TAG
     pile already was.
-  - **A KNOWN, MEASURED, UNFIXED THING BESIDE IT: the masthead's controls
-    overlap the title on her phone.** At 390pt the `.hctl` row starts at x=84
-    and the word "Chats" runs x 19.5 → 95.7, so the bookmark button sits on the
-    last few pixels of the word and takes a tap there; at 430 there is no
-    overlap. Six controls need 231px and the row has 390. Which control gives
-    way is a design call, so it is named here rather than changed.
-    `test-chats-accounts.js` fails on it.
+  - **THE MASTHEAD'S CONTROLS OVERLAPPED THE TITLE ON HER PHONE — the ARCHIVE
+    word gave way (2026-09-22, proposed on branch `claude/model-test-bug-x`;
+    the write-up is `docs/model-test/RESULT.md`).** Measured before the
+    change: at 390pt the `.hctl` row started at x=83.8 and the word "Chats"
+    ran x 19.5 → 95.7, so the bookmark button sat on the last 12px of the word
+    and took a tap there (25.5px at 375; clear at 430). The five controls on
+    the chat list needed 230.8px: bookmark 25 · TO DO 52.1 · ARCHIVE 68.6 ·
+    the switch 48 · the row toggle 21, with four 4px gaps. Her pull IS the
+    big title, so a pull that landed on the "s" opened Bookmarks. The word
+    ARCHIVE is now the Lucide archive-box icon (`#archlink`, `.trashbtn
+    .archbox`, 21px; lit it darkens to ink as the word did, never the
+    trash's red): the controls start at x=131.4 on 390 (36px clear) and
+    x=117.1 on 375 (22px clear), the row is 183.1px. Why that one and not
+    another is in the markup comment beside it and in RESULT.md.
+    `test-chats-accounts.js` measures it at 375/390/430 and is green again.
   - Tests: `node scripts/test-chats-account-default.js` (the real page
     headless — the default list MEASURED against the stub's own timestamps,
     every account present, the digit really visible, the hidden pile, `#rowtog`

@@ -515,7 +515,11 @@ button.m-partt{display:flex; align-items:center; gap:8px; width:100%; text-align
    old size the serif masthead got squeezed 21px under its natural width and
    ran UNDER the bookmark. Measured at 390px: the row has 295px inside the
    pill's reserve, the title needs 88, so the words and the gaps had to give it
-   back. Anything else added here has to be measured the same way. */
+   back. Anything else added here has to be measured the same way.
+   AND IT RAN OUT AGAIN when the row toggle joined (2026-08-28): five controls
+   were 230.8px and the bookmark sat on the end of "Chats" at 375 and 390. The
+   ARCHIVE word is an icon since 2026-09-22 (see the markup); TO DO is the one
+   word left on this row. */
 .archlink{background:none; border:none; padding:7px 2px; cursor:pointer; color:var(--ink2); flex:none; white-space:nowrap;
   font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.04em; text-transform:uppercase;}
 /* NOT bold in a sub-view (Aug 2026, Sophie): the big title already says
@@ -537,6 +541,13 @@ button.m-partt{display:flex; align-items:center; gap:8px; width:100%; text-align
   display:inline-flex; align-items:center; flex:none; -webkit-tap-highlight-color:transparent;}
 .trashbtn svg{display:block;}
 .trashbtn.on{color:var(--chg);}
+/* The archive box in the masthead (2026-09-22, the word gave way — see its
+   markup). Lit it is the live control on that row and darkens to full INK,
+   exactly as the word did (`.archlink.on`) — never the trash's red, which on
+   this screen means a tap that destroys something. Written `.trashbtn.archbox`
+   so it out-specifies `.trashbtn.on` above — and `archbox`, not `archbtn`,
+   which is the archive ROW's move-one-chat button further down. */
+.trashbtn.archbox.on{color:var(--ink);}
 /* The trash's own bar: the count on the left, the one irreversible control on
    the right. Same lit-chip look as the hidden bar (red outline over a light
    red tint) so the two "this is not the normal list" places match. */
@@ -1933,7 +1944,28 @@ body.selecting > .float{display:none !important;}
         <div class="hctl">
           <button id="bmklink" class="bmk hdrbmk" aria-label="Bookmarked messages"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
           <button id="todolink" class="archlink">To do</button>
-          <button id="archlink" class="archlink">Archive</button>
+          <!-- THE ARCHIVE IS A PICTURE OF AN ARCHIVE BOX, NOT THE WORD (2026-09-22).
+               MEASURED at 390pt with the word: the five controls on the chat
+               list (bookmark 25 · TO DO 52 · ARCHIVE 68.6 · the switch 48 ·
+               the row toggle 21, four 4px gaps) need 230.8px and start at
+               x=83.8, while "Chats" runs x 19.5-95.7 — so the bookmark button
+               sat on the last 12px of the word and took the tap there; at 375
+               it was 25.5px. Her pull IS the big title, so a pull that landed
+               on the "s" opened Bookmarks. Something had to give and this is
+               the one that could: the title is hers to read and pull; the
+               switch is at its measured 48px minimum; the bookmark is already
+               an icon; TO DO once WAS an icon and she had it removed ("the
+               weird check-plus … I don't actually know what it does"); and
+               the row toggle's two neighbouring rows are both measured full
+               (a fourth icon wraps the tool row, a fifth cell wraps BUG
+               FIXES). The archive box is the trash's own precedent ("make it
+               just a picture of a trashcan I guess") and the screen it opens
+               says ARCHIVE in green, so the tap confirms itself. 68.6px → 21:
+               the controls start at x=131 on 390 and the word has 36px clear,
+               22px at 375. Lit (`.on`) it darkens to full ink like the word
+               did, never the trash's red. Lucide `archive`.
+               `test-chats-accounts.js` measures this row at 375/390/430. -->
+          <button id="archlink" class="trashbtn archbox" aria-label="Show archived chats"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg></button>
           <!-- THE TRASH LIVES INSIDE THE ARCHIVE, AS A PICTURE (Aug 2026,
                Sophie: "put trash in archive and make it just a picture of a
                trashcan I guess"). It shipped as a fifth WORD in this row and
