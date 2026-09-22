@@ -310,6 +310,15 @@ etsy no printify · it's thru instagram" → "forget what we have · a store" �
   so the app keys in Render env are not needed to use it (2026-09-22; before,
   `configured()` demanded them and a container could never write). Her five
   hat photos of that day are in the Dump under `hats`.
+- **THE STOREFRONT TOKEN IS THE BUY BUTTON CHANNEL'S, and a product made
+  over REST is published to the Online Store ONLY (measured 2026-09-22: the
+  five hats sat live on the online store and the Storefront read answered
+  zero until each was published to Buy Button too).** `publishToChannels`
+  publishes every added hat to `Online Store` and `Buy Button` by name
+  (`publishablePublish`), and a hat added BY HAND in the Shopify admin that
+  the page cannot see needs the same: its Buy Button channel ticked on the
+  product page. `compareAt` (`--was`) on an add is the struck-through price.
+  The five of 2026-09-22 went in at $27, was $976, no description.
 - Tests: `node scripts/test-hats.js` — `productPlan` (the body, the tag, the
   refusals with no price or title, a non-https picture dropped), `shapeProduct` pure on a Storefront
   fixture; the real router over a stubbed store (collection wins, tag

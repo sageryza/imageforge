@@ -4033,7 +4033,10 @@ before working on that module. Nothing was deleted — the moved text is verbati
   /api/hats/add {title, price, imageUrl}` (Admin token, tagged and
   published) or, from a container with no deploy, `node scripts/hats-add.js
   --title … --price … --image … [--dry]` — shopify.js treats its STORED
-  OAuth token as connected since 2026-09-22, so no app keys are needed.** Test:
+  OAuth token as connected since 2026-09-22, so no app keys are needed. Every add publishes to Online Store AND Buy
+  Button — the storefront token is the Buy Button channel's, and a product
+  published only to the online store is invisible to the page (measured
+  2026-09-22).** Test:
   `node scripts/test-hats.js` (the shape pure, the router over a stubbed
   store, the real page headless with every check measured).
   **Full details: `docs/modules/business.md` (The hat store).**

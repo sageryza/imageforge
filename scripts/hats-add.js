@@ -2,7 +2,7 @@
 'use strict';
 // hats-add.js — put a hat INTO her Shopify from a chat's container.
 //
-//   node scripts/hats-add.js --title "god complex" --price 32 \
+//   node scripts/hats-add.js --title "god complex" --price 32 [--was 976] \
 //     --image https://storage.googleapis.com/…/x.png [--image …] [--tag cap] [--dry]
 //   node scripts/hats-add.js --file hats.json [--dry]      (an array of the same fields)
 //
@@ -26,7 +26,7 @@ const dry = args.includes('--dry');
   const H = require('../hats');
   const items = opt('file')
     ? JSON.parse(fs.readFileSync(opt('file'), 'utf8'))
-    : [{ title: opt('title'), price: opt('price'), images: all('image'), tags: all('tag'), description: opt('description') }];
+    : [{ title: opt('title'), price: opt('price'), compareAt: opt('was'), images: all('image'), tags: all('tag'), description: opt('description') }];
   for (const it of items) {
     if (dry) { console.log(JSON.stringify(H.productPlan(it), null, 2)); continue; }
     const r = await H.addHat(it);

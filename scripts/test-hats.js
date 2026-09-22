@@ -70,6 +70,8 @@ ok(/price required/.test(threw), 'no price, no product');
 threw = ''; try { H.productPlan({ price: 3, imageUrl: 'http://insecure/x.png' }); } catch (e) { threw = e.message; }
 ok(/title required/.test(threw), 'no title, no product');
 ok(H.productPlan({ title: 'x', price: 3, imageUrl: 'http://insecure/x.png' }).product.images.length === 0, 'a non-https picture is dropped rather than sent');
+ok(H.productPlan({ title: 'x', price: 27, compareAt: 976 }).product.variants[0].compare_at_price === '976.00', 'a was-price rides as compare_at_price');
+ok(!('compare_at_price' in H.productPlan({ title: 'x', price: 27, compareAt: 20 }).product.variants[0]), 'a was-price below the price is dropped');
 
 // ── 2. the router over a stubbed store ──
 (async () => {

@@ -31,7 +31,7 @@
 //                               options,variants,available,tag}], source, at }
 //   POST /checkout            { variantId, quantity? } → { checkoutUrl }
 //   POST /refresh             drop the 10-minute cache (after adding a hat)
-//   POST /add                 { title, price, imageUrl, images?, tags?, publish?, dry? }
+//   POST /add                 { title, price, compareAt?, imageUrl, images?, tags?, publish?, dry? }
 //                             → creates the product in her Shopify through the
 //                             Admin token (shopify.js), tagged `hats`, published
 //                             to the Online Store, and drops the cache. Not
@@ -137,9 +137,10 @@ async function checkoutUrl(variantId, quantity) {
 // fetches from their public urls, published to the Online Store so the
 // Storefront read above sees it at once. PURE planner, so the test can pin
 // the body without a store.
-function productPlan({ title, price, imageUrl, images, tags, publish, description } = {}) {
+function productPlan({ title, price, compareAt, imageUrl, images, tags, publish, description } = {}) {
   const t = String(title || '').trim();
   const p = Number(price);
+  const was = Number(compareAt);
   if (!t) throw new Error('title required');
   if (!Number.isFinite(p) || p <= 0) throw new Error('price required (a number above 0)');
   const pics = [].concat(images || [], imageUrl || []).map(u => String(u || '').trim()).filter(u => /^https:\/\//.test(u));
@@ -151,17 +152,39 @@ function productPlan({ title, price, imageUrl, images, tags, publish, descriptio
       tags: [...tagSet].join(', '),
       status: 'active',
       published: publish !== false,
-      variants: [{ price: p.toFixed(2), inventory_management: null, requires_shipping: true }],
+      // compareAt is the struck-through 'was' price beside the real one
+      variants: [{ price: p.toFixed(2), ...(Number.isFinite(was) && was > p ? { compare_at_price: was.toFixed(2) } : {}), inventory_management: null, requires_shipping: true }],
       images: pics.map(src => ({ src, alt: t })),
     },
   };
+}
+// The public Storefront token is the BUY BUTTON sales channel's, and a
+// product created over REST is published to the Online Store ONLY — measured
+// 2026-09-22: five hats live on the online store and invisible to /hats until
+// they were published to Buy Button as well. So every add publishes the
+// product to both channels by name (publishablePublish), and this is the
+// repair for a hat added by hand in the Shopify admin that the page cannot
+// see: the Buy Button channel on the product's page in the admin.
+const CHANNELS = ['Online Store', 'Buy Button'];
+async function publishToChannels(productGid) {
+  const shopify = require('./shopify');
+  const d = await shopify.shopifyGraphQL('{ publications(first: 30) { edges { node { id name } } } }');
+  const ids = (d.publications?.edges || []).map(e => e.node).filter(n => CHANNELS.includes(n.name)).map(n => n.id);
+  if (!ids.length) throw new Error('no Online Store / Buy Button publication on this store');
+  const r = await shopify.shopifyGraphQL(`mutation($id: ID!, $input: [PublicationInput!]!) {
+    publishablePublish(id: $id, input: $input) { userErrors { field message } } }`,
+    { id: productGid, input: ids.map(publicationId => ({ publicationId })) });
+  const errs = r.publishablePublish?.userErrors || [];
+  if (errs.length) throw new Error(errs.map(e => e.message).join('; '));
+  return ids.length;
 }
 async function addHat(fields) {
   const plan = productPlan(fields);
   const shopify = require('./shopify');
   const out = await shopify.shopifyREST('/products.json', { method: 'POST', body: plan });
-  CACHE = { at: 0, data: null };
   const pr = out && out.product ? out.product : {};
+  if (pr.id && plan.product.published) await publishToChannels(`gid://shopify/Product/${pr.id}`);
+  CACHE = { at: 0, data: null };
   return { id: pr.id, handle: pr.handle, title: pr.title, status: pr.status, images: (pr.images || []).length, url: pr.handle ? `https://${STORE_DOMAIN()}/products/${pr.handle}` : null };
 }
 
@@ -210,4 +233,4 @@ router.post('/checkout', async (req, res) => {
   }
 });
 
-module.exports = { router, shapeProduct, fetchHats, checkoutUrl, productPlan, addHat, _cache: () => CACHE };
+module.exports = { router, shapeProduct, fetchHats, checkoutUrl, productPlan, addHat, publishToChannels, CHANNELS, _cache: () => CACHE };
