@@ -1,0 +1,301 @@
+{
+ "name": "sea animals on pale blue",
+ "pick": [
+  "animal:crab",
+  "animal:dolphin",
+  "animal:fish",
+  "animal:goldfish",
+  "animal:octopus",
+  "animal:sea-lion",
+  "animal:seahorse",
+  "animal:squid",
+  "animal:turtle",
+  "animal:whale",
+  "animal:penguin"
+ ],
+ "layout": "tossed",
+ "cols": 6,
+ "tile": 3072,
+ "bg": "#e3edf3",
+ "fill": 0.55,
+ "gap": 0.35,
+ "seed": 21,
+ "tilt": 45,
+ "rows": 6,
+ "placements": [
+  {
+   "id": "animal:crab",
+   "x": 0.1132,
+   "y": 0.1073,
+   "rot": -19.5,
+   "scale": 0.86,
+   "flip": true
+  },
+  {
+   "id": "animal:dolphin",
+   "x": 0.2653,
+   "y": 0.1622,
+   "rot": -13.9,
+   "scale": 0.88
+  },
+  {
+   "id": "animal:fish",
+   "x": 0.4142,
+   "y": 0.0744,
+   "rot": 10.2,
+   "scale": 0.84,
+   "flip": true
+  },
+  {
+   "id": "animal:goldfish",
+   "x": 0.6076,
+   "y": 0.1782,
+   "rot": 4.9,
+   "scale": 1.03,
+   "flip": true
+  },
+  {
+   "id": "animal:octopus",
+   "x": 0.7532,
+   "y": 0.0865,
+   "rot": 4.5,
+   "scale": 0.89,
+   "flip": true
+  },
+  {
+   "id": "animal:sea-lion",
+   "x": 0.8941,
+   "y": 0.1824,
+   "rot": 35.9,
+   "scale": 0.96
+  },
+  {
+   "id": "animal:seahorse",
+   "x": 0.0448,
+   "y": 0.2437,
+   "rot": -10.6,
+   "scale": 0.83
+  },
+  {
+   "id": "animal:squid",
+   "x": 0.2509,
+   "y": 0.33,
+   "rot": 38.5,
+   "scale": 0.94
+  },
+  {
+   "id": "animal:turtle",
+   "x": 0.4143,
+   "y": 0.2396,
+   "rot": 37.9,
+   "scale": 1.02
+  },
+  {
+   "id": "animal:whale",
+   "x": 0.5482,
+   "y": 0.3301,
+   "rot": -39.6,
+   "scale": 0.75
+  },
+  {
+   "id": "animal:penguin",
+   "x": 0.7503,
+   "y": 0.2572,
+   "rot": -19.8,
+   "scale": 0.8
+  },
+  {
+   "id": "animal:fish",
+   "x": 0.9295,
+   "y": 0.3428,
+   "rot": -42.8,
+   "scale": 0.76,
+   "flip": true
+  },
+  {
+   "id": "animal:goldfish",
+   "x": 0.0881,
+   "y": 0.4039,
+   "rot": -20.4,
+   "scale": 1.08,
+   "flip": true
+  },
+  {
+   "id": "animal:octopus",
+   "x": 0.235,
+   "y": 0.4996,
+   "rot": -22,
+   "scale": 0.81,
+   "flip": true
+  },
+  {
+   "id": "animal:sea-lion",
+   "x": 0.4055,
+   "y": 0.4143,
+   "rot": 28.9,
+   "scale": 0.99,
+   "flip": true
+  },
+  {
+   "id": "animal:crab",
+   "x": 0.5965,
+   "y": 0.4874,
+   "rot": -2.7,
+   "scale": 1.01,
+   "flip": true
+  },
+  {
+   "id": "animal:squid",
+   "x": 0.7526,
+   "y": 0.4134,
+   "rot": 5.2,
+   "scale": 0.86,
+   "flip": true
+  },
+  {
+   "id": "animal:turtle",
+   "x": 0.8955,
+   "y": 0.4931,
+   "rot": -12.6,
+   "scale": 0.87
+  },
+  {
+   "id": "animal:whale",
+   "x": 0.0871,
+   "y": 0.5872,
+   "rot": 17.7,
+   "scale": 1.03
+  },
+  {
+   "id": "animal:penguin",
+   "x": 0.2892,
+   "y": 0.6526,
+   "rot": -40.6,
+   "scale": 0.97,
+   "flip": true
+  },
+  {
+   "id": "animal:seahorse",
+   "x": 0.4393,
+   "y": 0.5812,
+   "rot": 18.6,
+   "scale": 0.96,
+   "flip": true
+  },
+  {
+   "id": "animal:dolphin",
+   "x": 0.5865,
+   "y": 0.6619,
+   "rot": -24.8,
+   "scale": 0.94,
+   "flip": true
+  },
+  {
+   "id": "animal:octopus",
+   "x": 0.7444,
+   "y": 0.57,
+   "rot": 36.9,
+   "scale": 0.72
+  },
+  {
+   "id": "animal:sea-lion",
+   "x": 0.9153,
+   "y": 0.6614,
+   "rot": 9.7,
+   "scale": 1.02
+  },
+  {
+   "id": "animal:squid",
+   "x": 0.0632,
+   "y": 0.7688,
+   "rot": -2.8,
+   "scale": 1.04,
+   "flip": true
+  },
+  {
+   "id": "animal:dolphin",
+   "x": 0.2384,
+   "y": 0.8156,
+   "rot": -23.2,
+   "scale": 0.96,
+   "flip": true
+  },
+  {
+   "id": "animal:turtle",
+   "x": 0.4444,
+   "y": 0.7381,
+   "rot": 41.6,
+   "scale": 0.83
+  },
+  {
+   "id": "animal:whale",
+   "x": 0.5881,
+   "y": 0.8334,
+   "rot": -15.1,
+   "scale": 0.93,
+   "flip": true
+  },
+  {
+   "id": "animal:fish",
+   "x": 0.7473,
+   "y": 0.7407,
+   "rot": -28.3,
+   "scale": 1.05
+  },
+  {
+   "id": "animal:penguin",
+   "x": 0.9065,
+   "y": 0.8445,
+   "rot": -4.6,
+   "scale": 0.91,
+   "flip": true
+  },
+  {
+   "id": "animal:goldfish",
+   "x": 0.0956,
+   "y": 0.9437,
+   "rot": -18.7,
+   "scale": 0.97,
+   "flip": true
+  },
+  {
+   "id": "animal:sea-lion",
+   "x": 0.2648,
+   "y": 0.9908,
+   "rot": 28.7,
+   "scale": 0.98,
+   "flip": true
+  },
+  {
+   "id": "animal:crab",
+   "x": 0.4228,
+   "y": 0.903,
+   "rot": 24.4,
+   "scale": 1.02,
+   "flip": true
+  },
+  {
+   "id": "animal:seahorse",
+   "x": 0.5691,
+   "y": 0.0064,
+   "rot": 24.6,
+   "scale": 1.05,
+   "flip": true
+  },
+  {
+   "id": "animal:turtle",
+   "x": 0.759,
+   "y": 0.9192,
+   "rot": 14.3,
+   "scale": 0.98,
+   "flip": true
+  },
+  {
+   "id": "animal:whale",
+   "x": 0.9344,
+   "y": 0.0108,
+   "rot": -27.3,
+   "scale": 0.95
+  }
+ ]
+}

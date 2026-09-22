@@ -1,0 +1,112 @@
+[
+ {
+  "layout": "tossed",
+  "cols": 6,
+  "tile": 3072,
+  "bg": "#ffffff",
+  "cut": "rough",
+  "fill": 0.55,
+  "gap": 0.35,
+  "name": "house pets",
+  "pick": [
+   "cat",
+   "dog",
+   "mouse",
+   "rabbit",
+   "hamster",
+   "guinea pig",
+   "goldfish",
+   "parrot"
+  ],
+  "seed": 9,
+  "tilt": 40
+ },
+ {
+  "layout": "tossed",
+  "cols": 6,
+  "tile": 3072,
+  "bg": "#ffffff",
+  "cut": "rough",
+  "fill": 0.55,
+  "gap": 0.35,
+  "name": "lemons",
+  "pick": [
+   "lemon"
+  ],
+  "seed": 5,
+  "spin": true
+ },
+ {
+  "layout": "halfdrop",
+  "cols": 4,
+  "tile": 2048,
+  "bg": "#ffffff",
+  "cut": "rough",
+  "fill": 0.55,
+  "gap": 0.35,
+  "name": "fruit salad in rows",
+  "pick": [
+   "strawberry",
+   "lemon",
+   "blueberries",
+   "kiwi",
+   "raspberries",
+   "lime",
+   "mango",
+   "banana"
+  ],
+  "tilt": 20
+ },
+ {
+  "layout": "tossed",
+  "cols": 6,
+  "tile": 3072,
+  "bg": "#ffffff",
+  "cut": "rough",
+  "fill": 0.55,
+  "gap": 0.35,
+  "name": "jungle",
+  "pick": [
+   "elephant",
+   "gorilla",
+   "cheetah",
+   "tiger",
+   "leopard",
+   "monkey",
+   "parrot",
+   "toucan",
+   "sloth",
+   "snake",
+   "lemur",
+   "crocodile"
+  ],
+  "seed": 31,
+  "tilt": 45
+ },
+ {
+  "layout": "tossed",
+  "cols": 6,
+  "tile": 3072,
+  "bg": "#ffffff",
+  "cut": "rough",
+  "fill": 0.55,
+  "gap": 0.35,
+  "name": "woodland two",
+  "pick": [
+   "deer",
+   "fox",
+   "rabbit",
+   "owl",
+   "squirrel",
+   "raccoon",
+   "moose",
+   "skunk",
+   "bear",
+   "wolf",
+   "mouse",
+   "frog"
+  ],
+  "seed": 37,
+  "tilt": 45
+ }
+]

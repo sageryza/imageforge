@@ -1,0 +1,4 @@
+[
+ {"name":"sea animals","pick":["crab","dolphin","fish","goldfish","octopus","sea lion","seahorse","squid","turtle","whale","penguin"],"layout":"tossed","cols":6,"tile":3072,"bg":"#ffffff","cut":"rough","fill":0.55,"gap":0.35,"seed":21,"tilt":45},
+ {"name":"sea animals on pale blue","pick":["crab","dolphin","fish","goldfish","octopus","sea lion","seahorse","squid","turtle","whale","penguin"],"layout":"tossed","cols":6,"tile":3072,"bg":"#e3edf3","fill":0.55,"gap":0.35,"seed":21,"tilt":45}
+]
