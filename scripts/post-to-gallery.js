@@ -167,6 +167,9 @@ async function main() {
 
   const ref = await db.collection('users').doc(uid).collection('creations').add(doc);
   console.log(`gallery doc ${ref.id} → users/${uid}/creations  @ ${new Date(createdMs).toISOString()}`);
+  // The permanent url, on its own line, so a caller can read it back for the
+  // Assets-tab caption/prompt POSTs and an Etsy upload without re-deriving it.
+  console.log(`url ${url}`);
   process.exit(0);
 }
 
