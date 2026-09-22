@@ -80,7 +80,7 @@ const ANIMALS = new Set([
   'stork', 'crane', 'vulture', 'falcon', 'magpie', 'pigeon', 'dove', 'puffin', 'kiwi',
   'cockatoo', 'macaw', 'bee', 'butterfly', 'ladybug', 'ant', 'spider', 'snail', 'ray',
   'stingray', 'manatee', 'narwhal', 'sea lion', 'clownfish', 'goldfish', 'koi', 'eel', 'squid',
-  'cobra', 'python', 'viper', 'rattlesnake', 'boa', 'komodo dragon', 'axolotl', 'scorpion',
+  'snowy owl', 'barn owl', 'great horned owl', 'cobra', 'python', 'viper', 'rattlesnake', 'boa', 'komodo dragon', 'axolotl', 'scorpion',
   'moth', 'dragonfly', 'grasshopper', 'cricket', 'beetle', 'worm', 'caterpillar', 'wasp',
   'hornet', 'mosquito', 'fly', 'flea', 'tick', 'calf', 'foal', 'piglet', 'kid', 'duckling',
   'gosling', 'chick', 'cub', 'joey', 'fawn', 'pony', 'mule', 'zebu', 'ibex', 'chamois',
