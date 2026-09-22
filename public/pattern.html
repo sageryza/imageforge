@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pattern</title>
+<link rel="stylesheet" href="/tool.css">
+<link rel="stylesheet" href="/tritoggle.css">
+<script src="/tritoggle.js"></script>
+<script src="/pattern-plan.js"></script>
+<style>
+/* Pattern — choose animals and fruits, arrange one tile, it repeats
+   (2026-09-22, Sophie). Three hairline tabs because there are three kinds of
+   thing: the SHELF she picks from, the TILE she arranges, and the REPEAT she
+   judges. The four choices she named are four controls on the TILE tab:
+   which pieces (ticked on the shelf), how much to turn (the degrees box),
+   how far apart (the spacing slider grows the tile under the pieces) and
+   where (drag). Served WITHOUT the autoscroll pill, like /crop: the page is
+   a thing to touch, not to read; its script is still an IIFE. */
+main{ padding:8px 14px calc(16px + env(safe-area-inset-bottom)); }
+.head .pick{ font:inherit; font-size:13px; color:var(--ink); background:var(--surface);
+  border:1px solid var(--border); border-radius:var(--r); padding:6px 10px; max-width:52%;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
+.head .pick i{ font-style:normal; color:var(--dim); margin-left:6px; }
+
+/* the hairline tabs — the house .acctabs idiom, the line measured, never counted */
+.acctabs{ position:relative; display:flex; border-bottom:1px solid var(--border); margin:0 14px; }
+.acctab{ flex:1 1 0; min-width:0; padding:8px 4px 10px; border:none; background:none; cursor:pointer;
+  font:inherit; font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:var(--dim); }
+.acctab.on{ color:var(--ink); }
+.acctabs::after{ content:''; position:absolute; left:0; bottom:-1px; height:2px; background:var(--ink);
+  width:var(--tw,0); transform:translateX(var(--tx,0)); }
+.acctabs.tl::after{ transition:transform .2s ease, width .2s ease; }
+
+/* ── the shelf ── */
+.kindh{ font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:var(--dim); margin:12px 2px 6px; }
+.shelf{ display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; }
+.pc{ position:relative; border:1px solid var(--border); border-radius:var(--r); background:var(--surface);
+  padding:6px 4px 4px; cursor:pointer; text-align:center; -webkit-user-select:none; user-select:none; }
+.pc img{ width:100%; aspect-ratio:1; object-fit:contain; display:block; }
+.pc .nm{ font-size:11px; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:3px; }
+.pc.on{ outline:2px solid var(--accent); outline-offset:-2px; }
+.pc.on .nm{ color:var(--ink); }
+.pc .tick{ position:absolute; top:4px; right:4px; width:18px; height:18px; border-radius:4px;
+  border:1px solid var(--border); background:var(--surface); display:flex; align-items:center; justify-content:center; }
+.pc.on .tick{ background:var(--accent); border-color:var(--accent); color:#fff; }
+.pc .tick svg{ width:12px; height:12px; }
+.pc.wait{ opacity:.5; }
+.pc.wait .st{ position:absolute; left:0; right:0; top:40%; font-size:11px; color:var(--dim); }
+.pc.bad{ border-color:var(--danger); }
+.addrow{ margin-top:16px; border-top:1px solid var(--border); padding-top:12px; }
+.addrow .row{ display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap; }
+.addrow input[type=text]{ flex:1; min-width:120px; }
+.msg{ font-size:13px; color:var(--dim); margin-top:8px; min-height:18px; }
+.msg.bad{ color:var(--danger); }
+
+/* ── the tile ── */
+.band{ height:64px; border:1px solid var(--border); border-radius:var(--r); background-repeat:repeat; margin-bottom:8px; }
+canvas#tile{ display:block; width:100%; border:1px solid var(--border); border-radius:var(--r);
+  touch-action:none; background:var(--surface); }
+.ctl{ margin-top:10px; }
+.ctl .row{ display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap; }
+.ctl .lbl{ font-size:11px; letter-spacing:1.4px; text-transform:uppercase; color:var(--dim); width:64px; flex:none; }
+.ctl .who{ font-size:14px; color:var(--ink); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tool .ctl input[type=number]{ width:64px; padding:6px 8px; text-align:center; }
+.tool .ctl input[type=range]{ flex:1; min-width:100px; accent-color:var(--accent); }
+.sq{ width:38px; height:34px; border-radius:var(--r); border:1px solid var(--border); background:var(--surface);
+  color:var(--ink); display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
+  touch-action:manipulation; padding:0; font:inherit; font-size:14px; flex:none; }
+.sq.on{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+.sq svg{ width:18px; height:18px; }
+.ctl .none{ font-size:13px; color:var(--dim); padding:6px 2px; }
+.hr{ border-top:1px solid var(--border); margin:12px 0 4px; }
+
+/* ── the repeat ── */
+.big{ aspect-ratio:1; border:1px solid var(--border); border-radius:var(--r); background-repeat:repeat; }
+.rep .row{ display:flex; gap:10px; align-items:center; margin-top:12px; flex-wrap:wrap; }
+.rep .lbl{ font-size:11px; letter-spacing:1.4px; text-transform:uppercase; color:var(--dim); width:64px; flex:none; }
+.rep .word{ font-size:14px; color:var(--ink); }
+.rep .tri{ --tri-fill:var(--surface); --tri-line:var(--ink); --tri-knob:var(--ink); --tri-ink:var(--paper); --tri-w:78px; --tri-k:26px; }
+.sw{ width:26px; height:26px; border-radius:var(--r); border:1px solid var(--border); padding:0; cursor:pointer; flex:none; }
+.sw.on{ outline:2px solid var(--ink); outline-offset:1px; }
+.rep input[type=color]{ width:34px; height:30px; border:1px solid var(--border); border-radius:var(--r); padding:2px; background:var(--surface); }
+.exports{ margin-top:12px; }
+.exports a{ display:flex; gap:10px; align-items:center; padding:8px 0; border-top:1px solid var(--border);
+  color:var(--ink); text-decoration:none; font-size:14px; }
+.exports a img{ width:44px; height:44px; object-fit:cover; border-radius:4px; border:1px solid var(--border); }
+.exports a .m{ color:var(--dim); font-size:12px; margin-left:auto; }
+
+/* ── the pattern sheet ── */
+.sheet{ position:fixed; inset:0; z-index:30; background:rgba(0,0,0,.25); display:flex; align-items:flex-end; }
+.sheet .box{ background:var(--surface); width:100%; max-height:70vh; overflow:auto; border-radius:12px 12px 0 0;
+  padding:14px 16px calc(16px + env(safe-area-inset-bottom)); }
+.sheet .row{ display:flex; gap:8px; align-items:center; }
+.sheet input[type=text]{ flex:1; }
+.sheet .list{ margin-top:12px; }
+.sheet .list button{ display:flex; width:100%; gap:10px; align-items:center; padding:9px 2px; border:none;
+  border-top:1px solid var(--border); background:none; font:inherit; font-size:14px; color:var(--ink); text-align:left; cursor:pointer; }
+.sheet .list button.on{ color:var(--accent); }
+.sheet .list button .m{ color:var(--dim); font-size:12px; margin-left:auto; }
+.sheet .list button img{ width:36px; height:36px; border-radius:4px; object-fit:cover; border:1px solid var(--border); }
+</style>
+</head>
+<body class="tool">
+
+<div class="head">
+  <div class="eyebrow tool-eyebrow">PATTERN</div>
+  <button class="pick" id="pick"></button>
+  <button id="help" aria-label="What is this?">?</button>
+</div>
+<div class="helpcard" id="helpcard" hidden>
+  <b>Pieces</b> — tap an animal or a fruit to put it in the pattern; tap again
+  to take it out. <b>Draw</b> makes a new one in the fruit chart's look and
+  costs about six cents.<br><br>
+  <b>Tile</b> — one square that repeats. Drag a piece where you want it; the
+  degrees box turns it, the size slider sizes it, <b>again</b> adds another of
+  the same. <b>Spacing</b> grows the square under everything so the repeats
+  land farther apart. <b>Spin</b> turns every piece a little, at random, within
+  the degrees you set. A piece hanging off one edge comes back in on the other,
+  which is what makes the repeat seamless.<br><br>
+  <b>Repeat</b> — how it looks tiled. Grid, half-drop or mirror; the colour
+  behind; <b>Export</b> renders one seamless PNG you can tile anywhere.
+  Everything saves itself as you go.
+</div>
+
+<div class="acctabs" id="tabs">
+  <button class="acctab on" data-t="0">Pieces</button>
+  <button class="acctab" data-t="1">Tile</button>
+  <button class="acctab" data-t="2">Repeat</button>
+</div>
+
+<main>
+  <section id="pane-pieces">
+    <div id="shelf"></div>
+    <div class="addrow">
+      <div class="row">
+        <input type="text" id="newname" autocomplete="off" autocapitalize="off">
+        <button class="btn star" id="draw">Draw</button>
+      </div>
+      <div class="row chips" id="kinds">
+        <button class="chip on" data-k="animal">animal</button>
+        <button class="chip" data-k="fruit">fruit</button>
+        <button class="chip" data-k="vegetable">vegetable</button>
+        <button class="chip" data-k="other">other</button>
+      </div>
+      <div class="msg" id="shelfmsg"></div>
+    </div>
+  </section>
+
+  <section id="pane-tile" hidden>
+    <div class="band" id="band"></div>
+    <canvas id="tile"></canvas>
+    <div class="ctl">
+      <div id="selbox" hidden>
+        <div class="row"><span class="lbl">piece</span><span class="who" id="selname"></span>
+          <button class="sq" id="flip" aria-label="Flip"></button>
+          <button class="sq" id="again" aria-label="Another of this one">+</button>
+          <button class="sq" id="remove" aria-label="Remove"></button></div>
+        <div class="row"><span class="lbl">turn</span>
+          <button class="sq" id="rotm" aria-label="Turn 15° left">−15</button>
+          <input type="number" id="rot" min="0" max="359" step="1" inputmode="numeric">
+          <button class="sq" id="rotp" aria-label="Turn 15° right">+15</button>
+          <span class="word" style="color:var(--dim);font-size:13px">°</span></div>
+        <div class="row"><span class="lbl">size</span><input type="range" id="size" min="60" max="900" step="5"></div>
+      </div>
+      <div class="none" id="selnone">tap a piece to turn or size it · drag to move</div>
+      <div class="hr"></div>
+      <div class="row"><span class="lbl">spacing</span><input type="range" id="space" min="500" max="2500" step="10"></div>
+      <div class="row"><span class="lbl">spin all</span>
+        <span class="word" style="color:var(--dim);font-size:13px">±</span>
+        <input type="number" id="spread" min="0" max="180" step="5" inputmode="numeric" value="20">
+        <span class="word" style="color:var(--dim);font-size:13px">°</span>
+        <button class="btn" id="spin">Spin</button>
+        <button class="btn" id="scatter">Scatter</button></div>
+    </div>
+  </section>
+
+  <section id="pane-repeat" class="rep" hidden>
+    <div class="big" id="big"></div>
+    <div class="row"><span class="lbl">layout</span>
+      <button class="tri" id="layout" data-n="0" data-i="G" aria-label="Layout"></button>
+      <span class="word" id="layoutword">grid</span></div>
+    <div class="row"><span class="lbl">colour</span><span id="swatches" class="row" style="margin:0"></span>
+      <input type="color" id="bg" aria-label="Background colour"></div>
+    <div class="row"><span class="lbl">export</span>
+      <span class="chips" id="sizes"><button class="chip" data-s="1K">1K</button><button class="chip on" data-s="2K">2K</button><button class="chip" data-s="4K">4K</button></span>
+      <button class="btn" id="export">Export</button></div>
+    <div class="msg" id="repmsg"></div>
+    <div class="exports" id="exports"></div>
+  </section>
+</main>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="box">
+    <div class="row"><input type="text" id="pname" autocomplete="off"><button class="btn" id="newpat">New</button></div>
+    <div class="list" id="plist"></div>
+  </div>
+</div>
+
+<script>
+/* WRAPPED IN AN IIFE — the house rule: a page-level `let` sharing a name with
+   the injected pill's globals kills the pill at parse time on pages that carry
+   one; this page carries none but is written to survive one anyway. */
+(function () {
+  'use strict';
+  var TOKEN = '__STUDIO_TOKEN__';
+  var P = window.__patternPlan;
+  var $ = function (id) { return document.getElementById(id); };
+  var API = '/api/pattern';
+  var SWATCHES = ['#faf6ee', '#ffffff', '#f3e9d2', '#e9dcc6', '#dfe8dc', '#dbe4ea', '#eadbe3', '#f2d9cf', '#2a2620'];
+  var LAYOUT_WORD = { grid: 'grid', half: 'half-drop', mirror: 'mirror' };
+  var LAYOUT_LETTER = { grid: 'G', half: 'H', mirror: 'M' };
+
+  function hdrs(json) {
+    var h = {};
+    if (TOKEN) h['x-studio-token'] = TOKEN;
+    if (json) h['Content-Type'] = 'application/json';
+    return h;
+  }
+  function api(method, path, body) {
+    return fetch(API + path, { method: method, headers: hdrs(!!body), body: body ? JSON.stringify(body) : undefined })
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok || j.error) throw new Error(j.error || ('HTTP ' + r.status)); return j; }); });
+  }
+
+  var LUCIDE = {
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+    flip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><path d="M12 20v2"/><path d="M12 14v2"/><path d="M12 8v2"/><path d="M12 2v2"/></svg>',
+    x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+  };
+  $('flip').innerHTML = LUCIDE.flip;
+  $('remove').innerHTML = LUCIDE.x;
+
+  // ── state ──
+  var pieces = {};          // id → shelf record
+  var imgs = {};            // id → HTMLImageElement (the cut-out)
+  var pattern = null;       // the doc
+  var sel = null;           // selected item key
+  var dirty = null;         // debounce timer
+  var drawKind = 'animal';
+  var exportSize = '2K';
+  var pollT = null, jobT = null;
+
+  // ── help ──
+  $('help').addEventListener('click', function (e) { e.stopPropagation(); $('helpcard').hidden = !$('helpcard').hidden; });
+  document.addEventListener('click', function (e) { if (!$('helpcard').hidden && !e.target.closest('#helpcard')) $('helpcard').hidden = true; });
+
+  // ── tabs ──
+  var tabs = $('tabs');
+  function tabLine() {
+    var on = tabs.querySelector('.acctab.on'); if (!on) return;
+    var r = tabs.getBoundingClientRect(), t = on.getBoundingClientRect();
+    if (!t.width) return;
+    tabs.style.setProperty('--tw', t.width + 'px');
+    tabs.style.setProperty('--tx', (t.left - r.left - tabs.clientLeft) + 'px');
+    if (!tabs.__tl) { tabs.__tl = 1; requestAnimationFrame(function () { tabs.classList.add('tl'); }); }
+  }
+  function showTab(i) {
+    tabs.querySelectorAll('.acctab').forEach(function (b, j) { b.classList.toggle('on', j === i); });
+    $('pane-pieces').hidden = i !== 0; $('pane-tile').hidden = i !== 1; $('pane-repeat').hidden = i !== 2;
+    try { localStorage.setItem('pattern.tab', String(i)); } catch (e) { /* private mode */ }
+    tabLine();
+    if (i === 1) { sizeCanvas(); paint(); paintBand(); }
+    if (i === 2) paintBig();
+  }
+  tabs.addEventListener('click', function (e) { var b = e.target.closest('.acctab'); if (b) showTab(Number(b.dataset.t)); });
+  window.addEventListener('resize', function () { tabs.classList.remove('tl'); tabs.__tl = 0; requestAnimationFrame(function () { tabLine(); sizeCanvas(); paint(); }); }, { passive: true });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(tabLine);
+
+  // ── pieces ──
+  function dims() {
+    var d = {};
+    Object.keys(pieces).forEach(function (id) { if (pieces[id].w && pieces[id].h) d[id] = { w: pieces[id].w, h: pieces[id].h }; });
+    return d;
+  }
+  function imgFor(id) {
+    var pc = pieces[id];
+    if (!pc || !pc.cut) return null;
+    if (imgs[id]) return imgs[id];
+    var im = new Image();
+    im.crossOrigin = 'anonymous';
+    im.onload = function () { paint(); paintBand(); if (!$('pane-repeat').hidden) paintBig(); };
+    im.src = pc.cut;
+    imgs[id] = im;
+    return im;
+  }
+  var shelfSig = '';
+  function inPattern(id) { return !!(pattern && (pattern.items || []).some(function (it) { return it.piece === id; })); }
+  function renderShelf() {
+    var list = Object.values(pieces).filter(function (p) { return !p.hidden; });
+    var order = { animal: 0, fruit: 1, vegetable: 2, other: 3 };
+    list.sort(function (a, b) { return (order[a.kind] - order[b.kind]) || String(a.name).localeCompare(String(b.name)); });
+    var sig = list.map(function (p) { return p.id + p.status + (p.thumb || '') + (inPattern(p.id) ? 1 : 0); }).join('|');
+    if (sig === shelfSig) return;
+    shelfSig = sig;
+    var host = $('shelf'); host.innerHTML = '';
+    if (!list.length) { host.innerHTML = '<div class="msg">nothing on the shelf yet</div>'; return; }
+    var kind = null, grid = null;
+    list.forEach(function (p) {
+      if (p.kind !== kind) {
+        kind = p.kind;
+        var h = document.createElement('div'); h.className = 'kindh'; h.textContent = kind + 's'; host.appendChild(h);
+        grid = document.createElement('div'); grid.className = 'shelf'; host.appendChild(grid);
+      }
+      var b = document.createElement('div');
+      b.className = 'pc' + (inPattern(p.id) ? ' on' : '') + (p.status !== 'ready' ? (p.status === 'failed' ? ' bad' : ' wait') : '');
+      b.dataset.id = p.id;
+      b.innerHTML = (p.thumb ? '<img src="' + p.thumb + '" alt="">' : '<div style="aspect-ratio:1"></div>')
+        + '<div class="tick">' + LUCIDE.check + '</div>'
+        + (p.status !== 'ready' ? '<div class="st">' + (p.status === 'failed' ? 'failed' : p.status + '…') + '</div>' : '')
+        + '<div class="nm">' + esc(p.name) + '</div>';
+      grid.appendChild(b);
+    });
+  }
+  $('shelf').addEventListener('click', function (e) {
+    var b = e.target.closest('.pc'); if (!b) return;
+    var p = pieces[b.dataset.id];
+    if (!p || p.status !== 'ready') { say($('shelfmsg'), p && p.status === 'failed' ? (p.error || 'that one failed to cut') : 'still cutting…'); return; }
+    togglePiece(p.id);
+  });
+  function togglePiece(id) {
+    if (!pattern) return;
+    var items = pattern.items || [];
+    if (inPattern(id)) {
+      pattern.items = items.filter(function (it) { return it.piece !== id; });
+      if (sel && !pattern.items.some(function (it) { return it.k === sel; })) sel = null;
+    } else {
+      var at = P.freeSpot(items);
+      pattern.items = items.concat([{ k: key(), piece: id, x: at.x, y: at.y, size: P.DEFAULT_SIZE, rot: 0, flip: false }]);
+      sel = pattern.items[pattern.items.length - 1].k;
+    }
+    imgFor(id);
+    changed(); shelfSig = ''; renderShelf();
+  }
+  function loadPieces() {
+    return api('GET', '/pieces').then(function (j) {
+      pieces = {};
+      j.pieces.forEach(function (p) { pieces[p.id] = p; });
+      renderShelf();
+      (pattern && pattern.items || []).forEach(function (it) { imgFor(it.piece); });
+      paint(); paintBand();
+      var busy = j.pieces.some(function (p) { return p.status === 'cutting' || p.status === 'drawing'; });
+      clearTimeout(pollT);
+      if (busy) pollT = setTimeout(loadPieces, 3000);
+    }).catch(function (err) { say($('shelfmsg'), err.message, true); });
+  }
+  $('kinds').addEventListener('click', function (e) {
+    var b = e.target.closest('.chip'); if (!b) return;
+    drawKind = b.dataset.k;
+    $('kinds').querySelectorAll('.chip').forEach(function (c) { c.classList.toggle('on', c === b); });
+  });
+  $('draw').addEventListener('click', function () {
+    var name = $('newname').value.trim();
+    if (!name) { say($('shelfmsg'), 'name the thing to draw first'); return; }
+    $('draw').disabled = true;
+    api('POST', '/pieces/draw', { name: name, kind: drawKind }).then(function (j) {
+      $('newname').value = '';
+      say($('shelfmsg'), 'drawing ' + j.piece.name + ' — about a minute');
+      pieces[j.piece.id] = j.piece; renderShelf();
+      clearTimeout(pollT); pollT = setTimeout(loadPieces, 4000);
+    }).catch(function (err) { say($('shelfmsg'), err.message, true); })
+      .then(function () { $('draw').disabled = false; });
+  });
+
+  // ── the pattern ──
+  function key() { return Math.random().toString(36).slice(2, 10); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function say(el, msg, bad) { el.textContent = msg || ''; el.classList.toggle('bad', !!bad); }
+  function item(k) { return (pattern && pattern.items || []).find(function (it) { return it.k === k; }) || null; }
+
+  function changed() {
+    if (!pattern) return;
+    paint(); paintBand(); syncControls();
+    if (!$('pane-repeat').hidden) paintBig();
+    clearTimeout(dirty);
+    dirty = setTimeout(save, 500);
+  }
+  function save() {
+    if (!pattern) return;
+    var body = { name: pattern.name || '', tile: pattern.tile, layout: pattern.layout, items: pattern.items || [] };
+    api('PATCH', '/patterns/' + pattern.id, body).then(function (j) {
+      // Keep the page's copy — a save is not a reload.
+      pattern.updatedAt = j.pattern.updatedAt;
+    }).catch(function (err) { say($('repmsg'), 'not saved: ' + err.message, true); });
+  }
+  function usePattern(p) {
+    pattern = p;
+    pattern.items = (p.items || []).slice();
+    pattern.tile = P.tileOf(p);
+    pattern.layout = { kind: P.layoutOf(p) };
+    sel = null;
+    try { localStorage.setItem('pattern.cur', p.id); } catch (e) { /* private mode */ }
+    $('pick').innerHTML = esc(p.name || 'untitled') + '<i>▾</i>';
+    $('pname').value = p.name || '';
+    pattern.items.forEach(function (it) { imgFor(it.piece); });
+    shelfSig = ''; renderShelf();
+    $('space').value = pattern.tile.w;
+    setLayoutUI(); setBgUI(); renderExports();
+    changedNoSave();
+    watchJob();
+  }
+  function changedNoSave() { paint(); paintBand(); syncControls(); if (!$('pane-repeat').hidden) paintBig(); }
+  function loadPatterns() {
+    return api('GET', '/patterns').then(function (j) {
+      var list = j.patterns;
+      var want = null; try { want = localStorage.getItem('pattern.cur'); } catch (e) { /* */ }
+      var pick = list.find(function (p) { return p.id === want; }) || list[0];
+      renderList(list);
+      if (pick) return api('GET', '/patterns/' + pick.id).then(function (jj) { usePattern(jj.pattern); });
+      return api('POST', '/patterns', {}).then(function (jj) { usePattern(jj.pattern); renderList([jj.pattern]); });
+    });
+  }
+  function renderList(list) {
+    var host = $('plist'); host.innerHTML = '';
+    list.forEach(function (p) {
+      var b = document.createElement('button');
+      b.className = pattern && p.id === pattern.id ? 'on' : '';
+      b.innerHTML = (p.thumb ? '<img src="' + p.thumb + '" alt="">' : '') + '<span>' + esc(p.name || 'untitled') + '</span>'
+        + '<span class="m">' + (p.count || 0) + ' pieces · ' + (LAYOUT_WORD[(p.layout || {}).kind] || 'grid') + '</span>';
+      b.addEventListener('click', function () {
+        $('sheet').hidden = true;
+        api('GET', '/patterns/' + p.id).then(function (j) { usePattern(j.pattern); });
+      });
+      host.appendChild(b);
+    });
+  }
+  $('pick').addEventListener('click', function () {
+    $('sheet').hidden = false;
+    api('GET', '/patterns').then(function (j) { renderList(j.patterns); });
+  });
+  $('sheet').addEventListener('click', function (e) { if (e.target === $('sheet')) $('sheet').hidden = true; });
+  $('newpat').addEventListener('click', function () {
+    api('POST', '/patterns', {}).then(function (j) { $('sheet').hidden = true; usePattern(j.pattern); showTab(0); });
+  });
+  $('pname').addEventListener('input', function () {
+    if (!pattern) return;
+    pattern.name = $('pname').value.trim().slice(0, 60);
+    $('pick').innerHTML = esc(pattern.name || 'untitled') + '<i>▾</i>';
+    clearTimeout(dirty); dirty = setTimeout(save, 600);
+  });
+
+  // ── the canvas ──
+  var cv = $('tile'), ctx = cv.getContext('2d');
+  var cssW = 0, cssH = 0, dpr = 1;
+  function sizeCanvas() {
+    if (!pattern) return;
+    var t = pattern.tile;
+    // The canvas is border-box (tool.css's *{box-sizing}), so its height is
+    // set from its border-box width and the bitmap from the CONTENT box —
+    // the bitmap and the box it is stretched into keep one aspect.
+    var bw = cv.getBoundingClientRect().width || (cv.parentElement && cv.parentElement.clientWidth) || 300;
+    cv.style.height = Math.round(bw * t.h / t.w) + 'px';
+    var w = cv.clientWidth, h = cv.clientHeight;
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (w === cssW && h === cssH && cv.width === Math.round(w * dpr)) return;
+    cssW = w; cssH = h;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  }
+  function drawOne(c, d, s, im) {
+    c.save();
+    c.translate(d.cx * s, d.cy * s);
+    c.scale(d.mx ? -1 : 1, d.my ? -1 : 1);
+    c.rotate(d.rot * Math.PI / 180);
+    c.scale(d.flip ? -1 : 1, 1);
+    if (im && im.complete && im.naturalWidth) c.drawImage(im, -d.w * s / 2, -d.h * s / 2, d.w * s, d.h * s);
+    else { c.strokeStyle = 'rgba(0,0,0,.25)'; c.setLineDash([4, 3]); c.strokeRect(-d.w * s / 2, -d.h * s / 2, d.w * s, d.h * s); }
+    c.restore();
+  }
+  function paint() {
+    if (!pattern || $('pane-tile').hidden) return;
+    sizeCanvas();
+    var t = pattern.tile, s = cv.width / t.w;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = t.bg; ctx.fillRect(0, 0, cv.width, cv.height);
+    var list = P.tileDraws(pattern, dims());
+    list.forEach(function (d) { drawOne(ctx, d, s, imgFor(d.piece)); });
+    var selD = list.find(function (d) { return d.home && d.k === sel; });
+    if (selD) {
+      ctx.save();
+      ctx.translate(selD.cx * s, selD.cy * s); ctx.rotate(selD.rot * Math.PI / 180);
+      ctx.strokeStyle = '#a8845c'; ctx.lineWidth = 2 * dpr; ctx.setLineDash([6 * dpr, 4 * dpr]);
+      ctx.strokeRect(-selD.w * s / 2 - 3, -selD.h * s / 2 - 3, selD.w * s + 6, selD.h * s + 6);
+      ctx.restore();
+    }
+  }
+  /** The OUTPUT image on an offscreen canvas, as a data url the repeat
+   *  previews tile with CSS. `px` is the tile's width in pixels. */
+  function repeatUrl(px) {
+    if (!pattern) return null;
+    var out = P.draws(pattern, dims());
+    var s = px / pattern.tile.w;
+    var oc = document.createElement('canvas');
+    oc.width = Math.max(1, Math.round(out.W * s)); oc.height = Math.max(1, Math.round(out.H * s));
+    var c = oc.getContext('2d');
+    c.fillStyle = out.bg; c.fillRect(0, 0, oc.width, oc.height);
+    out.draws.forEach(function (d) { drawOne(c, d, s, imgFor(d.piece)); });
+    try { return { url: oc.toDataURL('image/png'), W: oc.width, H: oc.height, tiles: out.W / pattern.tile.w }; }
+    catch (e) { return null; }
+  }
+  function tileCss(el, per) {
+    var r = repeatUrl(240);
+    if (!r) { el.style.backgroundImage = ''; return; }
+    var w = el.clientWidth || 300;
+    var tw = w / per;                    // one TILE's width on screen
+    el.style.backgroundColor = pattern.tile.bg;
+    el.style.backgroundImage = 'url(' + r.url + ')';
+    el.style.backgroundSize = (tw * r.tiles) + 'px auto';
+  }
+  function paintBand() { if (pattern && !$('pane-tile').hidden) tileCss($('band'), 3); }
+  function paintBig() { if (pattern) tileCss($('big'), 2.5); }
+
+  // ── touching the tile ──
+  var drag = null;
+  function hit(ux, uy) {
+    var list = P.tileDraws(pattern, dims());
+    for (var i = list.length - 1; i >= 0; i--) {
+      var d = list[i];
+      var dx = ux - d.cx, dy = uy - d.cy;
+      var a = -d.rot * Math.PI / 180;
+      var rx = dx * Math.cos(a) - dy * Math.sin(a), ry = dx * Math.sin(a) + dy * Math.cos(a);
+      if (Math.abs(rx) <= d.w / 2 && Math.abs(ry) <= d.h / 2) return d.k;
+    }
+    return null;
+  }
+  function unitsOf(e) {
+    var r = cv.getBoundingClientRect();
+    return { x: (e.clientX - r.left - cv.clientLeft) / cv.clientWidth * pattern.tile.w,
+      y: (e.clientY - r.top - cv.clientTop) / cv.clientHeight * pattern.tile.h };
+  }
+  cv.addEventListener('pointerdown', function (e) {
+    if (!pattern) return;
+    var u = unitsOf(e);
+    var k = hit(u.x, u.y);
+    sel = k;
+    drag = k ? { k: k, x0: u.x, y0: u.y, ix: item(k).x, iy: item(k).y, moved: false } : null;
+    cv.setPointerCapture(e.pointerId);
+    paint(); syncControls();
+  });
+  cv.addEventListener('pointermove', function (e) {
+    if (!drag) return;
+    var u = unitsOf(e), it = item(drag.k); if (!it) return;
+    var dx = (u.x - drag.x0) / pattern.tile.w, dy = (u.y - drag.y0) / pattern.tile.h;
+    if (!drag.moved && Math.hypot(u.x - drag.x0, u.y - drag.y0) < 4) return;
+    drag.moved = true;
+    it.x = wrap(drag.ix + dx); it.y = wrap(drag.iy + dy);
+    paint();
+  });
+  function endDrag() { if (drag && drag.moved) changed(); drag = null; }
+  cv.addEventListener('pointerup', endDrag);
+  cv.addEventListener('pointercancel', endDrag);
+  function wrap(v) { return v - Math.floor(v); }
+
+  // ── the controls ──
+  function syncControls() {
+    var it = sel ? item(sel) : null;
+    $('selbox').hidden = !it; $('selnone').hidden = !!it;
+    if (!it) return;
+    $('selname').textContent = (pieces[it.piece] || {}).name || '';
+    if (document.activeElement !== $('rot')) $('rot').value = Math.round(it.rot);
+    $('size').value = it.size;
+    $('flip').classList.toggle('on', !!it.flip);
+  }
+  function setRot(v) { var it = item(sel); if (!it) return; it.rot = ((Math.round(Number(v) || 0) % 360) + 360) % 360; changed(); }
+  $('rot').addEventListener('input', function () { setRot($('rot').value); });
+  $('rotm').addEventListener('click', function () { var it = item(sel); if (it) setRot(it.rot - 15); });
+  $('rotp').addEventListener('click', function () { var it = item(sel); if (it) setRot(it.rot + 15); });
+  $('size').addEventListener('input', function () { var it = item(sel); if (!it) return; it.size = Number($('size').value); changed(); });
+  $('flip').addEventListener('click', function () { var it = item(sel); if (!it) return; it.flip = !it.flip; changed(); });
+  $('again').addEventListener('click', function () {
+    var it = item(sel); if (!it) return;
+    var at = P.freeSpot(pattern.items);
+    var copy = { k: key(), piece: it.piece, x: at.x, y: at.y, size: it.size, rot: it.rot, flip: it.flip };
+    pattern.items.push(copy); sel = copy.k; changed();
+  });
+  $('remove').addEventListener('click', function () {
+    if (!sel) return;
+    pattern.items = pattern.items.filter(function (it) { return it.k !== sel; });
+    sel = null; changed(); shelfSig = ''; renderShelf();
+  });
+  $('space').addEventListener('input', function () {
+    var v = Number($('space').value);
+    pattern.tile.w = v; pattern.tile.h = v;
+    sizeCanvas(); changed();
+  });
+  $('spin').addEventListener('click', function () {
+    var rots = P.spin(pattern.items, Number($('spread').value), Date.now());
+    pattern.items.forEach(function (it, i) { it.rot = rots[i]; });
+    changed();
+  });
+  $('scatter').addEventListener('click', function () {
+    var at = P.scatter(pattern.items.length);
+    pattern.items.forEach(function (it, i) { it.x = at[i].x; it.y = at[i].y; });
+    changed();
+  });
+
+  // ── the repeat tab ──
+  function setLayoutUI() {
+    var k = pattern.layout.kind;
+    $('layout').dataset.n = String(P.LAYOUTS.indexOf(k));
+    $('layout').dataset.i = LAYOUT_LETTER[k];
+    $('layoutword').textContent = LAYOUT_WORD[k];
+  }
+  $('layout').addEventListener('click', function (e) {
+    var cur = P.LAYOUTS.indexOf(pattern.layout.kind);
+    var next = window.triNext($('layout'), P.LAYOUTS.length, e, cur);
+    if (next === cur) return;
+    pattern.layout = { kind: P.LAYOUTS[next] };
+    setLayoutUI(); changed();
+  });
+  function setBgUI() {
+    $('bg').value = pattern.tile.bg;
+    $('swatches').querySelectorAll('.sw').forEach(function (b) { b.classList.toggle('on', b.dataset.c === pattern.tile.bg); });
+  }
+  SWATCHES.forEach(function (c) {
+    var b = document.createElement('button'); b.className = 'sw'; b.dataset.c = c; b.style.background = c; b.setAttribute('aria-label', c);
+    b.addEventListener('click', function () { pattern.tile.bg = c; setBgUI(); changed(); });
+    $('swatches').appendChild(b);
+  });
+  $('bg').addEventListener('input', function () { pattern.tile.bg = $('bg').value.toLowerCase(); setBgUI(); changed(); });
+  $('sizes').addEventListener('click', function (e) {
+    var b = e.target.closest('.chip'); if (!b) return;
+    exportSize = b.dataset.s;
+    $('sizes').querySelectorAll('.chip').forEach(function (c) { c.classList.toggle('on', c === b); });
+  });
+  $('export').addEventListener('click', function () {
+    if (!pattern) return;
+    if (!(pattern.items || []).length) { say($('repmsg'), 'nothing on the tile yet'); return; }
+    clearTimeout(dirty); save();
+    $('export').disabled = true;
+    api('POST', '/patterns/' + pattern.id + '/export', { size: exportSize }).then(function (j) {
+      pattern.job = j.pattern.job; say($('repmsg'), 'rendering ' + exportSize + '…'); watchJob();
+    }).catch(function (err) { say($('repmsg'), err.message, true); $('export').disabled = false; });
+  });
+  function watchJob() {
+    clearTimeout(jobT);
+    var job = pattern && pattern.job;
+    if (!job || job.status !== 'running') { $('export').disabled = false; return; }
+    $('export').disabled = true;
+    jobT = setTimeout(function () {
+      api('GET', '/patterns/' + pattern.id).then(function (j) {
+        if (!pattern || j.pattern.id !== pattern.id) return;
+        pattern.job = j.pattern.job; pattern.exports = j.pattern.exports; pattern.thumb = j.pattern.thumb;
+        if (pattern.job && pattern.job.status === 'done') say($('repmsg'), 'exported');
+        else if (pattern.job && pattern.job.status === 'failed') say($('repmsg'), pattern.job.error || 'export failed', true);
+        renderExports(); watchJob();
+      }).catch(function () { watchJob(); });
+    }, 2000);
+  }
+  function renderExports() {
+    var host = $('exports'); host.innerHTML = '';
+    (pattern.exports || []).slice().reverse().forEach(function (x) {
+      var a = document.createElement('a');
+      a.href = x.url; a.target = '_blank'; a.rel = 'noopener';
+      a.innerHTML = (x.thumb ? '<img src="' + x.thumb + '" alt="">' : '') + '<span>' + x.size + ' · ' + (LAYOUT_WORD[x.layout] || x.layout) + '</span>'
+        + '<span class="m">' + x.W + '×' + x.H + '</span>';
+      host.appendChild(a);
+    });
+  }
+
+  // ── go ──
+  loadPieces().then(loadPatterns).then(function () {
+    var t = 0; try { t = Number(localStorage.getItem('pattern.tab') || 0); } catch (e) { /* */ }
+    showTab(t === 1 || t === 2 ? t : 0);
+  }).catch(function (err) { say($('shelfmsg'), err.message, true); });
+  tabLine();
+})();
+</script>
+</body>
+</html>
