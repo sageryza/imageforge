@@ -23,7 +23,9 @@ const SCENES = [
     scene: 'a toddler\'s hand reaching for the giraffe card on a soft nursery rug, the other cards scattered loosely around it, warm window light, shallow depth of field' },
   { key: 'gift', cards: ['fox', 'bear', 'owl'], title: 'three cards in a gift box strap',
     scene: 'three of the cards tucked under the linen ribbon of a small kraft-paper gift box on a linen tablecloth, soft daylight' },
-  { key: 'string', cards: ['duck', 'swan', 'flamingo', 'peacock', 'penguin', 'hen'], title: 'clipped to a string on a nursery wall',
+  // lay: the cards are seen flat and straight on, so the real fronts are laid over the drawn ones at one size (animal-mockup.js --lay);
+  // a card held up in perspective (the toddler, the zoo) is left as the model drew it
+  { key: 'string', lay: true, cards: ['duck', 'swan', 'flamingo', 'peacock', 'penguin', 'hen'], title: 'clipped to a string on a nursery wall',
     // "zoom out" (her note on the first take): the whole string and the room around it
     scene: 'a wide shot of a nursery wall with the cards clipped by small wooden clothespins to a length of twine strung across it, the string and a good deal of wall and room around it in frame, the cards small in the picture, morning light, seen straight on' },
   { key: 'kitchen', cards: ['cat', 'dog', 'pig', 'cow'], title: 'a parent and child at the kitchen table',  // "parent", her note on the list
@@ -48,7 +50,7 @@ const recs = JSON.parse(fs.readFileSync(path.join(__dirname, 'decks', 'animals-h
     fs.writeFileSync(path.join(dir, 'cards.txt'), lines.join('\n'));
     execFileSync('python3', [path.join(__dirname, 'flashcard-compose.py'), path.join(dir, 'cards.txt'), '--src', path.join(dir, 'full'), '--full', path.join(dir, 'full'), '--font', path.join(ROOT, 'public', 'fonts', 'lemon-hand.ttf'), '--caps', '--size', '52', '--track', '0.24', '--out', path.join(dir, 'deck')], { stdio: 'ignore' });
     console.log(`\n== ${sc.key}: ${picks.map((r) => r.name).join(', ')}`);
-    const a = ['scripts/animal-mockup.js', '--fronts', path.join(dir, 'deck', 'fronts'), '--out', path.join(dir, 'run'), '--scene', sc.scene, '--title', sc.title, ...(DRY ? ['--dry'] : [])];
+    const a = ['scripts/animal-mockup.js', '--fronts', path.join(dir, 'deck', 'fronts'), '--out', path.join(dir, 'run'), '--scene', sc.scene, '--title', sc.title, ...(sc.lay ? ['--lay'] : []), ...(DRY ? ['--dry'] : [])];
     execFileSync('node', a, { cwd: ROOT, stdio: 'inherit', env: { ...process.env, CLAUDE_SCRATCH: OUT } });
   }
 })().catch((e) => { console.error(e); process.exit(1); });

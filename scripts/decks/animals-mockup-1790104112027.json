@@ -1,0 +1,135 @@
+{
+ "scene": "the eight cards set down loosely on a wood table by hand, each turned a few degrees and spaced a little unevenly, none of them overlapping or touching, in soft daylight",
+ "size": "1536x1024",
+ "quality": "medium",
+ "prompt": "The attached image shows the product: a set of flash cards printed on thick matte white cardstock, with rounded corners. Keep every card exactly as it appears there — the drawings, the lettering, the white card face, the rounded corners — and do not add, change or invent any card.\n\nCARD SIZE — THIS IS THE MOST IMPORTANT RULE. All of the cards are physically identical: each one is a standard poker-size card, 2.5 inches wide by 3.5 inches tall, taller than it is wide in the ratio 5:7, exactly as they appear in the attached image. In the photograph every card must be drawn at the SAME size and the SAME 5:7 proportions as every other card: the same width, the same height, the same rounded-corner radius. Do not make any card wider, squarer, taller, larger or smaller than its neighbours. A card may be turned a little, but turning never changes its size or shape. Check every card against the others before finishing: if any two cards differ in size or proportion, the photograph is wrong.\n\nThe camera looks straight down at the table (a true top-down view, no perspective), so all the cards are seen at the same scale. Draw a product photograph: the eight cards set down loosely on a wood table by hand, each turned a few degrees and spaced a little unevenly, none of them overlapping or touching, in soft daylight",
+ "sheet": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/4831cfdfb02718f7d53f6a4e391a750b.png",
+ "laid": true,
+ "from": "scripts/decks/animals-mockup-1790067081147.json",
+ "takes": [
+  {
+   "i": 1,
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e3ca68cd9e5eaea171024a99a495395c.webp",
+   "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e3ca68cd9e5eaea171024a99a495395c.webp",
+   "drawn": {
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c1be0527185b77f1ea590734eaf1f9d3.webp",
+    "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c1be0527185b77f1ea590734eaf1f9d3.webp"
+   },
+   "laid": {
+    "card": [
+     267,
+     374
+    ],
+    "laid": [
+     {
+      "front": "06-peacock.png",
+      "at": [
+       603,
+       700
+      ],
+      "angle": 5.52,
+      "drawn": [
+       252,
+       366
+      ],
+      "match": 10.5
+     },
+     {
+      "front": "07-turtle.png",
+      "at": [
+       942,
+       708
+      ],
+      "angle": 0.59,
+      "drawn": [
+       246,
+       360
+      ],
+      "match": 11.6
+     },
+     {
+      "front": "02-giraffe.png",
+      "at": [
+       598,
+       290
+      ],
+      "angle": 1.53,
+      "drawn": [
+       252,
+       356
+      ],
+      "match": 11.7
+     },
+     {
+      "front": "05-hippo.png",
+      "at": [
+       285,
+       708
+      ],
+      "angle": 1.4,
+      "drawn": [
+       257,
+       370
+      ],
+      "match": 13.2
+     },
+     {
+      "front": "08-rabbit.png",
+      "at": [
+       1248,
+       727
+      ],
+      "angle": -4.4,
+      "drawn": [
+       246,
+       367
+      ],
+      "match": 13.6
+     },
+     {
+      "front": "01-lion.png",
+      "at": [
+       264,
+       300
+      ],
+      "angle": 4.44,
+      "drawn": [
+       254,
+       364
+      ],
+      "match": 16.9
+     },
+     {
+      "front": "03-penguin.png",
+      "at": [
+       916,
+       308
+      ],
+      "angle": -1.07,
+      "drawn": [
+       248,
+       352
+      ],
+      "match": 19
+     },
+     {
+      "front": "04-koala.png",
+      "at": [
+       1256,
+       288
+      ],
+      "angle": 7.18,
+      "drawn": [
+       247,
+       367
+      ],
+      "match": 21.4
+     }
+    ],
+    "skipped": [],
+    "unused_fronts": []
+   }
+  }
+ ],
+ "page": "f9plTGA0XSsHQHUnyZVL"
+}
