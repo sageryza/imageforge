@@ -10,7 +10,7 @@
  "pick": [
   "animal:deer",
   "animal:fox",
-  "animal:rabbit",
+  "picked:rabbit-woodland",
   "animal:owl",
   "animal:squirrel",
   "animal:raccoon",
@@ -27,193 +27,193 @@
  "placements": [
   {
    "id": "animal:deer",
-   "x": 0.0799,
-   "y": 0.0903,
+   "x": 0.0964,
+   "y": 0.0746,
    "rot": -42.6,
-   "scale": 1.03,
+   "scale": 1.17,
    "flip": true
   },
   {
    "id": "animal:fox",
-   "x": 0.2517,
-   "y": 0.1383,
+   "x": 0.2545,
+   "y": 0.17,
    "rot": 41.3,
-   "scale": 0.99,
-   "flip": true
-  },
-  {
-   "id": "animal:rabbit",
-   "x": 0.4226,
-   "y": 0.1024,
-   "rot": -25,
-   "scale": 1.03
-  },
-  {
-   "id": "animal:owl",
-   "x": 0.5876,
-   "y": 0.1622,
-   "rot": -24.6,
-   "scale": 0.97
-  },
-  {
-   "id": "animal:squirrel",
-   "x": 0.72,
-   "y": 0.0453,
-   "rot": -31,
-   "scale": 0.99,
-   "flip": true
-  },
-  {
-   "id": "animal:raccoon",
-   "x": 0.9322,
-   "y": 0.1841,
-   "rot": 14.9,
-   "scale": 0.92
-  },
-  {
-   "id": "animal:moose",
-   "x": 0.1439,
-   "y": 0.2758,
-   "rot": -12.6,
    "scale": 0.94,
    "flip": true
   },
   {
-   "id": "animal:skunk",
-   "x": 0.2809,
-   "y": 0.3664,
-   "rot": -33.5,
-   "scale": 0.82
+   "id": "picked:rabbit-woodland",
+   "x": 0.4181,
+   "y": 0.1086,
+   "rot": -25,
+   "scale": 1.01
   },
   {
-   "id": "animal:bear",
-   "x": 0.4187,
-   "y": 0.2622,
-   "rot": 31.9,
-   "scale": 0.81,
-   "flip": true
-  },
-  {
-   "id": "animal:wolf",
-   "x": 0.5635,
-   "y": 0.3354,
-   "rot": 6,
-   "scale": 1.12
-  },
-  {
-   "id": "animal:mouse",
-   "x": 0.758,
-   "y": 0.2239,
-   "rot": -17.2,
-   "scale": 1.09
-  },
-  {
-   "id": "animal:frog",
-   "x": 0.9259,
-   "y": 0.3545,
-   "rot": 22,
-   "scale": 0.93,
-   "flip": true
+   "id": "animal:owl",
+   "x": 0.5976,
+   "y": 0.1497,
+   "rot": -24.6,
+   "scale": 0.93
   },
   {
    "id": "animal:squirrel",
-   "x": 0.0746,
-   "y": 0.4268,
-   "rot": 10.6,
+   "x": 0.7329,
+   "y": 0.0504,
+   "rot": -31,
+   "scale": 0.87,
+   "flip": true
+  },
+  {
+   "id": "animal:raccoon",
+   "x": 0.9472,
+   "y": 0.1848,
+   "rot": 14.9,
+   "scale": 0.96
+  },
+  {
+   "id": "animal:moose",
+   "x": 0.1309,
+   "y": 0.2814,
+   "rot": -12.6,
+   "scale": 0.85,
+   "flip": true
+  },
+  {
+   "id": "animal:skunk",
+   "x": 0.2715,
+   "y": 0.3544,
+   "rot": -33.5,
+   "scale": 0.75
+  },
+  {
+   "id": "animal:bear",
+   "x": 0.3969,
+   "y": 0.2725,
+   "rot": 31.9,
    "scale": 0.84,
    "flip": true
   },
   {
+   "id": "animal:wolf",
+   "x": 0.5606,
+   "y": 0.3247,
+   "rot": 6,
+   "scale": 1.24
+  },
+  {
    "id": "animal:mouse",
-   "x": 0.2214,
-   "y": 0.5138,
+   "x": 0.7647,
+   "y": 0.2301,
+   "rot": -17.2,
+   "scale": 1.19
+  },
+  {
+   "id": "animal:frog",
+   "x": 0.926,
+   "y": 0.3552,
+   "rot": 22,
+   "scale": 0.9,
+   "flip": true
+  },
+  {
+   "id": "animal:squirrel",
+   "x": 0.0692,
+   "y": 0.423,
+   "rot": 10.6,
+   "scale": 0.73,
+   "flip": true
+  },
+  {
+   "id": "animal:mouse",
+   "x": 0.2332,
+   "y": 0.51,
    "rot": -1.8,
-   "scale": 0.87
+   "scale": 0.95
   },
   {
    "id": "animal:raccoon",
-   "x": 0.4253,
-   "y": 0.4425,
+   "x": 0.4123,
+   "y": 0.4355,
    "rot": -3.6,
-   "scale": 0.93,
+   "scale": 0.96,
    "flip": true
   },
   {
    "id": "animal:deer",
-   "x": 0.5894,
-   "y": 0.5025,
+   "x": 0.5739,
+   "y": 0.5075,
    "rot": 31.6,
-   "scale": 0.88,
+   "scale": 1,
    "flip": true
   },
   {
    "id": "animal:fox",
-   "x": 0.7308,
-   "y": 0.4055,
+   "x": 0.7236,
+   "y": 0.4133,
    "rot": 38.2,
-   "scale": 1.02,
+   "scale": 0.96,
    "flip": true
   },
   {
-   "id": "animal:rabbit",
-   "x": 0.868,
-   "y": 0.504,
+   "id": "picked:rabbit-woodland",
+   "x": 0.8801,
+   "y": 0.5111,
    "rot": -10.8,
-   "scale": 0.82,
+   "scale": 0.81,
    "flip": true
   },
   {
    "id": "animal:owl",
-   "x": 0.0702,
-   "y": 0.5992,
+   "x": 0.0741,
+   "y": 0.5866,
    "rot": 42.5,
-   "scale": 1.05,
+   "scale": 1.01,
    "flip": true
   },
   {
    "id": "animal:fox",
-   "x": 0.2901,
-   "y": 0.6556,
+   "x": 0.2895,
+   "y": 0.6612,
    "rot": -32.1,
-   "scale": 0.79,
+   "scale": 0.75,
    "flip": true
   },
   {
    "id": "animal:frog",
-   "x": 0.4406,
-   "y": 0.6083,
+   "x": 0.4329,
+   "y": 0.6022,
    "rot": -37.4,
-   "scale": 0.85
+   "scale": 0.83
   },
   {
    "id": "animal:moose",
-   "x": 0.6006,
-   "y": 0.6652,
+   "x": 0.6223,
+   "y": 0.6656,
    "rot": -7.4,
-   "scale": 0.89
+   "scale": 0.8
   },
   {
    "id": "animal:skunk",
-   "x": 0.7321,
-   "y": 0.573,
+   "x": 0.7417,
+   "y": 0.5728,
    "rot": -3.4,
-   "scale": 0.82,
+   "scale": 0.75,
    "flip": true
   },
   {
    "id": "animal:bear",
-   "x": 0.9121,
-   "y": 0.6433,
+   "x": 0.9258,
+   "y": 0.656,
    "rot": -16.6,
-   "scale": 0.77,
+   "scale": 0.8,
    "flip": true
   },
   {
    "id": "animal:wolf",
-   "x": 0.0869,
-   "y": 0.7597,
+   "x": 0.0815,
+   "y": 0.7498,
    "rot": -3.6,
-   "scale": 0.74,
+   "scale": 0.82,
    "flip": true
   },
   {
@@ -221,82 +221,82 @@
    "x": 0.2268,
    "y": 0.815,
    "rot": 14.6,
-   "scale": 0.77,
+   "scale": 0.7,
    "flip": true
   },
   {
    "id": "animal:bear",
-   "x": 0.4344,
-   "y": 0.7684,
+   "x": 0.4305,
+   "y": 0.764,
    "rot": -35.8,
-   "scale": 0.91,
-   "flip": true
-  },
-  {
-   "id": "animal:mouse",
-   "x": 0.6075,
-   "y": 0.8388,
-   "rot": 1.6,
-   "scale": 1.06
-  },
-  {
-   "id": "animal:raccoon",
-   "x": 0.7597,
-   "y": 0.7387,
-   "rot": 20,
-   "scale": 1.02
-  },
-  {
-   "id": "animal:frog",
-   "x": 0.9385,
-   "y": 0.8059,
-   "rot": 1.3,
    "scale": 0.95,
    "flip": true
   },
   {
+   "id": "animal:mouse",
+   "x": 0.6213,
+   "y": 0.8403,
+   "rot": 1.6,
+   "scale": 1.16
+  },
+  {
+   "id": "animal:raccoon",
+   "x": 0.7798,
+   "y": 0.735,
+   "rot": 20,
+   "scale": 1.05
+  },
+  {
+   "id": "animal:frog",
+   "x": 0.9383,
+   "y": 0.8202,
+   "rot": 1.3,
+   "scale": 0.93,
+   "flip": true
+  },
+  {
    "id": "animal:squirrel",
-   "x": 0.0882,
-   "y": 0.9176,
+   "x": 0.0884,
+   "y": 0.8991,
    "rot": 26.2,
-   "scale": 0.88
+   "scale": 0.77
   },
   {
    "id": "animal:owl",
-   "x": 0.2595,
-   "y": 0.9668,
+   "x": 0.2405,
+   "y": 0.9749,
    "rot": -19.7,
-   "scale": 0.8
+   "scale": 0.77
   },
   {
    "id": "animal:deer",
-   "x": 0.4111,
-   "y": 0.9309,
+   "x": 0.3948,
+   "y": 0.9274,
    "rot": 44.2,
-   "scale": 0.82,
+   "scale": 0.94,
    "flip": true
   },
   {
    "id": "animal:frog",
-   "x": 0.5523,
-   "y": 0.0003,
+   "x": 0.5429,
+   "y": 0.9976,
    "rot": 31.7,
-   "scale": 0.82
+   "scale": 0.8
   },
   {
    "id": "animal:fox",
-   "x": 0.8041,
-   "y": 0.9012,
+   "x": 0.7916,
+   "y": 0.9039,
    "rot": 19.5,
-   "scale": 0.81,
+   "scale": 0.77,
    "flip": true
   },
   {
-   "id": "animal:rabbit",
-   "x": 0.9217,
-   "y": 0.0143,
+   "id": "picked:rabbit-woodland",
+   "x": 0.9185,
+   "y": 0.01,
    "rot": -9.3,
-   "scale": 1
+   "scale": 0.99
   }
  ]
 }
