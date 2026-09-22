@@ -1678,8 +1678,23 @@
     // — the loaded feed or the server's search hits — because they are facts
     // about the run rather than about the words she typed.
     if (!qGroups.length) return feed.filter(tabKeepsRun).filter(runPassesFilt);
-    // The server's answer for THIS query is the feed, in its order.
-    if (hits && hitsQ === query) return hits.map(live).filter(tabKeepsRun).filter(runPassesFilt);
+    var byNewest = function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); };
+    // The server's answer for THIS query is the feed — PLUS ANY LOADED RUN
+    // THAT MATCHES AND IS NOT IN IT (2026-09-22, Sophie, "lio" typed while a
+    // lion was drawing: "missing lion"). The answer is frozen the moment it
+    // lands, and nothing here ever wrote to it again: a run that FINISHED
+    // after that moment reached `feed` through landRun/loadRuns and was
+    // never on the wall, for as long as the words stood. So the loaded feed
+    // is folded in by the same rule the server applies (the two haystacks
+    // are pinned equal), which can only ADD a run the answer was too early
+    // to hold — nothing the server matched moves.
+    if (hits && hitsQ === query) {
+      var have = {};
+      hits.forEach(function (r) { have[r.id] = true; });
+      return hits.map(live)
+        .concat(feed.filter(function (r) { return !have[r.id] && qmatch(runHay(r), qGroups); }))
+        .filter(tabKeepsRun).filter(runPassesFilt).sort(byNewest);
+    }
     // BETWEEN KEYSTROKES THE LAST ANSWER STAYS ON THE WALL (2026-09-21). The
     // server is asked 350ms after the last letter, and until it answers the
     // page filters what it holds. That used to be the loaded page ALONE — the
@@ -1698,7 +1713,7 @@
     });
     return pool.filter(tabKeepsRun).filter(runPassesFilt)
       .filter(function (r) { return qmatch(runHay(r), qGroups); })
-      .sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+      .sort(byNewest);
   }
   function emptyNote() {
     if (qGroups.length) {
@@ -6058,6 +6073,7 @@
       }).catch(function () { return false; });
   }
   window.__plBuildCheck = plBuildCheck;
+  window.__plLandRun = landRun;       // the poll's own door, for the search-lands test
   setInterval(plBuildCheck, 5 * 60 * 1000);
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible') plBuildCheck();
