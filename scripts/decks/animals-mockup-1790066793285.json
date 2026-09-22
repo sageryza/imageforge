@@ -1,0 +1,28 @@
+{
+ "scene": "the cards set down loosely on a wood table by hand, each turned a few degrees and spaced a little unevenly, none of them overlapping, photographed from above in soft daylight",
+ "size": "1536x1024",
+ "quality": "medium",
+ "prompt": "The attached image shows the product: a set of flash cards printed on thick matte white cardstock, with rounded corners. Every card is identical in size and shape — a 2.5 by 3.5 inch portrait card, the same proportions as in the attached image — and none may be drawn larger, smaller, wider or squarer than the others. Keep every card exactly as it appears there — the drawings, the lettering, the white card face, the rounded corners — and do not add, change or invent any card. Draw a product photograph: the cards set down loosely on a wood table by hand, each turned a few degrees and spaced a little unevenly, none of them overlapping, photographed from above in soft daylight",
+ "sheet": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/4831cfdfb02718f7d53f6a4e391a750b.png",
+ "takes": [
+  {
+   "i": 1,
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d28e8d9c7a63725c91a51007366e054d.webp",
+   "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d28e8d9c7a63725c91a51007366e054d.webp",
+   "usage": {
+    "input_tokens": 1683,
+    "input_tokens_details": {
+     "image_tokens": 1530,
+     "text_tokens": 153
+    },
+    "output_tokens": 1372,
+    "output_tokens_details": {
+     "image_tokens": 1372,
+     "text_tokens": 0
+    },
+    "total_tokens": 3055
+   }
+  }
+ ],
+ "page": "WqQ0CByshJWzFGkvcLTn"
+}
