@@ -105,7 +105,10 @@ function itemsOf(set) {
 // rows evenly down the sheet — so the animals FILL the poster, top to
 // bottom, whatever their number.
 function posterHtml(set, items, face, paper = '#fff') {
-  const inner = W - 2 * 90; // border inset 40 + padding 50
+  // The margin inside the border is generous (v4 — Sophie: "still not enough
+  // space around sides"): 110px each side, so the animals sit well in from
+  // the line rather than against it.
+  const inner = W - 2 * 150; // border inset 40 + padding 110
   const fonts = face === 'hand'
     ? `@font-face{font-family:T;src:url(${fontUrl('sophie-hand.ttf')})}
        @font-face{font-family:N;src:url(${fontUrl('sophie-hand.ttf')})}
@@ -125,7 +128,7 @@ function posterHtml(set, items, face, paper = '#fff') {
   html,body{margin:0;background:${paper}}
   body{width:${W}px;height:${H}px;position:relative;color:#111;font-family:N,serif;-webkit-font-smoothing:antialiased}
   .bd{position:absolute;inset:40px;border:2px solid #111;box-sizing:border-box}
-  .in{position:absolute;inset:40px;padding:50px 50px 40px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center}
+  .in{position:absolute;inset:40px;padding:60px 110px 70px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center}
   h1{margin:0;flex-shrink:0;font-family:T,serif;font-weight:400;font-size:${titleSize}px;letter-spacing:.34em;text-indent:.34em;text-align:center;line-height:1.1}
   .rule{flex-shrink:0;width:${Math.round(inner * 0.38)}px;height:1.5px;background:#111;margin:22px 0 30px}
   .grid{display:flex;flex-wrap:wrap;justify-content:center;align-content:space-evenly;width:${inner}px;flex:1;min-height:0;overflow:hidden}
@@ -164,7 +167,7 @@ const FIT = `(() => {
   apply(best.cols, best.pic);
   for (const nm of nms) {
     let s = parseFloat(getComputedStyle(nm).fontSize);
-    while (nm.scrollWidth > nm.parentElement.clientWidth - 24 && s > 8) { s -= 0.5; nm.style.fontSize = s + 'px'; }
+    while (nm.scrollWidth > nm.parentElement.clientWidth - 32 && s > 8) { s -= 0.5; nm.style.fontSize = s + 'px'; }
   }
   return { ...best, overflow: !fits() };
 })()`;
