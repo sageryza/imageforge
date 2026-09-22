@@ -970,11 +970,22 @@ byte — a seam is a failure.
 
 ### The pieces list
 `forge-pattern-pieces`, one doc per piece, id = sha1(source url). `src` is
-the picture on its paper, `cut` a transparent LOSSLESS webp (trimmed to the
-ink, NOT re-padded square, so `size` means the ink's longest side), `thumb` a
-320px lossy copy, `w`/`h` the cut's box. The cut is `vectorize.cutout` —
-corner flood-fill at tol 22 — run on filing (`status: cutting → ready |
-failed`). Seeded 2026-09-22 with 175 pictures — the card-pattern chat's
+the picture on its paper. TWO CUTS: `cut` is the clean one — a transparent
+LOSSLESS webp, `vectorize.cutout` (corner flood-fill at tol 22), trimmed to
+the ink — with `thumb` and `w`/`h`; `rough` is THE ONE THE PAGE DRAWS
+(2026-09-22, Sophie, on her first look at the clean cut-outs: "use the rough
+cut method on white no transparent background"): the scissors cut from
+`scripts/card-pattern.js --cut rough`, ported verbatim into
+`pattern.js roughCut` — the paper a corner can reach found by flood-fill
+(WHITE = 236), the farthest drawn pixel in each of 28 directions from the
+drawing's middle pushed out by a 6% margin and wobbled (seeded by the id),
+a polygon through those points, and everything inside it keeps its own white
+paper — with `roughThumb` and `rw`/`rh`. Both are made on filing
+(`status: cutting → ready | failed`); `scripts/pattern-seed.js --rough`
+gives a piece without one its scissors cut (`--force` redoes them all). The
+page's search box narrows the list by name or kind as she types.
+`pattern-page.js pieceRow` hands the page the rough cut and its box and falls
+back to the clean one for a piece not rough-cut yet. Seeded 2026-09-22 with 175 pictures — the card-pattern chat's
 decks (`scripts/decks/animals-drawn.json`, 72 animals; `plants-drawn.json`,
 30 plants; `fruits-finished.json`, her 15 finished fruit picks) and the fruit
 chart's records (the 27 fruits, the hq/redo/2K passes, the v4 vegetables) —

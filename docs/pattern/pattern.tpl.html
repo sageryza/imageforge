@@ -52,8 +52,11 @@
 .pc .tick{ position:absolute; top:4px; right:4px; width:18px; height:18px; border-radius:4px;
   border:1px solid var(--line); background:var(--surface); display:flex; align-items:center; justify-content:center; }
 .pc.on .tick{ background:var(--gold); border-color:var(--gold); color:#fff; }
-.pc .tick svg{ width:12px; height:12px; }
+.pc .tick svg{ width:12px; height:12px; display:none; }
+.pc.on .tick svg{ display:block; }
 .msg{ font-size:13px; color:var(--ink2); margin-top:8px; min-height:18px; }
+.ico{ width:20px; height:20px; color:var(--ink2); flex:none; display:inline-flex; }
+.ico svg{ width:20px; height:20px; }
 .msg.bad{ color:var(--rose); }
 
 /* ── the tile ── */
@@ -113,6 +116,7 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
   </div>
 
   <section id="pane-pieces">
+    <div class="row" style="margin:0 0 4px" data-nostop><span class="ico" id="searchico"></span><input type="text" id="search" autocomplete="off" autocapitalize="off" aria-label="Search the pieces"></div>
     <div id="shelf"></div>
     <div class="msg" id="shelfmsg"></div>
   </section>
@@ -191,12 +195,14 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
     check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
     flip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><path d="M12 20v2"/><path d="M12 14v2"/><path d="M12 8v2"/><path d="M12 2v2"/></svg>',
     x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
   };
+  $('searchico').innerHTML = LUCIDE.search;
   $('flip').innerHTML = LUCIDE.flip;
   $('remove').innerHTML = LUCIDE.x;
 
   window.__compareHelp({ html: '<b>Pieces</b> — tap an animal or a fruit to put it in the pattern; tap again to take it out. '
-    + 'A new one is a chat’s job: ask, and it is drawn and put on the list.<br><br>'
+    + 'Each one is cut roughly around with its paper kept, like scissors. A new one is a chat’s job: ask, and it is drawn and put on the list.<br><br>'
     + '<b>Tile</b> — one square that repeats. Drag a piece where you want it; the degrees box turns it, the size slider sizes it, '
     + '<b>+</b> adds another of the same. <b>Spacing</b> grows the square under everything so the repeats land farther apart. '
     + '<b>Spin</b> turns every piece a little, at random, within the degrees you set. A piece hanging off one edge comes back in on the other, '
@@ -292,16 +298,18 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
   }
   var shelfSig = '';
   function inPattern(id) { return !!(pattern && pattern.items.some(function (it) { return it.piece === id; })); }
+  var query = '';
   function renderShelf() {
-    var list = PIECES.slice();
+    var q = query.trim().toLowerCase();
+    var list = PIECES.filter(function (p) { return !q || (p.name + ' ' + p.kind).toLowerCase().indexOf(q) >= 0; });
     var order = { animal: 0, fruit: 1, vegetable: 2, plant: 3, other: 4 };
     var rank = function (p) { return p.kind in order ? order[p.kind] : 4; };
     list.sort(function (a, b) { return (rank(a) - rank(b)) || String(a.name).localeCompare(String(b.name)); });
-    var sig = list.map(function (p) { return p.id + (inPattern(p.id) ? 1 : 0); }).join('|');
+    var sig = q + '#' + list.map(function (p) { return p.id + (inPattern(p.id) ? 1 : 0); }).join('|');
     if (sig === shelfSig) return;
     shelfSig = sig;
     var host = $('shelf'); host.innerHTML = '';
-    if (!list.length) { host.innerHTML = '<div class="msg">nothing on the list yet</div>'; return; }
+    if (!list.length) { host.innerHTML = '<div class="msg">' + (q ? 'nothing called that' : 'nothing on the list yet') + '</div>'; return; }
     var kind = null, grid = null;
     list.forEach(function (p) {
       if (p.kind !== kind) {
@@ -316,6 +324,7 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
       grid.appendChild(b);
     });
   }
+  $('search').addEventListener('input', function () { query = $('search').value; renderShelf(); });
   $('shelf').addEventListener('click', function (e) {
     var b = e.target.closest('.pc'); if (!b || !pattern) return;
     togglePiece(b.dataset.id);
