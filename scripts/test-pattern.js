@@ -209,6 +209,7 @@ async function pageHalf() {
   // the shelf
   ok((await page.$$eval('.pc', els => els.length)) === 3, 'three pieces on the shelf');
   ok((await page.$$eval('.kindh', els => els.map(e => e.textContent).join())) === 'animals,fruits,vegetables', 'grouped by kind');
+  ok((await page.$$eval('#kinds .chip', els => els.map(e => e.dataset.k).join())) === 'animal,fruit,vegetable,plant,other', 'every kind the server knows is a chip');
   ok(await page.$eval('.pc[data-id=kale]', el => el.classList.contains('wait')), 'a piece still cutting is dimmed');
   await shot('1-pieces');
   await page.click('.pc[data-id=bear]');

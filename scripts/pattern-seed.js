@@ -20,21 +20,30 @@ const fetch = require('node-fetch');
 const args = process.argv.slice(2);
 const DRY = args.includes('--dry');
 const flag = (n, d) => { const i = args.indexOf('--' + n); return i >= 0 ? args[i + 1] : d; };
-const MIN = Number(flag('min', 600));
+const MIN = Number(flag('min', 500));
 const ONLY = (flag('only', '') || '').split(',').filter(Boolean);
 const ROOT = path.join(__dirname, '..');
 const CHART = path.join(ROOT, 'scripts', 'fruit-chart');
+const DECKS = path.join(ROOT, 'scripts');
 
 // Which records, and what they are. `full` is preferred, `url` (the card) is
 // the fallback and is what `--min` filters out.
+// IN ORDER OF PREFERENCE: the first picture seen under a name wins, and a
+// later twin is HIDDEN on the shelf rather than filed beside it. Her picked,
+// finished fruit (decks/fruits-finished.json, 2026-09-22) lead the fruit; the
+// animal deck (72 drawn animals) and the plant deck are the card-pattern
+// chat's own lists.
 const SOURCES = [
+  { file: 'decks/animals-drawn.json', kind: 'animal' },
   { file: 'animals-uploaded.json', kind: 'animal' },
+  { file: 'decks/fruits-finished.json', kind: 'fruit' },
   { file: 'uploaded.json', kind: 'fruit' },
   { file: 'hq3-uploaded.json', kind: 'fruit' },
   { file: 'redo-uploaded.json', kind: 'fruit' },
   { file: 'grid-2-uploaded.json', kind: 'fruit' },
   { file: 'v3-uploaded.json', kind: 'fruit' },
   { file: 'veg-v4-uploaded.json', kind: 'vegetable' },
+  { file: 'decks/plants-drawn.json', kind: 'plant' },
 ];
 
 async function head(url) {
@@ -51,7 +60,7 @@ async function widthOf(url) {
 (async () => {
   const rows = [];
   for (const s of SOURCES) {
-    const j = JSON.parse(fs.readFileSync(path.join(CHART, s.file), 'utf8'));
+    const j = JSON.parse(fs.readFileSync(path.join(s.file.startsWith('decks/') ? DECKS : CHART, s.file), 'utf8'));
     for (const r of (Array.isArray(j) ? j : Object.values(j))) {
       if (!r.id || !(r.full || r.url)) continue;
       if (ONLY.length && !ONLY.includes(r.id)) continue;
@@ -73,13 +82,13 @@ async function widthOf(url) {
     if (w < MIN) { console.log(`  skip ${r.id} — ${w}px (${r.from})`); continue; }
     keep.push({ ...r, src, w });
   }
-  // ONE PIECE PER NAME, the biggest picture of it: the chart drew some fruits
-  // twice (an hq pass, a 2K pass) and a shelf with two raspberries is a shelf
-  // she has to squint at.
+  // ONE PIECE PER NAME, the FIRST source's picture of it (the order above is
+  // the preference): the chart drew some fruits several times and a shelf with
+  // two strawberries is a shelf she has to squint at.
   const byName = new Map();
   for (const r of keep) {
     const k = r.kind + ':' + r.name;
-    if (!byName.has(k) || byName.get(k).w < r.w) byName.set(k, r);
+    if (!byName.has(k)) byName.set(k, r);
   }
   keep.length = 0; keep.push(...byName.values());
   console.log(`${keep.length} to file`);
@@ -96,4 +105,17 @@ async function widthOf(url) {
     n++; console.log(`  ✓ ${r.name} ${out.w}x${out.h}`);
   }
   console.log(`filed ${n}, already there ${dup}, failed ${bad}`);
+  // A twin already on the shelf under a name a preferred picture now holds is
+  // hidden (never deleted — PATCH hidden:false brings it back).
+  const crypto = require('crypto');
+  const keptIds = new Set(keep.map((r) => crypto.createHash('sha1').update(r.src).digest('hex').slice(0, 20)));
+  const keptNames = new Set(keep.map((r) => r.kind + ':' + r.name));
+  const snap = await admin.firestore().collection('forge-pattern-pieces').get();
+  let hid = 0;
+  for (const d of snap.docs) {
+    const p = d.data();
+    if (p.drawn || keptIds.has(d.id) || p.hidden) continue;
+    if (keptNames.has(p.kind + ':' + p.name)) { hid++; await d.ref.set({ hidden: true }, { merge: true }); console.log(`  – hid the older ${p.name}`); }
+  }
+  console.log(`hid ${hid} older twins`);
 })().catch((e) => { console.error(e); process.exit(1); });
