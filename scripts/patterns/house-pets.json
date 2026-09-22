@@ -1,0 +1,129 @@
+{
+ "name": "house pets",
+ "pick": [
+  "animal:cat",
+  "animal:dog",
+  "animal:mouse",
+  "animal:rabbit"
+ ],
+ "layout": "grid",
+ "cols": 4,
+ "bg": "#e4ecf3",
+ "fill": 0.74,
+ "rows": 4,
+ "placements": [
+  {
+   "id": "animal:cat",
+   "x": 0.125,
+   "y": 0.125,
+   "rot": 0,
+   "scale": 1
+  },
+  {
+   "id": "animal:dog",
+   "x": 0.375,
+   "y": 0.125,
+   "rot": 0,
+   "scale": 1
+  },
+  {
+   "id": "animal:mouse",
+   "x": 0.625,
+   "y": 0.125,
+   "rot": 0,
+   "scale": 1
+  },
+  {
+   "id": "animal:rabbit",
+   "x": 0.875,
+   "y": 0.125,
+   "rot": 0,
+   "scale": 1
+  },
+  {
+   "id": "animal:dog",
+   "x": 0.125,
+   "y": 0.375,
+   "rot": 0,
+   "scale": 1
+  },
+  {
+   "id": "animal:mouse",
+   "x": 0.375,
+   "y": 0.375,
+   "rot": 0,
+   "scale": 1
+  },
+  {
+   "id": "animal:rabbit",
+   "x": 0.625,
+   "y": 0.375,
+   "rot": 0,
+   "scale": 1
+  },
+  {
+   "id": "animal:cat",
+   "x": 0.875,
+   "y": 0.375,
+   "rot": 0,
+   "scale": 1
+  },
+  {
+   "id": "animal:mouse",
+   "x": 0.125,
+   "y": 0.625,
+   "rot": 0,
+   "scale": 1
+  },
+  {
+   "id": "animal:rabbit",
+   "x": 0.375,
+   "y": 0.625,
+   "rot": 0,
+   "scale": 1
+  },
+  {
+   "id": "animal:cat",
+   "x": 0.625,
+   "y": 0.625,
+   "rot": 0,
+   "scale": 1
+  },
+  {
+   "id": "animal:dog",
+   "x": 0.875,
+   "y": 0.625,
+   "rot": 0,
+   "scale": 1
+  },
+  {
+   "id": "animal:rabbit",
+   "x": 0.125,
+   "y": 0.875,
+   "rot": 0,
+   "scale": 1
+  },
+  {
+   "id": "animal:cat",
+   "x": 0.375,
+   "y": 0.875,
+   "rot": 0,
+   "scale": 1
+  },
+  {
+   "id": "animal:dog",
+   "x": 0.625,
+   "y": 0.875,
+   "rot": 0,
+   "scale": 1
+  },
+  {
+   "id": "animal:mouse",
+   "x": 0.875,
+   "y": 0.875,
+   "rot": 0,
+   "scale": 1
+  }
+ ],
+ "tile": 2048
+}
