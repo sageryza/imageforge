@@ -31,7 +31,7 @@
 //                               options,variants,available,tag}], source, at }
 //   POST /checkout            { variantId, quantity? } → { checkoutUrl }
 //   POST /refresh             drop the 10-minute cache (after adding a hat)
-//   POST /add                 { title, price, imageUrl, images?, tags?, publish?, dry? }
+//   POST /add                 { title, price, compareAt?, imageUrl, images?, tags?, publish?, dry? }
 //                             → creates the product in her Shopify through the
 //                             Admin token (shopify.js), tagged `hats`, published
 //                             to the Online Store, and drops the cache. Not
@@ -137,9 +137,10 @@ async function checkoutUrl(variantId, quantity) {
 // fetches from their public urls, published to the Online Store so the
 // Storefront read above sees it at once. PURE planner, so the test can pin
 // the body without a store.
-function productPlan({ title, price, imageUrl, images, tags, publish, description } = {}) {
+function productPlan({ title, price, compareAt, imageUrl, images, tags, publish, description } = {}) {
   const t = String(title || '').trim();
   const p = Number(price);
+  const was = Number(compareAt);
   if (!t) throw new Error('title required');
   if (!Number.isFinite(p) || p <= 0) throw new Error('price required (a number above 0)');
   const pics = [].concat(images || [], imageUrl || []).map(u => String(u || '').trim()).filter(u => /^https:\/\//.test(u));
@@ -151,7 +152,8 @@ function productPlan({ title, price, imageUrl, images, tags, publish, descriptio
       tags: [...tagSet].join(', '),
       status: 'active',
       published: publish !== false,
-      variants: [{ price: p.toFixed(2), inventory_management: null, requires_shipping: true }],
+      // compareAt is the struck-through 'was' price beside the real one
+      variants: [{ price: p.toFixed(2), ...(Number.isFinite(was) && was > p ? { compare_at_price: was.toFixed(2) } : {}), inventory_management: null, requires_shipping: true }],
       images: pics.map(src => ({ src, alt: t })),
     },
   };
