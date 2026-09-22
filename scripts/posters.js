@@ -16,7 +16,9 @@
 //   magic  the title in Magic Title (the Magic of Flowers face), the names in
 //          Magic Subtitle caps, the fact in Magic Subtitle italic
 // The title is spaced like MAGIC OF FLOWERS on the box (.34em), with a thin
-// rule under it; a thin black border sits inside the edge of the sheet.
+// rule under it (longer since v2 — her note: "longer top line"); a thin black
+// border sits inside the edge of the sheet. "Far Away" (v1) was "not a good
+// category" — Jungle replaced it; kangaroo, koala and panda are only on ANIMALS.
 //
 // The poster is HTML rendered by headless Chromium at 2x (3:4, 2400x3200 px),
 // so it is free — no model call — and a change is a re-render.
@@ -101,7 +103,9 @@ function posterHtml(set, items, face, paper = '#fff') {
   const cols = colsFor(items.length);
   const inner = W - 2 * 90; // border inset 40 + padding 50
   const cell = Math.floor(inner / cols);
-  const pic = cell - 24;
+  // More air around every animal (her note on v1: "needs more space around
+  // animals"): the picture takes ~72% of its cell, not all of it.
+  const pic = Math.round(cell * 0.72);
   const nameSize = Math.max(13, Math.min(30, Math.round(cell * 0.11)));
   const factSize = Math.max(9, Math.round(nameSize * 0.72));
   const fonts = face === 'hand'
@@ -124,9 +128,9 @@ function posterHtml(set, items, face, paper = '#fff') {
   .bd{position:absolute;inset:40px;border:2px solid #111;box-sizing:border-box}
   .in{position:absolute;inset:40px;padding:50px 50px 40px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center}
   h1{margin:0;flex-shrink:0;font-family:T,serif;font-weight:400;font-size:${titleSize}px;letter-spacing:.34em;text-indent:.34em;text-align:center;line-height:1.1}
-  .rule{flex-shrink:0;width:150px;height:1.5px;background:#111;margin:22px 0 46px}
+  .rule{flex-shrink:0;width:${Math.round(inner * 0.38)}px;height:1.5px;background:#111;margin:22px 0 46px}
   .grid{display:flex;flex-wrap:wrap;justify-content:center;align-content:flex-start;width:${inner}px;flex:1;min-height:0;overflow:hidden}
-  .it{display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:${Math.round(cell * 0.12)}px}
+  .it{display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:${Math.round(cell * 0.2)}px}
   .it img{object-fit:contain;display:block}
   .nm{font-family:N,serif;font-size:${nameSize}px;letter-spacing:.18em;text-indent:.18em;margin-top:${Math.round(nameSize * 0.35)}px;line-height:1.2}
   .ft{font-family:F,serif;font-size:${factSize}px;letter-spacing:${face === 'hand' ? '.02em' : '.06em'};color:#333;margin-top:${Math.round(factSize * 0.3)}px;line-height:1.3;padding:0 6px}
