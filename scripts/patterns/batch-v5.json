@@ -1,0 +1,77 @@
+[
+ {
+  "name": "fruit salad",
+  "pick": [
+   "strawberry",
+   "lemon",
+   "blueberries",
+   "kiwi",
+   "raspberries",
+   "lime",
+   "mango",
+   "banana"
+  ],
+  "layout": "tossed",
+  "cols": 6,
+  "tile": 3072,
+  "bg": "#ffffff",
+  "cut": "rough",
+  "fill": 0.55,
+  "gap": 0.35,
+  "seed": 3
+ },
+ {
+  "name": "all fifteen fruit",
+  "pick": [
+   "strawberry",
+   "banana",
+   "apple",
+   "mango",
+   "watermelon",
+   "blueberries",
+   "raspberries",
+   "kiwi",
+   "lemon",
+   "blackberries",
+   "lime",
+   "cherimoya",
+   "guava",
+   "passion fruit",
+   "mulberries"
+  ],
+  "layout": "tossed",
+  "cols": 6,
+  "tile": 3072,
+  "bg": "#ffffff",
+  "cut": "rough",
+  "fill": 0.55,
+  "gap": 0.35,
+  "seed": 4
+ },
+ {
+  "name": "who eats what",
+  "pick": [
+   "monkey",
+   "banana",
+   "rabbit",
+   "carrot",
+   "bear",
+   "blueberries",
+   "mouse",
+   "strawberry",
+   "panda",
+   "koala",
+   "giraffe",
+   "elephant"
+  ],
+  "layout": "tossed",
+  "cols": 6,
+  "tile": 3072,
+  "bg": "#ffffff",
+  "cut": "rough",
+  "fill": 0.55,
+  "gap": 0.35,
+  "seed": 11,
+  "tilt": 60
+ }
+]
