@@ -1,34 +1,47 @@
 {
  "name": "Magic Subtitle",
  "out": "public/fonts/magic-subtitle",
- "lowerToCaps": true,
+ "paste": true,
  "sources": [
   {
-   "sheet": "docs/fonts/magic-of-flowers-sheet.png",
-   "left": 0.215,
+   "sheet": "docs/fonts/magic-subtitle-big-sheet.png",
+   "left": 0.04,
+   "gap": [
+    20,
+    20,
+    14,
+    14,
+    12,
+    8
+   ],
+   "dark": 175,
+   "traceDark": 130,
+   "blur": false,
    "rows": [
     "ABCDEFGHIJKLM",
     "NOPQRSTUVWXYZ",
-    "0123456789",
-    ".,;:!?&@’“”()-—/"
+    "abcdefghijklm",
+    "nopqrstuvwxyz",
+    "012345789",
+    ".,:;!?&-—()‘’“”/\\@#$%*+="
+   ],
+   "level": [
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ012345789",
+    "acemnorsuvwxz",
+    "bdhkl"
    ],
    "bands": [
-    9,
-    10,
-    11,
-    12
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
    ],
-   "gap": 12,
-   "dark": 210,
-   "traceDark": 130,
-   "level": [
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-   ],
-   "thin": 0,
-   "side": 80,
-   "blur": false
+   "side": 148,
+   "thin": 1,
+   "rowDark": 200
   }
  ],
- "space": 580,
- "paste": true
+ "space": 592
 }
