@@ -7,130 +7,43 @@
   "exotic:magnolia"
  ],
  "layout": "tossed",
- "cols": 4,
- "bg": "#f6efe3",
+ "cols": 2,
+ "bg": "#ffffff",
  "tile": 2048,
  "fill": 0.8,
  "seed": 1,
  "cut": "rough",
  "gap": 0.1,
- "rows": 4,
+ "rows": 2,
  "placements": [
   {
    "id": "animal:peacock",
-   "x": 0.0614,
-   "y": 0.0686,
+   "x": 0.2237,
+   "y": 0.2038,
    "rot": 4.9,
-   "scale": 1.02
-  },
-  {
-   "id": "fruit:19-pomegranate",
-   "x": 0.2663,
-   "y": 0.2647,
-   "rot": 39.7,
-   "scale": 0.82
-  },
-  {
-   "id": "exotic:garnet",
-   "x": 0.5904,
-   "y": 0.1695,
-   "rot": -65,
-   "scale": 0.82,
-   "flip": true
-  },
-  {
-   "id": "exotic:magnolia",
-   "x": 0.8354,
-   "y": 0.2367,
-   "rot": -77.9,
-   "scale": 0.81
-  },
-  {
-   "id": "exotic:garnet",
-   "x": 0.0462,
-   "y": 0.3443,
-   "rot": -82.3,
-   "scale": 0.82
-  },
-  {
-   "id": "animal:peacock",
-   "x": 0.4177,
-   "y": 0.4644,
-   "rot": -53,
-   "scale": 0.91
-  },
-  {
-   "id": "fruit:19-pomegranate",
-   "x": 0.6726,
-   "y": 0.4122,
-   "rot": 39.8,
-   "scale": 0.83
-  },
-  {
-   "id": "animal:peacock",
-   "x": 0.8923,
-   "y": 0.5272,
-   "rot": 46.3,
-   "scale": 0.73,
-   "flip": true
-  },
-  {
-   "id": "exotic:magnolia",
-   "x": 0.154,
-   "y": 0.5829,
-   "rot": -62.6,
-   "scale": 0.93
-  },
-  {
-   "id": "exotic:garnet",
-   "x": 0.3951,
-   "y": 0.7249,
-   "rot": -81.2,
-   "scale": 0.89
-  },
-  {
-   "id": "exotic:magnolia",
-   "x": 0.6908,
-   "y": 0.6677,
-   "rot": 39.3,
-   "scale": 0.81,
-   "flip": true
-  },
-  {
-   "id": "fruit:19-pomegranate",
-   "x": 0.9397,
-   "y": 0.7785,
-   "rot": 76.2,
    "scale": 0.92
   },
   {
-   "id": "exotic:magnolia",
-   "x": 0.1807,
-   "y": 0.8368,
-   "rot": -69.3,
-   "scale": 0.68
+   "id": "fruit:19-pomegranate",
+   "x": 0.7297,
+   "y": 0.4525,
+   "rot": 39.7,
+   "scale": 0.74
   },
   {
    "id": "exotic:garnet",
-   "x": 0.3649,
-   "y": 0.018,
-   "rot": 1.8,
-   "scale": 1.01
-  },
-  {
-   "id": "animal:peacock",
-   "x": 0.5804,
-   "y": 0.877,
-   "rot": 80.8,
-   "scale": 0.72
+   "x": 0.1678,
+   "y": 0.7379,
+   "rot": -65,
+   "scale": 0.74,
+   "flip": true
   },
   {
    "id": "exotic:magnolia",
-   "x": 0.7843,
-   "y": 0,
-   "rot": -68.8,
-   "scale": 0.81,
-   "flip": true
+   "x": 0.71,
+   "y": 0.9635,
+   "rot": -77.9,
+   "scale": 0.73
   }
  ]
 }
