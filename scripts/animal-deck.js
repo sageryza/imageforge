@@ -69,7 +69,7 @@ const ALIASES = {
   'bull': 'cow', 'calf': 'cow', 'heifer': 'cow', 'boar': 'pig', 'sow': 'pig', 'piglet': 'pig',
   'doe': 'deer', 'stag': 'deer', 'buck': 'deer', 'fawn': 'deer', 'lioness': 'lion', 'tigress': 'tiger',
   'drake': 'duck', 'duckling': 'duck', 'gosling': 'goose', 'gander': 'goose', 'cygnet': 'swan',
-  'chick': 'chicken', 'cub': 'bear', 'bear cub': 'bear', 'joey': 'kangaroo', 'tomcat': 'cat',
+  'chick': 'chicken', 'rooster': 'chicken',  // "call rooster chicken" (2026-09-22) 'cub': 'bear', 'bear cub': 'bear', 'joey': 'kangaroo', 'tomcat': 'cat',
 };
 const ANIMALS = new Set([
   'lamb', 'cat', 'gecko', 'lizard', 'wolf', 'sheep', 'lion', 'puma', 'panther', 'raccoon',
