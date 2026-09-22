@@ -11,6 +11,7 @@
  "layout": "halfdrop",
  "cols": 4,
  "bg": "#f6efe3",
+ "tilt": 20,
  "tile": 2048,
  "rows": 4,
  "fill": 0.8,
@@ -20,112 +21,112 @@
    "id": "fruit:01-strawberry",
    "x": 0.125,
    "y": 0.125,
-   "rot": 0,
+   "rot": 5.1,
    "scale": 0.88
   },
   {
    "id": "fruit:15-lemon",
    "x": 0.375,
    "y": 0.25,
-   "rot": 0,
+   "rot": -19.9,
    "scale": 0.88
   },
   {
    "id": "fruit:11-cherries",
    "x": 0.625,
    "y": 0.125,
-   "rot": 0,
+   "rot": 1.1,
    "scale": 0.88
   },
   {
    "id": "fruit:08-blueberries",
    "x": 0.875,
    "y": 0.25,
-   "rot": 0,
+   "rot": 19.2,
    "scale": 0.88
   },
   {
    "id": "fruit:13-pear",
    "x": 0.125,
    "y": 0.375,
-   "rot": 0,
+   "rot": 18.7,
    "scale": 0.88
   },
   {
    "id": "fruit:04-orange",
    "x": 0.375,
    "y": 0.5,
-   "rot": 0,
+   "rot": -8.8,
    "scale": 0.88
   },
   {
    "id": "fruit:01-strawberry",
    "x": 0.625,
    "y": 0.375,
-   "rot": 0,
+   "rot": 4.5,
    "scale": 0.88
   },
   {
    "id": "fruit:15-lemon",
    "x": 0.875,
    "y": 0.5,
-   "rot": 0,
+   "rot": 8.8,
    "scale": 0.88
   },
   {
    "id": "fruit:11-cherries",
    "x": 0.125,
    "y": 0.625,
-   "rot": 0,
+   "rot": -3,
    "scale": 0.88
   },
   {
    "id": "fruit:08-blueberries",
    "x": 0.375,
    "y": 0.75,
-   "rot": 0,
+   "rot": 19.8,
    "scale": 0.88
   },
   {
    "id": "fruit:13-pear",
    "x": 0.625,
    "y": 0.625,
-   "rot": 0,
+   "rot": -1.8,
    "scale": 0.88
   },
   {
    "id": "fruit:04-orange",
    "x": 0.875,
    "y": 0.75,
-   "rot": 0,
+   "rot": -0.4,
    "scale": 0.88
   },
   {
    "id": "fruit:13-pear",
    "x": 0.125,
    "y": 0.875,
-   "rot": 0,
+   "rot": -14.4,
    "scale": 0.88
   },
   {
    "id": "fruit:04-orange",
    "x": 0.375,
    "y": 0,
-   "rot": 0,
+   "rot": -3.9,
    "scale": 0.88
   },
   {
    "id": "fruit:01-strawberry",
    "x": 0.625,
    "y": 0.875,
-   "rot": 0,
+   "rot": -10.1,
    "scale": 0.88
   },
   {
    "id": "fruit:15-lemon",
    "x": 0.875,
    "y": 0,
-   "rot": 0,
+   "rot": -13.8,
    "scale": 0.88
   }
  ]

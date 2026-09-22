@@ -39,7 +39,7 @@ const DRY = has('dry');
 const POST = has('post');
 const VERSION = flag('v', '1');
 const SUPERSEDE = (flag('supersede', '') || '').split(',').filter(Boolean);
-const SCRATCH = process.env.CLAUDE_SCRATCH || path.join(process.env.TMPDIR || '/tmp', 'pattern-tile');
+const SCRATCH = process.env.CLAUDE_SCRATCH || path.join(process.env.TMPDIR || '/tmp', 'card-pattern');
 const CACHE = path.join(SCRATCH, 'cards');
 const CUT = path.join(SCRATCH, 'cut');
 const OUT = flag('out', path.join(SCRATCH, 'out'));
@@ -172,13 +172,19 @@ function layout(spec, dims) {
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
     const drop = kind === 'grid' ? 0 : (c % 2 ? 0.5 : 0);
     let x = (c + 0.5) / cols, y = (r + 0.5 + drop) / rows, rot = 0, scale = 1;
+    let flip = false;
     if (kind === 'tossed') {
-      x += (rnd() - 0.5) * 0.3 * cell;
-      y += (rnd() - 0.5) * 0.3 * cell;
-      rot = (rnd() - 0.5) * 2 * (spec.tilt == null ? 30 : Number(spec.tilt));
-      scale = 0.88 + rnd() * 0.2;
+      // "too grid like · they shud be going in different directions"
+      // (2026-09-22): a big nudge off the grid, a big tilt (a quarter turn
+      // either way by default, `spin` for the whole circle), half of them
+      // facing the other way, and sizes that really differ.
+      x += (rnd() - 0.5) * 0.7 * cell;
+      y += (rnd() - 0.5) * 0.7 * cell;
+      rot = spec.spin ? rnd() * 360 : (rnd() - 0.5) * 2 * (spec.tilt == null ? 90 : Number(spec.tilt));
+      scale = 0.75 + rnd() * 0.4;
+      flip = rnd() < 0.5;
     } else if (spec.tilt) rot = (rnd() - 0.5) * 2 * Number(spec.tilt);
-    P.push({ x: ((x % 1) + 1) % 1, y: ((y % 1) + 1) % 1, rot, scale });
+    P.push({ x: ((x % 1) + 1) % 1, y: ((y % 1) + 1) % 1, rot, scale, flip });
   }
   // Who: farthest-from-its-own-kind. Each cell takes the picture whose
   // nearest twin already placed is farthest away (least used breaks ties).
@@ -214,7 +220,7 @@ function layout(spec, dims) {
   }
   let worst = tooClose();
   while (worst > 1 && shrink > 0.3) { shrink /= Math.min(worst, 1.05); worst = tooClose(); }
-  const out = P.map((p) => ({ id: p.id, x: Math.round(p.x * 1e4) / 1e4, y: Math.round(p.y * 1e4) / 1e4, rot: Math.round(p.rot * 10) / 10, scale: Math.round(p.scale * shrink * 100) / 100 }));
+  const out = P.map((p) => ({ id: p.id, x: Math.round(p.x * 1e4) / 1e4, y: Math.round(p.y * 1e4) / 1e4, rot: Math.round(p.rot * 10) / 10, scale: Math.round(p.scale * shrink * 100) / 100, ...(p.flip ? { flip: true } : {}) }));
   return { cols, rows, fill, gap, placements: out };
 }
 
@@ -234,8 +240,9 @@ async function render(spec, motifs) {
   for (const p of spec.placements) {
     const cut = motifs[p.id];
     const size = Math.max(4, Math.round(cell * fill * (p.scale || 1)));
-    const { data, info } = await sharp(cut).resize({ width: size, height: size, fit: 'inside' })
-      .rotate(p.rot || 0, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    let img = sharp(cut).resize({ width: size, height: size, fit: 'inside' });
+    if (p.flip) img = img.flop();
+    const { data, info } = await img.rotate(p.rot || 0, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
       .ensureAlpha().raw().toBuffer({ resolveWithObject: true });
     const w = info.width, h = info.height;
     const x0 = Math.round(p.x * T - w / 2), y0 = Math.round(p.y * T - h / 2);
@@ -268,7 +275,7 @@ async function preview(tilePng, reps, px) {
 // ---- the run --------------------------------------------------------------
 const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 async function upload(buf, filename, ct) {
-  const q = new URLSearchParams({ session: 'pattern-tile', bundle: `patterns v${VERSION}`, filename });
+  const q = new URLSearchParams({ session: 'card-pattern', bundle: `patterns v${VERSION}`, filename });
   const r = await fetch(`${BASE}/api/drop/upload-file?${q}`, { method: 'POST', headers: { 'Content-Type': ct }, body: buf });
   const j = await r.json();
   if (!j.ok) throw new Error(`upload ${filename}: ${JSON.stringify(j).slice(0, 200)}`);

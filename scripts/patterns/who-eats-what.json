@@ -8,129 +8,293 @@
   "animal:bear",
   "fruit:08-blueberries",
   "animal:mouse",
-  "fruit:01-strawberry"
+  "fruit:01-strawberry",
+  "animal:panda",
+  "animal:koala",
+  "animal:giraffe",
+  "animal:elephant"
  ],
  "layout": "tossed",
- "cols": 4,
+ "cols": 6,
+ "tile": 3072,
  "bg": "#f6efe3",
  "seed": 11,
- "tilt": 20,
- "tile": 2048,
- "rows": 4,
+ "tilt": 60,
+ "rows": 6,
  "fill": 0.8,
  "gap": 0.1,
  "placements": [
   {
    "id": "animal:monkey",
-   "x": 0.137,
-   "y": 0.1351,
-   "rot": 4.3,
-   "scale": 0.88
+   "x": 0.0956,
+   "y": 0.0377,
+   "rot": 13,
+   "scale": 0.94
   },
   {
    "id": "fruit:02-banana",
-   "x": 0.3955,
-   "y": 0.2449,
-   "rot": -16.8,
-   "scale": 0.87
+   "x": 0.2389,
+   "y": 0.1507,
+   "rot": 3.7,
+   "scale": 0.94,
+   "flip": true
   },
   {
    "id": "animal:rabbit",
-   "x": 0.6411,
-   "y": 0.1227,
-   "rot": -0.8,
-   "scale": 0.92
+   "x": 0.3987,
+   "y": 0.0735,
+   "rot": -9.6,
+   "scale": 0.97
   },
   {
    "id": "veg:03-carrot",
-   "x": 0.8472,
-   "y": 0.2409,
-   "rot": 7.3,
-   "scale": 0.8
+   "x": 0.5295,
+   "y": 0.1703,
+   "rot": -26.9,
+   "scale": 0.86,
+   "flip": true
   },
   {
    "id": "animal:bear",
-   "x": 0.14,
-   "y": 0.3827,
-   "rot": -4.2,
-   "scale": 0.84
+   "x": 0.7467,
+   "y": 0.0862,
+   "rot": 11.6,
+   "scale": 0.93,
+   "flip": true
   },
   {
    "id": "fruit:08-blueberries",
-   "x": 0.3673,
-   "y": 0.5074,
-   "rot": 3.9,
-   "scale": 0.88
+   "x": 0.8964,
+   "y": 0.1448,
+   "rot": 32.3,
+   "scale": 0.83
   },
   {
    "id": "animal:mouse",
-   "x": 0.6451,
-   "y": 0.3708,
-   "rot": 12.2,
-   "scale": 0.91
+   "x": 0.0607,
+   "y": 0.227,
+   "rot": 28.9,
+   "scale": 1.08,
+   "flip": true
   },
   {
    "id": "fruit:01-strawberry",
-   "x": 0.9022,
-   "y": 0.4532,
-   "rot": -9.9,
-   "scale": 0.79
+   "x": 0.2181,
+   "y": 0.3342,
+   "rot": -18.3,
+   "scale": 0.92
   },
   {
-   "id": "animal:rabbit",
-   "x": 0.1375,
-   "y": 0.6174,
-   "rot": -8.1,
-   "scale": 0.8
+   "id": "animal:panda",
+   "x": 0.3941,
+   "y": 0.2602,
+   "rot": 42,
+   "scale": 1.02,
+   "flip": true
+  },
+  {
+   "id": "animal:koala",
+   "x": 0.612,
+   "y": 0.2985,
+   "rot": 41,
+   "scale": 0.9
+  },
+  {
+   "id": "animal:giraffe",
+   "x": 0.7471,
+   "y": 0.2315,
+   "rot": 28.1,
+   "scale": 0.75
+  },
+  {
+   "id": "animal:elephant",
+   "x": 0.883,
+   "y": 0.3266,
+   "rot": 16.2,
+   "scale": 1.09,
+   "flip": true
   },
   {
    "id": "veg:03-carrot",
-   "x": 0.3776,
-   "y": 0.7533,
-   "rot": 2.1,
-   "scale": 0.88
+   "x": 0.0672,
+   "y": 0.4107,
+   "rot": -54.2,
+   "scale": 0.99,
+   "flip": true
+  },
+  {
+   "id": "animal:bear",
+   "x": 0.2074,
+   "y": 0.5035,
+   "rot": 6.6,
+   "scale": 0.84
+  },
+  {
+   "id": "animal:elephant",
+   "x": 0.3589,
+   "y": 0.442,
+   "rot": 15.6,
+   "scale": 0.95,
+   "flip": true
   },
   {
    "id": "animal:monkey",
-   "x": 0.615,
-   "y": 0.6346,
-   "rot": 14,
-   "scale": 0.92
+   "x": 0.5423,
+   "y": 0.4696,
+   "rot": 52.5,
+   "scale": 1.04
   },
   {
    "id": "fruit:02-banana",
-   "x": 0.8906,
-   "y": 0.7177,
-   "rot": -16.9,
+   "x": 0.7252,
+   "y": 0.4313,
+   "rot": 10.5,
+   "scale": 0.88,
+   "flip": true
+  },
+  {
+   "id": "animal:rabbit",
+   "x": 0.9204,
+   "y": 0.4981,
+   "rot": 45.7,
+   "scale": 0.83,
+   "flip": true
+  },
+  {
+   "id": "animal:koala",
+   "x": 0.0613,
+   "y": 0.5798,
+   "rot": 29.4,
    "scale": 0.92
   },
   {
+   "id": "animal:giraffe",
+   "x": 0.2125,
+   "y": 0.6693,
+   "rot": 14.6,
+   "scale": 1.05
+  },
+  {
+   "id": "fruit:08-blueberries",
+   "x": 0.3777,
+   "y": 0.6163,
+   "rot": 8.8,
+   "scale": 0.9,
+   "flip": true
+  },
+  {
    "id": "animal:mouse",
-   "x": 0.1317,
-   "y": 0.8672,
-   "rot": -9.2,
-   "scale": 0.86
+   "x": 0.6233,
+   "y": 0.6405,
+   "rot": 59.5,
+   "scale": 0.98,
+   "flip": true
   },
   {
    "id": "fruit:01-strawberry",
-   "x": 0.3558,
-   "y": 0.9933,
-   "rot": 5.8,
+   "x": 0.7915,
+   "y": 0.5862,
+   "rot": 56.7,
+   "scale": 0.84
+  },
+  {
+   "id": "animal:panda",
+   "x": 0.9247,
+   "y": 0.6679,
+   "rot": 18.5,
+   "scale": 0.74,
+   "flip": true
+  },
+  {
+   "id": "animal:elephant",
+   "x": 0.0668,
+   "y": 0.746,
+   "rot": 15.3,
+   "scale": 0.8
+  },
+  {
+   "id": "fruit:01-strawberry",
+   "x": 0.2371,
+   "y": 0.8383,
+   "rot": 6.5,
+   "scale": 0.86,
+   "flip": true
+  },
+  {
+   "id": "animal:koala",
+   "x": 0.4755,
+   "y": 0.7389,
+   "rot": 30.1,
+   "scale": 0.71,
+   "flip": true
+  },
+  {
+   "id": "animal:elephant",
+   "x": 0.612,
+   "y": 0.8206,
+   "rot": 24,
+   "scale": 0.95,
+   "flip": true
+  },
+  {
+   "id": "animal:giraffe",
+   "x": 0.7696,
+   "y": 0.7506,
+   "rot": -40.4,
+   "scale": 1.02,
+   "flip": true
+  },
+  {
+   "id": "animal:rabbit",
+   "x": 0.9237,
+   "y": 0.8279,
+   "rot": 13.5,
+   "scale": 0.98
+  },
+  {
+   "id": "veg:03-carrot",
+   "x": 0.0952,
+   "y": 0.8847,
+   "rot": -53.9,
    "scale": 0.78
   },
   {
    "id": "animal:bear",
-   "x": 0.5819,
-   "y": 0.8897,
-   "rot": 19.4,
-   "scale": 0.85
+   "x": 0.2539,
+   "y": 0.9901,
+   "rot": 4,
+   "scale": 0.73,
+   "flip": true
+  },
+  {
+   "id": "animal:monkey",
+   "x": 0.4087,
+   "y": 0.8917,
+   "rot": -9.9,
+   "scale": 0.99,
+   "flip": true
   },
   {
    "id": "fruit:08-blueberries",
-   "x": 0.8904,
-   "y": 0.0057,
-   "rot": -18.1,
-   "scale": 0.9
+   "x": 0.5764,
+   "y": 0.0092,
+   "rot": -15.3,
+   "scale": 1.08,
+   "flip": true
+  },
+  {
+   "id": "fruit:02-banana",
+   "x": 0.7571,
+   "y": 0.9192,
+   "rot": 22.1,
+   "scale": 0.83
+  },
+  {
+   "id": "animal:koala",
+   "x": 0.9348,
+   "y": 0.9922,
+   "rot": -44.3,
+   "scale": 0.77
   }
  ]
 }

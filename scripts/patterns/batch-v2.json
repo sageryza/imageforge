@@ -1,0 +1,8 @@
+[
+ {"name":"fruit salad","pick":["strawberry","lemon","cherries","blueberries","pear","orange","kiwi","plum"],"layout":"tossed","cols":6,"tile":3072,"bg":"#f6efe3","seed":3},
+ {"name":"lemons","pick":["lemon"],"layout":"tossed","cols":6,"tile":3072,"bg":"#ffffff","seed":5,"spin":true},
+ {"name":"woodland","pick":["fox","rabbit","owl","deer","squirrel","frog","raccoon","moose","skunk"],"layout":"tossed","cols":6,"tile":3072,"bg":"#e7ecdf","seed":7,"tilt":45},
+ {"name":"house pets","pick":["cat","dog","mouse","rabbit","hamster","guinea pig","goldfish","parrot"],"layout":"tossed","cols":6,"tile":3072,"bg":"#e4ecf3","seed":9,"tilt":40},
+ {"name":"who eats what","pick":["monkey","banana","rabbit","carrot","bear","blueberries","mouse","strawberry","panda","koala","giraffe","elephant"],"layout":"tossed","cols":6,"tile":3072,"bg":"#f6efe3","seed":11,"tilt":60},
+ {"name":"fruit salad in rows","pick":["strawberry","lemon","cherries","blueberries","pear","orange"],"layout":"halfdrop","cols":4,"bg":"#f6efe3","tilt":20}
+]
