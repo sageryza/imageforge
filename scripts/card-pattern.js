@@ -58,6 +58,8 @@ const SETS = [
   ['veg', ['fruit-chart/veg-uploaded.json']],
   ['animal', ['decks/animals-drawn.json']],
   ['plant', ['decks/plants-drawn.json']],
+  // The exotic set's new pieces (2026-09-22, the peacock chat: garnet, magnolia), drawn by scripts/piece-draw.js.
+  ['exotic', ['decks/exotic-drawn.json']],
 ];
 function catalog() {
   const byKey = new Map();
