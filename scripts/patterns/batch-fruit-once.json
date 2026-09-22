@@ -1,0 +1,72 @@
+[
+ {
+  "layout": "tossed",
+  "once": true,
+  "tile": 2048,
+  "bg": "#ffffff",
+  "cut": "rough",
+  "fill": 0.62,
+  "gap": 0.3,
+  "name": "fruit salad",
+  "pick": [
+   "strawberry",
+   "lemon",
+   "blueberries",
+   "kiwi",
+   "raspberries",
+   "lime",
+   "mango",
+   "banana"
+  ],
+  "seed": 3
+ },
+ {
+  "layout": "tossed",
+  "once": true,
+  "tile": 2048,
+  "bg": "#ffffff",
+  "cut": "rough",
+  "fill": 0.62,
+  "gap": 0.3,
+  "name": "all fifteen fruit",
+  "pick": [
+   "strawberry",
+   "banana",
+   "apple",
+   "mango",
+   "watermelon",
+   "blueberries",
+   "raspberries",
+   "kiwi",
+   "lemon",
+   "blackberries",
+   "lime",
+   "cherimoya",
+   "guava",
+   "passion fruit",
+   "mulberries"
+  ],
+  "seed": 4
+ },
+ {
+  "layout": "halfdrop",
+  "once": true,
+  "tile": 2048,
+  "bg": "#ffffff",
+  "cut": "rough",
+  "fill": 0.62,
+  "gap": 0.3,
+  "name": "fruit salad in rows",
+  "pick": [
+   "strawberry",
+   "lemon",
+   "blueberries",
+   "kiwi",
+   "raspberries",
+   "lime",
+   "mango",
+   "banana"
+  ],
+  "tilt": 20
+ }
+]
