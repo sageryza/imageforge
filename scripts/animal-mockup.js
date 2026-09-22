@@ -12,10 +12,10 @@
 // the sheet go on one grid page.
 //
 //   node scripts/animal-mockup.js --fronts <dir> --scene "cards fanned out on a wood table"
-//        [--takes 2] [--size 1536x1024] [--quality medium] [--material "thick matte white cardstock"]
+//        [--takes 1] [--size 1536x1024] [--quality medium] [--material "thick matte white cardstock"]
 //        [--chat animal-deck-heart-tiebreak] [--dry]
 //
-// NEVER run without her go for the scene. ~6-8¢ a take at medium; --dry
+// NEVER run without her go for the scene. ~5-6¢ a take at medium, ONE take a scene; --dry
 // builds the sheet and prints the prompt, spending nothing.
 const fs = require('fs');
 const path = require('path');
@@ -28,7 +28,7 @@ const args = process.argv.slice(2);
 const flag = (n, d) => { const i = args.indexOf('--' + n); return i >= 0 && args[i + 1] && !args[i + 1].startsWith('--') ? args[i + 1] : d; };
 const FRONTS = flag('fronts');
 const SCENE = flag('scene');
-const TAKES = parseInt(flag('takes', '2'), 10);
+const TAKES = parseInt(flag('takes', '1'), 10);  // one take a scene (2026-09-22, "stop doing two takes")
 const SIZE = flag('size', '1536x1024');
 const QUALITY = flag('quality', 'medium');
 const CHAT = flag('chat', 'animal-deck-heart-tiebreak');
