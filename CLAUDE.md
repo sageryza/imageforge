@@ -2626,7 +2626,13 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   grid is rows wrapping at three across, ruled off from each other, each tile
   a picture with one what-changed line under it and ✕ · PROMPT · ♥; tapping a
   picture opens THE Assets-tab lightbox itself (`/asset-lightbox.js`, shared
-  with chats.html), so ♥/✕/notes mirror to the Assets tab and the two agree. **The SERVER auto-files the objective comparisons ITSELF (Aug 2026
+  with chats.html), so ♥/✕/notes mirror to the Assets tab and the two agree. **AUTO COMPARE IS OFF SINCE 2026-09-22 (Sophie: "get rid of
+  auto compare for now and supersede all")** — `AUTO_COMPARE_OFF` in
+  `chatfeed.js` holds the poke and the hand route, and every auto page then
+  on file (`auto-subjects--` · `auto-reruns--` · `auto-ladders--`) was
+  superseded the same day. "For now": she lifts it, and lifting it is that one
+  constant. What follows is how it worked and still works once it is on.
+  **The SERVER auto-files the objective comparisons ITSELF (Aug 2026
   v2)**: filing a prompt or a MODEL · QUALITY caption pokes `runAutoCompare`
   (chatfeed.js) — **on the FIRST filing of a batch as well as 45s after the
   last** (2026-08-24: Sophie filed a low sheet beside a medium one, looked, and
