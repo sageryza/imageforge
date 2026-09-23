@@ -15,7 +15,7 @@
 //
 //   node scripts/card-pattern.js --name "fruit salad" --pick strawberry,lemon,cherries
 //        [--layout tossed|halfdrop|grid] [--cols 4] [--bg "#f6efe3"] [--tile 2048]
-//        [--fill 0.78] [--gap 0.1] [--seed 1] [--cut rough] [--post] [--chat animal-fruit-patterns] [--dry]
+//        [--fill 0.78] [--gap 0.1] [--seed 1] [--scatter 0.7] [--scale 0.74] [--cut rough] [--post] [--chat animal-fruit-patterns] [--dry]
 //   node scripts/card-pattern.js --batch scripts/patterns/batch-v1.json [--post]
 //   node scripts/card-pattern.js --file scripts/patterns/fruit-salad.json [--post]
 //
@@ -248,10 +248,15 @@ function layout(spec, dims) {
     const drop = kind === 'grid' ? 0 : (c % 2 ? 0.5 : 0);
     let x = (c + 0.5) / cols, y = (r + 0.5 + drop) / rows, rot = 0, scale = 1, flip = false;
     if (kind === 'tossed') {
-      x += (rnd() - 0.5) * 0.7 * cell;
-      y += (rnd() - 0.5) * 0.7 * cell / ar;
+      // `scatter` is how far off its cell a picture may land (in cells;
+      // 0.7 by default) and `scale` pins every picture to ONE size instead
+      // of the random 0.75-1.15 (2026-09-23, Sophie, on the exotic tile:
+      // "it's too uniform · the size shud be uniform · spacing not").
+      const scatter = spec.scatter == null ? 0.7 : Number(spec.scatter);
+      x += (rnd() - 0.5) * scatter * cell;
+      y += (rnd() - 0.5) * scatter * cell / ar;
       rot = spec.spin ? rnd() * 360 : (rnd() - 0.5) * 2 * (spec.tilt == null ? 90 : Number(spec.tilt));
-      scale = 0.75 + rnd() * 0.4;
+      scale = spec.scale != null ? Number(spec.scale) : 0.75 + rnd() * 0.4;
       flip = rnd() < 0.5;
     } else if (spec.tilt) rot = (rnd() - 0.5) * 2 * Number(spec.tilt);
     P.push({ x: ((x % 1) + 1) % 1, y: ((y % 1) + 1) % 1, rot, scale, flip });
@@ -371,6 +376,7 @@ function specsFromArgs() {
     layout: flag('layout', 'tossed'), cols: Number(flag('cols', 4)), bg: flag('bg', '#f6efe3'),
     tile: Number(flag('tile', 2048)), fill: flag('fill') ? Number(flag('fill')) : undefined,
     seed: Number(flag('seed', 1)), cut: flag('cut'), gap: flag('gap') ? Number(flag('gap')) : undefined, tilt: flag('tilt') ? Number(flag('tilt')) : undefined,
+    scatter: flag('scatter') ? Number(flag('scatter')) : undefined, scale: flag('scale') ? Number(flag('scale')) : undefined,
   }];
 }
 
