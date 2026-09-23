@@ -155,6 +155,9 @@ function posterHtml(set, items, face, paper = '#fff') {
   </style><div class="bd"></div><div class="in"><h1>${esc(set.title.toUpperCase())}</h1>${face === 'hand' ? handRule(Math.round(inner * 0.6)) : '<div class="rule"></div>'}<div class="grid">${rows}</div></div>`;
 }
 
+// v8 (2026-09-23, Sophie: "more space not less"): a picture takes at most
+// 62% of its cell and the gap under a row is 22% of the cell — the fit fills
+// the sheet with air around every animal, not with the animals.
 // v6 (2026-09-23, her notes on v4): the border sits close to the edge, the
 // title is much bigger, the names smaller, every fact is short and set in
 // the Magic Subtitle italic on BOTH faces ("italics non handwritten font for
@@ -172,13 +175,13 @@ const FIT = `(() => {
     const nm = Math.max(11, Math.min(22, Math.round(cell * 0.072)));
     R.setProperty('--cell', cell + 'px'); R.setProperty('--pic', pic + 'px');
     R.setProperty('--nm', nm + 'px'); R.setProperty('--ft', Math.max(10, Math.round(nm * 0.82)) + 'px');
-    R.setProperty('--gap', Math.round(cell * 0.14) + 'px');
+    R.setProperty('--gap', Math.round(cell * 0.22) + 'px');
     for (const nm of nms) {
       nm.style.fontSize = '';
       let s = parseFloat(getComputedStyle(nm).fontSize);
       while (nm.scrollWidth > nm.parentElement.clientWidth - 32 && s > 8) { s -= 0.5; nm.style.fontSize = s + 'px'; }
       // a fact is no wider than its name (v7, her note: "facts shud not go past title so much")
-      const ft = nm.nextElementSibling; if (ft) ft.style.maxWidth = Math.max(60, nm.getBoundingClientRect().width + 16) + 'px';
+      const ft = nm.nextElementSibling; if (ft) ft.style.maxWidth = Math.max(cell * 0.6, nm.getBoundingClientRect().width + 16) + 'px';
     }
   };
   const h1 = document.querySelector('h1'); h1.style.whiteSpace = 'nowrap';
@@ -187,7 +190,7 @@ const FIT = `(() => {
   for (let cols = 2; cols <= 8; cols++) {
     if (cols > its.length) break;
     const cell = Math.floor(inner / cols);
-    let lo = 40, hi = Math.round(cell * 0.8);
+    let lo = 40, hi = Math.round(cell * 0.62);
     apply(cols, lo); if (!fits()) continue;
     while (hi - lo > 1) { const mid = (lo + hi) >> 1; apply(cols, mid); if (fits()) lo = mid; else hi = mid; }
     if (!best || lo > best.pic) best = { cols, pic: lo };

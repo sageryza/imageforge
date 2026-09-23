@@ -150,7 +150,7 @@ const html = `<!doctype html>
     var inner = W - 2 * (S.border + S.side) * k, cell = Math.floor(inner / cols);
     var nm = (S.name || Math.max(11, Math.min(22, Math.round(cell / k * 0.072)))) * k;
     var ft = (S.fact || Math.max(10, Math.round((S.name || Math.max(11, Math.min(22, Math.round(cell / k * 0.072)))) * 0.82))) * k;
-    var gap = (S.gap || Math.round(cell / k * 0.14)) * k;
+    var gap = (S.gap || Math.round(cell / k * 0.22)) * k;
     var rowsH = [], row = [], total = 0, meas = [];
     items.forEach(function (it, i) {
       var nsp = S.nameSp * nm, nmText = it.name.toUpperCase(), nsz = nm;
@@ -158,7 +158,7 @@ const html = `<!doctype html>
       while (spacedWidth(c, nmText, nsp) > cell - 32 * k && nsz > 8 * k) { nsz -= 0.5 * k; c.font = nsz + 'px "' + F.N + '"'; nsp = S.nameSp * nsz; }
       var nameW = spacedWidth(c, nmText, nsp);
       c.font = ft + 'px "' + F.F + '"';
-      var lines = S.facts && it.fact ? wrap(c, it.fact, Math.max(60 * k, nameW + 16 * k), ft * 0.05) : [];
+      var lines = S.facts && it.fact ? wrap(c, it.fact, Math.max(cell * 0.6, nameW + 16 * k), ft * 0.05) : [];
       var h = pic + nm * 0.35 + nm * 1.2 + (lines.length ? ft * 0.3 + lines.length * ft * 1.3 : 0) + gap;
       meas.push({ lines: lines, h: h });
       row.push(h);
@@ -191,7 +191,7 @@ const html = `<!doctype html>
     var best = null, colsList = S.cols ? [S.cols] : [2, 3, 4, 5, 6, 7, 8];
     colsList.forEach(function (cols) {
       if (cols > items.length && !S.cols) return;
-      var cell = Math.floor(inner / cols), lo = 30 * k, hi = Math.round(cell * 0.8);
+      var cell = Math.floor(inner / cols), lo = 30 * k, hi = Math.round(cell * 0.62);
       if (layout(c, items, cols, lo, k, W, H, F).total > gridH && !S.cols) return;
       while (hi - lo > 1) { var mid = (lo + hi) >> 1; if (layout(c, items, cols, mid, k, W, H, F).total <= gridH) lo = mid; else hi = mid; }
       if (!best || lo > best.pic) best = { cols: cols, pic: lo };
