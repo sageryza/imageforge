@@ -72,6 +72,9 @@
 //   GET    /clips?project=&folder=&q=&offset=&limit=
 //                             → { clips, more, total, folders } — the pickables
 //   POST   /                  → { title?, project? } → { id, title }
+//   POST   /from-footage      → { ids:[pickable ids, in order], title?, project? }
+//                             → { id, title, clips, seconds, missing, dropped } —
+//                               Footage's stitch mode; the order is the numbers she put on the tiles
 //   GET    /:id               → the doc
 //   POST   /:id/clips         → { clips:[…] } — the WHOLE order (order and
 //                               membership change together, so a partial write
@@ -278,6 +281,30 @@ function dropPick(list, pickId) {
   const id = String(pickId);
   return (list || []).filter((c) => pickIdOf(c.key) !== id);
 }
+// ── FROM FOOTAGE: THE NUMBERS SHE PUT ON THE TILES ARE THE ORDER (2026-09-23,
+// Sophie: "press the stitch mode icon in footage and then i select the clips
+// and add numbers to them · and then they go to the stitch area in that
+// order"). Footage's stitch mode sends the pickable ids in the order she
+// numbered them — a job id for a whole clip, `<job>:<trim key>` for a part —
+// and this turns them into the order, through the SAME `addPick` the Stitch
+// page's own tap uses, so a clip picked on Footage is byte-for-byte the clip a
+// tap on Stitch would have made. An id no pickable answers to (a clip hidden
+// or still drawing since she numbered it) is NAMED in `missing`, never dropped
+// quietly; an id sent twice rides twice, the duplicate button's own meaning.
+function fromPicks(picks, ids) {
+  const byId = new Map((picks || []).map((p) => [String(p.id), p]));
+  let list = [];
+  const missing = [];
+  (Array.isArray(ids) ? ids : []).map(String).filter(Boolean).forEach((id) => {
+    const p = byId.get(id);
+    if (!p) { missing.push(id); return; }
+    list = addPick(list, p, { again: true });
+  });
+  return { list, missing };
+}
+// the job a pickable id belongs to — a part's id is `<job>:<key>`, and no job
+// id on the log carries a colon (Atlas 32-hex, Firestore 20, a uuid)
+function jobOfPick(id) { return String(id || '').split(':')[0]; }
 // A pickable → a cut-model piece: the whole clip, in 0, out its length.
 function clipOf(p, n) {
   const sec = Number(p.seconds) > 0 ? Number(p.seconds) : null;
@@ -508,20 +535,55 @@ router.get('/clips', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+function titleFor(asked) {
+  return String(asked || '').trim().slice(0, 120)
+    || 'Stitch · ' + new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...PT })
+    + ' · ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', ...PT }).toLowerCase();
+}
+async function createStitch(fields) {
+  const d = db();
+  if (!d) throw new Error('Firebase unavailable');
+  const ref = d.collection(COL).doc();
+  const now = Date.now();
+  await ref.set({
+    id: ref.id, title: titleFor(fields.title), project: String(fields.project || '').slice(0, 80),
+    clips: Array.isArray(fields.clips) ? fields.clips : [], renders: [], job: null, hidden: false, createdAt: now, updatedAt: now,
+  });
+  return { id: ref.id, title: titleFor(fields.title) };
+}
+
 router.post('/', async (req, res) => {
+  try {
+    const b = req.body || {};
+    res.json(await createStitch({ title: b.title, project: b.project }));
+  } catch (err) { fail(res, err); }
+});
+
+// FROM FOOTAGE'S STITCH MODE — the numbered tiles become a new stitch, in that
+// order, and the page opens it. Reads only the jobs the ids name (never the
+// whole log) through `footage.cardOf`, so a part, a hidden clip and a clip
+// still drawing are judged exactly as the picker judges them. The lengths are
+// filled the way a save fills them, so nothing is dropped for a duration the
+// log never recorded; whatever could not be kept is named back. MUST stay
+// above GET /:id for the same reason /clips does.
+router.post('/from-footage', async (req, res) => {
   try {
     const d = db();
     if (!d) throw new Error('Firebase unavailable');
-    const ref = d.collection(COL).doc();
-    const title = String((req.body || {}).title || '').trim().slice(0, 120)
-      || 'Stitch · ' + new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...PT })
-      + ' · ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', ...PT }).toLowerCase();
-    const now = Date.now();
-    await ref.set({
-      id: ref.id, title, project: String((req.body || {}).project || '').slice(0, 80),
-      clips: [], renders: [], job: null, hidden: false, createdAt: now, updatedAt: now,
-    });
-    res.json({ id: ref.id, title });
+    const b = req.body || {};
+    const ids = (Array.isArray(b.ids) ? b.ids : []).map(String).filter(Boolean).slice(0, MAX_CLIPS);
+    if (!ids.length) return res.status(400).json({ error: 'nothing picked' });
+    const jobIds = Array.from(new Set(ids.map(jobOfPick)));
+    const snaps = await Promise.all(jobIds.map((j) => d.collection(videoLog.COLL).doc(j).get()));
+    const cards = snaps.filter((s) => s.exists).map((s) => footage.cardOf(s.id, s.data()));
+    const { list, missing } = fromPicks(pickables(cards), ids);
+    const clips = cleanClips(await fillLengths(list, { only: 'unknown' }));
+    const kept = new Set(clips.map((c) => c.key));
+    const dropped = list.filter((c) => !kept.has(String(c.key).slice(0, KEY_MAX))).map((c) => String(c.title || 'a clip'));
+    if (!clips.length) return res.status(400).json({ error: 'none of those clips can be stitched', missing, dropped });
+    const project = String(b.project || (cards.find((c) => c.project) || {}).project || '');
+    const made = await createStitch({ title: b.title, project, clips });
+    res.json({ ok: true, ...made, clips: clips.length, seconds: totalSeconds(clips), missing, dropped });
   } catch (err) { fail(res, err); }
 });
 
@@ -594,6 +656,6 @@ module.exports = {
   pickables, titleOf, markOf, whenOf,
   keyOf, pickIdOf, nextInstance, placesOf,
   moveBy, moveTo, dropAt, dupAt, addPick, dropPick, clipOf, cleanClips, totalSeconds, trimmed,
-  fillLengths, realSeconds, jobView,
+  fillLengths, realSeconds, jobView, fromPicks, jobOfPick, titleFor,
   MAX_CLIPS, MAX_RENDERS, KEY_MAX, STALE_MS, PICK_LIMIT, PICK_MAX,
 };

@@ -5448,6 +5448,44 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
     MIRROR of the order arithmetic (`window.__stitchRules`) so a tap answers
     on the spot; the test drives the mirror and the module over the same
     fixture so the two cannot drift.
+  - **STITCH MODE ON FOOTAGE — THE NUMBERS SHE PUTS ON THE TILES ARE THE
+    ORDER (2026-09-23, Sophie: "make a version of stitch mode where i press
+    the stitch mode icon in footage and then i select the clips and add
+    numbers to them · and then they go to the stitch area in that order").**
+    Stitch's own picker is a wall of the same clips where a tap appends and
+    the tile wears its place; this is that gesture brought onto FOOTAGE, where
+    she is already looking at the clips, so picking and ordering is one pass
+    over the feed rather than a trip to another page and a second search. The
+    button is in Footage's HEADER beside the `?` (Stitch's own tile glyph, the
+    three boxes — a button that opens another tool wears that tool's icon;
+    NOT on the feed bar, whose first line at 390pt is already full to the
+    pill's column, measured by `test-footage-feedbar-sticky`: a fifth control
+    put the folder button 35px under the pill). On, every tap on a tile (the
+    two doors leave the tiles — the whole tile is the pick) or on a list
+    card's picture puts the NEXT number on that clip, top-left in the marks'
+    own plate; a second tap takes it off and the ones after it move up; a
+    heart or ✕ in the mode is still a heart or ✕. **A trimmed clip puts its
+    PARTS in, one number each, and its tile reads "3–4"** — the parts are what
+    go in the film, the picker's own rule. A row under the feed bar counts
+    them and carries **Send to Stitch**: `POST /api/stitch/from-footage
+    {ids, project}` with the pickable ids IN HER ORDER (a job id for a whole
+    clip, `<job>:<trim key>` for a part — the very ids the Stitch picker
+    uses), and the page opens the stitch it made (`/stitch?s=<id>`), where
+    the arrows, the typed number and the one button are what they were. The
+    server (`fromPicks`) turns the ids into the order through the SAME
+    `addPick` a tap on Stitch uses, reads ONLY the jobs the ids name through
+    `footage.cardOf`, fills the lengths the way a save does, and NAMES
+    anything it could not keep (`missing`: hidden or still drawing since she
+    numbered it; `dropped`: no readable length) rather than losing it
+    quietly. The order survives a reload (sessionStorage — the self-heal and
+    the poll must not cost her twelve taps) and not the closing of the tool;
+    turning the mode off hides the numbers without dropping them; `clear`
+    drops them. Nothing here is a model call. Tests:
+    `node scripts/test-footage-stitch-mode.js` (the real page headless — every
+    number READ off its tile, the doors measured gone, the heart still voting,
+    the reload, the list card picking rather than playing, the ids the stub
+    really received in her order, Send clear of the pill's column) and the
+    `fromPicks` block of `node scripts/test-stitch.js`.
   - **TWO LEVELS** — the shelf of stitches and one open (`?s=<id>`), a
     history state per level, `window.__navBack` shelf-ward before it
     leaves; the player closes first. Nothing is deleted — `hidden` is the

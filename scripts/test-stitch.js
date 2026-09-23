@@ -130,6 +130,27 @@ ok('cleanClips is cut-model\'s own cleaner: https only, in forced to 0',
   (() => { const c = S.cleanClips([{ key: 'a', url: 'https://x/a.mp4', out: 12, in: 3 }, { key: 'z', url: 'http://x/z.mp4', out: 4 }, { key: 'y', url: 'https://x/y.mp4' }]); return c.length === 1 && c[0].in === 0 && c[0].out === 12; })());
 ok('totalSeconds sums the pieces', S.totalSeconds(S.cleanClips([{ key: 'a', url: 'https://x/a.mp4', out: 12 }, { key: 'b', url: 'https://x/b.mp4', out: 4.5 }])) === 16.5);
 
+// ── FROM FOOTAGE'S STITCH MODE (2026-09-23: "select the clips and add
+// numbers to them · and then they go to the stitch area in that order") ──
+(() => {
+  const r = S.fromPicks(picks, [JOB_B + ':' + K2, JOB_A, PART1]);
+  ok('the numbers she put on the tiles ARE the order — the parts and the whole clip exactly as sent',
+    r.list.map((c) => c.key).join('|') === JOB_B + ':' + K2 + '|' + JOB_A + '|' + PART1 && r.missing.length === 0);
+  ok('each row is the clip a tap on Stitch would have made (url, length, title)',
+    r.list[0].url === 'https://x/b-part2.mp4' && r.list[2].seconds === 4 && r.list[1].title === byId[JOB_A].title);
+  const m = S.fromPicks(picks, [JOB_A, JOB_C, 'e0e0e0e0e0e0e0e0e0e0', JOB_B + ':' + K3]);
+  ok('a clip still drawing, a hidden one and a part still baking are NAMED as missing, never dropped quietly',
+    m.list.length === 1 && m.missing.join('|') === JOB_C + '|e0e0e0e0e0e0e0e0e0e0|' + JOB_B + ':' + K3);
+  const twice = S.fromPicks(picks, [JOB_A, JOB_A]);
+  ok('an id sent twice rides twice, with its own instance key', twice.list.length === 2 && twice.list[1].key === JOB_A + '#2');
+  ok('the job a part belongs to is read off its id', S.jobOfPick(PART1) === JOB_B && S.jobOfPick(JOB_A) === JOB_A);
+  ok('nothing at all is an empty order, not a throw', S.fromPicks(picks, null).list.length === 0);
+  const src = fs.readFileSync(path.join(ROOT, 'stitch.js'), 'utf8');
+  ok('the route reads ONLY the jobs the ids name, never the whole log',
+    /jobIds\.map\(\(j\) => d\.collection\(videoLog\.COLL\)\.doc\(j\)\.get\(\)\)/.test(src));
+  ok('and it sits above GET /:id', src.indexOf("router.post('/from-footage'") < src.indexOf("router.get('/:id'"));
+})();
+
 // ── THE FILE IS THE TRUTH ABOUT ITS OWN LENGTH ──────────────────────────
 (async () => {
   const fe = require('../filmeditor');

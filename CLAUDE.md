@@ -3757,6 +3757,15 @@ before working on that module. Nothing was deleted — the moved text is verbati
   FILM filter's shelf stage — 2026-09-12, Sophie, after saying Assembly "never
   really worked" and the Film Editor "was the one that never worked": "i'm
   thinking something very simple.
+  **AND SHE CAN NUMBER THE CLIPS ON FOOTAGE ITSELF (2026-09-23, Sophie:
+  "press the stitch mode icon in footage and then i select the clips and add
+  numbers to them · and then they go to the stitch area in that order")** —
+  the three-boxes button beside Footage's `?` turns on STITCH MODE: a tap on
+  a tile puts the next number on it, a second tap takes it off, a trimmed
+  clip puts its parts in one number each, and **Send to Stitch** (`POST
+  /api/stitch/from-footage {ids}`) makes the stitch in that order and opens
+  it. It is in the header, not on the feed bar — the bar's first line is
+  full at 390pt (measured). Test: `node scripts/test-footage-stitch-mode.js`.
   **Full details: *Stitch* in `docs/modules/audio-and-film.md` (moved from CLAUDE.md).**
 
 - **Movies** (`movies.js`, `/api/movies`, iOS Movies tab — no web page) — story ->
