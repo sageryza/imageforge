@@ -24,7 +24,7 @@
 // so it is free — no model call — and a change is a re-render.
 //
 //   node scripts/posters.js [--sets fruits,sea,birds] [--faces hand,magic]
-//        [--dry] [--v 1] [--chat minimal-animal-fruit-posters] [--supersede id]
+//        [--paper legal] [--dry] [--v 1] [--chat minimal-animal-fruit-posters] [--supersede id]
 //
 // --dry renders to the scratchpad and stops (the PHOTO). Without it the PNGs go
 // into the Dump as one album, each is filed into the chat's Assets tab with its
@@ -45,7 +45,12 @@ const FACTS = JSON.parse(fs.readFileSync(path.join(__dirname, 'posters', 'facts.
 const WANT = (flag('sets', Object.keys(SETS).join(',')) || '').split(',').filter(Boolean);
 const FACES = (flag('faces', 'hand,magic') || '').split(',').filter(Boolean);
 const OUT = flag('out', path.join(process.env.CLAUDE_SCRATCH || '/tmp', 'posters'));
-const W = 1200, H = 1600, SCALE = 2;
+// --paper legal (v5, 2026-09-23, Sophie: "redo posters for legal"): US legal is
+// 8.5 x 14 in, so the sheet is 1275 x 2100 CSS px at 2x = 2550 x 4200, which
+// is exactly 300 DPI at print size. The default sheet is 3:4.
+const PAPER = flag('paper', '3x4');
+const [W, H] = PAPER === 'legal' ? [1275, 2100] : [1200, 1600];
+const SCALE = 2;
 
 const SOURCES = {
   animals: () => JSON.parse(fs.readFileSync(path.join(__dirname, 'decks', 'animals-drawn.json'), 'utf8')),
@@ -212,10 +217,10 @@ const upload = async (buf, filename, ct) => {
   const FACE_LABEL = { hand: 'handwriting', magic: 'magic title' };
   const items = [];
   for (const m of made) {
-    const fn = `poster-${m.key}-${m.face}-v${VERSION}.png`;
+    const fn = `poster-${m.key}-${m.face}${PAPER === 'legal' ? '-legal' : ''}-v${VERSION}.png`;
     const it = await upload(fs.readFileSync(m.png), fn, 'image/png');
-    const description = `${m.set.title} poster — ${FACE_LABEL[m.face]} · v${VERSION}`;
-    await fetch(`${BASE}/api/gallery`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ assetsOnly: true, chat: CHAT, url: it.url, description, prompt: 'html render · no model · 2400x3200' }) });
+    const description = `${m.set.title} poster — ${FACE_LABEL[m.face]}${PAPER === 'legal' ? ' · legal' : ''} · v${VERSION}`;
+    await fetch(`${BASE}/api/gallery`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ assetsOnly: true, chat: CHAT, url: it.url, description, prompt: `html render · no model · ${W * SCALE}x${H * SCALE}${PAPER === 'legal' ? ' · legal 8.5x14 at 300 DPI' : ''}` }) });
     items.push({ ...m, url: it.url, thumb: it.thumb || it.url, description });
     console.log(`  ${fn} → ${it.url}`);
   }
@@ -224,7 +229,7 @@ const upload = async (buf, filename, ct) => {
     const two = items.filter((i) => i.key === key);
     return `<div class="card"><h2>${esc(two[0].set.title)}</h2><div class="duo">${two.map((i) => `<figure data-item="${esc(`${key}-${i.face}-v${VERSION}`)}"><span class="tag">${esc(FACE_LABEL[i.face])}</span><img src="${esc(i.url)}" alt="${esc(i.description)}" loading="lazy"></figure>`).join('')}</div></div>`;
   });
-  const title = `Posters v${VERSION} — ${sets.length} sets, handwriting beside magic title`;
+  const title = `Posters v${VERSION} — ${sets.length} sets${PAPER === 'legal' ? ', legal size 8.5x14' : ''}, handwriting beside magic title`;
   const html = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
