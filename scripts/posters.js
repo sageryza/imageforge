@@ -142,16 +142,17 @@ function posterHtml(set, items, face, paper = '#fff') {
   html,body{margin:0;background:${paper}}
   body{width:${W}px;height:${H}px;position:relative;color:#111;font-family:N,serif;-webkit-font-smoothing:antialiased}
   .bd{position:absolute;inset:22px;border:2px solid #111;box-sizing:border-box}
-  .in{position:absolute;inset:22px;padding:64px 110px 70px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center}
+  .in{position:absolute;inset:22px;padding:64px 110px 64px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center}
   h1{margin:0;flex-shrink:0;font-family:T,serif;font-weight:400;font-size:${titleSize}px;letter-spacing:.34em;text-indent:.34em;text-align:center;line-height:1.1}
-  .rule{flex-shrink:0;width:${Math.round(inner * 0.38)}px;height:1.5px;background:#111;margin:22px 0 30px}
+  .rule{flex-shrink:0;width:${Math.round(inner * 0.6)}px;height:1.5px;background:#111;margin:22px 0 30px}
   svg.rule{height:8px;background:none}
-  .grid{display:flex;flex-wrap:wrap;justify-content:center;align-content:space-evenly;width:${inner}px;flex:1;min-height:0;overflow:hidden}
-  .it{display:flex;flex-direction:column;align-items:center;text-align:center;width:var(--cell);padding:calc(var(--gap) / 2) 0;box-sizing:border-box}
+  .grid{display:flex;flex-wrap:wrap;justify-content:center;align-content:space-between;width:${inner}px;flex:1;min-height:0;overflow:hidden}
+  .it{display:flex;flex-direction:column;align-items:center;text-align:center;width:var(--cell);padding:0 0 var(--gap);box-sizing:border-box}
+  .grid.one{align-content:flex-start}
   .it img{object-fit:contain;display:block;width:var(--pic);height:var(--pic)}
   .nm{font-family:N,serif;font-size:var(--nm);letter-spacing:.18em;text-indent:.18em;margin-top:.35em;line-height:1.2;white-space:nowrap}
   .ft{font-family:F,serif;font-size:var(--ft);letter-spacing:.05em;color:#333;margin-top:.3em;line-height:1.3;padding:0 6px}
-  </style><div class="bd"></div><div class="in"><h1>${esc(set.title.toUpperCase())}</h1>${face === 'hand' ? handRule(Math.round(inner * 0.38)) : '<div class="rule"></div>'}<div class="grid">${rows}</div></div>`;
+  </style><div class="bd"></div><div class="in"><h1>${esc(set.title.toUpperCase())}</h1>${face === 'hand' ? handRule(Math.round(inner * 0.6)) : '<div class="rule"></div>'}<div class="grid">${rows}</div></div>`;
 }
 
 // v6 (2026-09-23, her notes on v4): the border sits close to the edge, the
@@ -172,7 +173,13 @@ const FIT = `(() => {
     R.setProperty('--cell', cell + 'px'); R.setProperty('--pic', pic + 'px');
     R.setProperty('--nm', nm + 'px'); R.setProperty('--ft', Math.max(10, Math.round(nm * 0.82)) + 'px');
     R.setProperty('--gap', Math.round(cell * 0.14) + 'px');
-    for (const n of nms) n.style.fontSize = '';
+    for (const nm of nms) {
+      nm.style.fontSize = '';
+      let s = parseFloat(getComputedStyle(nm).fontSize);
+      while (nm.scrollWidth > nm.parentElement.clientWidth - 32 && s > 8) { s -= 0.5; nm.style.fontSize = s + 'px'; }
+      // a fact is no wider than its name (v7, her note: "facts shud not go past title so much")
+      const ft = nm.nextElementSibling; if (ft) ft.style.maxWidth = Math.max(60, nm.getBoundingClientRect().width + 16) + 'px';
+    }
   };
   const h1 = document.querySelector('h1'); h1.style.whiteSpace = 'nowrap';
   { let t = parseFloat(getComputedStyle(h1).fontSize); while (h1.scrollWidth > inner && t > 40) { t -= 2; h1.style.fontSize = t + 'px'; } }
@@ -187,10 +194,7 @@ const FIT = `(() => {
   }
   if (!best) best = { cols: 8, pic: 40 };
   apply(best.cols, best.pic);
-  for (const nm of nms) {
-    let s = parseFloat(getComputedStyle(nm).fontSize);
-    while (nm.scrollWidth > nm.parentElement.clientWidth - 32 && s > 8) { s -= 0.5; nm.style.fontSize = s + 'px'; }
-  }
+  if (Math.ceil(its.length / best.cols) < 2) g.classList.add('one');
   return { ...best, overflow: !fits() };
 })()`;
 

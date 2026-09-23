@@ -96,7 +96,7 @@ const html = `<!doctype html>
   var KNOBS = [
     ['title', 'title size', 40, 160, 1, { hand: 104, magic: 96 }],
     ['titleSp', 'title spacing', 0, 0.8, 0.01, 0.34],
-    ['rule', 'line length', 0, 100, 1, 38],
+    ['rule', 'line length', 0, 100, 1, 60],
     ['name', 'name size', 8, 40, 1, 0],
     ['nameSp', 'name spacing', 0, 0.5, 0.01, 0.18],
     ['fact', 'fact size', 8, 30, 1, 0],
@@ -105,6 +105,7 @@ const html = `<!doctype html>
     ['gap', 'row gap', 0, 120, 1, 0],
     ['side', 'side margin', 20, 240, 1, 110],
     ['top', 'top margin', 20, 200, 1, 64],
+    ['bottom', 'bottom margin', 20, 200, 1, 64],
     ['border', 'border inset', 0, 80, 1, 22]
   ];
   var S = { set: DATA[0].key, face: 'hand', paper: 'legal', facts: true };
@@ -151,9 +152,13 @@ const html = `<!doctype html>
     var ft = (S.fact || Math.max(10, Math.round((S.name || Math.max(11, Math.min(22, Math.round(cell / k * 0.072)))) * 0.82))) * k;
     var gap = (S.gap || Math.round(cell / k * 0.14)) * k;
     var rowsH = [], row = [], total = 0, meas = [];
-    c.font = ft + 'px "' + F.F + '"';
     items.forEach(function (it, i) {
-      var lines = S.facts && it.fact ? wrap(c, it.fact, cell - 12 * k, ft * 0.05) : [];
+      var nsp = S.nameSp * nm, nmText = it.name.toUpperCase(), nsz = nm;
+      c.font = nsz + 'px "' + F.N + '"';
+      while (spacedWidth(c, nmText, nsp) > cell - 32 * k && nsz > 8 * k) { nsz -= 0.5 * k; c.font = nsz + 'px "' + F.N + '"'; nsp = S.nameSp * nsz; }
+      var nameW = spacedWidth(c, nmText, nsp);
+      c.font = ft + 'px "' + F.F + '"';
+      var lines = S.facts && it.fact ? wrap(c, it.fact, Math.max(60 * k, nameW + 16 * k), ft * 0.05) : [];
       var h = pic + nm * 0.35 + nm * 1.2 + (lines.length ? ft * 0.3 + lines.length * ft * 1.3 : 0) + gap;
       meas.push({ lines: lines, h: h });
       row.push(h);
@@ -181,7 +186,7 @@ const html = `<!doctype html>
       c.stroke();
     }
     y += 30 * k;
-    var gridTop = y, gridH = H - (S.border + 70) * k - gridTop;
+    var gridTop = y, gridH = H - (S.border + S.bottom) * k - gridTop;
     // the fit: her column count, or the one whose biggest picture is biggest
     var best = null, colsList = S.cols ? [S.cols] : [2, 3, 4, 5, 6, 7, 8];
     colsList.forEach(function (cols) {
@@ -193,8 +198,8 @@ const html = `<!doctype html>
     });
     if (!best) best = { cols: S.cols || 8, pic: 30 * k };
     var pic = Math.round(best.pic * S.pic / 100), L = layout(c, items, best.cols, pic, k, W, H, F);
-    var spare = Math.max(0, gridH - L.total), rowsN = L.rowsH.length, lead = spare / (rowsN + 1);
-    var x0 = (W - inner) / 2, r = 0, yy = gridTop + lead;
+    var spare = Math.max(0, gridH - L.total), rowsN = L.rowsH.length, lead = rowsN > 1 ? spare / (rowsN - 1) : 0;
+    var x0 = (W - inner) / 2, r = 0, yy = gridTop;
     items.forEach(function (it, i) {
       var col = i % best.cols, inRow = Math.min(best.cols, items.length - (i - col));
       var rowLeft = x0 + (inner - inRow * L.cell) / 2;
