@@ -2004,9 +2004,18 @@ async function makeThumb(url, w) {
           .resize({ width: w, withoutEnlargement: true })
           .webp({ quality: 75 })
           .toBuffer();
-        await file.save(out, { contentType: 'image/webp', resumable: false });
-        await file.makePublic();
+        // PUBLIC AT BIRTH (2026-09-23, two Playground tiles drawing a "?"):
+        // save-then-makePublic left a window where the object existed but was
+        // private, and a failed makePublic left it private for good — every
+        // later request saw `exists` and redirected to a 403. The ACL now
+        // rides the write itself.
+        await file.save(out, { contentType: 'image/webp', resumable: false, predefinedAcl: 'publicRead' });
       } finally { thumbDone(); }
+    } else {
+      // An older thumb may have been left private by the old two-step write.
+      // Checked once per thumb per process (thumbHot remembers it after).
+      const [pub] = await file.isPublic().catch(() => [true]);
+      if (!pub) await file.makePublic();
     }
     const pub = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
     thumbHot.set(key, pub);
