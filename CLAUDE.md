@@ -3709,6 +3709,13 @@ before working on that module. Nothing was deleted — the moved text is verbati
   headless against a stubbed verdict store and Dump: a drag moves the saved
   x/y by exactly the drag, Export POSTs a real PNG). **Full details:
   `docs/modules/pictures.md` (Pattern).**
+  **AND A PIECE'S SIZE ON A TILE IS NEVER CHANGED WITHOUT ASKING (2026-09-23,
+  Sophie, after a re-lay at two across made every picture bigger: "never
+  change size without asking").** A re-lay she asked for changes ONLY what she
+  named — the background, the count, the layout — and keeps the pictures the
+  size they were; `--cols` moves the size with it, so a different column count
+  is a size change and is hers to say. Same rule as the card mockups' "every
+  card the same size": the size is a decision she made once, not a knob.
 - **Freeform** (`freeform.js`, `/api/freeform`, `/freeform`) — the one image
   surface with **no opinion**: the prompt goes to gpt-image-2 verbatim, no prefix,
   no suffix, not even a trailing-period trim.
