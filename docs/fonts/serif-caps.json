@@ -1,0 +1,20 @@
+{
+ "name": "Serif Caps",
+ "out": "public/fonts/serif-caps",
+ "lowerToCaps": true,
+ "sources": [
+  {
+   "sheet": "docs/fonts/serif-caps-sheet.png",
+   "left": 0.02,
+   "rows": ["ABCDE", "FGHIK", "LNOPR", "STUW&"],
+   "bands": [0, 1, 2, 3],
+   "gap": 14,
+   "traceDark": 130,
+   "blur": false,
+   "thin": 0,
+   "level": ["ABCDEFGHIKLNOPRSTUW"],
+   "side": 40
+  }
+ ],
+ "space": 300
+}

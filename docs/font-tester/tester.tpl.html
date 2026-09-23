@@ -1,0 +1,48 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Font tester</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+/*FONTFACES*/
+[hidden]{display:none !important}
+.ft-fonts{display:flex;flex-wrap:wrap;gap:6px;margin:10px 64px 12px 0}
+.ft-fonts button{border-radius:6px}
+.ft-fonts button.on{background:var(--ink);color:var(--paper)}
+.ft-box{display:block;width:100%;box-sizing:border-box;min-height:64px;font-family:inherit;font-size:16px;line-height:1.4;padding:8px 10px;border:1px solid var(--ink2);border-radius:6px;background:transparent;color:var(--ink);resize:vertical}
+.ft-size{display:flex;align-items:center;gap:10px;margin:10px 0;font-size:13px}
+.ft-size input{flex:1}
+.ft-out{margin-top:14px;padding:18px 4px;border-top:1px solid var(--ink2);white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.25;color:var(--ink)}
+</style></head>
+<body>
+<div class="wrap">
+<h1>Font tester</h1>
+<div class="ft-fonts" id="fonts"></div>
+<textarea class="ft-box" id="txt" aria-label="Text"></textarea>
+<div class="ft-size"><span>Size</span><input type="range" id="size" min="16" max="160" value="40" aria-label="Size"><span id="sz">40</span></div>
+<div class="ft-out" id="out"></div>
+</div>
+<script src="/compare.js"></script>
+<script>
+(function(){
+  var FONTS = /*FONTLIST*/;
+  var ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ\n' + 'THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG.';
+  var cur = FONTS[0].fam;
+  var box = document.getElementById('fonts'), txt = document.getElementById('txt'),
+      out = document.getElementById('out'), size = document.getElementById('size'), sz = document.getElementById('sz');
+  FONTS.forEach(function(f){
+    var b = document.createElement('button'); b.type='button'; b.textContent = f.name; b.dataset.fam = f.fam;
+    b.onclick = function(){ cur = f.fam; paint(); };
+    box.appendChild(b);
+  });
+  function paint(){
+    [].forEach.call(box.children, function(b){ b.classList.toggle('on', b.dataset.fam === cur); });
+    out.style.fontFamily = "'" + cur + "'";
+    out.style.fontSize = size.value + 'px'; sz.textContent = size.value;
+    out.textContent = txt.value || ALPHA;
+  }
+  txt.addEventListener('input', paint); size.addEventListener('input', paint);
+  paint();
+  window.__compareHelp({ html: 'Type in the box to see it in the font. Empty box shows the alphabet. Letters a font has no drawing for fall back to the page font.' });
+})();
+</script>
+</body></html>
