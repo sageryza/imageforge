@@ -161,6 +161,30 @@ const findChromium = () => {
   ok(Math.abs(again - before) < 2,
     'six more passes borrow no more room (' + Math.round(before) + ' → ' + Math.round(again) + 'px)');
 
+  // ── 2b. IT DOES NOT MOVE WHEN iOS PANS (2026-09-23, Sophie, on Footage: "at
+  //        various times it still switches rapidly between screens when i put
+  //        my cursor down"). With the keyboard up iOS reveals the caret by
+  //        OFFSETTING the visual viewport inside the layout one — measured on
+  //        her phone in Footage at ~115pt (pill-inject's placeRail note). The
+  //        floor was read off `band()`, which is in layout coordinates and so
+  //        rides that offset: every pan changed the page's padding, the padding
+  //        changed how far the page could scroll, and iOS panned again — the
+  //        page and the phone taking turns for a second after every tap. The
+  //        keyboard is the same height however far iOS has panned, so the
+  //        floor is too.
+  const pans = [];
+  for (const off of [115, 240, 0, 60]) {
+    const pad = await page.evaluate((a) => {
+      window.__caretKeep.vv = { offsetTop: a.off, height: window.innerHeight - a.kb };
+      window.__caretKeep.keep();
+      return parseFloat(document.documentElement.style.paddingBottom) || 0;
+    }, { off, kb: KB });
+    pans.push(Math.round(pad));
+  }
+  ok(pans.every((p) => Math.abs(p - before) < 2),
+    'the room is the same whatever iOS has panned — 0 / 115 / 240 / 0 / 60 → ' + Math.round(before) + ' / ' + pans.join(' / ') + 'px');
+  await page.evaluate((kb) => { window.__caretKeep.vv = { offsetTop: 0, height: window.innerHeight - kb }; }, KB);
+
   // ── 3. THE ROOM GOES BACK WITH THE KEYBOARD ──
   await page.evaluate(() => { document.getElementById('a').blur(); window.__caretKeep.vv = null; });
   await page.waitForTimeout(700);

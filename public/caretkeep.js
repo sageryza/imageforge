@@ -330,10 +330,26 @@
   // `band()`, not `caretBand()`: what puts the foot of the page out of reach
   // is the keyboard, and caretBand is narrowed by chrome pinned over the box
   // (stickybox's own buttons), which would make the floor chase them.
+  //
+  // THE FLOOR IS THE KEYBOARD, NEVER WHERE iOS HAS PANNED TO (2026-09-23,
+  // Sophie, on Footage: "at various times it still switches rapidly between
+  // screens when i put my cursor down · i'm going to get epilepsy"). `band()`
+  // is in LAYOUT coordinates, so its bottom rides `visualViewport.offsetTop` —
+  // and iOS reveals a caret by PANNING the visual viewport inside the layout
+  // one (~115pt, measured off her Footage screenshot). Read off the band, the
+  // floor shrank by every point iOS panned: the padding changed, the page's
+  // scroll range changed with it, iOS panned again to reveal the caret, and
+  // the next keep wrote a different padding — the page and the phone taking
+  // turns for a second after every tap. The keyboard is the same height
+  // however far iOS has panned, so the pan is taken back off: the floor is
+  // the largest room the page could need (the pan at 0), and a constant for
+  // as long as the keyboard is.
   var FLOOR_MIN = 80;      // less than this is the margin, not a keyboard
   function roomFloor() {
     var b = band();
-    var gap = window.innerHeight - b.bottom;
+    var vv = window.__caretKeep && window.__caretKeep.vv ? window.__caretKeep.vv : window.visualViewport;
+    var pan = vv && vv.height ? Math.max(0, vv.offsetTop || 0) : 0;
+    var gap = window.innerHeight - (b.bottom - pan);
     return gap > FLOOR_MIN ? Math.round(gap) : 0;
   }
 
