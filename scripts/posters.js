@@ -49,6 +49,9 @@ const SETS = JSON.parse(fs.readFileSync(path.join(__dirname, 'posters', 'sets.js
 const FACT_STYLE = flag('facts', 'sentences');
 const FACTS = FACT_STYLE === 'none' ? {} : JSON.parse(fs.readFileSync(path.join(__dirname, 'posters', FACT_STYLE === 'sentences' ? 'facts-sentences.json' : 'facts.json'), 'utf8'));
 const WANT = (flag('sets', Object.keys(SETS).join(',')) || '').split(',').filter(Boolean);
+// --rows N pins the row count (her note on the sea poster: "try w 3 rows");
+// the column count is then ceil(items / rows) and nothing else is tried.
+const ROWS = parseInt(flag('rows', '0'), 10) || 0;
 const FACES = (flag('faces', 'hand,magic') || '').split(',').filter(Boolean);
 const OUT = flag('out', path.join(process.env.CLAUDE_SCRATCH || '/tmp', 'posters'));
 // --paper legal (v5, 2026-09-23, Sophie: "redo posters for legal"): US legal is
@@ -173,7 +176,7 @@ function posterHtml(set, items, face, paper = '#fff') {
 // fitting picture is biggest, then fits any name still wider than its cell.
 // Returns what it chose so the log can say it.
 const FIT = `(() => {
-  const FACT_STYLE = ${JSON.stringify(FACT_STYLE)};
+  const FACT_STYLE = ${JSON.stringify(FACT_STYLE)}, ROWS = ${ROWS};
   const g = document.querySelector('.grid'), R = document.documentElement.style, inner = g.clientWidth;
   const its = [...document.querySelectorAll('.it')], nms = [...document.querySelectorAll('.nm')];
   const fits = () => g.scrollHeight <= g.clientHeight + 1;
@@ -195,10 +198,11 @@ const FIT = `(() => {
   { let t = parseFloat(getComputedStyle(h1).fontSize); while (h1.scrollWidth > inner && t > 40) { t -= 2; h1.style.fontSize = t + 'px'; } }
   const fit = () => {
     let best = null;
-    for (let cols = 2; cols <= 8; cols++) {
+    const only = ROWS ? Math.ceil(its.length / ROWS) : 0;
+    for (let cols = only || 2; cols <= (only || 8); cols++) {
       if (cols > its.length) break;
       const cell = Math.floor(inner / cols);
-      let lo = 40, hi = Math.round(cell * 0.62);
+      let lo = 40, hi = Math.round(cell * (ROWS ? 0.88 : 0.62)); // pinned rows: the picture may fill most of its cell
       apply(cols, lo); if (!fits()) continue;
       while (hi - lo > 1) { const mid = (lo + hi) >> 1; apply(cols, mid); if (fits()) lo = mid; else hi = mid; }
       if (!best || lo > best.pic) best = { cols, pic: lo };
@@ -278,7 +282,9 @@ const upload = async (buf, filename, ct) => {
     const two = items.filter((i) => i.key === key);
     return `<div class="card"><h2>${esc(two[0].set.title)}</h2><div class="duo">${two.map((i) => `<figure data-item="${esc(`${key}-${i.face}-v${VERSION}`)}"><span class="tag">${esc(FACE_LABEL[i.face])}</span><img src="${esc(i.url)}" alt="${esc(i.description)}" loading="lazy"></figure>`).join('')}</div></div>`;
   });
-  const title = `Posters v${VERSION} — ${sets.length} sets${PAPER === 'legal' ? ', legal size 8.5x14' : ''}, handwriting beside magic title`;
+  const title = sets.length === 1
+    ? `${SETS[sets[0]].title} poster v${VERSION}${ROWS ? ` — ${ROWS} rows` : ''}${PAPER === 'legal' ? ', legal size 8.5x14' : ''}, handwriting beside magic title`
+    : `Posters v${VERSION} — ${sets.length} sets${PAPER === 'legal' ? ', legal size 8.5x14' : ''}, handwriting beside magic title`;
   const html = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
