@@ -64,8 +64,23 @@ const rows = LORA ? Object.keys(LORA.models || {}) : [];
 ok(rows.length > 0, 'at least one model has a price');
 ok(rows.indexOf('sageryza/watercolordrawings') >= 0, 'WTR is one of them');
 
+// A row may be LABEL-ONLY (no `cents`) — a LoRA on the picker that nobody has
+// measured yet (PNT, 2026-09-23: no 28-step one-output run in the history to
+// read from). Such a row must carry NO figure at all — no seconds, no n, no
+// date — because the page prints nothing for it, and a half-filled row is a
+// remembered number by another name. A row WITH a price is held to every rule.
+const priced = rows.filter((id) => LORA.models[id].cents != null);
+const unpriced = rows.filter((id) => LORA.models[id].cents == null);
+ok(priced.indexOf('sageryza/watercolordrawings') >= 0, 'WTR is priced');
+unpriced.forEach((id) => {
+  const m = LORA.models[id];
+  ok(typeof m.label === 'string' && m.label, id + ' (unpriced) still carries its label');
+  ok(m.seconds == null && m.n == null && m.measured == null,
+    id + ' (unpriced) carries no seconds, count or date — nothing half-measured');
+});
+
 console.log('cents is seconds x rate, not a remembered number');
-rows.forEach((id) => {
+priced.forEach((id) => {
   const m = LORA.models[id];
   ok(typeof m.seconds === 'number' && m.seconds > 0, id + ' carries the measured seconds');
   ok(typeof m.n === 'number' && m.n > 0, id + ' says how many runs it was measured over');
@@ -93,7 +108,7 @@ console.log('it is served, and the page keeps no copy');
 ok(/lora: PL_LORA/.test(serverSrc), '/api/promptlab/styles answers `lora`');
 ok(/LORA = d\.lora \|\| null/.test(pageSrc), 'the page reads it off that answer');
 const numbers = [];
-rows.forEach((id) => { numbers.push(String(LORA.models[id].cents), String(LORA.models[id].seconds)); });
+priced.forEach((id) => { numbers.push(String(LORA.models[id].cents), String(LORA.models[id].seconds)); });
 if (LORA) numbers.push(String(LORA.rate));
 numbers.forEach((n) => ok(pageSrc.indexOf(n) < 0, 'promptlab.html holds no copy of ' + n));
 

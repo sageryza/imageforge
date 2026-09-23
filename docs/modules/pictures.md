@@ -151,12 +151,17 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
     `chatgpt` (Sandy mirror), which is what the unidentified history really is.
   - Test: `node scripts/test-playground-plain.js` (pure — 18 of its 22 checks
     verified failing against the pre-change tree).
-- **Eight styles: WTR, Sandy mirror, ChatGPT, Dreamy, Triangle, Scarry,
+- **Nine styles: WTR, PNT, Sandy mirror, ChatGPT, Dreamy, Triangle, Scarry,
   Pastel, Hoonies.** **WTR**
   (`wtr`, the watercolor LoRA — the tile is labelled WTR, but its STYLES key is
   still `watercolor`, which is what localStorage and `?style=` deep links carry)
-  is the only Replicate LoRA on the picker: trigger word prepended, suffix
-  appended, LoRA scale + seed + ×3 ladder. **The Hoonie linocut tile was
+  and **PNT** (`pnt`, the Painterly LoRA `sageryza/paint`, STYLES key
+  `painterly` — added 2026-09-23, Sophie: "add replicate pnt to playground")
+  are the two Replicate LoRAs on the picker, on one recipe: trigger word
+  prepended, suffix appended, LoRA scale + seed + ×3 ladder + the shape
+  toggle. PNT's price line is blank until `scripts/measure-lora-cost.js
+  --model sageryza/paint` has real 28-step runs to read (none existed the day
+  it was added) — fill the `PL_LORA` row, never invent the figure. **The Hoonie linocut tile was
   removed** at the same time — the model is untouched and still serves the Test
   Station / house styles, and old Hoonie runs keep their label in the feed via
   `RETIRED` in promptlab.html.
@@ -1116,8 +1121,8 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
     there is, and the ✕ that hides a picture is hers to cast. So a run a chat
     starts in her feed cannot be tidied away afterwards without an Admin
     write. Don't start it. Fixed recipe per style so runs stay comparable: ONE
-  image a run, 2:3, Generate is the stars icon. Eight styles: WTR (the only
-  Replicate LoRA), **Sandy mirror**, **ChatGPT**, **Dreamy**, **Triangle**,
+  image a run, 2:3, Generate is the stars icon. Nine styles: WTR and PNT (the
+  two Replicate LoRAs), **Sandy mirror**, **ChatGPT**, **Dreamy**, **Triangle**,
   Scarry, Pastel, Hoonies (all gpt-image-2, her own scans attached as style
   refs, kept in `PL_GPT_STYLES` in server.js).
   **TRIANGLE IS DERIVED FROM DREAMY, NOT WRITTEN BESIDE IT (2026-08-31,
