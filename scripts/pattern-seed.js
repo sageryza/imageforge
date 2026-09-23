@@ -35,9 +35,16 @@ const DECKS = path.join(ROOT, 'scripts');
 // finished fruit (decks/fruits-finished.json, 2026-09-22) lead the fruit; the
 // animal deck (72 drawn animals) and the plant deck are the card-pattern
 // chat's own lists.
+// HER PICKED FRUIT IS THE WHOLE FRUIT LIST (2026-09-23, Sophie: "use the most
+// recent one of each fruit i chose · including half peeled medium banana"):
+// decks/fruit-picked.json is the one picture per fruit she chose (the
+// card-pattern chat keeps it current), it is filed whatever its pixel size,
+// and every OTHER fruit piece is hidden, so the list is exactly her picks.
+const PICKED_FRUIT = 'decks/fruit-picked.json';
 const SOURCES = [
   { file: 'decks/animals-drawn.json', kind: 'animal' },
   { file: 'animals-uploaded.json', kind: 'animal' },
+  { file: PICKED_FRUIT, kind: 'fruit', exact: true },
   { file: 'decks/fruits-finished.json', kind: 'fruit' },
   { file: 'uploaded.json', kind: 'fruit' },
   { file: 'hq3-uploaded.json', kind: 'fruit' },
@@ -92,7 +99,7 @@ async function roughAll() {
       else if (/-few\d$/.test(r.id)) name = 'a few ' + name;
       // …and it mixes vegetables in under the fruit chart; the url says which.
       const kind = r.kind || (/\/veg\//.test(r.full || r.url) ? 'vegetable' : s.kind);
-      rows.push({ id: r.id, name, kind, full: r.full, card: r.url, from: s.file });
+      rows.push({ id: r.id, name, kind, full: r.full, card: r.url, from: s.file, exact: !!s.exact });
     }
   }
   console.log(`${rows.length} candidates`);
@@ -100,7 +107,8 @@ async function roughAll() {
   for (const r of rows) {
     let src = r.full && r.full !== r.card && await head(r.full) ? r.full : r.card;
     const w = await widthOf(src);
-    if (w < MIN) { console.log(`  skip ${r.id} — ${w}px (${r.from})`); continue; }
+    if (w < MIN && !r.exact) { console.log(`  skip ${r.id} — ${w}px (${r.from})`); continue; }
+    if (w < MIN) console.log(`  small but hers: ${r.id} — ${w}px`);
     keep.push({ ...r, src, w });
   }
   // ONE PIECE PER NAME, the FIRST source's picture of it (the order above is
@@ -132,11 +140,21 @@ async function roughAll() {
   const keptIds = new Set(keep.map((r) => crypto.createHash('sha1').update(r.src).digest('hex').slice(0, 20)));
   const keptNames = new Set(keep.map((r) => r.kind + ':' + r.name));
   const snap = await admin.firestore().collection('forge-pattern-pieces').get();
-  let hid = 0;
+  // The fruit list is EXACTLY her picks: a fruit not in the picked deck is
+  // hidden whatever its name (the "cut open" and "a few" redraws included).
+  const pickedIds = new Set(keep.filter((r) => r.exact).map((r) => crypto.createHash('sha1').update(r.src).digest('hex').slice(0, 20)));
+  let hid = 0, shown = 0;
   for (const d of snap.docs) {
     const p = d.data();
-    if (p.drawn || keptIds.has(d.id) || p.hidden) continue;
+    if (p.drawn) continue;
+    if (p.kind === 'fruit' && pickedIds.size) {
+      const want = pickedIds.has(d.id);
+      if (want && p.hidden) { shown++; await d.ref.set({ hidden: false }, { merge: true }); console.log(`  + back on the list: ${p.name}`); }
+      if (!want && !p.hidden) { hid++; await d.ref.set({ hidden: true }, { merge: true }); console.log(`  – hid ${p.name} (not one she picked)`); }
+      continue;
+    }
+    if (keptIds.has(d.id) || p.hidden) continue;
     if (keptNames.has(p.kind + ':' + p.name)) { hid++; await d.ref.set({ hidden: true }, { merge: true }); console.log(`  – hid the older ${p.name}`); }
   }
-  console.log(`hid ${hid} older twins`);
+  console.log(`hid ${hid}, shown again ${shown}`);
 })().catch((e) => { console.error(e); process.exit(1); });
