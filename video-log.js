@@ -52,6 +52,14 @@ function sentRecord({ jobId, prompt, model, params, tag }) {
   // what goes back into the block, since a put-back of the whole prompt would
   // carry the heads into a box the heads are prepended to again.
   if (t.words != null && String(t.words).trim()) doc.words = String(t.words).slice(0, 4000);
+  // AND EVERY BLOCK'S OWN WORDS as they stood in its box (2026-09-23) — an
+  // appended send renumbers a block's slot names into `prompt`, so this list
+  // is the only place the box's exact text survives; the red sent mark reads
+  // it. Strings only, each capped, never written empty.
+  if (Array.isArray(t.blocks)) {
+    const bl = t.blocks.filter((x) => typeof x === 'string' && x.trim()).slice(0, 60).map((x) => x.slice(0, 6000));
+    if (bl.length) doc.blocks = bl;
+  }
   return doc;
 }
 

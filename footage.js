@@ -856,6 +856,19 @@ function buildJob(b) {
   if (unit) body.unit = unit;
   const words = story ? String(b.words || '').trim().slice(0, 4000) : '';
   if (words) body.words = words;
+  // AND EVERY BLOCK'S OWN WORDS, EXACTLY AS THEY STOOD IN ITS BOX (2026-09-23,
+  // Sophie: "sent/unsent is wrong in footage"). The red mark asks the log
+  // whether a box's words have gone, and the log carried only `prompt` — the
+  // text AFTER the page renumbered an appended block's slot names onto the
+  // joined strip (block 3's `[Image1]` becomes `[Image4]`) and put the heads
+  // in front. So the words in her box were never on the log for such a send,
+  // and once the page's own 20-entry bank rolled off (or a put-back replaced
+  // the draft, or she opened the page on another phone) the block read UNSENT
+  // beside the clip it went in. One list, any send, story or not: the log
+  // is the source of truth for the mark, whatever the prompt was made into.
+  const blocks = (Array.isArray(b.blocks) ? b.blocks : [])
+    .filter((t) => typeof t === 'string' && t.trim()).slice(0, 60).map((t) => t.slice(0, 6000));
+  if (blocks.length) body.blocks = blocks;
   return { body, refs, m, res, ratio, seconds, audio, first: kfFirst, last: kfLast };
 }
 function titleOf(prompt) {
@@ -1225,6 +1238,9 @@ function cardOf(id, d) {
     // part's key, and the block's own words before the heads; '' for a clip
     // sent from no story. The page's block walks its old prompts off these.
     story: String(d.story || ''), unit: String(d.unit || ''), words: String(d.words || ''),
+    // EVERY BLOCK'S OWN WORDS as they stood in the box (2026-09-23) — what the
+    // red sent mark matches, since the prompt may carry renumbered names
+    blocks: Array.isArray(d.blocks) ? d.blocks.filter((t) => typeof t === 'string' && t) : [],
   };
 }
 
@@ -1906,7 +1922,7 @@ async function logRefusal({ body, refs, m, res, ratio, seconds, first, last, doo
     // is deliberately not sticky, so after any reload that is what is showing).
     jobId: crypto.randomUUID(), prompt: body.prompt, model: (m && m.id) || '', params,
     tag: { chat: body.chat || CHAT, title: titleOf(body.prompt), project: body.project, folder: body.folder,
-      story: body.story, unit: body.unit, words: body.words },
+      story: body.story, unit: body.unit, words: body.words, blocks: body.blocks },
     door, refusal: err && err.refusal, error: (err && err.message) || '',
     why: (err && err.why) || (ex && ex.line) || '',
   });
@@ -1989,6 +2005,7 @@ async function startJobInner(b) {
   if (body.story) extra.story = body.story;
   if (body.unit) extra.unit = body.unit;
   if (body.words) extra.words = body.words;
+  if (body.blocks) extra.blocks = body.blocks;
   const mod = getDoors()[d.door];
   // THE LAST FRAME RIDES ALONG ON ATLAS, AND ONLY THERE (2026-09-10,
   // Sophie: "on"). It is FREE — measured 2026-09-09, billed to the token
@@ -2303,7 +2320,10 @@ router.get('/jobs', async (req, res) => {
 // and the log that never does was only ever read through the feed's window.
 // So the page asks the log itself: every block's words in, and back comes the
 // subset that a clip on the log really carried. THE MATCH IS THE PAGE'S OWN —
-// a whole prompt, the block's own `words`, or a contiguous run of the prompt's
+// a whole prompt, the block's own `words`, any of the clip's `blocks` (each
+// block's box text as it stood, 2026-09-23 — an appended send renumbers a
+// block's slot names into the prompt, so the prompt alone could never match
+// that box again), or a contiguous run of the prompt's
 // `\n\n` paragraphs — never a phrase floating inside one (a loose "contains"
 // would read SENT off any clip that happened to say those words, and a false
 // SENT is the direction that costs her a shot). A failed or refused clip is
@@ -2323,6 +2343,7 @@ function sentAmong(rows, texts) {
     const d = (x && x.d) || {};
     if (statusOf(d) === 'failed') continue;
     take(normWords(d.words));
+    if (Array.isArray(d.blocks)) d.blocks.forEach((t) => take(normWords(t)));
     const raw = String(d.prompt || '');
     if (!raw) continue;
     take(normWords(raw));
