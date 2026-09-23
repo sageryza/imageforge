@@ -620,8 +620,14 @@ struct RootView: View {
         // than the queue. Same one-shot pending flag, same reason — and the
         // notification is what reaches the tool when it is already alive in
         // the ZStack, where nothing would otherwise rebuild its web view.
-        if dest == "review", let deck = q.first(where: { $0.name == "deck" })?.value, !deck.isEmpty {
-            PushDelegate.pendingDeck = deck
+        //
+        // A PLAIN deckfactory://review (the small widget, the stale widget)
+        // reloads onto the QUEUE the same way (2026-09-23, Sophie: "it doesn't
+        // take me to the queue"). The tool is kept alive, so without the
+        // reload it came back on whatever deck she had last walked into.
+        if dest == "review" {
+            let deck = q.first(where: { $0.name == "deck" })?.value ?? ""
+            PushDelegate.pendingDeck = deck.isEmpty ? nil : deck
             go(dest)
             NotificationCenter.default.post(name: .forgeOpenDeck, object: nil)
             return
