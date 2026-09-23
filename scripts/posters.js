@@ -109,19 +109,28 @@ function itemsOf(set) {
 // sheet, keeps the count that gives the biggest picture, and spreads the
 // rows evenly down the sheet — so the animals FILL the poster, top to
 // bottom, whatever their number.
+// The handwriting face's rule is DRAWN, not ruled (her note: "handwritten
+// line"): one stroke that wanders a couple of pixels and thins at its ends.
+function handRule(w) {
+  const pts = [];
+  for (let i = 0; i <= 12; i++) pts.push([Math.round((w * i) / 12), 4 + Math.sin(i * 1.7) * 1.6 + Math.cos(i * 0.9) * 0.8]);
+  const d = pts.map((p, i) => (i ? 'L' : 'M') + p[0] + ' ' + p[1].toFixed(2)).join(' ');
+  return `<svg class="rule" width="${w}" height="8" viewBox="0 0 ${w} 8"><path d="${d}" fill="none" stroke="#111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
 function posterHtml(set, items, face, paper = '#fff') {
   // The margin inside the border is generous (v4 — Sophie: "still not enough
   // space around sides"): 110px each side, so the animals sit well in from
   // the line rather than against it.
-  const inner = W - 2 * 150; // border inset 40 + padding 110
+  const inner = W - 2 * 132; // border inset 22 + padding 110
   const fonts = face === 'hand'
     ? `@font-face{font-family:T;src:url(${fontUrl('sophie-hand.ttf')})}
        @font-face{font-family:N;src:url(${fontUrl('sophie-hand.ttf')})}
-       @font-face{font-family:F;src:url(${fontUrl('sophie-hand.ttf')})}`
+       @font-face{font-family:F;src:url(${fontUrl('magic-subtitle-italic.ttf')})}`
     : `@font-face{font-family:T;src:url(${fontUrl('magic-title.ttf')})}
        @font-face{font-family:N;src:url(${fontUrl('magic-subtitle.ttf')})}
        @font-face{font-family:F;src:url(${fontUrl('magic-subtitle-italic.ttf')})}`;
-  const titleSize = face === 'hand' ? 58 : 54;
+  const titleSize = face === 'hand' ? 104 : 96;
   const rows = items.map((it) => `<div class="it">
       <img src="${esc(it.img)}">
       <div class="nm">${esc(it.name.toUpperCase())}</div>
@@ -132,18 +141,24 @@ function posterHtml(set, items, face, paper = '#fff') {
   :root{--cell:300px;--pic:216px;--nm:30px;--ft:22px;--gap:40px}
   html,body{margin:0;background:${paper}}
   body{width:${W}px;height:${H}px;position:relative;color:#111;font-family:N,serif;-webkit-font-smoothing:antialiased}
-  .bd{position:absolute;inset:40px;border:2px solid #111;box-sizing:border-box}
-  .in{position:absolute;inset:40px;padding:60px 110px 70px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center}
+  .bd{position:absolute;inset:22px;border:2px solid #111;box-sizing:border-box}
+  .in{position:absolute;inset:22px;padding:64px 110px 70px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center}
   h1{margin:0;flex-shrink:0;font-family:T,serif;font-weight:400;font-size:${titleSize}px;letter-spacing:.34em;text-indent:.34em;text-align:center;line-height:1.1}
   .rule{flex-shrink:0;width:${Math.round(inner * 0.38)}px;height:1.5px;background:#111;margin:22px 0 30px}
+  svg.rule{height:8px;background:none}
   .grid{display:flex;flex-wrap:wrap;justify-content:center;align-content:space-evenly;width:${inner}px;flex:1;min-height:0;overflow:hidden}
   .it{display:flex;flex-direction:column;align-items:center;text-align:center;width:var(--cell);padding:calc(var(--gap) / 2) 0;box-sizing:border-box}
   .it img{object-fit:contain;display:block;width:var(--pic);height:var(--pic)}
   .nm{font-family:N,serif;font-size:var(--nm);letter-spacing:.18em;text-indent:.18em;margin-top:.35em;line-height:1.2;white-space:nowrap}
-  .ft{font-family:F,serif;font-size:var(--ft);letter-spacing:${face === 'hand' ? '.02em' : '.06em'};color:#333;margin-top:.3em;line-height:1.3;padding:0 6px}
-  </style><div class="bd"></div><div class="in"><h1>${esc(set.title.toUpperCase())}</h1><div class="rule"></div><div class="grid">${rows}</div></div>`;
+  .ft{font-family:F,serif;font-size:var(--ft);letter-spacing:.05em;color:#333;margin-top:.3em;line-height:1.3;padding:0 6px}
+  </style><div class="bd"></div><div class="in"><h1>${esc(set.title.toUpperCase())}</h1>${face === 'hand' ? handRule(Math.round(inner * 0.38)) : '<div class="rule"></div>'}<div class="grid">${rows}</div></div>`;
 }
 
+// v6 (2026-09-23, her notes on v4): the border sits close to the edge, the
+// title is much bigger, the names smaller, every fact is short and set in
+// the Magic Subtitle italic on BOTH faces ("italics non handwritten font for
+// facts"), and the handwriting face's rule under the title is a drawn line.
+//
 // Runs IN the page: tries every column count, keeps the one whose biggest
 // fitting picture is biggest, then fits any name still wider than its cell.
 // Returns what it chose so the log can say it.
@@ -153,12 +168,14 @@ const FIT = `(() => {
   const fits = () => g.scrollHeight <= g.clientHeight + 1;
   const apply = (cols, pic) => {
     const cell = Math.floor(inner / cols);
-    const nm = Math.max(12, Math.min(30, Math.round(cell * 0.1)));
+    const nm = Math.max(11, Math.min(22, Math.round(cell * 0.072)));
     R.setProperty('--cell', cell + 'px'); R.setProperty('--pic', pic + 'px');
-    R.setProperty('--nm', nm + 'px'); R.setProperty('--ft', Math.max(9, Math.round(nm * 0.72)) + 'px');
+    R.setProperty('--nm', nm + 'px'); R.setProperty('--ft', Math.max(10, Math.round(nm * 0.82)) + 'px');
     R.setProperty('--gap', Math.round(cell * 0.14) + 'px');
     for (const n of nms) n.style.fontSize = '';
   };
+  const h1 = document.querySelector('h1'); h1.style.whiteSpace = 'nowrap';
+  { let t = parseFloat(getComputedStyle(h1).fontSize); while (h1.scrollWidth > inner && t > 40) { t -= 2; h1.style.fontSize = t + 'px'; } }
   let best = null;
   for (let cols = 2; cols <= 8; cols++) {
     if (cols > its.length) break;
