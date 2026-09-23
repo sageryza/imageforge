@@ -24,7 +24,7 @@
 // so it is free — no model call — and a change is a re-render.
 //
 //   node scripts/posters.js [--sets fruits,sea,birds] [--faces hand,magic]
-//        [--paper legal] [--dry] [--v 1] [--chat minimal-animal-fruit-posters] [--supersede id]
+//        [--paper legal] [--facts short|sentences|none] [--dry] [--v 1] [--chat minimal-animal-fruit-posters] [--supersede id]
 //
 // --dry renders to the scratchpad and stops (the PHOTO). Without it the PNGs go
 // into the Dump as one album, each is filed into the chat's Assets tab with its
@@ -41,7 +41,13 @@ const VERSION = flag('v', '1');
 const SUPERSEDE = (flag('supersede', '') || '').split(',').filter(Boolean);
 const ROOT = path.join(__dirname, '..');
 const SETS = JSON.parse(fs.readFileSync(path.join(__dirname, 'posters', 'sets.json'), 'utf8'));
-const FACTS = JSON.parse(fs.readFileSync(path.join(__dirname, 'posters', 'facts.json'), 'utf8'));
+// --facts short|sentences|none (v9, 2026-09-23, Sophie: "i don't like the
+// facts · maybe they need to be longer · maybe complete sentences · i'm not
+// sure"): facts.json is the short line, facts-sentences.json the whole
+// sentence, none leaves the name alone. Sentences is the default now so she
+// can see them.
+const FACT_STYLE = flag('facts', 'sentences');
+const FACTS = FACT_STYLE === 'none' ? {} : JSON.parse(fs.readFileSync(path.join(__dirname, 'posters', FACT_STYLE === 'sentences' ? 'facts-sentences.json' : 'facts.json'), 'utf8'));
 const WANT = (flag('sets', Object.keys(SETS).join(',')) || '').split(',').filter(Boolean);
 const FACES = (flag('faces', 'hand,magic') || '').split(',').filter(Boolean);
 const OUT = flag('out', path.join(process.env.CLAUDE_SCRATCH || '/tmp', 'posters'));
@@ -146,7 +152,7 @@ function posterHtml(set, items, face, paper = '#fff') {
   h1{margin:0;flex-shrink:0;font-family:T,serif;font-weight:400;font-size:${titleSize}px;letter-spacing:.34em;text-indent:.34em;text-align:center;line-height:1.1}
   .rule{flex-shrink:0;width:${Math.round(inner * 0.6)}px;height:1.5px;background:#111;margin:22px 0 30px}
   svg.rule{height:8px;background:none}
-  .grid{display:flex;flex-wrap:wrap;justify-content:center;align-content:space-between;width:${inner}px;flex:1;min-height:0;overflow:hidden}
+  .grid{display:flex;flex-wrap:wrap;justify-content:center;align-content:space-evenly;width:${inner}px;flex:1;min-height:0;overflow:hidden}
   .it{display:flex;flex-direction:column;align-items:center;text-align:center;width:var(--cell);padding:0 0 var(--gap);box-sizing:border-box}
   .grid.one{align-content:flex-start}
   .it img{object-fit:contain;display:block;width:var(--pic);height:var(--pic)}
@@ -167,6 +173,7 @@ function posterHtml(set, items, face, paper = '#fff') {
 // fitting picture is biggest, then fits any name still wider than its cell.
 // Returns what it chose so the log can say it.
 const FIT = `(() => {
+  const FACT_STYLE = ${JSON.stringify(FACT_STYLE)};
   const g = document.querySelector('.grid'), R = document.documentElement.style, inner = g.clientWidth;
   const its = [...document.querySelectorAll('.it')], nms = [...document.querySelectorAll('.nm')];
   const fits = () => g.scrollHeight <= g.clientHeight + 1;
@@ -181,22 +188,40 @@ const FIT = `(() => {
       let s = parseFloat(getComputedStyle(nm).fontSize);
       while (nm.scrollWidth > nm.parentElement.clientWidth - 32 && s > 8) { s -= 0.5; nm.style.fontSize = s + 'px'; }
       // a fact is no wider than its name (v7, her note: "facts shud not go past title so much")
-      const ft = nm.nextElementSibling; if (ft) ft.style.maxWidth = Math.max(cell * 0.6, nm.getBoundingClientRect().width + 16) + 'px';
+      const ft = nm.nextElementSibling; if (ft) ft.style.maxWidth = (FACT_STYLE === 'sentences' ? cell - 16 : Math.max(cell * 0.6, nm.getBoundingClientRect().width + 16)) + 'px';
     }
   };
   const h1 = document.querySelector('h1'); h1.style.whiteSpace = 'nowrap';
   { let t = parseFloat(getComputedStyle(h1).fontSize); while (h1.scrollWidth > inner && t > 40) { t -= 2; h1.style.fontSize = t + 'px'; } }
-  let best = null;
-  for (let cols = 2; cols <= 8; cols++) {
-    if (cols > its.length) break;
-    const cell = Math.floor(inner / cols);
-    let lo = 40, hi = Math.round(cell * 0.62);
-    apply(cols, lo); if (!fits()) continue;
-    while (hi - lo > 1) { const mid = (lo + hi) >> 1; apply(cols, mid); if (fits()) lo = mid; else hi = mid; }
-    if (!best || lo > best.pic) best = { cols, pic: lo };
+  const fit = () => {
+    let best = null;
+    for (let cols = 2; cols <= 8; cols++) {
+      if (cols > its.length) break;
+      const cell = Math.floor(inner / cols);
+      let lo = 40, hi = Math.round(cell * 0.62);
+      apply(cols, lo); if (!fits()) continue;
+      while (hi - lo > 1) { const mid = (lo + hi) >> 1; apply(cols, mid); if (fits()) lo = mid; else hi = mid; }
+      if (!best || lo > best.pic) best = { cols, pic: lo };
+    }
+    if (!best) best = { cols: 8, pic: 40 };
+    apply(best.cols, best.pic);
+    return best;
+  };
+  // The space above the title matches the space under the last row (v9,
+  // her note read the right way round: "same space on top as bottom" — the
+  // TOP grows to meet the bottom). The rows are spread evenly, so the air
+  // under the last row is the lead plus the bottom margin; the top margin is
+  // set to that and the fit re-run until the two agree.
+  const box = document.querySelector('.in');
+  let best = fit();
+  for (let i = 0; i < 5; i++) {
+    const rows = Math.ceil(its.length / best.cols);
+    const lead = Math.max(0, g.clientHeight - g.scrollHeight) / (rows + 1);
+    const want = Math.round(lead + parseFloat(getComputedStyle(box).paddingBottom));
+    if (Math.abs(want - parseFloat(getComputedStyle(box).paddingTop)) < 2) break;
+    box.style.paddingTop = want + 'px';
+    best = fit();
   }
-  if (!best) best = { cols: 8, pic: 40 };
-  apply(best.cols, best.pic);
   if (Math.ceil(its.length / best.cols) < 2) g.classList.add('one');
   return { ...best, overflow: !fits() };
 })()`;

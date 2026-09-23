@@ -26,6 +26,7 @@ const SUPERSEDE = (flag('supersede', '') || '').split(',').filter(Boolean);
 
 const SETS = JSON.parse(fs.readFileSync(path.join(__dirname, 'posters', 'sets.json'), 'utf8'));
 const FACTS = JSON.parse(fs.readFileSync(path.join(__dirname, 'posters', 'facts.json'), 'utf8'));
+const SENTENCES = JSON.parse(fs.readFileSync(path.join(__dirname, 'posters', 'facts-sentences.json'), 'utf8'));
 const SOURCES = {
   animals: JSON.parse(fs.readFileSync(path.join(__dirname, 'decks', 'animals-drawn.json'), 'utf8')),
   fruits: JSON.parse(fs.readFileSync(path.join(__dirname, 'decks', 'fruits-finished.json'), 'utf8')),
@@ -34,7 +35,7 @@ const data = Object.entries(SETS).map(([key, set]) => {
   const all = SOURCES[set.from];
   const byName = new Map(all.map((r) => [r.name.toLowerCase(), r]));
   const names = set.pick || all.map((r) => r.name).sort((a, b) => a.localeCompare(b));
-  return { key, title: set.title, items: names.map((n) => { const r = byName.get(n.toLowerCase()); if (!r) throw new Error(`${set.title}: no picture for "${n}"`); return { name: r.name.toLowerCase(), img: r.full || r.url, fact: FACTS[r.name.toLowerCase()] || '' }; }) };
+  return { key, title: set.title, items: names.map((n) => { const r = byName.get(n.toLowerCase()); if (!r) throw new Error(`${set.title}: no picture for "${n}"`); return { name: r.name.toLowerCase(), img: r.full || r.url, fact: FACTS[r.name.toLowerCase()] || '', sentence: SENTENCES[r.name.toLowerCase()] || '' }; }) };
 });
 
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -44,6 +45,7 @@ const html = `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${esc(title)}</title>
 <link rel="stylesheet" href="/compare.css">
+<link rel="stylesheet" href="/tritoggle.css">
 <style>
   .pm-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px;padding-right:64px}
   .pm-top select{font:600 14px/1 -apple-system,'Helvetica Neue',sans-serif;border:1.5px solid var(--gold);color:var(--gold);background:var(--surface);border-radius:6px;padding:9px 10px}
@@ -66,8 +68,6 @@ const html = `<!doctype html>
   .pm-act{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0}
   .pm-msg{font-size:13px;color:var(--ink2)}
   .pm-msg a{color:var(--gold)}
-  .pm-tick{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);padding:5px 0}
-  .pm-tick input{width:20px;height:20px;margin:0}
 </style>
 <div class="wrap">
   <h1>${esc(title)}</h1>
@@ -78,7 +78,7 @@ const html = `<!doctype html>
   </div>
   <div class="pm-stick"><canvas id="cv" class="pm-canvas"></canvas></div>
   <div class="pm-rows" id="rows"></div>
-  <label class="pm-tick"><input type="checkbox" id="facts" checked> facts</label>
+  <div class="pm-row"><b>facts</b><button type="button" id="facts" class="tri" data-n="1" data-i="full" aria-label="facts: short, sentences or none"></button><output id="factsw">sentences</output></div>
   <div class="pm-act">
     <button type="button" id="save">Save</button>
     <button type="button" id="export">Export PNG</button>
@@ -104,11 +104,12 @@ const html = `<!doctype html>
     ['pic', 'picture size', 30, 100, 1, 100],
     ['gap', 'row gap', 0, 120, 1, 0],
     ['side', 'side margin', 20, 240, 1, 110],
-    ['top', 'top margin', 20, 200, 1, 64],
+    ['top', 'top margin', 0, 200, 1, 0],
     ['bottom', 'bottom margin', 20, 200, 1, 64],
     ['border', 'border inset', 0, 80, 1, 22]
   ];
-  var S = { set: DATA[0].key, face: 'hand', paper: 'legal', facts: true };
+  var S = { set: DATA[0].key, face: 'hand', paper: 'legal', facts: 1 };
+  var FACTW = ['short', 'sentences', 'none'], FACTK = ['short', 'full', 'none'];
   KNOBS.forEach(function (k) { S[k[0]] = typeof k[5] === 'object' ? k[5][S.face] : k[5]; });
   var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
   var IMGS = {}, fontsReady = false, dirty = 0;
@@ -124,11 +125,11 @@ const html = `<!doctype html>
   });
   function setSeg(id, v) { [].forEach.call($(id).querySelectorAll('button'), function (b) { b.classList.toggle('on', b.dataset.v === v); }); }
   function syncUI() {
-    sel.value = S.set; setSeg('face', S.face); setSeg('paper', S.paper); $('facts').checked = !!S.facts;
+    sel.value = S.set; setSeg('face', S.face); setSeg('paper', S.paper); $('facts').dataset.n = S.facts; $('facts').dataset.i = FACTK[S.facts]; $('factsw').textContent = FACTW[S.facts];
     [].forEach.call(rows.querySelectorAll('input'), function (i) {
       var k = i.dataset.k; i.value = S[k];
       var o = i.parentElement.querySelector('output');
-      o.textContent = (k === 'cols' && !S.cols) ? 'auto' : (k === 'name' || k === 'fact') && !S[k] ? 'auto' : k === 'pic' ? S.pic + '%' : k === 'rule' ? S.rule + '%' : k.slice(-2) === 'Sp' ? S[k].toFixed(2) + 'em' : String(S[k]);
+      o.textContent = (k === 'cols' && !S.cols) ? 'auto' : (k === 'name' || k === 'fact' || k === 'top') && !S[k] ? 'auto' : k === 'pic' ? S.pic + '%' : k === 'rule' ? S.rule + '%' : k.slice(-2) === 'Sp' ? S[k].toFixed(2) + 'em' : String(S[k]);
     });
   }
 
@@ -158,7 +159,8 @@ const html = `<!doctype html>
       while (spacedWidth(c, nmText, nsp) > cell - 32 * k && nsz > 8 * k) { nsz -= 0.5 * k; c.font = nsz + 'px "' + F.N + '"'; nsp = S.nameSp * nsz; }
       var nameW = spacedWidth(c, nmText, nsp);
       c.font = ft + 'px "' + F.F + '"';
-      var lines = S.facts && it.fact ? wrap(c, it.fact, Math.max(cell * 0.6, nameW + 16 * k), ft * 0.05) : [];
+      var ftxt = S.facts === 1 ? it.sentence : S.facts === 0 ? it.fact : '';
+      var lines = ftxt ? wrap(c, ftxt, S.facts === 1 ? cell - 16 * k : Math.max(cell * 0.6, nameW + 16 * k), ft * 0.05) : [];
       var h = pic + nm * 0.35 + nm * 1.2 + (lines.length ? ft * 0.3 + lines.length * ft * 1.3 : 0) + gap;
       meas.push({ lines: lines, h: h });
       row.push(h);
@@ -171,13 +173,37 @@ const html = `<!doctype html>
     c.fillStyle = '#fdfdfd'; c.fillRect(0, 0, W, H);
     var b = S.border * k;
     c.strokeStyle = '#111'; c.lineWidth = 2 * k; c.strokeRect(b + k, b + k, W - 2 * b - 2 * k, H - 2 * b - 2 * k);
-    var inner = W - 2 * (S.border + S.side) * k, cx = W / 2, y = (S.border + S.top) * k;
-    // title, shrunk until it fits the width
-    var t = S.title * k, sp; c.fillStyle = '#111'; c.textBaseline = 'alphabetic';
+    var inner = W - 2 * (S.border + S.side) * k, cx = W / 2;
+    c.textBaseline = 'alphabetic';
     var text = d.title.toUpperCase();
+    // the title's size, shrunk until it fits the width
+    var t = S.title * k, sp;
     for (;;) { c.font = t + 'px "' + F.T + '"'; sp = S.titleSp * t; if (spacedWidth(c, text, sp) <= inner || t <= 20 * k) break; t -= 2 * k; }
-    y += t * 0.95; drawSpaced(c, text, cx, y, sp);
-    // the line under it
+    // the plan for a given top margin: the fit (her column count, or the one
+    // whose biggest picture is biggest) and the rows spread evenly
+    function plan(topPx) {
+      var y = b + topPx + t * 0.95 + 22 * k + 30 * k;
+      var gridTop = y, gridH = H - (S.border + S.bottom) * k - gridTop;
+      var best = null, colsList = S.cols ? [S.cols] : [2, 3, 4, 5, 6, 7, 8];
+      colsList.forEach(function (cols) {
+        if (cols > items.length && !S.cols) return;
+        var cell = Math.floor(inner / cols), lo = 30 * k, hi = Math.round(cell * 0.62);
+        if (layout(c, items, cols, lo, k, W, H, F).total > gridH && !S.cols) return;
+        while (hi - lo > 1) { var mid = (lo + hi) >> 1; if (layout(c, items, cols, mid, k, W, H, F).total <= gridH) lo = mid; else hi = mid; }
+        if (!best || lo > best.pic) best = { cols: cols, pic: lo };
+      });
+      if (!best) best = { cols: S.cols || 8, pic: 30 * k };
+      var pic = Math.round(best.pic * S.pic / 100), L = layout(c, items, best.cols, pic, k, W, H, F);
+      var spare = Math.max(0, gridH - L.total), lead = spare / (L.rowsH.length + 1);
+      return { best: best, pic: pic, L: L, gridTop: gridTop, lead: lead };
+    }
+    // the top margin: hers, or the one that matches the air under the last
+    // row (the lead plus the bottom margin), found by re-planning until the
+    // two agree
+    var top = (S.top || S.bottom) * k, P = plan(top);
+    if (!S.top) for (var it = 0; it < 6; it++) { var want = S.bottom * k + P.lead; if (Math.abs(want - top) < 2 * k) break; top = want; P = plan(top); }
+    var y = b + top + t * 0.95;
+    c.fillStyle = '#111'; c.font = t + 'px "' + F.T + '"'; drawSpaced(c, text, cx, y, sp);
     var rw = inner * S.rule / 100; y += 22 * k;
     if (rw > 0) {
       c.beginPath(); c.lineCap = 'round'; c.lineJoin = 'round';
@@ -185,21 +211,8 @@ const html = `<!doctype html>
       else { c.lineWidth = 1.5 * k; c.moveTo(cx - rw / 2, y); c.lineTo(cx + rw / 2, y); }
       c.stroke();
     }
-    y += 30 * k;
-    var gridTop = y, gridH = H - (S.border + S.bottom) * k - gridTop;
-    // the fit: her column count, or the one whose biggest picture is biggest
-    var best = null, colsList = S.cols ? [S.cols] : [2, 3, 4, 5, 6, 7, 8];
-    colsList.forEach(function (cols) {
-      if (cols > items.length && !S.cols) return;
-      var cell = Math.floor(inner / cols), lo = 30 * k, hi = Math.round(cell * 0.62);
-      if (layout(c, items, cols, lo, k, W, H, F).total > gridH && !S.cols) return;
-      while (hi - lo > 1) { var mid = (lo + hi) >> 1; if (layout(c, items, cols, mid, k, W, H, F).total <= gridH) lo = mid; else hi = mid; }
-      if (!best || lo > best.pic) best = { cols: cols, pic: lo };
-    });
-    if (!best) best = { cols: S.cols || 8, pic: 30 * k };
-    var pic = Math.round(best.pic * S.pic / 100), L = layout(c, items, best.cols, pic, k, W, H, F);
-    var spare = Math.max(0, gridH - L.total), rowsN = L.rowsH.length, lead = rowsN > 1 ? spare / (rowsN - 1) : 0;
-    var x0 = (W - inner) / 2, r = 0, yy = gridTop;
+    var best = P.best, pic = P.pic, L = P.L, lead = P.lead;
+    var x0 = (W - inner) / 2, r = 0, yy = P.gridTop + lead;
     items.forEach(function (it, i) {
       var col = i % best.cols, inRow = Math.min(best.cols, items.length - (i - col));
       var rowLeft = x0 + (inner - inRow * L.cell) / 2;
@@ -245,7 +258,7 @@ const html = `<!doctype html>
   // ---- her settings, kept on the sheet ----
   function verdictUrl() { return '/api/chatfeed/verdict?chat=' + encodeURIComponent(CHAT) + '&sheet=' + SHEET; }
   fetch(verdictUrl()).then(function (r) { return r.json(); }).then(function (j) {
-    try { var saved = JSON.parse((j.texts || {}).settings || 'null'); if (saved && typeof saved === 'object') Object.keys(S).forEach(function (k) { if (saved[k] !== undefined) S[k] = saved[k]; }); } catch (e) {}
+    try { var saved = JSON.parse((j.texts || {}).settings || 'null'); if (saved && typeof saved === 'object') Object.keys(S).forEach(function (k) { if (saved[k] !== undefined) S[k] = saved[k]; }); if (typeof S.facts === 'boolean') S.facts = S.facts ? 0 : 2; } catch (e) {}
     syncUI(); loadSet(); schedule();
   }, function () { syncUI(); loadSet(); schedule(); });
   function say(t, html) { var m = $('msg'); if (html) m.innerHTML = t; else m.textContent = t; }
@@ -254,7 +267,7 @@ const html = `<!doctype html>
       .then(function (r) { return r.json(); }).then(function (j) { say(j.ok ? 'saved' : 'could not save'); }, function () { say('could not save'); });
   });
   $('reset').addEventListener('click', function () {
-    KNOBS.forEach(function (k) { S[k[0]] = typeof k[5] === 'object' ? k[5][S.face] : k[5]; }); S.facts = true; syncUI(); schedule();
+    KNOBS.forEach(function (k) { S[k[0]] = typeof k[5] === 'object' ? k[5][S.face] : k[5]; }); S.facts = 1; syncUI(); schedule();
   });
   $('export').addEventListener('click', function () {
     var wh = PAPER[S.paper], W = wh[0] * 2, H = wh[1] * 2, off = document.createElement('canvas'); off.width = W; off.height = H;
@@ -276,9 +289,9 @@ const html = `<!doctype html>
   sel.addEventListener('change', function () { S.set = sel.value; loadSet(); schedule(); });
   [].forEach.call($('face').querySelectorAll('button'), function (b) { b.addEventListener('click', function () { var was = S.face; S.face = b.dataset.v; if (S.title === (typeof KNOBS[0][5] === 'object' ? KNOBS[0][5][was] : 0)) S.title = KNOBS[0][5][S.face]; syncUI(); schedule(); }); });
   [].forEach.call($('paper').querySelectorAll('button'), function (b) { b.addEventListener('click', function () { S.paper = b.dataset.v; syncUI(); schedule(); }); });
-  $('facts').addEventListener('change', function () { S.facts = $('facts').checked; schedule(); });
+  $('facts').addEventListener('click', function () { S.facts = (S.facts + 1) % 3; syncUI(); schedule(); });
   rows.addEventListener('input', function (e) { var i = e.target; if (!i.dataset.k) return; S[i.dataset.k] = parseFloat(i.value); syncUI(); schedule(); });
-  if (window.__compareHelp) window.__compareHelp({ html: '<p>Pick a set and a face, move the sliders, and the poster repaints. Columns, name size and fact size on <b>auto</b> are the fit posters.js uses. <b>Save</b> keeps these settings for next time; <b>Export PNG</b> makes the file at print size (legal is 2550x4200, 300 DPI) and files it in the Assets tab.</p>' });
+  if (window.__compareHelp) window.__compareHelp({ html: '<p>Pick a set and a face, move the sliders, and the poster repaints. Columns, name size, fact size and the top margin on <b>auto</b> are the fit posters.js uses; the facts toggle is short · sentences · none. <b>Save</b> keeps these settings for next time; <b>Export PNG</b> makes the file at print size (legal is 2550x4200, 300 DPI) and files it in the Assets tab.</p>' });
 })();
 </script>
 `;
