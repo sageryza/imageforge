@@ -5940,6 +5940,14 @@ const PL_LORA = {
       label: 'WTR', steps: 28, outputs: 1, megapixels: '1',
       seconds: 7.61, cents: 1.16, n: 21, measured: '2026-09-15',
     },
+    // PNT (2026-09-23, Sophie: "add replicate pnt to playground"). NO PRICE
+    // YET, on purpose: `measure-lora-cost.js --model sageryza/paint` read
+    // 1,200 predictions back to July and found no one-output 28-step pnt run
+    // to measure from, so the page prints nothing for it (no `cents`). The
+    // row is still here so the feed and the search label the style PNT
+    // rather than the model's tail. Re-run the script once a few Playground
+    // pnt runs exist and fill in seconds/cents/n/measured.
+    'sageryza/paint': { label: 'PNT', steps: 28, outputs: 1, megapixels: '1' },
   },
 };
 // "two", "three" … for the plural photo lines; past ten the digit is honest.
@@ -6682,7 +6690,8 @@ async function reconcileCreationFiling() {
         .map((u) => (typeof u === 'string' ? u : u && u.url)).filter(Boolean);
       if (!images.length) continue;
       const st = PL_GPT_STYLES[r.gptStyle];
-      const label = (st && st.label) || (r.style === 'watercolor' ? 'WTR' : '');
+      const label = (st && st.label) || (r.style === 'watercolor' ? 'WTR' : '')
+        || ((PL_LORA.models[r.model] || {}).label || '');
       const styleSlot = label ? `${label}${r.quality ? ' · ' + r.quality : ''}` : '';
       const createdMs = r.createdAt && r.createdAt.toMillis ? r.createdAt.toMillis() : 0;
       // A PANELS run's pieces carry their OWN words and the '1/9 (4K)' size

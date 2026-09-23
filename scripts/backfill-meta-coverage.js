@@ -65,6 +65,8 @@ const isOutput = (u) => HOST.test(u) && IMG.test(String(u).split('?')[0]) && !SK
 // boot the server.
 const STYLE_LABELS = { evan: 'Sandy mirror', plain: 'ChatGPT', dreamy: 'Dreamy',
   scarry: 'Scarry', pastel: 'Pastel', hoonies: 'Hoonies' };
+// A LoRA run is labeled by its model (the page's own STYLES rule).
+const LORA_LABELS = { 'sageryza/watercolordrawings': 'WTR', 'sageryza/paint': 'PNT' };
 
 async function galleryUid() {
   // The device uid is the one holding the creations pile — same heuristic as
@@ -115,7 +117,8 @@ async function main() {
   pl.docs.forEach((d) => {
     const r = d.data();
     const ms = r.createdAt && r.createdAt.toMillis ? r.createdAt.toMillis() : 0;
-    const label = STYLE_LABELS[r.gptStyle] || (r.style === 'watercolor' ? 'WTR' : '') || '';
+    const label = STYLE_LABELS[r.gptStyle] || (r.style === 'watercolor' ? 'WTR' : '')
+      || LORA_LABELS[r.model] || '';
     const urls = [].concat(r.images || []).map((u) => (typeof u === 'string' ? u : u && u.url))
       .concat(r.url ? [r.url] : []).filter(Boolean);
     urls.forEach((u) => offer(u, {

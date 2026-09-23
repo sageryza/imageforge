@@ -2076,10 +2076,15 @@
   // The styles on offer. The server owns the real presets (trigger word,
   // baked suffix, steps); `suffix` here is the page-level tail — WTR keeps the
   // "White background" convention.
-  // WTR is the one Replicate LoRA left on the picker (the Hoonie linocut tile
-  // came off Aug 2026 at Sophie's ask — the model itself is untouched and
-  // still serves the Test Station and the house styles, so old Hoonie runs
-  // stay in the feed and keep their label via RETIRED below). The gptimage
+  // WTR and PNT are the two Replicate LoRAs on the picker — PNT (Painterly,
+  // `sageryza/paint`, trigger `pnt`) joined 2026-09-23 at Sophie's ask ("add
+  // replicate pnt to playground"), the same recipe as WTR: trigger in front,
+  // the page-level tail behind, scale + seed + ×3 + the shape toggle. (The
+  // Hoonie linocut tile came off Aug 2026 at Sophie's ask — the model itself
+  // is untouched and still serves the Test Station and the house styles, so
+  // old Hoonie runs stay in the feed and keep their label via RETIRED below.)
+  // Everything below keys off `engine === 'replicate'`, never off the
+  // `watercolor` key, so a LoRA row needs nothing but its line here. The gptimage
   // styles are a different engine: gpt-image-2's edits endpoint with
   // reference images attached (`gptStyle` picks the set server-side — see
   // PL_GPT_STYLES in server.js, which owns the whole sent prompt; the page no
@@ -2092,6 +2097,8 @@
   var STYLES = {
     watercolor: { model: 'sageryza/watercolordrawings', label: 'WTR', engine: 'replicate',
                   trigger: 'wtr', suffix: 'White background', baked: '' },
+    painterly:  { model: 'sageryza/paint', label: 'PNT', engine: 'replicate',
+                  trigger: 'pnt', suffix: 'White background', baked: '' },
     // Sandy mirror = refs/sage-sandy-mirror.png. Its KEY stays `chatgpt` and
     // its gptStyle stays `evan` (Aug 2026 rename, Sophie): both are stored —
     // in localStorage, in ?style= deep links, in every run doc and in
