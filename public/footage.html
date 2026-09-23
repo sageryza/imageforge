@@ -4082,12 +4082,25 @@ function activeBox() { return activeWrap().querySelector('.pblock'); }
 // the one she taps into hands its own pictures back to the strip, the price
 // line and the keyframe note — so the references on screen are always the ones
 // the star's own tap will send.
+// THE BLOCK SHE TAPPED STAYS UNDER HER FINGER (2026-09-23, Sophie: "at
+// various times it still switches rapidly between screens when i put my
+// cursor down · i'm going to get epilepsy"). Making a block active moves the
+// characters-and-setting heading to sit above it (`placeHeads`) and swaps the
+// strip to its pictures, and every pixel of that landed on the box she had
+// just touched: MEASURED at 390x844, the tapped box moved 32px with the
+// heading folded and 91-258px with it open — at the moment of the tap, so the
+// caret went down in words she was not pointing at and the caret keeper and
+// iOS each scrolled after it. So whatever moves, the page scrolls by the same
+// amount the other way and the block she is going to is exactly where it was.
 function setActive(w) {
   if (!w || w.classList.contains('active')) return;
+  var was = w.getBoundingClientRect().top;
   stashActive();
   markActive(w);
   loadActive();
   paintControls();
+  var moved = w.getBoundingClientRect().top - was;
+  if (Math.abs(moved) >= 1) window.scrollBy(0, moved);
 }
 // `height:auto` FIRST or the box can only ever grow — scrollHeight on a box
 // already sized to its old height reports that height. The border is added
