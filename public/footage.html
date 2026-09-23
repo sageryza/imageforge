@@ -837,6 +837,38 @@
   .likefilt svg{width:16px;height:16px}
   .likefilt.on{background:#c25a72;color:#fff}
   .xfilt.on{background:#9a938a;color:#fff}
+  /* STITCH MODE — the button is in the HEADER beside the ?, lit in the dark
+     ink the LIST segment wears rather than the marks' rose: it is a MODE the
+     feed is in, not a filter over it. The row under the feed bar is drawn
+     only while the mode is on; it takes the whole width so the bar's own row
+     never wraps around it. */
+  .hbtns{display:inline-flex;align-items:center;gap:8px;flex:none}
+  .hbtn{width:26px;height:26px;padding:0;border-radius:6px;border:1px solid #c9b8a0;background:#fff;color:#6f675e;
+        display:inline-flex;align-items:center;justify-content:center}
+  .hbtn svg{width:15px;height:15px;display:block}
+  .hbtn.on{background:#2b2620;border-color:#2b2620;color:#f6f2ea}
+  .stitchrow{display:none;flex:1 0 100%;align-items:center;gap:10px;min-height:34px;
+        padding-right:64px}   /* the pill's column — the bar is sticky at both ends, so Send would sit under it */
+  body.stitching .stitchrow{display:flex}
+  .stitchrow .stcount{flex:1;min-width:0;font-size:13px;color:#6f675e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stitchrow .stsend{flex:none;height:32px;padding:0 12px;border:1px solid #2b2620;border-radius:6px;
+        background:#2b2620;color:#f6f2ea;font:inherit;font-size:14px}
+  .stitchrow .stsend:disabled{opacity:.35}
+  /* THE NUMBER ON A CLIP — top-left, the marks' own plate. The tile's note
+     strip slides right to make room for it while the mode is on. Empty, it
+     is not drawn, so a tile she has not numbered looks exactly as it did. */
+  .snum{position:absolute;left:4px;top:4px;display:none;min-width:26px;height:26px;padding:0 7px;border-radius:6px;
+        background:rgba(43,38,32,.9);color:#f6f2ea;font-size:14px;font-weight:600;line-height:24px;text-align:center;
+        border:1px solid rgba(255,255,255,.35);pointer-events:none;z-index:2}
+  body.stitching .snum:not(:empty){display:block}
+  body.stitching #tiles .cell{cursor:pointer}
+  body.stitching #tiles .cell.picked, body.stitching .job .thumb.picked{outline:2px solid #c25a72;outline-offset:-2px}
+  /* while numbering, the whole tile is the pick — the two doors would steal
+     the middle of it, and playing is one tap on the mode button away */
+  body.stitching #tiles .tdoors{display:none}
+  body.stitching #tiles .cell.picked .ttop{left:36px}
+  body.stitching #tiles .cell.short .snum{min-width:20px;height:20px;line-height:18px;font-size:11px;padding:0 4px;left:2px;top:2px}
+  .job .thumb{position:relative}
   /* THE SEARCH — a magnifying glass that EXPANDS, and it is the ONLY main
      button (2026-09-11, Sophie: "single magnifying glass button that
      expands" · "filter is sub menu of glass · only one main button"). The
@@ -1346,7 +1378,20 @@
 </style>
 </head>
 <body>
-<header class="app-header"><h1 id="title">Footage</h1><button id="help" type="button" aria-label="How this works" title="How this works">?</button></header>
+<!-- STITCH MODE (2026-09-23, Sophie: "press the stitch mode icon in footage
+     and then i select the clips and add numbers to them · and then they go to
+     the stitch area in that order"). The mark is Stitch's own tile glyph (a
+     button that opens another tool wears THAT tool's icon). On, every tap on
+     a tile or a card's picture puts the NEXT number on that clip; a second
+     tap takes it off and the ones after it move up; Send makes a stitch of
+     them in that order and opens it. IT SITS IN THE HEADER, NOT ON THE FEED
+     BAR: at 390pt the bar's first line is full to the pill's column (the
+     view switch, the two marks, the search and the folder button — MEASURED
+     by test-footage-feedbar-sticky, which the bar seat failed by 35px), and
+     a mode the feed is IN is not one more filter over it. The two header
+     buttons share one wrapper so pagehead.js's "last child rides right"
+     rule carries both. -->
+<header class="app-header"><h1 id="title">Footage</h1><span class="hbtns"><button type="button" class="hbtn" id="v-stitch" aria-label="Stitch mode — number clips to send to Stitch" title="Stitch mode" aria-pressed="false"></button><button id="help" type="button" aria-label="How this works" title="How this works">?</button></span></header>
 <!-- WHAT EACH DOOR ACCEPTS AND COSTS (2026-09-14, her ask). Every line here
      is MEASURED and is in CLAUDE.md — what a door does with a real face, what
      it does with a famous one, whether it hands back a last frame, and what it
@@ -1383,6 +1428,7 @@
   <p><b>Clear</b> beside the star wipes the job &mdash; every block, the references, the marks and the seed &mdash; and leaves the model, the size, the shape and the project where you set them. It asks nothing, because <b>undo</b> appears next to it and puts the whole thing back, even after a reload: the cleared job is saved the moment you clear it. Tap undo again and you are back where you were. Your words are saved as you type them either way.</p>
   <p><b>The seed</b> is on every finished clip, with a button that puts it back in the box. Leave the box blank and each clip gets a fresh one. A seed repeats the <i>opening</i> of a short clip and then drifts &mdash; it does not survive a changed prompt or a different size, and at 15 seconds it does close to nothing.</p>
   <p><b>Tiles.</b> Each one carries two doors in the middle: <b>&#9654;</b> plays the clip, and the list mark beside it takes you to that clip&rsquo;s card &mdash; its words, its seed, its references and the button that puts them back. The first words of your own newest note on a clip sit along the top of its tile.</p>
+  <p><b>Stitch mode.</b> The three-boxes mark beside the <b>?</b> at the top turns it on. Tap clips in the order you want them and each one wears its number; tap a numbered clip to take its number off, and the ones after it move up. A trimmed clip puts its parts in, one number each. <b>Send to Stitch</b> makes a stitch of them in that order and opens it &mdash; you can still move them around there, and the one button joins them. Nothing is drawn: a stitch is free.</p>
   <p><b>Projects and folders.</b> The folder icon on the buttons row opens the projects &mdash; the same folders the character library keeps &mdash; and under each one its sub-folders (the witch commercials, say). Pick one and the header takes its name, the clips, the Recent drawer and the characters narrow to it, and every clip you send is filed there; <b>All</b> shows everything, with each clip saying where it belongs. <b>New project&hellip;</b> and, inside a project, <b>New folder&hellip;</b> make one; a folder is only the clips filed in it, so an emptied one goes away on its own. A scene sent from a belt page switches to its own project by itself. Every card has a button saying where its clip is; tapping it opens the same folders to move the clip &mdash; moving it to another project takes it out of its folder. Your words and the references already attached stay put when you switch &mdash; only what is offered narrows.</p>
   <p><b>Characters.</b> The people icon opens this film&rsquo;s library. Tap a character &mdash; or one of their outfits &mdash; and their references go into the strip while the line that names them by slot goes to the top of the box. The line under each one is exactly what it will add, worked out against what you already have attached, so a second character gets <b>[Video2]</b> rather than the slot the library was written against. Each film is its own shelf. Taking a reference off takes its slot name out of the box and renumbers the rest, so a name never points at the wrong picture. Only the names change &mdash; the words around them are yours.</p>
   <p><b>Notes.</b> The speech mark on a clip opens a note; playing one and tapping it pauses the film and notes the second you stopped on. Either way it lands in the one place chats read their notes, and a chat answers on the note itself.</p>
@@ -1561,6 +1607,11 @@
            autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
     <button type="button" class="qclear" id="qclear" aria-label="Clear search" hidden>&times;</button>
   </div>
+  <div class="stitchrow" id="stitchrow" role="group" aria-label="Stitch mode">
+    <span class="stcount" id="stcount"></span>
+    <button type="button" class="wipe" id="stclear" hidden>clear</button>
+    <button type="button" class="stsend" id="stsend" disabled>Send to Stitch</button>
+  </div>
 </div>
 <div id="feed"></div>
 <div id="tiles" hidden></div>
@@ -1688,6 +1739,8 @@ var ICONS = {
   // divide here (Lucide separator-horizontal) and join (Lucide fold-vertical)
   divide: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 16-4 4-4-4"/><path d="M3 12h18"/><path d="m8 8 4-4 4 4"/></svg>',
   join: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22v-6"/><path d="M12 8V2"/><path d="M4 12H2"/><path d="M10 12H8"/><path d="M16 12h-2"/><path d="M22 12h-2"/><path d="m15 19-3-3-3 3"/><path d="m15 5-3 3-3-3"/></svg>',
+  // STITCH's own tile mark (SF `rectangle.3.group`): one tall box, two stacked beside it
+  stitch: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13.5" y="4" width="7.5" height="7" rx="1.5"/><rect x="13.5" y="13" width="7.5" height="7" rx="1.5"/></svg>',
   scissors: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>',
   // Lucide `flag` — the mark on a picture she has pinned as a keyframe. It
   // says MARKED and nothing more; which end it is is the word on the slot
@@ -1703,7 +1756,7 @@ document.querySelectorAll('.selwrap .chev').forEach(function (c) { c.innerHTML =
 document.querySelectorAll('.iconbtn .ico').forEach(function (c) { c.innerHTML = ICONS.folder; });
 $('shback').innerHTML = ICONS.back;
 $('shclose').innerHTML = ICONS.x;
-$('v-liked').innerHTML = ICONS.heart; $('v-hidex').innerHTML = ICONS.x;
+$('v-liked').innerHTML = ICONS.heart; $('v-hidex').innerHTML = ICONS.x; $('v-stitch').innerHTML = ICONS.stitch;
 $('v-search').innerHTML = ICONS.search + '<span class="qcount" hidden></span>';
 $('seedclear').innerHTML = ICONS.x;
 $('rectog').innerHTML = ICONS.history;
@@ -5724,6 +5777,7 @@ function applyFilt() {
     if (s && tiles) any = true;
   });
   if (tiles) paintShortTiles();
+  paintStitch();   // a card rebuilt by the poll has a fresh, empty number slot
   // A CARD FIRST DRAWN WHILE A FILTER HID IT HAS NO "… more" UNTIL SOMETHING
   // RE-ASKS (2026-09-13, found auditing the page — the Playground's own
   // `resyncClamps` lesson, arriving through a filter rather than a view). The
@@ -5786,6 +5840,116 @@ function paintShortTiles() {
   });
 }
 window.addEventListener('resize', function () { if (curView() === 'tiles') paintShortTiles(); }, { passive: true });
+// ── STITCH MODE (2026-09-23, Sophie: "press the stitch mode icon in footage
+// and then i select the clips and add numbers to them · and then they go to
+// the stitch area in that order") ────────────────────────────────────────
+// The Stitch page's own picker is a wall of the same clips where a tap
+// appends and the tile wears its place; this is that gesture brought HERE,
+// where she is already looking at the clips, so picking and ordering is one
+// pass over the feed rather than a trip to another page and a second search.
+// ST.order is the list of PICKABLE IDS in the order she tapped — the same ids
+// Stitch's picker uses (a job id for a whole clip, `<job>:<trim key>` for a
+// part) — so the server turns them into a stitch through `addPick`, the one
+// rule, and nothing here re-derives what a clip is.
+// A TRIMMED CLIP PUTS ITS PARTS IN, one number each (the parts are what go in
+// the film — Stitch's own rule for its picker), and its tile reads "3–4"; a
+// whole clip is one number. The second tap takes every number off that clip.
+// THE ORDER SURVIVES A RELOAD (sessionStorage): the page self-heals onto a new
+// build and the feed polls, and losing twelve taps to either would be the
+// bug. It does NOT survive closing the tool — a number she put on a clip last
+// week is not a plan she still has.
+var ST = { on: false, order: [] };
+var ST_MAX = 60;   // stitch.js MAX_CLIPS
+(function () {
+  try {
+    var v = JSON.parse(sessionStorage.getItem('footage_stitch') || 'null');
+    if (v && Array.isArray(v.order)) { ST.on = !!v.on; ST.order = v.order.map(String); }
+  } catch (e) {}
+})();
+function stSave() { try { sessionStorage.setItem('footage_stitch', JSON.stringify(ST)); } catch (e) {} }
+function stJobOf(id) { return String(id).split(':')[0]; }
+// what a tap on THIS clip puts in the order
+function stPickIds(j) {
+  var ps = bakedParts(j);
+  return ps.length ? ps.map(function (t) { return j.id + ':' + t.key; }) : [j.id];
+}
+// job id → its 1-based places in the order ("2, 5" for a clip used twice)
+function stPlaces() {
+  var m = {};
+  ST.order.forEach(function (id, i) { var job = stJobOf(id); (m[job] = m[job] || []).push(i + 1); });
+  return m;
+}
+// "3" · "3–4" · "3, 5" — a run of consecutive numbers reads as a range
+function stLabel(places) {
+  if (!places || !places.length) return '';
+  var runs = [], a = places[0], b = places[0];
+  for (var i = 1; i <= places.length; i++) {
+    var v = places[i];
+    if (v === b + 1) { b = v; continue; }
+    runs.push(a === b ? String(a) : a + '\u2013' + b);
+    a = b = v;
+  }
+  return runs.join(', ');
+}
+function stToggle(j) {
+  if (!j) return;
+  var picked = ST.order.some(function (id) { return stJobOf(id) === j.id; });
+  if (picked) {
+    ST.order = ST.order.filter(function (id) { return stJobOf(id) !== j.id; });
+  } else {
+    if (j.status !== 'done' || !(j.source || j.video)) { toast('That clip is not finished yet'); return; }
+    var ids = stPickIds(j);
+    if (ST.order.length + ids.length > ST_MAX) { toast('A stitch takes ' + ST_MAX + ' clips at most'); return; }
+    ST.order = ST.order.concat(ids);
+  }
+  stSave(); paintStitch();
+}
+function paintStitch() {
+  if (!ST) return;   // a repaint before this block has run (the script is one file, read top to bottom)
+  document.body.classList.toggle('stitching', ST.on);
+  var btn = $('v-stitch');
+  if (btn) { btn.classList.toggle('on', ST.on); btn.setAttribute('aria-pressed', ST.on ? 'true' : 'false'); }
+  var places = stPlaces();
+  document.querySelectorAll('#tiles .cell, #feed .job').forEach(function (el) {
+    var pl = places[el.dataset.id] || [];
+    var n = el.querySelector('.snum');
+    var t = ST.on ? stLabel(pl) : '';
+    if (n && n.textContent !== t) n.textContent = t;
+    var tgt = el.classList.contains('job') ? el.querySelector('.thumb') : el;
+    if (tgt) tgt.classList.toggle('picked', ST.on && pl.length > 0);
+  });
+  var cnt = ST.order.length;
+  var cl = $('stcount');
+  if (cl) cl.textContent = stBusy ? 'Making the stitch\u2026'
+    : cnt ? cnt + (cnt === 1 ? ' clip' : ' clips') + ' numbered'
+    : 'Tap clips in the order you want them';
+  if ($('stsend')) $('stsend').disabled = !cnt || stBusy;
+  if ($('stclear')) $('stclear').hidden = !cnt || stBusy;
+}
+var stBusy = false;
+// SEND: the numbers go to the server as the order and the stitch it makes is
+// opened. Nothing here is a model call — a stitch is ffmpeg on our own box,
+// and this only WRITES the order; joining is the button on the Stitch page.
+function stSend() {
+  if (!ST.order.length || stBusy) return;
+  stBusy = true; paintStitch();
+  fetch('/api/stitch/from-footage', { method: 'POST', headers: hdr({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ ids: ST.order.slice(), project: S.project || '' }) })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      stBusy = false;
+      if (!d || !d.id) { toast((d && d.error) || 'Could not make the stitch \u2014 your numbers are still here.'); paintStitch(); return; }
+      // the numbers have become the stitch — nothing left to carry
+      ST.order = []; ST.on = false; stSave(); paintStitch();
+      location.href = '/stitch?s=' + encodeURIComponent(d.id);
+    })
+    .catch(function () { stBusy = false; toast('The server did not answer \u2014 your numbers are still here.'); paintStitch(); });
+}
+$('v-stitch').addEventListener('click', function () { ST.on = !ST.on; stSave(); paintStitch(); });
+$('stclear').addEventListener('click', function () { ST.order = []; stSave(); paintStitch(); });
+$('stsend').addEventListener('click', stSend);
+paintStitch();
+
 $('v-liked').addEventListener('click', function () { try { localStorage.setItem('footage_liked', likedOnly() ? '' : '1'); } catch (e) {} forgetSent(); paintFilt(); applyFilt(); });
 $('v-hidex').addEventListener('click', function () { try { localStorage.setItem('footage_hidex', hideX() ? '' : '1'); } catch (e) {} forgetSent(); paintFilt(); applyFilt(); });
 
@@ -6083,6 +6247,17 @@ function tileCell(j) {
     var note = document.createElement('span'); note.className = 'tnote';
     top.appendChild(note);
     c.appendChild(top);
+    // THE NUMBER STITCH MODE PUTS ON IT — filled by paintStitch, out of the
+    // wall's signature like the note and the scissors
+    var num = document.createElement('span'); num.className = 'snum';
+    c.appendChild(num);
+    // IN STITCH MODE THE WHOLE TILE IS THE PICK (the doors are off then). The
+    // marks are siblings that stop their own taps, so a heart is still a heart.
+    c.addEventListener('click', function (e) {
+      if (!ST || !ST.on) return;
+      if (e.target.closest && e.target.closest('.tmark')) return;
+      stToggle(jobsById[j.id] || j);
+    });
     // BOTH DOORS, SIDE BY SIDE IN THE MIDDLE: play it, or go to its card. A
     // clip with no url yet has nothing to play, so it carries the one door it
     // can honour rather than a button that would do nothing.
@@ -6467,6 +6642,7 @@ function jobCard(j) {
     // A clip whose door did not say carries no tag at all.
     j.drewMs != null ? 'drew in ' + dur(j.drewMs) : ''].filter(Boolean).join(' · ');
   var thumbInner = j.poster ? '<img src="' + esc(j.poster) + '" alt="">' + ICONS.play : (j.status === 'done' ? ICONS.play : (j.status === 'failed' ? ICONS.x : ''));
+  thumbInner += '<span class="snum"></span>';   // stitch mode's number, filled by paintStitch
   var html = '<div class="jobrow">' +
     '<button type="button" class="thumb' + (j.status === 'drawing' ? ' drawing' : '') + '" data-ar="' + esc(j.ratio || '') + '" aria-label="Play">' + thumbInner + '</button>' +
     '<div class="jobmain"><div class="pwrap"><div class="p clamp"></div></div>' +
@@ -6579,7 +6755,11 @@ function jobCard(j) {
     }
     var p = el.querySelector('.p'); p.textContent = j.prompt || '';
     clampMore(p);
-    el.querySelector('.thumb').addEventListener('click', function () { var jj = jobsById[j.id] || j; if (jj.video) openPlayer(jj.source || jj.video, jj); });
+    el.querySelector('.thumb').addEventListener('click', function () {
+      var jj = jobsById[j.id] || j;
+      if (ST.on) { stToggle(jj); return; }          // numbering, not playing
+      if (jj.video) openPlayer(jj.source || jj.video, jj);
+    });
     el.querySelectorAll('[data-vote]').forEach(function (b) { b.addEventListener('click', function () { castVote(j.id, b.dataset.vote); }); });
     el.querySelector('.copy').addEventListener('click', function () { copyBack(j); });
     el.querySelector('.cmpb').addEventListener('click', function () { compareTap(j.id); });
