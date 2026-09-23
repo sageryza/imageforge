@@ -1,6 +1,7 @@
 import WidgetKit
 import SwiftUI
 import UIKit
+import AppIntents
 
 // THE DECKS WAITING TO BE SWIPED, on the home screen (2026-09-02, Sophie:
 // "the widget / make it 4 icons / decks to swipe / currently / the dream
@@ -219,10 +220,9 @@ struct ForgeWidgetView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        // SMALL HAS EXACTLY ONE TAP TARGET — iOS gives a systemSmall widget a
-        // single `widgetURL` and ignores any Link inside it — so the little
-        // one opens the queue and the medium one's icons each open their own
-        // deck. That is the whole reason the two layouts differ.
+        // SMALL HAS ONE `widgetURL` AND IGNORES Link — so on iOS 18 its icons
+        // are intent buttons (`tappable`), and this queue link is what a tap
+        // between them, the empty/stale states, and older iOS get.
         .widgetURL(URL(string: "deckfactory://review"))
     }
 
@@ -250,7 +250,7 @@ struct ForgeWidgetView: View {
                     HStack(spacing: Self.gap) {
                         ForEach(0..<2, id: \.self) { col in
                             if row * 2 + col < entry.decks.count {
-                                DeckIcon(deck: entry.decks[row * 2 + col], side: side)
+                                tappable(entry.decks[row * 2 + col], side: side)
                             } else {
                                 Color.clear.frame(width: side, height: side)
                             }
@@ -259,6 +259,21 @@ struct ForgeWidgetView: View {
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height)
+        }
+    }
+
+    /// EACH PICTURE OPENS ITS OWN DECK, the small one too (2026-09-23,
+    /// Sophie: "it shud go to the one i tap"). A small widget ignores `Link`,
+    /// but iOS 17+ runs an App Intent button in any size, and iOS 18's
+    /// `OpenURLIntent` opens our own deckfactory:// link — the same one the
+    /// medium widget's Links carry. Older iOS keeps the one `widgetURL`.
+    @ViewBuilder
+    private func tappable(_ d: ForgeDeck, side: CGFloat) -> some View {
+        if #available(iOSApplicationExtension 18.0, *), let link = d.link {
+            Button(intent: OpenURLIntent(link)) { DeckIcon(deck: d, side: side) }
+                .buttonStyle(.plain)
+        } else {
+            DeckIcon(deck: d, side: side)
         }
     }
 
