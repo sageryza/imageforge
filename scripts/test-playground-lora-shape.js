@@ -73,10 +73,19 @@ offered.forEach((a) => assert.ok(ACCEPTED.includes(a), `the server accepts ${a}`
 ok(`every one of the ${offered.length} shapes on offer is one the server accepts`);
 
 // The recipe key: changing the shape must make a new picture, not a refusal.
-assert.ok(/function recipeKey\(model, prompt, scale, seed, ar\)/.test(PAGE),
-  'the "I already have that one" key knows the shape');
-assert.ok(/recipeKey\(r\.model, r\.prompt, r\.loraScale, r\.seed, r\.aspectRatio\)/.test(PAGE),
+assert.ok(/function recipeKey\(model, prompt, scale, seed, ar, suffix\)/.test(PAGE),
+  'the "I already have that one" key knows the shape and the tail');
+assert.ok(/recipeKey\(r\.model, r\.prompt, r\.loraScale, r\.seed, r\.aspectRatio,/.test(PAGE),
   'and reads it off the run doc, so older runs key as the default they drew');
+// The tail (2026-09-23): taking "White background" off her words is a new
+// picture, so the key must differ — run the page's own two functions.
+{
+  const grab = (name) => new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n  \\}').exec(PAGE)[0];
+  const rk = new Function('LORA_AR_DEFAULT', grab('sameRunKey') + grab('recipeKey') + 'return recipeKey;')('2:3');
+  const a = rk('m', 'mailman on a ladder', 1, 91, '2:3', 'White background');
+  assert.notStrictEqual(a, rk('m', 'mailman on a ladder', 1, 91, '2:3', ''), 'removing the tail is a new recipe');
+  assert.strictEqual(a, rk('m', 'mailman on a ladder.', 1, 91, '2:3', ' White background '), 'same recipe still dedupes');
+}
 ok('a shape change is a different recipe, not a duplicate');
 
 (async () => {
