@@ -54,6 +54,10 @@
 .pc.on .tick{ background:var(--gold); border-color:var(--gold); color:#fff; }
 .pc .tick svg{ width:12px; height:12px; display:none; }
 .pc.on .tick svg{ display:block; }
+/* the kind chips: one row at the top, so animals · fruits · vegetables ·
+   plants are a tap away and never a scroll (2026-09-23, Sophie: "i have to
+   scroll all the way down to switch between animals fruit and plants") */
+.kinds{ display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 2px; }
 .msg{ font-size:13px; color:var(--ink2); margin-top:8px; min-height:18px; }
 .ico{ width:20px; height:20px; color:var(--ink2); flex:none; display:inline-flex; }
 .ico svg{ width:20px; height:20px; }
@@ -117,7 +121,10 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
 
   <section id="pane-pieces">
     <div class="row" style="margin:0 0 4px" data-nostop><span class="ico" id="searchico"></span><input type="text" id="search" autocomplete="off" autocapitalize="off" aria-label="Search the pieces"></div>
-    <div id="shelf"></div>
+    <div class="chips kinds" id="kinds" data-nostop><button class="chip on" data-k="">all</button><button class="chip" data-k="animal">animals</button><button class="chip" data-k="fruit">fruits</button><button class="chip" data-k="vegetable">vegetables</button><button class="chip" data-k="plant">plants</button></div>
+    <!-- data-nostop: a tap on a piece is a tick, never the start of the
+         autoscroll (2026-09-23, Sophie: "checking box triggers autoscroll") -->
+    <div id="shelf" data-nostop></div>
     <div class="msg" id="shelfmsg"></div>
   </section>
 
@@ -298,33 +305,49 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
   }
   var shelfSig = '';
   function inPattern(id) { return !!(pattern && pattern.items.some(function (it) { return it.piece === id; })); }
-  var query = '';
+  var query = '', kindOn = '';
   function renderShelf() {
     var q = query.trim().toLowerCase();
-    var list = PIECES.filter(function (p) { return !q || (p.name + ' ' + p.kind).toLowerCase().indexOf(q) >= 0; });
+    var list = PIECES.filter(function (p) { return (!kindOn || p.kind === kindOn) && (!q || (p.name + ' ' + p.kind).toLowerCase().indexOf(q) >= 0); });
     var order = { animal: 0, fruit: 1, vegetable: 2, plant: 3, other: 4 };
     var rank = function (p) { return p.kind in order ? order[p.kind] : 4; };
     list.sort(function (a, b) { return (rank(a) - rank(b)) || String(a.name).localeCompare(String(b.name)); });
-    var sig = q + '#' + list.map(function (p) { return p.id + (inPattern(p.id) ? 1 : 0); }).join('|');
-    if (sig === shelfSig) return;
+    // A REPAINT NEVER REBUILDS WHAT DID NOT CHANGE: the tiles are rebuilt only
+    // when the LIST changes (a search, a kind chip); a tick toggles a class on
+    // the tile that is already there. Rebuilding on every tick re-decoded 175
+    // pictures and the whole list flashed blank (2026-09-23, Sophie: "reload
+    // flash").
+    var sig = q + '#' + kindOn + '#' + list.map(function (p) { return p.id; }).join('|');
+    if (sig === shelfSig) { syncTicks(); return; }
     shelfSig = sig;
     var host = $('shelf'); host.innerHTML = '';
     if (!list.length) { host.innerHTML = '<div class="msg">' + (q ? 'nothing called that' : 'nothing on the list yet') + '</div>'; return; }
     var kind = null, grid = null;
     list.forEach(function (p) {
-      if (p.kind !== kind) {
+      if (p.kind !== kind && !kindOn) {
         kind = p.kind;
         var h = document.createElement('div'); h.className = 'kindh'; h.textContent = kind + 's'; host.appendChild(h);
         grid = document.createElement('div'); grid.className = 'shelf'; host.appendChild(grid);
       }
+      if (!grid) { grid = document.createElement('div'); grid.className = 'shelf'; host.appendChild(grid); }
       var b = document.createElement('div');
-      b.className = 'pc' + (inPattern(p.id) ? ' on' : '');
+      b.className = 'pc';
       b.dataset.id = p.id;
       b.innerHTML = '<img src="' + esc(p.thumb) + '" alt="" loading="lazy"><div class="tick">' + LUCIDE.check + '</div><div class="nm">' + esc(p.name) + '</div>';
       grid.appendChild(b);
     });
+    syncTicks();
+  }
+  function syncTicks() {
+    $('shelf').querySelectorAll('.pc').forEach(function (b) { b.classList.toggle('on', inPattern(b.dataset.id)); });
   }
   $('search').addEventListener('input', function () { query = $('search').value; renderShelf(); });
+  $('kinds').addEventListener('click', function (e) {
+    var b = e.target.closest('.chip'); if (!b) return;
+    kindOn = b.dataset.k;
+    $('kinds').querySelectorAll('.chip').forEach(function (c) { c.classList.toggle('on', c === b); });
+    renderShelf();
+  });
   $('shelf').addEventListener('click', function (e) {
     var b = e.target.closest('.pc'); if (!b || !pattern) return;
     togglePiece(b.dataset.id);
@@ -342,7 +365,7 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
       pattern.items.push(it); sel = it.k; touch(it.k);
     }
     imgFor(id);
-    changed(); shelfSig = ''; renderShelf();
+    changed(); syncTicks();
   }
 
   // ── the pattern ──
@@ -363,7 +386,7 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
     $('pick').innerHTML = esc(p.name || 'untitled') + '<i>▾</i>';
     $('pname').value = p.name || '';
     p.items.forEach(function (it) { imgFor(it.piece); });
-    shelfSig = ''; renderShelf();
+    renderShelf();
     $('space').value = p.tile.w;
     setLayoutUI(); setBgUI(); renderExports();
     sizeCanvas(); changed();
@@ -546,7 +569,7 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
     if (!sel) return;
     var k = sel;
     pattern.items = pattern.items.filter(function (it) { return it.k !== k; });
-    sel = null; touch(k); changed(); shelfSig = ''; renderShelf();
+    sel = null; touch(k); changed(); syncTicks();
   });
   $('space').addEventListener('input', function () {
     var v = Number($('space').value);
