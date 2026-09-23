@@ -6,11 +6,8 @@
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 const CHAT = 'font-creation-01bjog';
-const FONTS = [
-  ['Print Caps', 'print-caps'], ['Serif Caps', 'serif-caps'], ['Sophie Hand', 'sophie-hand'],
-  ['Lemon Hand', 'lemon-hand'], ['Magic Title', 'magic-title'], ['Magic Subtitle', 'magic-subtitle'],
-  ['Magic Italic', 'magic-subtitle-italic'],
-];
+// Only the fonts drawn in this chat (Sophie: "new page just the new ones").
+const FONTS = [['Print Caps', 'print-caps'], ['Serif Caps', 'serif-caps']];
 function build() {
   const list = FONTS.filter(([, f]) => fs.existsSync(path.join(ROOT, 'public/fonts', f + '.ttf')));
   const faces = list.map(([, f]) => {
