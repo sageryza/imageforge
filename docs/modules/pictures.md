@@ -992,6 +992,19 @@ chart's records (the 27 fruits, the hq/redo/2K passes, the v4 vegetables) —
 one per name, the FIRST source in the script's preference order winning and
 an older twin hidden (8 were), card-only pictures under 500px skipped. Kinds:
 animal · fruit · vegetable · plant · other. Re-running the seed is one list.
+**THE FRUIT LIST IS EXACTLY HER PICKED DECK (2026-09-23, Sophie, looking at
+a whole banana on v4: "check ur work · and use the most recent one of each
+fruit i chose · including half peeled medium banana").** The seed files
+`scripts/decks/fruit-picked.json` (her 35 picks, owned by the card-pattern
+chat) FIRST and `exact` — filed at any size, never skipped as small — and
+then hides every fruit piece whose id is not one of those 35, whatever its
+name (12 hid on 09-23: the whole banana, orange, avocado, pineapple, fig,
+dragon fruit, cantaloupe, the cut-open and a-few redraws); a picked one
+found hidden is shown again. So the shelf is 35 fruits, one each, and the
+banana is `promptlab/1789970998881-p3fn8y.webp`. A new pick of hers is a
+line in that deck and a re-run of the seed, then a re-post of the page. Live
+2026-09-23: 174 pieces — 72 animals, 35 fruits, 35 vegetables, 31 plants,
+1 other (garnet, from the fruit chart's records).
 Once the module is deployed, `POST /api/pattern/pieces {name, kind, src}`
 files another and `POST /pieces/draw {name, kind}` draws one in the fruit
 chart's recipe (`scripts/fruit-redraw.js`: `refs/sage-sandy-mirror.png`,

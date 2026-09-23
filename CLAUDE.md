@@ -3680,10 +3680,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
   never overwrite one), and `node scripts/pattern-page.js --go [--supersede
   <id>]` posts a new version (ledger `docs/pattern/VERSIONS`). **The pieces
   are baked into the page**: every ready, unhidden doc on
-  `forge-pattern-pieces` — 175 on 2026-09-22 (72 animals, 38 fruits, 35
-  vegetables, 30 plants — the card-pattern chat's decks under
-  `scripts/decks/` and the fruit chart's records, her finished fruit picks
-  first), filed by `scripts/pattern-seed.js` with TWO cuts each: `cut`, the
+  `forge-pattern-pieces` — 174 on 2026-09-23 (72 animals, **35 fruits —
+  EXACTLY her picked deck, `scripts/decks/fruit-picked.json`, every other
+  fruit piece hidden (09-23, "use the most recent one of each fruit i chose
+  · including half peeled medium banana")**, 35 vegetables, 31 plants — the
+  card-pattern chat's decks under `scripts/decks/` and the fruit chart's
+  records), filed by `scripts/pattern-seed.js` with TWO cuts each: `cut`, the
   clean one (`vectorize.cutout`, the paper made see-through), and `rough`,
   THE ONE THE PAGE DRAWS — the scissors cut ported verbatim from
   `scripts/card-pattern.js --cut rough` (a loose 28-point polygon a 6%
