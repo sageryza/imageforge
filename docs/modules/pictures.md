@@ -997,6 +997,17 @@ files another and `POST /pieces/draw {name, kind}` draws one in the fruit
 chart's recipe (`scripts/fruit-redraw.js`: `refs/sage-sandy-mirror.png`,
 gpt-image-2, medium, 1024x1024, ~6c) — stamped, filed into My Creations, cut.
 
+### The Pieces tab, from her second day with it (2026-09-23)
+A row of kind chips at the top — all · animals · fruits · vegetables ·
+plants — so switching kinds is a tap, never a scroll ("i have to scroll all
+the way down to switch between animals fruit and plants"); a search box
+beside it narrows by name. The list wears `data-nostop`, so a tick is never
+read as the start of the autoscroll, and a tick TOGGLES A CLASS on the tile
+that is already there — the tiles are rebuilt only when the list itself
+changes (a search, a chip). Rebuilding on every tick re-decoded 175 pictures
+and the list flashed blank ("checking box triggers autoscroll and reload
+flash"); the test pins node identity across a tick.
+
 ### What the first cut was, so nobody rebuilds it
 A `public/pattern.html` at `/pattern` on tool.css with an iOS tile, merged
 2597/2599 and removed the same day (the route, the page, the `Tool` case,
