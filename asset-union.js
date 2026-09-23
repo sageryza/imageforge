@@ -160,6 +160,10 @@ function seedTile(r) {
     promptStyle: r.promptStyle || '',
     promptContent: r.promptContent || '',
     kind: r.kind || '',
+    // The photo(s) the picture was drawn from (the Playground door re-attaches
+    // them); carried like the prompt halves — whichever copy knows, the tile knows.
+    photoRef: r.photoRef || '',
+    photoRefs: Array.isArray(r.photoRefs) ? r.photoRefs.slice() : [],
     // Damage is a property of the BYTES, so it belongs to the picture and not
     // to whichever record happened to carry it — see foldTile.
     compressedAtBirth: !!r.compressedAtBirth,
@@ -187,6 +191,10 @@ function foldTile(existing, r) {
   const hasOwn = !!(existing.description || existing.promptStyle || existing.promptContent);
   if (style && !existing.promptStyle) existing.promptStyle = style;
   if (content && !existing.promptContent) existing.promptContent = content;
+  if (r.photoRef && !existing.photoRef) {
+    existing.photoRef = r.photoRef;
+    existing.photoRefs = Array.isArray(r.photoRefs) ? r.photoRefs.slice() : [];
+  }
   // A curated tag (e.g. "gpt-image-2 · medium") beats a generic "from <chat>"
   // label for the same image, so the model/quality caption wins.
   if (prompt && !/^from /.test(prompt) && /^from /.test(existing.prompt || '')) {
@@ -307,6 +315,8 @@ function assetRecord(a) {
     promptStyle: d.promptStyle,
     promptContent: d.promptContent,
     kind: d.kind,
+    photoRef: d.photoRef,
+    photoRefs: d.photoRefs,
     hash: d.hash,   // sha256 of the bytes, when POST /api/gallery had them
     md5: d.md5,     // the Storage object's own md5, from its metadata
     // Written by scripts/tag-compressed-at-birth.js: this picture's ONLY copy
@@ -320,7 +330,8 @@ function assetRecord(a) {
 function creationRecord(c) {
   const d = c || {};
   const ms = d.createdAt && d.createdAt.toMillis ? d.createdAt.toMillis() : 0;
-  return { url: d.url, ms, prompt: d.prompt, compressedAtBirth: d.compressedAtBirth };
+  return { url: d.url, ms, prompt: d.prompt, compressedAtBirth: d.compressedAtBirth,
+    photoRef: d.photoRef, photoRefs: d.photoRefs };
 }
 
 module.exports = {

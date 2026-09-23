@@ -3969,15 +3969,20 @@
   // the Prompt panel's photo line, never persisted across loads. This block
   // MUST run after `var photoRefs` above — earlier, that declaration would
   // wipe the restore back to null (the ported-prompt block's own lesson).
+  // …AND IT MAY RIDE BESIDE A PORTED PROMPT (2026-09-22, Sophie: "did not
+  // include original reference"): a picture's door sends its prompt AND every
+  // photo it was drawn from, one `photo=` each, so both land — the words in
+  // the box, the photo(s) in the row — the way its own copy-back restores them.
   (function () {
-    var p = new URLSearchParams(location.search).get('photo');
-    if (!p || !/^https?:\/\//.test(p)) return;
+    var ps = new URLSearchParams(location.search).getAll('photo')
+      .filter(function (u) { return /^https?:\/\//.test(u); });
+    if (!ps.length) return;
     try { localStorage.setItem(TABKEY, 'picture'); } catch (e) { /* private mode */ }
     // The LoRA has no attachment slot at all, so a photo arriving while WTR
     // is the sticky style lands on the reference-less ChatGPT tile — the one
     // place her picture is the whole recipe, with nothing baked added.
     if (!isGpt(styleKey)) setStyle('plain');
-    restorePhoto({ photoRef: p });
+    restorePhoto({ photoRef: ps[0], photoRefs: ps });
   })();
 
   // ── THE CANVAS — portrait or square (Aug 2026, Sophie) ──────────────────

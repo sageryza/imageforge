@@ -46,6 +46,8 @@ const SOURCES = [
   { file: 'v3-uploaded.json', kind: 'fruit' },
   { file: 'veg-v4-uploaded.json', kind: 'vegetable' },
   { file: 'decks/plants-drawn.json', kind: 'plant' },
+  // New pieces drawn for a set by scripts/piece-draw.js; a record may carry its own kind.
+  { file: 'decks/exotic-drawn.json', kind: 'other' },
 ];
 
 async function head(url) {
@@ -89,7 +91,7 @@ async function roughAll() {
       if (/-cut\d$/.test(r.id)) name += ', cut open';
       else if (/-few\d$/.test(r.id)) name = 'a few ' + name;
       // …and it mixes vegetables in under the fruit chart; the url says which.
-      const kind = /\/veg\//.test(r.full || r.url) ? 'vegetable' : s.kind;
+      const kind = r.kind || (/\/veg\//.test(r.full || r.url) ? 'vegetable' : s.kind);
       rows.push({ id: r.id, name, kind, full: r.full, card: r.url, from: s.file });
     }
   }

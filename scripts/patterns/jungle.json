@@ -1,11 +1,11 @@
 {
  "layout": "tossed",
- "cols": 6,
- "tile": 3072,
+ "once": true,
+ "tile": 2048,
  "bg": "#ffffff",
  "cut": "rough",
- "fill": 0.55,
- "gap": 0.35,
+ "fill": 0.62,
+ "gap": 0.3,
  "name": "jungle",
  "pick": [
   "animal:elephant",
@@ -23,280 +23,99 @@
  ],
  "seed": 31,
  "tilt": 45,
- "rows": 6,
+ "cols": 4,
+ "rows": 3,
  "placements": [
   {
-   "id": "animal:elephant",
-   "x": 0.0799,
-   "y": 0.0858,
-   "rot": 22.5,
-   "scale": 0.71,
-   "flip": true
-  },
-  {
    "id": "animal:gorilla",
-   "x": 0.2625,
-   "y": 0.1594,
-   "rot": 38.8,
-   "scale": 1
-  },
-  {
-   "id": "picked:cheetah",
-   "x": 0.421,
-   "y": 0.0823,
-   "rot": 6.5,
-   "scale": 0.85
-  },
-  {
-   "id": "animal:tiger",
-   "x": 0.5757,
-   "y": 0.1405,
-   "rot": 23.4,
-   "scale": 1.01,
+   "x": 0.068,
+   "y": 0.2131,
+   "rot": 22.5,
+   "scale": 0.65,
    "flip": true
   },
   {
-   "id": "animal:leopard",
-   "x": 0.7869,
-   "y": 0.0903,
-   "rot": 24.5,
-   "scale": 0.99
+   "id": "animal:parrot",
+   "x": 0.3297,
+   "y": 0.2474,
+   "rot": 38.8,
+   "scale": 0.9
   },
   {
    "id": "animal:monkey",
-   "x": 0.9371,
-   "y": 0.167,
+   "x": 0.5958,
+   "y": 0.2172,
+   "rot": 6.5,
+   "scale": 0.77
+  },
+  {
+   "id": "animal:elephant",
+   "x": 0.8708,
+   "y": 0.4296,
+   "rot": 23.4,
+   "scale": 0.91,
+   "flip": true
+  },
+  {
+   "id": "animal:lemur",
+   "x": 0.1519,
+   "y": 0.5227,
+   "rot": 24.5,
+   "scale": 0.9
+  },
+  {
+   "id": "picked:cheetah",
+   "x": 0.392,
+   "y": 0.5712,
    "rot": -41.9,
+   "scale": 0.69,
+   "flip": true
+  },
+  {
+   "id": "animal:tiger",
+   "x": 0.6254,
+   "y": 0.5265,
+   "rot": -20,
+   "scale": 0.86
+  },
+  {
+   "id": "animal:crocodile",
+   "x": 0.9517,
+   "y": 0.7554,
+   "rot": 30.1,
+   "scale": 0.93,
+   "flip": true
+  },
+  {
+   "id": "animal:toucan",
+   "x": 0.1889,
+   "y": 0.9124,
+   "rot": -38.9,
+   "scale": 0.91,
+   "flip": true
+  },
+  {
+   "id": "animal:sloth",
+   "x": 0.4641,
+   "y": 0.9123,
+   "rot": -4.5,
+   "scale": 0.93
+  },
+  {
+   "id": "animal:leopard",
+   "x": 0.7036,
+   "y": 0.8075,
+   "rot": 3.4,
    "scale": 0.76,
    "flip": true
   },
   {
-   "id": "animal:parrot",
-   "x": 0.1026,
-   "y": 0.2451,
-   "rot": -20,
-   "scale": 0.94
-  },
-  {
-   "id": "animal:toucan",
-   "x": 0.2681,
-   "y": 0.345,
-   "rot": 30.1,
-   "scale": 1.02,
-   "flip": true
-  },
-  {
-   "id": "animal:sloth",
-   "x": 0.4333,
-   "y": 0.2549,
-   "rot": -38.9,
-   "scale": 1,
-   "flip": true
-  },
-  {
    "id": "animal:snake",
-   "x": 0.609,
-   "y": 0.3103,
-   "rot": -4.5,
-   "scale": 1.02
-  },
-  {
-   "id": "animal:lemur",
-   "x": 0.7701,
-   "y": 0.247,
-   "rot": 3.4,
-   "scale": 0.84,
-   "flip": true
-  },
-  {
-   "id": "animal:crocodile",
-   "x": 0.944,
-   "y": 0.3358,
+   "x": 0.8347,
+   "y": 0.0905,
    "rot": 41.6,
-   "scale": 1,
+   "scale": 0.9,
    "flip": true
-  },
-  {
-   "id": "animal:snake",
-   "x": 0.1019,
-   "y": 0.4214,
-   "rot": 33.3,
-   "scale": 0.99
-  },
-  {
-   "id": "animal:leopard",
-   "x": 0.2359,
-   "y": 0.5078,
-   "rot": 32.8,
-   "scale": 0.78
-  },
-  {
-   "id": "animal:monkey",
-   "x": 0.4553,
-   "y": 0.4396,
-   "rot": -35.2,
-   "scale": 1.04,
-   "flip": true
-  },
-  {
-   "id": "animal:elephant",
-   "x": 0.627,
-   "y": 0.484,
-   "rot": 39.1,
-   "scale": 0.87,
-   "flip": true
-  },
-  {
-   "id": "animal:gorilla",
-   "x": 0.7827,
-   "y": 0.4105,
-   "rot": -34.3,
-   "scale": 0.92,
-   "flip": true
-  },
-  {
-   "id": "picked:cheetah",
-   "x": 0.9169,
-   "y": 0.507,
-   "rot": 5.9,
-   "scale": 0.76
-  },
-  {
-   "id": "animal:tiger",
-   "x": 0.0558,
-   "y": 0.5829,
-   "rot": -4.2,
-   "scale": 0.99
-  },
-  {
-   "id": "animal:lemur",
-   "x": 0.2083,
-   "y": 0.6713,
-   "rot": -28.7,
-   "scale": 1.03,
-   "flip": true
-  },
-  {
-   "id": "animal:crocodile",
-   "x": 0.3654,
-   "y": 0.5906,
-   "rot": 9.9,
-   "scale": 0.86,
-   "flip": true
-  },
-  {
-   "id": "animal:parrot",
-   "x": 0.5562,
-   "y": 0.6379,
-   "rot": 18.3,
-   "scale": 0.88
-  },
-  {
-   "id": "animal:toucan",
-   "x": 0.7692,
-   "y": 0.5809,
-   "rot": 39.8,
-   "scale": 0.92,
-   "flip": true
-  },
-  {
-   "id": "animal:sloth",
-   "x": 0.8971,
-   "y": 0.6808,
-   "rot": 16.6,
-   "scale": 0.7
-  },
-  {
-   "id": "animal:parrot",
-   "x": 0.0439,
-   "y": 0.7522,
-   "rot": -0.6,
-   "scale": 0.96,
-   "flip": true
-  },
-  {
-   "id": "animal:toucan",
-   "x": 0.2193,
-   "y": 0.8401,
-   "rot": 8,
-   "scale": 0.72,
-   "flip": true
-  },
-  {
-   "id": "animal:snake",
-   "x": 0.4237,
-   "y": 0.7519,
-   "rot": -24.8,
-   "scale": 1.02
-  },
-  {
-   "id": "animal:tiger",
-   "x": 0.5777,
-   "y": 0.7966,
-   "rot": -42.8,
-   "scale": 0.79,
-   "flip": true
-  },
-  {
-   "id": "animal:monkey",
-   "x": 0.74,
-   "y": 0.7588,
-   "rot": 35.8,
-   "scale": 1.06,
-   "flip": true
-  },
-  {
-   "id": "animal:crocodile",
-   "x": 0.8967,
-   "y": 0.8324,
-   "rot": 43.4,
-   "scale": 0.75
-  },
-  {
-   "id": "animal:snake",
-   "x": 0.0709,
-   "y": 0.9262,
-   "rot": 20.8,
-   "scale": 0.97,
-   "flip": true
-  },
-  {
-   "id": "animal:leopard",
-   "x": 0.2169,
-   "y": 0.9981,
-   "rot": -32.6,
-   "scale": 0.88
-  },
-  {
-   "id": "animal:monkey",
-   "x": 0.3644,
-   "y": 0.9207,
-   "rot": -35.9,
-   "scale": 0.97,
-   "flip": true
-  },
-  {
-   "id": "animal:elephant",
-   "x": 0.5494,
-   "y": 0.9571,
-   "rot": -27.3,
-   "scale": 0.99,
-   "flip": true
-  },
-  {
-   "id": "animal:gorilla",
-   "x": 0.7249,
-   "y": 0.9374,
-   "rot": 29.8,
-   "scale": 0.88,
-   "flip": true
-  },
-  {
-   "id": "picked:cheetah",
-   "x": 0.9149,
-   "y": 0.9897,
-   "rot": -15.9,
-   "scale": 0.82
   }
  ]
 }

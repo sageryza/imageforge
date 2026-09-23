@@ -4546,7 +4546,16 @@ const AUTO_DEBOUNCE_MS = 45_000;
 // Running on the FIRST filing as well means the page is right within a second
 // of something landing, and a deploy can now only cost the trailing refresh
 // (the coalesced tail of a batch) rather than the whole update.
+// OFF SINCE 2026-09-22 (Sophie: "get rid of auto compare for now and supersede
+// all"). Every auto page then on file was superseded the same day (3,369 ids
+// tried over 1,123 chats from a container, no deploy needed for that half).
+// "For now" — flip this back to false to bring the auto pages back; nothing
+// else about the module moved, and the hand route below is held by the same
+// switch so a chat cannot re-file one by hand while it is off.
+const AUTO_COMPARE_OFF = true;
+
 function autoComparePoke(chat) {
+  if (AUTO_COMPARE_OFF) return;
   const slug = String(chat || '').trim().slice(0, 60);
   if (!slug) return;
   const pending = autoTimers.get(slug);
@@ -4621,6 +4630,7 @@ router.post('/auto-compare', async (req, res) => {
   try {
     const chat = String((req.body || {}).chat || '').slice(0, 60);
     if (!chat) return res.status(400).json({ error: 'chat required' });
+    if (AUTO_COMPARE_OFF) return res.json({ ok: false, off: true, error: 'auto compare is off (2026-09-22)' });
     res.json(await runAutoCompare(chat));
   } catch (err) { fail(res, err); }
 });

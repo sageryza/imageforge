@@ -182,6 +182,15 @@
     // record means no rows and the link is exactly what it always was.
     var cast=sg&&sg.castParse?sg.castParse(it.promptStyle):[];
     if(cast&&cast.length) q+='&cast='+encodeURIComponent(JSON.stringify(cast));
+    // THE PHOTO IT WAS DRAWN FROM COMES TOO (2026-09-22, Sophie, on a picture
+    // sent here from its tile: "did not include original reference"). The
+    // record carries the reference photo(s) the run attached (photoRef /
+    // photoRefs, https only); one `photo=` per picture, the same param the
+    // no-prompt door already sends, so the Playground re-attaches them exactly
+    // as it restores its own copy-back. Nothing on the record → nothing added.
+    var refs=(it.photoRefs&&it.photoRefs.length?it.photoRefs:[it.photoRef])
+      .filter(function(u){ return /^https?:\/\//.test(String(u||'')); });
+    refs.forEach(function(u){ q+='&photo='+encodeURIComponent(u); });
     return q;
   }
 

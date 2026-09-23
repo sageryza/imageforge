@@ -143,6 +143,9 @@ function buildMetaAssets(docs, creations) {
       description: p,                        // what she reviews it by
       promptStyle: String(c.promptStyle || ''),
       promptContent: String(c.promptContent || (isImage ? p : '')),
+      // The photo(s) it was drawn from, for the Playground door (2026-09-22).
+      photoRef: String(c.photoRef || ''),
+      photoRefs: Array.isArray(c.photoRefs) ? c.photoRefs.slice() : [],
     };
     // A url a chat's tab already shows keeps ONE row — the chat's, so the
     // ♥/✕/note still syncs with that tab — but the creations copy's WORDS

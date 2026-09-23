@@ -1,0 +1,15 @@
+{
+ "name": "Print Caps",
+ "out": "public/fonts/print-caps",
+ "lowerToCaps": true,
+ "sources": [
+  {
+   "sheet": "docs/fonts/print-caps-sheet.png",
+   "left": 0.02,
+   "rows": ["ABCDEF", "GHIJKL", "MNOPQR", "STUVWX", "YZ’.,-"],
+   "bands": [0, 1, 2, 3, 4],
+   "gap": 6
+  }
+ ],
+ "space": 320
+}

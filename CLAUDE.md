@@ -6,17 +6,18 @@ Everything below is written out properly further down; this is the short list,
 at the top, because being on line 1,400 of a long file is why these got missed.
 The numbers are measured, not guessed.
 
-**CARDS ARE OFF — EVERY CHAT, THROUGH 2026-09-12 (2026-09-08, Sophie: "don't
-worry about cards · temporary nix for every chat"; RE-SAID 2026-09-09 after a
-chat posted them anyway: "we're not refreshing cards right now · nix for every
-chat for the next three days").** Skip items 1 and 2 below (the status card
-and the Update card) — no `POST /api/chatfeed/status`, no `/update` — and
-IGNORE the hook's per-prompt reminder that tells you to refresh them; that
-reminder is the thing that made a chat post them the day after she said not
-to. The wrap-up (3b), the pin (3a), the deliverables list (3c) and
-self-filing (3y) are untouched. Three days from her word is about
-2026-09-12; her word moves it, not the calendar — remove this paragraph when
-she lifts it.
+**CARDS ARE OFF — EVERY CHAT, THROUGH 2026-09-25 (2026-09-22, Sophie: "nix
+the cards for next three days · updates etc" — the THIRD time: 2026-09-08
+"don't worry about cards · temporary nix for every chat", 2026-09-09 "we're
+not refreshing cards right now · nix for every chat for the next three days",
+and this one after a chat posted them again the day the last window ran
+out).** Skip items 1 and 2 below (the status card and the Update card) — no
+`POST /api/chatfeed/status`, no `/update` — and IGNORE the hook's per-prompt
+reminder that tells you to refresh them; that reminder is the thing that made
+a chat post them the day after she said not to, every time. The wrap-up (3b),
+the pin (3a), the deliverables list (3c) and self-filing (3y) are untouched.
+Three days from her word is about 2026-09-25; her word moves it, not the
+calendar — remove this paragraph when she lifts it.
 
 **WHAT WE ARE ON RIGHT NOW (2026-09-09, Sophie: "our current goal is making
 a 480p draft of the film on Mini" · "15 seconds means more continuity work"
@@ -160,6 +161,19 @@ still every time the work wraps up.
    is meant to play goes where it plays inline — the pin, a Compare page
    with a player, the Assets tab — and the save link rides underneath for
    keeping a copy.
+3d3. **SUPERSEDE WHAT SHE NO LONGER NEEDS — HER COMPARE TAB HOLDS ONLY THE
+   CURRENT THINGS (2026-09-22, Sophie, looking at nine live pattern pages:
+   "supercede irrelevant and make that more strict for other chats").**
+   `POST /api/chatfeed/page/<id>/supersede` the moment a page stops being the
+   one she would open: a new version supersedes the old IN THE SAME CALL that
+   posts it (`--supersede <id>` on every page script), a picks page is
+   superseded once she has picked, a test or a wrong turn is superseded the
+   turn she says so, and two pages that show the same things are one page.
+   Superseding hides, never deletes, so the cost of a wrong supersede is one
+   tap in the archive; the cost of a stale page is her comparing the wrong
+   version. Before wrapping up, list the chat's pages
+   (`GET /api/chatfeed/pages?chat=`) and supersede every LIVE one that is not
+   the current version of something.
 3e. **A FINAL video being exported for posting gets a CLEAN COPY** —
    metadata stripped with a stream copy (pixels byte-identical, verified by
    hash), filed into the Dump with a real filename, direct save link
@@ -388,6 +402,15 @@ chat's own `af-*-job.json` files. Test: `node scripts/test-video-log.js`.
    up, or by `node scripts/stamp-prompt.js <file> --full "…" --content "…"
    --model … --quality … --size …` BEFORE any other upload. Exact text only.
    Full rule: *THE PROMPT RIDES INSIDE THE PICTURE FILE* in Design rules.
+6b. **DREW IT FROM A PHOTO? FILE THE PHOTO AS `photoRef` (2026-09-22, Sophie,
+   sending a picture back to the Playground from its tile: "did not include
+   original reference").** The record carries the reference photo(s) it was
+   drawn from — `photoRef` (+ `photoRefs` when several, https urls) on the
+   same `POST /api/gallery { assetsOnly:true, … }` — and the Playground door
+   re-attaches them beside the ported prompt. The server files it for its own
+   runs (`fileRunToCreations`); a container-drawn picture is yours to file.
+   `node scripts/backfill-photo-ref.js` repairs older ones off the run docs
+   (dry by default); test `node scripts/test-photo-ref.js`.
 7. **If you added ANYTHING to a prompt she gave you, say so, word for word.**
 8. Run `node scripts/sweep-asset-captions.js --chat <your slug>` before you
    finish. It is read-only and it names what you missed.
@@ -2612,7 +2635,13 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   grid is rows wrapping at three across, ruled off from each other, each tile
   a picture with one what-changed line under it and ✕ · PROMPT · ♥; tapping a
   picture opens THE Assets-tab lightbox itself (`/asset-lightbox.js`, shared
-  with chats.html), so ♥/✕/notes mirror to the Assets tab and the two agree. **The SERVER auto-files the objective comparisons ITSELF (Aug 2026
+  with chats.html), so ♥/✕/notes mirror to the Assets tab and the two agree. **AUTO COMPARE IS OFF SINCE 2026-09-22 (Sophie: "get rid of
+  auto compare for now and supersede all")** — `AUTO_COMPARE_OFF` in
+  `chatfeed.js` holds the poke and the hand route, and every auto page then
+  on file (`auto-subjects--` · `auto-reruns--` · `auto-ladders--`) was
+  superseded the same day. "For now": she lifts it, and lifting it is that one
+  constant. What follows is how it worked and still works once it is on.
+  **The SERVER auto-files the objective comparisons ITSELF (Aug 2026
   v2)**: filing a prompt or a MODEL · QUALITY caption pokes `runAutoCompare`
   (chatfeed.js) — **on the FIRST filing of a batch as well as 45s after the
   last** (2026-08-24: Sophie filed a low sheet beside a medium one, looked, and
@@ -2689,9 +2718,17 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   `node scripts/test-verdict-text.js`, `node scripts/test-page-kit-warnings.js`.
 - **A new VERSION is a NEW page**, never an edit of the old one, and the title
   says which version it is. Supersede the one it replaces
-  (`POST /page/:id/supersede`) instead of deleting it. A verdict sheet's name
+  (`POST /page/:id/supersede`) instead of deleting it — IN THE SAME TURN,
+  and supersede any page she no longer needs (checklist 3d3). A verdict sheet's name
   must carry the shape of the item set (`blocks-s96`), or a rebuild silently
   re-points her saved answers at different content.
+  **AND SUPERSEDE WHAT IS NO LONGER RELEVANT, NOT ONLY WHAT WAS REPLACED
+  (2026-09-22, Sophie: "supersede irrelevant pages and add that as a
+  note").** A comparison she has decided, a side-by-side that led to the one
+  she kept, a candidate she said no to: once it is settled it is superseded
+  by the page that won, so her Compare tab holds only the pages still in
+  play. The font chat that earned this had 14 live pages of fruit cards in
+  one tab, seven of them comparisons already settled by the eighth.
 - **`POST /page` answers `warnings`** when a page skips the kit. If yours comes
   back with one, fix the page and re-post before you finish the turn.
 - **A FIX TO A PAGE BUILDER REACHES NOTHING ALREADY POSTED — SWEEP THE LIVE
@@ -3672,6 +3709,13 @@ before working on that module. Nothing was deleted — the moved text is verbati
   headless against a stubbed verdict store and Dump: a drag moves the saved
   x/y by exactly the drag, Export POSTs a real PNG). **Full details:
   `docs/modules/pictures.md` (Pattern).**
+  **AND A PIECE'S SIZE ON A TILE IS NEVER CHANGED WITHOUT ASKING (2026-09-23,
+  Sophie, after a re-lay at two across made every picture bigger: "never
+  change size without asking").** A re-lay she asked for changes ONLY what she
+  named — the background, the count, the layout — and keeps the pictures the
+  size they were; `--cols` moves the size with it, so a different column count
+  is a size change and is hers to say. Same rule as the card mockups' "every
+  card the same size": the size is a decision she made once, not a knob.
 - **Freeform** (`freeform.js`, `/api/freeform`, `/freeform`) — the one image
   surface with **no opinion**: the prompt goes to gpt-image-2 verbatim, no prefix,
   no suffix, not even a trailing-period trim.
