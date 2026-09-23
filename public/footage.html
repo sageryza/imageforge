@@ -7203,9 +7203,15 @@ function takeHandoff() {
     STORY = null;
     setBlocks(bl && bl.length ? bl : [h.prompt]);
   }
+  // A HAND-OFF WITH NO `refs` CARRIES NO PICTURES (2026-09-23, Sophie: "the
+  // references keep attaching to the wrong one in footage"). The Story
+  // Timeline sends none, and `refs` here was still whatever `setBlocks` had
+  // just loaded — the FIRST block's strip — so a story sent again handed part
+  // 1's pictures to every NEW part below. MEASURED: part 1 with one picture,
+  // the story re-sent with a third part, and part 3 came in carrying it.
+  refs = [];
   if (Array.isArray(h.refs)) {
     var seen = {};
-    refs = [];
     h.refs.forEach(function (r) {
       if (!r || typeof r.url !== 'string' || !r.url || seen[r.url]) return;
       seen[r.url] = 1;
