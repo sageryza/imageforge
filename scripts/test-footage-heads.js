@@ -367,6 +367,19 @@ const send = async (page, btn) => {
   ok('and block 2 got it too — nothing of hers is left without a cast',
     s.hvals[0] === 'THE OLD ONE CAST');
 
+  // ── A SENT JOB FOLDS IT AWAY (2026-09-24, "characters uncollapses" ·
+  // "sent a job"), the References fold's own rule
+  s = await page.evaluate(read);
+  if (s.shut) { await page.evaluate(tapHead); await page.waitForTimeout(150); }
+  s = await page.evaluate(read);
+  ok('open before the send', s.shut === false);
+  await page.evaluate(write, SCENE);
+  await send(page, '#go');
+  await page.waitForTimeout(300);
+  s = await page.evaluate(read);
+  ok('a sent job shuts it', s.shut === true);
+  ok('and the shut heading still says what rides — "' + s.lw + '"', /THE OLD ONE CAST/.test(s.lw));
+
   ok('no page errors: ' + errors.join(' | '), !errors.length);
 
   await browser.close();
