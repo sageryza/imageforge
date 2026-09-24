@@ -147,6 +147,7 @@ const write = (text) => {
   const base = 'http://127.0.0.1:' + server.address().port;
   const browser = await chromium.launch({ executablePath: exe() || undefined });
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  await ctx.addInitScript(() => { window.__keepSentBlocks = true; }); // this test inspects the block after a send
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
