@@ -3311,6 +3311,18 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
 
 ### Footage
 
+- **A SENT BLOCK TAKES ITSELF OFF (2026-09-24, Sophie: "make it so sending a
+  job in footage auto deletes the 'sent' text block" · "since that data is
+  saved in the sent job. (but only if the job actually goes through)").**
+  `dropSent` in `footage.html` runs only on the two paths a job that really
+  went takes (the door's jobId, and a dropped answer the log confirmed) —
+  never on a refusal, whose door words re-send what is in the box. Every
+  block that went (the gold-line block, or every ticked block of an appended
+  send) comes off; the whole job is banked first, so `undo` puts it back; the
+  last block is emptied in place (`#prompt` must stay the node) and keeps its
+  references. The older headless tests that inspect a block after sending
+  set `window.__keepSentBlocks`. Test:
+  `node scripts/test-footage-sent-block-off.js`.
 - **Footage** (`footage.js`, `/api/footage`, page at `/footage`, iOS tile
   under the FILM filter's pictures stage — 2026-09-09, Sophie: "the next step
   is to build a point so I can just make things on my own time by describing
