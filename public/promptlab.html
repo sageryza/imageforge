@@ -4390,16 +4390,32 @@
   // have that one" to the first thing she does after picking a new shape. A
   // run with no ratio on file is a run from before the toggle, which drew the
   // default, so it keys as the default and nothing already in her feed moves.
-  function recipeKey(model, prompt, scale, seed, ar) {
+  // THE TAIL IS PART OF THE RECIPE TOO (2026-09-23, Sophie: "i changed the
+  // prompt · removed white background"). Her edited "After your words" is
+  // sent to Flux beside her words, so taking "White background" off draws a
+  // different picture — a key without it answered "you already have that
+  // one" and refused the run. A run filed with no `suffix` is from before the
+  // field was stored, when only the house tail existed, so it keys as that.
+  function recipeKey(model, prompt, scale, seed, ar, suffix) {
     return sameRunKey(['replicate', model, String(prompt || '').trim().replace(/\.+$/, ''), scale, seed,
-      ar || LORA_AR_DEFAULT]);
+      ar || LORA_AR_DEFAULT, String(suffix || '').trim()]);
+  }
+  function houseSuffixFor(model) {
+    for (var k in STYLES) if (STYLES[k].model === model && STYLES[k].engine !== 'gptimage') return STYLES[k].suffix || '';
+    return '';
+  }
+  function plannedSuffix(k) {
+    var sp = sentParts(k);
+    return sp && sp.suffix != null ? sp.suffix : (STYLES[k] || {}).suffix;
   }
   function plannedKey(S, prompt, scale, seed) {
-    return S.engine === 'gptimage' ? null : recipeKey(S.model, prompt, scale, seed, loraAr);
+    return S.engine === 'gptimage' ? null
+      : recipeKey(S.model, prompt, scale, seed, loraAr, plannedSuffix(styleKey));
   }
   function runKey(r) {
     return r.engine === 'gptimage' ? null
-      : recipeKey(r.model, r.prompt, r.loraScale, r.seed, r.aspectRatio);
+      : recipeKey(r.model, r.prompt, r.loraScale, r.seed, r.aspectRatio,
+        typeof r.suffix === 'string' ? r.suffix : houseSuffixFor(r.model));
   }
   // Only a run that actually produced a picture blocks a repeat — a failed or
   // cancelled one has to stay retryable. A run still drawing blocks too: it is

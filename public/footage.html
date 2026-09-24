@@ -3491,6 +3491,11 @@ function insertAtCaret(text) {
   var at = (before + pad + text).length;
   box.focus(); box.setSelectionRange(at, at);
   saveDraft();
+  // THE WORDS CHANGED, SO THE RED MARK IS ASKED AGAIN (2026-09-23). This was
+  // the one write into the box that came through no paint at all, so a sent
+  // block kept reading SENT with a new name typed into it until her next
+  // keystroke — the same repaint the keystroke makes, and only that block's.
+  paintSent(box.closest('.promptwrap')); askSentSoon();
   if (window.__fitBigPrompt) window.__fitBigPrompt();
 }
 function kindOfFile(f) {
@@ -4077,12 +4082,25 @@ function activeBox() { return activeWrap().querySelector('.pblock'); }
 // the one she taps into hands its own pictures back to the strip, the price
 // line and the keyframe note — so the references on screen are always the ones
 // the star's own tap will send.
+// THE BLOCK SHE TAPPED STAYS UNDER HER FINGER (2026-09-23, Sophie: "at
+// various times it still switches rapidly between screens when i put my
+// cursor down · i'm going to get epilepsy"). Making a block active moves the
+// characters-and-setting heading to sit above it (`placeHeads`) and swaps the
+// strip to its pictures, and every pixel of that landed on the box she had
+// just touched: MEASURED at 390x844, the tapped box moved 32px with the
+// heading folded and 91-258px with it open — at the moment of the tap, so the
+// caret went down in words she was not pointing at and the caret keeper and
+// iOS each scrolled after it. So whatever moves, the page scrolls by the same
+// amount the other way and the block she is going to is exactly where it was.
 function setActive(w) {
   if (!w || w.classList.contains('active')) return;
+  var was = w.getBoundingClientRect().top;
   stashActive();
   markActive(w);
   loadActive();
   paintControls();
+  var moved = w.getBoundingClientRect().top - was;
+  if (Math.abs(moved) >= 1) window.scrollBy(0, moved);
 }
 // `height:auto` FIRST or the box can only ever grow — scrollHeight on a box
 // already sized to its old height reports that height. The border is added
@@ -4229,6 +4247,11 @@ function setText(el, t) { if (el && el.textContent !== t) el.textContent = t; }
 // this bank is the fallback for an ORDINARY block, which has no part and so no
 // history to read, and for the seconds between a send and the next sweep. The
 // union can only ever ADD a SENT, never take one away.
+// AND SINCE 2026-09-23 EVERY SEND FILES EACH BLOCK'S OWN WORDS ON THE LOG
+// (`blocks` on the job doc, the same list this bank takes) — so the log,
+// asked below, answers for an appended send whose prompt carries the block's
+// names renumbered, which the prompt-run match never could. A clip sent
+// before that day carries no list and matches by its prompt's runs as before.
 var sentTexts = [], SENT_MAX = 20;
 function normText(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
 // A LIST, when one send took several blocks (2026-09-15) — each picked block
@@ -4341,6 +4364,9 @@ function sentIndex() {
     var j = jobsById[k];
     if (!j || j.status === 'failed') return;
     if (j.words) { var wn = normText(j.words); if (wn) sentSet[wn] = 1; }
+    // each block's own box text (2026-09-23) — the prompt may carry its
+    // names renumbered, so this is the one that matches the box
+    if (Array.isArray(j.blocks)) j.blocks.forEach(function (t) { var bn = normText(t); if (bn) sentSet[bn] = 1; });
     var raw = String(j.prompt || '');
     if (!raw) return;
     var whole = normText(raw);
@@ -5526,6 +5552,17 @@ function postJob(pin, box, job, resend) {
     body.story = STORY.id;
     if (!job && unitOf(pw)) { body.unit = unitOf(pw); body.words = words; }
   }
+  // AND EVERY BLOCK'S OWN WORDS RIDE TO THE LOG, ON EVERY SEND (2026-09-23,
+  // Sophie: "sent/unsent is wrong in footage"). The prompt is what the block's
+  // words were MADE INTO — the heads in front, and on an appended send each
+  // block's slot names renumbered onto the joined strip — so the log could
+  // never match the box again once this page's own bank forgot the send. The
+  // same list `markSent` banks, so the two sources agree by construction. A
+  // door word's re-send carries the refused body's own list.
+  if (!resend) {
+    body.blocks = (Array.isArray(sentWords) ? sentWords : [sentWords])
+      .filter(function (t) { return typeof t === 'string' && t.trim(); });
+  }
   return api('/jobs', { method: 'POST', body: JSON.stringify(body) }).then(function (d) {
     if (!d || !d.jobId) {
       var msg = (d && d.error) || 'Could not start';
@@ -5580,7 +5617,7 @@ function postJob(pin, box, job, resend) {
       // the door answers with the seed it really used — hers, or the one it
       // minted — so the card carries it without waiting for the first poll
       seed: d.seed != null ? d.seed : null, project: body.project, folder: body.folder,
-      story: body.story || '', unit: body.unit || '', words: body.words || '',
+      story: body.story || '', unit: body.unit || '', words: body.words || '', blocks: body.blocks || [],
       sentAt: new Date().toISOString(), note: d.note || '', video: '', poster: '', vote: '' });
     // AN APPENDED SEND SAYS SO — "block 1" over a clip carrying all three
     // would be the toast lying about which words went.
@@ -7181,9 +7218,15 @@ function takeHandoff() {
     STORY = null;
     setBlocks(bl && bl.length ? bl : [h.prompt]);
   }
+  // A HAND-OFF WITH NO `refs` CARRIES NO PICTURES (2026-09-23, Sophie: "the
+  // references keep attaching to the wrong one in footage"). The Story
+  // Timeline sends none, and `refs` here was still whatever `setBlocks` had
+  // just loaded — the FIRST block's strip — so a story sent again handed part
+  // 1's pictures to every NEW part below. MEASURED: part 1 with one picture,
+  // the story re-sent with a third part, and part 3 came in carrying it.
+  refs = [];
   if (Array.isArray(h.refs)) {
     var seen = {};
-    refs = [];
     h.refs.forEach(function (r) {
       if (!r || typeof r.url !== 'string' || !r.url || seen[r.url]) return;
       seen[r.url] = 1;
