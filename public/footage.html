@@ -5318,6 +5318,14 @@ function toggleHead(w) {
   paintHeadBlocks();
   if (window.__fitPillGap) window.__fitPillGap();
 }
+// fold it away (a sent job — see `postJob`); a no-op when already shut
+function shutHeads() {
+  var w = headWrap();
+  if (!w || w.classList.contains('shut')) return;
+  w.classList.add('shut');
+  paintHeadBlocks();
+  if (window.__fitPillGap) window.__fitPillGap();
+}
 function mountHead(w) {
   var head = w.querySelector('.hfold');
   head.querySelector('.chev').innerHTML = ICONS.chev;
@@ -5609,6 +5617,12 @@ function postJob(pin, box, job, resend) {
     // "default collapsed" already asks for. Her pictures are untouched: the
     // strip still holds them and the shut row says how many.
     setFold('refs', true);
+    // …AND SO DOES CHARACTERS & SETTING (2026-09-24, Sophie: "characters
+    // uncollapses" · "sent a job"). References shut on a send and this block
+    // stayed open over the clip she had just sent. Same rule, same moment:
+    // only a job that really went, and her words in both boxes are untouched —
+    // the shut heading still says what is riding.
+    shutHeads();
     schedulePoll(true);
     loadStatus();
     return true;
@@ -5634,6 +5648,7 @@ function postJob(pin, box, job, resend) {
       justSent[j.id] = 1;
       markSent(sentWords); paintBlockHeads();
       setFold('refs', true);
+      shutHeads();
       applyFilt();
       schedulePoll(true);
       loadStatus();
