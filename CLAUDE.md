@@ -3757,7 +3757,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
   no size chips, no Export, no link into Files. **v13: ONE SCREEN** — the
   band is six small whole tiles, size is five notches like spacing, and a
   selected piece's rows REPLACE the pattern rows so the Tile tab never
-  scrolls (measured in the test, both states). `docs/modules/pictures.md`
+  scrolls (measured in the test, both states). **v14: SCATTER IS AN EVEN
+  LATTICE** — every piece as far from the next as it can be (rows slid a
+  fraction, or a rank-1 lattice, whichever spreads widest on the torus), a
+  tap only re-deals which piece lands where; and **COPY** on the name sheet
+  keeps an arrangement as a second pattern. `docs/modules/pictures.md`
   (Pattern).
   **AND A PIECE'S SIZE ON A TILE IS NEVER CHANGED WITHOUT ASKING (2026-09-23,
   Sophie, after a re-lay at two across made every picture bigger: "never

@@ -193,13 +193,19 @@ async function cutout(rec, mode) {
   // of its box, a standing dog a sliver — so the layout can make them read the
   // same size (2026-09-22, Sophie: "cats are too big · they shud all be the
   // same size"). Counted on the DRAWING (not the rough cut's paper).
-  let drawn = 0;
-  for (let i = 0; i < N; i++) if (!bg[i]) drawn++;
+  let drawn = 0, dMinX = W, dMinY = H, dMaxX = -1, dMaxY = -1;
+  for (let i = 0; i < N; i++) if (!bg[i]) { drawn++; const x = i % W, y = (i - x) / W; if (x < dMinX) dMinX = x; if (x > dMaxX) dMaxX = x; if (y < dMinY) dMinY = y; if (y > dMaxY) dMaxY = y; }
   const pad = mode === 'rough' ? 0 : 2;
   const left = Math.max(0, minX - pad), top = Math.max(0, minY - pad);
   const width = Math.min(W, maxX + pad + 1) - left, height = Math.min(H, maxY + pad + 1) - top;
   await sharp(data, { raw: { width: W, height: H, channels: 4 } }).extract({ left, top, width, height }).png().toFile(cutPath);
-  fs.writeFileSync(cutPath + '.json', JSON.stringify({ cover: drawn / Math.pow(Math.max(width, height), 2) }));
+  // `drawn`: how much of the cut-out's box the DRAWING spans. A rough cut's
+  // paper margin makes the box bigger than the drawing, and the layout sizes
+  // by the box — so without this a redo with `--cut rough` shrank every
+  // picture by the margin (2026-09-25, the cream set redone; her rule: never
+  // change size without asking). The renderer scales the box up by it so
+  // the drawing lands the same size the clean cut gave.
+  fs.writeFileSync(cutPath + '.json', JSON.stringify({ cover: drawn / Math.pow(Math.max(width, height), 2), drawn: Math.max(dMaxX - dMinX + 1, dMaxY - dMinY + 1) / Math.max(width, height) }));
   return cutPath;
 }
 
@@ -308,7 +314,7 @@ function hexToRgb(h) {
   const s = m.length === 3 ? m.split('').map((c) => c + c).join('') : m;
   return [0, 2, 4].map((i) => parseInt(s.slice(i, i + 2), 16));
 }
-async function render(spec, motifs) {
+async function render(spec, motifs, dims) {
   const W = Number(spec.tile || 2048);
   const H = Math.round(W * (spec.rows || spec.cols) / spec.cols);
   const cell = W / spec.cols;
@@ -318,7 +324,7 @@ async function render(spec, motifs) {
   for (let i = 0; i < W * H; i++) { const o = i * 4; tile[o] = br; tile[o + 1] = bgG; tile[o + 2] = bb; tile[o + 3] = 255; }
   for (const p of spec.placements) {
     const cut = motifs[p.id];
-    const size = Math.max(4, Math.round(cell * fill * (p.scale || 1)));
+    const size = Math.max(4, Math.round(cell * fill * (p.scale || 1) / ((dims && dims[p.id] && dims[p.id].drawn) || 1)));
     let img = sharp(cut).resize({ width: size, height: size, fit: 'inside' });
     if (p.flip) img = img.flop();
     const { data, info } = await img.rotate(p.rot || 0, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
@@ -396,7 +402,7 @@ function specsFromArgs() {
       motifs[id] = await cutout(find(id), spec.cut);
       const m = await sharp(motifs[id]).metadata();
       const side = fs.existsSync(motifs[id] + '.json') ? JSON.parse(fs.readFileSync(motifs[id] + '.json', 'utf8')) : {};
-      dims[id] = { w: m.width, h: m.height, cover: side.cover || 0.3 };
+      dims[id] = { w: m.width, h: m.height, cover: side.cover || 0.3, drawn: side.drawn || 1 };
     }
     // Same visible size: each picture is scaled so the area it covers matches
     // the average, within limits. OPT-IN per pattern (`evenSize: true`) — she asked
@@ -406,7 +412,7 @@ function specsFromArgs() {
     for (const id of spec.pick) dims[id].even = !spec.evenSize ? 1 : Math.max(0.7, Math.min(1.35, Math.sqrt(mean / dims[id].cover)));
     if (!spec.placements) Object.assign(spec, layout(spec, dims));
     console.log(`${spec.name}: ${spec.layout || 'as placed'} · ${spec.placements.length} pictures from ${spec.pick.length} cards · ${spec.cols} across, ${spec.rows || spec.cols} down · ${spec.bg || '#ffffff'} · ${spec.tile}px`);
-    const tilePng = await (await render(spec, motifs)).toBuffer();
+    const tilePng = await (await render(spec, motifs, dims)).toBuffer();
     const rep = await preview(tilePng, REPS > 1 ? REPS : 3, 1536);
     const one = await sharp(tilePng).resize({ width: 1024 }).webp({ quality: 90 }).toBuffer();
     const base = slug(spec.name);

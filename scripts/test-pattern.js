@@ -25,6 +25,8 @@ const sharp = require('sharp');
 
 const ROOT = path.join(__dirname, '..');
 const P = require(path.join(ROOT, 'pattern-plan.js'));
+const torusD = (p, q, a) => { const dx = Math.min(Math.abs(p.x - q.x), 1 - Math.abs(p.x - q.x)), dy = Math.min(Math.abs(p.y - q.y), 1 - Math.abs(p.y - q.y)) / (a || 1); return Math.hypot(dx, dy); };
+const nearestD = (pts, a) => Math.min(...pts.flatMap((p, i) => pts.slice(i + 1).map(q => torusD(p, q, a))));
 const M = require(path.join(ROOT, 'pattern.js'));
 
 let pass = 0, failed = 0;
@@ -59,13 +61,17 @@ function ok(c, msg) { if (c) { pass++; } else { failed++; console.log('  ✗ ' +
   const sc = P.scatter(6);
   ok(sc.length === 6 && sc.every(s => s.x >= 0 && s.x < 1 && s.y > 0 && s.y < 1), 'scatter places n inside the tile');
   ok(sc[0].y === sc[1].y && sc[3].y !== sc[0].y && sc[3].x !== sc[0].x, 'scatter with no seed is rows, the second row staggered');
+  ok(nearestD(sc) > 0.37, 'six pieces are three rows of two, each row slid a third — the nearest pair ' + nearestD(sc).toFixed(3) + ' of the tile apart, where a plain grid gives 0.333');
+  ok(Math.abs(nearestD(P.scatter(4)) - 0.5) < 1e-9 && nearestD(P.scatter(9)) >= 1 / 3 - 1e-9 && nearestD(P.scatter(12)) > 0.28, 'four and nine are square grids, twelve leans past one (' + nearestD(P.scatter(9)).toFixed(3) + ', ' + nearestD(P.scatter(12)).toFixed(3) + ')');
+  ok([2, 3, 5, 7, 8, 10, 11].every(n => { const pts = P.scatter(n); return pts.length === n && nearestD(pts) >= 0.9 / Math.sqrt(n) * 0.85; }), 'every count from 2 to 11 spreads to within 15% of a hex packing');
   const sa = P.scatter(6, 7), sb = P.scatter(6, 8);
   ok(sa.every(s => s.x >= 0 && s.x < 1 && s.y >= 0 && s.y < 1), 'a seeded scatter stays inside the tile');
   ok(JSON.stringify(sa) !== JSON.stringify(sb) && JSON.stringify(sa) === JSON.stringify(P.scatter(6, 7)), 'two seeds are two placements; the same seed is the same one');
-  const minD = Math.min(...sa.flatMap((p, i) => sa.slice(i + 1).map(q => { const dx = Math.min(Math.abs(p.x - q.x), 1 - Math.abs(p.x - q.x)), dy = Math.min(Math.abs(p.y - q.y), 1 - Math.abs(p.y - q.y)); return Math.hypot(dx, dy); })));
-  ok(minD > 0.1, 'a seeded scatter never piles two pieces up (nearest pair ' + minD.toFixed(3) + ' of the tile apart)');
+  ok(Math.abs(nearestD(sa) - nearestD(sc)) < 1e-9 && Math.abs(nearestD(sb) - nearestD(sc)) < 1e-9, 'a seeded scatter keeps every distance — the same lattice slid and dealt, never jittered');
+  const wide2 = P.scatter(6, null, 2);
+  ok(nearestD(wide2, 2) >= nearestD(sc, 2) - 1e-9 && wide2.filter(p => p.y === wide2[0].y).length === 3, 'a tile twice as wide as tall lays six in two rows of three');
   const fs1 = P.freeSpot([{ x: 0.25, y: 0.5 }]);
-  ok(Math.abs(fs1.x - 0.75) < 1e-9, 'the free spot is the far side of one placed item');
+  ok(torusD(fs1, { x: 0.25, y: 0.5 }) > 0.35, 'the free spot is away from the one placed item (' + torusD(fs1, { x: 0.25, y: 0.5 }).toFixed(3) + ' of the tile)');
   const spun = P.spin([{ rot: 0 }, { rot: 90 }, { rot: 180 }], 20, 42);
   ok(spun.length === 3 && spun.every((r, i) => { const d = ((r - [0, 90, 180][i]) % 360 + 540) % 360 - 180; return Math.abs(d) <= 20; }), 'spin stays within ±spread of each item’s own turn');
   ok(P.spin([{ rot: 0 }], 20, 1)[0] !== P.spin([{ rot: 0 }], 20, 2)[0] || P.spin([{ rot: 0 }], 20, 3)[0] !== P.spin([{ rot: 0 }], 20, 4)[0], 'two seeds are two spins');
@@ -253,7 +259,7 @@ async function pageHalf() {
   const shot = async (n) => { if (shots) await page.screenshot({ path: path.join(shots, n + '.png') }); };
   const saved = () => calls.filter(c => c.p === '/api/chatfeed/verdict' && c.m === 'POST').map(c => c.body);
   const store = () => {   // the pattern as the store holds it, parsed the way the page reads it back
-    const cfgKey = Object.keys(texts).find(k => k.startsWith('p:cfg:'));
+    const cfgKey = Object.keys(texts).filter(k => k.startsWith('p:cfg:') && texts[k]).sort((a, b) => (JSON.parse(texts[b]).updatedAt || '').localeCompare(JSON.parse(texts[a]).updatedAt || ''))[0];   // the newest-touched pattern (there are two once Copy has run)
     const pid = cfgKey && cfgKey.slice(6);
     const cfg = cfgKey && texts[cfgKey] ? JSON.parse(texts[cfgKey]) : null;
     const items = Object.keys(texts).filter(k => k.startsWith('p:it:' + pid + ':') && texts[k]).map(k => JSON.parse(texts[k])).sort((a, b) => a.o - b.o);
@@ -378,6 +384,8 @@ async function pageHalf() {
   await page.click('#scatter'); await page.waitForTimeout(700);
   const sc2 = store().items.map(it => it.x + ',' + it.y).join('|');
   ok(sc1 !== sc2, 'two taps on Scatter are two placements');
+  const scPts = store().items.map(it => ({ x: it.x, y: it.y }));
+  ok(Math.abs(nearestD(scPts) - nearestD(P.scatter(scPts.length))) < 0.002, 'a scattered tile is the even lattice: every piece as far from the next as it can be (' + nearestD(scPts).toFixed(3) + ')');
   await page.click('#undo'); await page.click('#undo'); await page.waitForTimeout(700);
   await pickPear();
   await page.click('#remove');
@@ -451,6 +459,21 @@ async function pageHalf() {
   ok(store().cfg.exports.length === 1 && store().cfg.exports[0].W === 2048 && store().cfg.exports[0].H === 2048, 'the copy is remembered on the config (2K is 2048 square)');
   ok(!(await page.$eval('#save', el => el.disabled)), 'Save is back on');
   ok(/saved/.test(await page.$eval('#repmsg', el => el.textContent)), 'and it says saved');
+  // COPY keeps this arrangement as a second pattern
+  const curId = () => page.evaluate(() => localStorage.getItem('pattern.cur'));
+  const storeOf = (pid) => { const cfg = texts['p:cfg:' + pid] ? JSON.parse(texts['p:cfg:' + pid]) : null; const items = Object.keys(texts).filter(k => k.startsWith('p:it:' + pid + ':') && texts[k]).map(k => Object.assign({ k: k.split(':')[3] }, JSON.parse(texts[k]))).sort((a, b) => a.o - b.o); return { cfg, items }; };
+  const firstId = await curId(), first = storeOf(firstId);
+  await page.click('#pick'); await page.waitForTimeout(150);
+  await page.click('#copypat'); await page.waitForTimeout(900);
+  const copyId = await curId(), copy = storeOf(copyId);
+  ok(copyId !== firstId && copy.cfg && copy.cfg.name === (first.cfg.name || 'untitled') + ' copy', 'Copy makes a second pattern, saved on the doc, named after the first');
+  ok(copy.items.length === first.items.length && copy.items.every((it, i) => it.piece === first.items[i].piece && it.x === first.items[i].x && it.y === first.items[i].y && it.k !== first.items[i].k), 'the copy holds every piece where it was, under its own keys');
+  ok(JSON.stringify(storeOf(firstId).items) === JSON.stringify(first.items), 'the first pattern is untouched');
+  await page.click('#pick'); await page.waitForTimeout(150);
+  await page.evaluate(n => { [...document.querySelectorAll('#plist button')].find(b => b.firstChild.textContent === n).click(); }, first.cfg.name || 'untitled');
+  await page.waitForTimeout(400);
+  ok((await curId()) === firstId, 'the first pattern is still on the list and opens as it was');
+  await page.click('.acctab[data-t="2"]'); await page.waitForTimeout(200);
   await shot('4-repeat');
 
   // a name, then reopen: the tab and the pattern come back from the store

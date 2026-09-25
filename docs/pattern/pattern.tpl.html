@@ -207,7 +207,7 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
 
 <div class="sheet" id="sheet" hidden>
   <div class="box" data-nostop>
-    <div class="row" style="margin:0"><input type="text" id="pname" autocomplete="off"><button class="btn" id="newpat">New</button></div>
+    <div class="row" style="margin:0"><input type="text" id="pname" autocomplete="off"><button class="btn" id="copypat">Copy</button><button class="btn" id="newpat">New</button></div>
     <div class="list" id="plist"></div>
   </div>
 </div>
@@ -246,10 +246,10 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
     + 'Each one is cut roughly around with its paper kept, like scissors. A new one is a chat’s job: ask, and it is drawn and put on the list.<br><br>'
     + '<b>Tile</b> — one square that repeats; the strip above it is that square six times over, whole, so you can see how the edges meet. Tap a piece and its own controls take the place of the pattern’s: the degrees box turns it, five size notches size it, '
     + '<b>+</b> adds another of the same. <b>Spacing</b> is five notches — a bigger square under everything, so the repeats land farther apart. '
-    + '<b>Spin</b> turns every piece a little, at random, within the degrees you set; <b>Scatter</b> deals every piece a new spot, spread out so nothing piles up — tap either again for another go. <b>Reset</b> puts every piece back to its starting size and no turn. A piece hanging off one edge comes back in on the other, '
+    + '<b>Spin</b> turns every piece a little, at random, within the degrees you set; <b>Scatter</b> deals every piece a new spot on an even grid, each as far from the next as it can be — tap either again for another go. <b>Reset</b> puts every piece back to its starting size and no turn. A piece hanging off one edge comes back in on the other, '
     + 'which is what makes the repeat seamless.<br><br>'
     + '<b>Repeat</b> — how it looks tiled, on white. <b>Save to Photos</b> draws one seamless picture (2048 pixels square) and puts it in your Photos; a copy is kept in the Dump, and the list under the button saves any earlier one again. '
-    + 'Everything saves itself as you go. The two arrows by the pattern’s name <b>undo</b> and <b>redo</b> the last change — a tick, a drag, a turn, a spin, the spacing — as far back as this open of the page.' });
+    + 'Everything saves itself as you go, under the name at the top; that name opens the list of your patterns, <b>New</b> starts an empty one and <b>Copy</b> keeps this arrangement as a second pattern so you can go on changing the first. The two arrows by the pattern’s name <b>undo</b> and <b>redo</b> the last change — a tick, a drag, a turn, a spin, the spacing — as far back as this open of the page.' });
   window.__compareNotes({ chat: CHAT, sheet: SHEET + '-notes' });
 
   // ── state ──
@@ -435,7 +435,7 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
       if (sel && !pattern.items.some(function (it) { return it.k === sel; })) sel = null;
       touch();
     } else {
-      var at = P.freeSpot(items);
+      var at = P.freeSpot(items, pattern.tile.w / pattern.tile.h);
       var it = { k: key(), piece: id, x: at.x, y: at.y, size: P.DEFAULT_SIZE, rot: 0, flip: false };
       pattern.items.push(it); sel = it.k; touch(it.k);
     }
@@ -486,6 +486,18 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
   $('sheet').addEventListener('click', function (e) { if (e.target === $('sheet')) $('sheet').hidden = true; });
   $('newpat').addEventListener('click', function () {
     $('sheet').hidden = true; usePattern(newPattern()); touch(); showTab(0);
+  });
+  // COPY keeps an arrangement (2026-09-25, Sophie: "is there a way to save
+  // particular arrangements") — the pattern as it stands becomes a second
+  // pattern under "<name> copy", every piece where it is, and the page moves
+  // onto the copy so the one she liked stays as it was.
+  $('copypat').addEventListener('click', function () {
+    if (!pattern) return;
+    var src = pattern, id = key();
+    var c = { id: id, name: ((src.name || 'untitled') + ' copy').slice(0, 60), tile: P.tileOf(src), layout: { kind: src.layout.kind }, exports: [], updatedAt: '',
+      items: src.items.map(function (it) { return { k: key(), piece: it.piece, x: it.x, y: it.y, size: it.size, rot: it.rot, flip: it.flip }; }) };
+    patterns[id] = c;
+    $('sheet').hidden = true; usePattern(c); touchAll(); showTab(1);
   });
   $('pname').addEventListener('input', function () {
     if (!pattern) return;
@@ -648,7 +660,7 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
   $('again').addEventListener('click', function () {
     var it = item(sel); if (!it) return;
     mark();
-    var at = P.freeSpot(pattern.items);
+    var at = P.freeSpot(pattern.items, pattern.tile.w / pattern.tile.h);
     var copy = { k: key(), piece: it.piece, x: at.x, y: at.y, size: it.size, rot: it.rot, flip: it.flip };
     pattern.items.push(copy); sel = copy.k; touch(copy.k); changed();
   });
@@ -689,7 +701,7 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
   });
   $('scatter').addEventListener('click', function () {
     mark();
-    var at = P.scatter(pattern.items.length, Date.now());   // a new placement every tap
+    var at = P.scatter(pattern.items.length, Date.now(), pattern.tile.w / pattern.tile.h);   // a new deal every tap, every piece as far from the next as it can be
     pattern.items.forEach(function (it, i) { it.x = at[i].x; it.y = at[i].y; });
     touchAll(); changed();
   });
