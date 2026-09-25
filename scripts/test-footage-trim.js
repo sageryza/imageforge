@@ -604,6 +604,39 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
   ok('and the row in the open trimmer stops saying it is baking',
     !/trimming/.test(await page.textContent('.trimbar .tpart')));
 
+  // ── A TRIMMED CLIP OPENS ON ITS PART AND PLAYS JUST THAT (2026-09-25,
+  // Sophie: "change default to play just trimmed part") ──────────────────
+  // Every assertion a MEASUREMENT off the playhead: marks that READ 1.2–3.6
+  // while the clip plays its off-cuts from 0 are the exact thing she asked
+  // to be rid of, and identical in the source to marks that play the part.
+  {
+    await page.click('#player .pclose');
+    await page.waitForFunction(() => document.getElementById('player').hidden);
+    await page.click('#job-clip1 .thumb');
+    await page.waitForSelector('#player .pstage video');
+    await page.waitForFunction(() => {
+      const v = document.querySelector('#player .pstage video');
+      return v && isFinite(v.duration) && v.duration > 0;
+    }, null, { timeout: 8000 });
+    await page.waitForTimeout(300);
+    ok('reopened, the marks are on the part she cut', /^1\.2s – 3\.6s/.test((await page.textContent('#tspan')).trim()));
+    ok('the SOURCE still plays — the marks are in its seconds',
+      /\/clip\.webm$/.test(await page.$eval('#player .pstage video', (v) => v.currentSrc)));
+    const run = await page.evaluate(async () => {
+      const v = document.querySelector('#player .pstage video');
+      const out = []; const t0 = Date.now();
+      while (Date.now() - t0 < 1800) { out.push(v.currentTime); await new Promise((r) => setTimeout(r, 60)); }
+      return { seen: out, paused: v.paused };
+    });
+    ok('and it is PLAYING the part, not sitting at its start', !run.paused && run.seen.some((t) => t > 1.4));
+    ok('never the off-cut before it (' + run.seen.slice(0, 6).map((t) => t.toFixed(2)).join(' ') + ')',
+      run.seen.slice(3).every((t) => t >= 1.1 && t <= 3.7));
+    ok('the way back to the whole clip is offered', await shown('#treset'));
+    ok('and so is one pass past the part', await shown('#tall') && /Play it all/.test(await page.textContent('#tall')));
+    ok('but nothing is being re-cut — the next cut is a second part', (await page.textContent('#tgo')).trim() === 'Add part'
+      && !(await page.$('.trimbar .tpart.on')));
+  }
+
   // ── A SECOND PART OUT OF THE SAME CLIP ─────────────────────────────────
   await seek(0.5);
   await page.click('#tin');
