@@ -71,7 +71,7 @@ const { spawn } = require('child_process');
 const fetch = require('node-fetch');
 const { buildQuestions, answeredOnly, isCompacted } = require('./questions');
 const verdictText = require('./verdict-text');
-const { parseQuery } = require('./search-grammar');
+const { parseQuery, termPattern: searchGrammarTerm } = require('./search-grammar');
 const { shouldPushReply, chatNotifies, needEscalates, pushAlert, pushBody } = require('./push-gate');
 const chatSort = require('./chat-sort');
 const projectWords = require('./project-words');
@@ -517,7 +517,6 @@ function refreshSearchIndex(force) {
 // because `gpt-image-2` and `/api/gallery` are things she searches for, and a
 // normaliser that strips them would make those unfindable.
 const searchNorm = (s) => String(s == null ? '' : s).toLowerCase().replace(/\s+/g, ' ').trim();
-const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // One term → a regex anchored at a word START, which is the one behaviour
 // worth preserving from the old single-phrase search: "aries" must not match
@@ -525,7 +524,10 @@ const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // quoted phrase keeps its words adjacent but tolerates any whitespace between
 // them, since a reply wraps mid-phrase all the time.
 function termRegex(term) {
-  const body = term.value.split(' ').map(escRe).join('\\s+');
+  // The body comes from search-grammar.js so a bare word folds its plural
+  // the same way in every box (2026-09-25: "strawberries" found none of her
+  // "strawberry" tiles).
+  const body = searchGrammarTerm(term.value);
   const lead = /^[a-z0-9]/i.test(term.value) ? '\\b' : '';
   try { return new RegExp(lead + body, 'i'); } catch (e) { return null; }
 }
