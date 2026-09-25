@@ -12,6 +12,55 @@ The generic phone inbox, the APNs doorbell, and the Google Drawing extractor.
   (what arrived together — on the phone a Photos ALBUM, in a zip a folder, from
   the share sheet one share action) and the **session** (the dump, date-stamped).
   `track` (`crystals` / `story-art` / …) is deliberately null on arrival.
+- **EVERY FILE SAYS WHO PUT IT THERE — `from: 'sophie' | 'claude'` — AND
+  THE PAGE OPENS ON HERS (2026-09-25, Sophie: "the dump is ducked · it's slow
+  · and used by chats to give me stuff idk why i never wanted that · hide
+  every single thing a chat has ever uploaded or make a new tab. make it like
+  'from claude' and from me").** `/dump` carries a hairline row, FROM ME ·
+  FROM CLAUDE, and opens on FROM ME every time (memory, never a setting).
+  Measured the day it landed: 4,888 files, 3,152 hers and 1,736 put there by
+  chats — a third of what she scrolled past to find her own albums.
+  - **AT UPLOAD TIME the server decides, in this order** (`whoFrom` in
+    `dropbox.js`): an upload that SAYS who it is from wins (`?from=claude` /
+    `?from=me` on `/upload-file` and `/upload-zip`, `from` in the `/upload`
+    body); otherwise the User-Agent — a browser or the iOS app (Mozilla /
+    CFNetwork / Darwin) is her tap, while curl, node, undici, python and a
+    HeadlessChrome driven from a container are a chat's script. **A chat
+    filing anything into the Dump sends `from=claude`** — the User-Agent rule
+    catches a script that forgets, but the word is the contract. A server
+    module calling `/upload-file` on itself (ytdl.js) forwards the word from
+    the request that asked, since its own fetch reads as a script.
+  - **OLDER FILES WERE JUDGED BY THEIR SHAPE, ONCE, album by album**
+    (`guessFrom` + `albumFrom`; `node scripts/dump-from-backfill.js`, dry by
+    default, `--go` wrote 4,888). A session id a chat named (`card-pattern`,
+    `seedance-cut1`) is a chat's; the phone's own names — the export UUID the
+    share sheet prefixes (`66FB6123-…-IMG_2138.HEIC`), `IMG_`, `save-UUID`,
+    an uppercase extension, a Midjourney download, a name with spaces — are
+    hers; a lowercase kebab-case name under a server-minted session is a
+    chat's. The album takes the MAJORITY, a tie to her: a chat re-uploading
+    four of her crystal photos does not make her album a chat's, and her file
+    hidden on the wrong side is the worse mistake. A doc that already carries
+    `from` is never re-guessed, so the backfill is safe to re-run and a
+    corrected file stays corrected. The read routes answer `from` on every
+    bundle and fall back to the guess for a doc with none, so the page was
+    right before the backfill ran.
+  - **`from` IS EDITABLE** — `PATCH /bundle {session, bundle, from:'me'}`
+    moves a whole album to her side (or `'claude'` the other way); an unknown
+    word is dropped, never written. Nothing on the page offers it yet; hers
+    to ask for.
+  - **AND THE SLOW HALF: ONE READ, HELD 20 SECONDS.** Every list route
+    (`/sessions`, `/bundles`, `/tracks`, `/items`) read the whole collection
+    from Firestore on every call, and the page called three of them on open
+    and `/bundles` again on every chip — 4,888 docs, four or five times,
+    before an album drew. `allDocs()` holds the snapshot for 20s and every
+    write in the module drops it (`forgetAll`), so a dump that just landed is
+    in the next read. The page reads its side ONCE (`/bundles?from=me` +
+    `/sessions?from=me`) and every chip is a filter over memory. Measured on
+    the real data through the new code: the chat side opens in ~0.2s from
+    the cache where each read was a full collection scan.
+  - Test: `node scripts/test-dump-from.js` (the rule pure; the real page
+    headless — the chat album COUNTED off the rendered list, the tab line
+    MEASURED under the lit word, a chip tap asserted to re-read nothing).
 - **One Firestore doc per FILE** (`forge-drops`, deckfactory), plus one doc per
   album in `forge-drop-bundles` holding its number, name and file counter.
   Images and videos both (videos get a poster frame).

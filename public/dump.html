@@ -26,6 +26,21 @@
   body.embed header{ padding:8px 0 0 0; }
   body.embed .eyebrow{ display:none; }
 
+  /* FROM ME · FROM CLAUDE — the hairline tab row (chats.html's .acctabs, the
+     line MEASURED under the lit word by tabLine() below, never a percentage).
+     2026-09-25, Sophie: "hide every single thing a chat has ever uploaded or
+     make a new tab. make it like 'from claude' and from me". Opens on FROM ME. */
+  .acctabs{ position:relative; display:flex; border-bottom:1px solid var(--border);
+    margin:8px 0 0; }
+  .acctab{ flex:1 1 0; min-width:0; display:flex; align-items:center; justify-content:center; gap:5px;
+    padding:7px 4px 9px; border:none; background:none; cursor:pointer;
+    font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--dim); white-space:nowrap; -webkit-tap-highlight-color:transparent; }
+  .acctab.on{ color:var(--text); }
+  .acctabs::after{ content:''; position:absolute; left:0; bottom:-1px; height:2px;
+    width:var(--tw,0); background:var(--text); transform:translateX(var(--tx,0)); }
+  .acctabs.tl::after{ transition:transform .2s ease, width .2s ease; }
+
   .chips{ display:flex; gap:6px; overflow-x:auto; padding:10px 16px 4px;
     -webkit-overflow-scrolling:touch; }
   .chips::-webkit-scrollbar{ display:none; }
@@ -126,6 +141,10 @@
     <div class="eyebrow">THE DUMP</div>
     <div class="counts" id="counts">loading…</div>
   </div>
+  <div class="acctabs" id="fromtabs">
+    <button class="acctab on" data-from="me">From me</button>
+    <button class="acctab" data-from="claude">From Claude</button>
+  </div>
   <div class="chips" id="filters"></div>
 </header>
 <button id="totop" hidden aria-label="Back to the top">&#8593;</button>
@@ -162,7 +181,7 @@ const TOKEN='__STUDIO_TOKEN__', tok=TOKEN.indexOf('__')===0?'':TOKEN;
 if(new URLSearchParams(location.search).get('embed')==='1') document.body.classList.add('embed');
 // The Sort tab stays alive behind the Send tab, so a dump that finished while
 // it was hidden must show up when she switches back — the host calls this.
-window.__dumpRefresh = () => { if(typeof loadBundles==='function') loadBundles(); };
+window.__dumpRefresh = () => { if(typeof loadSide==='function') loadSide(); };
 const api=(p,o={})=>{ if(tok) o.headers={...(o.headers||{}),'x-studio-token':tok};
   return fetch('/api/drop'+p,o).then(async r=>({ok:r.ok,status:r.status,body:await r.json().catch(()=>({}))})); };
 
@@ -173,31 +192,67 @@ const api=(p,o={})=>{ if(tok) o.headers={...(o.headers||{}),'x-studio-token':tok
 // scripts/test-dump-session-time.js pins the two equal.
 let TRACKS=['crystals','story-art','hoonies','reference','product'];
 let sessions=[], curSession='', curFolder='', onlyUnlabelled=false, bundles=[];
+// Which side is open: hers, or what chats put here. Memory, never localStorage
+// — it opens on FROM ME every time, which is the ask.
+let curFrom='me', allBundles=[];
 
 let folders=[];
 async function load(){
   const t=await api('/tracks'); if(t.ok&&Array.isArray(t.body.tracks)&&t.body.tracks.length)TRACKS=t.body.tracks;
-  const s=await api('/sessions'); sessions=(s.ok&&s.body.sessions)||[];
-  const all=await api('/bundles');
-  folders=[...new Set(((all.ok&&all.body.bundles)||[]).map(b=>b.track).filter(Boolean))].sort();
-  renderFilters(); await loadBundles();
+  await loadSide();
 }
-async function loadBundles(){
-  const q=[]; if(curSession)q.push('session='+encodeURIComponent(curSession));
-  if(onlyUnlabelled)q.push('untracked=1');
-  const r=await api('/bundles'+(q.length?'?'+q.join('&'):''));
-  bundles=(r.ok&&r.body.bundles)||[];
+// ONE read per side. The page used to call /bundles for the folder list, then
+// /bundles again for the list, then again on every chip tap — each a read of
+// the whole collection (4,888 files, 2026-09-25). Now the side's albums are
+// read once and every chip is a filter over memory.
+async function loadSide(){
+  const el=document.getElementById('list');
+  el.innerHTML='<div class="empty">loading…</div>';
+  const q='?from='+encodeURIComponent(curFrom);
+  const [s,all]=await Promise.all([api('/sessions'+q), api('/bundles'+q)]);
+  sessions=(s.ok&&s.body.sessions)||[];
+  allBundles=(all.ok&&all.body.bundles)||[];
+  folders=[...new Set(allBundles.map(b=>b.track).filter(Boolean))].sort();
+  renderFilters(); loadBundles();
+}
+function loadBundles(){
+  bundles=allBundles.slice();
+  if(curSession) bundles=bundles.filter(b=>b.session===curSession);
+  if(onlyUnlabelled) bundles=bundles.filter(b=>!b.track);
   // Newest album first — the default, because the thing she just dumped is
   // the thing she wants to label. (seq is arrival order across ALL albums, so
   // it can't answer this; `newest` is the album's latest file.)
   bundles.sort((x,y)=>(y.newest||0)-(x.newest||0));
   if(curFolder) bundles=bundles.filter(b=>(b.track||'')===curFolder);
-  const files=(r.ok&&r.body.files)||0;
+  const files=bundles.reduce((n,b)=>n+b.files.length,0);
   const un=bundles.filter(b=>!b.track).length;
   document.getElementById('counts').textContent=
     bundles.length+' albums · '+files+' files · '+un+' unlabelled';
   renderList();
 }
+// The tab row. A tap swaps the side and re-reads it; the chip filters reset,
+// since a session or folder on one side means nothing on the other.
+document.querySelectorAll('#fromtabs .acctab').forEach(b=>b.onclick=()=>{
+  if(b.dataset.from===curFrom) return;
+  curFrom=b.dataset.from; curSession=''; curFolder=''; onlyUnlabelled=false;
+  document.querySelectorAll('#fromtabs .acctab').forEach(x=>x.classList.toggle('on',x===b));
+  tabLine(document.getElementById('fromtabs'));
+  loadSide();
+});
+// The line under the lit tab is MEASURED (chats.html's tabLine, verbatim in
+// spirit): the row asks the tab where it is, so a third tab or a wider word
+// can never leave the line adrift.
+function tabLine(row){
+  if(!row) return;
+  const on=row.querySelector('.acctab.on'); if(!on) return;
+  const r=row.getBoundingClientRect(), t=on.getBoundingClientRect();
+  if(!t.width) return;
+  row.style.setProperty('--tw', t.width+'px');
+  row.style.setProperty('--tx', (t.left-r.left-row.clientLeft)+'px');
+  if(!row.__tl){ row.__tl=1; requestAnimationFrame(()=>row.classList.add('tl')); }
+}
+addEventListener('resize',()=>tabLine(document.getElementById('fromtabs')));
+tabLine(document.getElementById('fromtabs'));
 function renderFilters(){
   const el=document.getElementById('filters');
   el.innerHTML=
@@ -244,7 +299,7 @@ const bKey=b=>b.bundle?(b.session+'/'+b.bundle):('loose:'+b.files[0].id);
 
 function renderList(){
   const el=document.getElementById('list');
-  if(!bundles.length){ el.innerHTML='<div class="empty">Nothing here — dump something from the app first.</div>'; return; }
+  if(!bundles.length){ el.innerHTML='<div class="empty">'+(curFrom==='claude'?'Nothing from a chat here.':'Nothing here — dump something from the app first.')+'</div>'; return; }
   el.innerHTML=bundles.map((b,i)=>{
     const nm=b.bundleName||b.name||(b.bundle?b.bundle.replace(/-/g,' '):'loose file');
     const tk=b.track?'<span class="tk set">'+esc(b.track)+'</span>':'<span class="tk un">unlabelled</span>';
@@ -370,7 +425,7 @@ async function doMove(folder){
     r.ok?done++:failed++;
   }
   setSelectMode(false);
-  await load();
+  await loadSide();
   if(failed) document.getElementById('counts').textContent+=' · '+failed+" couldn't be filed";
 }
 
@@ -410,7 +465,7 @@ document.getElementById('lbdel').onclick=async()=>{
   if(!confirm('Delete this file from the Dump?'))return;
   const r=await api('/items/'+lbId,{method:'DELETE'});
   closeLB();
-  if(r.ok) loadBundles();
+  if(r.ok) loadSide();
 };
 
 load();
