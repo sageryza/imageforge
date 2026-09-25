@@ -1,0 +1,115 @@
+[
+ {
+  "name": "fruit salad",
+  "pick": [
+   "strawberry",
+   "lemon",
+   "cherries",
+   "blueberries",
+   "pear",
+   "orange",
+   "kiwi",
+   "plum"
+  ],
+  "layout": "tossed",
+  "cols": 6,
+  "tile": 3072,
+  "bg": "#ffffff",
+  "seed": 3,
+  "cut": "rough"
+ },
+ {
+  "name": "lemons",
+  "pick": [
+   "lemon"
+  ],
+  "layout": "tossed",
+  "cols": 6,
+  "tile": 3072,
+  "bg": "#ffffff",
+  "seed": 5,
+  "spin": true,
+  "cut": "rough"
+ },
+ {
+  "name": "woodland",
+  "pick": [
+   "fox",
+   "rabbit",
+   "owl",
+   "deer",
+   "squirrel",
+   "frog",
+   "raccoon",
+   "moose",
+   "skunk"
+  ],
+  "layout": "tossed",
+  "cols": 6,
+  "tile": 3072,
+  "bg": "#ffffff",
+  "seed": 7,
+  "tilt": 45,
+  "cut": "rough"
+ },
+ {
+  "name": "house pets",
+  "pick": [
+   "cat",
+   "dog",
+   "mouse",
+   "rabbit",
+   "hamster",
+   "guinea pig",
+   "goldfish",
+   "parrot"
+  ],
+  "layout": "tossed",
+  "cols": 6,
+  "tile": 3072,
+  "bg": "#ffffff",
+  "seed": 9,
+  "tilt": 40,
+  "cut": "rough"
+ },
+ {
+  "name": "who eats what",
+  "pick": [
+   "monkey",
+   "banana",
+   "rabbit",
+   "carrot",
+   "bear",
+   "blueberries",
+   "mouse",
+   "strawberry",
+   "panda",
+   "koala",
+   "giraffe",
+   "elephant"
+  ],
+  "layout": "tossed",
+  "cols": 6,
+  "tile": 3072,
+  "bg": "#ffffff",
+  "seed": 11,
+  "tilt": 60,
+  "cut": "rough"
+ },
+ {
+  "name": "fruit salad in rows",
+  "pick": [
+   "strawberry",
+   "lemon",
+   "cherries",
+   "blueberries",
+   "pear",
+   "orange"
+  ],
+  "layout": "halfdrop",
+  "cols": 4,
+  "bg": "#ffffff",
+  "tilt": 20,
+  "cut": "rough"
+ }
+]
