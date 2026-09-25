@@ -3754,7 +3754,10 @@ before working on that module. Nothing was deleted — the moved text is verbati
   doc. **v12: SAVE TO PHOTOS** — one button, one size (2K), a copy in the
   Dump, then the photo library through the `forgeSave` bridge (the share
   sheet until the build that puts the bridge on the Chats web view lands);
-  no size chips, no Export, no link into Files. `docs/modules/pictures.md`
+  no size chips, no Export, no link into Files. **v13: ONE SCREEN** — the
+  band is six small whole tiles, size is five notches like spacing, and a
+  selected piece's rows REPLACE the pattern rows so the Tile tab never
+  scrolls (measured in the test, both states). `docs/modules/pictures.md`
   (Pattern).
   **AND A PIECE'S SIZE ON A TILE IS NEVER CHANGED WITHOUT ASKING (2026-09-23,
   Sophie, after a re-lay at two across made every picture bigger: "never

@@ -966,6 +966,20 @@ An item on the tile is `{ piece, x, y, size, rot, flip }`:
   roads, in that order. The 1K/2K/4K chips and the Export word are gone;
   the saved list is buttons, never links into Files. Rule: *SAVE MEANS
   PHOTOS, NEVER FILES* in CLAUDE.md's checklist.
+- **The TILE tab fits one screen, and size is notches too** (v13,
+  2026-09-25, Sophie: "what did u do to the bar? everything moved down · needs
+  to fit on one screen no scroll · spacing has 5 notches is that the same
+  number as before? · sizing is still a slider...?"). The band over the tile
+  is SIX whole tiles across (`aspect-ratio:6/1`, ~60px — v11's three-across
+  band was 119px and pushed the controls under the fold); the `<hr>` and the
+  loose margins came out; and the two sets of rows TAKE TURNS — with nothing
+  selected the pattern rows (spacing · Reset · spin all · Spin · Scatter),
+  with a piece selected that piece's rows (flip · + · remove · Done, turn,
+  SIZE as five notches 140·200·280·400·560, the current one lit) — so
+  neither state is taller than the other. Before v10 spacing was a 500–2500
+  slider with no notches at all; the five are new, not renumbered. Size was
+  still a slider until v13. `test-pattern.js` measures the tab's bottom at
+  390x844 in both states (≤700, same height ±12).
 - **The pieces are baked in** — `pattern-page.js` reads every ready, unhidden
   doc on `forge-pattern-pieces` (id, name, kind, thumb, cut, w, h — ~300 bytes
   each) and inlines the list; a new piece reaches her through a re-post
