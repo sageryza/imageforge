@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-/* A POSTER THAT LANDS AFTER THE CLIP, AND AN EYE ON A CLIP SHE HAS WATCHED
- * (2026-09-25, Sophie: "it takes a while to make posters in footage?" · "it's
- * confusing cuz i forget which ive watched").
+/* A POSTER THAT LANDS AFTER THE CLIP (2026-09-25, Sophie: "it takes a while
+ * to make posters in footage?"). (The watched eye that shipped beside this
+ * came off the same day — "no eye pls".)
  *
  * The REAL page headless against a stub feed, and every assertion is a
  * MEASUREMENT: how many times the page really asked for the feed after a clip
  * came back finished with no poster (the pre-fix page asks once and stops), the
- * poster really rendered as a picture once the stub grew one, the eye's box on
- * screen after a play and after a reload, and NO eye on a clip never played.
+ * poster really rendered as a picture once the stub grew one, and the poll
+ * stopping again once only a stale posterless clip is left.
  *
- * Run: node scripts/test-footage-watched.js
+ * Run: node scripts/test-footage-poster-poll.js
  */
 'use strict';
 const fs = require('fs');
@@ -23,11 +23,11 @@ const fails = []; let pass = 0;
 const ok = (what, cond) => { if (cond) pass += 1; else fails.push(what); };
 function report() {
   if (fails.length) {
-    console.log('FOOTAGE WATCHED — ' + pass + ' passed, ' + fails.length + ' FAILED');
+    console.log('FOOTAGE POSTER POLL — ' + pass + ' passed, ' + fails.length + ' FAILED');
     fails.forEach((f) => console.log('  ✗ ' + f));
     process.exit(1);
   }
-  console.log('FOOTAGE WATCHED — ' + pass + ' passed');
+  console.log('FOOTAGE POSTER POLL — ' + pass + ' passed');
 }
 
 let chromium;
@@ -88,26 +88,12 @@ const server = http.createServer((req, res) => {
   res.writeHead(404); res.end('nope');
 });
 
-// what a tile really shows: its face's picture and its eye's box
+// what a tile really shows: whether its face is a decoded picture
 const readTiles = () => {
   const out = {};
   document.querySelectorAll('#tiles .cell').forEach((c) => {
     const img = c.querySelector('.face img');
-    const eye = c.querySelector('.tseen');
-    const r = eye ? eye.getBoundingClientRect() : { width: 0, height: 0 };
-    const cr = c.getBoundingClientRect();
-    out[c.dataset.id] = { img: !!img && img.naturalWidth > 0, eyeW: r.width, eyeH: r.height,
-      eyeInside: r.width > 0 && r.left >= cr.left && r.right <= cr.right + 0.5 && r.top >= cr.top - 0.5,
-      seen: c.classList.contains('seen') };
-  });
-  return out;
-};
-const readCards = () => {
-  const out = {};
-  document.querySelectorAll('#feed .job').forEach((el) => {
-    const eye = el.querySelector('.thumb .tseen');
-    const r = eye ? eye.getBoundingClientRect() : { width: 0, height: 0 };
-    out[el.dataset.id] = { eyeW: r.width, eyeH: r.height };
+    out[c.dataset.id] = { img: !!img && img.naturalWidth > 0 };
   });
   return out;
 };
@@ -146,35 +132,6 @@ const readCards = () => {
   await page.waitForTimeout(9000);
   ok('then it stops: no further reads in 9s with only the stale clip posterless — ' + (feedReads - reads1), feedReads - reads1 === 0);
   ok('the stale clip is still the film glyph, honestly', !t1.stale.img);
-
-  // ── 2. NO EYE UNTIL PLAYED ──────────────────────────────────────────────
-  ok('no tile wears the eye before anything is played', Object.values(t1).every((t) => !t.eyeW && !t.eyeH && !t.seen));
-
-  // ── 3. PLAY ONE → ITS TILE AND ITS CARD WEAR THE EYE, MEASURED ─────────
-  await page.click('#tiles .cell[data-id="fresh"] .tdoor.play');
-  await page.waitForTimeout(300);
-  await page.evaluate(() => { const p = document.getElementById('player'); if (p) { const x = p.querySelector('.pclose, .close, button[aria-label="Close"]'); if (x) x.click(); } });
-  await page.waitForTimeout(200);
-  const t2 = await page.evaluate(readTiles);
-  ok('the played tile wears the eye — ' + Math.round(t2.fresh.eyeW) + 'x' + Math.round(t2.fresh.eyeH), t2.fresh.eyeW >= 16 && t2.fresh.eyeH >= 12);
-  ok('and the eye sits inside the tile, top row', t2.fresh.eyeInside);
-  ok('the other two still have none', !t2.ready.eyeW && !t2.stale.eyeW);
-  await page.click('#v-list');
-  await page.waitForTimeout(300);
-  const c2 = await page.evaluate(readCards);
-  ok('the list card\'s picture wears the same eye — ' + Math.round(c2.fresh.eyeW) + 'x' + Math.round(c2.fresh.eyeH), c2.fresh.eyeW >= 16 && c2.fresh.eyeH >= 12);
-  ok('and only that card', !c2.ready.eyeW && !c2.stale.eyeW);
-
-  // ── 4. IT SURVIVES A RELOAD (this phone remembers) ──────────────────────
-  await page.reload();
-  await page.waitForFunction(() => document.querySelectorAll('#feed .job').length === 3);
-  await page.click('#v-tiles');
-  await page.waitForSelector('#tiles .cell[data-id="ready"]');
-  await page.waitForTimeout(300);
-  const t3 = await page.evaluate(readTiles);
-  ok('after a reload the played tile still wears the eye', t3.fresh.eyeW >= 16 && !t3.ready.eyeW);
-  const stored = await page.evaluate(() => localStorage.getItem('footage_seen'));
-  ok('kept under footage_seen — ' + stored, stored === '["fresh"]');
 
   ok('no page errors — ' + errors.join(' | '), errors.length === 0);
   await browser.close();
