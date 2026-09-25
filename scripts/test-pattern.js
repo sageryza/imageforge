@@ -308,6 +308,8 @@ async function pageHalf() {
   const cvr = await page.$eval('#tile', el => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
   ok(Math.abs(cvr.w - cvr.h) < 2, 'the tile is square on screen');
   ok((await page.$eval('#band', el => el.style.backgroundImage)).startsWith('url("data:image/png'), 'the repeat band is painted from the tile');
+  const band = await page.$eval('#band', el => { const r = el.getBoundingClientRect(); return { w: r.width, h: r.height, inner: el.clientWidth, bs: parseFloat(el.style.backgroundSize) }; });
+  ok(Math.abs(band.h - band.w / 3) < 1.5 && Math.abs(band.bs - band.inner / 3) < 1.5, 'the band shows three WHOLE tiles across — as tall as one tile, nothing cut off (' + Math.round(band.w) + 'x' + Math.round(band.h) + ', tile ' + Math.round(band.bs) + ')');
   await shot('2-tile');
   const pear = st.items[1];
   const sx = cvr.x + pear.x * cvr.w, sy = cvr.y + pear.y * cvr.h;

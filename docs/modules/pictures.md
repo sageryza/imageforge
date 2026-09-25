@@ -1067,6 +1067,11 @@ on where the page lives: "i meant pull to ur chat · make it a rule".
   patterns. The ledger line carries the chat.
 The test measures every step off the store (seven undos to the start, seven
 redos back, the notch and the reset as single steps, Reset moving nothing).
+- **The band above the tile shows three WHOLE tiles (v11, "the bar - only
+  shows part?")** — it was a fixed 64px strip, so at three across it showed
+  only the top slice of each tile and the pieces looked cut off. It is
+  `aspect-ratio:3/1` now: as tall as one tile at three across. The test
+  measures the band against its own width.
 
 ### What the first cut was, so nobody rebuilds it
 A `public/pattern.html` at `/pattern` on tool.css with an iOS tile, merged

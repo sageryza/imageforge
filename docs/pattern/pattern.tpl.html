@@ -75,7 +75,11 @@
 .msg.bad{ color:var(--rose); }
 
 /* ── the tile ── */
-.band{ height:64px; border:1px solid var(--line); border-radius:6px; background-repeat:repeat; margin-bottom:8px; }
+/* the repeat band: three WHOLE tiles across — a fixed 64px band showed only
+   the top slice of each tile (2026-09-25, Sophie: "the bar - only shows
+   part?"); the band is as tall as one tile at three across, so nothing is
+   cut off */
+.band{ aspect-ratio:3/1; border:1px solid var(--line); border-radius:6px; background-repeat:repeat; margin-bottom:8px; box-sizing:border-box; }
 canvas#tile{ display:block; width:100%; border:1px solid var(--line); border-radius:6px;
   touch-action:none; background:var(--surface); box-sizing:border-box; }
 .ctl{ margin-top:10px; }
@@ -227,7 +231,7 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
 
   window.__compareHelp({ html: '<b>Pieces</b> — tap an animal or a fruit to put it in the pattern; tap again to take it out. '
     + 'Each one is cut roughly around with its paper kept, like scissors. A new one is a chat’s job: ask, and it is drawn and put on the list.<br><br>'
-    + '<b>Tile</b> — one square that repeats. Drag a piece where you want it; the degrees box turns it, the size slider sizes it, '
+    + '<b>Tile</b> — one square that repeats; the strip above it is that square three times over, whole, so you can see how the edges meet. Drag a piece where you want it; the degrees box turns it, the size slider sizes it, '
     + '<b>+</b> adds another of the same. <b>Spacing</b> is five notches — a bigger square under everything, so the repeats land farther apart. '
     + '<b>Spin</b> turns every piece a little, at random, within the degrees you set; <b>Scatter</b> deals every piece a new spot, spread out so nothing piles up — tap either again for another go. <b>Reset</b> puts every piece back to its starting size and no turn. A piece hanging off one edge comes back in on the other, '
     + 'which is what makes the repeat seamless.<br><br>'
@@ -559,6 +563,7 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
     el.style.backgroundColor = pattern.tile.bg;
     el.style.backgroundImage = 'url(' + url + ')';
     el.style.backgroundSize = (w / per * r.tiles) + 'px auto';
+    el.style.backgroundPosition = '0 0';
   }
   function paintBand() { if (pattern && !$('pane-tile').hidden) tileCss($('band'), 3); }
   function paintBig() { if (pattern) tileCss($('big'), 2.5); }
