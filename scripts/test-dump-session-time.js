@@ -158,7 +158,7 @@ t('the route counts ALBUMS, not files', () => {
   const i = src.indexOf("router.get('/tracks'");
   const body = src.slice(i, src.indexOf('\n});', i));
   assert.ok(/new Set\(\)/.test(body), 'a per-track Set is what makes it albums');
-  assert.ok(/d\.get\('bundle'\)/.test(body), 'albums are counted by bundle');
+  assert.ok(/d\.(get\('bundle'\)|bundle)/.test(body), 'albums are counted by bundle');
   assert.ok(/set\.size/.test(body), 'the count passed to orderTracks is the album count');
 });
 

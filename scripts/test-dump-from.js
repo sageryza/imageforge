@@ -69,6 +69,19 @@ t('an album is judged whole, by majority, a tie to her', () => {
   assert.strictEqual(drop.albumFrom([her(1), chat(1), chat(2)]), 'claude');
   assert.strictEqual(drop.albumFrom([]), 'claude');
 });
+t('the page draws covers and tiles from the display copy, never the original', () => {
+  const html = fs.readFileSync(path.join(ROOT, 'public/dump.html'), 'utf8');
+  assert.ok(/b\.coverThumb\|\|b\.cover/.test(html), 'the list cover');
+  assert.ok(/f\.thumb\|\|/.test(html), 'the file tiles');
+  assert.ok(/viewswitch\.js/.test(html) && /viewswitch\.css/.test(html), 'the one view switch, linked');
+  assert.ok(!/localStorage\.setItem\(['"]dump_/.test(html), 'the switch keeps its own keys');
+});
+t('a zip filed as an image on an older row gets no thumb', () => {
+  assert.strictEqual(drop.thumbLink({ id: 'Z', media: 'image', storagePath: 'drops/_/a.zip' }), null);
+  assert.strictEqual(drop.thumbLink({ id: 'P', media: 'image', storagePath: 'drops/_/a.jpg' }), '/api/drop/thumb/P');
+  assert.strictEqual(drop.thumbLink({ id: 'P', media: 'image', thumbUrl: 'T' }), 'T');
+  assert.strictEqual(drop.thumbLink({ id: 'V', media: 'video', posterUrl: 'PO' }), 'PO');
+});
 t('the page carries the two tabs, opens on FROM ME, and asks the server for one side', () => {
   const html = fs.readFileSync(path.join(ROOT, 'public/dump.html'), 'utf8');
   assert.ok(/class="acctab on" data-from="me">From me</.test(html));
@@ -90,7 +103,11 @@ async function page() {
   });
   const app = express();
   app.get('/api/drop/tracks', (q, r) => r.json({ tracks: [] }));
-  app.get('/api/drop/sessions', (q, r) => { asked.push('sessions:' + (q.query.from || '')); r.json({ sessions: [] }); });
+  app.get('/api/drop/sessions', (q, r) => {
+    asked.push('sessions:' + (q.query.from || ''));
+    // 143 of these on the live page — the row they used to fill scrolled sideways
+    r.json({ sessions: Array.from({ length: 143 }, (_, i) => ({ session: '2026-09-' + (10 + (i % 15)) + '-' + String(1000 + i), label: 'Sep ' + (10 + (i % 15)) + ' · ' + (i % 12 + 1) + ':00 pm', files: 3, unlabelled: 1, cover: null })) });
+  });
   app.get('/api/drop/bundles', (q, r) => {
     asked.push('bundles:' + (q.query.from || ''));
     const side = q.query.from;
@@ -152,8 +169,37 @@ async function page() {
     await pg.waitForTimeout(200);
     assert.strictEqual(asked.filter((a) => a.startsWith('bundles')).length, 2, 'a chip re-reads nothing'); pass++;
     assert.deepStrictEqual(await names(), ['Posters v9']); pass++;
+    // NO SECOND SCROLL: the chips wrap, the page is exactly as wide as the phone
+    const widths = await pg.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth,
+      document.querySelector('.chips').scrollWidth, document.querySelector('.chips').clientWidth,
+      document.querySelectorAll('.chip').length]);
+    assert.strictEqual(widths[0], widths[1], 'the page does not scroll sideways'); pass++;
+    assert.strictEqual(widths[2], widths[3], 'the chip row does not scroll sideways'); pass++;
+    assert.ok(widths[4] < 20, `143 dumps are one Date chip, not 143 chips (${widths[4]} chips)`); pass++;
+    // the Date chip opens the sheet; a dump picked there filters and lights the chip
+    await pg.click('.chip.date');
+    await pg.waitForTimeout(200);
+    assert.strictEqual(await pg.$$eval('#datelist .alb', (els) => els.length), 143); pass++;
+    await pg.click('#datelist .alb:nth-child(2)');
+    await pg.waitForTimeout(200);
+    assert.ok(/✕$/.test((await pg.textContent('.chip.date')).trim()), 'the lit chip reads the dump and offers ✕'); pass++;
+    assert.strictEqual(await pg.evaluate(() => document.getElementById('datesheet').hidden), true); pass++;
+    // TILES: the wall `--cols` across, every tile inside the screen
+    await pg.click('.chip.date'); await pg.waitForTimeout(150);   // ✕ clears the dump
+    await pg.click('#v-tiles');
+    await pg.waitForTimeout(200);
+    const wall = await pg.evaluate(() => {
+      const tiles = [...document.querySelectorAll('.wall .tile')].map((t) => t.getBoundingClientRect());
+      return { n: tiles.length, cols: getComputedStyle(document.documentElement).getPropertyValue('--cols').trim(),
+        maxRight: Math.max(...tiles.map((r) => r.right)), w: document.documentElement.clientWidth, names: [...document.querySelectorAll('.wall .tn')].map((e) => e.textContent) };
+    });
+    assert.strictEqual(wall.n, 1); pass++;
+    assert.deepStrictEqual(wall.names, ['Posters v9']); pass++;
+    assert.ok(wall.maxRight <= wall.w, `a tile past the screen: ${wall.maxRight} > ${wall.w}`); pass++;
+    await pg.click('#v-list'); await pg.waitForTimeout(150);
+    assert.deepStrictEqual(await names(), ['Posters v9'], 'back to the list'); pass++;
     if (errs.length) fails.push('page errors: ' + errs.join(' | ')); else pass++;
-    console.log('  ok  headless: her side, the chat side, the measured line, no re-reads');
+    console.log('  ok  headless: her side, the chat side, the measured line, no re-reads, one Date chip, tiles');
   } catch (e) {
     fails.push('headless: ' + e.message); console.error('  FAIL headless\n       ' + e.message);
   } finally { await browser.close(); srv.close(); }

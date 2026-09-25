@@ -61,6 +61,50 @@ The generic phone inbox, the APNs doorbell, and the Google Drawing extractor.
   - Test: `node scripts/test-dump-from.js` (the rule pure; the real page
     headless — the chat album COUNTED off the rendered list, the tab line
     MEASURED under the lit word, a chip tap asserted to re-read nothing).
+- **AND THE SAME EVENING, THREE MORE (2026-09-25, Sophie, seconds after
+  the first: "things save to files shud go to photos never files · also
+  there's two scrolls!!!" · "is there no tiles just list?" · "send is fucked
+  to so just delete it for now").**
+  - **SAVE GOES TO PHOTOS, NEVER FILES.** The lightbox's Save was a
+    `/api/drop/file/:id` link — an attachment, which iOS puts in Files. It
+    is a BUTTON now: in the app it posts the file's url through the
+    `forgeSave` bridge (ForgeSaveBridge.swift — a clip too, it asks the url
+    whether it is a video), in Safari it opens the share sheet with the
+    fetched file, and a desktop browser downloads it. The attachment route
+    stays for a chat or a browser that wants the bytes; nothing on the page
+    links it. `node scripts/test-drop-download.js` drives the tap against a
+    stubbed bridge.
+  - **THE SECOND SCROLL WAS THE CHIP ROW.** It scrolled sideways under a
+    page that scrolls down, and it held one chip per DUMP — 143 of them —
+    so it was a scroll she could never reach the end of. The dumps are ONE
+    chip now, `Date`, opening a sheet (label, count, cover; a tap filters,
+    the lit chip reads the dump and offers ✕), and what is left — Select ·
+    All · Unfiled · her folders · Date — WRAPS. Measured headless: the page
+    and the row are exactly the phone's width.
+  - **TILES.** The one LIST · TILES · 3/4 switch (`/viewswitch.js`, key
+    `dump`) in the header's top row: TILES is the album cover `--cols`
+    across with the name and count under, a tap opens that album in the
+    list, and in Select mode a tap picks it. A tile carries `min-width:0` —
+    a button's min-content is its nowrap name, and one long album name
+    pushed the whole row past the screen (PHOTO'd).
+  - **THE SEND TAB IS OFF THE iOS TILE** (`DumpView.swift`): the tile is
+    the sort page alone, opening straight on it. The picker code
+    (`content`, `albumGrid`, `sendBar`, `DumpUploader`) is left in the file
+    unreachable — "for now" is hers — and albums get in through the share
+    sheet. **Needs a TestFlight build to reach her phone.**
+  - **AND THE PAGE DRAWS DISPLAY COPIES, NEVER THE ORIGINAL** — the other
+    half of "it's slow". Every cover and every 4-across tile was the full
+    3-4MB photo the phone sent. `GET /api/drop/thumb/:id` makes the crystal
+    splitter's 480px webp (`scripts/crystal-thumbs.js`'s own key, field and
+    path — `thumbUrl`, `drops/_thumb/<md5 of the source>.webp`, a year's
+    immutable cache) ON DEMAND the first time a page asks, banks it on every
+    doc sharing those bytes, and answers a redirect to the banked copy ever
+    after; a video answers its poster, a zip filed as an image on an older
+    row answers 404 rather than a broken tile, and a thumb that cannot be
+    made answers the original. Two at a time (a resize holds the whole
+    original on a 512MB box). `/bundles` carries `coverThumb` and each
+    file's `thumb`, so a page needs no second read. An older HEIC object
+    goes through `normalize()`'s decoder first.
 - **One Firestore doc per FILE** (`forge-drops`, deckfactory), plus one doc per
   album in `forge-drop-bundles` holding its number, name and file counter.
   Images and videos both (videos get a poster frame).

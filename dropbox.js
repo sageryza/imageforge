@@ -844,6 +844,8 @@ router.get('/bundles', async (req, res) => {
           listingId: it.listingId, listingUrl: it.listingUrl,
           from: fromOf(it),
           cover: it.posterUrl || it.url,
+          // the display copy — a banked thumb, else the on-demand route
+          coverThumb: thumbLink(it),
           // When the newest file in this album landed — what the sort page
           // orders by (newest first), since seq is arrival order across ALL
           // albums and says nothing about a re-dumped album's freshness.
@@ -864,6 +866,7 @@ router.get('/bundles', async (req, res) => {
       out[index.get(key)].files.push({
         id: it.id, url: it.url, media: it.media || 'image',
         posterUrl: it.posterUrl || null, photoIndex: it.photoIndex || 0,
+        thumb: thumbLink(it),
       });
     }
     for (const b of out) b.label = sessionLabel(b.oldest || b.newest);
@@ -949,6 +952,94 @@ router.get('/file/:id', async (req, res) => {
         else { try { res.destroy(); } catch { /* already closed */ } }
       })
       .pipe(res);
+  } catch (e) { fail(res, e); }
+});
+
+
+// ── A DISPLAY COPY, MADE ONCE — GET /thumb/:id ─────────────────────────────
+// The Dump stores what the phone sent — a 3-4MB photo — and the sort page
+// drew every album cover and every 4-across tile from that original: an
+// album of 100 photos is a third of a gigabyte to scroll past (the crystal
+// splitter's lesson, scripts/crystal-thumbs.js, which banked thumbs for the
+// Crystals folder only). This is the same thumb, the same key and the same
+// field (`thumbUrl`, `drops/_thumb/<md5 of the source>.webp`, a year's
+// immutable cache), made ON DEMAND the first time a page asks and answered
+// as a redirect to the banked copy ever after. A video answers its poster; a
+// file with no picture 404s; a thumb that cannot be made answers the original
+// so nothing tiles blank. Two at a time — a resize holds the whole original
+// on a 512MB box.
+const THUMB_W = 480;
+let thumbSlots = 0;
+const thumbWaiters = [];
+function thumbSlot() {
+  if (thumbSlots < 2) { thumbSlots += 1; return Promise.resolve(); }
+  return new Promise((ok) => thumbWaiters.push(ok)).then(() => { thumbSlots += 1; });
+}
+function thumbDone() { thumbSlots -= 1; const next = thumbWaiters.shift(); if (next) next(); }
+// A doc's `media` predates the file kind on older rows — a zip filed as an
+// 'image' in 2026-08 — so the stored path's own extension is asked too.
+function pictureKind(i) {
+  const m = i.media || 'image';
+  if (m !== 'image') return m;
+  const ct = ctForName(i.storagePath || i.url || i.filename || '');
+  return isFileCT(ct) ? 'file' : isAudioCT(ct) ? 'audio' : isVideoCT(ct) ? 'video' : 'image';
+}
+function thumbLink(it) {
+  const i = it || {};
+  const kind = pictureKind(i);
+  if (kind === 'video') return i.posterUrl || i.thumbUrl || null;
+  if (kind !== 'image') return null;
+  return i.thumbUrl || (i.id ? `/api/drop/thumb/${i.id}` : i.url || null);
+}
+async function makeThumb(id, it, bucket) {
+  const [raw] = await bucket.file(it.storagePath).download();
+  // An older object can still be the phone's HEIC (stored before the decoder
+  // fallback landed) — normalize() is the one HEIC door, heic-convert behind it.
+  const { buf } = await normalize(raw, ctForName(it.storagePath));
+  const out = await sharp(buf, { unlimited: true }).rotate()
+    .resize({ width: THUMB_W, withoutEnlargement: true }).webp({ quality: 78 }).toBuffer();
+  const key = crypto.createHash('md5').update(raw).digest('hex');
+  const dest = `drops/_thumb/${key}.webp`;
+  const file = bucket.file(dest);
+  if (!(await file.exists())[0]) {
+    await file.save(out, { contentType: 'image/webp', resumable: false,
+      metadata: { cacheControl: 'public, max-age=31536000, immutable' } });
+    await file.makePublic();
+  }
+  const url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
+  // Every doc sharing these bytes gets the thumb — the same photo in two
+  // albums is one object and one thumb.
+  const twins = await db().collection(COL).where('hash', '==', it.hash || '__none').get();
+  const writer = db().batch();
+  let n = 0;
+  twins.forEach((d) => { writer.update(d.ref, { thumbUrl: url }); n += 1; });
+  if (!n) writer.update(db().collection(COL).doc(id), { thumbUrl: url });
+  await writer.commit();
+  forgetAll();
+  return url;
+}
+router.get('/thumb/:id', async (req, res) => {
+  try {
+    const id = String(req.params.id || '');
+    const d = await db().collection(COL).doc(id).get();
+    if (!d.exists) return res.status(404).json({ error: 'not found' });
+    const it = d.data() || {};
+    res.set('Cache-Control', 'public, max-age=86400');
+    if (it.thumbUrl) return res.redirect(302, it.thumbUrl);
+    const kind = pictureKind(it);
+    if (kind === 'video') {
+      return it.posterUrl ? res.redirect(302, it.posterUrl) : res.status(404).json({ error: 'no poster' });
+    }
+    if (kind !== 'image') return res.status(404).json({ error: 'no picture' });
+    const bucket = bucketOrNull();
+    if (!sharp || !bucket || !it.storagePath) return res.redirect(302, it.url);
+    await thumbSlot();
+    let url;
+    try { url = await makeThumb(id, it, bucket); }
+    catch (e) { console.warn(`drop: thumb failed for ${id} —`, e.message); url = it.url; }
+    finally { thumbDone(); }
+    res.set('Cache-Control', url === it.url ? 'no-store' : 'public, max-age=86400');
+    return res.redirect(302, url);
   } catch (e) { fail(res, e); }
 });
 
@@ -1279,4 +1370,5 @@ module.exports = {
   // WHO SENT IT (2026-09-25): the rule at upload time, the guess for older
   // docs, and the album vote the backfill uses
   whoFrom, fromWord, guessFrom, albumFrom, fromOf, forgetAll, backfillFrom,
+  thumbLink, pictureKind,
 };

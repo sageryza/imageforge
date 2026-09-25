@@ -2,6 +2,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>The Dump — sort & label</title>
+<!-- THE LIST · TILES · 3/4 SWITCH — the one shell (/viewswitch.js), linked, never copied -->
+<link rel="stylesheet" href="/viewswitch.css">
 <style>
   :root{ --bg:#faf9f7; --surface:#fff; --surface2:#f5f0eb; --border:#e8e4df;
     --accent:#b48b6a; --text:#3a3530; --dim:#9e9590; --danger:#d4807a; --r:6px; }
@@ -17,7 +19,11 @@
   header{ position:sticky; top:0; background:var(--bg); z-index:5;
     padding:calc(14px + env(safe-area-inset-top)) 0 0 0;
     border-bottom:1px solid var(--border); }
-  header .top{ padding:0 56px 0 16px; }
+  header .top{ padding:0 56px 0 16px; display:flex; align-items:flex-end; gap:10px; }
+  header .top .tt{ flex:1; min-width:0; }
+  /* the view switch reads this page's tokens; the box sits at the row's end,
+     inside the pill's 56px reserve */
+  header .top .viewtog{ --vs-line:var(--border); --vs-paper:var(--surface); --vs-ink:var(--accent); }
   .eyebrow{ font-size:12px; font-weight:600; letter-spacing:2.5px; color:#8a8377; }
   .counts{ font-size:12px; color:var(--dim); margin-top:3px; }
   /* ?embed=1 — hosted as the Dump tile's Sort tab, where the native screen
@@ -41,14 +47,30 @@
     width:var(--tw,0); background:var(--text); transform:translateX(var(--tx,0)); }
   .acctabs.tl::after{ transition:transform .2s ease, width .2s ease; }
 
-  .chips{ display:flex; gap:6px; overflow-x:auto; padding:10px 16px 4px;
-    -webkit-overflow-scrolling:touch; }
-  .chips::-webkit-scrollbar{ display:none; }
+  /* THE CHIPS WRAP — no second scroll (2026-09-25, Sophie: "there's two
+     scrolls!!!"). This row scrolled sideways under a page that scrolls down,
+     and 143 dump-date chips made it a scroll she could never reach the end
+     of. The dates are ONE chip now that opens a sheet; what is left wraps. */
+  .chips{ display:flex; flex-wrap:wrap; gap:6px; padding:10px 16px 8px; }
   .chip{ flex:0 0 auto; font-size:13px; border:1px solid var(--border); border-radius:var(--r);
     padding:6px 12px; background:var(--surface); color:var(--dim); cursor:pointer; user-select:none; }
   .chip.on{ background:var(--accent); border-color:var(--accent); color:#fff; }
 
   main{ padding:8px 12px calc(40px + env(safe-area-inset-bottom)); }
+  /* TILES — album covers `--cols` across, the name under (2026-09-25,
+     Sophie: "is there no tiles just list?"). The list is the cards below. */
+  .wall{ display:grid; grid-template-columns:repeat(var(--cols,3),1fr); gap:8px; padding:2px 2px 10px; }
+  /* min-width:0 — a button's min-content is its nowrap name, and one long
+     album name would push the whole row past the screen (PHOTO'd). */
+  .wall .tile{ display:block; min-width:0; width:100%; border:0; padding:0; background:none;
+    text-align:left; cursor:pointer; font:inherit; color:var(--text); }
+  .wall .tile.picked .cv{ outline:3px solid var(--accent); outline-offset:-3px; }
+  .wall .cv{ width:100%; aspect-ratio:1; object-fit:cover; border-radius:var(--r); display:block;
+    background:var(--surface2); border:1px solid var(--border); }
+  .wall .tn{ font-size:12px; font-weight:600; margin-top:4px; overflow:hidden; text-overflow:ellipsis;
+    white-space:nowrap; }
+  .wall .ts{ font-size:11px; color:var(--dim); }
+  .wall .ts.un{ color:var(--danger); }
   .card{ background:var(--surface); border:1px solid var(--border); border-radius:12px;
     margin-bottom:10px; overflow:hidden; }
   .head{ display:flex; align-items:center; gap:12px; padding:10px 12px; cursor:pointer; }
@@ -101,11 +123,11 @@
   #mvgo:disabled{ opacity:.5; }
   #mvcancel{ background:transparent; color:var(--dim); border:1px solid var(--border); }
   /* Album-picker sheet */
-  #sheet{ position:fixed; inset:0; z-index:25; background:rgba(20,16,12,.45);
+  #sheet, #datesheet{ position:fixed; inset:0; z-index:25; background:rgba(20,16,12,.45);
     display:flex; align-items:flex-end; }
-  #sheetin{ background:var(--surface); border-radius:12px 12px 0 0; width:100%;
+  #sheetin, .sheetin{ background:var(--surface); border-radius:12px 12px 0 0; width:100%;
     max-height:70vh; overflow-y:auto; padding:16px 16px calc(20px + env(safe-area-inset-bottom)); }
-  #sheetin .lab2{ font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--dim); margin:12px 0 6px; }
+  #sheetin .lab2, .sheetin .lab2{ font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--dim); margin:12px 0 6px; }
   .alb{ display:flex; align-items:center; gap:10px; width:100%; text-align:left; font:inherit;
     background:none; border:0; border-bottom:1px solid var(--border); padding:10px 2px; cursor:pointer; }
   .alb img{ width:38px; height:38px; border-radius:4px; object-fit:cover; background:var(--surface2); }
@@ -138,8 +160,11 @@
 
 <header>
   <div class="top">
-    <div class="eyebrow">THE DUMP</div>
-    <div class="counts" id="counts">loading…</div>
+    <div class="tt">
+      <div class="eyebrow">THE DUMP</div>
+      <div class="counts" id="counts">loading…</div>
+    </div>
+    <div id="viewmount"></div>
   </div>
   <div class="acctabs" id="fromtabs">
     <button class="acctab on" data-from="me">From me</button>
@@ -165,17 +190,27 @@
   </div>
 </div>
 
+<!-- the dumps by date — one tap on the Date chip, one tap on a dump -->
+<div id="datesheet" hidden>
+  <div id="sheetin2" class="sheetin">
+    <div class="lab2">Which dump</div>
+    <div id="datelist"></div>
+  </div>
+</div>
+
 <div id="lb" hidden>
   <img id="lbimg" alt="" hidden>
   <video id="lbvid" controls playsinline hidden></video>
   <audio id="lbaud" controls hidden></audio>
   <div class="row">
-    <a id="lbsave" href="#">Save</a>
+    <button id="lbsave">Save to Photos</button>
     <button class="del" id="lbdel">Delete</button>
     <button id="lbclose">Close</button>
   </div>
+  <div class="hint" id="lbhint" style="color:#fff;opacity:.8;margin-top:10px;min-height:1em"></div>
 </div>
 
+<script src="/viewswitch.js"></script>
 <script>
 const TOKEN='__STUDIO_TOKEN__', tok=TOKEN.indexOf('__')===0?'':TOKEN;
 if(new URLSearchParams(location.search).get('embed')==='1') document.body.classList.add('embed');
@@ -261,21 +296,37 @@ function renderFilters(){
     '<span class="chip'+(onlyUnlabelled?' on':'')+'" data-un="1">Unfiled</span>'+
     folders.map(f=>'<span class="chip fold'+(curFolder===f?' on':'')+'" data-f="'+esc(f)+'">'
       +esc(f)+'</span>').join('')+
-    // The LABEL is her wall clock, the value stays the session id. Dumps made
-    // before 2026-08-23 carry a UTC-stamped id, so an evening one reads as the
-    // next day — the label is built server-side from the files' real
-    // timestamps instead (see sessionLabel in dropbox.js).
-    sessions.map(s=>'<span class="chip'+(curSession===s.session?' on':'')+'" data-s="'+esc(s.session)+'"'
-      +' title="'+esc(s.session)+'">'
-      +esc(s.label||s.session)+(s.unlabelled?' · '+s.unlabelled:'')+'</span>').join('');
+    // ONE chip for the dumps by date, opening a sheet — 143 date chips in a
+    // sideways-scrolling row was the second scroll. Lit, it reads the dump's
+    // label: her wall clock, built server-side from the files' real
+    // timestamps (sessionLabel in dropbox.js), never the session id.
+    (sessions.length?'<span class="chip date'+(curSession?' on':'')+'" data-date="1">'
+      +esc(curSession?(sessionLabelOf(curSession)+' ✕'):'Date')+'</span>':'');
   el.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
     if(c.dataset.sel){ setSelectMode(!selectMode); return; }
     if(c.dataset.f!==undefined){ curFolder=(curFolder===c.dataset.f)?'':c.dataset.f; }
     else if(c.dataset.un){ onlyUnlabelled=!onlyUnlabelled; }
-    else { curSession=c.dataset.s; curFolder=''; }
+    else if(c.dataset.date){ if(curSession){ curSession=''; } else { openDates(); return; } }
+    else { curSession=''; curFolder=''; }
     renderFilters(); loadBundles();
   });
 }
+function sessionLabelOf(id){ const s=sessions.find(x=>x.session===id); return (s&&s.label)||id; }
+function openDates(){
+  const list=document.getElementById('datelist');
+  list.innerHTML=sessions.map(s=>
+    '<button class="alb" data-s="'+esc(s.session)+'">'+
+      (s.cover?'<img src="'+esc(s.cover)+'" loading="lazy" alt="">':'<span style="width:38px"></span>')+
+      '<span class="an">'+esc(s.label||s.session)+'</span>'+
+      '<span class="ac">'+s.files+' file'+(s.files===1?'':'s')+(s.unlabelled?' · '+s.unlabelled+' unlabelled':'')+'</span></button>').join('');
+  list.querySelectorAll('[data-s]').forEach(a=>a.onclick=()=>{
+    curSession=a.dataset.s; curFolder='';
+    document.getElementById('datesheet').hidden=true;
+    renderFilters(); loadBundles();
+  });
+  document.getElementById('datesheet').hidden=false;
+}
+document.getElementById('datesheet').onclick=e=>{ if(e.target.id==='datesheet')e.target.hidden=true; };
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
 // Select mode: pick whole ALBUMS, then file the lot into a folder. Sophie's
@@ -297,8 +348,14 @@ function updateMoveBar(){
 }
 const bKey=b=>b.bundle?(b.session+'/'+b.bundle):('loose:'+b.files[0].id);
 
+// LIST · TILES · 3/4 — the one shell. `dump_view` / `dump_cols` are its
+// own keys; `--cols` on the root is what the wall reads.
+let vs=null;
+vs=window.__viewSwitch?window.__viewSwitch({mount:'#viewmount', key:'dump', cols:[3,4],
+  onView:()=>{ if(bundles.length) renderList(); }, onCols:()=>{ if(bundles.length) renderList(); }}):null;
 function renderList(){
   const el=document.getElementById('list');
+  if(vs&&vs.view()==='tiles') return renderTiles();
   if(!bundles.length){ el.innerHTML='<div class="empty">'+(curFrom==='claude'?'Nothing from a chat here.':'Nothing here — dump something from the app first.')+'</div>'; return; }
   el.innerHTML=bundles.map((b,i)=>{
     const nm=b.bundleName||b.name||(b.bundle?b.bundle.replace(/-/g,' '):'loose file');
@@ -306,7 +363,7 @@ function renderList(){
     const on=selectMode&&picked.has(bKey(b));
     return '<div class="card'+(on?' picked':'')+'" data-i="'+i+'">'+
       '<div class="head"'+(selectMode?' data-pick="'+i+'"':' onclick="toggle('+i+')"')+'>'+
-        '<img class="cover" src="'+esc(b.cover||'')+'" loading="lazy" alt="">'+
+        '<img class="cover" src="'+esc(b.coverThumb||b.cover||'')+'" loading="lazy" alt="">'+
         '<div class="meta"><div class="nm">'+esc(nm)+'</div>'+
         '<div class="sub">'+b.files.length+' file'+(b.files.length===1?'':'s')+' · '+esc(b.label||b.session)+'</div></div>'+
         tk+'</div>'+
@@ -321,6 +378,34 @@ function renderList(){
     });
     updateMoveBar();
   }
+}
+
+// TILES: the album's cover `--cols` across, the name and the count under.
+// A tap opens the album the way the list does (the card, with its files),
+// switching to the list at that card; in Select mode a tap picks the album.
+function renderTiles(){
+  const el=document.getElementById('list');
+  if(!bundles.length){ el.innerHTML='<div class="empty">'+(curFrom==='claude'?'Nothing from a chat here.':'Nothing here — dump something from the app first.')+'</div>'; return; }
+  el.innerHTML='<div class="wall">'+bundles.map((b,i)=>{
+    const nm=b.bundleName||b.name||(b.bundle?b.bundle.replace(/-/g,' '):'loose file');
+    const on=selectMode&&picked.has(bKey(b));
+    return '<button class="tile'+(on?' picked':'')+'" data-i="'+i+'">'+
+      '<img class="cv" src="'+esc(b.coverThumb||b.cover||'')+'" loading="lazy" alt="">'+
+      '<div class="tn">'+esc(nm)+'</div>'+
+      '<div class="ts'+(b.track?'':' un')+'">'+b.files.length+(b.track?' · '+esc(b.track):' · unlabelled')+'</div></button>';
+  }).join('')+'</div>';
+  el.querySelectorAll('.tile').forEach(t=>t.onclick=()=>{
+    const i=Number(t.dataset.i), b=bundles[i], k=bKey(b);
+    if(selectMode){
+      if(picked.has(k)){ picked.delete(k); t.classList.remove('picked'); }
+      else{ picked.set(k,b); t.classList.add('picked'); }
+      updateMoveBar(); return;
+    }
+    vs.setView('list');
+    const card=el.querySelector('.card[data-i="'+i+'"]');
+    if(card){ toggle(i); card.scrollIntoView({block:'start'}); }
+  });
+  if(selectMode) updateMoveBar();
 }
 
 function toggle(i){
@@ -346,7 +431,8 @@ function toggle(i){
         return '<a class="f aud" href="/api/drop/file/'+esc(f.id)+'" data-m="file">'+
           '<span class="audm">⇩</span><span class="audn">'+esc(nm)+'</span></a>';
       }
-      const src=f.media==='video'?(f.posterUrl||''):f.url;
+      // the display copy, never the original (a 4MB photo at 90px)
+      const src=f.thumb||(f.media==='video'?(f.posterUrl||''):f.url);
       return '<button class="f'+(f.media==='video'?' vid':'')+'" data-id="'+esc(f.id)+'" data-url="'+esc(f.url)+'" data-m="'+esc(f.media)+'">'+
         '<img src="'+esc(src)+'" loading="lazy" alt=""></button>';
     }).join('')+'</div>'+
@@ -447,12 +533,40 @@ function openLB(d){
   if(d.m==='video'){ vid.hidden=false; vid.src=d.url; }
   else if(d.m==='audio'){ aud.hidden=false; aud.src=d.url; }
   else{ img.hidden=false; img.src=d.url; }
-  // A bare Storage url only ever PLAYS — iOS gives no way to keep the file from
-  // an inline player. /file/:id serves the same bytes as an attachment, so this
-  // one tap saves it (then share → Save Video puts it in Photos).
-  document.getElementById('lbsave').href='/api/drop/file/'+d.id+(tok?'?token='+encodeURIComponent(tok):'');
+  lbUrl=d.url; lbKind=d.m||'image'; document.getElementById('lbhint').textContent='';
+  document.getElementById('lbsave').hidden=(lbKind!=='image'&&lbKind!=='video');
   document.getElementById('lb').hidden=false;
 }
+// SAVE GOES TO PHOTOS, NEVER FILES (2026-09-25, Sophie: "things save to files
+// shud go to photos never files"). It was a /api/drop/file/:id link — an
+// attachment, which iOS puts in Files. Three paths, asset-actions.js's own:
+// 1. in the app, the native forgeSave bridge writes it to the photo library
+//    (a clip too — ForgeSaveBridge asks the url whether it is a video);
+// 2. in Safari, the share sheet with the fetched file, where Save Image /
+//    Save Video is the first row;
+// 3. a desktop browser downloads it.
+let lbUrl='', lbKind='image';
+function nativeSaver(){ try{ return window.webkit.messageHandlers.forgeSave; }catch(e){ return null; } }
+window.__saveResult=function(ok,msg){ document.getElementById('lbhint').textContent=msg||(ok?'Saved to Photos':'Couldn’t save that'); };
+async function saveToPhotos(){
+  const hint=document.getElementById('lbhint');
+  const native=nativeSaver();
+  if(native){ native.postMessage(lbUrl); hint.textContent='Saving…'; return; }
+  hint.textContent='Getting the file…';
+  let blob=null;
+  try{ blob=await (await fetch(lbUrl)).blob(); }catch(e){ hint.textContent='Couldn’t fetch that file'; return; }
+  const ext=(lbUrl.match(/\.([a-z0-9]{2,5})(?:$|\?)/i)||[,lbKind==='video'?'mp4':'jpg'])[1];
+  let file=null;
+  try{ file=new File([blob],'dump.'+ext,{type:blob.type||''}); }catch(e){}
+  if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
+    hint.textContent='';
+    navigator.share({files:[file]}).catch(err=>{ if(err&&err.name!=='AbortError') hint.textContent='Couldn’t open the share sheet'; });
+    return;
+  }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='dump.'+ext;
+  document.body.appendChild(a); a.click(); a.remove(); hint.textContent='';
+}
+document.getElementById('lbsave').onclick=saveToPhotos;
 function closeLB(){
   document.getElementById('lb').hidden=true;
   const vid=document.getElementById('lbvid'); vid.pause&&vid.pause(); vid.removeAttribute('src');

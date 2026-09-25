@@ -4373,7 +4373,14 @@ before working on that module. Nothing was deleted — the moved text is verbati
   reads the User-Agent when nothing is said (a script is a chat, a browser or
   the app is her), and the 4,888 older files were judged by shape once, album
   by album (`scripts/dump-from-backfill.js`). The list routes read the
-  collection ONCE and hold it 20s — that was the "it's slow". Full rules:
+  collection ONCE and hold it 20s — that was half of "it's slow"; the other
+  half was every cover and tile drawn from the 3-4MB original, and
+  `GET /api/drop/thumb/:id` (a 480px webp made once, banked as `thumbUrl`)
+  is what the page draws now. **Same evening: Save goes to PHOTOS through the
+  `forgeSave` bridge, never a `/file/` link into Files; the 143 dump-date
+  chips are ONE `Date` chip with a sheet so the chip row wraps and nothing
+  scrolls sideways; TILES via `/viewswitch.js`; and the iOS tile's SEND tab
+  is off ("delete it for now") — the share sheet is the way in.** Full rules:
   *EVERY FILE SAYS WHO PUT IT THERE* in `docs/modules/inbox-and-misc.md`;
   test `node scripts/test-dump-from.js`.
   **WHAT A DUMPED CLIP SAYS IS TRANSCRIBED ONCE, EVER —

@@ -62,10 +62,14 @@ is('long name capped', long.length, 84);
 is('long name keeps its extension', long.endsWith('.mp4'), true);
 
 // ── The button, on the real page ────────────────────────────────────────────
-// The naming rule above can be perfect while the control is unreachable, so
-// this asks the only honest question: does a tap at the button's own centre
-// land on the button? (`isVisible()` says yes even when something is over it —
-// the lesson the Questions pill and the Meta Assets lightbox both taught.)
+// SAVE GOES TO PHOTOS, NEVER FILES (2026-09-25, Sophie: "things save to files
+// shud go to photos never files"). The /file/:id attachment route above still
+// exists for a chat or a browser that wants the bytes (`downloadName` is its
+// name rule), but the lightbox's Save is a BUTTON that posts the file's url
+// through the app's forgeSave bridge — the same bridge asset-actions.js and
+// the Playground post through — and never a link into Files. Asked of the
+// real page with a stubbed bridge: does the tap at the button's own centre
+// reach it, and does exactly one url arrive on the bridge?
 async function page() {
   let chromium, express;
   try { ({ chromium } = require('playwright')); express = require('express'); }
@@ -86,8 +90,6 @@ async function page() {
   const port = srv.address().port;
   let browser;
   try {
-    // The same resolver the other page tests use — the bundled path can be a
-    // version behind whatever is actually on the box.
     const fs = require('fs'); const pth = require('path');
     let exe = null;
     const root = '/opt/pw-browsers';
@@ -106,18 +108,21 @@ async function page() {
     const pg = await browser.newPage({ viewport: { width: 390, height: 844 } });
     const errs = [];
     pg.on('pageerror', (e) => errs.push(e.message));
+    // the app's bridge, stubbed: it records what the page posts
+    await pg.addInitScript(() => {
+      window.__posted = [];
+      window.webkit = { messageHandlers: { forgeSave: { postMessage: (u) => window.__posted.push(u) } } };
+    });
     await pg.goto(`http://127.0.0.1:${port}/dump.html`);
     await pg.waitForTimeout(800);
     await pg.evaluate(() => openLB({ id: 'ITEM1', m: 'video', url: '/x.mp4' }));
     await pg.waitForTimeout(150);
 
     is('save button visible', await pg.locator('#lbsave').isVisible(), true);
-    is('save points at the download route',
-      await pg.locator('#lbsave').getAttribute('href'), '/api/drop/file/ITEM1');
-
-    // A link, not a button: iOS honours Content-Disposition on a navigation.
-    is('save is an anchor',
-      await pg.locator('#lbsave').evaluate((el) => el.tagName), 'A');
+    is('save is a button, not a link into Files',
+      await pg.locator('#lbsave').evaluate((el) => el.tagName), 'BUTTON');
+    is('nothing in the lightbox links the attachment route',
+      await pg.$$eval('#lb a[href*="/api/drop/file/"]', (els) => els.length), 0);
 
     const hit = await pg.evaluate(() => {
       const r = document.getElementById('lbsave').getBoundingClientRect();
@@ -125,6 +130,15 @@ async function page() {
       return el && (el.id || el.tagName);
     });
     is('a tap at its centre reaches it', hit, 'lbsave');
+    await pg.click('#lbsave');
+    await pg.waitForTimeout(100);
+    is('the tap posts the file url through forgeSave, once',
+      JSON.stringify(await pg.evaluate(() => window.__posted)), JSON.stringify(['/x.mp4']));
+    is('and says so while Photos works',
+      await pg.textContent('#lbhint'), 'Saving…');
+    await pg.evaluate(() => window.__saveResult(true, 'Saved to Photos'));
+    is('the bridge\'s answer lands under the button',
+      await pg.textContent('#lbhint'), 'Saved to Photos');
 
     const box = await pg.locator('#lbsave').boundingBox();
     if (!box || box.height < 30) fails.push(`save tap target too small: ${JSON.stringify(box)}`);
