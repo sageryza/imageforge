@@ -3803,6 +3803,14 @@ before working on that module. Nothing was deleted — the moved text is verbati
   before. **Do NOT put a second star back** — that is the All button she had
   removed (#2397, "button is stipid get it out") and `test-footage-audit-5.js`
   pins its absence.
+  **THE FUNNEL SITS BESIDE THE FOLDER, ALWAYS, AND HAS A TRIMMED ROW
+  (2026-09-25, Sophie: "where is the filter button in footage · shud be next
+  to the folder" · "add a filter for trimmed clips").** It was the glass's
+  sub menu from 09-11 and hid with the search field — she could not find it.
+  The folder, the funnel, the field and the drawer are one flex item of the
+  bar (`.narrow`), so at 390pt the pair drops to a second line TOGETHER
+  (the first line was measured full); the funnel wears its own count. Do not
+  tuck it back behind the glass. Full note under *Footage* in the doc.
   **Full details: *Footage* in `docs/modules/audio-and-film.md` (moved from CLAUDE.md).**
 
 - **Stitch** (`stitch.js`, `/api/stitch`, page at `/stitch`, iOS tile under the

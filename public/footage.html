@@ -96,7 +96,7 @@
   .iconbtn .ico svg{width:18px;height:18px;display:block}
   .iconbtn.on{background:#2b2620;border-color:#2b2620}
   .iconbtn.on .ico{color:#f6f2ea}
-  .feedbar > .iconbtn{width:36px;height:34px}
+  .feedbar .iconbtn{width:36px;height:34px}
   /* An icon button is a rounded SQUARE at the house 6px, never a circle. */
   .ib{width:34px;height:34px;padding:0;display:inline-flex;align-items:center;justify-content:center;
       background:#fdfbf7;color:#2b2620;flex:none}
@@ -877,15 +877,14 @@
      a door, not a mark she cast (the funnel's own rule). Shutting it CLEARS
      the words: a query she cannot see must never go on hiding clips behind a
      shut box, the drawer's own rule.
-     A FILTER, THOUGH, IS STICKY AND SURVIVES THE GLASS SHUTTING — so the
-     GLASS WEARS THE COUNT the funnel chip used to wear on the bar, and stays
-     lit while one is narrowing. Tucking the funnel behind the glass with
-     nothing on screen saying a filter is on is exactly the silent filter this
-     app keeps getting burned by. */
+     THE FUNNEL IS NOT BEHIND THE GLASS ANY MORE (2026-09-25, Sophie: "where is
+     the filter button in footage · shud be next to the folder"). From
+     2026-09-11 to 09-25 it was the glass's sub menu and came and went with
+     the field, and the glass wore the count while it was tucked away — she
+     could not find it. It is on the bar now, beside the folder, always, and
+     wears its own count (the shell's); the glass is lit only while it is
+     open. */
   .qfilt.on{background:#2b2620;color:#f6f2ea}
-  .qfilt{gap:5px}
-  .qcount{font-family:-apple-system,sans-serif;font-size:11px;font-weight:600;letter-spacing:.04em}
-  .qcount[hidden]{display:none !important}
   /* The field takes what is left of the row and drops to a line of its own
      when the row has no room ("same row unless it bleeds over"). 16px is a
      FLOOR: iOS auto-zooms a focused input under it, and that zoom ignores
@@ -901,38 +900,30 @@
   .feedsearch input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
   .qclear{position:absolute;left:0;top:0;height:100%;width:28px;border:0;background:none;color:#8a8177;
         font-size:18px;line-height:1;padding:0}
-  /* THE FILTER DRAWER — model and when, the shared shell, and it is a SUB
-     MENU OF THE GLASS (her word): the mount is hidden with the field and
-     shows with it, so the feed bar carries ONE main button. The mount is
-     `display:contents` so the funnel chip and the drawer are both items of
-     the feed bar — the chip stands at the end of the field's line and the
-     drawer takes a whole line under it, IN FLOW (the Meta Assets call: the
-     drawer is part of the bar, so it pins with it rather than hanging off
-     it). The tokens still reach both: custom properties inherit through
-     display:contents. */
+  /* THE NARROWING ROW — the folder, the funnel beside it, the search field
+     and the drawer under them, ONE flex item of the bar (2026-09-25, Sophie:
+     "shud be next to the folder"). MEASURED at 390pt before this: the bar's
+     one line was full to the pill's column — the view switch, the ♥/✕ pair,
+     the glass and the folder ran 12→315 against a pill at 324 — so a fifth
+     control cannot sit on it, and a bare flex-wrap would have dropped the
+     funnel ALONE to the next line, diagonally under the view switch and
+     nowhere near the folder. Wrapping the folder and the funnel in one item
+     drops them TOGETHER: at 390pt the row is view · ♥✕ · glass, then folder
+     · funnel (and the field beside them when the glass is open); on a wider
+     screen the whole thing is one line, the row growing into what is left.
+     THE MOUNT IS STILL `display:contents`, so the chip and the drawer are
+     items of THIS row — the drawer takes a whole line of it — and the shell's
+     tap-out (`mount.contains`) still sees every row of the drawer. The 58px
+     on the right is the pill's column (the same reserve the chip and the
+     drawer each carried before), now on the row itself so the field's tail,
+     the chip and the drawer all keep clear of the rail. The chip is its
+     neighbours' 34px, never the shell's floor of 34 plus a stretch. */
+  .narrow{display:flex;flex:1 1 auto;min-width:0;flex-wrap:wrap;align-items:center;gap:8px;padding-right:58px;box-sizing:border-box}
   #feedfilters{display:contents;--fsf-ink:#2b2620;--fsf-ink2:#6f675e;--fsf-line:#d8cfc0;--fsf-paper:#fdfbf7;--fsf-on:#c25a72}
-  /* The field comes first under the controls (it belongs to the glass), the
-     funnel at its right end, the drawer under both on a whole line. The
-     funnel STRETCHES to the field it stands beside rather than keeping the
-     shell's 34 (the door stretches to the row it stands on, and its row here
-     is the field's).
-     BOTH THE FUNNEL AND THE DRAWER KEEP THE PILL'S COLUMN CLEAR — 58px, the
-     same reserve. The drawer always needed it (a drawer she opens is usually
-     at the top of the screen, right where the pill sits; PHOTOgraphed, the
-     third chip ran under it). The FUNNEL needed it the day the bar went
-     sticky (2026-09-14): pinned, the field's line sits inside the pill's band
-     at every scroll position, and the chip is the last thing on that line —
-     MEASURED at 390pt with the search open, it ran x 344-378 against a pill
-     starting at 324, i.e. a door under the rail. It is UNCONDITIONAL rather
-     than applied only while pinned, because a reserve that comes and goes
-     with the scroll is the "switches back and forth between narrow and full
-     width" bug; the field gives up the 58 and is still 266px wide. Nothing to
-     the LEFT of the chip is a control, so the field's own tail may pass under
-     the rail exactly as the Playground's does. */
-  .feedsearch{order:1}
-  #feedfilters .filtchip{order:2;align-self:stretch;min-height:0;min-width:32px;padding:0 8px;
-                         margin-right:58px}
-  #feedfilters .filtdrawer{flex:1 1 100%;margin:0 0 2px;order:3;padding-right:58px}
+  #projwrap{order:0}
+  #feedfilters .filtchip{order:1;height:34px;min-height:0;min-width:36px;padding:0 8px}
+  .feedsearch{order:2}
+  #feedfilters .filtdrawer{flex:1 1 100%;margin:0 0 2px;order:3}
   .job{background:#fff;border:1px solid #e0d8ca;border-radius:6px;padding:10px;margin-bottom:11px}
   .job.nay{opacity:.45}
   /* WHICH CARD SHE LANDED ON (2026-09-10, Sophie: "clicking on a tile in
@@ -1429,6 +1420,7 @@
   <p><b>The seed</b> is on every finished clip, with a button that puts it back in the box. Leave the box blank and each clip gets a fresh one. A seed repeats the <i>opening</i> of a short clip and then drifts &mdash; it does not survive a changed prompt or a different size, and at 15 seconds it does close to nothing.</p>
   <p><b>Tiles.</b> Each one carries two doors in the middle: <b>&#9654;</b> plays the clip, and the list mark beside it takes you to that clip&rsquo;s card &mdash; its words, its seed, its references and the button that puts them back. The first words of your own newest note on a clip sit along the top of its tile.</p>
   <p><b>Stitch mode.</b> The three-boxes mark beside the <b>?</b> at the top turns it on. Tap clips in the order you want them and each one wears its number; tap a numbered clip to take its number off, and the ones after it move up. A trimmed clip puts its parts in, one number each. <b>Send to Stitch</b> makes a stitch of them in that order and opens it &mdash; you can still move them around there, and the one button joins them. Nothing is drawn: a stitch is free.</p>
+  <p><b>Filters.</b> The funnel beside the folder narrows the clips by model, resolution, when they were sent, and whether they have been trimmed; a lit funnel wears how many are on. The magnifying glass opens a search box; shutting it clears the words.</p>
   <p><b>Projects and folders.</b> The folder icon on the buttons row opens the projects &mdash; the same folders the character library keeps &mdash; and under each one its sub-folders (the witch commercials, say). Pick one and the header takes its name, the clips, the Recent drawer and the characters narrow to it, and every clip you send is filed there; <b>All</b> shows everything, with each clip saying where it belongs. <b>New project&hellip;</b> and, inside a project, <b>New folder&hellip;</b> make one; a folder is only the clips filed in it, so an emptied one goes away on its own. A scene sent from a belt page switches to its own project by itself. Every card has a button saying where its clip is; tapping it opens the same folders to move the clip &mdash; moving it to another project takes it out of its folder. Your words and the references already attached stay put when you switch &mdash; only what is offered narrows.</p>
   <p><b>Characters.</b> The people icon opens this film&rsquo;s library. Tap a character &mdash; or one of their outfits &mdash; and their references go into the strip while the line that names them by slot goes to the top of the box. The line under each one is exactly what it will add, worked out against what you already have attached, so a second character gets <b>[Video2]</b> rather than the slot the library was written against. Each film is its own shelf. Taking a reference off takes its slot name out of the box and renumbers the rest, so a name never points at the wrong picture. Only the names change &mdash; the words around them are yours.</p>
   <p><b>Notes.</b> The speech mark on a clip opens a note; playing one and tapping it pauses the film and notes the second you stopped on. Either way it lands in the one place chats read their notes, and a chat answers on the note itself.</p>
@@ -1599,13 +1591,20 @@
        feed's other filters, and unlike the two panel seats it cannot be
        folded away from the feed it is filtering. Its lit dark box is the
        LIST segment's own fill, so a narrowed feed says so on the row that
-       narrowed it. -->
-  <button type="button" class="iconbtn" id="projwrap" aria-label="Projects and folders" title="Projects and folders" aria-haspopup="dialog"><span class="ico"></span></button>
-  <div id="feedfilters" hidden></div>
-  <div class="feedsearch" id="feedsearch" hidden>
-    <input id="q" type="search" placeholder="Search" aria-label="Search your clips"
-           autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
-    <button type="button" class="qclear" id="qclear" aria-label="Clear search" hidden>&times;</button>
+       narrowed it.
+       AND THE FUNNEL SITS RIGHT BESIDE IT, ALWAYS (2026-09-25, Sophie: "where
+       is the filter button in footage · shud be next to the folder") — the
+       folder, the funnel, the search field and the drawer are one row
+       (`.narrow`, the CSS says why), so the pair wraps TOGETHER when the bar
+       is full. -->
+  <div class="narrow" id="narrow">
+    <button type="button" class="iconbtn" id="projwrap" aria-label="Projects and folders" title="Projects and folders" aria-haspopup="dialog"><span class="ico"></span></button>
+    <div id="feedfilters"></div>
+    <div class="feedsearch" id="feedsearch" hidden>
+      <input id="q" type="search" placeholder="Search" aria-label="Search your clips"
+             autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
+      <button type="button" class="qclear" id="qclear" aria-label="Clear search" hidden>&times;</button>
+    </div>
   </div>
   <div class="stitchrow" id="stitchrow" role="group" aria-label="Stitch mode">
     <span class="stcount" id="stcount"></span>
@@ -1757,7 +1756,7 @@ document.querySelectorAll('.iconbtn .ico').forEach(function (c) { c.innerHTML = 
 $('shback').innerHTML = ICONS.back;
 $('shclose').innerHTML = ICONS.x;
 $('v-liked').innerHTML = ICONS.heart; $('v-hidex').innerHTML = ICONS.x; $('v-stitch').innerHTML = ICONS.stitch;
-$('v-search').innerHTML = ICONS.search + '<span class="qcount" hidden></span>';
+$('v-search').innerHTML = ICONS.search;
 $('seedclear').innerHTML = ICONS.x;
 $('rectog').innerHTML = ICONS.history;
 $('casttog').innerHTML = ICONS.users;
@@ -5858,8 +5857,7 @@ function applyFilt() {
   // empty one, and the only escapes were sending a clip into it or clearing
   // her localStorage. It hides only on a page that has nothing to filter and
   // no filter on.
-  var narrowed = !!(S.project || qGroups.length || likedOnly() || hideX()
-    || (FILT && ((FILT.get('model') || []).length || (FILT.get('res') || []).length || FILT.get('when'))));
+  var narrowed = !!(S.project || qGroups.length || likedOnly() || hideX() || filtOn());
   $('feedbar').hidden = !n && !narrowed;
   $('feedempty').hidden = !!any;
   // AN EMPTIED FEED SAYS WHICH FILTER EMPTIED IT — a shut drawer is exactly
@@ -5870,13 +5868,16 @@ function applyFilt() {
   // out — and it checked a query before the ♥, so hearting an unhearted set
   // blamed the search. Every rung now has to be a filter that is really on,
   // and a feed with clips but nothing passing says so plainly.
-  var fm = FILT && (FILT.get('model') || []).length, fr = FILT && (FILT.get('res') || []).length, fw = FILT && FILT.get('when');
+  var fm = FILT && (FILT.get('model') || []).length, fr = FILT && (FILT.get('res') || []).length, fw = FILT && FILT.get('when'),
+      ft = FILT && FILT.get('trim');
   $('feedempty').textContent = !n ? (S.project ? 'Nothing in here yet.' : 'Nothing made here yet.')
     : likedOnly() ? 'Nothing hearted yet.'
     : qGroups.length ? ('Nothing matches that' + (S.project ? ' in ' + (S.folder ? folderName(S.folder) : projectName(S.project)) : '') + '.')
     : fm ? 'Nothing on that model.'
     : fr ? 'Nothing at that resolution.'
     : fw ? 'Nothing that recent.'
+    : ft === 'trimmed' ? 'Nothing trimmed here.'
+    : ft ? 'Everything here is trimmed.'
     : hideX() ? 'Everything here is crossed out.' : 'Nothing to show here.';
 }
 // SHORT IS MEASURED, NEVER DERIVED FROM THE RATIO AND THE COLUMN COUNT: the
@@ -6099,32 +6100,25 @@ $('qclear').addEventListener('click', function () {
   box.value = ''; qLive.sync(); readSearch(); box.focus();
 });
 function searchOpen() { return !$('feedsearch').hidden; }
-// HOW MANY FILTERS ARE NARROWING, for the glass to wear while it is shut.
-// The shell's own chip counts its narrowed specs; this is the same question
-// asked of the two rows this page has, so the digit on the glass and the
-// digit on the funnel can never say different things.
-function filtCount() {
-  if (!FILT) return 0;
-  return ((FILT.get('model') || []).length ? 1 : 0)
-    + ((FILT.get('res') || []).length ? 1 : 0)
-    + (FILT.get('when') ? 1 : 0);
+// IS ANY ROW OF THE FUNNEL NARROWING — one question, asked by the empty-feed
+// ladder and by the bar's own "am I needed" check, so the two cannot drift.
+// (The GLASS used to wear this as a digit while the funnel was tucked behind
+// it — 2026-09-11 to 09-25; the funnel is on the bar now and wears its own.)
+function filtOn() {
+  return !!(FILT && ((FILT.get('model') || []).length || (FILT.get('res') || []).length
+    || FILT.get('when') || FILT.get('trim')));
 }
 function paintSearchBtn() {
-  var n = filtCount(), g = $('v-search'), c = g.querySelector('.qcount');
-  // LIT means "this door has something behind it" — open, or a filter on.
-  g.classList.toggle('on', searchOpen() || !!n);
-  if (c) { c.textContent = n ? String(n) : ''; c.hidden = !n; }
-  g.setAttribute('aria-label', 'Search the clips' + (n ? ' — ' + n + ' filter' + (n > 1 ? 's' : '') + ' on' : ''));
+  var g = $('v-search');
+  // LIT means the field is open — a door, not a mark she cast.
+  g.classList.toggle('on', searchOpen());
 }
 function setSearchOpen(open) {
   $('feedsearch').hidden = !open;
-  // THE FUNNEL IS A SUB MENU OF THE GLASS (2026-09-11, Sophie: "filter is sub
-  // menu of glass · only one main button"), so it comes and goes with the
-  // field. The mount is `display:contents`; `[hidden]` beats that, so hiding
-  // it takes the chip AND the drawer off the bar.
-  $('feedfilters').hidden = !open;
-  // The drawer is deliberately left as she left it: reopening the glass shows
-  // the funnel exactly as it was, and nothing here may clear a filter of hers.
+  // THE FUNNEL STAYS ON THE BAR, beside the folder, whether the field is open
+  // or shut (2026-09-25, Sophie: "shud be next to the folder") — from
+  // 2026-09-11 it was the glass's sub menu and hid with the field, which is
+  // exactly how she lost it. Nothing here may clear a filter of hers.
   $('v-search').setAttribute('aria-expanded', open ? 'true' : 'false');
   var box = $('q');
   paintSearchBtn();
@@ -6176,6 +6170,16 @@ var FILT = SF ? SF.build($('feedfilters'), [
   { key: 'when', kind: 'chips', label: SF.WHEN.label, vals: SF.WHEN.vals, words: SF.WHEN.words,
     get: function () { try { return localStorage.getItem('footage_filt_when') || ''; } catch (e) { return ''; } },
     set: function (v) { try { localStorage.setItem('footage_filt_when', v || ''); } catch (e) {} } },
+  // TRIMMED (2026-09-25, Sophie: "add a filter for trimmed clips") — the
+  // clips she has cut parts out of, or the ones still whole. ONE rule for
+  // what "trimmed" means, `bakedParts`: the same test the tile's scissors
+  // chip and the Recent box already read, so a clip the filter shows as
+  // trimmed is one wearing the scissors — a part still baking has cut
+  // nothing yet and a failed one left the clip whole. Two chips, one lit at
+  // a time, neither lit = everything.
+  { key: 'trim', kind: 'chips', label: 'Trimmed', vals: ['trimmed', 'whole'], words: ['Trimmed', 'Not trimmed'],
+    get: function () { try { return localStorage.getItem('footage_filt_trim') || ''; } catch (e) { return ''; } },
+    set: function (v) { try { localStorage.setItem('footage_filt_trim', v || ''); } catch (e) {} } },
 ], function () { forgetSent(); paintFeed(); paintSearchBtn(); },
    // THE ROWS ARE DROP-DOWNS HERE (2026-09-18, Sophie, looking at the three
    // rows open on a 390pt phone: "buttons shud be drop downs to minimize
@@ -6192,6 +6196,8 @@ function passesFilt(j) {
   if (rs.length && rs.indexOf(resKey(j.resolution)) < 0) return false;
   var since = SF.sinceMs(FILT.get('when'));
   if (since && !(Date.parse(j.sentAt || '') >= since)) return false;
+  var tr = FILT.get('trim');
+  if (tr && (bakedParts(j).length > 0) !== (tr === 'trimmed')) return false;
   return true;
 }
 
