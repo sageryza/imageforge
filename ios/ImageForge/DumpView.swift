@@ -78,43 +78,17 @@ struct DumpView: View {
     // album dumped from the Send tab must appear without a manual reload.
     @State private var sortTick = 0
 
+    /// THE SEND TAB IS OFF (2026-09-25, Sophie: "send is fucked to so just
+    /// delete it for now"). The tile is the sort & label page alone; albums
+    /// and clips get in through the share sheet (ios/DumpShare). "For now" —
+    /// the picker below (`content`, `albumGrid`, `sendBar`, `DumpUploader`)
+    /// is left in place, unreachable, so bringing it back is putting the
+    /// tab bar back in this body and nothing else.
     var body: some View {
-        VStack(spacing: 0) {
-            // Progress sits ABOVE the tabs: an upload keeps running while she's
-            // sorting, so its state belongs to the screen, not to one tab.
-            if uploader.isRunning || uploader.done > 0 { progressBar }
-            tabBar
-            // Both stay alive — switching tabs must not reload the sort page
-            // (it would lose her scroll position and the album she had open).
-            ZStack {
-                VStack(spacing: 0) { content }
-                    .opacity(tab == .send ? 1 : 0)
-                    .allowsHitTesting(tab == .send)
-                GatedWebTool(path: "/dump?embed=1", name: "the sort & label page",
-                             icon: "tray.full", refreshOnAppear: "window.__dumpRefresh",
-                             refreshTick: sortTick)
-                    .opacity(tab == .sort ? 1 : 0)
-                    .allowsHitTesting(tab == .sort)
-            }
-        }
-        .background(Theme.bg.ignoresSafeArea())
-        .task { await library.load() }
-        // Re-read the Photos albums whenever she comes back to this screen.
-        // `task` fires ONCE — this view is held alive in RootView's ZStack —
-        // so an album created in Photos after launch never appeared here, and
-        // it looked like the dump had lost it. (Sophie hit exactly this: she
-        // made "character references" and "style references", didn't see them,
-        // and made them again.)
-        .onReceive(NotificationCenter.default.publisher(for: .forgeScreenChanged)) { _ in
-            Task { await library.load() }
-        }
-        .onReceive(NotificationCenter.default.publisher(
-            for: UIApplication.willEnterForegroundNotification)) { _ in
-            Task { await library.load() }
-        }
-        .onChange(of: tab) { t in
-            if t == .send { Task { await library.load() } }
-        }
+        GatedWebTool(path: "/dump?embed=1", name: "the sort & label page",
+                     icon: "tray.full", refreshOnAppear: "window.__dumpRefresh",
+                     refreshTick: sortTick)
+            .background(Theme.bg.ignoresSafeArea())
     }
 
     /// Labelled pair, never a bare icon — the Chats list/tiles lesson: an
