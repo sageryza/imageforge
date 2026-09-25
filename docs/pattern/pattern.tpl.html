@@ -37,7 +37,7 @@
 .pickrow .sq{ margin-left:auto; }
 .pickrow .sq + .sq{ margin-left:0; }
 .sq[disabled]{ opacity:.35; cursor:default; }
-.acctabs{ position:relative; display:flex; border-bottom:1px solid var(--line); margin:0 0 10px; padding-right:64px; }
+.acctabs{ position:relative; display:flex; border-bottom:1px solid var(--line); margin:0 0 6px; padding-right:64px; }
 .acctab{ flex:1 1 0; min-width:0; padding:8px 4px 10px; border:none; background:none; cursor:pointer; border-radius:0;
   font:inherit; font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:var(--ink2); }
 .acctab.on{ color:var(--ink); }
@@ -75,14 +75,16 @@
 .msg.bad{ color:var(--rose); }
 
 /* ── the tile ── */
-/* the repeat band: three WHOLE tiles across — a fixed 64px band showed only
-   the top slice of each tile (2026-09-25, Sophie: "the bar - only shows
-   part?"); the band is as tall as one tile at three across, so nothing is
-   cut off */
-.band{ aspect-ratio:3/1; border:1px solid var(--line); border-radius:6px; background-repeat:repeat; margin-bottom:8px; box-sizing:border-box; }
+/* the repeat band: FIVE whole tiles across. A fixed 64px band showed only
+   the top slice of each tile ("the bar - only shows part?"); three whole
+   tiles were 119px tall and pushed the controls off the screen ("everything
+   moved down · needs to fit on one screen no scroll") — six across is
+   60px, whole tiles, and the tab fits again (2026-09-25; the whole TILE tab
+   measured at 390pt against the room her phone gives a page in the app). */
+.band{ aspect-ratio:6/1; border:1px solid var(--line); border-radius:6px; background-repeat:repeat; margin-bottom:8px; box-sizing:border-box; }
 canvas#tile{ display:block; width:100%; border:1px solid var(--line); border-radius:6px;
   touch-action:none; background:var(--surface); box-sizing:border-box; }
-.ctl{ margin-top:10px; }
+.ctl{ margin-top:6px; }
 .row{ display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap; }
 .lbl{ font-size:11px; letter-spacing:1.4px; text-transform:uppercase; color:var(--ink2); width:64px; flex:none; }
 .who{ font-size:14px; color:var(--ink); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -98,8 +100,8 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
   touch-action:manipulation; padding:0; font:inherit; font-size:14px; flex:none; }
 .sq.on{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
 .sq svg{ width:18px; height:18px; }
-.none{ font-size:13px; color:var(--ink2); padding:6px 2px; }
-.hr{ border-top:1px solid var(--line); margin:12px 0 4px; }
+.none{ font-size:13px; color:var(--ink2); padding:2px 2px; }
+.hr{ border-top:1px solid var(--line); margin:8px 0 2px; }
 
 /* ── the repeat ── */
 .big{ aspect-ratio:1; border:1px solid var(--line); border-radius:6px; background-repeat:repeat; }
@@ -145,32 +147,41 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
     <div class="band" id="band"></div>
     <canvas id="tile" data-nostop></canvas>
     <div class="ctl" data-nostop>
+      <!-- ONE SCREEN, NO SCROLL (2026-09-25, Sophie): the controls under the
+           tile are EITHER the selected piece's three rows OR the pattern's
+           rows — never both. A tap on a piece shows its rows; a tap on empty
+           tile (or Done) brings the pattern's back. Same height either way. -->
       <div id="selbox" hidden>
-        <div class="row"><span class="lbl">piece</span><span class="who" id="selname"></span>
+        <div class="row"><span class="who" id="selname"></span>
           <button class="sq" id="flip" aria-label="Flip"></button>
           <button class="sq" id="again" aria-label="Another of this one">+</button>
-          <button class="sq" id="remove" aria-label="Remove"></button></div>
+          <button class="sq" id="remove" aria-label="Remove"></button>
+          <button class="btn" id="seldone">Done</button></div>
         <div class="row"><span class="lbl">turn</span>
           <button class="sq" id="rotm" aria-label="Turn 15° left">−15</button>
           <input type="number" id="rot" min="0" max="359" step="1" inputmode="numeric">
           <button class="sq" id="rotp" aria-label="Turn 15° right">+15</button>
           <span class="dim">°</span></div>
-        <div class="row"><span class="lbl">size</span><input type="range" id="size" min="60" max="900" step="5"></div>
+        <!-- NOTCHES for size too ("sizing is still a slider...?"): five
+             sizes, the middle one the size a piece starts at. -->
+        <div class="row"><span class="lbl">size</span>
+          <span class="chips" id="sizes5" style="margin:0"><button class="chip" data-s="140">1</button><button class="chip" data-s="200">2</button><button class="chip" data-s="280">3</button><button class="chip" data-s="400">4</button><button class="chip" data-s="560">5</button></span></div>
       </div>
+      <div id="patbox">
       <div class="none" id="selnone">tap a piece to turn or size it · drag to move</div>
-      <div class="hr"></div>
       <!-- NOTCHES, not a slider (2026-09-25, Sophie: "clear notches to click
            instead of a slider"): five tile sizes, a tap each; a stored size
            between two lights the nearer one. -->
       <div class="row"><span class="lbl">spacing</span>
-        <span class="chips" id="spaces" style="margin:0"><button class="chip" data-w="600">1</button><button class="chip" data-w="1000">2</button><button class="chip" data-w="1600">3</button><button class="chip" data-w="2200">4</button><button class="chip" data-w="3000">5</button></span></div>
+        <span class="chips" id="spaces" style="margin:0"><button class="chip" data-w="600">1</button><button class="chip" data-w="1000">2</button><button class="chip" data-w="1600">3</button><button class="chip" data-w="2200">4</button><button class="chip" data-w="3000">5</button></span>
+        <button class="btn" id="reset">Reset</button></div>
       <div class="row"><span class="lbl">spin all</span>
         <span class="dim">±</span>
         <input type="number" id="spread" min="0" max="180" step="5" inputmode="numeric" value="20">
         <span class="dim">°</span>
         <button class="btn" id="spin">Spin</button>
-        <button class="btn" id="scatter">Scatter</button>
-        <button class="btn" id="reset">Reset</button></div>
+        <button class="btn" id="scatter">Scatter</button></div>
+      </div>
     </div>
   </section>
 
@@ -233,7 +244,7 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
 
   window.__compareHelp({ html: '<b>Pieces</b> — tap an animal or a fruit to put it in the pattern; tap again to take it out. '
     + 'Each one is cut roughly around with its paper kept, like scissors. A new one is a chat’s job: ask, and it is drawn and put on the list.<br><br>'
-    + '<b>Tile</b> — one square that repeats; the strip above it is that square three times over, whole, so you can see how the edges meet. Drag a piece where you want it; the degrees box turns it, the size slider sizes it, '
+    + '<b>Tile</b> — one square that repeats; the strip above it is that square six times over, whole, so you can see how the edges meet. Tap a piece and its own controls take the place of the pattern’s: the degrees box turns it, five size notches size it, '
     + '<b>+</b> adds another of the same. <b>Spacing</b> is five notches — a bigger square under everything, so the repeats land farther apart. '
     + '<b>Spin</b> turns every piece a little, at random, within the degrees you set; <b>Scatter</b> deals every piece a new spot, spread out so nothing piles up — tap either again for another go. <b>Reset</b> puts every piece back to its starting size and no turn. A piece hanging off one edge comes back in on the other, '
     + 'which is what makes the repeat seamless.<br><br>'
@@ -312,7 +323,7 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
   // A stack of SNAPSHOTS of what she arranges — the items, the tile, the
   // layout — taken BEFORE each change (`mark()` at the top of every handler
   // that touches them). A slider or a typed number is a run of tiny changes,
-  // so a continuous control names itself (`mark('size')`) and its run within
+  // so a continuous control names itself (`mark('rot')`) and its run within
   // a second is ONE step. The name and the exports are deliberately not in
   // it: undoing a drag must never rename the pattern. Memory only, per
   // pattern, per open — the store keeps the CURRENT state, as it always did,
@@ -566,7 +577,7 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
     el.style.backgroundSize = (w / per * r.tiles) + 'px auto';
     el.style.backgroundPosition = '0 0';
   }
-  function paintBand() { if (pattern && !$('pane-tile').hidden) tileCss($('band'), 3); }
+  function paintBand() { if (pattern && !$('pane-tile').hidden) tileCss($('band'), 6); }
   function paintBig() { if (pattern) tileCss($('big'), 2.5); }
 
   // ── touching the tile ──
@@ -614,18 +625,25 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
   // ── the controls ──
   function syncControls() {
     var it = sel ? item(sel) : null;
-    $('selbox').hidden = !it; $('selnone').hidden = !!it;
+    $('selbox').hidden = !it; $('patbox').hidden = !!it;
     if (!it) return;
     $('selname').textContent = (pieces[it.piece] || {}).name || '';
     if (document.activeElement !== $('rot')) $('rot').value = Math.round(it.rot);
-    $('size').value = it.size;
+    var best = null;
+    $('sizes5').querySelectorAll('.chip').forEach(function (c) { if (!best || Math.abs(Number(c.dataset.s) - it.size) < Math.abs(Number(best.dataset.s) - it.size)) best = c; });
+    $('sizes5').querySelectorAll('.chip').forEach(function (c) { c.classList.toggle('on', c === best); });
     $('flip').classList.toggle('on', !!it.flip);
   }
   function setRot(v, tag) { var it = item(sel); if (!it) return; mark(tag); it.rot = ((Math.round(Number(v) || 0) % 360) + 360) % 360; touch(it.k); changed(); }
   $('rot').addEventListener('input', function () { setRot($('rot').value, 'rot'); });
   $('rotm').addEventListener('click', function () { var it = item(sel); if (it) setRot(it.rot - 15); });
   $('rotp').addEventListener('click', function () { var it = item(sel); if (it) setRot(it.rot + 15); });
-  $('size').addEventListener('input', function () { var it = item(sel); if (!it) return; mark('size'); it.size = Number($('size').value); touch(it.k); changed(); });
+  $('sizes5').addEventListener('click', function (e) {
+    var b = e.target.closest('.chip'); var it = item(sel); if (!b || !it) return;
+    var v = Number(b.dataset.s); if (v === it.size) return;
+    mark(); it.size = v; touch(it.k); changed();
+  });
+  $('seldone').addEventListener('click', function () { sel = null; paint(); syncControls(); });
   $('flip').addEventListener('click', function () { var it = item(sel); if (!it) return; mark(); it.flip = !it.flip; touch(it.k); changed(); });
   $('again').addEventListener('click', function () {
     var it = item(sel); if (!it) return;

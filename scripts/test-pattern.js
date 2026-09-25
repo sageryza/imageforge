@@ -309,7 +309,21 @@ async function pageHalf() {
   ok(Math.abs(cvr.w - cvr.h) < 2, 'the tile is square on screen');
   ok((await page.$eval('#band', el => el.style.backgroundImage)).startsWith('url("data:image/png'), 'the repeat band is painted from the tile');
   const band = await page.$eval('#band', el => { const r = el.getBoundingClientRect(); return { w: r.width, h: r.height, inner: el.clientWidth, bs: parseFloat(el.style.backgroundSize) }; });
-  ok(Math.abs(band.h - band.w / 3) < 1.5 && Math.abs(band.bs - band.inner / 3) < 1.5, 'the band shows three WHOLE tiles across — as tall as one tile, nothing cut off (' + Math.round(band.w) + 'x' + Math.round(band.h) + ', tile ' + Math.round(band.bs) + ')');
+  ok(Math.abs(band.h - band.w / 6) < 1.5 && Math.abs(band.bs - band.inner / 6) < 1.5, 'the band shows six WHOLE tiles across — as tall as one tile, nothing cut off (' + Math.round(band.w) + 'x' + Math.round(band.h) + ', tile ' + Math.round(band.bs) + ')');
+  // ONE SCREEN: the whole TILE tab, controls included, fits in the room her
+  // phone gives a page inside the app. Measured off her 2026-09-25 screenshot
+  // (390pt wide): the page's top sits 62pt below the screenshot's, the bottom
+  // bar starts at 764pt, so the page has ~700px in this test's coordinates;
+  // v5 ended at 685 and fit, v11 at 724 and did not. With nothing selected
+  // AND with a piece selected. Measured, never asserted in source.
+  const tabBottom = async () => page.$eval('#pane-tile .ctl', el => Math.round(el.getBoundingClientRect().bottom + window.scrollY));
+  // the piece rows and the pattern rows take turns, so the walk says which it wants
+  const showPattern = async () => { if (!(await page.$eval('#selbox', el => el.hidden))) { await page.click('#seldone'); await page.waitForTimeout(150); } };
+  const pickPear = async () => { const it = store().items.find(i => i.piece === 'pear'); const r = await page.$eval('#tile', el => { const b = el.getBoundingClientRect(); return { x: b.left, y: b.top, w: b.width, h: b.height }; }); await page.mouse.click(r.x + it.x * r.w, r.y + it.y * r.h); await page.waitForTimeout(150); };
+  await showPattern();
+  const unselBottom = await tabBottom();
+  ok(unselBottom <= 700, 'the TILE tab fits one screen with nothing selected (' + unselBottom + 'px)');
+  ok(!(await page.$eval('#patbox', el => el.hidden)) && (await page.$eval('#selbox', el => el.hidden)), 'nothing selected: the pattern rows show, the piece rows do not');
   await shot('2-tile');
   const pear = st.items[1];
   const sx = cvr.x + pear.x * cvr.w, sy = cvr.y + pear.y * cvr.h;
@@ -321,6 +335,18 @@ async function pageHalf() {
   const moved = st.items[1];
   ok(Math.abs(moved.x - (pear.x + 80 / cvr.w)) < 0.02 && Math.abs(moved.y - (pear.y + 60 / cvr.h)) < 0.02, 'dragging moved the pear by exactly the drag (' + moved.x.toFixed(3) + ',' + moved.y.toFixed(3) + ')');
   ok(!(await page.$eval('#selbox', el => el.hidden)) && (await page.$eval('#selname', el => el.textContent)) === 'pear', 'the touched piece is selected and named');
+  ok(await page.$eval('#patbox', el => el.hidden), 'a selected piece takes the pattern rows\' place');
+  const selBottom = await tabBottom();
+  ok(selBottom <= 700 && Math.abs(selBottom - unselBottom) < 12, 'the TILE tab fits one screen with a piece selected too, at the same height (' + selBottom + 'px)');
+  ok((await page.$('#size')) === null && (await page.$$eval('#sizes5 .chip', els => els.length)) === 5 && (await page.$eval('#sizes5 .chip.on', el => el.dataset.s)) === '280', 'size is five notches, the middle one lit for a new piece');
+  await page.click('#sizes5 .chip[data-s="400"]'); await page.waitForTimeout(700);
+  ok(store().items[1].size === 400 && (await page.$eval('#sizes5 .chip.on', el => el.dataset.s)) === '400', 'a size notch sets the piece and lights up');
+  await page.click('#undo'); await page.waitForTimeout(700);
+  ok(store().items[1].size === 280, 'and it is one undo step');
+  await page.click('#seldone'); await page.waitForTimeout(200);
+  ok((await page.$eval('#selbox', el => el.hidden)) && !(await page.$eval('#patbox', el => el.hidden)), 'Done puts the pattern rows back');
+  await page.mouse.click(sx + 80, sy + 60); await page.waitForTimeout(200);
+  ok(!(await page.$eval('#selbox', el => el.hidden)), 'tapping the piece again brings its rows back');
   await page.click('#rotp');
   await page.waitForTimeout(700);
   st = store();
@@ -328,6 +354,7 @@ async function pageHalf() {
   await page.fill('#rot', '200');
   await page.waitForTimeout(700);
   ok(store().items[1].rot === 200, 'a typed number is the turn');
+  await showPattern();
   ok((await page.$('#space')) === null && (await page.$$eval('#spaces .chip', els => els.length)) === 5, 'spacing is five notches, not a slider');
   ok((await page.$eval('#spaces .chip.on', el => el.dataset.w)) === '1000', 'the default tile lights the second notch');
   await page.click('#spaces .chip[data-w="1600"]');
@@ -335,10 +362,12 @@ async function pageHalf() {
   st = store();
   ok(st.cfg.tile.w === 1600 && st.cfg.tile.h === 1600 && (await page.$eval('#spaces .chip.on', el => el.dataset.w)) === '1600', 'a notch sets the tile (saved on the config) and lights up');
   ok(Math.abs(st.items[1].x - moved.x) < 1e-3, 'growing the tile leaves the fractions — the pieces spread');
+  await pickPear();
   await page.click('#again');
   await page.waitForTimeout(700);
   st = store();
   ok(st.items.length === 3 && st.items[2].piece === 'pear' && st.items[2].rot === 200, '"+" adds another pear with the same turn');
+  await showPattern();
   await page.click('#spin');
   await page.waitForTimeout(700);
   st = store();
@@ -350,6 +379,7 @@ async function pageHalf() {
   const sc2 = store().items.map(it => it.x + ',' + it.y).join('|');
   ok(sc1 !== sc2, 'two taps on Scatter are two placements');
   await page.click('#undo'); await page.click('#undo'); await page.waitForTimeout(700);
+  await pickPear();
   await page.click('#remove');
   await page.waitForTimeout(700);
   st = store();
@@ -387,6 +417,7 @@ async function pageHalf() {
   await page.waitForTimeout(700);
   st = store();
   ok(n === 7 && st.items.length === 2 && Math.abs(((st.items[1].rot - 200) % 360 + 540) % 360 - 180) <= 20 && st.cfg.tile.w === 1600 && texts[removedKey] === '', 'seven redos land her back exactly where she was — spun, spaced, one removed (' + n + ' redos)');
+  await showPattern();
   await page.click('#spaces .chip[data-w="2200"]'); await page.waitForTimeout(700);
   ok((await page.$eval('#redo', el => el.disabled)) && store().cfg.tile.w === 2200, 'a new change after an undo clears the redo pile');
   await page.click('#undo'); await page.waitForTimeout(700);
@@ -394,6 +425,7 @@ async function pageHalf() {
   // reset: size and turn back to the start, places kept
   await page.$eval('#tile', () => {});
   const before = store().items.map(it => [it.x, it.y].join());
+  await showPattern();
   await page.click('#reset'); await page.waitForTimeout(700);
   st = store();
   ok(st.items.every(it => it.size === 280 && it.rot === 0) && st.items.map(it => [it.x, it.y].join()).join('|') === before.join('|'), 'Reset puts every piece at its starting size with no turn, and moves nothing');
