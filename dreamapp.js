@@ -8,7 +8,9 @@
 //
 // Every route is server-enforced: the client only ever talks to this API with
 // an ID token — no direct Firestore reads — so visibility cannot be bypassed
-// by a curious friend with devtools.
+// by a curious friend with devtools. The one open door is GET /feed: the site
+// opens on the public feed with no sign-in (Sophie, 2026-09-25), and a
+// visitor with no token reads the everyone-audience dreams and nothing else.
 //
 // Data (deckfactory Firestore):
 //   forge-dreamapp        one doc per dream { id, uid, name, text, title,
@@ -62,10 +64,12 @@ const router = express.Router();
 
 // ── THE SHARE-TO-SEE GATE — currently OFF (Sophie, Aug 2026) ────────────────
 // Flip this back to true to require sharing a dream before the feed opens.
-// While it's OFF the feed also widens past today (FEED_DAYS) — a today-only
-// feed with no gate reads as empty every morning.
+// While it's OFF the feed is EVERY shared dream, newest first, capped at
+// FEED_MAX — it had a 14-day window until 2026-09-25, and on a quiet month
+// that window emptied the whole feed (Sophie, looking at a blank page:
+// "where are the feed" · "feed shud show mine and friends dream").
 const GATE_ON = false;
-const FEED_DAYS = 14;
+const FEED_MAX = 300;
 
 const DREAMS = 'forge-dreamapp';
 const FELT = 'forge-dreamapp-felt';
@@ -238,8 +242,17 @@ async function identify(req) {
     return { uid: dec.uid, name };
   } catch { return null; }
 }
+// The feed itself is PUBLIC — the site opens on it, signed in or not
+// (Sophie, 2026-09-25: "link shud open on public feed not login"). A visitor
+// reads everyone's dreams with no name and no heart; every other door still
+// needs an account, and the page opens the sign-in on the tap that needs it.
+const OPEN_ROUTES = new Set(['GET /feed']);
 async function requireUser(req, res, next) {
   const user = await identify(req);
+  if (!user && OPEN_ROUTES.has(`${req.method} ${req.path.replace(/\/+$/, '') || '/'}`)) {
+    req.user = null;
+    return next();
+  }
   if (!user) return res.status(401).json({ error: 'sign in first' });
   req.user = user;
   next();
@@ -603,28 +616,30 @@ router.post('/dreams/:id/tags', async (req, res) => {
 router.get('/feed', async (req, res) => {
   try {
     const today = feedDay();
-    // Gated: strictly today's dreams. Open: the last FEED_DAYS, so the feed
-    // still reads as a feed on a quiet morning.
-    const since = new Date(Date.now() - FEED_DAYS * 86400000)
-      .toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+    const uid = req.user ? req.user.uid : null;
+    // Gated: strictly today's dreams. Open: every shared dream, newest day
+    // first — no window, so a quiet month never reads as an empty feed.
     const snap = GATE_ON
       ? await db().collection(DREAMS).where('publicOn', '==', today).get()
-      : await db().collection(DREAMS).where('publicOn', '>=', since).get();
-    if (GATE_ON && !(await sharedToday(req.user.uid))) {
+      : await db().collection(DREAMS).where('publicOn', '>', '')
+          .orderBy('publicOn', 'desc').limit(FEED_MAX).get();
+    if (GATE_ON && !(uid && await sharedToday(uid))) {
       return res.json({ sealed: true, count: snap.size, today });
     }
-    const feltSnap = await db().collection(FELT).where('uid', '==', req.user.uid).get();
+    // A visitor holds no hearts, no teams and no friends: they read the
+    // everyone-audience dreams and nothing else.
+    const feltSnap = uid ? await db().collection(FELT).where('uid', '==', uid).get() : { docs: [] };
     const felt = new Set(feltSnap.docs.map((d) => d.data().dreamId));
     // One card per DREAM. A friends-audience dream reaches the author's
     // accepted friends and the people they routed it to (THE DIAL above) —
     // filtered here, server-side, like every other visibility rule.
-    const [myTeams, myPairs] = await Promise.all([teamsOf(req.user.uid), friendPairsOf(req.user.uid)]);
-    const myFriends = friendUidsOf(myPairs, req.user.uid);
+    const [myTeams, myPairs] = uid ? await Promise.all([teamsOf(uid), friendPairsOf(uid)]) : [[], []];
+    const myFriends = friendUidsOf(myPairs, uid);
     const dreams = snap.docs.map((d) => d.data())
-      .filter((d) => canRead(d, req.user.uid, myTeams, myFriends))
+      .filter((d) => canRead(d, uid, myTeams, myFriends))
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
-      .map((d) => feedCard(d, req.user.uid, felt));
-    res.json({ sealed: false, today, dreams });
+      .map((d) => feedCard(d, uid, felt));
+    res.json({ sealed: false, today, signedIn: !!uid, dreams });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -921,5 +936,5 @@ router.post('/dreams/:id/comments', async (req, res) => {
 // they are what makes "three a day" survive a server restart.
 // friendsReaches/canRead are the whole friends-audience rule, exported the
 // same way (scripts/test-dreamapp-teams.js).
-module.exports = { router, init, streakOf, drawsToday, sharesToday,
+module.exports = { router, init, streakOf, drawsToday, sharesToday, requireUser, OPEN_ROUTES,
                    friendsReaches, canRead, friendPairId, friendUidsOf, tagsFromPairs };

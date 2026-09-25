@@ -5,7 +5,8 @@
 //   1. "see more" sits ON the last line of the words, not under them,
 //   2. the words next to a picture are cut to about the picture's height,
 //   3. the day divider is a solid terracotta line, not a grey dashed one,
-//   4. the empty-tonight note carries no glyphs and is neither bold nor italic,
+//   4. a night with nothing shared yet draws no note at all (the "no dreams in
+//      the pile" line is gone — Sophie, 2026-09-25),
 //      and a night that HAS dreams ends on nothing at all,
 //   5. opened, the picture comes up to full width and the words run UNDER it,
 //      the card JUMPS to the top of the screen, and a floating close button
@@ -58,7 +59,7 @@ const PX = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAYAAAC56t6BAAAAEklEQVR42mNk+M9QzzCKRxUAAP//AwAV4gL9AAAAAElFTkSuQmCC',
   'base64');
 
-// today = a day with no dreams in it, so the feed renders the empty note
+// today = a day with no dreams in it, so the feed opens on the older days
 const EMPTY_FEED = { ...FEED, today: '2026-08-09' };
 let empty = false;
 
@@ -263,18 +264,18 @@ const check = (name, ok, detail) => {
   check('and the fold is back on the last line',
     reFold && reBody && reFold.y + reFold.height <= reBody.y + reBody.height + 1);
 
-  // ── 4b. the empty-tonight note, on a day nothing has been shared ──
+  // ── 4b. a day nothing has been shared yet draws NO note (Sophie,
+  // 2026-09-25: "no text - delete") — the older days lead straight off ──
   empty = true;
   await page.reload();
   await page.addStyleTag({ content: '*,*::before,*::after{animation:none !important}' });
-  await page.waitForSelector('.fend');
-  const fend = await page.locator('.fend').first().evaluate((el) => {
-    const c = getComputedStyle(el);
-    return { text: el.textContent, style: c.fontStyle, weight: c.fontWeight };
-  });
-  check('the empty-tonight note carries no glyphs', !/[✳✴✵✺]/.test(fend.text), JSON.stringify(fend.text));
-  check('it is not italic', fend.style === 'normal', fend.style);
-  check('and not bold', Number(fend.weight) <= 400, fend.weight);
+  await page.waitForSelector('.fdiv');
+  check('no empty-tonight line', (await page.locator('.fend').count()) === 0,
+    `${await page.locator('.fend').count()} .fend`);
+  const firstChild = await page.locator('#scr-feed > *').first().evaluate((el) => el.className);
+  check('the feed opens on the first divider', /fdiv/.test(firstChild), firstChild);
+  check('and nothing says "no dreams in the pile"',
+    !/no dreams in the pile/.test(await page.locator('#scr-feed').innerText()));
 
   await browser.close();
   server.close();
