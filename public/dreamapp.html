@@ -160,8 +160,6 @@
   .fdiv { display:flex; align-items:center; gap:12px; padding:6px 4px; }
   .fdiv span.l { flex:1; border-top:1px solid var(--brown); }
   .fdiv span.t { font:11px 'Courier Prime', monospace; color:var(--brown); }
-  .fend { text-align:center; font:400 16px/1.5 'EB Garamond', serif;
-          color:rgba(20,19,26,.6); padding:14px 24px 4px; }
 
   /* the confess button — the plain ask ON the button, the poetic line under it
      (Sophie: "under that weird, long, narrow button, it should say, It's
@@ -357,8 +355,13 @@
   .dial button:last-child { border-radius:20px 12px 18px 14px/14px 18px 12px 20px; }
   .dial button.on { background:var(--brown); color:var(--cream); }
 
-  /* sign-in */
-  .gate { padding:70px 26px 40px; max-width:420px; margin:0 auto; }
+  /* sign-in — a sheet OVER the feed, opened by the first tap that needs an
+     account (Sophie, 2026-09-25: "link shud open on public feed not login") */
+  .gate { position:fixed; inset:0; z-index:60; overflow:auto; background:var(--cream);
+          padding:70px 26px 40px; }
+  .gate .inner { max-width:420px; margin:0 auto; }
+  .gate .gx { position:absolute; top:14px; right:16px; background:none; border:none; cursor:pointer;
+              color:var(--ink); font:400 28px/1 'EB Garamond', serif; padding:4px 8px; }
   .gate .mark { font-size:42px; display:block; }
   .gate .sub { font:italic 400 15px 'EB Garamond', serif; color:rgba(20,19,26,.6); margin:8px 0 32px; }
   .gate input { width:100%; background:#f4f0e5; border:1px solid rgba(20,19,26,.35); border-radius:10px 18px 12px 16px;
@@ -537,6 +540,8 @@
 <div class="phone">
 
 <div id="gate" class="gate" hidden>
+  <button class="gx" id="gateX" aria-label="not now">×</button>
+  <div class="inner">
   <div class="mark">dreams</div>
   <div class="sub">what did you dream last night?</div>
   <button class="btn" id="appleBtn">continue with apple</button>
@@ -547,6 +552,7 @@
   <button class="btn sub" id="emailBtn">sign in</button>
   <button class="swap" id="swapBtn">new here? create an account</button>
   <div class="err" id="gateErr" hidden></div>
+  </div>
 </div>
 
 <div id="app" hidden>
@@ -694,8 +700,11 @@ function ago(iso){
 }
 async function api(path, opts){
   opts = opts || {};
-  var tok = await fbAuth.currentUser.getIdToken();
-  opts.headers = Object.assign({ authorization: 'Bearer ' + tok }, opts.headers || {});
+  opts.headers = Object.assign({}, opts.headers || {});
+  // Signed out, the feed is the one door that answers; it is asked bare.
+  if (fbAuth && fbAuth.currentUser) {
+    opts.headers.authorization = 'Bearer ' + (await fbAuth.currentUser.getIdToken());
+  }
   if (opts.body) { opts.headers['content-type'] = 'application/json'; opts.body = JSON.stringify(opts.body); opts.method = opts.method || 'POST'; }
   var r = await fetch(API + path, opts);
   var j = await r.json();
@@ -995,23 +1004,23 @@ function wireDreams(root){
       });
     }
     var like = card.querySelector('.likebtn');
-    if (like) like.addEventListener('click', function(){
+    if (like) like.addEventListener('click', function(){ needUser(function(){
       // POST — the old page sent a bodyless GET here, which the server never
       // routed, so the heart silently did nothing.
       api('/dreams/' + id + '/felt', { method: 'POST' }).then(function(r){
         like.innerHTML = HEART + (r.feltCount || 0);
         like.classList.toggle('on', !!r.felt);
       }).catch(function(e){ toast(e.message); });
-    });
+    }); });
     var cmt = card.querySelector('.cmtbtn'), thread = card.querySelector('.dthread');
-    if (cmt) cmt.addEventListener('click', function(){
+    if (cmt) cmt.addEventListener('click', function(){ needUser(function(){
       thread.hidden = !thread.hidden;
       if (!thread.hidden && !thread.dataset.loaded) loadComments(id, thread, cmt);
-    });
+    }); });
     // Nameless, not anonymous (Sophie): the sheet shows no name, but a dream
     // opens into its dreamer's profile — all their dreams you can see.
     var who = card.querySelector('.whobtn');
-    if (who) who.addEventListener('click', function(){ openDreamer(id); });
+    if (who) who.addEventListener('click', function(){ needUser(function(){ openDreamer(id); }); });
   });
 }
 
@@ -1055,6 +1064,25 @@ function drawComments(comments, thread){
     : '<div class="crow" data-empty><span class="said" style="opacity:.5">no comments yet.</span></div>';
 }
 
+/* ── sign in on the tap that needs it ──
+   The site opens on the public feed, signed in or not (Sophie, 2026-09-25:
+   "link shud open on public feed not login"). Reading is free; posting a
+   dream, a heart, a comment, the archive and a dreamer's profile need an
+   account — the first of those taps opens the sign-in sheet, and once she
+   is in, the tap she made is carried out. */
+var afterSignIn = null;
+function needUser(fn){
+  if (user) { fn(); return; }
+  afterSignIn = fn;
+  hideErr();
+  document.getElementById('gate').hidden = false;
+  window.scrollTo(0, 0);
+}
+function closeGate(){
+  afterSignIn = null;
+  document.getElementById('gate').hidden = true;
+}
+
 /* ── views ── */
 var scr = { feed: null, mine: null, dream: null, teams: null, friends: null, dreamer: null };
 function go(which){
@@ -1069,8 +1097,9 @@ function go(which){
   showConfess(which === 'feed', false);
   var mineBtn = document.getElementById('navMine');
   // Two views and one word to swap between them (Sophie, Aug 2026): the feed,
-  // and your own dreams — which she calls the ARCHIVE.
-  mineBtn.textContent = (which === 'feed') ? 'archive' : 'feed';
+  // and your own dreams — which she calls the ARCHIVE. A visitor with no
+  // account sees the door in, in its place.
+  mineBtn.textContent = (which === 'feed') ? (user ? 'archive' : 'sign in') : 'feed';
   window.scrollTo(0, 0);
 }
 
@@ -1182,7 +1211,7 @@ async function renderFeed(){
         '<div class="sml">share one of yours to read them \u2014 the feed opens for the rest of the day</div>' +
         '<button id="gateGo">it\u2019s coming back to me\u2026</button>' +
         '</div></div></div>';
-      document.getElementById('gateGo').addEventListener('click', function(){ openCompose(); });
+      document.getElementById('gateGo').addEventListener('click', function(){ needUser(openCompose); });
       return;
     }
     var entries = f.dreams || [];
@@ -1190,8 +1219,7 @@ async function renderFeed(){
     entries.forEach(function(n){ feedEntry[n.id] = n; });
     // Group under the day they were shared, newest first. Tonight's dreams
     // lead with no divider and end with nothing (Sophie had the sign-off line
-    // taken out); every older day gets the divider band. The line that shows
-    // when nothing has been shared YET is a different one, and stays.
+    // taken out); every older day gets the divider band.
     var byDay = {}, days = [];
     entries.forEach(function(n){
       var k = n.publicOn || String(n.createdAt || '').slice(0, 10);
@@ -1212,11 +1240,12 @@ async function renderFeed(){
       if (hasImg) img++;
       return s;
     };
+    // A night nothing has been shared yet draws NOTHING above the first
+    // divider — the "no dreams in the pile yet tonight" line was taken out
+    // (Sophie, 2026-09-25: "no text - delete").
     if (days[0] === f.today) {
       html += byDay[f.today].map(drawCard).join('');
       days.shift();
-    } else {
-      html += '<div class="fend">no dreams in the pile yet tonight \u2014 yours could be the first</div>';
     }
     days.forEach(function(k){
       html += '<div class="fdiv"><span class="l"></span><span class="t">' + divLabel(k, f.today) + '</span><span class="l"></span></div>';
@@ -2006,16 +2035,30 @@ async function boot(){
     }
   });
 
+  // The feed opens for everyone; the sign-in sheet waits for a tap that
+  // needs an account (needUser). A team invite link is such a tap.
+  var booted = false;
   fbAuth.onAuthStateChanged(function(u){
+    var was = user;
     user = u;
-    document.getElementById('gate').hidden = !!u;
-    document.getElementById('app').hidden = !u;
+    document.getElementById('app').hidden = false;
     if (u) {
+      document.getElementById('gate').hidden = true;
       renderFeed(); renderMine(); go('feed');
       joinFromPath();        // came in through a dream-team invite link
       checkHands();          // an ask of yours said yes while you were away?
+      // She signed in for a reason — carry out the tap that asked for it.
+      var todo = afterSignIn; afterSignIn = null;
+      if (!was && todo) setTimeout(todo, 0);
+    } else if (!booted) {
+      renderFeed(); go('feed');
+      if (/^\/t\//.test(location.pathname)) needUser(function(){});
+    } else {
+      renderFeed(); go('feed');
     }
+    booted = true;
   });
+  document.getElementById('gateX').addEventListener('click', closeGate);
 
   // A popup cannot open inside an embedded web view (and phone browsers block
   // them freely), so every provider sign-in falls back to a full-page redirect
@@ -2069,7 +2112,7 @@ async function boot(){
   // one header word swaps between the feed and your private dreams
   document.getElementById('navMine').addEventListener('click', function(){
     if (scr.feed.hidden) { renderFeed(); go('feed'); }
-    else { renderMine(); go('mine'); }
+    else needUser(function(){ renderMine(); go('mine'); });
   });
   // the wordmark is the way home, on the app AND on the compose sheet (Sophie:
   // "the header at the top … should take me back to the feed")
@@ -2079,15 +2122,15 @@ async function boot(){
   document.getElementById('smarkBtn').addEventListener('click', function(){
     closeCompose(); renderFeed(); go('feed');
   });
-  document.getElementById('confessBtn').addEventListener('click', openCompose);
-  document.getElementById('confessTop').addEventListener('click', openCompose);
+  document.getElementById('confessBtn').addEventListener('click', function(){ needUser(openCompose); });
+  document.getElementById('confessTop').addEventListener('click', function(){ needUser(openCompose); });
   // An iOS tab restored from a snapshot can hold a render from days ago —
   // that is exactly how her archive showed one dream on a six-dream account.
   // Coming back to the app re-reads whichever list screen is up (the feed
   // only from its top, so the page never moves under her thumb mid-read).
   document.addEventListener('visibilitychange', function(){
-    if (document.visibilityState !== 'visible' || !user) return;
-    if (!scr.mine.hidden) renderMine();
+    if (document.visibilityState !== 'visible') return;
+    if (!scr.mine.hidden && user) renderMine();
     else if (!scr.feed.hidden && !openCard && window.scrollY < 40) renderFeed();
   });
   // one floating close, two doors: an opened feed card, or the dream screen
