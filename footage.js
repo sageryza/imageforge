@@ -893,6 +893,8 @@ let pausedHook = null;
 function init(opts) {
   if (opts && (opts.openrouter || opts.apiframe || opts.atlascloud)) doors = { ...getDoors(), ...opts };
   if (opts && typeof opts.paused === 'function') pausedHook = opts.paused;
+  if (opts && opts.coll) collOverride = opts.coll;
+  if (opts && opts.watch !== false && process.env.RENDER_EXTERNAL_URL) armWatch();
 }
 function pausedNow() { try { return pausedHook ? pausedHook() : null; } catch { return null; } }
 const PAUSED_WORDS = 'Paused for a server update — nothing was sent or charged. Tap again in about a minute.';
@@ -931,7 +933,8 @@ async function balances() {
 
 // ─── Firestore ──────────────────────────────────────────────────────────
 function db() { return admin.firestore(); }
-function coll() { return db().collection(videoLog.COLL); }
+let collOverride = null;               // a test's in-memory collection (init({ coll }))
+function coll() { return collOverride || db().collection(videoLog.COLL); }
 function bucketOrNull() { try { return admin.apps.length ? admin.storage().bucket() : null; } catch { return null; } }
 
 // ONE reader of a doc's status — cardOf draws by it and trimPlan refuses by
@@ -1247,8 +1250,8 @@ function cardOf(id, d) {
 // ─── Polling the unfinished ones, throttled ────────────────────────────
 const lastPoll = new Map();   // job id → ms
 const posterTried = new Set();   // clips whose missing poster this process has tried once to bake
-async function pollOne(id, d) {
-  const now = Date.now();
+async function pollOne(id, d, now) {
+  now = now || Date.now();
   if (now - (lastPoll.get(id) || 0) < POLL_EVERY_MS) return null;
   lastPoll.set(id, now);
   const door = d.door || d.provider || 'apiframe';
@@ -1265,6 +1268,58 @@ async function pollOne(id, d) {
 
 // THE POLL-TIME WALK IS GONE (2026-09-11, the same evening it shipped — see
 // doorFor): a refusal on the poll is the card's answer, never a re-send.
+
+// ── THE SERVER KEEPS ASKING WHILE SHE IS AWAY (2026-09-25, Sophie: "if i
+// come back it says drawing 7 mins but it was only 2 mins · still doesn't
+// show for like 12s") ──────────────────────────────────────────────────────
+// A door is only ever asked when the PAGE asks the feed, and a wrapped page
+// asks nothing while the app is in her pocket. So a clip that drew in two
+// minutes was still "drawing" on the server at seven, the door was asked the
+// moment she came back, and only THEN did the poster start baking — a
+// download, one ffmpeg frame, an upload — so the tile sat blank for another
+// dozen seconds while she watched. The server now asks on its own: every
+// job this process sent is watched from the moment it is sent, and every
+// five minutes the log is swept for unfinished jobs sent by anyone (a chat
+// through `/api/atlascloud`, a job from before a deploy), so a clip is
+// finished and its poster baked while she is away and the feed she comes
+// back to is already right. Costs: one door read per watched job per 15s
+// (free — the same read the page's poll makes) and one small status query
+// per sweep; an idle tick with nothing watched reads nothing. Only where
+// `RENDER_EXTERNAL_URL` is set, like the icon sweep, so a dev container or
+// a test never asks a real door.
+const WATCH_EVERY_MS = 15000, WATCH_SWEEP_MS = 5 * 60 * 1000;
+const WATCH_STATUSES = ['sent', 'processing', 'pending', 'queued', 'starting'];
+const watched = new Set();
+let watchT = null, watchSweptAt = 0;
+function watchJob(id) { if (id) watched.add(String(id)); }
+function armWatch() {
+  if (watchT) return;
+  watchT = setTimeout(() => { watchT = null; watchTick().catch(() => {}).then(armWatch); }, WATCH_EVERY_MS);
+  if (watchT.unref) watchT.unref();
+}
+async function sweepUnfinished() {
+  const snap = await coll().where('status', 'in', WATCH_STATUSES).get();
+  snap.docs.forEach((s) => { if (!staleJob(s.data())) watched.add(s.id); });
+  return watched.size;
+}
+async function watchTick(now) {
+  now = now || Date.now();
+  if (now - watchSweptAt > WATCH_SWEEP_MS) { watchSweptAt = now; await sweepUnfinished().catch(() => {}); }
+  await Promise.all(Array.from(watched).map(async (id) => {
+    let d;
+    try { const s = await coll().doc(id).get(); if (!s.exists) { watched.delete(id); return; } d = s.data(); }
+    catch { return; }
+    const st = statusOf(d);
+    if (st !== 'drawing') {
+      // finished (or given up on) — make sure its poster is on its way, then let go
+      if (st === 'done' && d.video && !d.poster) bakePoster(id, d.video).catch(() => {});
+      watched.delete(id);
+      return;
+    }
+    await pollOne(id, d, now);           // writes the doc and bakes the poster itself
+  }));
+  return watched.size;
+}
 
 // A first frame for the card — the clip itself is 1-3MB and a <video> on iOS
 // shows nothing until it plays. Best effort, never awaited by a response.
@@ -2046,6 +2101,7 @@ async function startJobInner(b) {
   // when both writes fail the job id rides the note so it reaches the card
   // and a chat can backfill it (`scripts/apiframe-video-log-backfill.js`).
   const unfiled = r.logged === false ? `This clip is drawing but could not be filed on the log — job ${r.jobId} on ${DOOR_WORDS[d.door] || d.door}.` : '';
+  watchJob(r.jobId);                   // the server keeps asking about it while she is away
   return { jobId: r.jobId, door: d.door, sent: r.sent || req, seed: Number.isFinite(seed) ? seed : null,
     fellBack: false, estimate: est.cents, note: [extra.note || '', unfiled].filter(Boolean).join(' '), logged: r.logged !== false };
 }
@@ -2691,7 +2747,7 @@ module.exports = {
   modelOf, rowOfDoorModel, doorFor, doorTakes, shapeRefusal, atlasCapRefusal, atlasCapsOf, ATLAS_CAPS, ratiosOf, estimate, priceOn, DOOR_LOOSENESS, DOOR_REFUSAL_FREE, DOOR_WORDS, pollOne, slotsOf, kindOf, buildJob, titleOf, cardOf, publicModels, canvasOf, resFactor, secondsOk, framesOf, projectSlug, HANDOFF_PROJECTS,
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf, atlasCacheBust,
   drawStats, drawTimeFor, drawTimeFrom, drawKeyOf, medianOf,
-  startJob, bakePoster, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf, pausedNow,
+  startJob, bakePoster, watchJob, watchTick, sweepUnfinished, WATCH_EVERY_MS, WATCH_SWEEP_MS, WATCH_STATUSES, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf, pausedNow,
   canvasFrom, pageJobs, outsideCount, hayOf, foldersOf, shelfOf, folderSlug, statusOf, staleJob, STALE_MS, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, cutArgs, TRIM_CAP, frameSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
   trimRoom, waitTrimRoom, TRIM_NEED_MB, BOX_MB, bakeStale, BAKE_STALE_MS,
   framePlan, framePath, pullFrame, grabFrame, FRAME_FOLDER, FRAME_END_PAD,
