@@ -175,6 +175,12 @@ const read = () => {
   ok('and so does the project picker', deep.proj && deep.proj.reaches);
   ok('nothing on it runs under the pill (' + deep.proj.box[2] + ' against ' + deep.pillLeft + ')',
     deep.pillLeft && deep.proj.box[2] <= deep.pillLeft);
+  // THE FUNNEL IS ON THE BAR BESIDE THE FOLDER, glass shut (2026-09-25,
+  // "shud be next to the folder") — pinned, it has to take a tap too and keep
+  // the pill's column clear
+  ok('the funnel is on the pinned bar beside the folder and takes a tap — ' + JSON.stringify(deep.chip),
+    deep.chip && deep.chip.reaches && deep.chip.box[1] === deep.proj.box[1] && deep.chip.box[0] >= deep.proj.box[2]);
+  ok('and it clears the pill (' + deep.chip.box[2] + ' against ' + deep.pillLeft + ')', deep.chip.box[2] <= deep.pillLeft);
 
   // ── 3. it is not a picture of a switch: TILES from up here really swaps ──
   await page.click('#v-tiles');
@@ -197,8 +203,8 @@ const read = () => {
   // "remove prompt collapse" — so there is no second sticky row to seam
   // against, which is what `stickyInPanel` above measures instead.)
 
-  // ── 5. the glass, pinned: the funnel is the last thing on the field's line
-  //       and has to keep the pill's column clear ─────────────────────────
+  // ── 5. the glass, pinned: the field joins the folder and funnel's line;
+  //       the funnel still has to keep the pill's column clear and take a tap ─
   await to(1200);
   await page.click('#v-search');
   await settle();

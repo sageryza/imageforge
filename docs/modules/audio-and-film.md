@@ -3718,18 +3718,32 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   Sophie: "add a search button and filter like playground" · "single
   magnifying glass button that expands" · "yea footage" · "filter is sub menu
   of glass · only one main button").** A GLASS in its own box beside the ♥/✕
-  pair, and it is the ONLY main button this row grew: a tap opens the field
-  (beside it, or on its own line when the row is full) **and the FUNNEL at the
-  field's right end**, and lights the glass in INK — a door, not a mark;
-  shutting it takes the funnel with it and CLEARS the words, since a query she
-  cannot see must never go on hiding clips. The ✕ inside the field wipes the
-  words and keeps her in it. **A FILTER IS STICKY AND SURVIVES THE GLASS
-  SHUTTING, so the GLASS WEARS THE COUNT the funnel chip wears on the rows
-  below** (lit, with the digit beside the glyph) — tucking the funnel behind
-  the glass with nothing on screen saying a filter is on is exactly the silent
-  filter this app keeps getting burned by. The funnel STRETCHES to the field
-  beside it rather than keeping the shell's 34px (the door stretches to the row
-  it stands on), and the drawer she left open is left open. The house grammar, searched as she dictates (`/feedkit.js`); the loaded
+  pair: a tap opens the field (on the folder's line, after the funnel) and
+  lights the glass in INK — a door, not a mark; shutting it CLEARS the words,
+  since a query she cannot see must never go on hiding clips. The ✕ inside
+  the field wipes the words and keeps her in it. **THE FUNNEL IS NOT BEHIND
+  THE GLASS ANY MORE — IT SITS BESIDE THE FOLDER, ALWAYS (2026-09-25, Sophie:
+  "where is the filter button in footage · shud be next to the folder").**
+  From 2026-09-11 to 09-25 it was the glass's sub menu ("filter is sub menu of
+  glass · only one main button"): it came and went with the field, and the
+  glass wore the count while it was tucked away — and she could not find it.
+  Now the folder, the funnel, the search field and the drawer are ONE flex
+  item of the bar (`.narrow` in `footage.html`), and that wrapper is the whole
+  trick: MEASURED at 390pt the bar's one line was full to the pill's column
+  (view switch, ♥/✕, glass and folder ran 12→315 against a pill at 324), so
+  a fifth control cannot fit on it, and a bare flex-wrap would have dropped
+  the funnel ALONE to the next line, under the view switch and nowhere near
+  the folder. Wrapped, the pair drops TOGETHER: at 390pt the bar is view ·
+  ♥✕ · glass, then folder · funnel (the field beside them when the glass is
+  open); on a wider screen it is one line. The funnel wears its own count
+  (the shell's) and is lit while anything is on; the glass is lit only while
+  it is open. The mount stays `display:contents` so the shell's tap-out still
+  sees every row of the drawer, and the 58px pill reserve rides on the row.
+  **AND A FOURTH ROW, TRIMMED (same day, "add a filter for trimmed clips")** —
+  `Trimmed · Not trimmed`, one lit at a time, sticky under `footage_filt_trim`,
+  reading `bakedParts` (the tile's own scissors rule: a part still baking or
+  failed does not count), so the filter and the scissors chip can never
+  disagree about which clips are trimmed. The house grammar, searched as she dictates (`/feedkit.js`); the loaded
   feed is narrowed AT ONCE and a beat later the server answers over the WHOLE
   log — `GET /jobs?q=` filters before the page is cut, up to 300 hits, and a
   hit the feed never paged in lands as a card like any other (the Assets
@@ -3749,7 +3763,8 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   The
   funnel is `/searchfilters.js`, the one shell, with this page's three rows —
   MODEL (the `PAGE_MODELS`, several at once), RESOLUTION (`PAGE_RES`, the rung
-  the clip came out at) and WHEN (the shell's own days-back chips) — sticky
+  the clip came out at), WHEN (the shell's own days-back chips) and, since
+  2026-09-25, TRIMMED (`bakedParts`, one chip lit at a time) — sticky
   under `footage_filt_*` like the ♥ and ✕ beside them; an emptied feed names
   which of them emptied it. Both stay OUT of the drawer (her 2026-09-02 word).
   **RESOLUTION IS THE QUALITY ROW, AND THERE IS ONLY ONE OF THEM (2026-09-18,
@@ -5151,9 +5166,11 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
   heart and the glass's own box) because a 34-tall box makes that hairline row
   2px taller than every other one on the page; its lit box is the LIST
   segment's dark fill, so a narrowed feed says so on the row that narrowed it;
-  and it sits at flex `order:0` while the funnel chip is `order:2`, which is
-  what keeps it between the glass and the funnel whatever the markup order
-  (the funnel is drawn only while the search is open). Its rows say "All" and
+  and it sits at flex `order:0` in the `.narrow` row while the funnel chip is
+  `order:1` and the field `order:2`, which is what keeps it first on that row
+  whatever the markup order (since 2026-09-25 the funnel is on the bar beside
+  it whether or not the search is open — see THE FEED HAS THE PLAYGROUND'S
+  SEARCH above). Its rows say "All" and
   "New…" rather than anything longer because a select is as wide as its
   longest row.
   **AND A PROJECT'S FOLDERS FOLD (2026-09-12, Sophie: "make the commercials

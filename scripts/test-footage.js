@@ -1317,21 +1317,31 @@ async function pillSweep(pg, where) {
     ok('the glass shuts the box, unlights, and the words go with it', at3.hidden && !at3.on && at3.value === '' && (await visible()).split(',').length >= 8);
     ok('the older door is back once the search is gone', !(await page.$eval('#older', (e) => e.hidden)));
 
-    // THE FUNNEL IS A SUB MENU OF THE GLASS (2026-09-11, Sophie: "filter is
-    // sub menu of glass · only one main button"). Shut, the bar carries the
-    // glass and nothing else; the funnel comes and goes with the field.
+    // THE FUNNEL IS ON THE BAR, RIGHT BESIDE THE FOLDER, WHETHER THE GLASS IS
+    // SHUT OR OPEN (2026-09-25, Sophie: "where is the filter button in
+    // footage · shud be next to the folder"). It was the glass's sub menu
+    // from 2026-09-11 and hid with the field — she could not find it. Every
+    // check a MEASUREMENT: the chip's box, the folder's box, the gap between
+    // them, and whether a tap on the chip's centre really lands on it.
     const funnelBox = () => page.evaluate(() => {
       const chip = document.querySelector('#feedfilters .filtchip');
-      const r = chip.getBoundingClientRect(), q = document.getElementById('q').getBoundingClientRect();
+      const r = chip.getBoundingClientRect(), f = document.getElementById('projwrap').getBoundingClientRect();
+      const qEl = document.getElementById('q'), q = qEl.getBoundingClientRect();
       const g = document.getElementById('v-search').getBoundingClientRect();
-      return { w: Math.round(r.width), h: Math.round(r.height), qh: Math.round(q.height),
+      const pill = document.querySelector('body > .float').getBoundingClientRect();
+      const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      return { w: Math.round(r.width), h: Math.round(r.height), fh: Math.round(f.height), qh: Math.round(q.height),
         mountShut: document.getElementById('feedfilters').hidden,
-        afterField: r.left >= q.right - 1,
-        sameRow: Math.abs((r.top + r.height / 2) - (q.top + q.height / 2)) < 4,
+        besideFolder: r.left >= f.right - 1 && r.left - f.right <= 12,
+        folderRow: Math.abs((r.top + r.height / 2) - (f.top + f.height / 2)) < 3,
+        beforeField: qEl.closest('.feedsearch').hidden || q.left >= r.right - 1,
+        clear: r.right <= pill.left,
+        tappable: !!(hit && hit.closest('.filtchip')),
         glassW: Math.round(g.width) };
     });
     const shut = await funnelBox();
-    ok('with the glass shut the funnel is NOT on the bar — one main button', shut.mountShut && shut.w === 0 && shut.glassW > 30);
+    ok('with the glass SHUT the funnel is on the bar, right beside the folder, its height, clear of the pill, tappable — ' + JSON.stringify(shut),
+      !shut.mountShut && shut.w >= 30 && shut.besideFolder && shut.folderRow && shut.h === shut.fh && shut.clear && shut.tappable && shut.glassW > 30);
     await page.click('#v-search');
     const dr = await page.evaluate(() => {
       const m = document.getElementById('feedfilters');
@@ -1342,20 +1352,24 @@ async function pillSweep(pg, where) {
         rows: Array.from(drawer.querySelectorAll('.filtrow')).map((r) => Array.from(r.querySelectorAll('.filtcbtn')).map((b) => b.textContent.trim()).join('·')) };
     });
     const open = await funnelBox();
-    ok('the glass opens the field AND the funnel beside it, the drawer shut — ' + JSON.stringify(dr.rows),
-      dr.chip && dr.shut && dr.funnel && open.w > 20 && open.afterField && open.sameRow
-      && dr.doors.join(',') === 'model,res,when' && dr.doorWords.join('·') === 'Model·Resolution·When'
+    ok('the glass opens the field AFTER the funnel, which stays beside the folder, the drawer shut — ' + JSON.stringify(dr.rows),
+      dr.chip && dr.shut && dr.funnel && open.w >= 30 && open.besideFolder && open.folderRow && open.beforeField && open.clear
+      && dr.doors.join(',') === 'model,res,when,trim' && dr.doorWords.join('·') === 'Model·Resolution·When·Trimmed'
       && dr.rows[0] === 'Mini·Fast·2.0·2.5·Wan·Wan Prime·Wan 2.2·Wan 2.7·MiniMax'
-      && dr.rows[1] === '480p·720p·768p·1080p·2K' && dr.rows[2] === 'Today·This week·This month');
-    ok('and the funnel stretches to the field beside it, not the shell’s 34 — ' + open.h + ' vs ' + open.qh, Math.abs(open.h - open.qh) <= 2);
+      && dr.rows[1] === '480p·720p·768p·1080p·2K' && dr.rows[2] === 'Today·This week·This month'
+      && dr.rows[3] === 'Trimmed·Not trimmed');
+    ok('and the funnel keeps the folder’s height beside the field, not the field’s — ' + open.h + ' vs ' + open.fh, open.h === open.fh);
     ok('the model chips are the models the page offers, pinned to PAGE_MODELS', /var PAGE_MODELS = \['mini', 'fast', '2\.0', '2\.5', 'wan', 'wan-prime', 'wan-2\.2', 'wan-2\.7', 'minimax'\]/.test(fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8')));
     await page.click('#feedfilters .filtchip');
     ok('the tap opens the drawer', !(await page.$eval('#feedfilters .filtdrawer', (e) => e.hidden)));
     if (process.env.SHOT_DIR) await page.screenshot({ path: require('path').join(process.env.SHOT_DIR, 'filter-drawer.png') }).catch(() => {});
     // THE ROWS ARE DROP-DOWNS (2026-09-18, Sophie: "buttons shud be drop downs
-    // to minimize space"). The drawer RESTS as one line of named doors with
+    // to minimize space"). The drawer RESTS as a rail of named doors with
     // every row of chips shut, and the saving is MEASURED rather than assumed
-    // — three rows of chips is 266px on this phone.
+    // — four rows of chips is well over 300px on this phone. FOUR doors wrap
+    // to TWO lines at 390pt since TRIMMED joined (2026-09-25): measured, the
+    // doors are 83 + 119 + 77 + 97 with 6px gaps = 394 against a 308px rail,
+    // so one line is not to be had without shorter words than hers.
     const railAtRest = await page.evaluate(() => {
       const d = document.querySelector('#feedfilters .filtdrawer');
       const rail = document.querySelector('#feedfilters .filtdrops');
@@ -1367,7 +1381,7 @@ async function pillSweep(pg, where) {
         doorH: Math.round(document.querySelector('#feedfilters .filtdrop').getBoundingClientRect().height) };
     });
     ok('the open drawer RESTS as one line of doors with every row shut — ' + JSON.stringify(railAtRest),
-      railAtRest.rowsOpen === 0 && railAtRest.railLines === 1 && railAtRest.drawerH <= 40 && railAtRest.doorH === 34);
+      railAtRest.rowsOpen === 0 && railAtRest.railLines <= 2 && railAtRest.drawerH <= 80 && railAtRest.doorH === 34);
     // opening a door is what puts its chips on screen; only one is ever open
     const openDoor = async (k) => {
       await page.click('#feedfilters .filtdrop[data-k="' + k + '"]');
@@ -1443,21 +1457,23 @@ async function pillSweep(pg, where) {
     // the lid is not: a funnel that reopens however deep she left it is the
     // stack of rows the doors exist to put away.
     ok('shutting the drawer shut the door she left open', !worn.anyDoorOpen);
-    // AND THE GLASS WEARS IT ONCE THE FUNNEL IS OFF THE BAR — a filter she
-    // cannot see must never go on quietly hiding clips
+    // AND SHUTTING THE GLASS LEAVES THE FUNNEL ON THE BAR WEARING IT — a
+    // filter she cannot see must never go on quietly hiding clips, and the
+    // glass itself is a door, lit only while it is open (2026-09-25)
     await page.click('#v-search');
-    const glassWorn = () => page.evaluate(() => { const g = document.getElementById('v-search'), c = g.querySelector('.qcount'); return { count: (c.textContent || '').trim(), shown: c && !c.hidden, on: g.classList.contains('on'), mountShut: document.getElementById('feedfilters').hidden }; });
+    const glassWorn = () => page.evaluate(() => { const g = document.getElementById('v-search'), m = document.getElementById('feedfilters'), c = m.querySelector('.filtchipw');
+      const r = m.querySelector('.filtchip').getBoundingClientRect();
+      return { count: (c.textContent || '').trim(), shown: c && !c.hidden, chipOn: m.querySelector('.filtchip').classList.contains('on'), glassOn: g.classList.contains('on'), onBar: r.width > 0, mountShut: m.hidden }; });
     const gw = await glassWorn();
-    ok('shutting the glass takes the funnel with it and the GLASS wears the count', gw.mountShut && gw.count === '1' && gw.shown && gw.on);
+    ok('shutting the glass leaves the funnel on the bar wearing the count, and unlights the glass — ' + JSON.stringify(gw), !gw.mountShut && gw.onBar && gw.count === '1' && gw.shown && gw.chipOn && !gw.glassOn);
     // STICKY — a reload keeps the filter, like the ♥ and the ✕ beside it
     await page.reload();
     await page.waitForSelector('#job-old1', { state: 'attached' });
     await page.waitForTimeout(600);
     const gw2 = await glassWorn();
-    ok('a reload keeps the filter she set, and the shut glass still wears it',
+    ok('a reload keeps the filter she set, and the funnel still wears it with the glass shut',
       (await visible()) === '' && (await page.evaluate(() => localStorage.getItem('footage_filt_when'))) === 'today'
-      && gw2.mountShut && gw2.count === '1' && gw2.on);
-    await page.click('#v-search');
+      && gw2.onBar && gw2.count === '1' && gw2.chipOn && !gw2.glassOn);
     await page.click('#feedfilters .filtchip');
     ok('and it reopens with every row shut, however she left it',
       (await page.evaluate(() => Array.from(document.querySelectorAll('#feedfilters .filtrow')).filter((r) => r.getBoundingClientRect().height > 0).length)) === 0);
@@ -1466,7 +1482,47 @@ async function pillSweep(pg, where) {
     await page.evaluate(() => document.body.click());
     await page.waitForFunction(() => document.querySelectorAll('#feed .job:not([hidden])').length >= 8);
     ok('tapping the lit chip clears it and everything is back', (await visible()).split(',').length >= 8);
-    ok('and with nothing narrowed the glass wears no count', (await glassWorn()).count === '');
+    ok('and with nothing narrowed the funnel wears no count', (await glassWorn()).count === '' && !(await glassWorn()).chipOn);
+
+    // ── TRIMMED (2026-09-25, Sophie: "add a filter for trimmed clips") ──
+    // The cards wearing the scissors line (`.trimtag`) are the trimmed ones —
+    // f1 in the fixture; the rest are whole. The filter reads `bakedParts` — the tile's own scissors rule — so a part
+    // still baking or failed does not count. Every check a count off the
+    // rendered feed, then the tiles, then a reload.
+    const trimmedIds = await page.evaluate(() => Array.from(document.querySelectorAll('#feed .job')).filter((e) => e.querySelector('.trimtag')).map((e) => e.dataset.id).sort().join(','));
+    ok('the fixture has trimmed clips to filter on — ' + trimmedIds, trimmedIds.split(',').filter(Boolean).length >= 1);
+    await page.click('#feedfilters .filtchip');
+    await page.click('#feedfilters .filtdrop[data-k="trim"]');
+    await page.click('#feedfilters .filtcbtn[data-v="trimmed"]');
+    await page.waitForTimeout(300);
+    const onlyTrimmed = await visible();
+    ok('TRIMMED shows only the clips with a baked part — ' + onlyTrimmed, onlyTrimmed === trimmedIds);
+    ok('and the funnel wears 1', (await glassWorn()).count === '1');
+    await page.click('#v-tiles');
+    await page.waitForTimeout(300);
+    const tilesTrimmed = await page.evaluate(() => Array.from(document.querySelectorAll('#tiles .cell:not([hidden])')).map((e) => e.dataset.id).sort().join(','));
+    ok('the wall agrees with the list — ' + tilesTrimmed, tilesTrimmed === trimmedIds);
+    await page.click('#v-list');
+    // the view switch is outside the mount, so that tap shut the drawer (its
+    // own tap-out rule) — reopen it and the door
+    await page.click('#feedfilters .filtchip');
+    await page.click('#feedfilters .filtdrop[data-k="trim"]');
+    await page.click('#feedfilters .filtcbtn[data-v="whole"]');
+    await page.waitForTimeout(300);
+    const onlyWhole = await visible();
+    ok('NOT TRIMMED shows the rest, and none of the trimmed ones — ' + onlyWhole,
+      onlyWhole.split(',').length >= 8 && !onlyWhole.split(',').some((id) => trimmedIds.split(',').indexOf(id) >= 0));
+    ok('one chip lit at a time — Trimmed went out when Not trimmed lit', await page.evaluate(() => !document.querySelector('#feedfilters .filtcbtn[data-v="trimmed"]').classList.contains('on')));
+    await page.reload();
+    await page.waitForSelector('#job-old1', { state: 'attached' });
+    await page.waitForTimeout(600);
+    ok('a reload keeps the trimmed filter under its own key', (await page.evaluate(() => localStorage.getItem('footage_filt_trim'))) === 'whole' && (await visible()) === onlyWhole);
+    await page.click('#feedfilters .filtchip');
+    await page.click('#feedfilters .filtdrop[data-k="trim"]');
+    await page.click('#feedfilters .filtcbtn[data-v="whole"]');
+    await page.evaluate(() => document.body.click());
+    await page.waitForTimeout(300);
+    ok('tapping the lit Not trimmed chip clears it and everything is back', (await visible()).split(',').length >= 8);
   }
 
   // ── nothing sits under the pill, at her inset ────────────────────────────
@@ -2637,19 +2693,33 @@ async function pillSweep(pg, where) {
     const hit = document.elementFromPoint(pr.x + pr.width / 2, pr.y + pr.height / 2);
     const kids = [...bar.children].map((e) => { const r = e.getBoundingClientRect(); return { id: e.id || e.className, y: Math.round(r.y), h: Math.round(r.height) }; }).filter((k) => k.h);
     return { onBar: p.closest('.feedbar') === bar, inPanel: !!p.closest('.panel'),
-      afterGlass: pr.x > gr.x, beforeFunnel: (p.compareDocumentPosition(funnel) & Node.DOCUMENT_POSITION_FOLLOWING) > 0,
+      // AFTER the glass in the bar's flow: on the line under it at 390pt (the
+      // pair wraps together since 2026-09-25), or to its right on a wider screen
+      afterGlass: (glass.compareDocumentPosition(p) & Node.DOCUMENT_POSITION_FOLLOWING) > 0 && (pr.y > gr.bottom - 1 || pr.x > gr.x),
+      beforeFunnel: (p.compareDocumentPosition(funnel) & Node.DOCUMENT_POSITION_FOLLOWING) > 0,
       sameHeight: Math.abs(pr.height - gr.height) < 2, level: Math.abs(pr.y - gr.y) < 3,
       lines: new Set(kids.map((k) => Math.round(k.y / 8))).size,
       clear: pr.right <= pill.left, tappable: !!(hit && hit.closest('#projwrap')), lit: p.classList.contains('on') };
   });
   ok('the picker is on the feed bar, after the search and before the funnel — ' + JSON.stringify(seat),
     seat.onBar && !seat.inPanel && seat.afterGlass && seat.beforeFunnel && seat.lit);
-  ok('it is its neighbours\' height and on their line, clear of the pill and tappable',
-    seat.sameHeight && seat.level && seat.clear && seat.tappable);
-  ok('and the feed bar is still one line — ' + seat.lines, seat.lines === 1);
-  // WITH THE SEARCH OPEN the funnel chip joins the row (it is hidden with the
-  // search field), so the row is measured in that state too — the picker must
-  // still be on it, whole, and reachable.
+  // THE FUNNEL SITS BESIDE IT SINCE 2026-09-25 ("shud be next to the folder")
+  // and the two drop to a second line TOGETHER at 390pt: the first line was
+  // MEASURED full to the pill's column (12→315 against a pill at 324) before
+  // the funnel joined it. So the picker is its neighbours' height, clear of
+  // the pill and tappable, on a bar of TWO lines — the pair on the second.
+  ok('it is its neighbours\' height, clear of the pill and tappable',
+    seat.sameHeight && seat.clear && seat.tappable);
+  ok('and the feed bar is two lines at 390pt, the folder and the funnel together on the second — ' + seat.lines, seat.lines === 2);
+  const pair = await pgP.evaluate(() => {
+    const p = document.getElementById('projwrap').getBoundingClientRect(), c = document.querySelector('#feedfilters .filtchip').getBoundingClientRect();
+    const g = document.getElementById('v-search').closest('.filttog').getBoundingClientRect();
+    return { gap: Math.round(c.left - p.right), level: Math.abs(p.y - c.y) < 3, underGlass: p.y > g.bottom - 1, h: Math.round(c.height), ph: Math.round(p.height) };
+  });
+  ok('the funnel is right beside the folder, on its line, its height — ' + JSON.stringify(pair), pair.gap >= 0 && pair.gap <= 12 && pair.level && pair.underGlass && pair.h === pair.ph);
+  // WITH THE SEARCH OPEN the field joins the pair's line, so the row is
+  // measured in that state too — the picker must still be on it, whole, and
+  // reachable, and the funnel still between it and the field.
   const barOpen = await pgP.evaluate(async () => {
     document.getElementById('v-search').click();
     await new Promise((r) => setTimeout(r, 200));
@@ -2665,7 +2735,7 @@ async function pillSweep(pg, where) {
     return out;
   });
   ok('with the search open the picker is still whole, before the funnel, and takes its tap — ' + JSON.stringify(barOpen),
-    barOpen.w === barOpen.gw && barOpen.h === barOpen.gh && barOpen.tappable && barOpen.clear && (barOpen.chip === null || barOpen.chip > barOpen.x));
+    barOpen.w === barOpen.gw && barOpen.h === barOpen.gh && barOpen.tappable && barOpen.clear && barOpen.chip !== null && barOpen.chip > barOpen.x);
   // folding the buttons, or the references, leaves the picker on screen. (The
   // PANEL's own fold went 2026-09-14 — "remove prompt collapse" — so the two
   // folds left are the ones that can take a picker off the screen.)
