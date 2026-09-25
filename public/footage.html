@@ -789,6 +789,25 @@
         height:15px;padding:0 4px;border-radius:5px;font-size:10px;line-height:13px;color:#fff;
         background:rgba(20,17,14,.55);border:1px solid rgba(255,255,255,.28)}
   #tiles .tnote:empty{display:none}
+  /* WATCHED — AN EYE ON A CLIP SHE HAS PLAYED (2026-09-25, Sophie: "it's
+     confusing cuz i forget which ive watched"). Set the moment the player
+     opens on a clip, kept on THIS phone (localStorage `footage_seen`), and it
+     rides as a CLASS out of the wall's signature like the marks and the
+     scissors — a clip she just watched must not re-decode the wall. It wears
+     the row's own plate and sits at the far right of the top row, so a note
+     keeps its words and the scissors keep their corner. */
+  #tiles .tseen{flex:none;display:none;align-items:center;justify-content:center;margin-left:auto;
+        width:20px;height:15px;border-radius:5px;color:#fff;
+        background:rgba(20,17,14,.55);border:1px solid rgba(255,255,255,.28)}
+  #tiles .tseen svg{width:11px;height:11px;display:block}
+  #tiles .cell.seen .ttop{display:flex}
+  #tiles .cell.seen .tseen{display:inline-flex}
+  /* A SHORT TILE'S ROW IS THE 38px BETWEEN THE HEART AND THE ✕ (four across,
+     16:9) — the eye rides there centred, and yields to the scissors when
+     both would need it: MEASURED, the pair pushed the scissors onto the
+     heart. The note already yields the same way. */
+  #tiles .cell.short .tseen{margin-left:0}
+  #tiles .cell.short.cut .tseen{display:none}
   /* BOTH DOORS ARE ON THE TILE (2026-09-10, Sophie: "can u have a play button,
      and a list view button on tiles · so both options are available"). The
      poster itself is NOT a button: with two doors drawn on it, a third
@@ -952,6 +971,12 @@
   .thumb[data-ar="4:3"]{aspect-ratio:4/3;width:112px}
   .thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .thumb svg{width:28px;height:28px;position:relative;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
+  /* the same eye on the list card's picture, top-right, only once watched */
+  .thumb .tseen{display:none;position:absolute;top:4px;right:4px;width:20px;height:15px;border-radius:5px;
+        align-items:center;justify-content:center;color:#fff;
+        background:rgba(20,17,14,.55);border:1px solid rgba(255,255,255,.28)}
+  .thumb .tseen svg{width:11px;height:11px;position:static;filter:none}
+  .thumb.seen .tseen{display:inline-flex}
   .thumb.drawing{background:#e6dfd2;color:#9a8f7d;animation:br 1.6s ease-in-out infinite}
   @keyframes br{0%,100%{opacity:.55}50%{opacity:1}}
   .jobmain{flex:1;min-width:0}
@@ -1741,6 +1766,7 @@ var ICONS = {
   join: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22v-6"/><path d="M12 8V2"/><path d="M4 12H2"/><path d="M10 12H8"/><path d="M16 12h-2"/><path d="M22 12h-2"/><path d="m15 19-3-3-3 3"/><path d="m15 5-3 3-3-3"/></svg>',
   // STITCH's own tile mark (SF `rectangle.3.group`): one tall box, two stacked beside it
   stitch: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13.5" y="4" width="7.5" height="7" rx="1.5"/><rect x="13.5" y="13" width="7.5" height="7" rx="1.5"/></svg>',
+  eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>',
   scissors: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>',
   // Lucide `flag` — the mark on a picture she has pinned as a keyframe. It
   // says MARKED and nothing more; which end it is is the word on the slot
@@ -5846,6 +5872,36 @@ function shown(j) {
     && !(S.project && S.folder && (j.folder || '') !== S.folder)
     && (mine || (passesSearch(j) && passesFilt(j)));
 }
+// ── WATCHED (2026-09-25, Sophie: "it's confusing cuz i forget which ive
+// watched") ────────────────────────────────────────────────────────────────
+// A clip is watched the moment the player opens on it — the tile and the
+// card wear a small eye from then on. THIS PHONE'S memory (localStorage),
+// read once and kept, capped so it can never grow past a few kilobytes;
+// nothing goes to the server, since which clips she has looked at is not a
+// fact about the clip. Painted as a CLASS from applyFilt, so lighting one
+// never rebuilds a cell.
+var SEEN_KEY = 'footage_seen', SEEN_CAP = 800;
+var seenMemo = null;
+function seenIds() {
+  if (seenMemo) return seenMemo;
+  var v; try { v = JSON.parse(localStorage.getItem(SEEN_KEY) || '[]'); } catch (e) { v = null; }
+  seenMemo = Array.isArray(v) ? v.filter(function (x) { return typeof x === 'string'; }) : [];
+  return seenMemo;
+}
+function isSeen(id) { return !!id && seenIds().indexOf(id) >= 0; }
+function markSeen(id) {
+  if (!id || isSeen(id)) return;
+  var l = seenIds(); l.push(id);
+  if (l.length > SEEN_CAP) l.splice(0, l.length - SEEN_CAP);
+  try { localStorage.setItem(SEEN_KEY, JSON.stringify(l)); } catch (e) {}
+  paintSeen();
+}
+function paintSeen() {
+  document.querySelectorAll('#tiles .cell').forEach(function (el) { el.classList.toggle('seen', isSeen(el.dataset.id)); });
+  document.querySelectorAll('#feed .job').forEach(function (el) {
+    var t = el.querySelector('.thumb'); if (t) t.classList.toggle('seen', isSeen(el.dataset.id));
+  });
+}
 function applyFilt() {
   var tiles = curView() === 'tiles', any = false;
   document.querySelectorAll('#feed .job').forEach(function (el) {
@@ -5878,6 +5934,7 @@ function applyFilt() {
   });
   if (tiles) paintShortTiles();
   paintStitch();   // a card rebuilt by the poll has a fresh, empty number slot
+  paintSeen();     // and a fresh, unlit eye
   // A CARD FIRST DRAWN WHILE A FILTER HID IT HAS NO "… more" UNTIL SOMETHING
   // RE-ASKS (2026-09-13, found auditing the page — the Playground's own
   // `resyncClamps` lesson, arriving through a filter rather than a view). The
@@ -6346,6 +6403,10 @@ function tileCell(j) {
     top.appendChild(cut);
     var note = document.createElement('span'); note.className = 'tnote';
     top.appendChild(note);
+    // WATCHED — filled by paintSeen, out of the signature like the two above
+    var eye = document.createElement('span'); eye.className = 'tseen';
+    eye.title = 'Watched'; eye.innerHTML = ICONS.eye;
+    top.appendChild(eye);
     c.appendChild(top);
     // THE NUMBER STITCH MODE PUTS ON IT — filled by paintStitch, out of the
     // wall's signature like the note and the scissors
@@ -6743,6 +6804,7 @@ function jobCard(j) {
     j.drewMs != null ? 'drew in ' + dur(j.drewMs) : ''].filter(Boolean).join(' · ');
   var thumbInner = j.poster ? '<img src="' + esc(j.poster) + '" alt="">' + ICONS.play : (j.status === 'done' ? ICONS.play : (j.status === 'failed' ? ICONS.x : ''));
   thumbInner += '<span class="snum"></span>';   // stitch mode's number, filled by paintStitch
+  thumbInner += '<span class="tseen" title="Watched">' + ICONS.eye + '</span>';   // watched — lit by paintSeen
   var html = '<div class="jobrow">' +
     '<button type="button" class="thumb' + (j.status === 'drawing' ? ' drawing' : '') + '" data-ar="' + esc(j.ratio || '') + '" aria-label="Play">' + thumbInner + '</button>' +
     '<div class="jobmain"><div class="pwrap"><div class="p clamp"></div></div>' +
@@ -7526,9 +7588,22 @@ function bakeStale(t) {
   var at = Date.parse(t.at || '');
   return isFinite(at) && Date.now() - at > BAKE_STALE_MS;
 }
+// A FINISHED CLIP WHOSE POSTER HAS NOT LANDED IS STILL WAITED ON (2026-09-25,
+// Sophie: "it takes a while to make posters in footage?"). The server bakes
+// the poster BEHIND the poll that wrote `done` — a download, one ffmpeg frame
+// and an upload, 20-40s later and behind any trim in the same queue — and
+// this page stopped asking the moment nothing was drawing, so the tile sat as
+// a film glyph until she left the tool and came back. Bounded: a poster that
+// never comes (a bake that failed) must not keep the page polling for ever.
+var POSTER_WAIT_MS = 3 * 60 * 1000;
+function posterPending(j) {
+  if (!j || j.status !== 'done' || !j.video || j.poster) return false;
+  var at = Date.parse(j.doneAt || j.sentAt || '');
+  return isFinite(at) && Date.now() - at < POSTER_WAIT_MS;
+}
 function waitingOn(j) {
   if (!j) return false;
-  return j.status === 'drawing' || jobParts(j).some(function (t) { return t.status === 'baking' && !bakeStale(t); });
+  return j.status === 'drawing' || posterPending(j) || jobParts(j).some(function (t) { return t.status === 'baking' && !bakeStale(t); });
 }
 function anyDrawing() {
   return Object.keys(jobsById).some(function (k) { return waitingOn(jobsById[k]); });
@@ -7662,6 +7737,7 @@ $('pfirst').addEventListener('click', function () { useShot(true); });
 $('pref').addEventListener('click', function () { useShot(false); });
 function openPlayer(url, j, opts) {
   var pl = $('player');
+  if (j && j.id) markSeen(j.id);         // watched — the eye on its tile and card
   if (window.__scrollStop) window.__scrollStop();
   savedY = window.scrollY || 0;
   document.body.style.overflow = 'hidden';
