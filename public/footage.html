@@ -1447,7 +1447,7 @@
   <p><b>Sound is always on.</b></p>
   <p><b>Characters &amp; setting.</b> One permanent block, two boxes, folded away until you tap it &mdash; and it sits <b>directly above the block you are in</b>, so what is on screen is always what that clip is about to send. <b>Characters is that block&rsquo;s own:</b> tap into another block and its cast comes back, the way its pictures do, so shot two can be one person where shot one was the whole family. <b>Setting is every clip&rsquo;s</b> &mdash; one room per project. Both ride at the top of the prompt, cast first. Folded, the heading says what is in both, so you can see what is riding without opening it. Leave a box empty and it adds nothing. Dividing a block gives the new half a copy of the cast; joining two puts both casts together; <b>clear</b> wipes the cast with the blocks (<b>undo</b> puts it back) and leaves the setting alone.</p>
   <p><b>Divide here.</b> The mark beside the bigger-box button cuts the box at your cursor into two blocks &mdash; a long scene becomes shot one and shot two, each its own clip. With the cursor at the <b>end</b> there is nothing to cut, so it makes an <b>empty</b> block under this one and puts you in it &mdash; a box for the next shot before there are words for it. Every block has the same buttons, and the mark in the gap between two blocks joins them back into one. With more than one block, <b>the star sends the block you are in</b> &mdash; the one with the gold line; tap into another to send that one instead, or tick several headings to send them appended as one clip. Nothing is sent by dividing. The join mark goes away while either of its two blocks is folded. Each block gets its own heading, and <b>tapping the heading folds that block away</b> &mdash; shut it shows its first words, and it still sends them if it is the one the star is pointing at. A folded block stays folded &mdash; it comes back that way after a reload, and opens by itself if anything puts words into it.</p>
-  <p><b>Every block keeps its own pictures.</b> The references strip is the block you are in &mdash; tap into another one and its pictures come back, and the row above them says which block it is showing. Dividing gives both halves a copy of the strip the scene was written against, so every <b>[Image2]</b> still points at the same picture; joining puts the two strips together and renumbers both halves onto it. The <b>&times;</b> takes a picture off the block you are in and leaves the others alone; <b>clear all</b> at the end of the bar takes every picture off that block at once, with their names out of the box, and <b>undo</b> beside the star puts them back. Each heading says how many that block is carrying, so nothing rides on a block you are not looking at. Each heading also ends with a red <b>sent</b> or <b>unsent</b> saying whether the words in that box have gone &mdash; change one and it reads unsent again. Once a clip really goes, the block it sent comes off by itself &mdash; its words and pictures are on the clip&rsquo;s card, and <b>undo</b> puts it back. The last block is only emptied. Marking blocks sends every marked block's pictures in the one clip, with each block's names renumbered onto them &mdash; and the price beside the star is that clip's, not one block's.</p>
+  <p><b>Every block keeps its own pictures.</b> The references strip is the block you are in &mdash; tap into another one and its pictures come back, and the row above them says which block it is showing. Dividing gives both halves a copy of the strip the scene was written against, so every <b>[Image2]</b> still points at the same picture; joining puts the two strips together and renumbers both halves onto it. The <b>&times;</b> takes a picture off the block you are in and leaves the others alone; <b>clear all</b> at the end of the bar takes every picture off that block at once, with their names out of the box, and <b>undo</b> beside the star puts them back. Each heading says how many that block is carrying, so nothing rides on a block you are not looking at. Each heading also ends with a red <b>sent</b> or <b>unsent</b> saying whether the words in that box have gone &mdash; change one and it reads unsent again. Marking blocks sends every marked block's pictures in the one clip, with each block's names renumbered onto them &mdash; and the price beside the star is that clip's, not one block's.</p>
   <p><b>Picking several blocks &mdash; any of them, in any order.</b> Every block's heading carries a small square. Tick the ones you want and the star sends <b>those</b> blocks as <b>one</b> clip, appended in the order they sit with a blank line between &mdash; one job, one price, one refusal line. They do not have to be next to each other: block 1 and block 3 without block 2 is three taps. The star says how many it is about to send, the price beside it is that clip's, and the clip carries every ticked block's pictures with each block's names renumbered onto them. Your blocks are not touched and the ticks stay, so sending again is one tap. Tick nothing and the star is what it always was &mdash; the block with the gold line. Over $3 the first tap asks and the second sends.</p>
   <p><b>Taking one block off.</b> The &times; in a block&rsquo;s corner takes that block off; with only one block left there is no &times; and <b>clear</b> beside the star is what empties it. Either way <b>undo</b> puts it back.</p>
   <p><b>Clear</b> beside the star wipes the job &mdash; every block, the references, the marks and the seed &mdash; and leaves the model, the size, the shape and the project where you set them. It asks nothing, because <b>undo</b> appears next to it and puts the whole thing back, even after a reload: the cleared job is saved the moment you clear it. Tap undo again and you are back where you were. Your words are saved as you type them either way.</p>
@@ -5006,22 +5006,13 @@ function divideBlock(box) {
 function dropBlock(box) {
   var ws = blocks();
   if (ws.length < 2) return;                     // the last block is what `clear` is for
-  if (ws.indexOf(box.closest('.promptwrap')) < 0) return;
+  var w = box.closest('.promptwrap'), i = ws.indexOf(w);
+  if (i < 0) return;
   // an EMPTY job is not worth offering back, and banking one would draw an
   // `undo` that restores nothing (and that `loadBank` discards on reload) —
   // the same guard `takeHandoff` keeps
   var wasJob = jobNow();
   if (!jobEmpty(wasJob)) { bank = wasJob; saveBank(); }
-  dropBlockNode(box);
-  paintBlocks(); fitAll(); saveDraft(); paintControls(true);
-  toast('That block is off' + (bank === wasJob ? ' — tap undo to put it back' : ''));
-}
-// the removal itself, with no bank, no paint and no toast — `dropBlock` and
-// `dropSent` each bank once and paint once around it
-function dropBlockNode(box) {
-  var ws = blocks();
-  var w = box.closest('.promptwrap'), i = ws.indexOf(w);
-  if (ws.length < 2 || i < 0) return false;
   // the globals belong to the block she is standing in, and nodes are about to
   // move — so every block reads its own `__job` from here on
   stashActive();
@@ -5053,43 +5044,8 @@ function dropBlockNode(box) {
   var live = panelEl().querySelector('.promptwrap.active');
   markActive((moved || !live) ? (left[Math.min(i, left.length - 1)] || left[0]) : live);
   loadActive();
-  return true;
-}
-// A SENT BLOCK TAKES ITSELF OFF (2026-09-24, Sophie: "make it so sending a job
-// in footage auto deletes the 'sent' text block" · "since that data is saved in
-// the sent job. (but only if the job actually goes through)"). Called ONLY on
-// the two paths a job that really went takes — the door's jobId, and the
-// dropped answer the log confirmed — never on a refusal, whose door words
-// re-send what is in the box. The words and references live on the clip's
-// card and in the part's ‹ › prompts, and the whole job is banked first, so
-// `undo` puts every block back exactly as the clear does. The last block is
-// never removed (`#prompt` must stay the node): its words are emptied instead
-// and its references stay on the strip for the next shot.
-function dropSent(sentWords) {
-  // the older headless tests send and then go on inspecting the sent block;
-  // they opt out of this with a flag no real page sets
-  if (window.__keepSentBlocks) return;
-  var want = {};
-  (Array.isArray(sentWords) ? sentWords : [sentWords]).forEach(function (t) {
-    var n = normText(t); if (n) want[n] = 1;
-  });
-  if (!Object.keys(want).length) return;
-  var isSent = function (w) { return !!want[normText(w.querySelector('.pblock').value)]; };
-  if (!blocks().some(isSent)) return;             // she has typed since — leave it
-  var wasJob = jobNow();
-  if (!jobEmpty(wasJob)) { bank = wasJob; saveBank(); }
-  stashActive();
-  var guard = 50, w;
-  while (guard-- > 0 && blocks().length > 1 && (w = blocks().filter(isSent)[0])) {
-    if (!dropBlockNode(w.querySelector('.pblock'))) break;
-  }
-  var ws = blocks();
-  if (ws.length === 1 && isSent(ws[0])) {
-    ws[0].querySelector('.pblock').value = '';
-    setPick(ws[0], false);
-  }
-  loadActive();
   paintBlocks(); fitAll(); saveDraft(); paintControls(true);
+  toast('That block is off' + (bank === wasJob ? ' — tap undo to put it back' : ''));
 }
 // AND THE TWO STRIPS BECOME ONE (2026-09-14). Joining is the one place where
 // two blocks' references really do have to merge — above's in the order they
@@ -5713,11 +5669,8 @@ function postJob(pin, box, job, resend) {
     toast((nsent ? 'Drawing ' + nsent + ' blocks as one clip…'
       : (blocks().length > 1 ? (unitOf(pw) ? 'Drawing part ' : 'Drawing block ') + (blocks().indexOf(box.closest('.promptwrap')) + 1) + '…' : 'Drawing…'))
       + (hid ? ' · shown here though it is outside your search' : ''));
-    // the sent block comes off now that the clip carries it (`dropSent`)
-    dropSent(sentWords);
-    // (superseded 2026-09-24: the sent block now comes off — `dropSent` above;
-    // a re-roll is the card's own button.) The note below is history: her words
-    // USED TO stay in the box after a send, and so did the draft — it used to be wiped here while the box still showed
+    // her words STAY in the box after a send (a re-roll is one tap), and so
+    // does the draft — it used to be wiped here while the box still showed
     // the words, so a reload right after a send opened on an empty box
     // AND THE REFERENCES BLOCK SHUTS (2026-09-14, Sophie: "and collapse when
     // job is sent"). Only on a job that really WENT — a refusal leaves it open,
@@ -5757,7 +5710,6 @@ function postJob(pin, box, job, resend) {
       clearErr();
       justSent[j.id] = 1;
       markSent(sentWords); paintBlockHeads();
-      dropSent(sentWords);
       setFold('refs', true);
       shutHeads();
       applyFilt();
