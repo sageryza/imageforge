@@ -4364,6 +4364,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **FOLDERS CONTAIN ALBUMS — they never merge them** (a folder is the `track`
   field; filing an album moves nothing inside it). `photoIndex` comes from a
   transaction, never from counting — that is the bug that scrambled album order.
+  **EVERY FILE SAYS WHO PUT IT THERE, AND THE PAGE OPENS ON HERS (2026-09-25,
+  Sophie: "used by chats to give me stuff idk why i never wanted that · hide
+  every single thing a chat has ever uploaded or make a new tab · 'from
+  claude' and from me").** `from: 'sophie' | 'claude'` on every doc; `/dump`
+  is FROM ME · FROM CLAUDE and opens on FROM ME. **A chat filing anything into
+  the Dump sends `from=claude`** (`?from=claude` on `/upload-file`); the server
+  reads the User-Agent when nothing is said (a script is a chat, a browser or
+  the app is her), and the 4,888 older files were judged by shape once, album
+  by album (`scripts/dump-from-backfill.js`). The list routes read the
+  collection ONCE and hold it 20s — that was the "it's slow". Full rules:
+  *EVERY FILE SAYS WHO PUT IT THERE* in `docs/modules/inbox-and-misc.md`;
+  test `node scripts/test-dump-from.js`.
   **WHAT A DUMPED CLIP SAYS IS TRANSCRIBED ONCE, EVER —
   `node scripts/transcribe-media.js` (2026-09-14, Sophie: "transcribe w
   whisper, cache it").** She shoots takes on her phone, dumps them, and then

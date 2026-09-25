@@ -102,6 +102,7 @@ const EDITABLE = [
   // crystals-track extras — harmless on other tracks, just unused
   'stone', 'size', 'weightG', 'priceUsd', 'qty', 'origin', 'count', 'kind',
   'listingId', 'listingUrl', 'gridUrl',
+  'from',         // who put it here: 'sophie' | 'claude' — see WHO SENT IT below
 ];
 const NUMERIC = ['seq', 'photoIndex', 'weightG', 'priceUsd', 'qty', 'count'];
 
@@ -378,7 +379,7 @@ async function existingCopy(hash, bundleKey) {
   return hit ? { id: hit.id, ...hit.data() } : null;
 }
 
-async function storeOne({ bucket, session, buf: raw, ct: rawCt, filename, bundleName: wanted, poster, defaults }) {
+async function storeOne({ bucket, session, buf: raw, ct: rawCt, filename, bundleName: wanted, poster, defaults, from }) {
   // Hash the bytes AS THEY ARRIVED, before any conversion. What identifies a
   // photo is the file the phone sent; if the hash were taken after re-encoding,
   // changing the encoder settings later would make every stored photo look new
@@ -427,6 +428,7 @@ async function storeOne({ bucket, session, buf: raw, ct: rawCt, filename, bundle
     stone: null, size: null, weightG: null, priceUsd: null, qty: null,
     origin: null, count: null, kind: null,
     listingId: null, listingUrl: null, gridUrl: null,
+    from: fromWord(from) || 'claude',  // ← WHO SENT IT above; the routes decide
     createdAt: now, updatedAt: now,
     ...clean(defaults || {}),
   };
@@ -438,6 +440,7 @@ async function storeOne({ bucket, session, buf: raw, ct: rawCt, filename, bundle
   // A dump must never be lost to a thumbnail: a missing poster is cosmetic,
   // a missing doc means the file effectively doesn't exist.
   const ref = await db().collection(COL).add(doc);
+  forgetAll();
 
   let posterUrl = null;
   let posterPath = null;
@@ -492,6 +495,7 @@ async function ensurePoster(id, bucketIn) {
   }
   const posterUrl = `https://storage.googleapis.com/${bucket.name}/${posterPath}`;
   await ref.update({ posterUrl, posterPath, updatedAt: Date.now() });
+  forgetAll();
   return posterUrl;
 }
 
@@ -506,6 +510,88 @@ async function posterForUrl(url, bucketIn) {
   return ensurePoster(snap.docs[0].id, bucketIn);
 }
 
+
+// ── WHO SENT IT — `from: 'sophie' | 'claude'` on every doc ─────────────────
+// 2026-09-25, Sophie: "the dump is ducked · it's slow · and used by chats to
+// give me stuff idk why i never wanted that · hide every single thing a chat
+// has ever uploaded or make a new tab. make it like 'from claude' and from me".
+//
+// Measured that day: 4,888 files, and 1,445 of them sat in sessions a chat
+// named itself (`card-pattern`, `posters`, `seedance-cut1`); a further ~500
+// under date-stamped sessions were chat-shaped files (kebab-case names, print
+// previews, renders) where the chat let the server mint the session. Her own
+// dumps come through the share sheet or the app, which prefix every filename
+// with an export UUID (`66FB6123-…-IMG_2138.HEIC`), or through a page she
+// tapped in (Footage's `IMG_0534.png`, a `save-…png`).
+//
+// Three rules, in order:
+//   1. An upload that SAYS who it is from wins (`?from=claude` / `?from=me`).
+//      A chat filing a deliverable sends `from=claude`.
+//   2. Otherwise the User-Agent: a browser or the iOS app (Mozilla / CFNetwork
+//      / Darwin) is her tap; curl, node, undici, python, Go and a headless
+//      Chromium driven from a container are a chat's script.
+//   3. A doc from before this landed carries no `from` and is JUDGED by its
+//      shape (`guessFrom`): a session id a chat named → claude; a filename
+//      with the phone's export UUID, an `IMG_`, a `save-`, spaces, a
+//      Midjourney download name → sophie; a lowercase kebab-case name under a
+//      server-minted session → claude. `scripts/dump-from-backfill.js` writes
+//      the guess down once, album by album (a majority vote, a tie to her — a
+//      chat re-uploading four of her crystal photos does not make the album a
+//      chat's), so a later change to the rule can never reshuffle her past.
+// The /dump page opens on FROM ME and never mixes the two.
+const FROM_WORDS = { sophie: 'sophie', me: 'sophie', her: 'sophie', claude: 'claude', chat: 'claude' };
+function fromWord(v) {
+  return FROM_WORDS[String(v || '').trim().toLowerCase()] || null;
+}
+function whoFrom(ua, explicit) {
+  const said = fromWord(explicit);
+  if (said) return said;
+  const s = String(ua || '');
+  if (/HeadlessChrome|Playwright|Puppeteer/i.test(s)) return 'claude';
+  if (/Mozilla|CFNetwork|Darwin|iPhone|iPad|ImageForge|DumpShare/i.test(s)) return 'sophie';
+  return 'claude';
+}
+const DATED_SESSION = /^\d{4}-\d{2}-\d{2}-\d{4}$/;
+const UUID = '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}';
+// The phone's own naming — a Photos export, the camera roll, a picture saved
+// from a page, an iOS clip export. Nothing a chat writes looks like this.
+const PHONE_NAME = new RegExp(
+  '^' + UUID + '[-.]'                 // UUID-IMG_2138.HEIC / UUID.mov
+  + '|(^|[-_ ])IMG_\\d'               // IMG_0534.png
+  + '|^save-' + UUID                  // save-FA17….png
+  + '|^clip-' + UUID                  // clip-B536….mp4
+  + '|^\\d+__' + UUID,                // 81070035281__14D9….MOV
+  'i',
+);
+// iOS keeps an extension in capitals; a script writes it lowercase. Case matters
+// here, so this one is NOT case-insensitive.
+const UPPER_EXT = /\.(HEIC|HEIF|MOV|JPG|JPEG|PNG|MP4|WEBP|M4A)$/;
+// Weaker tells, read only under a date-stamped session: her Midjourney and
+// YouTube downloads, and a name with spaces in it (typed, not scripted).
+const HER_NAME = /^sophiespincher_|YTDown\.com|\s/;
+function guessFrom(doc) {
+  const d = doc || {};
+  const said = fromWord(d.from);
+  if (said) return said;
+  const name = String(d.filename || '');
+  if (PHONE_NAME.test(name) || UPPER_EXT.test(name)) return 'sophie';
+  const session = String(d.dumpSession || d.session || '');
+  if (session && !DATED_SESSION.test(session)) return 'claude';
+  if (!name) return 'claude';
+  return HER_NAME.test(name) ? 'sophie' : 'claude';
+}
+// An album is judged whole, by majority, a tie going to her: a chat that
+// re-uploads four of her crystal photos does not make her album a chat's, and
+// her file hidden on the wrong side is the worse mistake.
+function albumFrom(docs) {
+  const list = Array.isArray(docs) ? docs : [];
+  if (!list.length) return 'claude';
+  const hers = list.filter((d) => guessFrom(d) === 'sophie').length;
+  return hers * 2 >= list.length ? 'sophie' : 'claude';
+}
+// The read every list route uses: the doc's own word, else the guess.
+function fromOf(doc) { return guessFrom(doc); }
+
 function clean(patch) {
   const out = {};
   for (const k of EDITABLE) {
@@ -519,6 +605,10 @@ function clean(patch) {
     if (k === 'tags') {
       v = Array.isArray(v) ? v.map(String)
         : String(v || '').split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    if (k === 'from') {
+      v = fromWord(v);
+      if (!v) continue;              // an unknown word is dropped, never written
     }
     out[k] = v;
   }
@@ -556,6 +646,35 @@ router.use((req, res, next) => {
   return res.status(401).json({ error: 'unauthorized' });
 });
 router.use(express.json({ limit: '120mb' }));
+
+
+// ── ONE READ, SHARED — the collection snapshot, held 20 seconds ────────────
+// Every list route (/sessions, /bundles, /tracks, /items) read the WHOLE
+// collection from Firestore on every call, and the /dump page called three of
+// them on open and /bundles again on every chip — 4,888 docs, four or five
+// times, before a single album drew. That is the "it's slow" (2026-09-25).
+// The snapshot is held for a few seconds and dropped on any write in this
+// module, so a dump that just landed is in the next read; a filter is a
+// filter over memory, which is what it always was after the read anyway.
+let allCache = { at: 0, items: null, pending: null };
+const ALL_TTL = 20 * 1000;
+function forgetAll() { allCache = { at: 0, items: null, pending: null }; }
+async function allDocs() {
+  if (allCache.items && Date.now() - allCache.at < ALL_TTL) return allCache.items;
+  if (allCache.pending) return allCache.pending;
+  allCache.pending = db().collection(COL).get().then((snap) => {
+    const items = [];
+    snap.forEach((d) => items.push({ id: d.id, ...d.data() }));
+    allCache = { at: Date.now(), items, pending: null };
+    return items;
+  }).catch((e) => { allCache.pending = null; throw e; });
+  return allCache.pending;
+}
+// `?from=me|claude` on a list route keeps one side; absent, both.
+function fromFilter(query) {
+  const want = fromWord(query && query.from);
+  return want ? (it) => fromOf(it) === want : () => true;
+}
 
 router.get('/status', (req, res) => {
   res.json({
@@ -643,14 +762,13 @@ router.get('/tracks', async (req, res) => {
     // it is here.
     const albums = new Map();
     try {
-      const snap = await db().collection(COL).get();
-      snap.forEach((d) => {
-        const t = d.get('track');
-        if (!t) return;
+      for (const d of await allDocs()) {
+        const t = d.track;
+        if (!t) continue;
         const key = String(t);
         if (!albums.has(key)) albums.set(key, new Set());
-        albums.get(key).add(d.get('bundle') || 'loose:' + d.id);
-      });
+        albums.get(key).add(d.bundle || 'loose:' + d.id);
+      }
     } catch { /* no Firestore → the known list still answers */ }
     const tracks = orderTracks([...albums].map(([t, set]) => [t, set.size]));
     tracksCache = { at: Date.now(), tracks };
@@ -658,14 +776,13 @@ router.get('/tracks', async (req, res) => {
   } catch (e) { return fail(res, e); }
 });
 
-// GET /sessions — the dumps themselves, newest first.
+// GET /sessions?from= — the dumps themselves, newest first.
 router.get('/sessions', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
-    const snap = await db().collection(COL).get();
+    const keep = fromFilter(req.query);
     const by = new Map();
-    snap.forEach((d) => {
-      const v = d.data();
+    (await allDocs()).filter(keep).forEach((v) => {
       const s = v.session || 'unknown';
       if (!by.has(s)) {
         by.set(s, {
@@ -699,18 +816,15 @@ function byPosition(a, b) {
     || (a.createdAt || 0) - (b.createdAt || 0);
 }
 
-// GET /bundles?session=&track=&untracked=1 — the inbox view: one entry per
-// thing, its files nested. This is what a chat reads to label a dump.
+// GET /bundles?session=&track=&untracked=1&from=me|claude — the inbox view:
+// one entry per thing, its files nested. This is what a chat reads to label a
+// dump. `from` keeps one side (WHO SENT IT above); the page asks for hers.
 router.get('/bundles', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
-    let q = db().collection(COL);
-    if (req.query.session) q = q.where('session', '==', req.query.session);
-    else if (req.query.track) q = q.where('track', '==', req.query.track);
-    const snap = await q.get();
-    let items = [];
-    snap.forEach((d) => items.push({ id: d.id, ...d.data() }));
-    if (req.query.session && req.query.track) items = items.filter((i) => i.track === req.query.track);
+    let items = (await allDocs()).filter(fromFilter(req.query));
+    if (req.query.session) items = items.filter((i) => i.session === req.query.session);
+    if (req.query.track) items = items.filter((i) => i.track === req.query.track);
     if (req.query.untracked === '1') items = items.filter((i) => !i.track);
     items.sort(byPosition);
 
@@ -728,6 +842,7 @@ router.get('/bundles', async (req, res) => {
           stone: it.stone, size: it.size, weightG: it.weightG, priceUsd: it.priceUsd,
           qty: it.qty, origin: it.origin, kind: it.kind, count: it.count,
           listingId: it.listingId, listingUrl: it.listingUrl,
+          from: fromOf(it),
           cover: it.posterUrl || it.url,
           // When the newest file in this album landed — what the sort page
           // orders by (newest first), since seq is arrival order across ALL
@@ -759,12 +874,8 @@ router.get('/bundles', async (req, res) => {
 router.get('/items', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
-    let q = db().collection(COL);
-    if (req.query.session) q = q.where('session', '==', req.query.session);
-    else if (req.query.track) q = q.where('track', '==', req.query.track);
-    const snap = await q.get();
-    let items = [];
-    snap.forEach((d) => items.push({ id: d.id, ...d.data() }));
+    let items = (await allDocs()).filter(fromFilter(req.query));
+    if (req.query.session) items = items.filter((i) => i.session === req.query.session);
     if (req.query.bundle) items = items.filter((i) => i.bundle === slug(req.query.bundle));
     if (req.query.track) items = items.filter((i) => i.track === req.query.track);
     if (req.query.media) items = items.filter((i) => (i.media || 'image') === req.query.media);
@@ -886,12 +997,13 @@ router.post('/upload', async (req, res) => {
     const session = String(b.session || '').trim() || newSession();
     const bundleName = typeof b.bundle === 'string' ? b.bundle.trim() : '';
     const defaults = clean(b.defaults || {});
+    const from = whoFrom(req.get('user-agent'), b.from || req.query.from);
 
     const items = [];
     for (let i = 0; i < images.length; i++) {
       const raw = await toBuffer(images[i]);
       items.push(await storeOne({
-        bucket, session, buf: raw.buf, ct: raw.ct, defaults, bundleName,
+        bucket, session, buf: raw.buf, ct: raw.ct, defaults, bundleName, from,
         filename: Array.isArray(b.filenames) ? b.filenames[i] : null,
       }));
     }
@@ -929,6 +1041,7 @@ router.post('/upload-file',
 
       const item = await storeOne({
         bucket, session, buf: req.body, ct, filename, bundleName,
+        from: whoFrom(req.get('user-agent'), req.query.from),
         // Only ever a folder she picked — an absent one leaves the doc's own
         // `track: null` alone, so an unsorted dump is unchanged.
         defaults: track ? { track } : null,
@@ -961,6 +1074,7 @@ router.post('/upload-zip', express.raw({ type: () => true, limit: '512mb' }), as
     const session = String(req.query.session || '').trim() || newSession();
     const forced = String(req.query.bundle || '').trim();
     const nameOf = forced ? () => forced : bundleNamer(entries.map((e) => e.name));
+    const from = whoFrom(req.get('user-agent'), req.query.from);
 
     const items = [];
     for (const entry of entries) {
@@ -968,12 +1082,55 @@ router.post('/upload-zip', express.raw({ type: () => true, limit: '512mb' }), as
       const raw = await entry.async('nodebuffer');
       items.push(await storeOne({
         bucket, session, buf: raw, ct: ctForName(entry.name), filename: entry.name.split('/').pop(),
-        bundleName: nameOf(entry.name),
+        bundleName: nameOf(entry.name), from,
       }));
     }
     const bundles = [...new Set(items.map((i) => i.bundleName).filter(Boolean))];
     const skipped = items.filter((i) => i.duplicate).length;
     res.json({ ok: true, session, count: items.length - skipped, skipped, bundles, items });
+  } catch (e) { fail(res, e); }
+});
+
+
+// POST /from-backfill {dry?} — write `from` onto every doc that has none, by
+// the album vote (WHO SENT IT above). Dry by default: answers how many docs
+// each side gets and which albums, writes nothing. `dry:false` writes `from`
+// and nothing else, never over a doc that already carries one, so re-running
+// is safe and a doc a chat or she has since corrected is left alone.
+async function backfillFrom({ dry = true } = {}) {
+  const docs = await allDocs();
+  const albums = new Map();
+  for (const d of docs) {
+    const key = (d.session || '') + '/' + (d.bundle || 'loose:' + d.id);
+    if (!albums.has(key)) albums.set(key, []);
+    albums.get(key).push(d);
+  }
+  const plan = { sophie: 0, claude: 0, already: 0, albums: [] };
+  const writes = [];
+  for (const [key, list] of albums) {
+    const from = albumFrom(list);
+    const todo = list.filter((d) => !fromWord(d.from));
+    plan.already += list.length - todo.length;
+    plan[from] += todo.length;
+    if (todo.length) plan.albums.push({ key, name: list[0].bundleName || null, files: todo.length, from });
+    for (const d of todo) writes.push({ id: d.id, from });
+  }
+  if (!dry && writes.length) {
+    for (let i = 0; i < writes.length; i += 400) {
+      const batch = db().batch();
+      for (const w of writes.slice(i, i + 400)) {
+        batch.set(db().collection(COL).doc(w.id), { from: w.from }, { merge: true });
+      }
+      await batch.commit();
+    }
+    forgetAll();
+  }
+  return { dry, wrote: dry ? 0 : writes.length, ...plan };
+}
+router.post('/from-backfill', async (req, res) => {
+  try {
+    const b = req.body || {};
+    res.json(await backfillFrom({ dry: b.dry !== false }));
   } catch (e) { fail(res, e); }
 });
 
@@ -996,6 +1153,7 @@ router.patch('/bundle', async (req, res) => {
     const writer = db().batch();
     docs.forEach((d) => writer.set(d.ref, patch, { merge: true }));
     await writer.commit();
+    forgetAll();
     res.json({ ok: true, session, bundle, updated: docs.length, patch });
   } catch (e) { fail(res, e); }
 });
@@ -1008,6 +1166,7 @@ router.patch('/items/:id', async (req, res) => {
     const ref = db().collection(COL).doc(req.params.id);
     if (!(await ref.get()).exists) return res.status(404).json({ error: 'not found' });
     await ref.set(patch, { merge: true });
+    forgetAll();
     const after = await ref.get();
     res.json({ ok: true, item: { id: after.id, ...after.data() } });
   } catch (e) { fail(res, e); }
@@ -1019,6 +1178,7 @@ async function dropDoc(d, bucket) {
   const paths = [d.get('storagePath'), d.get('posterPath')].filter(Boolean);
   const hash = d.get('hash');
   await d.ref.delete();
+  forgetAll();
   if (!bucket) return;
   // The bytes are shared: the same photo in two albums is one object with two
   // docs pointing at it. Only the last reference may delete it — otherwise
@@ -1076,6 +1236,7 @@ router.post('/move', async (req, res) => {
       }, { merge: true });
       moved += 1;
     }
+    forgetAll();
     res.json({ ok: true, moved, bundle: placedIn && placedIn.bundle, bundleName: placedIn && placedIn.bundleName });
   } catch (e) { fail(res, e); }
 });
@@ -1115,4 +1276,7 @@ module.exports = {
   // Firestore and no bytes (2026-08-24)
   ctForName, extFor, isVideoCT, isAudioCT, isFileCT, mediaKind, IMAGE_RE, VIDEO_RE, AUDIO_RE,
   downloadName,
+  // WHO SENT IT (2026-09-25): the rule at upload time, the guess for older
+  // docs, and the album vote the backfill uses
+  whoFrom, fromWord, guessFrom, albumFrom, fromOf, forgetAll, backfillFrom,
 };

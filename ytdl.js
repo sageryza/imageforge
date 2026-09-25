@@ -434,11 +434,14 @@ function selfHeaders(ct) {
   return h;
 }
 
-async function fileInto(dest, localFile, { filename, name, ct, seconds }) {
+async function fileInto(dest, localFile, { filename, name, ct, seconds, from }) {
   const q = new URLSearchParams({ filename, name });
   let url;
   if (dest === 'dump') {
     q.set('bundle', 'YouTube');
+    // WHO SENT IT (dropbox.js): this fetch is the server calling itself, so
+    // the Dump would read its User-Agent as a script. Say who asked instead.
+    if (from) q.set('from', from);
     q.set('session', `ytdl-${new Date().toISOString().slice(0, 10)}`);
     url = `${SELF}/api/drop/upload-file?${q}`;
   } else {
@@ -603,6 +606,7 @@ async function runGrab(id, progress) {
       ? await storeOwn(file, { videoId: meta.videoId, title: meta.title, ext, ct })
       : await fileInto(to, file, {
         filename: `${slug(nice) || 'grab'}.${ext}`, name: nice, ct, seconds: meta.seconds,
+        from: doc.from || null,
       });
 
     const md5 = await md5File(file);
@@ -692,6 +696,8 @@ router.post('/grab', async (req, res) => {
 
     await patchDoc(id, {
       source, kind, quality, to,
+      // who asked for the grab — a chat's script or her tap (dropbox.js whoFrom)
+      from: require('./dropbox.js').whoFrom(req.get('user-agent'), b.from),
       name: String(b.name || '').slice(0, 200) || null,
       status: 'working', error: null, blocked: false,
       createdAt: existing ? existing.createdAt || Date.now() : Date.now(),
