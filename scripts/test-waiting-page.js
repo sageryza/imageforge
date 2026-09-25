@@ -21,7 +21,9 @@ const PUB = path.join(__dirname, '..', 'public');
 const DATA = {
   ok: true,
   live: 'deadbee',
-  ahead: 3,
+  ahead: 5,
+  forYou: 3,
+  classified: true,
   error: '',
   at: '2026-09-15T02:00:00Z',
   groups: [
@@ -33,6 +35,17 @@ const DATA = {
     ] },
     { chat: '', name: '', at: '2026-09-14T19:00:00Z', items: [
       { sha: 'd'.repeat(40), title: 'a merge nobody signed', pr: 0, session: '', at: '2026-09-14T19:00:00Z', line: '' },
+    ] },
+  ],
+  // NOTHING CHANGES FOR YOU (2026-09-25): a Compare page's template and an
+  // iOS-only change — merged, counted in `ahead`, and neither is what the
+  // Deploy button would change for her.
+  quiet: [
+    { chat: 'pattern-tool', name: 'pattern tool', at: '2026-09-14T16:00:00Z', items: [
+      { sha: 'a'.repeat(40), title: 'Pattern v14: Scatter is an even lattice', pr: 2655,
+        session: 'p', at: '2026-09-14T16:00:00Z', line: '', kind: 'record' },
+      { sha: '9'.repeat(40), title: 'The Dump: Save to Photos on the tile', pr: 2648,
+        session: 'p', at: '2026-09-14T15:00:00Z', line: '', kind: 'ios' },
     ] },
   ],
   open: [
@@ -118,7 +131,10 @@ function chromiumExe() {
   console.log('it says the same number her phone did');
   ok('no page errors (the pill parses)', errs.length === 0, errs);
   const count = (await page.locator('.count').innerText()).trim();
-  ok('the count is the push\'s own ahead', /^3 changes are merged and not live yet\.$/.test(count), count);
+  // THE COUNT IS THE CHANGES SHE WOULD NOTICE (2026-09-25, Sophie: "only have
+  // the 'waiting to deploy' mean changes that would change something for
+  // me") — `forYou` (3), never the raw `ahead` (5).
+  ok('the count is the changes a deploy would change for her', /^3 changes waiting to deploy\.$/.test(count), count);
 
   console.log('each change sits under the chat that wrote it');
   const who = await page.locator('.sect').first().locator('xpath=following-sibling::*[1]').innerText();
@@ -161,8 +177,8 @@ function chromiumExe() {
   // sends one — so this is the assertion that the page draws none of it.
   console.log('the still-open pile is gone');
   const sects = await page.locator('.sect').allInnerTexts();
-  ok('the waiting pile leads', /not live yet/i.test(sects[0]), sects);
-  ok('and the only other section is the deploy log',
+  ok('the waiting pile leads', /changes something for you/i.test(sects[0]), sects);
+  ok('and the only other section is the deploy log (the quiet row wears none)',
     sects.length === 2 && /last deployed/i.test(sects[1]), sects);
   ok('no open row is drawn, though the payload carries one',
     (await page.locator('.ch.draft').count()) === 0 &&
@@ -173,8 +189,27 @@ function chromiumExe() {
   // rather than asserted in source: a row whose markup is perfect but whose
   // body was never hidden, and one whose tap handler never bound, both read
   // identically in the file.
+  // ── NOTHING CHANGES FOR YOU (2026-09-25). One shut row; MEASURED, since a
+  // row that is drawn open and one that never folds read alike in the source.
+  console.log('the merges a deploy would not change for her sit shut under the pile');
+  const qrow = page.locator('.quietrow');
+  ok('one row', await qrow.count() === 1);
+  ok('it counts them', /2 merges change nothing for you/.test(await qrow.innerText()), await qrow.innerText());
+  ok('shut by default', await page.locator('#quietbody:visible').count() === 0);
+  ok('so the Pattern template is not on screen',
+    !(await page.locator('body').innerText()).includes('Scatter is an even lattice'));
+  await qrow.click();
+  ok('a tap opens it', (await page.locator('body').innerText()).includes('Scatter is an even lattice'));
+  ok('the iOS change says it waits on a build, not a deploy',
+    /iOS · a build, not a deploy/.test(await page.locator('#quietbody').innerText()), await page.locator('#quietbody').innerText());
+  await qrow.click();
+  ok('and a tap shuts it', await page.locator('#quietbody:visible').count() === 0);
+  // PHOTO'd at 390pt: the first cut's row wrapped to two lines.
+  const qb = await qrow.boundingBox();
+  ok('the row is one line', qb.height < 46, qb);
+
   console.log('the last deploys are rows, and they start shut');
-  const deps = page.locator('.dep');
+  const deps = page.locator('.dep:not(.quietrow)');
   ok('one row per deploy', await deps.count() === 2, await deps.count());
   // 12-hour PACIFIC, the house time rule — the stub's 2026-09-16T00:18Z is
   // Sep 15, 5:18 pm where she is, and a row reading "Sep 16" would mean the
@@ -270,9 +305,17 @@ function chromiumExe() {
 
   console.log('no button when there is nothing to ship, and none with no key');
   deployReply = { code: 200, body: { ok: true, id: 'dep-2' } };
-  payload = Object.assign({}, DATA, { ahead: 0, groups: [] });
+  payload = Object.assign({}, DATA, { ahead: 0, forYou: 0, groups: [], quiet: [] });
   await page.reload({ waitUntil: 'networkidle' });
   ok('nothing waiting → no button at all', await page.locator('#go:visible').count() === 0);
+  // Five merged and none of them hers: the button would deploy nothing she
+  // could notice, so it is not drawn, and the count says why it is zero.
+  payload = Object.assign({}, DATA, { ahead: 5, forYou: 0, groups: [] });
+  await page.reload({ waitUntil: 'networkidle' });
+  ok('only bookkeeping waiting → no button either', await page.locator('#go:visible').count() === 0);
+  ok('and the count says so', /^0 changes waiting to deploy — nothing a deploy would change for you\.$/.test((await page.locator('.count').innerText()).trim()),
+    await page.locator('.count').innerText());
+  ok('…while the quiet row still shows them', await page.locator('.quietrow').count() === 1);
   payload = Object.assign({}, DATA, { deploy: { key: false, cooling: 0 } });
   await page.reload({ waitUntil: 'networkidle' });
   ok('no Render key on the server → no dead control either',

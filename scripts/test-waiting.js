@@ -221,6 +221,71 @@ console.log('waiting: the deploy button knows whether it can work');
   if (hadH === undefined) delete process.env.RENDER_DEPLOY_HOOK; else process.env.RENDER_DEPLOY_HOOK = hadH;
 }
 
+// ── "WAITING TO DEPLOY" MEANS CHANGES THAT WOULD CHANGE SOMETHING FOR HER ──
+// (2026-09-25, Sophie: "why are things like compare page need to be deployed"
+// · "only have the 'waiting to deploy' mean changes that would change
+// something for me".) The rule is the file list, and the one failure it must
+// not have is filing a served change as bookkeeping — so an unlisted folder is
+// LIVE, and a commit whose files could not be read is counted with hers.
+console.log('waiting: what a commit changes for her');
+{
+  const k = W.kindOfFiles;
+  ok('a Compare page\'s template + its test + the doc note is the record',
+    k(['docs/pattern/pattern.tpl.html', 'docs/pattern/VERSIONS', 'scripts/test-pattern.js', 'docs/modules/pictures.md']) === 'record');
+  ok('a docs-only merge is the record', k(['docs/modules/audio-and-film.md', 'CLAUDE.md']) === 'record');
+  ok('a script and its fixtures are the record', k(['scripts/card-pattern.js', 'scripts/patterns/batch.json']) === 'record');
+  ok('a page she opens is live', k(['public/footage.html', 'scripts/test-footage-watch.js']) === 'live');
+  ok('a root module is live', k(['search-grammar.js', 'scripts/test-search-grammar.js']) === 'live');
+  ok('render.yaml / package.json are live', k(['render.yaml']) === 'live' && k(['package.json']) === 'live');
+  ok('a folder nobody listed is LIVE, never quietly filed away', k(['newthing/whatever.txt']) === 'live');
+  ok('mixed docs + public is live (the public half is what she sees)',
+    k(['docs/modules/inbox-and-misc.md', 'public/dump.html']) === 'live');
+  ok('iOS only is a build, not a deploy', k(['ios/ImageForge/DumpView.swift', 'docs/x.md']) === 'ios');
+  ok('iOS + a served page is live', k(['ios/ImageForge/ChatFeedView.swift', 'public/chats.html']) === 'live');
+  ok('GitHub\'s own shape ({filename}) is read too', k([{ filename: 'public/a.html', status: 'modified' }]) === 'live');
+  ok('no files → unknown, never a guess', k([]) === 'unknown' && k(null) === 'unknown');
+}
+
+console.log('waiting: the pile is sorted, and the count is hers');
+{
+  const FILES = {
+    ['a'.repeat(40)]: ['public/footage.html'],
+    ['b'.repeat(40)]: ['docs/pattern/pattern.tpl.html', 'scripts/test-pattern.js'],
+    ['c'.repeat(40)]: ['ios/ImageForge/DumpView.swift'],
+    // 'd' — the read is refused
+  };
+  let reads = 0;
+  const fakeFetch = async (url) => {
+    if (/\/compare\//.test(url)) return { ok: true, json: async () => ({ ahead_by: 4, commits:
+      ['a', 'b', 'c', 'd'].map((x, i) => ({ sha: x.repeat(40), commit: { message: x + ' (#' + (i + 1) + ')', committer: { date: '2026-09-2' + i + 'T00:00:00Z' } } })) }) };
+    const m = url.match(/\/commits\/([a-f0-9]+)$/);
+    if (m) {
+      reads++;
+      if (!FILES[m[1]]) return { ok: false, status: 403 };
+      return { ok: true, json: async () => ({ files: FILES[m[1]].map((f) => ({ filename: f })) }) };
+    }
+    return { ok: true, json: async () => ([]) };
+  };
+  W.classify([{ sha: 'a'.repeat(40) }, { sha: 'b'.repeat(40) }, { sha: 'c'.repeat(40) }, { sha: 'd'.repeat(40) }], fakeFetch)
+    .then(async (cs) => {
+      ok('each commit wears its kind', cs.map((c) => c.kind).join() === 'live,record,ios,unknown', cs.map((c) => c.kind));
+      ok('one read per commit', reads === 4, reads);
+      const again = await W.classify(cs, fakeFetch);
+      ok('a commit is read ONCE EVER — the second pass costs nothing', reads === 5 && again[0].kind === 'live', reads);   // only the refused one is asked again
+      const d = await W.build({ fetch: fakeFetch, sha: 'deadbeef', fresh: true });
+      ok('ahead is still every commit (the deploy ships them all)', d.ahead === 4, d.ahead);
+      ok('forYou counts the live one AND the unread one — never a hidden change', d.forYou === 2, d.forYou);
+      const inPile = d.groups.flatMap((g) => g.items.map((i) => i.sha[0]));
+      const inQuiet = d.quiet.flatMap((g) => g.items.map((i) => i.sha[0]));
+      ok('the pile holds hers', inPile.sort().join() === 'a,d', inPile);
+      ok('the rest sit in quiet, kind on each', inQuiet.sort().join() === 'b,c' &&
+        d.quiet.flatMap((g) => g.items).every((i) => i.kind === 'record' || i.kind === 'ios'), d.quiet);
+      ok('classified says every waiting commit was seen', d.classified === true, d.classified);
+      tail();
+    });
+}
+
+function tail() {
 console.log('waiting: readAhead asks GitHub once and orders newest first');
 {
   let asked = [];
@@ -244,4 +309,5 @@ console.log('waiting: readAhead asks GitHub once and orders newest first');
     console.log(fails ? `\n${fails} FAILED` : '\nall good');
     process.exit(fails ? 1 : 0);
   }
+}
 }

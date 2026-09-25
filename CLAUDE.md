@@ -4546,6 +4546,29 @@ before working on that module. Nothing was deleted — the moved text is verbati
     reads, no model call, no Firestore read unless a line was filed; opening it
     spends nothing. Tests: `node scripts/test-waiting.js`
     and `node scripts/test-waiting-page.js`.
+  - **"WAITING TO DEPLOY" MEANS CHANGES THAT WOULD CHANGE SOMETHING FOR HER
+    (2026-09-25, Sophie, looking at eleven Compare-page and doc merges under
+    the count: "why are things like compare page need to be deployed" · "only
+    have the 'waiting to deploy' mean changes that would change something for
+    me").** A Compare page is live the moment it is posted; its template, its
+    script, its test and the doc note are the RECORD, and a deploy moves none
+    of them. So `waiting.js` reads every waiting commit's file list (one
+    GitHub read per commit, cached for the life of the process) and sorts it
+    with `kindOfFiles`: LIVE (anything the server serves or runs — a root
+    module, `public/`, `refs/`, `render.yaml`; an UNLISTED folder counts as
+    live, so nothing served can be filed away by accident), IOS (only `ios/`
+    — a TestFlight build ships it, a deploy does not; the row says so) or
+    RECORD (`docs/`, `scripts/`, `.claude/`, `tools/`, any `.md`). **The
+    count, the pile, the Deploy button and the "N changes waiting" push are
+    the LIVE ones** (`forYou`; push.js `countForHer`, which falls back to the
+    raw `ahead_by` when the pile could not be sorted — never a smaller number
+    off a partial read); the rest sit shut under one row, "N merges change
+    nothing for you". A commit whose files could not be read (a 403 —
+    measured from a chat's container, whose shared egress IP was already at
+    0 of 60) is UNKNOWN and counted with hers, the safe direction. At most 20
+    commits are read per build so the compare read the push needs is never
+    spent; a `GITHUB_TOKEN` in the env lifts it to 5,000/hr (not set — hers).
+    Tests: the two above, plus `node scripts/test-behind-push.js`.
   - **AND SHE DEPLOYS IT HERSELF FROM THE TOP OF IT (2026-09-16, Sophie: "add
     a button at top of merged changes that deploys to render so i can do it
     myself and chats can stop asking").** **Deploy** leads the page, above the
