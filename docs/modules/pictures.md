@@ -937,13 +937,27 @@ An item on the tile is `{ piece, x, y, size, rot, flip }`:
   FRACTIONS of the tile, so the **spacing** notches (tile side 600–3000 units, five stops since v9)
   spreads every repeat without moving anything's place;
 - **where they go** — drag on the canvas; **Scatter** deals every piece a
-  NEW random spot on each tap (2026-09-25, Sophie: "can u make it do a new
-  random placement … every time") — `scatter(n, seed)`: the even staggered
-  grid with each spot jittered inside its own cell (±35% of the cell, so two
-  pieces never pile up) and the cells dealt out in a random order, seeded by
-  the tap like Spin; with no seed it is the plain grid, which is what
-  `freeSpot` reads; **+** adds another of the selected piece at the freest
-  spot (the torus distance, since the tile wraps).
+  NEW spot on each tap, and since v14 EVERY PIECE IS AS FAR FROM THE NEXT AS
+  IT CAN BE (2026-09-25, Sophie: "scatter shud pick a pattern where they're
+  all equidistant apart") — `scatter(n, seed, aspect)` tries the row
+  lattices (even counts per row, each row slid 0 · ½ · ⅓ · ⅔ · ¼ · ¾ of a
+  step further than the one above) and the rank-1 lattices k·(1/n, m/n)
+  (every spot sees the same neighbours — the hex-like packings), measures
+  each one's NEAREST pair on the torus in tile units, and keeps the widest;
+  a seed slides the whole lattice by a random amount (every distance kept)
+  and deals the spots out in a random order, so a tap changes which piece
+  lands where and never how far apart. Measured: six pieces land three rows
+  of two, each row slid a third, nearest pair 0.373 of the tile where a plain
+  grid gives 0.333; four and nine are square grids; twelve leans past one
+  (0.300 against 0.250). Before v14 the seeded scatter jittered each spot
+  inside its cell (±35%). With no seed it is the plain lattice, which is
+  what `freeSpot` reads; **+** adds another of the selected piece at the
+  freest spot (the torus distance, since the tile wraps).
+- **saving an arrangement** — every pattern saves itself under the name at
+  the top and the name opens the list; **Copy** (beside New on that sheet,
+  v14, Sophie: "is there a way to save particular arrangements") makes a
+  second pattern named "<name> copy" with every piece where it is, under its
+  own keys, and moves onto the copy, so the one she liked stays as it was.
 
 ### No deploy, by construction
 - **Her patterns live on a verdict doc** — chat `animal-fruit-pattern-tool`,
