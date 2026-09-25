@@ -1,0 +1,135 @@
+{
+  "_about": "One brief per project on the Projects mockup: where it is going (goal), what would count as finished (done), what made it run out of steam (stuck), and possible ways back in (fix). Written by the chat from each project's wrap-ups; her edits on the page win over these and live on the verdict doc (projects-brief sheet, <id>.goal etc.). Plain words, one or two lines each.",
+  "Caught the moon": {
+    "goal": "Her moon-in-my-pocket storyboard as one short film with her lines spoken.",
+    "done": "A cut she would post: the pocket beat and the moon staying in the wall both reading right.",
+    "stuck": "Not stuck. v2 is 16s from two Mini clips; the pocket beat and the moon in the wall are the two she might redo (~9¢ a clip).",
+    "fix": "Watch v2, name the beats to redo, send those two again."
+  },
+  "Posters": {
+    "goal": "Animal, fruit and sea posters at legal size, sold as physical prints on Etsy.",
+    "done": "Posters with the spacing right, real mockups of her own custom pictures, listings up.",
+    "stuck": "Spacing kept coming out wrong. The mockups were the wrong pictures, lifted from the crystal poster listing when she had custom ones. The spacer tool was too complicated: too many confusing options and too much scrolling.",
+    "fix": "Start the maker over with three controls at most and no scrolling. Use her custom mockup pictures, never the crystal poster's. Fix one poster's spacing by eye first, then apply it to the eleven."
+  },
+  "Similitude": {
+    "goal": "The triangle SET game: a deck of her drawn cards that plays on the page, as dominoes, and for two phones.",
+    "done": "A printed deck she is happy with (no outlines, her hearts in), the match test passing, dominoes playable with Miriam.",
+    "stuck": "The deck kept changing under the game: 97 cards, gap-fillers, redraws, a Playground tile that mis-routed to Dreamy. Every fix waited on a heart or a deploy word.",
+    "fix": "Freeze the deck at her hearted set and print it. Play the match test once and call the deck done. New sets (peacock, garnet) are a separate deck, not an edit."
+  },
+  "Pattern maker": {
+    "goal": "Pick animals, fruit or plants, arrange them, get a repeating pattern for a poster, bedspread or wallpaper.",
+    "done": "She lays out a pattern she likes and exports it at print size; the fruit list is exactly her picked deck.",
+    "stuck": "Switching between animals, fruit and plants meant scrolling to the bottom; the first wallpaper tile (crystals, July) did not work at all.",
+    "fix": "Pieces tabs at the top of the page. One export she has printed, to see the seam on paper."
+  },
+  "Ward film": {
+    "goal": "The mental-hospital film: a 480p draft of the main shots on Mini, 3:4, through Atlas, then the real shoot at 720p.",
+    "done": "Every ticked scene drawn once and cut in order, her voice on it, the draft watchable start to end.",
+    "stuck": "Continuity: the same person and room from one clip to the next. Fifteen-second shots need it most. Every clip waits on a go, and the assistant kept appearing when told not to.",
+    "fix": "Keep a person out by not sending a reference with her in it. Send one scene at a time off the belt, in order, and cut as they land rather than at the end."
+  },
+  "Nautchaug": {
+    "goal": "The Nautchaug Boyfriend's film: her draft belt of scenes, drawn scene by scene.",
+    "done": "The scenes on the belt each have a clip and the film is cut.",
+    "stuck": "Nothing has been sent yet; the belt is at v4 and the scenes page at v7 with no clips behind them.",
+    "fix": "Pick the three scenes that carry it and send those first."
+  },
+  "Ticky Tack": {
+    "goal": "The Ticky Tack film: its own scenes index and draft belt, in red.",
+    "done": "Scenes drawn, the film cut.",
+    "stuck": "Only the pages exist; no clips have been sent. It shares every rule with the ward film and was waiting behind it.",
+    "fix": "Same as Nautchaug: three carrying scenes first."
+  },
+  "Christmas": {
+    "goal": "A Christmas commercial in her words, with the Saturnalia ending, her own voice-over takes.",
+    "done": "A final cut with her chosen takes and no added music, exported.",
+    "stuck": "The script's ending was still a chat draft; the voice-over piles needed her word on two takes (giftt, ggloom). A music bed got added that she did not want.",
+    "fix": "Read the conclusion draft, answer the two takes, and the cut is one render."
+  },
+  "Witch": {
+    "goal": "Secretly a Witch: the app in the App Store, the reels on Instagram, the blog and the shop feeding the real domain.",
+    "done": "App approved, ten reels posted, blog and shop live on secretlyawitch.com.",
+    "stuck": "Apple: rejected twice, the 4.3(b) spam call is hers to answer. The reels waited on footage for packing orders, Salem and the box.",
+    "fix": "Answer the 4.3(b) rejection first; the reels are cut and only need posting. New footage for the three thin reels."
+  },
+  "Dreams": {
+    "goal": "The dream app at youwereinmydreams.com: the feed, the journal, the drawings, and a commercial for it.",
+    "done": "The commercial cut from one of her spoken dreams; the feed and journal working on both phone and desk.",
+    "stuck": "The commercial stalled on picking a dream (the shortlist picked ones she did not like, some were not dreams). Compressed images and an invisible style clause hurt the drawings before they were caught.",
+    "fix": "She names the dream herself; then whisper-cut her narration and draw five frames."
+  },
+  "Dating book": {
+    "goal": "The Sophie Experiment: a square coffee-table book from the Portland dates, watercolor art.",
+    "done": "Every date written in her version, the moments illustrated, the book laid out.",
+    "stuck": "The moments deck (16 hearted) was cut to the action but the redo answers never came back; the writing room notes loop went quiet.",
+    "fix": "Swipe the moments deck and note the redos; then one date at a time through the writing room."
+  },
+  "Xi": {
+    "goal": "Xi: the card game and its app, with invites that work.",
+    "done": "The app in the store, inviting a friend works first try, the card art picked.",
+    "stuck": "One redesign went badly and was reverted; the art style and card ratio were never picked; the invite flow needed a TestFlight retest.",
+    "fix": "Heart a style direction on the art grid (2 min) and retest the invite on the newest build."
+  },
+  "Evan": {
+    "goal": "The Evan oven film: beats, art, her narration, cut.",
+    "done": "v17 was close: her ten notes fixed, the third eye redrawn, a v18 to build.",
+    "stuck": "Waiting on her ok to build v18; the story was also tried in a dreamy style and not decided; the voice clone did not sound like her.",
+    "fix": "Say build v18. Decide watercolor or dreamy once; her own take as the voice."
+  },
+  "NDE": {
+    "goal": "Anthony Chene's interviews cut into illustrated montages, watercolor look, nine approved likenesses.",
+    "done": "The PROOF reel approved, the montages posted.",
+    "stuck": "Grabbing new videos needs her Mac; the PROOF reel v1 was waiting on which panels to swap; the portraits were making her mad.",
+    "fix": "Run the desktop queue once; mark the panels on PROOF v1; no new faces."
+  },
+  "Stories": {
+    "goal": "The Story Room stories (Moon Milk, Jonas, the Meteorite, Charlie…) each with art on the canvas and a film.",
+    "done": "Each story's pictures placed, narration under them, a film on the story.",
+    "stuck": "The move to the pads left five stories with an empty canvas and their pictures in the inbox; which picture wins per beat is hers and was never asked.",
+    "fix": "One story at a time: propose the beats' pictures on a page, she picks, place them."
+  },
+  "Mom's Etsy": {
+    "goal": "Mom's jewelry and crystals on Etsy: her Lightroom pictures in, a picker, listings drafted.",
+    "done": "Mom runs the sync once, stars pieces on /lightroom, the first drafts land in her shop.",
+    "stuck": "Waiting on a deploy and on mom's first dry run of the sync; the catalog layout is an assumption until then. The crystals splitter needed her to mark where one stone stops.",
+    "fix": "Deploy, then mom's --dry run to see the counts; five pieces sent to check the drafts."
+  },
+  "Hats": {
+    "goal": "A hat store for mister psychology, sold from an Instagram bio link, money through her Shopify.",
+    "done": "The page live in the new look, five hats tagged, the link in the friend's bio.",
+    "stuck": "The first look was wrong (she did not like the design); the store had no hats tagged yet.",
+    "fix": "Deploy the Alte Haas Grotesk look, tag the hats, send the friend the link."
+  },
+  "Head Games": {
+    "goal": "Five little games for organizing what is in her head: the scale, the jars, the train, the tower, the tags.",
+    "done": "She uses one of them for real more than once.",
+    "stuck": "v1 posted; nothing back yet on what to change.",
+    "fix": "Try one game with a real question and note what is in the way."
+  },
+  "Hoonies": {
+    "goal": "The hoonies woodcut set on fabric: pillows first.",
+    "done": "The fat quarter arrives and the print looks right; then a yard.",
+    "stuck": "Waiting on the fabric to arrive.",
+    "fix": "Judge the print when it lands; a yard with the maybes is one message."
+  },
+  "PWC reels": {
+    "goal": "The PWC reels on the Instagram grid, synced to their current cuts.",
+    "done": "Done. All eight reels and the bingo card are on the grid.",
+    "stuck": "Not stuck.",
+    "fix": "A new reel is one row in instagram-grids.json."
+  },
+  "Fruit poll": {
+    "goal": "The fridge chart: the family picks a favorite fruit by swiping, the chart prints.",
+    "done": "The emails sent, the answers in, the chart on the fridge.",
+    "stuck": "The emails never went out: Brevo's key and from-address were never set.",
+    "fix": "Two env fields on Render, then one invite run."
+  },
+  "Opinions": {
+    "goal": "The decide-on-things game and its commercial.",
+    "done": "The commercial approved with her five notes in.",
+    "stuck": "Waiting on her to play the cut with the notes applied.",
+    "fix": "Play it; say if it is done."
+  }
+}
