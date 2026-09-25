@@ -75,7 +75,9 @@ console.log('\nEvery web tool with a Save icon uses it');
 // The two wrappers whose page draws a Save icon. Named, not sniffed: after the
 // fix neither file contains the string "forgeSave" at all, so a sweep keyed on
 // that name would have silently checked nothing.
-for (const f of ['PlaygroundView.swift', 'MetaAssetsView.swift']) {
+// AND THE CHATS WEB VIEW (2026-09-25): a Compare page opens inside it, and the
+// Pattern page's Save to Photos had nothing but the share sheet there.
+for (const f of ['PlaygroundView.swift', 'MetaAssetsView.swift', 'ChatFeedView.swift']) {
   const src = read(path.join(IOS, f));
   ok(f + ' installs the shared bridge', /ForgeSaveBridge\.install\(into: config\)/.test(src));
   ok(f + ' retains the handler (addScriptMessageHandler does not)',

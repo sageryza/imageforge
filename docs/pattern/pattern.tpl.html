@@ -104,9 +104,9 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
 /* ── the repeat ── */
 .big{ aspect-ratio:1; border:1px solid var(--line); border-radius:6px; background-repeat:repeat; }
 .exports{ margin-top:12px; }
-.exports a{ display:flex; gap:10px; align-items:center; padding:8px 0; border-top:1px solid var(--line);
-  color:var(--ink); text-decoration:none; font-size:14px; }
-.exports a .m{ color:var(--ink2); font-size:12px; margin-left:auto; }
+.exports button{ display:flex; width:100%; gap:10px; align-items:center; padding:8px 0; border:none; border-radius:0;
+  border-top:1px solid var(--line); background:none; font:inherit; font-weight:400; font-size:14px; color:var(--ink); text-align:left; cursor:pointer; }
+.exports button .m{ color:var(--ink2); font-size:12px; margin-left:auto; }
 
 /* ── the pattern sheet ── */
 .sheet{ position:fixed; inset:0; z-index:30; background:rgba(0,0,0,.25); display:flex; align-items:flex-end; }
@@ -183,9 +183,11 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
            Sophie: "for now let's do default white no other colors · and no
            half drop mirror toggle"). The arithmetic for half-drop and mirror
            is still in the plan; the page just never asks for it. -->
-      <div class="row"><span class="lbl">export</span>
-        <span class="chips" id="sizes" style="margin:0"><button class="chip" data-s="1K">1K</button><button class="chip on" data-s="2K">2K</button><button class="chip" data-s="4K">4K</button></span>
-        <button class="btn" id="export">Export</button></div>
+      <!-- ONE button, ONE size, and it goes to PHOTOS (2026-09-25, Sophie: "i'm
+           confused what is export why diff resolutions · make it go to photos
+           not files · make that a default rule"). The 1K/2K/4K chips were the
+           picture's size in pixels; 2K (2048 square) is the one it draws now. -->
+      <div class="row"><button class="btn" id="save">Save to Photos</button></div>
       <div class="msg" id="repmsg"></div>
       <div class="exports" id="exports"></div>
     </div>
@@ -212,7 +214,7 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
   var PIECES = __PIECES__;
   var $ = function (id) { return document.getElementById(id); };
   var LAYOUT_WORD = { grid: 'grid', half: 'half-drop', mirror: 'mirror' };
-  var EXPORT_PX = { '1K': 1024, '2K': 2048, '4K': 4096 };
+  var EXPORT_PX = 2048;   // one size: 2K square per tile
   var MAX_JSON = 1900;
 
   var LUCIDE = {
@@ -235,7 +237,7 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
     + '<b>+</b> adds another of the same. <b>Spacing</b> is five notches — a bigger square under everything, so the repeats land farther apart. '
     + '<b>Spin</b> turns every piece a little, at random, within the degrees you set; <b>Scatter</b> deals every piece a new spot, spread out so nothing piles up — tap either again for another go. <b>Reset</b> puts every piece back to its starting size and no turn. A piece hanging off one edge comes back in on the other, '
     + 'which is what makes the repeat seamless.<br><br>'
-    + '<b>Repeat</b> — how it looks tiled, on white. <b>Export</b> draws one seamless PNG and files it in the Dump. '
+    + '<b>Repeat</b> — how it looks tiled, on white. <b>Save to Photos</b> draws one seamless picture (2048 pixels square) and puts it in your Photos; a copy is kept in the Dump, and the list under the button saves any earlier one again. '
     + 'Everything saves itself as you go. The two arrows by the pattern’s name <b>undo</b> and <b>redo</b> the last change — a tick, a drag, a turn, a spin, the spacing — as far back as this open of the page.' });
   window.__compareNotes({ chat: CHAT, sheet: SHEET + '-notes' });
 
@@ -247,7 +249,6 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
   var pattern = null;
   var sel = null;
   var dirtyT = null, dirtyItems = {}, dirtyCfg = false;
-  var exportSize = '2K';
 
   function hdrs() { return { 'Content-Type': 'application/json' }; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -676,48 +677,79 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
   });
 
   // ── the repeat tab ──
-  $('sizes').addEventListener('click', function (e) {
-    var b = e.target.closest('.chip'); if (!b) return;
-    exportSize = b.dataset.s;
-    $('sizes').querySelectorAll('.chip').forEach(function (c) { c.classList.toggle('on', c === b); });
-  });
-  // EXPORT — drawn HERE, on a canvas, from the same list of draws the previews
-  // use, then filed into the Dump (the live /api/drop/upload-file) so it has a
-  // permanent url and a save link. No server render, no deploy.
-  $('export').addEventListener('click', function () {
+  // SAVE TO PHOTOS — drawn HERE, on a canvas, from the same list of draws
+  // the previews use. A copy is filed into the Dump first (the live
+  // /api/drop/upload-file) so the picture has a permanent url, then it goes
+  // to her PHOTOS: in the app the native forgeSave bridge writes it to the
+  // photo library (asset-actions.js's own three-path saver); in Safari the
+  // share sheet with the file (Save Image is on it); a plain download only on
+  // a desktop browser. Never a Files download on the phone (2026-09-25,
+  // Sophie: "make it go to photos not files · make that a default rule").
+  function nativeSaver() { try { return window.webkit.messageHandlers.forgeSave; } catch (e) { return null; } }
+  window.__saveResult = function (ok, msg) { say($('repmsg'), msg || (ok ? 'saved to Photos' : 'could not save that'), !ok); };
+  function toPhotos(url, blob, fname) {
+    var native = nativeSaver();
+    if (native && url) { native.postMessage(url); say($('repmsg'), 'saving to Photos…'); return; }
+    var file = null;
+    try { file = new File([blob], fname, { type: 'image/png' }); } catch (e) { /* old browser */ }
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file] })
+        .then(function () { say($('repmsg'), 'saved'); })
+        .catch(function (err) { if (err && err.name !== 'AbortError') say($('repmsg'), 'could not open the share sheet', true); });
+      return;
+    }
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = fname;
+    document.body.appendChild(a); a.click(); a.remove();
+    say($('repmsg'), 'saved');
+  }
+  $('save').addEventListener('click', function () {
     if (!pattern) return;
     if (!pattern.items.length) { say($('repmsg'), 'nothing on the tile yet'); return; }
     var missing = pattern.items.some(function (it) { var im = imgFor(it.piece); return !(im && im.complete && im.naturalWidth); });
     if (missing) { say($('repmsg'), 'the pictures are still loading — try again in a moment'); return; }
-    $('export').disabled = true;
-    say($('repmsg'), 'drawing ' + exportSize + '…');
+    $('save').disabled = true;
+    say($('repmsg'), 'drawing…');
     var r;
-    try { r = renderOut(EXPORT_PX[exportSize]); }
-    catch (e) { say($('repmsg'), 'too big for this phone — try 2K', true); $('export').disabled = false; return; }
+    try { r = renderOut(EXPORT_PX); }
+    catch (e) { say($('repmsg'), 'too big for this phone', true); $('save').disabled = false; return; }
     var name = (pattern.name || 'pattern').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'pattern';
-    var fname = name + '-' + exportSize + '-' + LAYOUT_WORD[r.layout].replace('-', '') + '.png';
+    var fname = name + '-2K-' + LAYOUT_WORD[r.layout].replace('-', '') + '.png';
     r.canvas.toBlob(function (blob) {
-      if (!blob) { say($('repmsg'), 'could not draw the file', true); $('export').disabled = false; return; }
+      if (!blob) { say($('repmsg'), 'could not draw the file', true); $('save').disabled = false; return; }
       fetch('/api/drop/upload-file?bundle=' + encodeURIComponent('Patterns') + '&filename=' + encodeURIComponent(fname) + '&media=image',
         { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: blob })
         .then(function (res) { return res.json().then(function (j) { if (!res.ok || j.error) throw new Error(j.error || ('HTTP ' + res.status)); return j; }); })
         .then(function (j) {
           var it = j.item || {};
-          pattern.exports = (pattern.exports || []).concat([{ size: exportSize, layout: r.layout, W: r.W, H: r.H, url: it.url || '', id: it.id || '', at: new Date().toISOString() }]).slice(-6);
+          pattern.exports = (pattern.exports || []).concat([{ size: '2K', layout: r.layout, W: r.W, H: r.H, url: it.url || '', id: it.id || '', at: new Date().toISOString() }]).slice(-6);
           touch(); clearTimeout(dirtyT); saveNow();
-          renderExports(); say($('repmsg'), 'exported — it is in the Dump too');
+          renderExports();
+          toPhotos(it.url || '', blob, fname);
         })
         .catch(function (err) { say($('repmsg'), err.message, true); })
-        .then(function () { $('export').disabled = false; });
+        .then(function () { $('save').disabled = false; });
     }, 'image/png');
   });
+  // The saved list: a tap saves that picture to Photos again (a fetch of the
+  // Dump copy, then the same three roads). Never a link into Files.
   function renderExports() {
     var host = $('exports'); host.innerHTML = '';
     (pattern.exports || []).slice().reverse().forEach(function (x) {
-      var a = document.createElement('a');
-      a.href = x.url; a.target = '_blank'; a.rel = 'noopener';
-      a.innerHTML = '<span>' + x.size + ' · ' + (LAYOUT_WORD[x.layout] || x.layout) + '</span><span class="m">' + x.W + '×' + x.H + '</span>';
-      host.appendChild(a);
+      var b = document.createElement('button');
+      b.type = 'button';
+      var when = x.at ? new Date(x.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+      b.innerHTML = '<span>save again' + (when ? ' · ' + esc(when) : '') + '</span><span class="m">' + x.W + '×' + x.H + '</span>';
+      b.addEventListener('click', function () {
+        if (!x.url) { say($('repmsg'), 'that one has no copy to save', true); return; }
+        var native = nativeSaver();
+        if (native) { toPhotos(x.url, null, ''); return; }
+        say($('repmsg'), 'fetching…');
+        fetch(x.url).then(function (r) { return r.blob(); })
+          .then(function (blob) { toPhotos('', blob, (x.url.split('/').pop() || 'pattern.png').split('?')[0]); })
+          .catch(function () { say($('repmsg'), 'could not fetch that copy', true); });
+      });
+      host.appendChild(b);
     });
   }
 

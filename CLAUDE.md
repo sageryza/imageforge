@@ -285,6 +285,24 @@ same call. (This paragraph replaced a rule written the same hour on a
 misreading of "pull in" — she had asked for the page, not for less; "keep
 redo".)
 
+**SAVE MEANS PHOTOS, NEVER FILES — ON EVERY PAGE, BY DEFAULT (2026-09-25,
+Sophie, on the Pattern page's Export landing a file in Files: "make it go to
+photos not files · make that a default rule"; the same day on the Dump:
+"things save to files · shud go to photos · never files").** A picture or a
+clip she saves goes to her PHOTO LIBRARY: in the app through the one
+`forgeSave` bridge (`ForgeSaveBridge.swift` — installed on every web view
+now, the Chats web view included since v12 of Pattern, so a Compare page
+can use it; a TestFlight build carries that), in Safari through the share
+sheet with the FILE already in hand (`navigator.share({files})` — Save Image
+is on it), and a plain download only on a desktop browser. That is
+`asset-actions.js`'s saver; copy its three roads, in that order. A
+`/api/drop/file/<id>` link is NEVER the save button, and a button that
+says Export, Download or Save must not open Files. One size, one button:
+the 1K/2K/4K chips confused her ("why diff resolutions"); a page draws
+its one right size and says nothing about pixels. Filing a copy into the
+Dump first is fine (it gives the picture a url and a way to save it
+again) — the Dump is the backup, Photos is where it lands.
+
 **NOTHING IS DRAWN OR ANIMATED UNLESS SHE SAYS TO MAKE IT (2026-09-05,
 Sophie: "images and movies should not be made unless i specifically say
 to").** "Use up the credits" is a reason, not a go; "pull the stills" is
@@ -3733,7 +3751,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
   no half drop mirror toggle" — the half-drop and mirror arithmetic stays in
   the plan, the page just never asks); and **THE PAGE IS POSTED INTO THE CHAT
   THAT ASKED** (`--chat`), her patterns staying on the pattern chat's verdict
-  doc. `docs/modules/pictures.md` (Pattern).
+  doc. **v12: SAVE TO PHOTOS** — one button, one size (2K), a copy in the
+  Dump, then the photo library through the `forgeSave` bridge (the share
+  sheet until the build that puts the bridge on the Chats web view lands);
+  no size chips, no Export, no link into Files. `docs/modules/pictures.md`
+  (Pattern).
   **AND A PIECE'S SIZE ON A TILE IS NEVER CHANGED WITHOUT ASKING (2026-09-23,
   Sophie, after a re-lay at two across made every picture bigger: "never
   change size without asking").** A re-lay she asked for changes ONLY what she
