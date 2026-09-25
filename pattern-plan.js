@@ -138,33 +138,65 @@
     return { W: size.W, H: size.H, bg: tile.bg, layout: layout, draws: kept };
   }
 
-  /** Even places for n items on a tile: a staggered grid, every other row
-   *  shifted half a column, so nothing lines up in a stripe. Fractions. */
-  /** n spots on the tile, as fractions. With NO seed: an even staggered
-   *  grid (what freeSpot reads). With a seed: a NEW random placement — each
-   *  spot jittered within its own cell so nothing piles up, and the cells
-   *  dealt out in a random order so which piece lands where changes too
-   *  (2026-09-25, Sophie: "can u make it do a new random placement … every
-   *  time"). The same seed is the same scatter, so a test can pin one. */
-  function scatter(n, seed) {
+  /** n spots on the tile, as fractions — ALL AS FAR APART AS THEY CAN BE
+   *  (2026-09-25, Sophie: "scatter shud pick a pattern where they're all
+   *  equidistant apart"). Candidates are rows of even counts with each row
+   *  slid a fraction of a step (a grid, the brick stagger, a lean) and the
+   *  rank-1 lattices k·(1/n, m/n) (every spot sees the same neighbours, the
+   *  hex-like packings), and the one kept is whichever puts the NEAREST pair
+   *  the farthest apart, measured on the torus in tile units (`aspect` =
+   *  tile w/h, 1 for a square tile). Rows are tried first, so a tie reads
+   *  as rows.
+   *  With NO seed: that lattice, as it is (what freeSpot reads). With a
+   *  seed: the same lattice slid by a random amount (a slide keeps every
+   *  distance) and dealt out in a random order, so which piece lands where
+   *  changes every tap. The same seed is the same scatter, so a test can pin
+   *  one. Before this the seeded scatter jittered each spot inside its cell. */
+  function lattice(n, rows, shift) {
+    // rows of even counts; each row slid `shift` of a step further than the
+    // one above (0 = plain grid, 1/2 = the brick stagger, 1/3 = a lean)
+    var base = Math.floor(n / rows), extra = n - base * rows, out = [];
+    for (var r = 0; r < rows; r++) {
+      var count = base + (r < extra ? 1 : 0);
+      for (var j = 0; j < count; j++) {
+        var x = (j + 0.5 + r * shift) / count;
+        out.push({ x: x - Math.floor(x), y: (r + 0.5) / rows });
+      }
+    }
+    return out;
+  }
+  function rank1(n, m, flip) {
+    // the lattice k·(1/n, m/n): every spot sees the same neighbours, so it
+    // is equidistant by construction; the search tries every m
+    var out = [];
+    for (var k = 0; k < n; k++) {
+      var a = (k + 0.5) / n, b = (k * m + 0.5) / n; b -= Math.floor(b);
+      out.push(flip ? { x: b, y: a } : { x: a, y: b });
+    }
+    return out;
+  }
+  function nearest(pts, aspect) {
+    var ay = 1 / (aspect || 1), d = Infinity;
+    for (var i = 0; i < pts.length; i++) for (var j = i + 1; j < pts.length; j++) {
+      var dx = Math.abs(pts[i].x - pts[j].x); dx = Math.min(dx, 1 - dx);
+      var dy = Math.abs(pts[i].y - pts[j].y); dy = Math.min(dy, 1 - dy) * ay;
+      d = Math.min(d, dx * dx + dy * dy);
+    }
+    return Math.sqrt(d);
+  }
+  function scatter(n, seed, aspect) {
     n = Math.max(0, n | 0);
     if (!n) return [];
-    var cols = Math.ceil(Math.sqrt(n));
-    var rows = Math.ceil(n / cols);
-    var out = [];
-    for (var i = 0; i < n; i++) {
-      var c = i % cols, r = Math.floor(i / cols);
-      var x = (c + 0.5 + (r % 2 ? 0.5 : 0)) / cols;
-      out.push({ x: x - Math.floor(x), y: (r + 0.5) / rows });
-    }
-    if (seed == null) return out;
+    aspect = num(aspect, 1) > 0 ? num(aspect, 1) : 1;
+    var best = null, bestD = -1;
+    function tryOne(pts) { var d = n > 1 ? nearest(pts, aspect) : 1; if (d > bestD + 1e-9) { bestD = d; best = pts; } }
+    for (var rows = 1; rows <= n; rows++) [0, 1 / 2, 1 / 3, 2 / 3, 1 / 4, 3 / 4].forEach(function (shift) { tryOne(lattice(n, rows, shift)); });
+    for (var m = 0; m < n; m++) { tryOne(rank1(n, m, false)); tryOne(rank1(n, m, true)); }
+    if (seed == null) return best;
     var s = (num(seed, 1) * 9301 + 49297) % 233280;
     function rnd() { s = (s * 9301 + 49297) % 233280; return s / 233280; }
-    var jx = 0.35 / cols, jy = 0.35 / rows;
-    out = out.map(function (p) {
-      var x = p.x + (rnd() * 2 - 1) * jx, y = p.y + (rnd() * 2 - 1) * jy;
-      return { x: x - Math.floor(x), y: y - Math.floor(y) };
-    });
+    var ox = rnd(), oy = rnd();
+    var out = best.map(function (p) { var x = p.x + ox, y = p.y + oy; return { x: x - Math.floor(x), y: y - Math.floor(y) }; });
     for (var k = out.length - 1; k > 0; k--) {
       var j = Math.floor(rnd() * (k + 1)); var t = out[k]; out[k] = out[j]; out[j] = t;
     }
@@ -174,9 +206,9 @@
   /** The free spot for ONE more item: of the scatter slots for n+1, the one
    *  farthest from anything already placed (distance measured on the torus,
    *  because the tile wraps). */
-  function freeSpot(items) {
+  function freeSpot(items, aspect) {
     var placed = (items || []).map(itemOf);
-    var slots = scatter(placed.length + 1);
+    var slots = scatter(placed.length + 1, null, aspect);
     var best = slots[0], bestD = -1;
     slots.forEach(function (s) {
       var d = Infinity;
