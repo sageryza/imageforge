@@ -3311,6 +3311,13 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
 
 ### Footage
 
+- **A SENT BLOCK STAYS — REVERTED 2026-09-25 (Sophie: "yesterday i said get
+  rid of sent boxes · revert that pls").** For one day (2640, 2026-09-24) a
+  block whose clip really went took itself off the page (`dropSent`). She
+  asked for that back: a sent block stays in the box, wearing its red
+  **sent**, exactly as before — the words and pictures are still on the
+  clip's card, and the block is hers to keep, reuse or take off with its
+  own ×. Do not rebuild the auto-remove without her word.
 - **Footage** (`footage.js`, `/api/footage`, page at `/footage`, iOS tile
   under the FILM filter's pictures stage — 2026-09-09, Sophie: "the next step
   is to build a point so I can just make things on my own time by describing
