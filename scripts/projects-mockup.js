@@ -35,6 +35,12 @@ const SUP = args.includes('--supersede') ? args[args.indexOf('--supersede') + 1]
 // filed project, lowercase) · the chat whose icon the project wears · the
 // Playground search word (or none).
 const PROJECTS = [
+  // "see my mail moon movie" (2026-09-25) — her I-caught-the-moon film, one
+  // chat with no drawn icon yet, so the icon is the film's own last frame
+  // (Atlas files it) cropped to the moon in the window pane, in the Dump
+  // under `projects-mockup`.
+  { name: 'Caught the moon', kw: ['moon-panes', 'moon-pane', 'caught-the-moon', 'moon-in-my-pocket'], icon: 'moon-panes-zoom-video',
+    img: 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/168b446f4a27558a97ed00831585489e.png', crop: 'photo' },
   { name: 'Similitude', kw: ['triset', 'triangle', 'triangles', 'similitude', 'dominoes', 'peacock-set'], icon: 'peacock-set-placement', pl: 'triangle' },
   { name: 'Pattern maker', kw: ['animal-fruit', 'fruit-veg', 'animal-deck', 'fruits-vegetables', 'animal-card', 'fruit-repeating', 'repeating-patterns', 'seamless', 'wallpaper', 'poster', 'posters', 'patterns-google', 'animal-fruit-pattern'], icon: 'animal-fruit-pattern-tool', pl: 'animal' },
   { name: 'Ward film', kw: ['hospital', 'ward', 'francesca', 'soap-pill', 'belt', 'reshoots', 'reshoot', 'seedance', 'continuity', 'anastasia'], icon: 'hospital-night-reshoots', pl: 'hospital' },
@@ -102,18 +108,20 @@ async function main() {
   const rows = PROJECTS.map((p) => {
     const list = filed.get(p.name).sort((a, b) => b.at.localeCompare(a.at));
     const iconReg = chats[p.icon];
-    return { ...p, chats: list, icon: (iconReg && iconReg.icon) || (list.find((c) => c.icon) || {}).icon || '', pics: pics[p.name] || 0 };
+    const films = list.map((c) => chats[c.slug].pinned).filter((x) => x && x.kind === 'video');
+    return { ...p, chats: list, icon: p.img || (iconReg && iconReg.icon) || (list.find((c) => c.icon) || {}).icon || '', pics: pics[p.name] || 0, films };
   });
   const id = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   const tiles = rows.map((p) => `
     <figure class="app" data-item="${id(p.name)}" data-p="${id(p.name)}">
-      <span class="ic"><img src="${esc(p.icon)}" alt="${esc(p.name)}">${p.chats.length ? `<b class="badge">${p.chats.length}</b>` : ''}</span>
+      <span class="ic"><i class="in"><img src="${esc(p.icon)}" alt="${esc(p.name)}"${p.crop ? ' class="photo"' : ''}></i>${p.chats.length ? `<b class="badge">${p.chats.length}</b>` : ''}</span>
       <figcaption>${esc(p.name)}</figcaption>
     </figure>`).join('');
   const sheets = rows.map((p) => `
     <section class="sheet" id="s-${id(p.name)}" hidden>
       <h2>${esc(p.name)}</h2>
       <div class="mini">${p.chats.length} chat${p.chats.length === 1 ? '' : 's'}${p.pics ? ` · ${p.pics} Playground picture${p.pics === 1 ? '' : 's'}` : ''}</div>
+      ${p.films.map((f) => `<div class="film" data-url="${esc(f.url)}" data-label="${esc(f.title)}"></div>`).join('')}
       <ul>${p.chats.map((c) => `<li>${c.icon ? `<img src="${esc(c.icon)}" alt="">` : '<i></i>'}<span>${esc(c.name)}${c.archived ? ' <em>archived</em>' : ''}</span><time>${esc(c.at)}</time></li>`).join('')}</ul>
     </section>`).join('');
   const html = fs.readFileSync(path.join(__dirname, '..', 'docs', 'projects', 'projects-mockup.tpl.html'), 'utf8')
