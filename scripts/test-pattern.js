@@ -340,6 +340,44 @@ async function pageHalf() {
   ok(st.items.length === 2 && Object.keys(texts).some(k => k.startsWith('p:it:') && texts[k] === ''), 'remove takes the item off and blanks its text on the doc');
   await shot('3-tile-moved');
 
+  // undo · redo — every step MEASURED off the store, since a button that
+  // repaints the canvas and writes nothing back would look identical
+  ok(!(await page.$eval('#undo', el => el.disabled)) && (await page.$eval('#redo', el => el.disabled)), 'undo is on after a change; redo is not yet');
+  const removedKey = Object.keys(texts).find(k => k.startsWith('p:it:') && texts[k] === '');
+  await page.click('#undo'); await page.waitForTimeout(700);
+  st = store();
+  ok(st.items.length === 3 && texts[removedKey] && JSON.parse(texts[removedKey]).piece === 'pear', 'undo puts the removed piece back, under its own key on the doc');
+  ok(!(await page.$eval('#redo', el => el.disabled)), 'redo is on after an undo');
+  await page.click('#redo'); await page.waitForTimeout(700);
+  st = store();
+  ok(st.items.length === 2 && texts[removedKey] === '', 'redo takes it off again');
+  await page.click('#undo'); await page.click('#undo'); await page.waitForTimeout(700);
+  st = store();
+  ok(st.items.length === 3 && st.items.map(it => it.rot).join() === '0,200,200', 'two undos unwind the spin — every turn back where it was');
+  await page.click('#undo'); await page.waitForTimeout(700);
+  st = store();
+  ok(st.items.length === 2 && st.items[1].rot === 200, 'a third undo takes the + copy off and leaves the turn');
+  await page.click('#undo'); await page.waitForTimeout(700);
+  st = store();
+  ok(st.cfg.tile.w === 1000 && Math.abs(st.items[1].x - moved.x) < 1e-3, 'a fourth undoes the spacing and nothing else');
+  await page.click('#undo'); await page.click('#undo'); await page.waitForTimeout(700);
+  st = store();
+  ok(st.items[1].rot === 0, 'the typed 200 and the +15 unwind');
+  await page.click('#undo'); await page.waitForTimeout(700);
+  st = store();
+  ok(Math.abs(st.items[1].x - pear.x) < 1e-3 && Math.abs(st.items[1].y - pear.y) < 1e-3, 'the drag unwinds — the pear is back where it started');
+  ok(!(await page.$eval('#undo', el => el.disabled)), 'the two ticks are still there to undo');
+  let n = 0; while (!(await page.$eval('#redo', el => el.disabled)) && n++ < 12) { await page.click('#redo'); }
+  await page.waitForTimeout(700);
+  st = store();
+  ok(n === 7 && st.items.length === 2 && Math.abs(((st.items[1].rot - 200) % 360 + 540) % 360 - 180) <= 20 && st.cfg.tile.w === 1600 && texts[removedKey] === '', 'seven redos land her back exactly where she was — spun, spaced, one removed (' + n + ' redos)');
+  await page.$eval('#space', el => { el.value = '1700'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.$eval('#space', el => { el.value = '1800'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.waitForTimeout(700);
+  ok((await page.$eval('#redo', el => el.disabled)), 'a new change after an undo clears the redo pile');
+  await page.click('#undo'); await page.waitForTimeout(700);
+  ok(store().cfg.tile.w === 1600, 'a slider run within a second is ONE undo step');
+
   // the repeat
   await page.click('.acctab[data-t="2"]');
   await page.waitForTimeout(300);
@@ -374,6 +412,11 @@ async function pageHalf() {
   ok((await page.$eval('#layoutword', el => el.textContent)) === 'mirror' && (await page.$eval('.pick', el => el.textContent)).startsWith('fruit salad'), '…on the same pattern, from the verdict doc');
   await page.click('.acctab[data-t="0"]'); await page.waitForTimeout(200);
   ok((await page.$$eval('.pc.on', els => els.map(e => e.dataset.id).join())) === 'bear,pear', 'the ticks come back too');
+  ok(await page.$eval('#undo', el => el.disabled), 'a fresh open has nothing to undo — the history is this open of the page');
+  await page.click('.pc[data-id=bear]'); await page.waitForTimeout(700);
+  ok((await page.$$eval('.pc.on', els => els.length)) === 1, 'an untick on PIECES…');
+  await page.click('#undo'); await page.waitForTimeout(700);
+  ok((await page.$$eval('.pc.on', els => els.map(e => e.dataset.id).join())) === 'bear,pear' && store().items.length === 2, '…comes back with undo from the same row, on this tab too');
 
   await browser.close();
   server.close();
