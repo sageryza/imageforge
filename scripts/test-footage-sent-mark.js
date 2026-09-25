@@ -155,7 +155,6 @@ const RED = 'rgb(160, 64, 42)';
   const base = 'http://127.0.0.1:' + server.address().port;
   const browser = await chromium.launch({ executablePath: exe() || undefined });
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
-  await ctx.addInitScript(() => { window.__keepSentBlocks = true; }); // this test inspects the block after a send
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
@@ -329,7 +328,6 @@ const RED = 'rgb(160, 64, 42)';
     sentAt: new Date(Date.now() - 6e5).toISOString(), estimate: 4.4, vote: '' });
 
   const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 } });
-  await ctx2.addInitScript(() => { window.__keepSentBlocks = true; }); // this test inspects the block after a send
   const p2 = await ctx2.newPage();
   const errors2 = [];
   p2.on('pageerror', (e) => errors2.push(String(e)));
@@ -380,7 +378,6 @@ const RED = 'rgb(160, 64, 42)';
     sentAt: new Date(Date.now() - 8e5).toISOString(), estimate: 4.4, vote: '' });
 
   const ctx3 = await browser.newContext({ viewport: { width: 390, height: 844 } });
-  await ctx3.addInitScript(() => { window.__keepSentBlocks = true; }); // this test inspects the block after a send
   const p3 = await ctx3.newPage();
   const errors3 = [];
   p3.on('pageerror', (e) => errors3.push(String(e)));
