@@ -1026,25 +1026,29 @@ changes (a search, a chip). Rebuilding on every tick re-decoded 175 pictures
 and the list flashed blank ("checking box triggers autoscroll and reload
 flash"); the test pins node identity across a tick.
 
-### Undo · redo (2026-09-25, Sophie: "undo button in pattern v5")
-Two arrows in the pick row beside the pattern's name, so they are on every
-tab — a tick on PIECES, a drag on TILE and a colour on REPEAT all go back
-from the same two buttons. The page keeps a stack of SNAPSHOTS of what she
-arranges (the items with their keys, the tile, the layout), taken by
-`mark()` at the top of every handler that changes them, BEFORE the change;
-a slider or a typed number names itself (`mark('size')`, `'rot'`,
-`'space'`, `'bg'`) so a run of it within a second is ONE step. Undo pops a
-snapshot and pushes the current one onto the redo pile; a new change after
-an undo clears that pile. The name and the exports are deliberately NOT in
-it — undoing a drag must never rename the pattern — and it is memory only,
-per pattern, per open of the page: the verdict doc keeps the CURRENT state
-exactly as before, and a restore marks every item that differs dirty and
-writes it back through the same save, under its own key, so a removed
-piece comes back on the doc where it was and nothing is orphaned. A spent
-arrow dims rather than disappears (the row never shifts under her); the pick
-row wears `data-nostop`. Eighty steps, then the oldest falls off. The test
-measures every step off the store — seven undos to the start and seven redos
-back — since a button that repaints and writes nothing would look identical.
+### Undo (2026-09-25, Sophie: "undo button in pattern v5")
+One arrow in the pick row beside the pattern's name, so it is on every tab —
+a tick on PIECES, a drag on TILE and a colour on REPEAT all go back from the
+same button. The page keeps a stack of SNAPSHOTS of what she arranges (the
+items with their keys, the tile, the layout), taken by `mark()` at the top
+of every handler that changes them, BEFORE the change; a slider or a typed
+number names itself (`mark('size')`, `'rot'`, `'space'`, `'bg'`) so a run of
+it within a second is ONE step. Undo pops a snapshot and restores it. The
+name and the exports are deliberately NOT in it — undoing a drag must never
+rename the pattern — and it is memory only, per pattern, per open of the
+page: the verdict doc keeps the CURRENT state exactly as before, and a
+restore marks every item that differs dirty and writes it back through the
+same save, under its own key, so a removed piece comes back on the doc where
+it was and nothing is orphaned. Spent, the arrow dims rather than
+disappears (the row never shifts under her); the pick row wears
+`data-nostop`. Eighty steps, then the oldest falls off. The test measures
+every step off the store — seven undos to the start — since a button that
+repaints and writes nothing would look identical.
+**UNDO ONLY — NO REDO.** v6 shipped a redo arrow beside it that she never
+asked for and she had it taken out within the hour ("i said pull in? make it
+a rule" — the rule is *BUILD WHAT SHE NAMED AND NOTHING BESIDE IT* in
+CLAUDE.md's checklist). v7 is undo alone; the test pins that no `#redo`
+exists. If she ever wants a way back from an undo, that is hers to ask for.
 
 ### What the first cut was, so nobody rebuilds it
 A `public/pattern.html` at `/pattern` on tool.css with an iOS tile, merged
