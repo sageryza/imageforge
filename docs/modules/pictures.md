@@ -953,12 +953,19 @@ An item on the tile is `{ piece, x, y, size, rot, flip }`:
   thread (`pattern-notes`, `__compareNotes`) can never overwrite one — the
   2026-09-07 rule, and the page-kit warning that enforces it is part of the
   test. A pattern never saved yet writes its config with its first item.
-- **The export is drawn on the page** — the output image on a canvas at
-  1024 / 2048 / 4096 px per tile width, `toBlob`, POSTed to
-  `/api/drop/upload-file?bundle=Patterns&filename=<name>-<size>-<layout>.png`
-  — so it has a permanent url and the Dump's save link. A 4K export is 16M
-  pixels on the phone; the page says "too big" and suggests 2K if the canvas
-  refuses.
+- **Save to Photos is drawn on the page** (v12, 2026-09-25, Sophie: "i'm
+  confused what is export why diff resolutions · make it go to photos not
+  files · make that a default rule") — ONE button, ONE size: the output image
+  on a canvas at 2048 px per tile width, `toBlob`, a copy POSTed to
+  `/api/drop/upload-file?bundle=Patterns&filename=<name>-2K-<layout>.png`
+  (a permanent url, and the row under the button that saves it again), then
+  the photo library: the `forgeSave` bridge in the app (installed on the
+  Chats web view since the same day — a TestFlight build carries it; until
+  then the share sheet, with Save Image on it), `navigator.share({files})`
+  in Safari, a plain download only on a desktop. `asset-actions.js`'s three
+  roads, in that order. The 1K/2K/4K chips and the Export word are gone;
+  the saved list is buttons, never links into Files. Rule: *SAVE MEANS
+  PHOTOS, NEVER FILES* in CLAUDE.md's checklist.
 - **The pieces are baked in** — `pattern-page.js` reads every ready, unhidden
   doc on `forge-pattern-pieces` (id, name, kind, thumb, cut, w, h — ~300 bytes
   each) and inlines the list; a new piece reaches her through a re-post

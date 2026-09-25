@@ -264,8 +264,8 @@ async function pageHalf() {
   ok((await page.$$eval('h1', els => els.length)) === 1 && (await page.$eval('h1', el => el.firstChild.textContent.trim())) === 'Pattern', 'the title, once, nothing above it');
   ok(await page.$('.cmp-help') !== null, 'the explanation is behind the ?');
   ok((await page.$$eval('input[type=text]', els => els.map(el => el.value + (el.getAttribute('placeholder') || '')).join(''))) === '', 'every text box ships empty, no placeholder');
-  const btn = await page.$eval('#export', el => el.getBoundingClientRect().width);
-  ok(btn < 120, 'the Export button hugs its word (' + Math.round(btn) + 'px)');
+  const btn = await page.$eval('#save', el => el.getBoundingClientRect().width);
+  ok(btn < 160, 'the Save to Photos button hugs its words (' + Math.round(btn) + 'px)');
   const line = await page.$eval('#tabs', el => getComputedStyle(el, '::after').width);
   ok(parseFloat(line) > 60, 'the hairline tab row measured its line (' + line + ')');
   ok(await page.$eval('.pick', el => el.textContent.startsWith('untitled')), 'with nothing stored, a fresh untitled pattern opens');
@@ -406,14 +406,19 @@ async function pageHalf() {
   ok((await page.$eval('#big', el => el.style.backgroundImage)).startsWith('url("data:image/png'), 'the big repeat is painted');
   ok((await page.$('#layout')) === null && (await page.$('#swatches')) === null && (await page.$('#bg')) === null, 'no layout toggle and no colour row — white, grid, for now');
   ok(store().cfg.tile.bg === '#ffffff' && store().cfg.layout.kind === 'grid', 'the config says white and grid');
-  await page.click('.chip[data-s="1K"]');
-  await page.click('#export');
+  ok((await page.$('#sizes')) === null && (await page.$('#export')) === null, 'one Save to Photos button — no size chips, no Export');
+  // headless: no forgeSave bridge and no share sheet, so the save takes the
+  // download road — the anchor click is caught here rather than let loose
+  await page.evaluate(() => { window.__dl = []; document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[download]'); if (a) { window.__dl.push(a.download); e.preventDefault(); } }, true); });
+  await page.click('#save');
   await page.waitForTimeout(1500);
-  ok(drops.length === 1 && drops[0].png && drops[0].len > 1000, 'Export POSTs a real PNG to the Dump (' + (drops[0] && drops[0].len) + ' bytes)');
-  ok(drops[0] && /-1K-grid\.png$/.test(drops[0].q.filename) && drops[0].q.bundle === 'Patterns', 'the file is named by size and layout, in the Patterns album');
-  ok((await page.$$eval('#exports a', els => els.length)) === 1 && (await page.$eval('#exports a', el => el.href)) === 'https://x/drops/f1.png', 'the export is listed as a link');
-  ok(store().cfg.exports.length === 1 && store().cfg.exports[0].W === 1024 && store().cfg.exports[0].H === 1024, 'the export is remembered on the config (a 1K grid is 1024 square)');
-  ok(!(await page.$eval('#export', el => el.disabled)), 'Export is back on');
+  ok(drops.length === 1 && drops[0].png && drops[0].len > 1000, 'Save POSTs a real PNG copy to the Dump first (' + (drops[0] && drops[0].len) + ' bytes)');
+  ok(drops[0] && /-2K-grid\.png$/.test(drops[0].q.filename) && drops[0].q.bundle === 'Patterns', 'the copy is named by size and layout, in the Patterns album');
+  ok((await page.evaluate(() => window.__dl)).length === 1, 'with no bridge and no share sheet, the picture is handed over as a file (the desktop road) — never a link into Files');
+  ok((await page.$$eval('#exports a', els => els.length)) === 0 && (await page.$$eval('#exports button', els => els.length)) === 1, 'the saved list is a row of save-again taps, not links');
+  ok(store().cfg.exports.length === 1 && store().cfg.exports[0].W === 2048 && store().cfg.exports[0].H === 2048, 'the copy is remembered on the config (2K is 2048 square)');
+  ok(!(await page.$eval('#save', el => el.disabled)), 'Save is back on');
+  ok(/saved/.test(await page.$eval('#repmsg', el => el.textContent)), 'and it says saved');
   await shot('4-repeat');
 
   // a name, then reopen: the tab and the pattern come back from the store

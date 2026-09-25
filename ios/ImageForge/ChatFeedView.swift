@@ -68,6 +68,13 @@ private struct ChatFeedWebView: UIViewRepresentable {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
+        // SAVE MEANS PHOTOS, here too (2026-09-25, Sophie, on the Pattern
+        // page's export landing in Files: "make it go to photos not files ·
+        // make that a default rule"). A Compare page opens inside this web
+        // view, and a message handler reaches every frame of it — so the
+        // Pattern page's Save to Photos, and any page's, writes to the photo
+        // library through the one shared bridge instead of the share sheet.
+        context.coordinator.saveHandler = ForgeSaveBridge.install(into: config)
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
         web.uiDelegate = context.coordinator
@@ -119,6 +126,8 @@ private struct ChatFeedWebView: UIViewRepresentable {
             ForgeWebRevive.shared.terminated(webView)
         }
         let parent: ChatFeedWebView
+        /// `addScriptMessageHandler` does not retain — the coordinator does.
+        var saveHandler: ForgeSaveHandler?
         private var screenChangeObserver: NSObjectProtocol?
         init(_ parent: ChatFeedWebView) { self.parent = parent }
 
