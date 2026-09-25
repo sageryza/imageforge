@@ -31,12 +31,13 @@
   border:1px solid var(--line); border-radius:6px; padding:6px 10px; max-width:70%;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
 .pick i{ font-style:normal; color:var(--ink2); margin-left:6px; }
-/* undo · redo ride the pick row, so they are on every tab — a tick on
-   PIECES, a drag on TILE and a colour on REPEAT all go back from the same
-   two buttons (2026-09-25, Sophie: "undo button in pattern v5"). A spent
-   one dims rather than disappears, so the row never shifts under her. */
+/* UNDO rides the pick row, so it is on every tab — a tick on PIECES, a
+   drag on TILE and a colour on REPEAT all go back from the same button
+   (2026-09-25, Sophie: "undo button in pattern v5"). Undo ONLY: v6 pulled
+   a redo in beside it and she had it taken out the same hour ("i said pull
+   in? make it a rule"). Spent, it dims rather than disappears, so the row
+   never shifts under her. */
 .pickrow .sq{ margin-left:auto; }
-.pickrow .sq + .sq{ margin-left:0; }
 .sq[disabled]{ opacity:.35; cursor:default; }
 .acctabs{ position:relative; display:flex; border-bottom:1px solid var(--line); margin:0 0 10px; padding-right:64px; }
 .acctab{ flex:1 1 0; min-width:0; padding:8px 4px 10px; border:none; background:none; cursor:pointer; border-radius:0;
@@ -119,8 +120,7 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
 <div class="wrap">
   <h1>Pattern</h1>
   <div class="pickrow" data-nostop><button class="pick" id="pick"></button>
-    <button class="sq" id="undo" aria-label="Undo" disabled></button>
-    <button class="sq" id="redo" aria-label="Redo" disabled></button></div>
+    <button class="sq" id="undo" aria-label="Undo" disabled></button></div>
 
   <div class="acctabs" id="tabs">
     <button class="acctab on" data-t="0">Pieces</button>
@@ -213,13 +213,11 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
     x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
     undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>',
-    redo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"/></svg>',
   };
   $('searchico').innerHTML = LUCIDE.search;
   $('flip').innerHTML = LUCIDE.flip;
   $('remove').innerHTML = LUCIDE.x;
   $('undo').innerHTML = LUCIDE.undo;
-  $('redo').innerHTML = LUCIDE.redo;
 
   window.__compareHelp({ html: '<b>Pieces</b> — tap an animal or a fruit to put it in the pattern; tap again to take it out. '
     + 'Each one is cut roughly around with its paper kept, like scissors. A new one is a chat’s job: ask, and it is drawn and put on the list.<br><br>'
@@ -228,7 +226,7 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
     + '<b>Spin</b> turns every piece a little, at random, within the degrees you set. A piece hanging off one edge comes back in on the other, '
     + 'which is what makes the repeat seamless.<br><br>'
     + '<b>Repeat</b> — how it looks tiled. Grid, half-drop or mirror; the colour behind; <b>Export</b> draws one seamless PNG and files it in the Dump. '
-    + 'Everything saves itself as you go. The two arrows by the pattern’s name <b>undo</b> and <b>redo</b> the last change — a tick, a drag, a turn, a spin, the spacing, the layout, the colour — as far back as this open of the page.' });
+    + 'Everything saves itself as you go. The arrow by the pattern’s name <b>undoes</b> the last change — a tick, a drag, a turn, a spin, the spacing, the layout, the colour — as far back as this open of the page.' });
   window.__compareNotes({ chat: CHAT, sheet: SHEET + '-notes' });
 
   // ── state ──
@@ -299,7 +297,8 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
   }
   function touchAll() { (pattern.items || []).forEach(function (it) { dirtyItems[it.k] = 1; }); touch(); }
 
-  // ── undo · redo (2026-09-25, Sophie: "undo button in pattern v5") ──
+  // ── undo (2026-09-25, Sophie: "undo button in pattern v5" — and ONLY undo:
+  // "i said pull in? make it a rule", on the redo v6 put beside it) ──
   // A stack of SNAPSHOTS of what she arranges — the items, the tile, the
   // layout — taken BEFORE each change (`mark()` at the top of every handler
   // that touches them). A slider or a typed number is a run of tiny changes,
@@ -310,7 +309,7 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
   // and a restore writes every item that differs back through the same
   // save (an item's key rides in the snapshot, so a removed piece comes back
   // under its own key and nothing on the doc is orphaned).
-  var hist = [], redos = [], HIST_MAX = 80, markTag = '', markAt = 0;
+  var hist = [], HIST_MAX = 80, markTag = '', markAt = 0;
   function snap() {
     return JSON.stringify({ tile: pattern.tile, layout: pattern.layout,
       items: pattern.items.map(function (it) { return { k: it.k, piece: it.piece, x: it.x, y: it.y, size: it.size, rot: it.rot, flip: !!it.flip }; }) });
@@ -321,7 +320,7 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
     if (tag && tag === markTag && now - markAt < 1000) { markAt = now; return; }
     markTag = tag || ''; markAt = now;
     hist.push(snap()); if (hist.length > HIST_MAX) hist.shift();
-    redos = []; syncUndo();
+    syncUndo();
   }
   function restore(s) {
     var c = JSON.parse(s);
@@ -334,12 +333,10 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
     $('space').value = pattern.tile.w;
     setLayoutUI(); setBgUI(); sizeCanvas(); changed(); syncTicks();
   }
-  function undo() { if (!hist.length) return; redos.push(snap()); restore(hist.pop()); markTag = ''; syncUndo(); }
-  function redo() { if (!redos.length) return; hist.push(snap()); restore(redos.pop()); markTag = ''; syncUndo(); }
-  function syncUndo() { $('undo').disabled = !hist.length; $('redo').disabled = !redos.length; }
-  function resetHistory() { hist = []; redos = []; markTag = ''; syncUndo(); }
+  function undo() { if (!hist.length) return; restore(hist.pop()); markTag = ''; syncUndo(); }
+  function syncUndo() { $('undo').disabled = !hist.length; }
+  function resetHistory() { hist = []; markTag = ''; syncUndo(); }
   $('undo').addEventListener('click', undo);
-  $('redo').addEventListener('click', redo);
 
   // ── pieces ──
   function dims() {

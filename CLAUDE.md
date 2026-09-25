@@ -272,6 +272,19 @@ still every time the work wraps up.
    wrap-up for the archive row). Anything still open → stay live and say what
    it is. Full rule: *A BUG-FIX CHAT PUTS ITSELF AWAY* in the Chats section.
 
+**BUILD WHAT SHE NAMED AND NOTHING BESIDE IT (2026-09-25, Sophie, after
+"undo button in pattern v5" came back as undo AND redo: "i said pull in? make
+it a rule").** The thing she asked for is the whole deliverable. A feature
+she did not name is never pulled in with it — not its obvious companion (a
+redo beside an undo, a clear beside a fill), not a "while I'm in there" fix,
+not the control that would make the new one "complete". The redo was
+reasonable, cost nothing and was taken out the same hour, because the
+problem is not the feature, it is that she now has to read, judge and
+sometimes undo work she never ordered, in every chat. If the companion
+really matters, it is ONE line in the reply offering it, and her word puts it
+in. Same shape as the two rules under it: a picture is not drawn unless she
+says, a size is not changed without asking.
+
 **NOTHING IS DRAWN OR ANIMATED UNLESS SHE SAYS TO MAKE IT (2026-09-05,
 Sophie: "images and movies should not be made unless i specifically say
 to").** "Use up the credits" is a reason, not a go; "pull the stills" is
@@ -3711,11 +3724,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
   headless against a stubbed verdict store and Dump: a drag moves the saved
   x/y by exactly the drag, Export POSTs a real PNG). **Full details:
   `docs/modules/pictures.md` (Pattern).**
-  **UNDO · REDO SINCE v6 (2026-09-25, Sophie: "undo button in pattern v5")**:
-  two arrows in the pick row, on every tab; snapshots of the items, tile and
-  layout taken before each change (a slider run within a second is one step),
-  memory only, per open; the name and exports stay out of it. `docs/modules/
-  pictures.md` (Undo · redo).
+  **UNDO SINCE v6 — AND ONLY UNDO SINCE v7 (2026-09-25, Sophie: "undo button
+  in pattern v5", then on the redo v6 pulled in beside it: "i said pull in?
+  make it a rule")**: one arrow in the pick row, on every tab; snapshots of
+  the items, tile and layout taken before each change (a slider run within a
+  second is one step), memory only, per open; the name and exports stay out
+  of it; NO redo. `docs/modules/pictures.md` (Undo).
   **AND A PIECE'S SIZE ON A TILE IS NEVER CHANGED WITHOUT ASKING (2026-09-23,
   Sophie, after a re-lay at two across made every picture bigger: "never
   change size without asking").** A re-lay she asked for changes ONLY what she
