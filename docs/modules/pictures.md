@@ -934,7 +934,7 @@ An item on the tile is `{ piece, x, y, size, rot, flip }`:
   typed number, −15/+15 step it, **Spin** turns every piece at random within
   the ± she sets (seeded by the tap, so twice is two spins);
 - **how far apart** — the tile's size against the pieces': `x`,`y` are
-  FRACTIONS of the tile, so the **spacing** slider (tile side 500–2500 units)
+  FRACTIONS of the tile, so the **spacing** notches (tile side 600–3000 units, five stops since v9)
   spreads every repeat without moving anything's place;
 - **where they go** — drag on the canvas; **Scatter** deals every piece a
   NEW random spot on each tap (2026-09-25, Sophie: "can u make it do a new
@@ -1031,29 +1031,42 @@ changes (a search, a chip). Rebuilding on every tick re-decoded 175 pictures
 and the list flashed blank ("checking box triggers autoscroll and reload
 flash"); the test pins node identity across a tick.
 
-### Undo (2026-09-25, Sophie: "undo button in pattern v5")
-One arrow in the pick row beside the pattern's name, so it is on every tab —
-a tick on PIECES, a drag on TILE and a colour on REPEAT all go back from the
-same button. The page keeps a stack of SNAPSHOTS of what she arranges (the
-items with their keys, the tile, the layout), taken by `mark()` at the top
-of every handler that changes them, BEFORE the change; a slider or a typed
-number names itself (`mark('size')`, `'rot'`, `'space'`, `'bg'`) so a run of
-it within a second is ONE step. Undo pops a snapshot and restores it. The
-name and the exports are deliberately NOT in it — undoing a drag must never
-rename the pattern — and it is memory only, per pattern, per open of the
-page: the verdict doc keeps the CURRENT state exactly as before, and a
-restore marks every item that differs dirty and writes it back through the
-same save, under its own key, so a removed piece comes back on the doc where
-it was and nothing is orphaned. Spent, the arrow dims rather than
-disappears (the row never shifts under her); the pick row wears
-`data-nostop`. Eighty steps, then the oldest falls off. The test measures
-every step off the store — seven undos to the start — since a button that
-repaints and writes nothing would look identical.
-**UNDO ONLY — NO REDO.** v6 shipped a redo arrow beside it that she never
-asked for and she had it taken out within the hour ("i said pull in? make it
-a rule" — the rule is *BUILD WHAT SHE NAMED AND NOTHING BESIDE IT* in
-CLAUDE.md's checklist). v7 is undo alone; the test pins that no `#redo`
-exists. If she ever wants a way back from an undo, that is hers to ask for.
+### Her second look — v9 (2026-09-25)
+Sophie, with v8 open: "can i have clear notches to click instead of a slider
+· keep redo · for now let's do default white no other colors · and no half
+drop mirror toggle · i might like a reset to default · size and spin" — and
+on where the page lives: "i meant pull to ur chat · make it a rule".
+- **Undo · redo** — two arrows in the pick row beside the pattern's name, so
+  they are on every tab. A stack of SNAPSHOTS of what she arranges (the items
+  with their keys, the tile, the layout), taken by `mark()` at the top of
+  every handler that changes them, BEFORE the change; a typed number or the
+  size slider names itself (`mark('size')`, `'rot'`) so a run within a
+  second is ONE step. Undo pops one onto the redo pile; a new change clears
+  that pile. The name and the exports are deliberately NOT in it, and it is
+  memory only, per pattern, per open: the verdict doc keeps the CURRENT state
+  as before, and a restore marks every differing item dirty and writes it
+  back under its own key, so a removed piece comes back where it was. A
+  spent arrow dims rather than disappears. Eighty steps. (v7 briefly had undo
+  alone, on a misreading of "i said pull in?" — she meant the chat, and said
+  "keep redo".)
+- **Spacing is five notches** (`#spaces`, tile sides 600 · 1000 · 1600 ·
+  2200 · 3000, labelled 1–5), a tap each; a stored size between two lights
+  the nearer one; each tap is one undo step. No slider.
+- **Reset** (beside Spin and Scatter) puts every piece at `DEFAULT_SIZE`
+  with no turn; places and flips stay; one undo step.
+- **White and grid only, for now.** No colour row, no layout toggle;
+  `DEFAULT_TILE.bg` is `#ffffff`, and a pattern saved under an older
+  version with another colour or layout is written back to white and grid
+  when it opens. The half-drop and mirror arithmetic is untouched in
+  `pattern-plan.js` and `pattern.js` (the tests still pin it) — the page
+  just never asks for it. Hers to bring back.
+- **The page is posted into the chat she asked in** — `pattern-page.js
+  --chat <slug>`; `__CHAT__` (where her notes land) and `__STORE_CHAT__`
+  (whose verdict doc holds her patterns — `STORE_CHAT`, never changes) are
+  two markers now, so the page can move between chats and open on the same
+  patterns. The ledger line carries the chat.
+The test measures every step off the store (seven undos to the start, seven
+redos back, the notch and the reset as single steps, Reset moving nothing).
 
 ### What the first cut was, so nobody rebuilds it
 A `public/pattern.html` at `/pattern` on tool.css with an iOS tile, merged

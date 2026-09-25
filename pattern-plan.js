@@ -30,7 +30,7 @@
   'use strict';
 
   var LAYOUTS = ['grid', 'half', 'mirror'];
-  var DEFAULT_TILE = { w: 1000, h: 1000, bg: '#faf6ee' };
+  var DEFAULT_TILE = { w: 1000, h: 1000, bg: '#ffffff' };   // white (2026-09-25, Sophie: "default white no other colors")
   var DEFAULT_SIZE = 280;
 
   function num(v, d) { var n = Number(v); return Number.isFinite(n) ? n : d; }
