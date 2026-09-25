@@ -31,6 +31,13 @@
   border:1px solid var(--line); border-radius:6px; padding:6px 10px; max-width:70%;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
 .pick i{ font-style:normal; color:var(--ink2); margin-left:6px; }
+/* undo · redo ride the pick row, so they are on every tab — a tick on
+   PIECES, a drag on TILE and a colour on REPEAT all go back from the same
+   two buttons (2026-09-25, Sophie: "undo button in pattern v5"). A spent
+   one dims rather than disappears, so the row never shifts under her. */
+.pickrow .sq{ margin-left:auto; }
+.pickrow .sq + .sq{ margin-left:0; }
+.sq[disabled]{ opacity:.35; cursor:default; }
 .acctabs{ position:relative; display:flex; border-bottom:1px solid var(--line); margin:0 0 10px; padding-right:64px; }
 .acctab{ flex:1 1 0; min-width:0; padding:8px 4px 10px; border:none; background:none; cursor:pointer; border-radius:0;
   font:inherit; font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:var(--ink2); }
@@ -111,7 +118,9 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
 <body>
 <div class="wrap">
   <h1>Pattern</h1>
-  <div class="pickrow"><button class="pick" id="pick"></button></div>
+  <div class="pickrow" data-nostop><button class="pick" id="pick"></button>
+    <button class="sq" id="undo" aria-label="Undo" disabled></button>
+    <button class="sq" id="redo" aria-label="Redo" disabled></button></div>
 
   <div class="acctabs" id="tabs">
     <button class="acctab on" data-t="0">Pieces</button>
@@ -203,10 +212,14 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
     flip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><path d="M12 20v2"/><path d="M12 14v2"/><path d="M12 8v2"/><path d="M12 2v2"/></svg>',
     x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
+    undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>',
+    redo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"/></svg>',
   };
   $('searchico').innerHTML = LUCIDE.search;
   $('flip').innerHTML = LUCIDE.flip;
   $('remove').innerHTML = LUCIDE.x;
+  $('undo').innerHTML = LUCIDE.undo;
+  $('redo').innerHTML = LUCIDE.redo;
 
   window.__compareHelp({ html: '<b>Pieces</b> — tap an animal or a fruit to put it in the pattern; tap again to take it out. '
     + 'Each one is cut roughly around with its paper kept, like scissors. A new one is a chat’s job: ask, and it is drawn and put on the list.<br><br>'
@@ -215,7 +228,7 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
     + '<b>Spin</b> turns every piece a little, at random, within the degrees you set. A piece hanging off one edge comes back in on the other, '
     + 'which is what makes the repeat seamless.<br><br>'
     + '<b>Repeat</b> — how it looks tiled. Grid, half-drop or mirror; the colour behind; <b>Export</b> draws one seamless PNG and files it in the Dump. '
-    + 'Everything saves itself as you go.' });
+    + 'Everything saves itself as you go. The two arrows by the pattern’s name <b>undo</b> and <b>redo</b> the last change — a tick, a drag, a turn, a spin, the spacing, the layout, the colour — as far back as this open of the page.' });
   window.__compareNotes({ chat: CHAT, sheet: SHEET + '-notes' });
 
   // ── state ──
@@ -286,6 +299,48 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
   }
   function touchAll() { (pattern.items || []).forEach(function (it) { dirtyItems[it.k] = 1; }); touch(); }
 
+  // ── undo · redo (2026-09-25, Sophie: "undo button in pattern v5") ──
+  // A stack of SNAPSHOTS of what she arranges — the items, the tile, the
+  // layout — taken BEFORE each change (`mark()` at the top of every handler
+  // that touches them). A slider or a typed number is a run of tiny changes,
+  // so a continuous control names itself (`mark('size')`) and its run within
+  // a second is ONE step. The name and the exports are deliberately not in
+  // it: undoing a drag must never rename the pattern. Memory only, per
+  // pattern, per open — the store keeps the CURRENT state, as it always did,
+  // and a restore writes every item that differs back through the same
+  // save (an item's key rides in the snapshot, so a removed piece comes back
+  // under its own key and nothing on the doc is orphaned).
+  var hist = [], redos = [], HIST_MAX = 80, markTag = '', markAt = 0;
+  function snap() {
+    return JSON.stringify({ tile: pattern.tile, layout: pattern.layout,
+      items: pattern.items.map(function (it) { return { k: it.k, piece: it.piece, x: it.x, y: it.y, size: it.size, rot: it.rot, flip: !!it.flip }; }) });
+  }
+  function mark(tag) {
+    if (!pattern) return;
+    var now = Date.now();
+    if (tag && tag === markTag && now - markAt < 1000) { markAt = now; return; }
+    markTag = tag || ''; markAt = now;
+    hist.push(snap()); if (hist.length > HIST_MAX) hist.shift();
+    redos = []; syncUndo();
+  }
+  function restore(s) {
+    var c = JSON.parse(s);
+    var was = pattern.items;
+    pattern.tile = P.tileOf({ tile: c.tile }); pattern.layout = { kind: P.layoutOf({ layout: c.layout }) }; pattern.items = c.items;
+    was.forEach(function (it) { dirtyItems[it.k] = 1; });
+    pattern.items.forEach(function (it) { dirtyItems[it.k] = 1; imgFor(it.piece); });
+    touch();
+    if (sel && !pattern.items.some(function (it) { return it.k === sel; })) sel = null;
+    $('space').value = pattern.tile.w;
+    setLayoutUI(); setBgUI(); sizeCanvas(); changed(); syncTicks();
+  }
+  function undo() { if (!hist.length) return; redos.push(snap()); restore(hist.pop()); markTag = ''; syncUndo(); }
+  function redo() { if (!redos.length) return; hist.push(snap()); restore(redos.pop()); markTag = ''; syncUndo(); }
+  function syncUndo() { $('undo').disabled = !hist.length; $('redo').disabled = !redos.length; }
+  function resetHistory() { hist = []; redos = []; markTag = ''; syncUndo(); }
+  $('undo').addEventListener('click', undo);
+  $('redo').addEventListener('click', redo);
+
   // ── pieces ──
   function dims() {
     var d = {};
@@ -353,6 +408,7 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
     togglePiece(b.dataset.id);
   });
   function togglePiece(id) {
+    mark();
     var items = pattern.items;
     if (inPattern(id)) {
       items.filter(function (it) { return it.piece === id; }).forEach(function (it) { dirtyItems[it.k] = 1; });
@@ -381,7 +437,7 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
     return patterns[id];
   }
   function usePattern(p) {
-    pattern = p; sel = null;
+    pattern = p; sel = null; resetHistory();
     try { localStorage.setItem('pattern.cur', p.id); } catch (e) { /* private mode */ }
     $('pick').innerHTML = esc(p.name || 'untitled') + '<i>▾</i>';
     $('pname').value = p.name || '';
@@ -535,6 +591,7 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
     var u = unitsOf(e), it = item(drag.k); if (!it) return;
     var dx = (u.x - drag.x0) / pattern.tile.w, dy = (u.y - drag.y0) / pattern.tile.h;
     if (!drag.moved && Math.hypot(u.x - drag.x0, u.y - drag.y0) < 4) return;
+    if (!drag.moved) mark();
     drag.moved = true;
     it.x = wrap(drag.ix + dx); it.y = wrap(drag.iy + dy);
     paint();
@@ -553,35 +610,40 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
     $('size').value = it.size;
     $('flip').classList.toggle('on', !!it.flip);
   }
-  function setRot(v) { var it = item(sel); if (!it) return; it.rot = ((Math.round(Number(v) || 0) % 360) + 360) % 360; touch(it.k); changed(); }
-  $('rot').addEventListener('input', function () { setRot($('rot').value); });
+  function setRot(v, tag) { var it = item(sel); if (!it) return; mark(tag); it.rot = ((Math.round(Number(v) || 0) % 360) + 360) % 360; touch(it.k); changed(); }
+  $('rot').addEventListener('input', function () { setRot($('rot').value, 'rot'); });
   $('rotm').addEventListener('click', function () { var it = item(sel); if (it) setRot(it.rot - 15); });
   $('rotp').addEventListener('click', function () { var it = item(sel); if (it) setRot(it.rot + 15); });
-  $('size').addEventListener('input', function () { var it = item(sel); if (!it) return; it.size = Number($('size').value); touch(it.k); changed(); });
-  $('flip').addEventListener('click', function () { var it = item(sel); if (!it) return; it.flip = !it.flip; touch(it.k); changed(); });
+  $('size').addEventListener('input', function () { var it = item(sel); if (!it) return; mark('size'); it.size = Number($('size').value); touch(it.k); changed(); });
+  $('flip').addEventListener('click', function () { var it = item(sel); if (!it) return; mark(); it.flip = !it.flip; touch(it.k); changed(); });
   $('again').addEventListener('click', function () {
     var it = item(sel); if (!it) return;
+    mark();
     var at = P.freeSpot(pattern.items);
     var copy = { k: key(), piece: it.piece, x: at.x, y: at.y, size: it.size, rot: it.rot, flip: it.flip };
     pattern.items.push(copy); sel = copy.k; touch(copy.k); changed();
   });
   $('remove').addEventListener('click', function () {
     if (!sel) return;
+    mark();
     var k = sel;
     pattern.items = pattern.items.filter(function (it) { return it.k !== k; });
     sel = null; touch(k); changed(); syncTicks();
   });
   $('space').addEventListener('input', function () {
     var v = Number($('space').value);
+    mark('space');
     pattern.tile.w = v; pattern.tile.h = v;
     touch(); sizeCanvas(); changed();
   });
   $('spin').addEventListener('click', function () {
+    mark();
     var rots = P.spin(pattern.items, Number($('spread').value), Date.now());
     pattern.items.forEach(function (it, i) { it.rot = rots[i]; });
     touchAll(); changed();
   });
   $('scatter').addEventListener('click', function () {
+    mark();
     var at = P.scatter(pattern.items.length);
     pattern.items.forEach(function (it, i) { it.x = at[i].x; it.y = at[i].y; });
     touchAll(); changed();
@@ -598,6 +660,7 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
     var cur = P.LAYOUTS.indexOf(pattern.layout.kind);
     var next = window.triNext($('layout'), P.LAYOUTS.length, e, cur);
     if (next === cur) return;
+    mark();
     pattern.layout = { kind: P.LAYOUTS[next] };
     setLayoutUI(); touch(); changed();
   });
@@ -607,10 +670,10 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
   }
   SWATCHES.forEach(function (c) {
     var b = document.createElement('button'); b.className = 'sw'; b.dataset.c = c; b.style.background = c; b.setAttribute('aria-label', c);
-    b.addEventListener('click', function () { pattern.tile.bg = c; setBgUI(); touch(); changed(); });
+    b.addEventListener('click', function () { mark(); pattern.tile.bg = c; setBgUI(); touch(); changed(); });
     $('swatches').appendChild(b);
   });
-  $('bg').addEventListener('input', function () { pattern.tile.bg = $('bg').value.toLowerCase(); setBgUI(); touch(); changed(); });
+  $('bg').addEventListener('input', function () { mark('bg'); pattern.tile.bg = $('bg').value.toLowerCase(); setBgUI(); touch(); changed(); });
   $('sizes').addEventListener('click', function (e) {
     var b = e.target.closest('.chip'); if (!b) return;
     exportSize = b.dataset.s;

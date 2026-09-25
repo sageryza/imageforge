@@ -3711,6 +3711,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
   headless against a stubbed verdict store and Dump: a drag moves the saved
   x/y by exactly the drag, Export POSTs a real PNG). **Full details:
   `docs/modules/pictures.md` (Pattern).**
+  **UNDO · REDO SINCE v6 (2026-09-25, Sophie: "undo button in pattern v5")**:
+  two arrows in the pick row, on every tab; snapshots of the items, tile and
+  layout taken before each change (a slider run within a second is one step),
+  memory only, per open; the name and exports stay out of it. `docs/modules/
+  pictures.md` (Undo · redo).
   **AND A PIECE'S SIZE ON A TILE IS NEVER CHANGED WITHOUT ASKING (2026-09-23,
   Sophie, after a re-lay at two across made every picture bigger: "never
   change size without asking").** A re-lay she asked for changes ONLY what she
