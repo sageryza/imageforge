@@ -936,8 +936,13 @@ An item on the tile is `{ piece, x, y, size, rot, flip }`:
 - **how far apart** — the tile's size against the pieces': `x`,`y` are
   FRACTIONS of the tile, so the **spacing** slider (tile side 500–2500 units)
   spreads every repeat without moving anything's place;
-- **where they go** — drag on the canvas; **Scatter** is an even staggered
-  grid to start from; **+** adds another of the selected piece at the freest
+- **where they go** — drag on the canvas; **Scatter** deals every piece a
+  NEW random spot on each tap (2026-09-25, Sophie: "can u make it do a new
+  random placement … every time") — `scatter(n, seed)`: the even staggered
+  grid with each spot jittered inside its own cell (±35% of the cell, so two
+  pieces never pile up) and the cells dealt out in a random order, seeded by
+  the tap like Spin; with no seed it is the plain grid, which is what
+  `freeSpot` reads; **+** adds another of the selected piece at the freest
   spot (the torus distance, since the tile wraps).
 
 ### No deploy, by construction

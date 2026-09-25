@@ -223,7 +223,7 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
     + 'Each one is cut roughly around with its paper kept, like scissors. A new one is a chat’s job: ask, and it is drawn and put on the list.<br><br>'
     + '<b>Tile</b> — one square that repeats. Drag a piece where you want it; the degrees box turns it, the size slider sizes it, '
     + '<b>+</b> adds another of the same. <b>Spacing</b> grows the square under everything so the repeats land farther apart. '
-    + '<b>Spin</b> turns every piece a little, at random, within the degrees you set. A piece hanging off one edge comes back in on the other, '
+    + '<b>Spin</b> turns every piece a little, at random, within the degrees you set; <b>Scatter</b> deals every piece a new spot, spread out so nothing piles up — tap either again for another go. A piece hanging off one edge comes back in on the other, '
     + 'which is what makes the repeat seamless.<br><br>'
     + '<b>Repeat</b> — how it looks tiled. Grid, half-drop or mirror; the colour behind; <b>Export</b> draws one seamless PNG and files it in the Dump. '
     + 'Everything saves itself as you go. The arrow by the pattern’s name <b>undoes</b> the last change — a tick, a drag, a turn, a spin, the spacing, the layout, the colour — as far back as this open of the page.' });
@@ -641,7 +641,7 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
   });
   $('scatter').addEventListener('click', function () {
     mark();
-    var at = P.scatter(pattern.items.length);
+    var at = P.scatter(pattern.items.length, Date.now());   // a new placement every tap
     pattern.items.forEach(function (it, i) { it.x = at[i].x; it.y = at[i].y; });
     touchAll(); changed();
   });

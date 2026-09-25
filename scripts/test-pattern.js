@@ -58,7 +58,12 @@ function ok(c, msg) { if (c) { pass++; } else { failed++; console.log('  ✗ ' +
   ok(it.rot === 330 && it.size === 20 && it.x === 1.5, 'an item’s numbers are normalised');
   const sc = P.scatter(6);
   ok(sc.length === 6 && sc.every(s => s.x >= 0 && s.x < 1 && s.y > 0 && s.y < 1), 'scatter places n inside the tile');
-  ok(sc[0].y === sc[1].y && sc[3].y !== sc[0].y && sc[3].x !== sc[0].x, 'scatter is rows, the second row staggered');
+  ok(sc[0].y === sc[1].y && sc[3].y !== sc[0].y && sc[3].x !== sc[0].x, 'scatter with no seed is rows, the second row staggered');
+  const sa = P.scatter(6, 7), sb = P.scatter(6, 8);
+  ok(sa.every(s => s.x >= 0 && s.x < 1 && s.y >= 0 && s.y < 1), 'a seeded scatter stays inside the tile');
+  ok(JSON.stringify(sa) !== JSON.stringify(sb) && JSON.stringify(sa) === JSON.stringify(P.scatter(6, 7)), 'two seeds are two placements; the same seed is the same one');
+  const minD = Math.min(...sa.flatMap((p, i) => sa.slice(i + 1).map(q => { const dx = Math.min(Math.abs(p.x - q.x), 1 - Math.abs(p.x - q.x)), dy = Math.min(Math.abs(p.y - q.y), 1 - Math.abs(p.y - q.y)); return Math.hypot(dx, dy); })));
+  ok(minD > 0.1, 'a seeded scatter never piles two pieces up (nearest pair ' + minD.toFixed(3) + ' of the tile apart)');
   const fs1 = P.freeSpot([{ x: 0.25, y: 0.5 }]);
   ok(Math.abs(fs1.x - 0.75) < 1e-9, 'the free spot is the far side of one placed item');
   const spun = P.spin([{ rot: 0 }, { rot: 90 }, { rot: 180 }], 20, 42);
@@ -334,6 +339,13 @@ async function pageHalf() {
   await page.waitForTimeout(700);
   st = store();
   ok(st.items.every((it, i) => { const was = [0, 200, 200][i]; const d = ((it.rot - was) % 360 + 540) % 360 - 180; return Math.abs(d) <= 20; }), 'spin keeps every piece within ±20 of where it was');
+  await page.click('#scatter'); await page.waitForTimeout(700);
+  const sc1 = store().items.map(it => it.x + ',' + it.y).join('|');
+  await page.waitForTimeout(20);
+  await page.click('#scatter'); await page.waitForTimeout(700);
+  const sc2 = store().items.map(it => it.x + ',' + it.y).join('|');
+  ok(sc1 !== sc2, 'two taps on Scatter are two placements');
+  await page.click('#undo'); await page.click('#undo'); await page.waitForTimeout(700);
   await page.click('#remove');
   await page.waitForTimeout(700);
   st = store();

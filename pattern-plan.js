@@ -140,7 +140,13 @@
 
   /** Even places for n items on a tile: a staggered grid, every other row
    *  shifted half a column, so nothing lines up in a stripe. Fractions. */
-  function scatter(n) {
+  /** n spots on the tile, as fractions. With NO seed: an even staggered
+   *  grid (what freeSpot reads). With a seed: a NEW random placement — each
+   *  spot jittered within its own cell so nothing piles up, and the cells
+   *  dealt out in a random order so which piece lands where changes too
+   *  (2026-09-25, Sophie: "can u make it do a new random placement … every
+   *  time"). The same seed is the same scatter, so a test can pin one. */
+  function scatter(n, seed) {
     n = Math.max(0, n | 0);
     if (!n) return [];
     var cols = Math.ceil(Math.sqrt(n));
@@ -150,6 +156,17 @@
       var c = i % cols, r = Math.floor(i / cols);
       var x = (c + 0.5 + (r % 2 ? 0.5 : 0)) / cols;
       out.push({ x: x - Math.floor(x), y: (r + 0.5) / rows });
+    }
+    if (seed == null) return out;
+    var s = (num(seed, 1) * 9301 + 49297) % 233280;
+    function rnd() { s = (s * 9301 + 49297) % 233280; return s / 233280; }
+    var jx = 0.35 / cols, jy = 0.35 / rows;
+    out = out.map(function (p) {
+      var x = p.x + (rnd() * 2 - 1) * jx, y = p.y + (rnd() * 2 - 1) * jy;
+      return { x: x - Math.floor(x), y: y - Math.floor(y) };
+    });
+    for (var k = out.length - 1; k > 0; k--) {
+      var j = Math.floor(rnd() * (k + 1)); var t = out[k]; out[k] = out[j]; out[j] = t;
     }
     return out;
   }
