@@ -789,6 +789,19 @@
         height:15px;padding:0 4px;border-radius:5px;font-size:10px;line-height:13px;color:#fff;
         background:rgba(20,17,14,.55);border:1px solid rgba(255,255,255,.28)}
   #tiles .tnote:empty{display:none}
+  /* NOT WATCHED YET — A DOT ON A FINISHED CLIP SHE HAS NOT PLAYED (2026-09-25,
+     Sophie: "i forget which ive watched" · "maybe do an unwatched symbol
+     instead"). The Chats app's own unread dot, top-right of the tile, gone the
+     moment the player opens on the clip; kept on THIS phone (localStorage
+     `footage_seen`). It rides as a CLASS out of the wall's signature like the
+     marks, so playing one never rebuilds a cell. Only clips that finished
+     after this landed on her phone carry it — the hundreds already on the
+     wall would all light up otherwise. The top row gives it room. */
+  #tiles .tnew{position:absolute;top:5px;right:5px;width:10px;height:10px;border-radius:50%;display:none;
+        background:#c25a72;border:1.5px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.35);pointer-events:none}
+  #tiles .cell.new .tnew{display:block}
+  #tiles .cell.new .ttop{right:18px}
+  #tiles .cell.new.short .ttop{right:26px}
   /* BOTH DOORS ARE ON THE TILE (2026-09-10, Sophie: "can u have a play button,
      and a list view button on tiles · so both options are available"). The
      poster itself is NOT a button: with two doors drawn on it, a third
@@ -943,6 +956,10 @@
   .thumb[data-ar="4:3"]{aspect-ratio:4/3;width:112px}
   .thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .thumb svg{width:28px;height:28px;position:relative;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
+  /* the same not-watched dot on the list card's picture */
+  .thumb .tnew{position:absolute;top:5px;right:5px;width:10px;height:10px;border-radius:50%;display:none;
+        background:#c25a72;border:1.5px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.35);pointer-events:none}
+  .thumb.new .tnew{display:block}
   .thumb.drawing{background:#e6dfd2;color:#9a8f7d;animation:br 1.6s ease-in-out infinite}
   @keyframes br{0%,100%{opacity:.55}50%{opacity:1}}
   .jobmain{flex:1;min-width:0}
@@ -5797,6 +5814,51 @@ function shown(j) {
     && !(S.project && S.folder && (j.folder || '') !== S.folder)
     && (mine || (passesSearch(j) && passesFilt(j)));
 }
+// ── NOT WATCHED YET (2026-09-25, Sophie: "i forget which ive watched" ·
+// "maybe do an unwatched symbol instead") ─────────────────────────────────
+// A finished clip she has not played wears a small dot; the dot goes the
+// moment the player opens on it. THIS PHONE'S memory (localStorage): the ids
+// she has played, read once and kept, capped so it can never grow past a few
+// kilobytes — nothing goes to the server, since what she has looked at is
+// not a fact about the clip. And a FLOOR: the first time this page runs on a
+// phone it notes the time, and only a clip finished after that is ever "not
+// watched" — otherwise every clip on the wall would light up at once.
+// Painted as a CLASS from applyFilt, so lighting or clearing one never
+// rebuilds a cell.
+var SEEN_KEY = 'footage_seen', SEEN_SINCE_KEY = 'footage_seen_since', SEEN_CAP = 800;
+var seenMemo = null, seenSince = null;
+function seenIds() {
+  if (seenMemo) return seenMemo;
+  var v; try { v = JSON.parse(localStorage.getItem(SEEN_KEY) || '[]'); } catch (e) { v = null; }
+  seenMemo = Array.isArray(v) ? v.filter(function (x) { return typeof x === 'string'; }) : [];
+  return seenMemo;
+}
+function seenFloor() {
+  if (seenSince != null) return seenSince;
+  var v = NaN; try { v = Number(localStorage.getItem(SEEN_SINCE_KEY)); } catch (e) {}
+  if (!isFinite(v) || v <= 0) { v = Date.now(); try { localStorage.setItem(SEEN_SINCE_KEY, String(v)); } catch (e) {} }
+  seenSince = v;
+  return v;
+}
+function isSeen(id) { return !!id && seenIds().indexOf(id) >= 0; }
+function unwatched(j) {
+  if (!j || j.status !== 'done' || !j.video || isSeen(j.id)) return false;
+  var at = Date.parse(j.doneAt || j.sentAt || '');
+  return isFinite(at) && at >= seenFloor();
+}
+function markSeen(id) {
+  if (!id || isSeen(id)) return;
+  var l = seenIds(); l.push(id);
+  if (l.length > SEEN_CAP) l.splice(0, l.length - SEEN_CAP);
+  try { localStorage.setItem(SEEN_KEY, JSON.stringify(l)); } catch (e) {}
+  paintSeen();
+}
+function paintSeen() {
+  document.querySelectorAll('#tiles .cell').forEach(function (el) { el.classList.toggle('new', unwatched(jobsById[el.dataset.id])); });
+  document.querySelectorAll('#feed .job').forEach(function (el) {
+    var t = el.querySelector('.thumb'); if (t) t.classList.toggle('new', unwatched(jobsById[el.dataset.id]));
+  });
+}
 function applyFilt() {
   var tiles = curView() === 'tiles', any = false;
   document.querySelectorAll('#feed .job').forEach(function (el) {
@@ -5829,6 +5891,7 @@ function applyFilt() {
   });
   if (tiles) paintShortTiles();
   paintStitch();   // a card rebuilt by the poll has a fresh, empty number slot
+  paintSeen();     // and an unlit not-watched dot
   // A CARD FIRST DRAWN WHILE A FILTER HID IT HAS NO "… more" UNTIL SOMETHING
   // RE-ASKS (2026-09-13, found auditing the page — the Playground's own
   // `resyncClamps` lesson, arriving through a filter rather than a view). The
@@ -6309,6 +6372,9 @@ function tileCell(j) {
     // wall's signature like the note and the scissors
     var num = document.createElement('span'); num.className = 'snum';
     c.appendChild(num);
+    // NOT WATCHED YET — lit by paintSeen, out of the signature like the marks
+    var nw = document.createElement('span'); nw.className = 'tnew'; nw.title = 'Not watched yet';
+    c.appendChild(nw);
     // IN STITCH MODE THE WHOLE TILE IS THE PICK (the doors are off then). The
     // marks are siblings that stop their own taps, so a heart is still a heart.
     c.addEventListener('click', function (e) {
@@ -6701,6 +6767,7 @@ function jobCard(j) {
     j.drewMs != null ? 'drew in ' + dur(j.drewMs) : ''].filter(Boolean).join(' · ');
   var thumbInner = j.poster ? '<img src="' + esc(j.poster) + '" alt="">' + ICONS.play : (j.status === 'done' ? ICONS.play : (j.status === 'failed' ? ICONS.x : ''));
   thumbInner += '<span class="snum"></span>';   // stitch mode's number, filled by paintStitch
+  thumbInner += '<span class="tnew" title="Not watched yet"></span>';   // lit by paintSeen
   var html = '<div class="jobrow">' +
     '<button type="button" class="thumb' + (j.status === 'drawing' ? ' drawing' : '') + '" data-ar="' + esc(j.ratio || '') + '" aria-label="Play">' + thumbInner + '</button>' +
     '<div class="jobmain"><div class="pwrap"><div class="p clamp"></div></div>' +
@@ -7552,12 +7619,21 @@ document.addEventListener('visibilitychange', function () {
 //     right part?") — ONE PASS, never a mode: it ends with the clip, and any
 //     mark she moves ends it too.
 //   · ONE CLIP HOLDS SEVERAL PARTS (2026-09-10, Sophie: "re-cut the same
-//     whole clip after I've cut it to also get a second part"). The marks
-//     always open on the WHOLE clip; what she has already cut is the dim
-//     bands on the strip and a row each under it. A row's span puts its marks
-//     back (the next cut REPLACES that part, in its own place in the order)
-//     and its ✕ takes it off — which is the undo, and the only one that can
-//     mean the right part when there are several.
+//     whole clip after I've cut it to also get a second part"). What she has
+//     already cut is the dim bands on the strip and a row each under it. A
+//     row's span puts its marks back (the next cut REPLACES that part, in its
+//     own place in the order) and its ✕ takes it off — which is the undo, and
+//     the only one that can mean the right part when there are several.
+//   · A TRIMMED CLIP OPENS ON ITS PART AND PLAYS JUST THAT (2026-09-25,
+//     Sophie: "change default to play just trimmed part"). The marks open on
+//     the first part she cut — looping it, the way a trim is judged — with
+//     "Whole clip" and "Play it all" right there for the rest; a clip with
+//     nothing cut still opens on the whole. From 09-10 to 09-25 the marks
+//     opened on the WHOLE clip every time (so the next tap was marking a
+//     different bit), and that meant every trimmed clip played its own
+//     off-cuts first. Opening on the part sets NO `editing` — the button
+//     still says Add part, so a second bit is the next tap and re-cutting
+//     part 1 is its row.
 //   · THE BUTTON'S MEANING FOLLOWS THE MARKS: Trim with nothing cut yet, Add
 //     part once something is, Replace while a row is picked, and nothing at
 //     all when the marks span the whole clip. A control that would do nothing
@@ -7633,6 +7709,7 @@ $('pfirst').addEventListener('click', function () { useShot(true); });
 $('pref').addEventListener('click', function () { useShot(false); });
 function openPlayer(url, j, opts) {
   var pl = $('player');
+  if (j && j.id) markSeen(j.id);         // watched — the dot comes off its tile and card
   if (window.__scrollStop) window.__scrollStop();
   savedY = window.scrollY || 0;
   document.body.style.overflow = 'hidden';
@@ -7993,20 +8070,32 @@ function armTrim(j, v) {
   TR = null;
   clearGrab();                       // a frame off the last clip is not on offer for this one
   if (!j) return;
-  // THE MARKS OPEN ON THE WHOLE CLIP, whatever she has already cut
-  // (2026-09-10, Sophie: "re-cut the same whole clip … to also get a second
-  // part"). The parts she has are the dim bands on the strip and the rows
-  // under it, so the natural next tap is marking a DIFFERENT bit; tapping a
-  // part's row is what puts its own marks back for a nudge.
   TR = { j: j, v: v, dur: 0, in: 0, out: 0, parts: jobParts(j), editing: '', all: false };
+  // A TRIMMED CLIP OPENS ON ITS PART (2026-09-25, Sophie: "change default to
+  // play just trimmed part") — the first part she cut, whatever its state
+  // short of failed, so what plays is what she kept. The other parts are the
+  // dim bands and their rows; tapping a row puts ITS marks back. `editing`
+  // stays empty: the next tap is a second bit (Add part), not a Replace.
+  var first = (TR.parts || []).filter(function (t) {
+    return t && t.status !== 'failed' && Number(t.end) > Number(t.start);
+  })[0];
+  if (first) { TR.in = r3(Math.max(Number(first.start) || 0, 0)); TR.out = r3(Number(first.end) || 0); }
   function settle() {
     var d = Number(v.duration);
     if (!isFinite(d) || d <= 0) return;
+    var fresh = !TR.dur;
     TR.dur = r3(d);
     // a mark from a part baked against the real file can sit a frame past
     // what this element reports — clamp rather than refuse
     if (!TR.out || TR.out > TR.dur) TR.out = TR.dur;
     if (TR.in >= TR.out - TRIM_MIN) { TR.in = 0; TR.out = TR.dur; }
+    // the first time the clip says how long it is, a playhead sitting
+    // outside the part it opened on goes to the part's start — autoplay
+    // began at 0 before the marks could mean anything
+    if (fresh && !trimWhole()) {
+      var t0 = v.currentTime || 0;
+      if (t0 < TR.in - 0.05 || t0 >= TR.out - TRIM_EPS) { try { v.currentTime = TR.in; } catch (e) {} }
+    }
     paintTrim();
   }
   v.addEventListener('loadedmetadata', settle);
@@ -8153,8 +8242,8 @@ function paintTrim() {
   var a = d ? (TR.in / d) * 100 : 0, b = d ? (TR.out / d) * 100 : 100;
   // WITH THE MARKS ON THE WHOLE CLIP THE KEEP BAR IS NOT DRAWN (PHOTOgraphed
   // at 390x844): a bright band over the whole strip covers the dim bands of
-  // the parts she has already cut — and the whole clip is exactly the state
-  // the trimmer OPENS on now, so it would hide them every time. The grey
+  // the parts she has already cut — the state an untrimmed clip opens on and
+  // "Whole clip" returns to, so it would hide them every time. The grey
   // track already says "the whole clip"; the line under it says how long.
   $('tkeep').style.display = whole ? 'none' : '';
   $('tkeep').style.left = a + '%';

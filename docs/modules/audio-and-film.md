@@ -1114,13 +1114,19 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         span for another IN ITS OWN PLACE in the order, `{remove:<key>}` takes
         one off, `{clear:true}` takes them all off; re-adding a span already
         cut is a no-op. Four things not to undo:
-        - **THE MARKS OPEN ON THE WHOLE CLIP.** What she has cut is the dim
-          bands on the strip and a row each under it, so the next tap is
-          marking a different bit rather than editing the last one. A row's
-          span puts its own marks back (and the next cut REPLACES that part);
-          its ✕ is the undo — the only one that can mean the right part once
-          there are several, which is why the single "Undo the trim" button
-          is history.
+        - **A TRIMMED CLIP OPENS ON ITS PART AND PLAYS JUST THAT (2026-09-25,
+          Sophie: "change default to play just trimmed part").** The marks
+          open on the first part she cut and loop it; "Whole clip" and "Play
+          it all" are right there for the rest, and a clip with nothing cut
+          still opens on the whole. `editing` stays empty on open, so the
+          button says Add part — the next tap is a second bit, and re-cutting
+          part 1 is its row. (From 09-10 to 09-25 the marks opened on the
+          WHOLE clip every time, which made every trimmed clip play its
+          off-cuts first.) What she has cut is the dim bands on the strip and
+          a row each under it. A row's span puts its own marks back (and the
+          next cut REPLACES that part); its ✕ is the undo — the only one that
+          can mean the right part once there are several, which is why the
+          single "Undo the trim" button is history.
         - **THE PLAYER STAYS OPEN ON A CUT.** She is taking a second part out
           of the same clip; closing every time would mean finding the clip on
           the wall and re-opening it between every one.
@@ -4954,11 +4960,12 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
     cached from before. `POST /jobs/:id/trim` is the one door: `{start,end}`
     adds a part, `{start,end,replace:<key>}` swaps one span for another IN ITS
     OWN PLACE in the order, `{remove:<key>}` takes one off, `{clear:true}`
-    takes them all off. The MARKS always open on the WHOLE clip — what she has
-    cut is the dim bands on the strip and a row each under it, so the next tap
-    is marking a different bit; a row's span puts its own marks back (the next
-    cut replaces that part) and its ✕ is the undo, the only one that can mean
-    the right part when there are several. **The player STAYS OPEN on a cut** —
+    takes them all off. A TRIMMED clip opens on its FIRST PART and plays just
+    that (2026-09-25, "change default to play just trimmed part"; until then
+    the marks opened on the whole clip) — what she has cut is the dim bands on
+    the strip and a row each under it; a row's span puts its own marks back
+    (the next cut replaces that part) and its ✕ is the undo, the only one that
+    can mean the right part when there are several. **The player STAYS OPEN on a cut** —
     she is taking a second part out of the same clip, and closing every time
     would mean finding the clip and re-opening it between every one. `video`
     (what save and a note key off) is the FIRST baked part; the bake guard
