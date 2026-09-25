@@ -1,0 +1,73 @@
+<!doctype html>
+<!-- The Projects home-screen mockup — built and posted by scripts/projects-mockup.js.
+     Edit THIS file, never a posted page (a posted page is frozen). -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Projects — home screen mockup v1</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+  /* Four to a row, like the phone's home screen. The icon is a rounded square
+     (the phone's own corner, not the house 6px — her ask was "icons like apple
+     home screen"), the name under it, a badge with how many chats are in it. */
+  .home { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px 8px; padding: 8px 0 0; }
+  /* minmax(0,1fr), not 1fr: the note kit's textarea gives a column a
+     min-content width, 1fr will not shrink under it, and the fourth column
+     walked off the right edge (PHOTO'd — every fourth project was gone). */
+  .app { min-width: 0; }
+  /* The note + sits on the icon's bottom-right corner, not under the name. */
+  .app .cmp-note-open { bottom: auto; top: 48px; right: calc(50% - 40px); }
+  .app .cmp-note-text, .app .cmp-note-box { text-align: left; font-size: 12px; }
+  .app { margin: 0; text-align: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .app .ic { position: relative; display: block; width: 62px; height: 62px; margin: 0 auto;
+    border-radius: 14px; background: #fdfcf9; border: 1px solid #e0d6c4; overflow: visible; }
+  .app .ic img { width: 100%; height: 100%; object-fit: contain; border-radius: 14px; display: block; padding: 5px; box-sizing: border-box; }
+  .app figcaption { font: 500 12px/1.2 -apple-system, "Helvetica Neue", sans-serif; color: var(--ink);
+    padding-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .badge { position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; padding: 0 5px;
+    border-radius: 10px; background: var(--rose, #c0392b); color: #fff; font: 600 12px/20px -apple-system, sans-serif;
+    text-align: center; box-sizing: border-box; }
+  .app.new .ic { border: 1.5px dashed #c9bfae; background: transparent; }
+  .app.new .ic:after { content: '+'; position: absolute; inset: 0; text-align: center; line-height: 60px; font-size: 30px; color: #c9bfae; }
+  /* A tap opens the project's sheet over the page: the chats filed there. */
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; max-height: 78vh; overflow: auto; background: var(--paper);
+    border-top: 1px solid #e0d6c4; border-radius: 14px 14px 0 0; padding: 14px 16px 28px; z-index: 40;
+    box-shadow: 0 -4px 24px rgba(0,0,0,.08); }
+  .sheet h2 { margin: 0 0 2px; padding: 0; }
+  .sheet ul { list-style: none; margin: 10px 0 0; padding: 0; }
+  .sheet li { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid #ece5d8; font-size: 15px; }
+  .sheet li img, .sheet li i { width: 28px; height: 28px; flex: none; border-radius: 7px; border: 1px solid #e0d6c4; background: #fdfcf9; object-fit: contain; display: block; }
+  .sheet li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sheet li em { color: var(--ink2); font-size: 12px; }
+  .sheet li time { color: var(--ink2); font-size: 12px; flex: none; }
+  .scrim { position: fixed; inset: 0; background: rgba(38,34,28,.18); z-index: 39; }
+  [hidden] { display: none !important; }
+</style>
+
+<div class="wrap">
+  <h1>Projects</h1>
+  <div class="home" id="home">{{TILES}}
+    <figure class="app new"><span class="ic"></span><figcaption>new</figcaption></figure>
+  </div>
+</div>
+<div class="scrim" id="scrim" hidden></div>
+{{SHEETS}}
+
+<script src="/compare.js"></script>
+<script>
+(function () {
+  var open = null;
+  function shut() { if (open) open.hidden = true; open = null; document.getElementById('scrim').hidden = true; }
+  document.getElementById('home').addEventListener('click', function (e) {
+    var f = e.target.closest('.app[data-p]'); if (!f) return;
+    // A tap on the + (the note) is the note's, not the sheet's.
+    if (e.target.closest('.cmp-note, .cmp-noteplus, textarea, button')) return;
+    var s = document.getElementById('s-' + f.dataset.p); if (!s) return;
+    shut(); open = s; s.hidden = false; document.getElementById('scrim').hidden = false;
+  });
+  document.getElementById('scrim').addEventListener('click', shut);
+  window.__compareNotes({ chat: '{{CHAT}}', sheet: '{{SHEET}}' });
+  window.__compareHelp({ html: '<b>A mockup, nothing built.</b> Every live chat is filed into one of these projects by its name. '
+    + 'Tap an icon to see what would go in it. The badge is how many chats. '
+    + 'Leave a note on an icon to rename it, merge two, or drop one.' });
+})();
+</script>
