@@ -70,6 +70,38 @@ function parseQuery(q, opts = {}) {
   return groups;
 }
 
+// ── ONE TERM → ITS REGEX BODY, WITH THE PLURAL FOLDED ──────────────────────
+// (2026-09-25, Sophie, four Playground strawberries drawn and then "why
+// aren't they in meta assets"). Measured on the live Meta Assets that hour:
+// `strawberries` found 4 tiles and `strawberry` found 95 — every tile she
+// was looking for was labelled with the singular, and a term anchored at a
+// word START only ever finds what it is a PREFIX of. `card` finds `cards` by
+// prefix, but `cards` never finds `card` and `strawberry` never finds
+// `strawberries` (the y turns into ies), so which spelling she dictated
+// decided whether her own pictures existed. A bare single word now matches
+// both its singular and its plural: `…ies`/`…y` → `…(y|ies)`, `…es` after
+// s/x/z/ch/sh → `…(es)?`, a trailing `s` → `s?`. A phrase, a field term and
+// anything under four letters are left exactly as they were — "aries" still
+// never finds "boundaries", `gpt-image-2` still keeps its hyphens.
+const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function termPattern(v) {
+  const s = String(v == null ? '' : v);
+  if (/^[a-z]{4,}$/i.test(s)) {
+    if (/ies$/i.test(s)) return escRe(s.slice(0, -3)) + '(?:y|ies)';
+    if (/[^aeiou]y$/i.test(s)) return escRe(s.slice(0, -1)) + '(?:y|ies)';
+    if (/ss$/i.test(s)) return escRe(s);
+    if (/(?:[sxz]|ch|sh)es$/i.test(s)) return escRe(s.slice(0, -2)) + '(?:es)?';
+    if (/s$/i.test(s)) return escRe(s.slice(0, -1)) + 's?';
+    return escRe(s);
+  }
+  return escRe(s).replace(/ /g, '\\s+');
+}
+// The word-start anchor every feed-style matcher uses, in front of the body.
+function termRegex(v) {
+  const s = String(v == null ? '' : v);
+  try { return new RegExp((/^[a-z0-9]/i.test(s) ? '\\b' : '') + termPattern(s), 'i'); } catch (e) { return null; }
+}
+
 // ── THE FEED'S MATCHER ──────────────────────────────────────────────────────
 // This module parses only, BECAUSE its callers disagree about what a match is
 // (see the header) — but three of them agree exactly: the chat feed, the
@@ -84,11 +116,7 @@ function compileFeed(q) {
   return parseQuery(q).map((g) => ({
     neg: g.neg,
     terms: g.terms.map((t) => {
-      const v = t.value;
-      try {
-        return new RegExp((/^[a-z0-9]/i.test(v) ? '\\b' : '')
-          + v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+'), 'i');
-      } catch (e) { return null; }
+      return termRegex(t.value);
     }).filter(Boolean),
   })).filter((g) => g.terms.length);
 }
@@ -97,4 +125,4 @@ function feedMatches(hay, groups) {
   return groups.every((g) => (g.terms.some((rx) => rx.test(s)) ? !g.neg : g.neg));
 }
 
-module.exports = { parseQuery, plain, compileFeed, feedMatches };
+module.exports = { parseQuery, plain, compileFeed, feedMatches, termPattern, termRegex };

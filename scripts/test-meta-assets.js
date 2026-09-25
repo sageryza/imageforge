@@ -189,6 +189,15 @@ const pool = buildMetaAssets([
 assert.strictEqual(searchMetaAssets(pool, 'yarn').length, 1, 'finds by label');
 assert.strictEqual(searchMetaAssets(pool, 'aries').length, 0, 'word-start anchored — aries never finds boundaries');
 assert.strictEqual(searchMetaAssets(pool, 'boundaries').length, 1, 'the whole word still hits');
+// 2026-09-25: four Playground strawberries labelled "strawberry", and her
+// search for "strawberries" found none of them (measured live: 4 vs 95).
+assert.strictEqual(searchMetaAssets(pool.concat([
+  { chat: 'fruit', url: 'https://x/s1.png', created: iso(3), description: 'Strawberry — swipe deck' },
+  { chat: 'fruit', url: 'https://x/s2.png', created: iso(4), description: 'a patch of wild strawberries' },
+]), 'strawberries').length, 2, 'the plural finds the singular tiles');
+assert.strictEqual(searchMetaAssets(pool.concat([
+  { chat: 'fruit', url: 'https://x/s2.png', created: iso(4), description: 'a patch of wild strawberries' },
+]), 'strawberry').length, 1, 'the singular finds the plural tile');
 assert.strictEqual(searchMetaAssets(pool, 'gpt-image-2').length, 1, 'caption matches, hyphens intact');
 assert.strictEqual(searchMetaAssets(pool, 'crows feeding').length, 1, 'bare words AND, any order');
 assert.strictEqual(searchMetaAssets(pool, 'yarn OR crows').length, 2, 'OR takes either');

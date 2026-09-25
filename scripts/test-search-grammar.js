@@ -63,6 +63,22 @@ ok('OR takes either, and binds tighter than the implicit AND', () => {
   assert.ok(!hit('bicycle raincoat OR crows', MSG));
 });
 
+group('a bare word folds its plural (2026-09-25: "strawberries" found none of her "strawberry" tiles)');
+ok('plural finds singular and singular finds plural', () => {
+  assert.ok(hit('raincoats', MSG));
+  assert.ok(hit('strawberries', 'Strawberry — favorite-fruit swipe deck'));
+  assert.ok(hit('strawberry', 'a patch of wild strawberries'));
+  assert.ok(hit('boxes', 'one box'));
+  assert.ok(hit('dresses', 'a red dress'));
+  assert.ok(hit('cards', 'the card'));
+});
+ok('the fold never widens past the word', () => {
+  assert.ok(!hit('aries', 'she wrote about boundaries'));
+  assert.ok(!hit('notes', 'nothing'));
+  assert.ok(hit('glass', 'a tall glass'));
+  assert.ok(!hit('strawberries', 'straw hat'));
+  assert.ok(!hit('"strawberries"', 'strawberry'), 'a quoted phrase is literal');
+});
 group('what the old search got right, kept');
 ok('a term is anchored at a word start', () => {
   assert.ok(!hit('aries', 'she wrote about boundaries'));
@@ -77,7 +93,6 @@ ok('punctuation inside a term survives', () => {
 });
 ok('a single word behaves exactly as it always did', () => {
   assert.ok(hit('raincoat', MSG));
-  assert.ok(!hit('raincoats', MSG));
 });
 
 group('nothing to search');

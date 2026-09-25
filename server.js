@@ -8356,11 +8356,7 @@ function plCompileQuery(q) {
   return searchGrammar.parseQuery(q).map((g) => ({
     neg: g.neg,
     terms: g.terms.map((t) => {
-      const v = t.value;
-      try {
-        return new RegExp((/^[a-z0-9]/i.test(v) ? '\\b' : '')
-          + v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+'), 'i');
-      } catch (e) { return null; }
+      return searchGrammar.termRegex(t.value);   // plural folded (search-grammar.js)
     }).filter(Boolean),
   })).filter((g) => g.terms.length);
 }
