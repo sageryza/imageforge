@@ -326,10 +326,12 @@ async function pageHalf() {
   await page.fill('#rot', '200');
   await page.waitForTimeout(700);
   ok(store().items[1].rot === 200, 'a typed number is the turn');
-  await page.$eval('#space', el => { el.value = '1600'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+  ok((await page.$('#space')) === null && (await page.$$eval('#spaces .chip', els => els.length)) === 5, 'spacing is five notches, not a slider');
+  ok((await page.$eval('#spaces .chip.on', el => el.dataset.w)) === '1000', 'the default tile lights the second notch');
+  await page.click('#spaces .chip[data-w="1600"]');
   await page.waitForTimeout(700);
   st = store();
-  ok(st.cfg.tile.w === 1600 && st.cfg.tile.h === 1600, 'spacing grows the tile (saved on the config)');
+  ok(st.cfg.tile.w === 1600 && st.cfg.tile.h === 1600 && (await page.$eval('#spaces .chip.on', el => el.dataset.w)) === '1600', 'a notch sets the tile (saved on the config) and lights up');
   ok(Math.abs(st.items[1].x - moved.x) < 1e-3, 'growing the tile leaves the fractions — the pieces spread');
   await page.click('#again');
   await page.waitForTimeout(700);
@@ -352,23 +354,26 @@ async function pageHalf() {
   ok(st.items.length === 2 && Object.keys(texts).some(k => k.startsWith('p:it:') && texts[k] === ''), 'remove takes the item off and blanks its text on the doc');
   await shot('3-tile-moved');
 
-  // undo — every step MEASURED off the store, since a button that repaints
-  // the canvas and writes nothing back would look identical. Undo only: no
-  // redo on the page (v6 had one, taken out on her word the same hour).
-  ok(!(await page.$eval('#undo', el => el.disabled)) && (await page.$('#redo')) === null, 'undo is on after a change, and there is no redo button');
+  // undo · redo — every step MEASURED off the store, since a button that
+  // repaints the canvas and writes nothing back would look identical
+  ok(!(await page.$eval('#undo', el => el.disabled)) && (await page.$eval('#redo', el => el.disabled)), 'undo is on after a change; redo is not yet');
   const removedKey = Object.keys(texts).find(k => k.startsWith('p:it:') && texts[k] === '');
   await page.click('#undo'); await page.waitForTimeout(700);
   st = store();
   ok(st.items.length === 3 && texts[removedKey] && JSON.parse(texts[removedKey]).piece === 'pear', 'undo puts the removed piece back, under its own key on the doc');
+  ok(!(await page.$eval('#redo', el => el.disabled)), 'redo is on after an undo');
+  await page.click('#redo'); await page.waitForTimeout(700);
+  st = store();
+  ok(st.items.length === 2 && texts[removedKey] === '', 'redo takes it off again');
+  await page.click('#undo'); await page.click('#undo'); await page.waitForTimeout(700);
+  st = store();
+  ok(st.items.length === 3 && st.items.map(it => it.rot).join() === '0,200,200', 'two undos unwind the spin — every turn back where it was');
   await page.click('#undo'); await page.waitForTimeout(700);
   st = store();
-  ok(st.items.length === 3 && st.items.map(it => it.rot).join() === '0,200,200', 'the next undo unwinds the spin — every turn back where it was');
+  ok(st.items.length === 2 && st.items[1].rot === 200, 'a third undo takes the + copy off and leaves the turn');
   await page.click('#undo'); await page.waitForTimeout(700);
   st = store();
-  ok(st.items.length === 2 && st.items[1].rot === 200, 'the next takes the + copy off and leaves the turn');
-  await page.click('#undo'); await page.waitForTimeout(700);
-  st = store();
-  ok(st.cfg.tile.w === 1000 && Math.abs(st.items[1].x - moved.x) < 1e-3, 'the next undoes the spacing and nothing else');
+  ok(st.cfg.tile.w === 1000 && Math.abs(st.items[1].x - moved.x) < 1e-3 && (await page.$eval('#spaces .chip.on', el => el.dataset.w)) === '1000', 'a fourth undoes the spacing and nothing else, and the notch follows');
   await page.click('#undo'); await page.click('#undo'); await page.waitForTimeout(700);
   st = store();
   ok(st.items[1].rot === 0, 'the typed 200 and the +15 unwind');
@@ -376,37 +381,36 @@ async function pageHalf() {
   st = store();
   ok(Math.abs(st.items[1].x - pear.x) < 1e-3 && Math.abs(st.items[1].y - pear.y) < 1e-3, 'the drag unwinds — the pear is back where it started');
   ok(!(await page.$eval('#undo', el => el.disabled)), 'the two ticks are still there to undo');
-  await page.$eval('#space', el => { el.value = '1700'; el.dispatchEvent(new Event('input', { bubbles: true })); });
-  await page.$eval('#space', el => { el.value = '1800'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+  let n = 0; while (!(await page.$eval('#redo', el => el.disabled)) && n++ < 12) { await page.click('#redo'); }
   await page.waitForTimeout(700);
-  ok(store().cfg.tile.w === 1800, 'a new change after undos goes on from where she is');
+  st = store();
+  ok(n === 7 && st.items.length === 2 && Math.abs(((st.items[1].rot - 200) % 360 + 540) % 360 - 180) <= 20 && st.cfg.tile.w === 1600 && texts[removedKey] === '', 'seven redos land her back exactly where she was — spun, spaced, one removed (' + n + ' redos)');
+  await page.click('#spaces .chip[data-w="2200"]'); await page.waitForTimeout(700);
+  ok((await page.$eval('#redo', el => el.disabled)) && store().cfg.tile.w === 2200, 'a new change after an undo clears the redo pile');
   await page.click('#undo'); await page.waitForTimeout(700);
-  ok(store().cfg.tile.w === 1000, 'a slider run within a second is ONE undo step');
-  // the rest of the walk expects the spread tile
-  await page.$eval('#space', el => { el.value = '1600'; el.dispatchEvent(new Event('input', { bubbles: true })); });
-  await page.waitForTimeout(700);
+  ok(store().cfg.tile.w === 1600, 'a notch is one undo step');
+  // reset: size and turn back to the start, places kept
+  await page.$eval('#tile', () => {});
+  const before = store().items.map(it => [it.x, it.y].join());
+  await page.click('#reset'); await page.waitForTimeout(700);
+  st = store();
+  ok(st.items.every(it => it.size === 280 && it.rot === 0) && st.items.map(it => [it.x, it.y].join()).join('|') === before.join('|'), 'Reset puts every piece at its starting size with no turn, and moves nothing');
+  await page.click('#undo'); await page.waitForTimeout(700);
+  ok(Math.abs(((store().items[1].rot - 200) % 360 + 540) % 360 - 180) <= 20, 'undo brings the turns back');
 
   // the repeat
   await page.click('.acctab[data-t="2"]');
   await page.waitForTimeout(300);
   ok((await page.$eval('#big', el => el.style.backgroundImage)).startsWith('url("data:image/png'), 'the big repeat is painted');
-  const tri = await page.$eval('#layout', el => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
-  await page.mouse.click(tri.x + tri.w * 0.5, tri.y + tri.h / 2);
-  await page.waitForTimeout(700);
-  ok(store().cfg.layout.kind === 'half' && (await page.$eval('#layoutword', el => el.textContent)) === 'half-drop', 'a tap on the middle stop is half-drop');
-  await page.mouse.click(tri.x + tri.w * 0.85, tri.y + tri.h / 2);
-  await page.waitForTimeout(700);
-  ok(store().cfg.layout.kind === 'mirror', 'a tap on the right stop is mirror');
-  await page.click('.sw[data-c="#2a2620"]');
-  await page.waitForTimeout(700);
-  ok(store().cfg.tile.bg === '#2a2620', 'a swatch sets the colour behind');
+  ok((await page.$('#layout')) === null && (await page.$('#swatches')) === null && (await page.$('#bg')) === null, 'no layout toggle and no colour row — white, grid, for now');
+  ok(store().cfg.tile.bg === '#ffffff' && store().cfg.layout.kind === 'grid', 'the config says white and grid');
   await page.click('.chip[data-s="1K"]');
   await page.click('#export');
   await page.waitForTimeout(1500);
   ok(drops.length === 1 && drops[0].png && drops[0].len > 1000, 'Export POSTs a real PNG to the Dump (' + (drops[0] && drops[0].len) + ' bytes)');
-  ok(drops[0] && /-1K-mirror\.png$/.test(drops[0].q.filename) && drops[0].q.bundle === 'Patterns', 'the file is named by size and layout, in the Patterns album');
+  ok(drops[0] && /-1K-grid\.png$/.test(drops[0].q.filename) && drops[0].q.bundle === 'Patterns', 'the file is named by size and layout, in the Patterns album');
   ok((await page.$$eval('#exports a', els => els.length)) === 1 && (await page.$eval('#exports a', el => el.href)) === 'https://x/drops/f1.png', 'the export is listed as a link');
-  ok(store().cfg.exports.length === 1 && store().cfg.exports[0].W === 2048 && store().cfg.exports[0].H === 2048, 'the export is remembered on the config (a 1K mirror is 2048 square)');
+  ok(store().cfg.exports.length === 1 && store().cfg.exports[0].W === 1024 && store().cfg.exports[0].H === 1024, 'the export is remembered on the config (a 1K grid is 1024 square)');
   ok(!(await page.$eval('#export', el => el.disabled)), 'Export is back on');
   await shot('4-repeat');
 
@@ -417,7 +421,7 @@ async function pageHalf() {
   await page.mouse.click(10, 10); await page.waitForTimeout(100);
   await page.reload(); await page.waitForTimeout(600);
   ok(!(await page.$eval('#pane-repeat', el => el.hidden)), 'reopening lands on the tab she was on');
-  ok((await page.$eval('#layoutword', el => el.textContent)) === 'mirror' && (await page.$eval('.pick', el => el.textContent)).startsWith('fruit salad'), '…on the same pattern, from the verdict doc');
+  ok((await page.$eval('#spaces .chip.on', el => el.dataset.w)) === '1600' && (await page.$eval('.pick', el => el.textContent)).startsWith('fruit salad'), '…on the same pattern, from the verdict doc');
   await page.click('.acctab[data-t="0"]'); await page.waitForTimeout(200);
   ok((await page.$$eval('.pc.on', els => els.map(e => e.dataset.id).join())) === 'bear,pear', 'the ticks come back too');
   ok(await page.$eval('#undo', el => el.disabled), 'a fresh open has nothing to undo — the history is this open of the page');

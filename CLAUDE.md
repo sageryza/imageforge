@@ -272,18 +272,18 @@ still every time the work wraps up.
    wrap-up for the archive row). Anything still open → stay live and say what
    it is. Full rule: *A BUG-FIX CHAT PUTS ITSELF AWAY* in the Chats section.
 
-**BUILD WHAT SHE NAMED AND NOTHING BESIDE IT (2026-09-25, Sophie, after
-"undo button in pattern v5" came back as undo AND redo: "i said pull in? make
-it a rule").** The thing she asked for is the whole deliverable. A feature
-she did not name is never pulled in with it — not its obvious companion (a
-redo beside an undo, a clear beside a fill), not a "while I'm in there" fix,
-not the control that would make the new one "complete". The redo was
-reasonable, cost nothing and was taken out the same hour, because the
-problem is not the feature, it is that she now has to read, judge and
-sometimes undo work she never ordered, in every chat. If the companion
-really matters, it is ONE line in the reply offering it, and her word puts it
-in. Same shape as the two rules under it: a picture is not drawn unless she
-says, a size is not changed without asking.
+**THE PAGE GOES INTO THE CHAT SHE ASKED IN (2026-09-25, Sophie, after this
+chat re-posted the Pattern page into the chat that first built it: "i meant
+pull to ur chat · make it a rule").** A tool page you rebuild for a change
+she asked for HERE is posted HERE — 3d2's rule, said once more for the page
+scripts: every page script takes `--chat <slug>` and it is your own effective
+slug, never the constant the script was born with. Her DATA does not move
+with the page: the verdict doc that holds her patterns (or games, or picks)
+stays where it always was (`STORE_CHAT` in `pattern-page.js`), so the page
+in your chat opens on the same things. Supersede the old chat's copy in the
+same call. (This paragraph replaced a rule written the same hour on a
+misreading of "pull in" — she had asked for the page, not for less; "keep
+redo".)
 
 **NOTHING IS DRAWN OR ANIMATED UNLESS SHE SAYS TO MAKE IT (2026-09-05,
 Sophie: "images and movies should not be made unless i specifically say
@@ -3685,8 +3685,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
   flip, "+" for another of the same, SPACING grows the tile under the pieces
   so the repeats land farther apart, SPIN turns every piece at random within
   ±N°, SCATTER deals every piece a new random spot each tap, spread so
-  nothing piles up — 2026-09-25) and REPEAT (the tiled preview, grid ·
-  half-drop · mirror on a tri toggle, the colour behind, EXPORT at 1K/2K/4K —
+  nothing piles up — 2026-09-25) and REPEAT (the tiled preview, EXPORT at 1K/2K/4K —
   drawn on the page's own canvas and filed into the Dump, album `Patterns`,
   through the live `/api/drop/upload-file`). **NO DEPLOY, ever**: her
   patterns are JSON texts on the verdict doc (sheet `pattern`, keys `p:cfg:
@@ -3725,12 +3724,16 @@ before working on that module. Nothing was deleted — the moved text is verbati
   headless against a stubbed verdict store and Dump: a drag moves the saved
   x/y by exactly the drag, Export POSTs a real PNG). **Full details:
   `docs/modules/pictures.md` (Pattern).**
-  **UNDO SINCE v6 — AND ONLY UNDO SINCE v7 (2026-09-25, Sophie: "undo button
-  in pattern v5", then on the redo v6 pulled in beside it: "i said pull in?
-  make it a rule")**: one arrow in the pick row, on every tab; snapshots of
-  the items, tile and layout taken before each change (a slider run within a
-  second is one step), memory only, per open; the name and exports stay out
-  of it; NO redo. `docs/modules/pictures.md` (Undo).
+  **SINCE v9 (2026-09-25, Sophie's second look): UNDO · REDO** arrows in the
+  pick row, on every tab (snapshots of the items, tile and layout before each
+  change, memory only, per open; the name and exports stay out); **SPACING IS
+  FIVE NOTCHES**, not a slider ("clear notches to click"); **RESET** puts every
+  piece at its starting size with no turn ("reset to default · size and
+  spin"); **WHITE AND GRID ONLY, FOR NOW** ("default white no other colors ·
+  no half drop mirror toggle" — the half-drop and mirror arithmetic stays in
+  the plan, the page just never asks); and **THE PAGE IS POSTED INTO THE CHAT
+  THAT ASKED** (`--chat`), her patterns staying on the pattern chat's verdict
+  doc. `docs/modules/pictures.md` (Pattern).
   **AND A PIECE'S SIZE ON A TILE IS NEVER CHANGED WITHOUT ASKING (2026-09-23,
   Sophie, after a re-lay at two across made every picture bigger: "never
   change size without asking").** A re-lay she asked for changes ONLY what she

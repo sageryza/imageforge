@@ -18,6 +18,10 @@
 //   node scripts/pattern-page.js --out file.html         write the built page to a file
 //   node scripts/pattern-page.js --go                    post it (a NEW page, versioned)
 //   node scripts/pattern-page.js --go --supersede <id>   … and supersede the old one
+//   --chat <slug>        post it into THIS chat (2026-09-25, Sophie: "i meant pull
+//                        to ur chat · make it a rule" — the page goes where she
+//                        asked for the change; her patterns stay on STORE_CHAT's
+//                        verdict doc whichever chat the page is posted into)
 //   --pieces file.json   use this list instead of Firestore (the test does)
 //
 // The title carries the version (`Pattern v3`) — a new version is a new page,
@@ -31,7 +35,8 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const DIR = path.join(ROOT, 'docs', 'pattern');
-const CHAT = 'animal-fruit-pattern-tool';
+const CHAT = 'animal-fruit-pattern-tool';        // where it posts when no --chat is given
+const STORE_CHAT = 'animal-fruit-pattern-tool';  // where her patterns live — NEVER changes
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const LEDGER = path.join(DIR, 'VERSIONS');
 
@@ -49,12 +54,12 @@ function build(opts) {
   opts = opts || {};
   const tpl = fs.readFileSync(path.join(DIR, 'pattern.tpl.html'), 'utf8');
   const plan = fs.readFileSync(path.join(ROOT, 'pattern-plan.js'), 'utf8');
-  for (const m of ['__PLAN__', '__PIECES__', '__CHAT__', '__VERSION__']) if (!tpl.includes(m)) throw new Error('template is missing ' + m);
+  for (const m of ['__PLAN__', '__PIECES__', '__CHAT__', '__STORE_CHAT__', '__VERSION__']) if (!tpl.includes(m)) throw new Error('template is missing ' + m);
   const pieces = (opts.pieces || []).filter((p) => p.cut || p.rough).map(pieceRow);
   // `</script>` inside a JSON string would end the page's script early.
   const json = JSON.stringify(pieces).replace(/<\//g, '<\\/');
   return tpl.replace('__PLAN__', () => plan).replace('__PIECES__', () => json)
-    .replace(/__CHAT__/g, opts.chat || CHAT).replace(/__VERSION__/g, opts.version || '');
+    .replace(/__STORE_CHAT__/g, STORE_CHAT).replace(/__CHAT__/g, opts.chat || CHAT).replace(/__VERSION__/g, opts.version || '');
 }
 
 async function piecesFromFirestore() {
@@ -77,10 +82,10 @@ function nextVersion() {
   return n + 1;
 }
 
-async function post(html, title, supersede) {
+async function post(html, title, supersede, chat) {
   const r = await fetch(BASE + '/api/chatfeed/page', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat: CHAT, title, html }),
+    body: JSON.stringify({ chat: chat || CHAT, title, html }),
   });
   const body = await r.json();
   if (!r.ok || !body.ok) throw new Error('post failed: ' + JSON.stringify(body));
@@ -100,17 +105,18 @@ if (require.main === module) {
     const out = args.includes('--out') ? args[args.indexOf('--out') + 1] : null;
     const supersede = args.includes('--supersede') ? args[args.indexOf('--supersede') + 1] : null;
     const file = args.includes('--pieces') ? args[args.indexOf('--pieces') + 1] : null;
+    const chat = args.includes('--chat') ? args[args.indexOf('--chat') + 1] : CHAT;
     const pieces = file ? JSON.parse(fs.readFileSync(file, 'utf8')) : await piecesFromFirestore();
     const v = nextVersion();
-    const html = build({ pieces, version: 'v' + v });
+    const html = build({ pieces, version: 'v' + v, chat });
     console.log(`${pieces.length} pieces, built ${html.length} bytes` + (go ? '' : ' (dry — pass --go to post)'));
     if (out) { fs.writeFileSync(out, html); console.log('wrote ' + out); }
     if (!go) return;
-    const body = await post(html, `Pattern v${v}`, supersede);
-    fs.appendFileSync(LEDGER, `v${v} ${body.id} ${new Date().toISOString()}\n`);
+    const body = await post(html, `Pattern v${v}`, supersede, chat);
+    fs.appendFileSync(LEDGER, `v${v} ${body.id} ${new Date().toISOString()} ${chat}\n`);
     console.log(JSON.stringify(body));
     process.exit(0);
   })().catch((e) => { console.error(e); process.exit(1); });
 }
 
-module.exports = { build, pieceRow, CHAT };
+module.exports = { build, pieceRow, CHAT, STORE_CHAT };

@@ -16,8 +16,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pattern __VERSION__</title>
 <link rel="stylesheet" href="/compare.css">
-<link rel="stylesheet" href="/tritoggle.css">
-<script src="/tritoggle.js"></script>
 <script>__PLAN__</script>
 <style>
 /* Three hairline tabs because there are three kinds of thing: the PIECES
@@ -31,13 +29,13 @@
   border:1px solid var(--line); border-radius:6px; padding:6px 10px; max-width:70%;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
 .pick i{ font-style:normal; color:var(--ink2); margin-left:6px; }
-/* UNDO rides the pick row, so it is on every tab — a tick on PIECES, a
-   drag on TILE and a colour on REPEAT all go back from the same button
-   (2026-09-25, Sophie: "undo button in pattern v5"). Undo ONLY: v6 pulled
-   a redo in beside it and she had it taken out the same hour ("i said pull
-   in? make it a rule"). Spent, it dims rather than disappears, so the row
-   never shifts under her. */
+/* undo · redo ride the pick row, so they are on every tab — a tick on
+   PIECES, a drag on TILE, the spacing — all go back from the same two
+   buttons (2026-09-25, Sophie: "undo button in pattern v5" · "keep redo").
+   A spent one dims rather than disappears, so the row never shifts under
+   her. */
 .pickrow .sq{ margin-left:auto; }
+.pickrow .sq + .sq{ margin-left:0; }
 .sq[disabled]{ opacity:.35; cursor:default; }
 .acctabs{ position:relative; display:flex; border-bottom:1px solid var(--line); margin:0 0 10px; padding-right:64px; }
 .acctab{ flex:1 1 0; min-width:0; padding:8px 4px 10px; border:none; background:none; cursor:pointer; border-radius:0;
@@ -66,6 +64,11 @@
    plants are a tap away and never a scroll (2026-09-23, Sophie: "i have to
    scroll all the way down to switch between animals fruit and plants") */
 .kinds{ display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 2px; }
+/* a LIT chip — compare.css draws the chip and nothing for `.on`, so the kind,
+   the export size and the spacing notch she picked all read as unpicked
+   (PHOTO'd 2026-09-25 while the notches went in; the same look judge.js
+   gives its chips) */
+.chip.on{ color:var(--paper); background:var(--ink); border-color:var(--ink); }
 .msg{ font-size:13px; color:var(--ink2); margin-top:8px; min-height:18px; }
 .ico{ width:20px; height:20px; color:var(--ink2); flex:none; display:inline-flex; }
 .ico svg{ width:20px; height:20px; }
@@ -96,10 +99,6 @@ input[type=text]{ flex:1; min-width:120px; padding:9px 10px; font:inherit; font-
 
 /* ── the repeat ── */
 .big{ aspect-ratio:1; border:1px solid var(--line); border-radius:6px; background-repeat:repeat; }
-.tri{ --tri-fill:var(--surface); --tri-line:var(--ink); --tri-knob:var(--ink); --tri-ink:var(--paper); --tri-w:78px; --tri-k:26px; }
-.sw{ width:26px; height:26px; border-radius:6px; border:1px solid var(--line); padding:0; cursor:pointer; flex:none; }
-.sw.on{ outline:2px solid var(--ink); outline-offset:1px; }
-input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border-radius:6px; padding:2px; background:var(--surface); }
 .exports{ margin-top:12px; }
 .exports a{ display:flex; gap:10px; align-items:center; padding:8px 0; border-top:1px solid var(--line);
   color:var(--ink); text-decoration:none; font-size:14px; }
@@ -120,7 +119,8 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
 <div class="wrap">
   <h1>Pattern</h1>
   <div class="pickrow" data-nostop><button class="pick" id="pick"></button>
-    <button class="sq" id="undo" aria-label="Undo" disabled></button></div>
+    <button class="sq" id="undo" aria-label="Undo" disabled></button>
+    <button class="sq" id="redo" aria-label="Redo" disabled></button></div>
 
   <div class="acctabs" id="tabs">
     <button class="acctab on" data-t="0">Pieces</button>
@@ -155,13 +155,18 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
       </div>
       <div class="none" id="selnone">tap a piece to turn or size it · drag to move</div>
       <div class="hr"></div>
-      <div class="row"><span class="lbl">spacing</span><input type="range" id="space" min="500" max="2500" step="10"></div>
+      <!-- NOTCHES, not a slider (2026-09-25, Sophie: "clear notches to click
+           instead of a slider"): five tile sizes, a tap each; a stored size
+           between two lights the nearer one. -->
+      <div class="row"><span class="lbl">spacing</span>
+        <span class="chips" id="spaces" style="margin:0"><button class="chip" data-w="600">1</button><button class="chip" data-w="1000">2</button><button class="chip" data-w="1600">3</button><button class="chip" data-w="2200">4</button><button class="chip" data-w="3000">5</button></span></div>
       <div class="row"><span class="lbl">spin all</span>
         <span class="dim">±</span>
         <input type="number" id="spread" min="0" max="180" step="5" inputmode="numeric" value="20">
         <span class="dim">°</span>
         <button class="btn" id="spin">Spin</button>
-        <button class="btn" id="scatter">Scatter</button></div>
+        <button class="btn" id="scatter">Scatter</button>
+        <button class="btn" id="reset">Reset</button></div>
     </div>
   </section>
 
@@ -170,11 +175,10 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
       <div class="big" id="big"></div>
     </div>
     <div data-nostop>
-      <div class="row"><span class="lbl">layout</span>
-        <button class="tri" id="layout" data-n="0" data-i="G" aria-label="Layout"></button>
-        <span class="word" id="layoutword">grid</span></div>
-      <div class="row"><span class="lbl">colour</span><span id="swatches" class="row" style="margin:0"></span>
-        <input type="color" id="bg" aria-label="Background colour"></div>
+      <!-- No layout toggle and no colour row: white, grid, for now (2026-09-25,
+           Sophie: "for now let's do default white no other colors · and no
+           half drop mirror toggle"). The arithmetic for half-drop and mirror
+           is still in the plan; the page just never asks for it. -->
       <div class="row"><span class="lbl">export</span>
         <span class="chips" id="sizes" style="margin:0"><button class="chip" data-s="1K">1K</button><button class="chip on" data-s="2K">2K</button><button class="chip" data-s="4K">4K</button></span>
         <button class="btn" id="export">Export</button></div>
@@ -196,14 +200,14 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
 /* WRAPPED IN AN IIFE — the injected pill runs in this global scope. */
 (function () {
   'use strict';
-  var CHAT = '__CHAT__';
+  var CHAT = '__CHAT__';          // the chat this page is posted into — her notes land here
+  var STORE = '__STORE_CHAT__';   // the chat whose verdict doc holds her patterns — never moves
   var SHEET = 'pattern';
+  var WHITE = '#ffffff';
   var P = window.__patternPlan;
   var PIECES = __PIECES__;
   var $ = function (id) { return document.getElementById(id); };
-  var SWATCHES = ['#faf6ee', '#ffffff', '#f3e9d2', '#e9dcc6', '#dfe8dc', '#dbe4ea', '#eadbe3', '#f2d9cf', '#2a2620'];
   var LAYOUT_WORD = { grid: 'grid', half: 'half-drop', mirror: 'mirror' };
-  var LAYOUT_LETTER = { grid: 'G', half: 'H', mirror: 'M' };
   var EXPORT_PX = { '1K': 1024, '2K': 2048, '4K': 4096 };
   var MAX_JSON = 1900;
 
@@ -212,21 +216,23 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
     flip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><path d="M12 20v2"/><path d="M12 14v2"/><path d="M12 8v2"/><path d="M12 2v2"/></svg>',
     x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
+    redo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"/></svg>',
     undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>',
   };
   $('searchico').innerHTML = LUCIDE.search;
   $('flip').innerHTML = LUCIDE.flip;
   $('remove').innerHTML = LUCIDE.x;
   $('undo').innerHTML = LUCIDE.undo;
+  $('redo').innerHTML = LUCIDE.redo;
 
   window.__compareHelp({ html: '<b>Pieces</b> — tap an animal or a fruit to put it in the pattern; tap again to take it out. '
     + 'Each one is cut roughly around with its paper kept, like scissors. A new one is a chat’s job: ask, and it is drawn and put on the list.<br><br>'
     + '<b>Tile</b> — one square that repeats. Drag a piece where you want it; the degrees box turns it, the size slider sizes it, '
-    + '<b>+</b> adds another of the same. <b>Spacing</b> grows the square under everything so the repeats land farther apart. '
-    + '<b>Spin</b> turns every piece a little, at random, within the degrees you set; <b>Scatter</b> deals every piece a new spot, spread out so nothing piles up — tap either again for another go. A piece hanging off one edge comes back in on the other, '
+    + '<b>+</b> adds another of the same. <b>Spacing</b> is five notches — a bigger square under everything, so the repeats land farther apart. '
+    + '<b>Spin</b> turns every piece a little, at random, within the degrees you set; <b>Scatter</b> deals every piece a new spot, spread out so nothing piles up — tap either again for another go. <b>Reset</b> puts every piece back to its starting size and no turn. A piece hanging off one edge comes back in on the other, '
     + 'which is what makes the repeat seamless.<br><br>'
-    + '<b>Repeat</b> — how it looks tiled. Grid, half-drop or mirror; the colour behind; <b>Export</b> draws one seamless PNG and files it in the Dump. '
-    + 'Everything saves itself as you go. The arrow by the pattern’s name <b>undoes</b> the last change — a tick, a drag, a turn, a spin, the spacing, the layout, the colour — as far back as this open of the page.' });
+    + '<b>Repeat</b> — how it looks tiled, on white. <b>Export</b> draws one seamless PNG and files it in the Dump. '
+    + 'Everything saves itself as you go. The two arrows by the pattern’s name <b>undo</b> and <b>redo</b> the last change — a tick, a drag, a turn, a spin, the spacing — as far back as this open of the page.' });
   window.__compareNotes({ chat: CHAT, sheet: SHEET + '-notes' });
 
   // ── state ──
@@ -249,11 +255,11 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
   // thread's slot (an item's text IS its note thread, 2026-09-07). ──
   function putText(k, text) {
     return fetch('/api/chatfeed/verdict', { method: 'POST', headers: hdrs(),
-      body: JSON.stringify({ chat: CHAT, sheet: SHEET, item: 'p:' + k, text: text }) })
+      body: JSON.stringify({ chat: STORE, sheet: SHEET, item: 'p:' + k, text: text }) })
       .then(function (r) { if (!r.ok) throw new Error('save failed'); return r.json(); });
   }
   function load() {
-    return fetch('/api/chatfeed/verdict?chat=' + encodeURIComponent(CHAT) + '&sheet=' + SHEET)
+    return fetch('/api/chatfeed/verdict?chat=' + encodeURIComponent(STORE) + '&sheet=' + SHEET)
       .then(function (r) { return r.json(); })
       .then(function (d) {
         var texts = (d && d.texts) || {};
@@ -297,8 +303,7 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
   }
   function touchAll() { (pattern.items || []).forEach(function (it) { dirtyItems[it.k] = 1; }); touch(); }
 
-  // ── undo (2026-09-25, Sophie: "undo button in pattern v5" — and ONLY undo:
-  // "i said pull in? make it a rule", on the redo v6 put beside it) ──
+  // ── undo · redo (2026-09-25, Sophie: "undo button in pattern v5" · "keep redo") ──
   // A stack of SNAPSHOTS of what she arranges — the items, the tile, the
   // layout — taken BEFORE each change (`mark()` at the top of every handler
   // that touches them). A slider or a typed number is a run of tiny changes,
@@ -309,7 +314,7 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
   // and a restore writes every item that differs back through the same
   // save (an item's key rides in the snapshot, so a removed piece comes back
   // under its own key and nothing on the doc is orphaned).
-  var hist = [], HIST_MAX = 80, markTag = '', markAt = 0;
+  var hist = [], redos = [], HIST_MAX = 80, markTag = '', markAt = 0;
   function snap() {
     return JSON.stringify({ tile: pattern.tile, layout: pattern.layout,
       items: pattern.items.map(function (it) { return { k: it.k, piece: it.piece, x: it.x, y: it.y, size: it.size, rot: it.rot, flip: !!it.flip }; }) });
@@ -320,7 +325,7 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
     if (tag && tag === markTag && now - markAt < 1000) { markAt = now; return; }
     markTag = tag || ''; markAt = now;
     hist.push(snap()); if (hist.length > HIST_MAX) hist.shift();
-    syncUndo();
+    redos = []; syncUndo();
   }
   function restore(s) {
     var c = JSON.parse(s);
@@ -330,13 +335,14 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
     pattern.items.forEach(function (it) { dirtyItems[it.k] = 1; imgFor(it.piece); });
     touch();
     if (sel && !pattern.items.some(function (it) { return it.k === sel; })) sel = null;
-    $('space').value = pattern.tile.w;
-    setLayoutUI(); setBgUI(); sizeCanvas(); changed(); syncTicks();
+    setSpaceUI(); sizeCanvas(); changed(); syncTicks();
   }
-  function undo() { if (!hist.length) return; restore(hist.pop()); markTag = ''; syncUndo(); }
-  function syncUndo() { $('undo').disabled = !hist.length; }
-  function resetHistory() { hist = []; markTag = ''; syncUndo(); }
+  function undo() { if (!hist.length) return; redos.push(snap()); restore(hist.pop()); markTag = ''; syncUndo(); }
+  function redo() { if (!redos.length) return; hist.push(snap()); restore(redos.pop()); markTag = ''; syncUndo(); }
+  function syncUndo() { $('undo').disabled = !hist.length; $('redo').disabled = !redos.length; }
+  function resetHistory() { hist = []; redos = []; markTag = ''; syncUndo(); }
   $('undo').addEventListener('click', undo);
+  $('redo').addEventListener('click', redo);
 
   // ── pieces ──
   function dims() {
@@ -435,13 +441,15 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
   }
   function usePattern(p) {
     pattern = p; sel = null; resetHistory();
+    // white and grid, for now (2026-09-25) — a pattern saved with another
+    // colour or layout on an older version is brought back to both
+    if (p.tile.bg !== WHITE || p.layout.kind !== 'grid') { p.tile.bg = WHITE; p.layout = { kind: 'grid' }; dirtyCfg = true; clearTimeout(dirtyT); dirtyT = setTimeout(saveNow, 500); }
     try { localStorage.setItem('pattern.cur', p.id); } catch (e) { /* private mode */ }
     $('pick').innerHTML = esc(p.name || 'untitled') + '<i>▾</i>';
     $('pname').value = p.name || '';
     p.items.forEach(function (it) { imgFor(it.piece); });
     renderShelf();
-    $('space').value = p.tile.w;
-    setLayoutUI(); setBgUI(); renderExports();
+    setSpaceUI(); renderExports();
     sizeCanvas(); changed();
   }
   function listPatterns() {
@@ -453,7 +461,7 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
     listPatterns().forEach(function (p) {
       var b = document.createElement('button');
       b.className = pattern && p.id === pattern.id ? 'on' : '';
-      b.innerHTML = '<span>' + esc(p.name || 'untitled') + '</span><span class="m">' + p.items.length + ' pieces · ' + LAYOUT_WORD[p.layout.kind] + '</span>';
+      b.innerHTML = '<span>' + esc(p.name || 'untitled') + '</span><span class="m">' + p.items.length + ' pieces</span>';
       b.addEventListener('click', function () { $('sheet').hidden = true; usePattern(p); });
       host.appendChild(b);
     });
@@ -627,11 +635,27 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
     pattern.items = pattern.items.filter(function (it) { return it.k !== k; });
     sel = null; touch(k); changed(); syncTicks();
   });
-  $('space').addEventListener('input', function () {
-    var v = Number($('space').value);
-    mark('space');
+  function setSpaceUI() {
+    var w = pattern.tile.w, best = null;
+    $('spaces').querySelectorAll('.chip').forEach(function (c) { if (!best || Math.abs(Number(c.dataset.w) - w) < Math.abs(Number(best.dataset.w) - w)) best = c; });
+    $('spaces').querySelectorAll('.chip').forEach(function (c) { c.classList.toggle('on', c === best); });
+  }
+  $('spaces').addEventListener('click', function (e) {
+    var b = e.target.closest('.chip'); if (!b || !pattern) return;
+    var v = Number(b.dataset.w);
+    if (v === pattern.tile.w) return;
+    mark();
     pattern.tile.w = v; pattern.tile.h = v;
-    touch(); sizeCanvas(); changed();
+    setSpaceUI(); touch(); sizeCanvas(); changed();
+  });
+  // RESET — every piece back to its starting size and no turn (2026-09-25,
+  // Sophie: "i might like a reset to default · size and spin"). Places and
+  // flips stay; undo brings the sizes and turns back.
+  $('reset').addEventListener('click', function () {
+    if (!pattern.items.length) return;
+    mark();
+    pattern.items.forEach(function (it) { it.size = P.DEFAULT_SIZE; it.rot = 0; });
+    touchAll(); changed();
   });
   $('spin').addEventListener('click', function () {
     mark();
@@ -647,30 +671,6 @@ input[type=color]{ width:34px; height:30px; border:1px solid var(--line); border
   });
 
   // ── the repeat tab ──
-  function setLayoutUI() {
-    var k = pattern.layout.kind;
-    $('layout').dataset.n = String(P.LAYOUTS.indexOf(k));
-    $('layout').dataset.i = LAYOUT_LETTER[k];
-    $('layoutword').textContent = LAYOUT_WORD[k];
-  }
-  $('layout').addEventListener('click', function (e) {
-    var cur = P.LAYOUTS.indexOf(pattern.layout.kind);
-    var next = window.triNext($('layout'), P.LAYOUTS.length, e, cur);
-    if (next === cur) return;
-    mark();
-    pattern.layout = { kind: P.LAYOUTS[next] };
-    setLayoutUI(); touch(); changed();
-  });
-  function setBgUI() {
-    $('bg').value = pattern.tile.bg;
-    $('swatches').querySelectorAll('.sw').forEach(function (b) { b.classList.toggle('on', b.dataset.c === pattern.tile.bg); });
-  }
-  SWATCHES.forEach(function (c) {
-    var b = document.createElement('button'); b.className = 'sw'; b.dataset.c = c; b.style.background = c; b.setAttribute('aria-label', c);
-    b.addEventListener('click', function () { mark(); pattern.tile.bg = c; setBgUI(); touch(); changed(); });
-    $('swatches').appendChild(b);
-  });
-  $('bg').addEventListener('input', function () { mark('bg'); pattern.tile.bg = $('bg').value.toLowerCase(); setBgUI(); touch(); changed(); });
   $('sizes').addEventListener('click', function (e) {
     var b = e.target.closest('.chip'); if (!b) return;
     exportSize = b.dataset.s;
