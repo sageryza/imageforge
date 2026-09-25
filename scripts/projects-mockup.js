@@ -27,6 +27,8 @@ const https = require('https');
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const CHAT = process.env.FORGE_CHAT || 'project-icons-organization';
 const SHEET = 'projects-mockup-v1';
+const BRIEF_SHEET = 'projects-brief';   // her edits to a brief live here, <id>.goal · .done · .stuck · .fix
+const BRIEFS = require('../docs/projects/briefs.json');
 const args = process.argv.slice(2);
 const GO = args.includes('--go');
 const SUP = args.includes('--supersede') ? args[args.indexOf('--supersede') + 1] : '';
@@ -41,26 +43,29 @@ const PROJECTS = [
   // under `projects-mockup`.
   { name: 'Caught the moon', kw: ['moon-panes', 'moon-pane', 'caught-the-moon', 'moon-in-my-pocket'], icon: 'moon-panes-zoom-video',
     img: 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/168b446f4a27558a97ed00831585489e.png', crop: 'photo' },
-  { name: 'Similitude', kw: ['triset', 'triangle', 'triangles', 'similitude', 'dominoes', 'peacock-set'], icon: 'peacock-set-placement', pl: 'triangle' },
-  { name: 'Pattern maker', kw: ['animal-fruit', 'fruit-veg', 'animal-deck', 'fruits-vegetables', 'animal-card', 'fruit-repeating', 'repeating-patterns', 'seamless', 'wallpaper', 'poster', 'posters', 'patterns-google', 'animal-fruit-pattern'], icon: 'animal-fruit-pattern-tool', pl: 'animal' },
+  // Her worked example of a brief (2026-09-25): "legal posters were having
+  // trouble getting spacing right … the spacer thing was too complicated".
+  { name: 'Posters', kw: ['poster', 'posters', 'physical-posters'], icon: 'minimal-animal-fruit-posters', live: ['/etsy'] },
+  { name: 'Similitude', kw: ['triset', 'triangle', 'triangles', 'similitude', 'dominoes', 'peacock-set'], icon: 'peacock-set-placement', pl: 'triangle', live: ['/similitude', '/dominoes'] },
+  { name: 'Pattern maker', kw: ['animal-fruit', 'fruit-veg', 'animal-deck', 'fruits-vegetables', 'animal-card', 'fruit-repeating', 'repeating-patterns', 'seamless', 'wallpaper', 'patterns-google', 'animal-fruit-pattern'], icon: 'animal-fruit-pattern-tool', pl: 'animal' },
   { name: 'Ward film', kw: ['hospital', 'ward', 'francesca', 'soap-pill', 'belt', 'reshoots', 'reshoot', 'seedance', 'continuity', 'anastasia'], icon: 'hospital-night-reshoots', pl: 'hospital' },
   { name: 'Nautchaug', kw: ['nautch'], icon: 'new-script-draft' },
   { name: 'Ticky Tack', kw: ['ticky'], icon: 'ticky-tack-film-page-dupe' },
   { name: 'Christmas', kw: ['christmas', 'saturnalia'], icon: 'christmas-scripts-saturnalia', pl: 'christmas' },
-  { name: 'Witch', kw: ['witch', 'witchcraft', 'secretly', 'tarot', 'blog', 'spell', 'miracle', 'astrology', 'horoscope'], icon: 'witch-reels-final', pl: 'witch' },
-  { name: 'Dreams', kw: ['dream', 'dreams', 'dreamfeed', 'dreamy'], icon: 'dream-feed-monkey-compare' },
-  { name: 'Dating book', kw: ['dating', 'date-moments', 'date-illustration', 'sophie-experiment', 'date-card'], icon: 'dating-book-design' },
+  { name: 'Witch', kw: ['witch', 'witchcraft', 'secretly', 'tarot', 'blog', 'spell', 'miracle', 'astrology', 'horoscope'], icon: 'witch-reels-final', pl: 'witch', live: ['/witch', '/blog'] },
+  { name: 'Dreams', kw: ['dream', 'dreams', 'dreamfeed', 'dreamy'], icon: 'dream-feed-monkey-compare', live: ['/dreamfeed'] },
+  { name: 'Dating book', kw: ['dating', 'date-moments', 'date-illustration', 'sophie-experiment', 'date-card'], icon: 'dating-book-design', live: ['/writing'] },
   { name: 'Xi', kw: ['xi'], icon: 'xi-chsts-meta-prompt' },
   { name: 'Evan', kw: ['evan'], icon: 'evan-film-collected' },
   { name: 'NDE', kw: ['nde', 'chene', 'near-death'], icon: 'anthony-chene-nde-pipeline' },
-  { name: 'Stories', kw: ['moon-milk', 'moon milk', 'jonas', 'charlie', 'wormsicle', 'meteorite', 'own-destiny', 'soul-leaves'], icon: 'moon-milk-meta' },
-  { name: "Mom's Etsy", kw: ['jewelry', 'crystal', 'crystals', 'lightroom'], icon: 'jewelry-upload-website' },
-  { name: 'Hats', kw: ['hat-store', 'hats', 'hat'], icon: 'hat-store-friend', pl: 'hat' },
+  { name: 'Stories', kw: ['moon-milk', 'moon milk', 'jonas', 'charlie', 'wormsicle', 'meteorite', 'own-destiny', 'soul-leaves'], icon: 'moon-milk-meta', live: ['/storyroom'] },
+  { name: "Mom's Etsy", kw: ['jewelry', 'crystal', 'crystals', 'lightroom'], icon: 'jewelry-upload-website', live: ['/jewelry', '/lightroom', '/crystalsplit'] },
+  { name: 'Hats', kw: ['hat-store', 'hats', 'hat'], icon: 'hat-store-friend', pl: 'hat', live: ['/hats'] },
   { name: 'Head Games', kw: ['mental-games', 'head-games', 'headgames'], icon: 'mental-games-instrumental-beliefs' },
   { name: 'Hoonies', kw: ['hoonie', 'hoonies'], icon: 'chat-decision-toggle-hoonies' },
   { name: 'PWC reels', kw: ['pwc'], icon: 'pwc-reels-update-page' },
-  { name: 'Fruit poll', kw: ['favorite-fruit', 'fruit-chart', 'fruit-poll'], icon: 'favorite-fruit-chart' },
-  { name: 'Opinions', kw: ['opinion', 'opinions'], icon: 'opinions-app-commercial' },
+  { name: 'Fruit poll', kw: ['favorite-fruit', 'fruit-chart', 'fruit-poll'], icon: 'favorite-fruit-chart', live: ['/fruit', '/fruitchart'] },
+  { name: 'Opinions', kw: ['opinion', 'opinions'], icon: 'opinions-app-commercial', live: ['/opinions'] },
 ];
 
 function get(url) {
@@ -105,12 +110,28 @@ async function main() {
     const r = await get(BASE + '/api/promptlab?q=' + encodeURIComponent(p.pl) + '&limit=1');
     pics[p.name] = r.matched || 0;
   }
-  const rows = PROJECTS.map((p) => {
+  // The project's live Compare pages — every chat's un-superseded pages, newest
+  // first. One read per chat; a project with thirty chats is thirty reads.
+  const pagesOf = async (list) => {
+    const out = [];
+    for (const c of list) {
+      const r = await get(BASE + '/api/chatfeed/pages?chat=' + encodeURIComponent(c.slug)).catch(() => ({}));
+      (r.pages || []).filter((pg) => !pg.superseded).forEach((pg) => out.push({ title: pg.title, url: BASE + '/api/chatfeed/page/' + pg.id, at: pg.at || pg.createdAt || c.at }));
+    }
+    return out.sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 6);
+  };
+  const rows = [];
+  for (const p of PROJECTS) {
     const list = filed.get(p.name).sort((a, b) => b.at.localeCompare(a.at));
-    const iconReg = chats[p.icon];
+    const pages = await pagesOf(list);
+    const links = (p.live || []).map((u) => ({ title: u, url: BASE + u }))
+      .concat(list.map((c) => chats[c.slug].pinned).filter((x) => x && x.kind !== 'video' && x.url).map((x) => ({ title: x.title, url: x.url })))
+      .concat(pages);
+    const seen = {}; const uniq = links.filter((l) => !seen[l.url] && (seen[l.url] = 1));
     const films = list.map((c) => chats[c.slug].pinned).filter((x) => x && x.kind === 'video');
-    return { ...p, chats: list, icon: p.img || (iconReg && iconReg.icon) || (list.find((c) => c.icon) || {}).icon || '', pics: pics[p.name] || 0, films };
-  });
+    const iconReg = chats[p.icon];
+    rows.push({ ...p, chats: list, icon: p.img || (iconReg && iconReg.icon) || (list.find((c) => c.icon) || {}).icon || '', pics: pics[p.name] || 0, films, links: uniq, brief: BRIEFS[p.name] || {} });
+  }
   const id = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   const tiles = rows.map((p) => `
     <figure class="app" data-item="${id(p.name)}" data-p="${id(p.name)}">
@@ -120,21 +141,24 @@ async function main() {
   const sheets = rows.map((p) => `
     <section class="sheet" id="s-${id(p.name)}" hidden>
       <h2>${esc(p.name)}</h2>
+      <div class="brief">${['goal', 'done', 'stuck', 'fix'].map((k) => `<div class="bl" data-k="${k}"><b>${{ goal: 'Where it is going', done: 'Finished when', stuck: 'Where it ran out of steam', fix: 'Ways back in' }[k]}</b><p data-k="${k}">${esc(p.brief[k] || '')}</p></div>`).join('')}</div>
+      ${p.links.length ? `<div class="links">${p.links.map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.title)}</a>`).join('')}</div>` : ''}
       <div class="mini">${p.chats.length} chat${p.chats.length === 1 ? '' : 's'}${p.pics ? ` · ${p.pics} Playground picture${p.pics === 1 ? '' : 's'}` : ''}</div>
       ${p.films.map((f) => `<div class="film" data-url="${esc(f.url)}" data-label="${esc(f.title)}"></div>`).join('')}
-      <ul>${p.chats.map((c) => `<li>${c.icon ? `<img src="${esc(c.icon)}" alt="">` : '<i></i>'}<span>${esc(c.name)}${c.archived ? ' <em>archived</em>' : ''}</span><time>${esc(c.at)}</time></li>`).join('')}</ul>
+      <ul>${p.chats.map((c) => `<li data-slug="${esc(c.slug)}">${c.icon ? `<img src="${esc(c.icon)}" alt="">` : '<i></i>'}<span>${esc(c.name)}${c.archived ? ' <em>archived</em>' : ''}</span><time>${esc(c.at)}</time></li>`).join('')}</ul>
     </section>`).join('');
   const html = fs.readFileSync(path.join(__dirname, '..', 'docs', 'projects', 'projects-mockup.tpl.html'), 'utf8')
     .replace('{{TILES}}', tiles).replace('{{SHEETS}}', sheets)
-    .replace(/\{\{CHAT\}\}/g, CHAT).replace(/\{\{SHEET\}\}/g, SHEET);
+    .replace(/\{\{CHAT\}\}/g, CHAT).replace(/\{\{SHEET\}\}/g, SHEET).replace(/\{\{BRIEF_SHEET\}\}/g, BRIEF_SHEET);
   const out = path.join(__dirname, '..', 'docs', 'projects', 'projects-mockup.html');
   fs.writeFileSync(out, html);
   const summary = rows.map((p) => `${p.name}: ${p.chats.length} chats${p.pics ? ', ' + p.pics + ' pictures' : ''}`).join('\n');
   console.log(summary);
   console.log('wrote', out);
   if (!GO) return;
-  const r = await post(BASE + '/api/chatfeed/page', { chat: CHAT, title: 'Projects — home screen mockup v1', html });
+  const r = await post(BASE + '/api/chatfeed/page', { chat: CHAT, title: 'Projects — home screen mockup v5, with briefs', html });
   console.log('posted', JSON.stringify(r));
   if (SUP && r.id) console.log('superseded', JSON.stringify(await post(BASE + '/api/chatfeed/page/' + SUP + '/supersede', {})));
 }
-main().catch((e) => { console.error(e); process.exit(1); });
+module.exports = { PROJECTS, fileChat };
+if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });
