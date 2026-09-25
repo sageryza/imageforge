@@ -7,10 +7,18 @@
   (2026-09-14, Sophie: "shud go to a screen that says what the unmerged
   changes are · each chat contributes").
 
-  ONE pile: everything merged into main and waiting for a deploy. It is the
-  pile the push counts, so the number here and the number on her phone are the
-  same number. (A STILL OPEN pile shipped under it on day one and she had it
-  taken off the same day — see render().)
+  ONE pile: everything merged into main that a deploy would carry TO HER.
+  It is the pile the push counts, so the number here and the number on her
+  phone are the same number. (A STILL OPEN pile shipped under it on day one
+  and she had it taken off the same day — see render().)
+
+  "WAITING TO DEPLOY" MEANS CHANGES THAT WOULD CHANGE SOMETHING FOR HER
+  (2026-09-25, Sophie: "only have the 'waiting to deploy' mean changes that
+  would change something for me"). The server sorts every waiting commit by
+  the files it touched (waiting.js `kindOfFiles`); the ones that only move
+  docs, scripts, tests or a Compare page's template — live the moment it was
+  posted, deploy or no deploy — sit SHUT under "nothing changes for you", and
+  an iOS-only change says it needs a build, not a deploy.
 
   Each change sits under THE CHAT THAT WROTE IT. That join is derived from the
   attribution trailer every PR carries, so it needed nothing from any chat —
@@ -110,11 +118,13 @@
   <button id="help" type="button" aria-label="What this is">?</button>
 </div>
 <div class="helpcard" id="helpcard" hidden>
-  <b>What the “changes waiting” buzz is about.</b> Everything merged but not
-  live yet, under the chat that wrote it. Tapping a change opens its pull
-  request. Under it, the last five deploys — tap one to see what rode in it.
-  <b>Deploy</b> at the top sends everything on this list live — tap it twice.
-  If something is being drawn, the deploy waits for it by itself.
+  <b>What the “changes waiting” buzz is about.</b> Everything merged that a
+  deploy would change for you, under the chat that wrote it. Tapping a change
+  opens its pull request. Merges that change nothing for you — notes, scripts,
+  a Compare page that is already in your tab — sit shut under the list, and an
+  iOS change waits on a build instead. Under that, the last five deploys — tap
+  one to see what rode in it. <b>Deploy</b> at the top sends everything live —
+  tap it twice. If something is being drawn, the deploy waits for it by itself.
 </div>
 
 <main class="wrap">
@@ -150,7 +160,8 @@
   }
 
   function change(it){
-    var meta = [it.pr ? '#' + it.pr : '', when(it.at), it.draft ? 'draft' : '']
+    var meta = [it.pr ? '#' + it.pr : '', when(it.at), it.draft ? 'draft' : '',
+      it.kind === 'ios' ? 'iOS · a build, not a deploy' : '']
       .filter(Boolean).join(' · ');
     var inner = it.line
       ? '<span class="said">' + esc(it.line) + '</span>' +
@@ -183,18 +194,38 @@
      · get rid of it"). Still-open PRs are not what the buzz is about, and the
      list of them was three times as long as the answer. The server still
      answers `open`; the page ignores it. */
+  /* THE COUNT IS THE CHANGES SHE WOULD NOTICE — `forYou`, never the raw
+     `ahead`. The rest is named in one quiet line and folded under the pile. */
+  function forYou(j){ return typeof j.forYou === 'number' ? j.forYou : (j.ahead || 0); }
   function render(j){
-    var n = j.ahead || 0;
+    var n = forYou(j);
+    var q = (j.quiet || []).reduce(function(a, g){ return a + g.items.length; }, 0);
     var head = j.error === 'no-commit'
       ? '<p class="count">This box has no commit of its own, so it can’t say what is unshipped.</p>'
       : (j.error
         ? '<p class="count">Couldn’t read GitHub — ' + esc(j.error) + '</p>'
-        : '<p class="count"><b>' + n + '</b> ' + (n === 1 ? 'change is' : 'changes are') +
-          ' merged and not live yet.</p>');
+        : '<p class="count"><b>' + n + '</b> ' + (n === 1 ? 'change' : 'changes') +
+          ' waiting to deploy' + (n ? '' : ' — nothing a deploy would change for you') + '.</p>');
     bodyEl.innerHTML = head +
       '<p class="sub">Live on ' + esc(j.live || '—') + ' · read ' + esc(when(j.at)) + '</p>' +
-      '<div class="sect">Not live yet</div>' + groups(j.groups || []) +
+      '<div class="sect">Changes something for you</div>' + groups(j.groups || []) +
+      quiet(j.quiet || [], q) +
       deploys(j.deploys || []);
+  }
+
+  /* NOTHING CHANGES FOR YOU — one shut row, the deploy log's own fold: merges
+     that only moved notes, scripts, tests or a Compare page's template (live
+     the day it was posted), and iOS changes waiting on a build. Never hidden
+     outright: a change she cannot find is the thing this page exists to end. */
+  function quiet(list, q){
+    if (!q) return '';
+    /* No section heading of its own — PHOTO'd at 390pt, a heading plus a row
+       saying the same thing read twice, and the row wrapped. One row. */
+    return '<button class="dep quietrow" type="button" aria-expanded="false" aria-controls="quietbody">' +
+      '<span class="d">' + q + (q === 1 ? ' merge changes' : ' merges change') + ' nothing for you</span>' +
+      '<span class="c">notes · pages</span>' +
+      '<svg class="cv" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>' +
+      '</button><div class="depbody" id="quietbody" hidden>' + groups(list) + '</div>';
   }
 
   /* The way out. Shown only when nothing else is drawing one — embedded in a
@@ -252,7 +283,7 @@
 
   function showDeploy(j){
     var d = j.deploy || {};
-    lastN = j.ahead || 0;
+    lastN = forYou(j);
     if (!d.key || !lastN || j.error) { row.hidden = true; return; }
     row.hidden = false;
     go.disabled = false;

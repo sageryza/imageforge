@@ -35,8 +35,24 @@
 // about the number. Off Render there is no commit to compare against and the
 // page says so rather than inventing a baseline.
 //
+// "WAITING TO DEPLOY" MEANS CHANGES THAT WOULD CHANGE SOMETHING FOR HER
+// (2026-09-25, Sophie, looking at eleven Compare-page and doc merges under
+// the count: "why are things like compare page need to be deployed" · "only
+// have the 'waiting to deploy' mean changes that would change something for
+// me"). A Compare page is live the moment it is posted; its template, its
+// script, its test and the note in the docs are the RECORD of it, and a
+// deploy moves none of them. So every waiting commit is read for the files it
+// touched (one GitHub read per commit, cached for the life of the process —
+// a commit's files never change) and sorted by `kindOfFiles`: LIVE (anything
+// the server serves or runs — a root module, public/, refs/, render.yaml…),
+// IOS (only ios/ — a TestFlight build ships it, a deploy does not) or RECORD
+// (docs/, scripts/, tests, .claude/, any .md). The count, the pile and the
+// Deploy button are the LIVE ones; the rest sit shut under "nothing changes
+// for you". A commit whose files could not be read (a 403 on a busy hour)
+// is UNKNOWN and counts as live — the safe direction, never a hidden change.
+//
 // Routes (STUDIO_TOKEN gate, GET /status open):
-//   GET  /api/waiting            → { ok, live, ahead, groups, open, at }
+//   GET  /api/waiting            → { ok, live, ahead, forYou, groups, quiet, open, at }
 //   GET  /api/waiting/status     → { ok, firebase, live }
 //   POST /api/waiting            → { chat, session?, pr?, sha?, line } — a
 //        chat's own words for one change (200 chars). Re-posting replaces it.
@@ -264,13 +280,79 @@ function groupRows(rows, chats, notes) {
   return out;
 }
 
+// ---- what a commit changes for her ------------------------------------------
+
+// Paths a deploy does not carry to her. Explicit and small ON PURPOSE: an
+// unlisted folder counts as LIVE, so a new served thing can never be filed as
+// bookkeeping by accident — the failure this must not have is a change she
+// cannot see.
+const RECORD_DIRS = ['docs/', 'scripts/', '.claude/', '.github/', 'tools/',
+  'browser-extension/', 'illustration-lab/', 'out/', 'assets/'];
+const RECORD_FILES = /^(\.gitignore|\.editorconfig|LICENSE|CLAUDE\.md|README\.md)$/;
+
+/** One commit's file list → 'live' | 'ios' | 'record' | 'unknown'. Pure. */
+function kindOfFiles(files) {
+  if (!Array.isArray(files) || !files.length) return 'unknown';
+  let ios = false;
+  for (const f of files) {
+    const p = String((f && f.filename) || f || '');
+    if (!p) continue;
+    if (p.startsWith('ios/')) { ios = true; continue; }
+    if (/\.md$/i.test(p) || RECORD_FILES.test(p) || RECORD_DIRS.some((d) => p.startsWith(d))) continue;
+    return 'live';
+  }
+  return ios ? 'ios' : 'record';
+}
+
+// sha → file paths, for the life of the process. Immutable by construction,
+// so a commit is read once ever; the pile empties on deploy and the new
+// instance starts with an empty map and an empty pile.
+const files = new Map();
+// The per-commit reads share the 60/hr unauthenticated budget with the three
+// the page already makes, and a build must never spend the compare read the
+// push needs next hour — so at most 20 commits are read per build (the rest
+// wait for the next one) and a `GITHUB_TOKEN` in the env, if one is ever set,
+// lifts the whole thing to 5,000/hr. Measured 2026-09-25 from a chat's
+// container: the shared egress IP was already at 0 remaining, and every
+// unread commit fell honestly into the pile as unknown.
+const CLASSIFY_MAX = 20;
+const CLASSIFY_PAR = 3;
+
+async function readFiles(sha, fetchFn) {
+  const id = String(sha || '');
+  if (files.has(id)) return files.get(id);
+  const j = await ghJson(`https://api.github.com/repos/${REPO}/commits/${id}`, fetchFn);
+  const list = (Array.isArray(j.files) ? j.files : []).map((f) => String(f.filename || ''));
+  files.set(id, list);
+  return list;
+}
+
+/** Stamp `kind` on each commit. A read that fails leaves 'unknown'. */
+async function classify(commits, fetchFn) {
+  const todo = commits.filter((c) => c.sha && !files.has(c.sha)).slice(0, CLASSIFY_MAX);
+  let i = 0;
+  const worker = async () => {
+    while (i < todo.length) {
+      const c = todo[i++];
+      try { await readFiles(c.sha, fetchFn); } catch (e) { /* unknown */ }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(CLASSIFY_PAR, todo.length) }, worker));
+  return commits.map((c) => ({ ...c, kind: files.has(c.sha) ? kindOfFiles(files.get(c.sha)) : 'unknown' }));
+}
+
+const forHer = (c) => c.kind === 'live' || c.kind === 'unknown';
+
 // ---- GitHub (one read each, cached) ----------------------------------------
 
 const cache = { at: 0, key: '', data: null };
 
 async function ghJson(url, fetchFn) {
   const f = fetchFn || fetch;
-  const r = await f(url, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'imageforge' } });
+  const headers = { Accept: 'application/vnd.github+json', 'User-Agent': 'imageforge' };
+  const tok = String(process.env.GITHUB_TOKEN || '').trim();
+  if (tok) headers.Authorization = 'Bearer ' + tok;
+  const r = await f(url, { headers });
   if (!r.ok) throw new Error(`github ${r.status}`);
   return r.json();
 }
@@ -383,13 +465,22 @@ async function build(opts) {
     readDeploys(6).catch(() => []),
     readRecent(o.fetch).catch(() => []),
   ]);
+  const commits = ahead && !ahead.error ? await classify(ahead.commits, o.fetch) : [];
+  const mine = commits.filter(forHer);
+  const rest = commits.filter((c) => !forHer(c));
   const data = {
     live: head ? head.slice(0, 7) : '',
     // A box with no commit of its own (a dev container) can still show what is
     // open; it just cannot say what is unshipped.
     ahead: ahead && !ahead.error ? ahead.ahead : 0,
     error: (ahead && ahead.error) || (head ? '' : 'no-commit'),
-    groups: ahead && !ahead.error ? groupRows(ahead.commits, chats, notes) : [],
+    // The number that means something: commits a deploy would carry to her.
+    // `classified` says whether every waiting commit was seen — the compare
+    // read caps at 250 and a truncated list must not read as a small pile.
+    forYou: mine.length,
+    classified: !!(ahead && !ahead.error && commits.length === ahead.ahead),
+    groups: groupRows(mine, chats, notes),
+    quiet: groupRows(rest, chats, notes),
     open: groupRows(open, chats, notes),
     // Up to five, and honestly fewer when the log cannot place them.
     deploys: deployRuns(deploys, recent, chats, notes, 5),
@@ -489,4 +580,4 @@ router.post('/deploy', async (req, res) => {
   }
 });
 
-module.exports = { router, parseCommit, parsePull, cleanTitle, sidIndex, groupRows, readAhead, readOpen, readRecent, readDeploys, deployRuns, build, bareSid, DEPLOYS, deployState, deployDoor, COOL_MS };
+module.exports = { router, parseCommit, parsePull, cleanTitle, sidIndex, groupRows, kindOfFiles, classify, readFiles, _files: files, readAhead, readOpen, readRecent, readDeploys, deployRuns, build, bareSid, DEPLOYS, deployState, deployDoor, COOL_MS };

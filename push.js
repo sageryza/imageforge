@@ -513,7 +513,22 @@ function behindPlan(ahead, last, step) {
 }
 
 function behindWords(n) {
-  return [`${n} changes waiting`, n === 1 ? 'One change is merged and not live.' : `${n} changes are merged and not live yet.`];
+  return [`${n} changes waiting`, n === 1 ? 'One change you would notice is merged and not live.' : `${n} changes you would notice are merged and not live yet.`];
+}
+
+/** THE NUMBER IS THE CHANGES SHE WOULD NOTICE (2026-09-25, Sophie: "only have
+ *  the 'waiting to deploy' mean changes that would change something for me").
+ *  waiting.js reads each waiting commit's files and keeps the ones a deploy
+ *  carries to her; a docs-only merge or a Compare page's template does not
+ *  count. Falls back to the raw ahead_by when the pile could not be sorted
+ *  (a refused read, a truncated compare) — the old number, never a smaller
+ *  one built on a partial read. */
+async function countForHer(fetchFn, st) {
+  try {
+    const d = await require('./waiting').build({ fetch: fetchFn, sha: st.sha, fresh: true });
+    if (d && !d.error && d.classified && Number(d.ahead) === st.ahead) return Number(d.forYou) || 0;
+  } catch (e) { /* the raw count below */ }
+  return st.ahead;
 }
 
 /** The hourly tick. Never throws — a GitHub hiccup must not be a log full of
@@ -525,6 +540,7 @@ async function behindCheck(opts) {
   let st;
   try { st = await readBehind(o.fetch, o.sha); } catch (e) { return { pushed: false, why: e.message }; }
   if (!st) return { pushed: false, why: 'no-commit' };
+  st = { ...st, raw: st.ahead, ahead: await countForHer(o.fetch, st) };
   let last = 0;
   try {
     const snap = await deployRef().get();
@@ -549,4 +565,4 @@ async function behindCheck(opts) {
   return { pushed: true, ahead: st.ahead, rung: plan.rung };
 }
 
-module.exports = { router, notifyChat, queueChat, flushChat, notifyDeploy, deployBootCheck, behindCheck, readBehind, behindPlan, BEHIND_STEP, _internals: { providerJwt, apnsKey, apnsSend, sendAll, jwtCache, pending, PENDING_MS, wire } };
+module.exports = { router, notifyChat, queueChat, flushChat, notifyDeploy, deployBootCheck, behindCheck, readBehind, behindPlan, countForHer, BEHIND_STEP, _internals: { providerJwt, apnsKey, apnsSend, sendAll, jwtCache, pending, PENDING_MS, wire } };

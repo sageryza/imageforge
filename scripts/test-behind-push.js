@@ -73,6 +73,28 @@ ok(plan(3, 10).push === false, 'a count that went DOWN (a deploy landed) says no
   ok(r4.pushed === true, 'a new instance starts its own count from zero');
   ok(doc.behindSha === 'sha-B', 'and marks under its own commit');
 
+  // ── THE NUMBER IS THE CHANGES SHE WOULD NOTICE (2026-09-25) ──────────
+  // A compare answering the commits AND their files: three merged, one of
+  // them a docs-only merge, so the count she hears is two — and two is under
+  // five, so nothing buzzes where the raw three would not have either; at
+  // scale the point is that ten Compare-page merges are not a buzz.
+  const withFiles = (paths) => async (url) => {
+    if (/\/compare\//.test(url)) return { ok: true, status: 200, json: async () => ({ ahead_by: paths.length,
+      commits: paths.map((_, i) => ({ sha: String(i + 1).repeat(40), commit: { message: 'c' + i + ' (#' + i + ')', committer: { date: '' } } })) }) };
+    const m = url.match(/\/commits\/(\d)/);
+    if (m) return { ok: true, status: 200, json: async () => ({ files: paths[Number(m[1]) - 1].map((f) => ({ filename: f })) }) };
+    return { ok: true, status: 200, json: async () => ([]) };
+  };
+  require('../waiting')._files.clear();
+  doc = {};
+  const six = [['public/a.html'], ['docs/a.md'], ['public/b.html'], ['docs/b.md'], ['docs/c.md'], ['scripts/x.js']];
+  let r5 = await push.behindCheck({ fetch: withFiles(six), sha: 'sha-C' });
+  ok(r5.pushed === false && r5.ahead === 2, 'six merged, two she would notice → no buzz (' + JSON.stringify(r5) + ')');
+  const seven = six.concat([['footage.js'], ['public/c.html'], ['refs/x.png']]);
+  let r6 = await push.behindCheck({ fetch: withFiles(seven), sha: 'sha-C' });
+  ok(r6.pushed === true && r6.ahead === 5 && r6.raw === undefined, 'nine merged, five for her → it buzzes with FIVE (' + JSON.stringify(r6) + ')');
+  ok(await push.countForHer(gh(8), { ahead: 8, sha: 'sha-D' }) === 8, 'a compare with no commit list falls back to the raw count, never a smaller one');
+
   // never throws
   const bad = await push.behindCheck({ fetch: async () => { throw new Error('offline'); }, sha: 'sha-B' });
   ok(bad.pushed === false && /offline/.test(bad.why), 'a GitHub hiccup is an answer, never a crash');
