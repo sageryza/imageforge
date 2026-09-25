@@ -3684,7 +3684,8 @@ before working on that module. Nothing was deleted — the moved text is verbati
   degrees box and ±15 to turn, a size slider,
   flip, "+" for another of the same, SPACING grows the tile under the pieces
   so the repeats land farther apart, SPIN turns every piece at random within
-  ±N°, SCATTER spreads them evenly) and REPEAT (the tiled preview, grid ·
+  ±N°, SCATTER deals every piece a new random spot each tap, spread so
+  nothing piles up — 2026-09-25) and REPEAT (the tiled preview, grid ·
   half-drop · mirror on a tri toggle, the colour behind, EXPORT at 1K/2K/4K —
   drawn on the page's own canvas and filed into the Dump, album `Patterns`,
   through the live `/api/drop/upload-file`). **NO DEPLOY, ever**: her
