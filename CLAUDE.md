@@ -227,8 +227,8 @@ still every time the work wraps up.
      OLD thing, which reads as the fix not working. Deploy first when she has
      said to, or write in one line that the link shows the change once it is
      deployed (the *ASK BEFORE YOU DEPLOY* rule is unchanged).
-   - **THE PR IS NOT THE LINK.** It is the record and it rides last in the
-     link block; it is not a place she can see anything.
+   - **THE PR IS NOT THE LINK — AND IS NOT LINKED AT ALL** (see *NO PR
+     LINKS* under *WRITING THE REPLY*). It is the record; she never opens it.
    - **Nothing to point at?** Say so plainly — a fix to a script, a hook or a
      server rule may have no surface, and inventing one is worse than the
      sentence.
@@ -543,10 +543,16 @@ broken:
    that needs more is a reply carrying something from the OUT list below.
 3. **THE SHAPE, and nothing that is not one of these lines:**
    - **the links FIRST, full and clickable** (2026-09-14, her rule: pinned at
-     the top, never the bottom): the surface the change shows on (3h), then
-     **the PR, last in that block — on EVERY reply that opened, pushed to or
-     merged one**, no exceptions (that is the 22-of-74 above). **Never a
-     `/chats?chat=` link**, to any chat, yours included;
+     the top, never the bottom): the surface the change shows on (3h).
+     **Never a `/chats?chat=` link**, to any chat, yours included;
+   - **NO PR LINKS — A FLEXIBLE RULE, HERS TO MOVE (2026-09-26, Sophie: "i
+     never look at p requests · they shud be linked nowhere · add as a
+     flexible rule").** No PR url in a reply, a card, a wrap-up, a page or a
+     note — not even last in the link block. This REVERSES the 2026-09-14
+     "the PR on every reply" line (the 22-of-74 above is history). Say
+     "merged" in the state line; the number, if it matters, as plain text
+     (`2445`). "Flexible" means her word lifts it for one reply ("link the
+     PR") without changing the rule;
    - what changed, in her words, one or two sentences;
    - her questions answered, each ONCE (a question she MARKED — "i have a
      question" / "quick question" / "file this" — is repeated in bold on its
@@ -3502,7 +3508,7 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     that they're talking about at the bottom of their analysis"), and she
     retired it. Don't put one back.
   - **LINKS GO AT THE TOP.** The working links — the page, the deploy, the
-    surface a bug fix shows on, the PR last — sit at the head of the reply, not
+    surface a bug fix shows on (never the PR — *NO PR LINKS*) — sit at the head of the reply, not
     the end of it. Everything else about them is unchanged: full clickable
     urls, never bare text she has to assemble, one short line each saying what
     to look at. **FILES AND IMAGES ARE STILL LAST** — that order is a separate
@@ -3511,7 +3517,7 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     (a bug fix's example links), and anything that used to collect links "at
     the very bottom".
 - **Always include clickable testing links** when something is ready to test:
-  the deployed page for the feature plus the PR link.
+  the deployed page for the feature (no PR link — *NO PR LINKS*).
 - **Copy-paste / handoff messages = one code block.** When the user asks for a
   message to copy-paste, forward, or hand off to another chat, put the ENTIRE
   message inside a single fenced code block so it copies in one tap — no
@@ -3535,8 +3541,7 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   This bullet used to restate the gate and drifted a day behind it — the rule
   is there, this is the pointer.
 - **SHORT REPLIES BY DEFAULT — and since 2026-09-14 a HARD CAP: 600
-  characters, no words between tool calls, the PR link on every reply that
-  touched one. The cap and the shape live in ONE place, *WRITING THE REPLY*
+  characters, no words between tool calls, no PR link ever (2026-09-26). The cap and the shape live in ONE place, *WRITING THE REPLY*
   in the checklist at the top; this bullet is the history.** (Aug
   2026, Sophie: "a lot of my responses are really long and it's actually
   annoying cause I don't wanna read through it all").** The default reply is a
@@ -4767,7 +4772,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
     for hers, and nothing invented when she never said it — a PR for work no
     message of hers asked for simply says so.
   - **The reply is the opposite and has not moved**: links FIRST, full and
-    clickable, PR last (*WRITING THE REPLY*). The PR is the record; the reply
+    clickable, no PR link (*WRITING THE REPLY*). The PR is the record; the reply
     is the door.
 - **Merging a DOCS-ONLY PR? Put `[skip render]` in the squash title** — the
   deploy is skipped and costs zero build minutes; the next code merge ships
