@@ -113,7 +113,14 @@
    line, the same band and the same direction within a second and a half was
    undone by the browser, and a keeper fighting the browser is the epilepsy —
    it stands down for the rest of that focus (`fight`), and the phone's own
-   reveal, which is what undid it, keeps the caret. Test:
+   reveal, which is what undid it, keeps the caret. AND A SELECTION IS NEVER
+   KEPT (the same day, her recording: the block selected whole, nothing
+   typed, the screen flipping twice a second): `selectionEnd` of a
+   select-all is the scene's last line, iOS reveals a selection's START, and
+   the two took turns; the loop-check never matched because stickybox's
+   pinned buttons ride the phone's pan and so narrowed a different band on
+   every pass — the signature is the keyboard's band alone now, with a
+   five-in-two-seconds net under it. Test:
    `node scripts/test-caret-pan.js` — the phone's own arithmetic stood in
    for `scrollTo` and `visualViewport`; against the old keeper nine letters
    on one line moved the view 27 times.
@@ -414,8 +421,17 @@
   // shortens the document for one layout — the Playground's, the Chats app's)
   // undoes a correction that DID move the layout viewport, and is re-corrected
   // on every keystroke exactly as it always was.
-  var FIGHT_MS = 1500, FIGHT_PX = 6, FIGHT_N = 3;
-  var lastFix = null, fight = false;
+  // THE BAND IN THE SIGNATURE IS THE KEYBOARD'S ALONE, never the one narrowed
+  // by pinned chrome (2026-09-26, her recording: the screen flipping twice a
+  // second with nothing typed). stickybox's buttons are `position:fixed`,
+  // which on iOS means fixed to the LAYOUT viewport — so every pan the phone
+  // makes carries them up or down the screen, and a band read through them
+  // was a different band on every pass: the same fight, never once the same
+  // signature. And a coarse net under the fine one: five window corrections
+  // in two seconds that never moved the layout viewport is a fight whatever
+  // their lines say.
+  var FIGHT_MS = 1500, FIGHT_PX = 6, FIGHT_N = 3, FLOOD_N = 5, FLOOD_MS = 2000;
+  var lastFix = null, fight = false, flood = [];
   function repeat(c, b, d, pan, now) {
     var dir = d > 0 ? 1 : -1, bt = b.top - pan, bb = b.bottom - pan, ly = window.scrollY;
     var same = !!lastFix && lastFix.took === false && lastFix.line === c.line && lastFix.dir === dir
@@ -425,11 +441,24 @@
     lastFix = { line: c.line, dir: dir, bt: bt, bb: bb, ly: ly, at: now, n: n, took: null };
     return n >= FIGHT_N;
   }
-  function calm() { lastFix = null; fight = false; }
+  function flooding(now) {
+    flood = flood.filter(function (t) { return now - t < FLOOD_MS; });
+    return flood.length >= FLOOD_N;
+  }
+  function calm() { lastFix = null; fight = false; flood = []; }
 
   function keep(el) {
     el = el || focused;
     if (!el || el !== document.activeElement || !boxy(el)) return 0;
+    // A SELECTION IS NOT A CARET, AND IT IS THE PHONE'S (2026-09-26, her
+    // recording: the whole block selected, nothing typed, the screen
+    // flipping twice a second). `selectionEnd` on a select-all is the last
+    // line of the scene, so this lifted the END of the selection into view
+    // while iOS reveals a selection's START — the two took turns for as
+    // long as the selection stood. Nothing here is hers to keep: a selected
+    // run is what she is about to delete or replace, and the phone shows
+    // the end of it she is holding.
+    try { if (el.selectionStart != null && el.selectionStart !== el.selectionEnd) return 0; } catch (_) { /* not a text control */ }
     var h = host(el);
     if (h === false) return 0;
     if (!h) setRoom(Math.max(extra, roomFloor()));   // the window is the scroller: give her the foot of the page
@@ -446,8 +475,8 @@
     }
     if (fight) return 0;                    // the browser has the caret; a scroll here is the flicker
     var y = pageTop();                      // where she is LOOKING — never `scrollY` while iOS has panned
-    var pan = y - window.scrollY;
-    if (repeat(c, b, d, pan, Date.now())) { fight = true; return 0; }
+    var pan = y - window.scrollY, now = Date.now();
+    if (repeat(c, band(), d, pan, now) || flooding(now)) { fight = true; return 0; }
     var want = y + d;
     var max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
     if (want > max) {
@@ -458,7 +487,10 @@
     var to = Math.max(0, Math.min(max, want));
     if (Math.abs(to - y) < 1) return 0;
     window.scrollTo(0, to);                 // the window only: never the deck
-    if (lastFix) lastFix.took = Math.abs(window.scrollY - lastFix.ly) >= 1;   // did the LAYOUT viewport move?
+    if (lastFix) {
+      lastFix.took = Math.abs(window.scrollY - lastFix.ly) >= 1;   // did the LAYOUT viewport move?
+      if (!lastFix.took) flood.push(now);
+    }
     return to - y;
   }
 

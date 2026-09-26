@@ -215,35 +215,21 @@ console.log('waiting: the deploy button knows whether it can work');
   process.env.RENDER_DEPLOY_HOOK = 'http://api.render.com/deploy/x';
   ok('…nor a plain-http one', W.deployState().how === 'key', W.deployState());
 
-  // THE CHAT DOOR WINS (2026-09-26, Sophie: "deploy waiting button opens a
-  // random opus chat w deploy preseeded if possible"): a routine token on
-  // the server makes the tap spawn a fresh Opus chat that runs the deploy,
-  // ahead of both Render doors — it is what she asked for, and it is the
-  // smallest secret of the three (it can only start one routine).
-  const hadT = process.env.DEPLOY_FIRE_TOKEN, hadG = process.env.DEPLOY_TRIGGER;
-  process.env.RENDER_DEPLOY_HOOK = 'https://api.render.com/deploy/srv-abc?key=zzz';
-  process.env.DEPLOY_FIRE_TOKEN = 'sk-ant-routine-x';
-  delete process.env.DEPLOY_TRIGGER;
-  ok('a routine token wins over the hook and the key', W.deployState().how === 'chat', W.deployState());
-  ok('…on the committed routine id', /^trig_/.test(W.deployDoor().trig), W.deployDoor());
-  ok('…and the page is told which door', W.deployState().key === true && W.deployState().how === 'chat');
-  process.env.DEPLOY_TRIGGER = 'not a trigger id';
-  ok('a mangled trigger id is not fired — the hook stands', W.deployState().how === 'hook', W.deployState());
-  process.env.DEPLOY_TRIGGER = 'trig_01AbCdEfGh';
-  ok('a trigger id of the right shape is taken', W.deployDoor().trig === 'trig_01AbCdEfGh');
-  delete process.env.DEPLOY_FIRE_TOKEN;
-  ok('no token → no chat door, whatever the id says', W.deployState().how === 'hook', W.deployState());
-  if (hadT === undefined) delete process.env.DEPLOY_FIRE_TOKEN; else process.env.DEPLOY_FIRE_TOKEN = hadT;
-  if (hadG === undefined) delete process.env.DEPLOY_TRIGGER; else process.env.DEPLOY_TRIGGER = hadG;
-
-  // The chat a fire opened, read off the fire's own answer (measured
-  // 2026-09-26: `session_id: "cse_…"`). The Claude app's door is session_….
-  const c = W.chatFromFire('{"trigger":{"id":"trig_x"},"session_id":"cse_01TAMU1rTg1Hf4AkRK79ohcA"}');
-  ok('a cse_ id becomes the app\'s session_ url', c.url === 'https://claude.ai/code/session_01TAMU1rTg1Hf4AkRK79ohcA', c);
-  ok('…and the session id rides bare beside it', c.session === 'session_01TAMU1rTg1Hf4AkRK79ohcA', c);
-  ok('a session_ id is taken as it is', W.chatFromFire('{"session_id":"session_01AbCdEfGhIj"}').url.endsWith('/session_01AbCdEfGhIj'));
-  ok('no id → no link, never an invented one', W.chatFromFire('{"ok":true}').url === '' && W.chatFromFire('not json').url === '');
-  ok('a stranger\'s shape is refused', W.chatFromFire('{"session_id":"https://evil.example/x"}').url === '');
+  // THE ORANGE BUTTON IS A LINK TO THE DEPLOY CHAT (2026-09-26, Sophie:
+  // "no it can just link to the same chat · any account · button top
+  // waiting · orange"). Always on the state, never a door this server walks
+  // through; an override must be a claude.ai session url.
+  const hadC = process.env.DEPLOY_CHAT_URL;
+  delete process.env.DEPLOY_CHAT_URL;
+  ok('the deploy chat is on the state', W.deployState().chat === W.DEPLOY_CHAT_URL, W.deployState());
+  ok('…and it is a claude.ai session url', /^https:\/\/claude\.ai\/code\/session_[A-Za-z0-9]+$/.test(W.DEPLOY_CHAT_URL), W.DEPLOY_CHAT_URL);
+  process.env.DEPLOY_CHAT_URL = 'https://claude.ai/code/session_01AbCdEfGhIjKlMn';
+  ok('an env override moves it (any account)', W.deployChat().endsWith('session_01AbCdEfGhIjKlMn'), W.deployChat());
+  process.env.DEPLOY_CHAT_URL = 'https://evil.example/session_01AbCdEfGhIjKlMn';
+  ok('a stranger\'s url is ignored — the committed chat stands', W.deployChat() === W.DEPLOY_CHAT_URL, W.deployChat());
+  process.env.DEPLOY_CHAT_URL = 'https://claude.ai/code/session_';
+  ok('…and so is a mangled one', W.deployChat() === W.DEPLOY_CHAT_URL, W.deployChat());
+  if (hadC === undefined) delete process.env.DEPLOY_CHAT_URL; else process.env.DEPLOY_CHAT_URL = hadC;
 
   ok('nothing fired yet → no cooldown', W.deployState().cooling === 0, W.deployState());
   ok('the cooldown is five minutes', W.COOL_MS === 5 * 60 * 1000, W.COOL_MS);

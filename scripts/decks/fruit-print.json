@@ -1,0 +1,254 @@
+[
+ {
+  "id": "apple",
+  "name": "apple",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/03-apple.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/03-apple.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "apricot",
+  "name": "apricot",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/23-apricot.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/23-apricot.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "avocado",
+  "name": "avocado",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/20-avocado-hq.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/20-avocado-hq.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "banana",
+  "name": "banana",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1789970998881-p3fn8y.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1789970998881-p3fn8y.webp",
+  "by": "the half-peeled one, her word Sep 22, picked again Sep 26"
+ },
+ {
+  "id": "blackberries",
+  "name": "blackberries",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/17-blackberries-hq.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/17-blackberries-hq.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "blueberries",
+  "name": "blueberries",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/08-blueberries-sk4.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/08-blueberries-sk4.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "cantaloupe",
+  "name": "cantaloupe",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/18-cantaloupe-sk3.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/18-cantaloupe-sk3.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "cherimoya",
+  "name": "cherimoya",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/28-cherimoya-v3.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/28-cherimoya-v3.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "cherries",
+  "name": "cherries",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1789966782298-2dqzm3.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1789966782298-2dqzm3.webp",
+  "by": "her \u2665 on the cut-open redraw (Sep 21), picked again Sep 26"
+ },
+ {
+  "id": "coconut",
+  "name": "coconut",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/24-coconut.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/24-coconut.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "dates",
+  "name": "dates",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/29-dates-v2.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/29-dates-v2.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "fig",
+  "name": "fig",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/21-fig-hq.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/21-fig-hq.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "grapefruit",
+  "name": "grapefruit",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/36-grapefruit-v2.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/36-grapefruit-v2.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "grapes",
+  "name": "grapes",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/07-grapes.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/07-grapes.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "guava",
+  "name": "guava",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/31-guava-sk5.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/31-guava-sk5.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "honeydew",
+  "name": "honeydew",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/35-honeydew-v2.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/35-honeydew-v2.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "kiwi",
+  "name": "kiwi",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/14-kiwi.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/14-kiwi.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "kumquat",
+  "name": "kumquat",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/38-kumquat.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/38-kumquat.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "lemon",
+  "name": "lemon",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1789966305551-pfor1t.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1789966305551-pfor1t.webp",
+  "by": "her \u2665 on the cut-open redraw (Sep 21), picked again Sep 26"
+ },
+ {
+  "id": "lime",
+  "name": "lime",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/25-lime-sk1.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/25-lime-sk1.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "mango",
+  "name": "mango",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/05-mango-sk2.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/05-mango-sk2.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "mulberries",
+  "name": "mulberries",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/37-mulberries.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/37-mulberries.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "nectarine",
+  "name": "nectarine",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/26-nectarine.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/26-nectarine.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "orange",
+  "name": "orange",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1789966825126-l5t31v.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1789966825126-l5t31v.webp",
+  "by": "her Playground \u2665 (Sep 21), kept Sep 26"
+ },
+ {
+  "id": "papaya",
+  "name": "papaya",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/22-papaya.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/22-papaya.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "passion-fruit",
+  "name": "passion fruit",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/32-passionfruit-v2.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/32-passionfruit-v2.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "peach",
+  "name": "peach",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/10-peach-cut1.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/10-peach-cut1.webp",
+  "by": "her \u2665 on the cut-open redraw (Sep 21), picked again Sep 26"
+ },
+ {
+  "id": "pear",
+  "name": "pear",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/13-pear-cut1.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/13-pear-cut1.webp",
+  "by": "her \u2665 on the cut-open redraw (Sep 21), picked again Sep 26"
+ },
+ {
+  "id": "persimmon",
+  "name": "persimmon",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/30-persimmon-v2.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/30-persimmon-v2.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "pineapple",
+  "name": "pineapple",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/09-pineapple-cut1.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/09-pineapple-cut1.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "plum",
+  "name": "plum",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/16-plum.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/16-plum.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "pomegranate",
+  "name": "pomegranate",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/19-pomegranate.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/19-pomegranate.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "raspberries",
+  "name": "raspberries",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/12-raspberries-hq.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/12-raspberries-hq.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "starfruit",
+  "name": "starfruit",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/34-starfruit-v2.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/34-starfruit-v2.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "strawberry",
+  "name": "strawberry",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/01-strawberry-sk4.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/01-strawberry-sk4.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ },
+ {
+  "id": "watermelon",
+  "name": "watermelon",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/06-watermelon.webp",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/06-watermelon.webp",
+  "by": "picked list (Sep 23) = print zip (Sep 21)"
+ }
+]

@@ -1245,6 +1245,19 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
       every keystroke exactly as it always was. In a headless browser every
       correction moves the layout viewport, so nothing there can ever stand
       down.
+    - **A SELECTION IS NEVER KEPT, AND THE LOOP-CHECK IGNORES PINNED CHROME
+      (the same day, her recording after the first fix went live: the whole
+      block SELECTED, nothing typed, the screen flipping twice a second).**
+      `selectionEnd` of a select-all is the scene's last line, so the keeper
+      lifted the END of the selection into view while iOS reveals a
+      selection's START, and the two took turns for as long as the selection
+      stood — a range is what she is about to delete or replace, and it is
+      the phone's. And the fight watch never matched, because stickybox's
+      buttons are `position:fixed`, which on iOS is fixed to the LAYOUT
+      viewport: every pan carried them up or down the screen, so the band
+      they narrowed was a different band on every pass. The signature is the
+      keyboard's band alone now, with a coarse net under it (five window
+      corrections in two seconds that never moved the layout viewport).
     - Test: `node scripts/test-caret-pan.js` — `window.scrollTo` replaced
       with iOS's own arithmetic and `__caretKeep.vv` reporting that visual
       viewport, the phone revealing a strayed caret a beat after every

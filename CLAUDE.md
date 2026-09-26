@@ -161,6 +161,15 @@ still every time the work wraps up.
    is meant to play goes where it plays inline — the pin, a Compare page
    with a player, the Assets tab — and the save link rides underneath for
    keeping a copy.
+3d2b. **FOUND IT SOMEWHERE ELSE? PULL IT INTO YOUR OWN TABS — NEVER LINK
+   ANOTHER CHAT'S PAGE (2026-09-26, Sophie, handed a link to the crystal
+   poster mockups on another chat's Compare page: "always pull to ur own
+   assets/ compare tab").** Pictures you dig up go into YOUR chat's Assets
+   tab, labeled (`POST /api/gallery {assetsOnly:true, chat, url,
+   description}` — an outside url is refused, so host it first through
+   `/api/drop/upload-file?from=claude`), and a set of them is re-posted as a
+   Compare page in YOUR chat (a stock `grid` is one call; copy the other
+   page's `__pageData`). It costs nothing and it is the only place she looks.
 3d3. **SUPERSEDE WHAT SHE NO LONGER NEEDS — HER COMPARE TAB HOLDS ONLY THE
    CURRENT THINGS (2026-09-22, Sophie, looking at nine live pattern pages:
    "supercede irrelevant and make that more strict for other chats").**
@@ -218,8 +227,8 @@ still every time the work wraps up.
      OLD thing, which reads as the fix not working. Deploy first when she has
      said to, or write in one line that the link shows the change once it is
      deployed (the *ASK BEFORE YOU DEPLOY* rule is unchanged).
-   - **THE PR IS NOT THE LINK.** It is the record and it rides last in the
-     link block; it is not a place she can see anything.
+   - **THE PR IS NOT THE LINK — AND IS NOT LINKED AT ALL** (see *NO PR
+     LINKS* under *WRITING THE REPLY*). It is the record; she never opens it.
    - **Nothing to point at?** Say so plainly — a fix to a script, a hook or a
      server rule may have no surface, and inventing one is worse than the
      sentence.
@@ -534,10 +543,16 @@ broken:
    that needs more is a reply carrying something from the OUT list below.
 3. **THE SHAPE, and nothing that is not one of these lines:**
    - **the links FIRST, full and clickable** (2026-09-14, her rule: pinned at
-     the top, never the bottom): the surface the change shows on (3h), then
-     **the PR, last in that block — on EVERY reply that opened, pushed to or
-     merged one**, no exceptions (that is the 22-of-74 above). **Never a
-     `/chats?chat=` link**, to any chat, yours included;
+     the top, never the bottom): the surface the change shows on (3h).
+     **Never a `/chats?chat=` link**, to any chat, yours included;
+   - **NO PR LINKS — A FLEXIBLE RULE, HERS TO MOVE (2026-09-26, Sophie: "i
+     never look at p requests · they shud be linked nowhere · add as a
+     flexible rule").** No PR url in a reply, a card, a wrap-up, a page or a
+     note — not even last in the link block. This REVERSES the 2026-09-14
+     "the PR on every reply" line (the 22-of-74 above is history). Say
+     "merged" in the state line; the number, if it matters, as plain text
+     (`2445`). "Flexible" means her word lifts it for one reply ("link the
+     PR") without changing the rule;
    - what changed, in her words, one or two sentences;
    - her questions answered, each ONCE (a question she MARKED — "i have a
      question" / "quick question" / "file this" — is repeated in bold on its
@@ -3259,8 +3274,11 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   `scrollTo` moves the visual one, so `scrollTo(scrollY + d)` moved the view
   the wrong way by the pan and the phone panned back — on every keystroke.
   The target is the visual viewport's page position now, and a correction
-  the browser undoes twice is not made a third time. Never scroll a page
-  from `scrollY + d` while a box is focused — read `__caretKeep.pageTop()`.
+  the browser undoes twice is not made a third time. AND A SELECTION IS
+  NEVER KEPT (her recording the same day, the block selected whole and the
+  screen flipping on its own): iOS reveals a selection's start, the keeper
+  chased its end. Never scroll a page from `scrollY + d` while a box is
+  focused — read `__caretKeep.pageTop()`.
   Same section of the doc; `node scripts/test-caret-pan.js`.**
 
 - **THE WAY OUT OF A BIG BOX STAYS ON SCREEN — `/stickybox.js`, ONE FILE,
@@ -3493,7 +3511,7 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     that they're talking about at the bottom of their analysis"), and she
     retired it. Don't put one back.
   - **LINKS GO AT THE TOP.** The working links — the page, the deploy, the
-    surface a bug fix shows on, the PR last — sit at the head of the reply, not
+    surface a bug fix shows on (never the PR — *NO PR LINKS*) — sit at the head of the reply, not
     the end of it. Everything else about them is unchanged: full clickable
     urls, never bare text she has to assemble, one short line each saying what
     to look at. **FILES AND IMAGES ARE STILL LAST** — that order is a separate
@@ -3502,7 +3520,7 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     (a bug fix's example links), and anything that used to collect links "at
     the very bottom".
 - **Always include clickable testing links** when something is ready to test:
-  the deployed page for the feature plus the PR link.
+  the deployed page for the feature (no PR link — *NO PR LINKS*).
 - **Copy-paste / handoff messages = one code block.** When the user asks for a
   message to copy-paste, forward, or hand off to another chat, put the ENTIRE
   message inside a single fenced code block so it copies in one tap — no
@@ -3526,8 +3544,7 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   This bullet used to restate the gate and drifted a day behind it — the rule
   is there, this is the pointer.
 - **SHORT REPLIES BY DEFAULT — and since 2026-09-14 a HARD CAP: 600
-  characters, no words between tool calls, the PR link on every reply that
-  touched one. The cap and the shape live in ONE place, *WRITING THE REPLY*
+  characters, no words between tool calls, no PR link ever (2026-09-26). The cap and the shape live in ONE place, *WRITING THE REPLY*
   in the checklist at the top; this bullet is the history.** (Aug
   2026, Sophie: "a lot of my responses are really long and it's actually
   annoying cause I don't wanna read through it all").** The default reply is a
@@ -4580,6 +4597,10 @@ before working on that module. Nothing was deleted — the moved text is verbati
     merges: the trailer and a PR number are on nearly all of them, and
     `scripts/test-waiting.js` reads THIS repo's real commits so a drifted
     trailer format fails there instead of quietly emptying the page.
+  - **A ROW OPENS THE CHAT THAT MADE IT, NEVER ITS PR (2026-09-26, Sophie:
+    "merged waiting shud go to chats not pr").** `/chats?chat=<slug>`, through
+    `__openThread` when the page is inside the Chats app; an untraced row is
+    not a link.
   - **A chat MAY say what its change means in her words** —
     `POST /api/waiting {chat, session, pr, line}` (200 chars) — and that line
     leads the row with the commit subject quiet underneath. Keyed by PR (or
@@ -4645,29 +4666,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
     secret into a store is refused in a session container. **The chat-side
     rule this retires is in *ASK BEFORE YOU DEPLOY* — stop asking; say it is
     merged and not live in one line.**
-  - **OR THE BUTTON OPENS A FRESH OPUS CHAT THAT DEPLOYS — THE DOOR THAT WINS
-    WHEN ITS TOKEN IS THERE (2026-09-26, Sophie: "deploy waiting button opens
-    a random opus chat w deploy preseeded if possible").** A Routine on
-    account 3, `deploy: the Waiting page's button`
-    (`trig_016m75WtT9x8dzsosuYCWX5j`, fresh session per fire, model
-    `claude-opus-5-5`), carries the deploy as its prompt: clone main shallow,
-    run `scripts/render-deploy.js` (never `--now`), rename the chat `deploy`,
-    one-line reply. The tap fires it over the public Routines API with an
-    EMPTY body (chat-wake.js's own endpoint and beta header; text on a fire
-    spawns a stray), the fire answers `session_id: cse_…`, and the page shows
-    **open the chat** beside the note — a link, never a navigation. Measured
-    with a probe fire the day it was built: the spawned session ran on Opus,
-    carried `RENDER_API_KEY`, and had NO checkout (a create_trigger routine
-    has no sources — hence the clone in the prompt); the probe cost 11¢.
-    **What it needs is `DEPLOY_FIRE_TOKEN`** — the routine's own API-trigger
-    token, per-routine, minted only by her on account 3 (claude.ai →
-    Routines → that routine → API trigger → Generate token) and pasted into
-    Render env; `DEPLOY_TRIGGER` overrides the committed id and is not a
-    secret. The chat door beats the hook and the key because it is what she
-    asked for and the smallest secret of the three; it costs a session
-    where the hook costs nothing — hers to pick by which key she pastes.
-    Tests: the two above (`deployDoor`, `chatFromFire`, and the page's link
-    measured).
+  - **AND THE ORANGE BUTTON AT THE TOP OPENS THE DEPLOY CHAT (2026-09-26,
+    Sophie: "deploy waiting button opens a random opus chat w deploy
+    preseeded if possible" → "no it can just link to the same chat · any
+    account · button top waiting · orange").** One standing Opus chat,
+    title `deploy` (`session_018Exd52D7a4ibpHhqa6LHSj`, account 3, this
+    environment so it holds `RENDER_API_KEY` and a checkout), whose one job
+    is to run `scripts/render-deploy.js` when she writes "deploy" in it. The
+    button is a LINK to it in the Chats app's Open-button orange (#d97757),
+    always drawn (the note says how many go live, or "nothing waiting"),
+    above the direct Deploy button, which still needs a Render key and is
+    not drawn without one. Nothing on the server sends anything — the "go"
+    stays hers, in that chat. `DEPLOY_CHAT_URL` in Render env moves the
+    button to another chat (any account; must be a claude.ai session url).
+    **What was built and rejected the same hour, so nobody rebuilds it:** a
+    fresh-session Routine fired over the public Routines API on the tap —
+    it worked (a probe spawned an Opus session carrying the key, 11¢) but
+    needed a per-routine token only she could mint, and she said no; the
+    routine was deleted. Tests: the two above.
 
 - **THE WORK LOG** (`GET /api/chatfeed/worklog`, page at `/worklog`, no
   iOS tile — 2026-09-02, Sophie: "i want to make a timeline of what i worked
@@ -4768,7 +4784,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
     for hers, and nothing invented when she never said it — a PR for work no
     message of hers asked for simply says so.
   - **The reply is the opposite and has not moved**: links FIRST, full and
-    clickable, PR last (*WRITING THE REPLY*). The PR is the record; the reply
+    clickable, no PR link (*WRITING THE REPLY*). The PR is the record; the reply
     is the door.
 - **Merging a DOCS-ONLY PR? Put `[skip render]` in the squash title** — the
   deploy is skipped and costs zero build minutes; the next code merge ships
