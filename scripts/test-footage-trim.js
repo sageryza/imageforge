@@ -592,7 +592,6 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
   ok('the part she just cut has a row of its own',
     (await page.$$eval('.trimbar .tpart', (n) => n.length)) === 1);
   ok('which says what it is baking', /1\.2–3\.6s/.test(await page.textContent('.trimbar .tpart')) && /trimming/.test(await page.textContent('.trimbar .tpart')));
-  ok('and there is nothing to play past, so no whole-clip button', !(await shown('#tall')));
   ok('the card says it is trimming', /trimming to 1\.2–3\.6s/.test(await page.textContent('#job-clip1')));
 
   // the poll has to keep running or the card sits on "trimming…" forever
@@ -653,7 +652,6 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
     ok('never the off-cut before it (' + run.seen.slice(0, 6).map((t) => t.toFixed(2)).join(' ') + ')',
       run.seen.slice(3).every((t) => t >= 1.1 && t <= 3.7));
     ok('the way back to the whole clip is offered', await shown('#treset'));
-    ok('and so is one pass past the part', await shown('#tall') && /Play it all/.test(await page.textContent('#tall')));
     ok('but nothing is being re-cut — the next cut is a second part', (await page.textContent('#tgo')).trim() === 'Add part'
       && !(await page.$('.trimbar .tpart.on')));
   }
@@ -665,27 +663,38 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
   await page.click('#tout');
   await page.waitForTimeout(150);
   ok('the button knows there is already a part', (await page.textContent('#tgo')).trim() === 'Add part');
-  ok('and the whole-clip button appears once the span is narrower', await shown('#tall'));
 
-  // ── PLAY THE WHOLE CLIP (2026-09-10, her first ask) ────────────────────
+  // ── WHOLE CLIP (2026-09-10, her first ask: "play the whole clip to make
+  // sure I cut the right part"; 2026-09-26, on the two buttons that did it:
+  // "doesn't that seem redundant?" — one button now) ───────────────────
   // The MEASUREMENT is that the playhead really runs PAST the out mark — a
-  // button that plays and still loops at 1.2s looks identical in the source.
+  // button that clears the marks and still loops at 1.2s looks identical in
+  // the source.
   {
-    await page.click('#tall');
-    ok('and it says she is watching it all', /Back to the part/.test(await page.textContent('#tall')));
+    await page.click('#treset');
+    await page.waitForTimeout(100);
+    ok('Whole clip takes the marks off', /the whole clip/.test(await page.textContent('#tspan')));
+    ok('and there is no second whole-clip button', !(await page.$('#tall')));
     const seen = await page.evaluate(async () => {
       const v = document.querySelector('#player .pstage video');
       const out = []; const t0 = Date.now();
       while (Date.now() - t0 < 2400) { out.push(v.currentTime); await new Promise((r) => setTimeout(r, 60)); }
-      return out;
+      return { seen: out, paused: v.paused };
     });
-    ok('a whole-clip run starts at the beginning', seen.length > 5 && seen[0] < 0.6);
-    ok('and it runs PAST the out mark instead of looping', seen.some((t) => t > 1.6));
-    await page.click('#tall');
+    ok('and PLAYS from the beginning', !seen.paused && seen.seen.length > 5 && seen.seen[0] < 0.6);
+    ok('past where the out mark was, instead of looping', seen.seen.some((t) => t > 1.6));
+    // the way back onto a part is its row
+    await page.click('.trimbar .tpart:first-child .tpspan');
     await page.waitForTimeout(300);
-    ok('tapping again goes back to the part',
-      near(await page.$eval('#player .pstage video', (v) => v.currentTime), 0.5, 0.45));
-    ok('and the marks were never touched by any of it', /^0\.5s – 1\.2s/.test((await page.textContent('#tspan')).trim()));
+    ok('a part\'s row puts her back on that part', /^1\.2s – 3\.6s/.test((await page.textContent('#tspan')).trim())
+      && near(await page.$eval('#player .pstage video', (v) => v.currentTime), 1.2, 0.45));
+    // and back to the second bit she was marking
+    await seek(0.5);
+    await page.click('#tin');
+    await seek(1.2);
+    await page.click('#tout');
+    await page.waitForTimeout(150);
+    ok('the marks are hers again', /^0\.5s – 1\.2s/.test((await page.textContent('#tspan')).trim()));
   }
 
   await page.click('#tgo');
