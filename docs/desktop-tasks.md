@@ -357,7 +357,7 @@ cd ~/Downloads/fruit-flashcards-mpc && autofill --directory .
 - **Where:** ~/Downloads, then the MPC Autofill desktop tool
 - **Run:**
 ```
-cd ~/Downloads && curl -sL -o animal-deck-mpc.zip "https://imageforge-q125.onrender.com/api/drop/file/rgd2BFjXOdyxLODMhOwm" && rm -rf animal-deck-mpc && mkdir animal-deck-mpc && cd animal-deck-mpc && unzip -q ../animal-deck-mpc.zip && ls
+cd ~/Downloads && curl -sL -o animal-deck-mpc.zip "https://imageforge-q125.onrender.com/api/drop/file/XK6VBX4QlyBI9P7YJRVi" && rm -rf animal-deck-mpc && mkdir animal-deck-mpc && cd animal-deck-mpc && unzip -q ../animal-deck-mpc.zip && ls
 ```
 ```
 cd ~/Downloads/animal-deck-mpc && autofill --directory .

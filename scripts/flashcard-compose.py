@@ -26,7 +26,16 @@ ap=argparse.ArgumentParser(); ap.add_argument('cards'); ap.add_argument('--src',
 # (em) that match the flash-card page (2026-09-22, the animal deck's Lemon
 # Hand caps at 10px/.24em on a 170px card ≈ 52px/.24em on this one).
 ap.add_argument('--caps',action='store_true'); ap.add_argument('--size',type=int,default=64); ap.add_argument('--track',type=float,default=0.12)
+# --pic --gap --bottom: the card's geometry as FRACTIONS OF THE TRIM WIDTH, so a
+# card can copy a flash-card page's proportions exactly (2026-09-26, Sophie on
+# the animal deck's v2 print files: "the spacing looks wrong" — measured off
+# the approved hearts page at 172px: picture .70 of the card wide, .227 of air
+# between the picture and the name's letters, the letters .137 up from the
+# bottom edge). --pic alone keeps the old centred block; --bottom anchors the
+# block from the bottom by the glyphs' own box, the way the page sits.
+ap.add_argument('--pic',type=float,default=0.80); ap.add_argument('--gap',type=float,default=None); ap.add_argument('--bottom',type=float,default=None)
 A=ap.parse_args()
+PIC=int(TW*A.pic)
 font=ImageFont.truetype(A.font, A.size)
 try: font.set_variation_by_name('Medium')
 except Exception: pass
@@ -47,11 +56,17 @@ for i,(name,url) in enumerate(names,1):
     d=ImageDraw.Draw(card)
     text=name.upper() if A.caps else name.lower(); ls=int(A.size*A.track)
     tw=sum(d.textlength(c,font=font) for c in text)+ls*(len(text)-1)
-    th=A.size; gap=int(0.16*PIC)
-    block=PIC+gap+th
-    top=BLEED+(TH-block)//2
+    th=A.size; gap=int(TW*A.gap) if A.gap is not None else int(0.16*PIC)
+    if A.bottom is not None:
+        # anchor by the letters' own box: bbox top/bottom relative to the draw origin
+        bt=min(font.getbbox(c)[1] for c in text if c.strip()); bb=max(font.getbbox(c)[3] for c in text if c.strip())
+        ybot=BLEED+TH-int(TW*A.bottom)          # where the glyphs' bottom lands
+        y=ybot-bb; top=y+bt-gap-PIC
+    else:
+        block=PIC+gap+th
+        top=BLEED+(TH-block)//2; y=top+PIC+gap
     card.paste(pic,((W-PIC)//2,top))
-    x=(W-tw)/2; y=top+PIC+gap
+    x=(W-tw)/2
     for c in text:
         d.text((x,y),c,font=font,fill=(38,34,28)); x+=d.textlength(c,font=font)+ls
     out=f'{A.out}/fronts/{i:02d}-{name.lower().replace(" ","-")}.png'
