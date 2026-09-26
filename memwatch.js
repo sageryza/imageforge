@@ -91,7 +91,22 @@ function install(app, admin, opts = {}) {
   return o;
 }
 
+// WHAT THE PROCESS REALLY HOLDS AGAINST THE BOX (2026-09-26): its anonymous
+// pages plus shared memory, off /proc/self/status. RSS also counts the
+// file-backed pages of the node binary and every .so — ~60MB on a fresh
+// boot, measured — which the kernel drops and re-reads under pressure, so a
+// guard that reads RSS refuses work for room the box has. Anywhere /proc is
+// not readable (a Mac, a test) the answer is the RSS, exactly as before.
+function anonBytes() {
+  try {
+    const st = require('fs').readFileSync('/proc/self/status', 'utf8');
+    const a = /RssAnon:\s+(\d+)\s*kB/.exec(st); const sh = /RssShmem:\s+(\d+)\s*kB/.exec(st);
+    if (a) return (Number(a[1]) + (sh ? Number(sh[1]) : 0)) * 1024;
+  } catch { /* not linux, or not readable */ }
+  return process.memoryUsage().rss;
+}
+
 // test hooks
 function _reset() { ring.length = 0; lastWrite = 0; for (const k of Object.keys(gauges)) delete gauges[k]; }
 
-module.exports = { install, note, check, gauge, ring, RING_MAX, _reset };
+module.exports = { install, note, check, gauge, anonBytes, ring, RING_MAX, _reset };

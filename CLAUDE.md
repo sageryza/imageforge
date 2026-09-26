@@ -3811,6 +3811,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
   bar (`.narrow`), so at 390pt the pair drops to a second line TOGETHER
   (the first line was measured full); the funnel wears its own count. Do not
   tuck it back behind the glass. Full note under *Footage* in the doc.
+  **A TRIM'S ROOM GUARD ASKS FOR THE CLIP'S OWN ROOM (2026-09-26, Sophie:
+  "i'm worried not all my trims have been going through"): measured, 6 of
+  the 7 trims she cut on 09-25 were refused for room a 480p trim never
+  needed (51MB, not 150), and a refused part could not be retried. Now:
+  need by pixels off the probe, anonymous memory not RSS, and **Try again**
+  on the card. Full note under *SHE TRIMS A CLIP AS IT COMES OUT* in the doc.
   **Full details: *Footage* in `docs/modules/audio-and-film.md` (moved from CLAUDE.md).**
 
 - **Stitch** (`stitch.js`, `/api/stitch`, page at `/stitch`, iOS tile under the
