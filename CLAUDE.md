@@ -4649,29 +4649,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
     secret into a store is refused in a session container. **The chat-side
     rule this retires is in *ASK BEFORE YOU DEPLOY* — stop asking; say it is
     merged and not live in one line.**
-  - **OR THE BUTTON OPENS A FRESH OPUS CHAT THAT DEPLOYS — THE DOOR THAT WINS
-    WHEN ITS TOKEN IS THERE (2026-09-26, Sophie: "deploy waiting button opens
-    a random opus chat w deploy preseeded if possible").** A Routine on
-    account 3, `deploy: the Waiting page's button`
-    (`trig_016m75WtT9x8dzsosuYCWX5j`, fresh session per fire, model
-    `claude-opus-5-5`), carries the deploy as its prompt: clone main shallow,
-    run `scripts/render-deploy.js` (never `--now`), rename the chat `deploy`,
-    one-line reply. The tap fires it over the public Routines API with an
-    EMPTY body (chat-wake.js's own endpoint and beta header; text on a fire
-    spawns a stray), the fire answers `session_id: cse_…`, and the page shows
-    **open the chat** beside the note — a link, never a navigation. Measured
-    with a probe fire the day it was built: the spawned session ran on Opus,
-    carried `RENDER_API_KEY`, and had NO checkout (a create_trigger routine
-    has no sources — hence the clone in the prompt); the probe cost 11¢.
-    **What it needs is `DEPLOY_FIRE_TOKEN`** — the routine's own API-trigger
-    token, per-routine, minted only by her on account 3 (claude.ai →
-    Routines → that routine → API trigger → Generate token) and pasted into
-    Render env; `DEPLOY_TRIGGER` overrides the committed id and is not a
-    secret. The chat door beats the hook and the key because it is what she
-    asked for and the smallest secret of the three; it costs a session
-    where the hook costs nothing — hers to pick by which key she pastes.
-    Tests: the two above (`deployDoor`, `chatFromFire`, and the page's link
-    measured).
+  - **AND THE ORANGE BUTTON AT THE TOP OPENS THE DEPLOY CHAT (2026-09-26,
+    Sophie: "deploy waiting button opens a random opus chat w deploy
+    preseeded if possible" → "no it can just link to the same chat · any
+    account · button top waiting · orange").** One standing Opus chat,
+    title `deploy` (`session_018Exd52D7a4ibpHhqa6LHSj`, account 3, this
+    environment so it holds `RENDER_API_KEY` and a checkout), whose one job
+    is to run `scripts/render-deploy.js` when she writes "deploy" in it. The
+    button is a LINK to it in the Chats app's Open-button orange (#d97757),
+    always drawn (the note says how many go live, or "nothing waiting"),
+    above the direct Deploy button, which still needs a Render key and is
+    not drawn without one. Nothing on the server sends anything — the "go"
+    stays hers, in that chat. `DEPLOY_CHAT_URL` in Render env moves the
+    button to another chat (any account; must be a claude.ai session url).
+    **What was built and rejected the same hour, so nobody rebuilds it:** a
+    fresh-session Routine fired over the public Routines API on the tap —
+    it worked (a probe spawned an Opus session carrying the key, 11¢) but
+    needed a per-routine token only she could mint, and she said no; the
+    routine was deleted. Tests: the two above.
 
 - **THE WORK LOG** (`GET /api/chatfeed/worklog`, page at `/worklog`, no
   iOS tile — 2026-09-02, Sophie: "i want to make a timeline of what i worked

@@ -56,9 +56,9 @@
 //   GET  /api/waiting/status     → { ok, firebase, live }
 //   POST /api/waiting            → { chat, session?, pr?, sha?, line } — a
 //        chat's own words for one change (200 chars). Re-posting replaces it.
-//   POST /api/waiting/deploy     → no body. Opens a fresh Opus chat that
-//        deploys main (the chat door), or starts a Render deploy directly.
-//        Refused with `nothing-waiting`, `cooling` or `no-key`.
+//   POST /api/waiting/deploy     → no body. Starts a Render deploy of main.
+//        Refused with `nothing-waiting`, `cooling` or `no-key`. (The orange
+//        button at the top is not this — it LINKS to the deploy chat.)
 //
 // Page: /waiting (serveGated, pill). Tests: node scripts/test-waiting.js
 
@@ -134,59 +134,43 @@ const SRV = process.env.RENDER_SERVICE_ID || 'srv-d660igvgi27c73a5u6eg';
 const COOL_MS = 5 * 60 * 1000;
 let firedAt = 0;
 
-// THE BUTTON OPENS A CHAT INSTEAD (2026-09-26, Sophie: "deploy waiting button
-// opens a random opus chat w deploy preseeded if possible"). It is possible,
-// and it is the door that WINS when it is configured: a Routine on her Claude
-// account (`deploy: the Waiting page's button`, created 2026-09-26 from the
-// chat that built this, fresh-session-per-fire, model claude-opus-5-5) whose
-// prompt is the deploy — clone main, run scripts/render-deploy.js, one-line
-// reply. Firing it over the public Routines API (the same endpoint and beta
-// header chat-wake.js uses for the switchboard, with an EMPTY body — a body
-// with text spawns a stray chat, the doorbell's own finding) spawns ONE new
-// Opus session that does exactly what a chat would have done on her "deploy".
-// The fire's answer carries the new session's id, so the page can hand her
-// the chat itself (https://claude.ai/code/session_…) — "opens" in the sense
-// she can open it, never a page that navigates away from under her thumb.
-//
-// MEASURED 2026-09-26 with a probe fire from the building chat: the spawned
-// session ran on claude-opus-5-5 and carried RENDER_API_KEY (the environment's
-// own env), and its fire answered `session_id: cse_…`. What it did NOT carry
-// is a checkout — a routine made with create_trigger has no sources, so the
-// prompt clones the repo itself (shallow) before running the script.
-//
-// WHAT IT NEEDS: `DEPLOY_FIRE_TOKEN`, the routine's own API-trigger bearer
-// token — per-routine, and only Sophie can mint one (claude.ai → Routines →
-// this routine → API trigger → Generate token, on the account that owns it,
-// account 3). `DEPLOY_TRIGGER` is the routine's id and is not a secret (an
-// id cannot be fired without its token — the same rule as WAKE_TRIGGER_*),
-// so the id is committed as the default. Without the token the two Render
-// doors below still stand exactly as they did.
-//
-// WHY IT WINS OVER THE RENDER DOORS: it is what she asked for, and it is the
-// smallest secret of the three — a token that can only start one routine,
-// where a deploy hook can only deploy one service and the API key can do
-// anything. It also costs a session (a floor of ~$1 on a fresh container,
-// less on Opus) where the hook costs nothing; that trade is hers, and she
-// picks it by which key she pastes.
-const FIRE_BASE = 'https://api.anthropic.com/v1/claude_code/routines/';
-const FIRE_BETA = 'experimental-cc-routine-2026-04-01';
-const DEFAULT_DEPLOY_TRIGGER = 'trig_016m75WtT9x8dzsosuYCWX5j';
+// THE ORANGE BUTTON AT THE TOP OPENS THE DEPLOY CHAT (2026-09-26, Sophie:
+// "deploy waiting button opens a random opus chat w deploy preseeded if
+// possible" → "no it can just link to the same chat · any account · button
+// top waiting · orange"). Not a routine, not a token, not a fire: ONE
+// standing Opus chat — created 2026-09-26 from the chat that built this,
+// title "deploy", session_018Exd52D7a4ibpHhqa6LHSj, on this environment so it
+// carries RENDER_API_KEY and a checkout — whose whole job is to run
+// scripts/render-deploy.js when she says "deploy". The button is a LINK to
+// it in the Claude app's own orange (the Chats app's Open button, #d97757),
+// so a tap opens that conversation and her next word is the deploy. Nothing
+// on this server sends anything; the "go" stays hers, in the chat. A first
+// cut fired a fresh-session routine over the Routines API (needing a token
+// only she could mint) and she said no to it the same hour — this is what
+// replaced it. DEPLOY_CHAT_URL in the env moves the button to another chat
+// (any account — a claude.ai/code/session_… url); the committed default is
+// the one above.
+const DEPLOY_CHAT_URL = 'https://claude.ai/code/session_018Exd52D7a4ibpHhqa6LHSj';
 
 /** What the button should look like right now. Cheap, and never cached — the
  *  cooldown is a clock and build()'s answer is five minutes old. */
 function deployState() {
   const left = Math.max(0, COOL_MS - (Date.now() - firedAt));
   const d = deployDoor();
-  return { key: !!d, how: d ? d.how : '', cooling: left, firedAt: firedAt || 0 };
+  return { key: !!d, how: d ? d.how : '', cooling: left, firedAt: firedAt || 0, chat: deployChat() };
 }
 
-/** Which door this box can deploy through, if any. The chat wins (her ask);
- *  then the hook — the one that can only ever deploy this service — then the
- *  account key. */
+/** The deploy chat's url — the orange button. An env override must be a
+ *  claude.ai/code session url, or the committed one stands: this is a link
+ *  the page sends her tap at, so it is checked rather than trusted. */
+function deployChat() {
+  const u = String(process.env.DEPLOY_CHAT_URL || '').trim();
+  return /^https:\/\/claude\.ai\/code\/session_[A-Za-z0-9]{8,64}$/.test(u) ? u : DEPLOY_CHAT_URL;
+}
+
+/** Which door this box can deploy through DIRECTLY, if any — the hook wins
+ *  (it is the one that can only ever deploy this service), then the key. */
 function deployDoor() {
-  const tok = String(process.env.DEPLOY_FIRE_TOKEN || '').trim();
-  const trig = String(process.env.DEPLOY_TRIGGER || DEFAULT_DEPLOY_TRIGGER).trim();
-  if (tok && /^trig_[A-Za-z0-9]{6,40}$/.test(trig)) return { how: 'chat', trig, token: tok };
   const hook = String(process.env.RENDER_DEPLOY_HOOK || '').trim();
   if (/^https:\/\/api\.render\.com\/deploy\//.test(hook)) return { how: 'hook', url: hook };
   const key = String(process.env.RENDER_API_KEY || '').trim();
@@ -599,26 +583,6 @@ router.post('/deploy', async (req, res) => {
     }
 
     firedAt = Date.now();
-    if (door.how === 'chat') {
-      // EMPTY body, always — text on a fire spawns a stray chat (chat-wake.js).
-      const r = await fetch(FIRE_BASE + encodeURIComponent(door.trig) + '/fire', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${door.token}`,
-          'anthropic-beta': FIRE_BETA,
-          'anthropic-version': '2023-06-01',
-          'Content-Type': 'application/json',
-        },
-        body: '{}',
-      });
-      const text = await r.text().catch(() => '');
-      if (!r.ok) {
-        firedAt = 0;
-        return res.status(502).json({ error: 'routine ' + r.status, why: text.slice(0, 200) });
-      }
-      const chat = chatFromFire(text);
-      return res.json({ ok: true, how: 'chat', ahead, ...chat });
-    }
     // The hook takes no body and no auth — the url IS the secret. The API
     // route is the same POST scripts/render-deploy.js makes.
     const r = door.how === 'hook'
@@ -643,16 +607,4 @@ router.post('/deploy', async (req, res) => {
   }
 });
 
-/** The chat a fire opened, off the fire's own answer — pure. The MCP fire
- *  answers `session_id: "cse_…"` (measured 2026-09-26); the Claude app's
- *  door is `session_…`, so the prefix is swapped. No id → no link, honestly. */
-function chatFromFire(text) {
-  let j = {};
-  try { j = JSON.parse(text || '{}') || {}; } catch (e) { j = {}; }
-  const raw = String(j.session_id || j.sessionId || (j.session && j.session.id) || '');
-  const m = raw.match(/^(?:cse_|session_)?([A-Za-z0-9]{8,64})$/);
-  if (!m) return { session: '', url: '' };
-  return { session: 'session_' + m[1], url: 'https://claude.ai/code/session_' + m[1] };
-}
-
-module.exports = { router, chatFromFire, parseCommit, parsePull, cleanTitle, sidIndex, groupRows, kindOfFiles, classify, readFiles, _files: files, readAhead, readOpen, readRecent, readDeploys, deployRuns, build, bareSid, DEPLOYS, deployState, deployDoor, COOL_MS };
+module.exports = { router, deployChat, DEPLOY_CHAT_URL, parseCommit, parsePull, cleanTitle, sidIndex, groupRows, kindOfFiles, classify, readFiles, _files: files, readAhead, readOpen, readRecent, readDeploys, deployRuns, build, bareSid, DEPLOYS, deployState, deployDoor, COOL_MS };
