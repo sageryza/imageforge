@@ -320,9 +320,14 @@
     var top = bandTop();
     if (wr.top >= top - 1) return;                   // its top is already on screen
     if (regionBottom(e.btn) !== Infinity) return;    // a scroller of its own owns this
+    // the VISUAL viewport's page position, not `scrollY`: with the keyboard
+    // up iOS pans the one inside the other and `scrollTo` sets the visual
+    // (caretkeep's 2026-09-26 note); the same number wherever there is no pan
+    var y = window.scrollY;
+    try { if (window.__caretKeep && window.__caretKeep.pageTop) y = window.__caretKeep.pageTop(); } catch (_) { /* the window's own */ }
     var max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-    var to = Math.max(0, Math.min(max, window.scrollY + (wr.top - top - 12)));
-    if (Math.abs(to - window.scrollY) > 2) window.scrollTo(0, to);
+    var to = Math.max(0, Math.min(max, y + (wr.top - top - 12)));
+    if (Math.abs(to - y) > 2) window.scrollTo(0, to);
   }
 
   document.addEventListener('click', function (ev) {
