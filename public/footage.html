@@ -1120,6 +1120,20 @@
          not a cage, and a sheet that hid a folder to keep one screen would
          be the picker lying about what exists. */
   #shelf{position:fixed;inset:0;z-index:80;background:#f6f2ea;display:flex;flex-direction:column}
+  /* THE NAME BOX — a prompt() answers null at once inside the app's web view
+     (no WKUIDelegate text panel), so New project / New folder did nothing
+     there. This is the page's own box instead. */
+  #askname{position:fixed;inset:0;z-index:95;background:rgba(38,34,28,.35);display:flex;
+    align-items:flex-start;justify-content:center;padding:90px 16px 0}
+  #askname[hidden]{display:none !important}
+  #askname form{width:100%;max-width:360px;background:#fdfbf7;border:1px solid #ded5c5;border-radius:6px;padding:14px}
+  #askname b{display:block;font-size:13.5px;margin-bottom:10px;color:#2b2620}
+  #askname input{width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:8px 10px;
+    border:1px solid #ded5c5;border-radius:6px;background:#fff;color:#2b2620}
+  #askname .anrow{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+  #askname .anrow button{font:inherit;font-size:13px;padding:6px 12px;border-radius:6px;
+    border:1px solid #ded5c5;background:#fdfbf7;color:#2b2620}
+  #askname .anrow button[type=submit]{background:#2b2620;border-color:#2b2620;color:#fdfbf7}
   #shelf .shhead{flex:0 0 auto;display:flex;align-items:center;gap:8px;
     padding:calc(env(safe-area-inset-top,0px) + 10px) 12px 10px;border-bottom:1px solid #e6ded0}
   #shelf .shhead b{font-size:13.5px;letter-spacing:.01em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1664,6 +1678,10 @@
      was missing. The house underlined word, never a boxed button. -->
 <button type="button" class="olderbtn" id="qelse" hidden></button>
 
+<div id="askname" hidden role="dialog" aria-label="Name">
+  <form id="anform"><b id="antitle"></b><input id="aninput" type="text" autocomplete="off" autocapitalize="sentences">
+    <div class="anrow"><button type="button" id="ancancel">Cancel</button><button type="submit">Make it</button></div></form>
+</div>
 <div id="shelf" hidden role="dialog" aria-label="Projects and folders">
   <div class="shhead">
     <button type="button" class="shbtn shback" id="shback" hidden aria-label="Back"></button>
@@ -2182,6 +2200,26 @@ function setFolder(f, opts) {
   // were right there, and stayed wrong until she typed another character.
   if (searchQ) { qHits = null; qMore = false; qAt = ''; runSearch(); }
 }
+// ASK FOR A NAME IN THE PAGE ITSELF (2026-09-26, "footage new project button
+// does nothing"). A prompt() answers null at once in the app's web view — no
+// WKUIDelegate text panel — so every name asked that way was a silent cancel.
+// `cb` gets the typed string, or null on Cancel, exactly as prompt() did.
+function askName(title, cb) {
+  var box = $('askname'), inp = $('aninput');
+  $('antitle').textContent = title;
+  inp.value = '';
+  box.hidden = false;
+  function done(v) {
+    box.hidden = true;
+    $('anform').onsubmit = null; $('ancancel').onclick = null; box.onclick = null;
+    inp.blur();
+    cb(v);
+  }
+  $('anform').onsubmit = function (e) { e.preventDefault(); done(inp.value); };
+  $('ancancel').onclick = function () { done(null); };
+  box.onclick = function (e) { if (e.target === box) done(null); };
+  setTimeout(function () { inp.focus(); }, 30);
+}
 // A NEW FOLDER IS A NAME AND NOTHING ELSE — it exists the moment a clip lands
 // in it, so until then the picker simply offers the name she typed.
 // `project` is the one the sheet was standing in — which need not be
@@ -2192,13 +2230,14 @@ function setFolder(f, opts) {
 function newFolder(project) {
   var into = project || S.project;
   if (!into) { toast('Pick a project first — a folder lives inside one'); paintFolder(); return; }
-  var name = window.prompt('Name the folder');
-  if (name == null) { paintFolder(); return; }
-  var slug = folderSlug(name);
-  if (!slug) { paintFolder(); return; }
-  if (into !== S.project) setProject(into, { force: true, folder: slug });
-  else setFolder(slug, { force: true });
-  toast('Folder: ' + folderName(slug));
+  askName('Name the folder', function (name) {
+    if (name == null) { paintFolder(); return; }
+    var slug = folderSlug(name);
+    if (!slug) { paintFolder(); return; }
+    if (into !== S.project) setProject(into, { force: true, folder: slug });
+    else setFolder(slug, { force: true });
+    toast('Folder: ' + folderName(slug));
+  });
 }
 // A NEW PROJECT IS A NEW FILM ON THE CAST SHELF — one name, free, and the
 // character sheet grows the folder the same moment. The box ships empty.
@@ -2206,7 +2245,9 @@ function newProject() { newProjectNamed(null); }
 // `then` is what to do with the new slug — the picker switches to it, a card
 // being moved lands its clip in it. Same prompt, same film POST, one copy.
 function newProjectNamed(then) {
-  var name = window.prompt('Name the project');
+  askName('Name the project', function (name) { madeProjectName(name, then); });
+}
+function madeProjectName(name, then) {
   if (name == null) { paintProject(); return; }
   name = String(name).trim();
   if (!name) { paintProject(); return; }
@@ -2392,11 +2433,12 @@ function shelfMove(v) {
   if (v === NEW_FOLDER) {
     closeShelf();
     if (!at) { toast('Pick a project first — a folder lives inside one'); return; }
-    var name = window.prompt('Name the folder');
-    if (name == null) return;
-    var slug = folderSlug(name);
-    if (!slug) return;
-    moveTo(id, at + '/' + slug);
+    askName('Name the folder', function (name) {
+      if (name == null) return;
+      var slug = folderSlug(name);
+      if (!slug) return;
+      moveTo(id, at + '/' + slug);
+    });
     return;
   }
   closeShelf();
