@@ -1258,6 +1258,50 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
       they narrowed was a different band on every pass. The signature is the
       keyboard's band alone now, with a coarse net under it (five window
       corrections in two seconds that never moved the layout viewport).
+  - **ON A PHONE WITH THE KEYBOARD UP, THE PHONE KEEPS THE CARET AND THE
+    KEEPER SCROLLS NOTHING (2026-09-26, the fifth report: "have someone
+    check ur work · this error keeps happening differently" — two
+    independent reviews of caretkeep.js, stickybox.js and footage.html, one
+    verdict).** A script that scrolls the window while iOS is also revealing
+    the caret is two agents aiming at two different bands (the keeper's is
+    narrowed by its margin, the pinned buttons and sticky rows; the phone's
+    is its unobscured rect), neither can see the other's intent, and every
+    band-changing event is a new signature — four real fixes each followed
+    by "not fixed" is the expected shape of that. The reviews found four
+    more doors into the same fight, all now moot on a phone but worth
+    knowing: **Footage's feed bar is `position:sticky` at BOTH ends and
+    `[data-pagechrome]`**, so it is stuck at the bottom of the layout
+    viewport while she is up in the panel and in the flow a bar's height
+    later — stickybox's `chromeBottom` and the keeper's `findStuck` both
+    read it live, so every scroll the keeper made moved the band by a bar's
+    height and called the keeper again; **the pinned corner buttons are
+    `position:fixed`, which on iOS is fixed to the LAYOUT viewport**, so
+    they rode every pan the phone made and stickybox re-placed them on
+    every `visualViewport` scroll, moving the band the keeper aimed at;
+    **the blind-keyboard guess tested the viewport's BOTTOM in layout
+    coordinates**, so once the phone had panned to within 40px of the
+    bottom it flipped on and the band and the padding floor jumped 24px
+    (fixed: it tests whether the viewport SHRANK); and **`paintHist` calls
+    `__stickyBox.sync()` for every block on every `paintBlockHeads`**, which
+    runs off a `/sent` reply 700ms after typing and off the feed poll when
+    a clip lands — so the keeper ran off the network. And the whole
+    2026-09-26 fight watch rests on `window.scrollY` being the layout
+    viewport on iOS, which WebKit's own `contentsScrollPosition` (the
+    unobscured rect on iOS) says it may not be — in which case `took` was
+    always true and the watch never tripped. None of it is measured on her
+    phone; all of it is now beside the point there. **The rule:** where
+    `visualViewport` reports a keyboard on a touch device (`phoneOwns()`:
+    its height a keyboard shorter than the window; Android shrinks the
+    layout viewport instead and keeps the keeper), `keep()` borrows the room
+    under the page and does nothing else, and stickybox pins nothing while
+    a box is focused and does not re-sync on a pan. The phone's own reveal
+    owns the caret, which is what every recording showed it doing. The
+    window-scrolling keeper still runs on a desktop, on Android and under
+    the tests' stubbed keyboard (a stub says `phone: true` to be the
+    phone). **If she reports the caret UNDER the keyboard on the phone now,
+    that is the phone's reveal to measure with a `?dbg` log of
+    `scrollY` / `visualViewport.pageTop` / `offsetTop` while she types one
+    line — never a reason to bring the window scroll back.**
     - Test: `node scripts/test-caret-pan.js` — `window.scrollTo` replaced
       with iOS's own arithmetic and `__caretKeep.vv` reporting that visual
       viewport, the phone revealing a strayed caret a beat after every

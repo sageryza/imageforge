@@ -256,7 +256,23 @@
   // "… less" on every expanded clip in the feed), and two boxes can both end
   // below the fold for a scroll position or two — two floating words stacked
   // in the same spot reads as a broken control. The most-visible box wins.
+  // ON A PHONE WITH THE KEYBOARD UP NOTHING PINS (2026-09-26). A pinned
+  // button is `position:fixed`, and on iOS that is fixed to the LAYOUT
+  // viewport — so it rides every pan the phone makes to reveal the caret,
+  // and re-placing it after each pan (this used to resync on every
+  // visualViewport scroll) moved the band the caret keeper aimed at and
+  // called the keeper again: the two-state flip in her recording. The way
+  // out of a tall box while typing is the keyboard's own Done; the button
+  // comes back the moment the keyboard goes.
+  function phoneTyping() {
+    try {
+      if (!window.__caretKeep || !window.__caretKeep.phoneOwns || !window.__caretKeep.phoneOwns()) return false;
+      var a = document.activeElement;
+      return !!a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT');
+    } catch (_) { return false; }
+  }
   function sync() {
+    if (phoneTyping()) { seen.forEach(unpin); return; }
     var list = marked(), plans = [], best = null;
     for (var i = 0; i < list.length; i += 1) {
       var e = entry(list[i]);
@@ -354,13 +370,17 @@
   document.addEventListener('focusout', function () { burst(); }, true);
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', burst);
-    window.visualViewport.addEventListener('scroll', soon);
+    // a pan is the phone revealing the caret (or her finger): the pinned
+    // buttons ride it as the same pixels on screen, and re-placing them
+    // after it is what kept the caret keeper running — so a pan alone
+    // re-syncs nothing; the keyboard opening or closing still does
+    window.visualViewport.addEventListener('scroll', function () { if (!phoneTyping()) soon(); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', burst);
   else burst();
 
   window.__stickyBox = {
-    version: 3,
+    version: 4,
     sync: sync,
     pinned: function (btn) { var e = entry(btn); return !!e.pinned; },
   };

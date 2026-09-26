@@ -1,36 +1,33 @@
 #!/usr/bin/env node
-/* THE PAGE IS SCROLLED WHERE SHE IS LOOKING, NOT WHERE THE LAYOUT VIEWPORT
- * IS (2026-09-26, Sophie, on Footage: "always has the same bug of screen
- * moving every time i type or put the cursor delete etc").
+/* ON A PHONE WITH THE KEYBOARD UP, THE PHONE KEEPS THE CARET AND THE KEEPER
+ * SCROLLS NOTHING (2026-09-26, the fifth report: "have someone check ur work ·
+ * this error keeps happening differently").
  *
- * With the keyboard up, iOS keeps the LAYOUT viewport where it was and PANS
- * the VISUAL viewport inside it to reveal the caret (`visualViewport
- * .offsetTop`, ~115pt on her Footage screenshot). `window.scrollY` reports
- * the layout viewport and `window.scrollTo` moves the visual one, so the
- * keeper's `scrollTo(0, scrollY + d)` with a pan of 115 and a caret 30px too
- * low set the view 85px UP instead of 30 DOWN; the phone panned back to
- * reveal the caret, and the next keystroke did it again. Every keystroke,
- * every tap, every delete.
+ * Four fixes each removed a real per-keystroke mechanism and each was
+ * followed by "it's not fixed". Two independent reviews of caretkeep.js,
+ * stickybox.js and footage.html reached one verdict: a script that scrolls
+ * the window while iOS is also revealing the caret is two agents aiming at
+ * two bands, and every guard only rate-limited the fight — Footage's feed bar
+ * (sticky at both ends) narrowed the band by a bar's height on every scroll
+ * the keeper made, the pinned corner buttons (position:fixed = fixed to the
+ * LAYOUT viewport on iOS) rode every pan the phone made and moved the band
+ * with it, the blind-keyboard guess flipped on near the bottom, and a /sent
+ * reply or a feed poll called the keeper off the network. So on a phone
+ * whose visualViewport reports a keyboard, keep() borrows the room under the
+ * page and does nothing else, and stickybox pins nothing while a box is
+ * focused. The keeper still scrolls where it was written: a desktop, Android,
+ * the other tests' stubbed keyboard (no `phone` flag on the stub).
  *
- * A headless browser never pans, so this test IS the phone: `window.scrollTo`
- * is replaced with iOS's own arithmetic (the visual viewport moves inside a
- * layout viewport that is pushed only when the visual one reaches its edge),
- * `__caretKeep.vv` reports that visual viewport the way `visualViewport` does
- * (offsetTop, pageTop, height), and after every keystroke the phone reveals a
- * caret that has left the visual viewport, a beat later, as the UI process
- * does. EVERY ASSERTION IS A MEASUREMENT of how far the view she sees moved.
+ * This test IS the phone: window.scrollTo replaced with iOS's arithmetic (the
+ * visual viewport moves inside a layout viewport pushed only at its edge),
+ * `__caretKeep.vv` reporting that viewport with `phone: true`, the phone
+ * revealing a strayed caret a beat after each keystroke. Every assertion
+ * counts the moves the KEEPER made (the phone's own are labelled).
  *
- * Section 5b/5c (the same day, her recording after the first fix went live:
- * the whole block SELECTED, nothing typed, the screen flipping twice a
- * second): a selection is never kept, and the loop-check ignores the band
- * pinned chrome narrows, since a fixed button rides the phone's pan and so
- * narrowed a different band on every pass.
- *
- * Verified failing 7 against the pre-fix keeper (CARETKEEP_FILE=<that copy>):
- * nine letters on one line moved the view 27 times, 5,337px in all; four
- * deletes moved it 14 times; a Return flipped it 1310 → 1020 → 1286 and back
- * on every letter after; and against a phone that undid every correction it
- * scrolled 23 times without noticing.
+ * Verified failing against the keeper before this (CARETKEEP_FILE=<that
+ * copy>): it scrolled twice inside the tap's burst before the run died on
+ * the missing `phoneOwns`; the original keeper scrolled 27 times for nine
+ * letters.
  *
  *   node scripts/test-caret-pan.js
  */
@@ -69,7 +66,9 @@ textarea{width:100%;box-sizing:border-box;font:inherit;padding:10px;border:1px s
   ta.style.height = (ta.scrollHeight + 2) + 'px';   // fitted once; the keeper is the subject here
 })();
 </script>
+<button id="corner" data-stickybox style="position:absolute;right:20px;top:1500px;width:26px;height:26px"></button>
 <script src="/caretkeep.js"></script>
+<script src="/stickybox.js"></script>
 <script>
 // ── THE PHONE ──
 (function(){
@@ -89,6 +88,7 @@ textarea{width:100%;box-sizing:border-box;font:inherit;padding:10px;border:1px s
     log.push(['scrollTo', y, 'L', L(), 'pan', pan]);
   };
   window.__caretKeep.vv = {
+    phone: true,   // the phone's own keyboard: the keeper scrolls nothing here
     get offsetTop() { return pan; },
     get pageTop() { return vtop(); },
     get height() { return window.innerHeight - KB; },
@@ -167,129 +167,81 @@ const server = http.createServer((req, res) => {
     window.__phone.reset();
   }, at);
 
+  // a page move made by the KEEPER (the phone's own reveal is labelled 'phone')
+  const keeperMoves = () => page.evaluate(() => window.__phone.moves().filter((m) => m.by === 'page').length);
+  const pinned = () => page.evaluate(() => document.querySelectorAll('.sbx-pin').length);
+
   // ── 1. typing at the end of a scene the phone has just revealed ──
-  // She tapped at the end; the phone revealed the caret just inside its visual
-  // viewport (where iOS puts it: at the bottom edge). The keeper then wants it
-  // its own margin higher — ONE correction — and must not be undone.
   await page.goto(base + '/p');
   await land('end');
-  await page.waitForTimeout(1200);   // the tap's burst has run out
-  let w = await where();
-  ok(w.bottom <= w.vh + 1 && w.top >= -1,
-    'after the tap\'s burst the caret is inside what she sees (' + Math.round(w.top) + '–' + Math.round(w.bottom) + ' of 0–' + w.vh + ', panned ' + w.pan + 'pt)');
+  await page.waitForTimeout(1200);   // the tap's burst would have run here
+  ok((await keeperMoves()) === 0, 'after a tap the keeper has scrolled nothing through the whole burst (' + (await keeperMoves()) + ')');
+  ok((await page.evaluate(() => window.__caretKeep.phoneOwns())) === true, 'the keeper knows the phone owns the caret');
+  ok((await pinned()) === 0, 'and no corner button is pinned while she types on the phone');
   await page.evaluate(() => window.__phone.reset());
-  await page.type('#a', ' and then', { delay: 70 });   // 9 keystrokes, each with the phone's reveal 40ms after
+  await page.type('#a', ' and then', { delay: 70 });
   await page.waitForTimeout(300);
-  let moves = await page.evaluate(() => window.__phone.moves());
-  let dist = moves.reduce((s, m) => s + Math.abs(m.to - m.from), 0);
-  ok(moves.length <= 1,
-    'typing nine letters on one line moves the view she sees at most once (' + moves.length + ' moves, ' + Math.round(dist) + 'px in all)');
-  w = await where();
-  ok(w.bottom <= w.vh + 1 && w.top >= -1,
-    'and the caret is inside what she sees (' + Math.round(w.top) + '–' + Math.round(w.bottom) + ' of 0–' + w.vh + ')');
+  let w = await where();
+  ok((await keeperMoves()) === 0, 'nine letters on one line: the keeper scrolls nothing (' + (await keeperMoves()) + ' keeper moves)');
+  ok(w.bottom <= w.vh + 1 && w.top >= -1, 'and the phone keeps the caret in view (' + Math.round(w.top) + '–' + Math.round(w.bottom) + ' of 0–' + w.vh + ')');
+  const pad = await page.evaluate(() => parseFloat(document.documentElement.style.paddingBottom) || 0);
+  ok(pad > 200, 'the room under the page is still borrowed so its foot is reachable (' + Math.round(pad) + 'px)');
 
-  // ── 2. a delete on the same line ──
+  // ── 2. deletes ──
   await page.evaluate(() => window.__phone.reset());
   for (let i = 0; i < 4; i += 1) { await page.keyboard.press('Backspace'); await page.waitForTimeout(70); }
   await page.waitForTimeout(300);
-  moves = await page.evaluate(() => window.__phone.moves());
-  ok(moves.length === 0, 'four deletes on that line move nothing (' + moves.length + ' moves)');
+  ok((await keeperMoves()) === 0, 'four deletes: the keeper scrolls nothing');
 
-  // ── 3. a wrap: a new line is ONE move, in the direction of the caret ──
+  // ── 3. a Return then letters: only the phone moves, and only to reveal ──
   await page.evaluate(() => window.__phone.reset());
   await page.keyboard.press('Enter');
   await page.waitForTimeout(150);
   await page.type('#a', 'more', { delay: 70 });
   await page.waitForTimeout(300);
-  moves = await page.evaluate(() => window.__phone.moves());
-  ok(moves.length <= 1 && moves.every((m) => m.to > m.from),
-    'a Return then four letters: at most one move, downward (' + moves.map((m) => m.by + ' ' + Math.round(m.from) + '→' + Math.round(m.to)).join(', ') + ')');
+  const mv = await page.evaluate(() => window.__phone.moves());
+  ok(mv.filter((m) => m.by === 'page').length === 0 && mv.length <= 1,
+    'a Return then four letters: the keeper scrolls nothing and the phone reveals at most once (' + mv.map((m) => m.by + ' ' + Math.round(m.from) + '→' + Math.round(m.to)).join(', ') + ')');
   w = await where();
   ok(w.bottom <= w.vh + 1, 'and the new line is inside what she sees (' + Math.round(w.bottom) + ' of ' + w.vh + ')');
 
-  // ── 4. putting the cursor down: the tap's burst is at most one move ──
+  // ── 4. putting the cursor down ──
   await page.evaluate(() => { document.getElementById('a').blur(); });
   await page.waitForTimeout(600);
   await land('line 50');
   await page.evaluate(() => { document.getElementById('a').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-  await page.waitForTimeout(1300);   // 0 · 90 · 260 · 520 · 900
-  moves = await page.evaluate(() => window.__phone.moves());
-  ok(moves.length <= 1, 'a tap into the scene moves the view at most once through the whole burst (' + moves.length + ' moves)');
-
-  // ── 5. the keeper watches its own work: a phone that undoes every
-  //       correction without moving the layout viewport is not fought ──
-  await page.evaluate(() => { document.getElementById('a').blur(); });
-  await page.waitForTimeout(600);
-  await land('end');
-  await page.evaluate(() => { window.__phone.stubborn(true); });
   await page.waitForTimeout(1300);
-  await page.type('#a', ' and more', { delay: 70 });
-  await page.waitForTimeout(300);
-  const tries = await page.evaluate(() => window.__phone.log().filter((l) => l[0] === 'scrollTo-ignored').length);
-  const fighting = await page.evaluate(() => (window.__caretKeep.fighting || function () { return null; })());
-  ok(tries <= 3, 'against a phone that undoes every correction, the keeper tries at most three times and stops (' + tries + ' tries)');
-  ok(fighting === true, 'and says it has stood down for this focus');
-  await page.evaluate(() => { window.__phone.stubborn(false); document.getElementById('a').blur(); });
-  await page.waitForTimeout(500);
-  await page.evaluate(() => { document.getElementById('a').focus(); });
-  await page.waitForTimeout(200);
-  ok((await page.evaluate(() => (window.__caretKeep.fighting || function () { return null; })())) === false, 'a new focus calms it');
+  ok((await keeperMoves()) === 0, 'a tap into the scene: the keeper scrolls nothing through the whole burst');
 
-  // ── 5b. a SELECTION is never kept (her recording, 2026-09-26): the whole
-  //       block selected, nothing typed, the phone revealing the START while
-  //       the keeper lifted the END — it moved twice a second on its own ──
-  await page.evaluate(() => { document.getElementById('a').blur(); });
-  await page.waitForTimeout(500);
-  await land('end');
-  await page.waitForTimeout(1300);
+  // ── 5. a selection ──
   const sel = await page.evaluate(() => {
     const el = document.getElementById('a');
-    // the page where the phone leaves it: the selection's START at the top of
-    // what she sees, its END (the scene's last line) far below the band
-    window.__phone.iosScroll(0, 0); window.__phone.setPan(0);
     el.setSelectionRange(0, el.value.length);
     window.__phone.reset();
-    let scrolls = 0;
-    const o = window.scrollTo;
-    window.scrollTo = function () { scrolls += 1; return o.apply(window, arguments); };
     for (let i = 0; i < 6; i += 1) window.__caretKeep.keep();
     document.dispatchEvent(new Event('selectionchange'));
-    window.scrollTo = o;
-    return { scrolls, kept: window.__caretKeep.keep() };
+    return window.__phone.moves().filter((m) => m.by === 'page').length;
   });
-  await page.waitForTimeout(200);
-  const selMoves = await page.evaluate(() => window.__phone.moves().length);
-  ok(sel.scrolls === 0 && sel.kept === 0 && selMoves === 0,
-    'with the whole scene selected the keeper scrolls nothing, six keeps running (' + sel.scrolls + ' scrolls, ' + selMoves + ' moves)');
+  ok(sel === 0, 'with the whole scene selected, six keeps scroll nothing');
 
-  // ── 5c. THE PINNED BUTTONS RIDE THE PHONE'S PAN, so the band they narrow is
-  //       a different band on every pass — the loop-check must still catch a
-  //       phone that undoes every correction ──
-  await page.evaluate(() => { document.getElementById('a').blur(); });
-  await page.waitForTimeout(500);
-  await land('end');
+  // ── 6. a pan by the phone re-pins nothing and calls the keeper for nothing ──
   await page.evaluate(() => {
-    const b = document.createElement('button');
-    b.id = 'ridepin'; b.setAttribute('data-stickybox', ''); b.className = 'sbx-pin';
-    b.style.cssText = 'position:fixed;left:300px;width:26px;height:26px;top:400px';
-    document.body.appendChild(b);
-    // a phone that undoes every correction, and a button that lands somewhere
-    // new each time it does (as a fixed button does under a pan)
-    const o = window.__phone.iosScroll;
-    let k = 0;
-    window.scrollTo = function () { k += 1; b.style.top = (400 - (k % 5) * 17) + 'px'; window.__phone.log().push; };
+    const el = document.getElementById('a');
+    el.setSelectionRange(el.value.length, el.value.length);
     window.__phone.reset();
+    for (const p of [40, 120, 200, 60]) { window.__phone.setPan(p); window.visualViewport && window.visualViewport.dispatchEvent(new Event('scroll')); window.dispatchEvent(new Event('scroll')); }
   });
-  await page.waitForTimeout(1300);
-  await page.type('#a', ' and more', { delay: 70 });
   await page.waitForTimeout(300);
-  const ride = await page.evaluate(() => ({ f: window.__caretKeep.fighting(), n: (window.__caretKeep.lastFix() || {}).n }));
-  ok(ride.f === true, 'against a phone that undoes every correction while the pinned buttons move, the keeper still stands down (fighting ' + ride.f + ')');
-  await page.evaluate(() => { document.getElementById('ridepin').remove(); window.scrollTo = window.__phone.iosScroll; });
+  ok((await keeperMoves()) === 0 && (await pinned()) === 0, 'four pans by the phone: nothing pinned, nothing scrolled');
 
-  // ── 6. without a pan the target is exactly what it always was ──
-  await page.evaluate(() => { document.getElementById('a').blur(); });
-  await page.waitForTimeout(500);
+  // ── 7. the keyboard goes: the corner button comes back ──
+  await page.evaluate(() => { document.getElementById('a').blur(); window.__caretKeep.vv.phone = false; });
+  await page.waitForTimeout(600);
+  const after = await page.evaluate(() => ({ pad: parseFloat(document.documentElement.style.paddingBottom) || 0, owns: window.__caretKeep.phoneOwns() }));
+  ok(after.pad === 0 && after.owns === false, 'the keyboard goes: the room is given back and the phone no longer owns the caret (' + after.pad + 'px)');
+
+  // ── 8. NOT a phone (Android, a desktop, the tests' stubbed keyboard): the
+  //       keeper still scrolls, exactly as it always did ──
   const same = await page.evaluate(() => {
     const el = document.getElementById('a');
     el.focus(); el.setSelectionRange(el.value.length, el.value.length);
@@ -300,10 +252,10 @@ const server = http.createServer((req, res) => {
     window.__phone.reset();
     window.__caretKeep.keep();
     const l = window.__phone.log().filter((x) => x[0] === 'scrollTo');
-    return { want, got: l.length ? l[l.length - 1][1] : null };
+    return { want, got: l.length ? l[l.length - 1][1] : null, owns: window.__caretKeep.phoneOwns() };
   });
-  ok(same.got !== null && Math.abs(same.got - same.want) < 1,
-    'with no pan the keeper asks for scrollY + d, byte for byte what it did before (' + Math.round(same.want) + ' / ' + Math.round(same.got) + ')');
+  ok(same.owns === false && same.got !== null && Math.abs(same.got - same.want) < 1,
+    'where the phone does not own the caret the keeper asks for scrollY + d as before (' + Math.round(same.want) + ' / ' + Math.round(same.got) + ')');
 
   await browser.close();
   server.close();

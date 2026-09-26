@@ -3277,8 +3277,13 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   the browser undoes twice is not made a third time. AND A SELECTION IS
   NEVER KEPT (her recording the same day, the block selected whole and the
   screen flipping on its own): iOS reveals a selection's start, the keeper
-  chased its end. Never scroll a page from `scrollY + d` while a box is
-  focused — read `__caretKeep.pageTop()`.
+  chased its end. AND SINCE THE FIFTH REPORT THE SAME DAY ("have someone
+  check ur work · this error keeps happening differently" — two independent
+  reviews, one verdict): ON A PHONE WITH THE KEYBOARD UP THE KEEPER SCROLLS
+  NOTHING and stickybox pins nothing — the phone's own reveal keeps the
+  caret (`phoneOwns()`); the window-scrolling keeper runs only on a desktop,
+  Android and the tests' stub. Never bring the window scroll back on a
+  phone; a caret under the keyboard there is the phone's reveal to measure.
   Same section of the doc; `node scripts/test-caret-pan.js`.**
 
 - **THE WAY OUT OF A BIG BOX STAYS ON SCREEN — `/stickybox.js`, ONE FILE,

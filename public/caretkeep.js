@@ -125,6 +125,33 @@
    for `scrollTo` and `visualViewport`; against the old keeper nine letters
    on one line moved the view 27 times.
 
+   ON A PHONE WITH THE KEYBOARD UP, THE PHONE KEEPS THE CARET AND THIS FILE
+   SCROLLS NOTHING (2026-09-26, the fifth report — "have someone check ur
+   work · this error keeps happening differently" — and two independent
+   reviews of this file, stickybox.js and footage.html reached the same
+   verdict). A script that scrolls the window while the phone is also
+   revealing the caret is two agents aiming at two different bands, and
+   every guard above only rate-limited the fight: the reviews found four
+   more doors into it (Footage's feed bar is sticky at both ends and
+   narrows the band by a bar's height on every scroll this made; the pinned
+   corner buttons are fixed to the LAYOUT viewport and ride every pan, so
+   the band they narrow moves with the phone; the blind-keyboard guess
+   flipped on once the phone had panned near the bottom, moving the band
+   and the padding 24px; and a `/sent` reply or a feed poll repaints the
+   headings and re-syncs the pins, which calls `keep()` off the network).
+   And `window.scrollY` on iOS may well BE the visual viewport, which would
+   make every `took` true and the fight watch dead. So the rule is now the
+   one the 09-26 fight watch already conceded: where the phone reports a
+   keyboard through `visualViewport` (its height a keyboard shorter than
+   the window), `keep()` borrows the room under the page and does nothing
+   else — no window scroll, no inner scroll, no burst. The phone's own
+   reveal owns the caret there, exactly as it did in every recording.
+   stickybox reads the same `phoneOwns()` and does not pin while a box is
+   focused. The window-scrolling keeper still runs where it was written and
+   measured: a desktop browser, Android (which shrinks the layout viewport
+   instead), and the tests' own stubbed keyboard. Test:
+   `node scripts/test-caret-pan.js` (the phone model, keeper silent).
+
    Include it once, anywhere: `<script src="/caretkeep.js"></script>`. It
    wires itself to every text box on the page, present and future, and takes
    `data-nocaret` on a box (or any ancestor) as an opt-out. compare.js loads
@@ -164,7 +191,11 @@
     // A KEYBOARD THE PAGE CANNOT SEE. If a text box holds the focus on a
     // touch device and the viewport did not shrink, the keyboard is up and
     // nothing reported it — assume it covers the bottom of the screen.
-    var blind = bottom >= window.innerHeight - 40;
+    // the test is whether the VIEWPORT SHRANK, never where its bottom sits
+    // in layout coordinates — read that way, a viewport panned to within
+    // 40px of the bottom read as blind and the band and the padding jumped
+    // 24px every time the phone panned that far (the 2026-09-26 review)
+    var blind = (vv && vv.height ? vv.height : window.innerHeight) >= window.innerHeight - 40;
     if (focused && blind && touch()) {
       bottom = top + Math.max(200, window.innerHeight - Math.min(360, Math.round(window.innerHeight * 0.46)));
     }
@@ -172,6 +203,19 @@
   }
   function touch() {
     try { return window.matchMedia('(hover: none)').matches; } catch (_) { return false; }
+  }
+  // THE PHONE OWNS THE CARET: a touch device whose `visualViewport` is a
+  // keyboard shorter than the window (iOS reports the keyboard this way;
+  // Android shrinks the layout viewport instead, so its viewport stays the
+  // window's height and the keeper still runs there). The tests' stubbed
+  // keyboard says so itself with `phone: true`.
+  var PHONE_KB = 100;
+  function phoneOwns() {
+    var stub = window.__caretKeep && window.__caretKeep.vv;
+    if (stub) return !!stub.phone;
+    var vv = window.visualViewport;
+    if (!vv || !vv.height || !touch()) return false;
+    return vv.height < window.innerHeight - PHONE_KB;
   }
   // where the VISUAL viewport is on the page — what she is looking at, and
   // the number `window.scrollTo` sets on iOS. `scrollY` is the layout
@@ -462,6 +506,7 @@
     var h = host(el);
     if (h === false) return 0;
     if (!h) setRoom(Math.max(extra, roomFloor()));   // the window is the scroller: give her the foot of the page
+    if (phoneOwns()) return 0;              // the phone reveals the caret; a scroll here is the flicker
     var b = caretBand(el);
     var c = caretRect(el);
     var d = 0;
@@ -576,9 +621,10 @@
   }
 
   window.__caretKeep = {
-    version: 2,
+    version: 3,
     keep: keep,
     pageTop: pageTop,        // the visual viewport's page position — what scrollTo sets on iOS
+    phoneOwns: phoneOwns,    // a phone keyboard is up: the keeper scrolls nothing, stickybox pins nothing
     fighting: function () { return fight; },   // stood down for this focus (the test's read)
     lastFix: function () { return lastFix; },
     calm: calm,
