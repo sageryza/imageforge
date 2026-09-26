@@ -31,9 +31,9 @@ const CSS = `
 .promptwrap .boxbtn{position:absolute;bottom:6px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;padding:0;margin:0;border:1px solid #d8cfc0;border-radius:6px;background:#fdfbf7;color:#6f675e}
 .promptwrap .boxbtn svg{width:14px;height:14px}
 .promptwrap .bigger{right:56px}
-.promptwrap .divide{right:88px}
-.promptwrap .wipeb{right:120px;display:none}
-.panel.many .promptwrap .wipeb{display:flex}
+.promptwrap .wipeb{right:88px}
+.promptwrap .divide{right:120px}
+.promptwrap.mock{margin-top:10px}
 .promptwrap .bfold{display:none;width:100%;box-sizing:border-box;margin:0 0 4px;padding:6px 0 4px;align-items:center;gap:6px;border:0;background:none;font-family:inherit;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#9a8f7d;text-align:left}
 .panel.many .promptwrap .bfold{display:flex}
 .promptwrap .bfold .chev svg{width:13px;height:13px;flex:none;display:block}
@@ -104,16 +104,11 @@ const TAIL = 'She turns from the window and walks to the door, the hallway brigh
       function head(n, words, on) {
         return '<button type="button" class="fold bfold"><span class="bpick' + (on ? ' on' : '') + '">' + ICONS.check + '</span><span class="chev">' + ICONS.chev + '</span><span class="bflab">Block ' + n + '</span><span class="lw">' + words + '</span></button>';
       }
-      function corner(withId) {
-        return '<button type="button" class="boxbtn wipeb" aria-label="Take this block off">' + ICONS.x + '</button>'
-          + '<button type="button" class="boxbtn divide" aria-label="Divide here">' + ICONS.divide + '</button>';
+      function corner() {
+        return '<button type="button" class="boxbtn divide" aria-label="Divide here">' + ICONS.divide + '</button>'
+          + '<button type="button" class="boxbtn wipeb" aria-label="Take this box off">' + ICONS.x + '</button>';
       }
-      if (!first.querySelector('.bfold')) {
-        first.insertAdjacentHTML('afterbegin', head(1, '', false));
-        big.insertAdjacentHTML('beforebegin', corner());
-      }
-      first.querySelector('.bfold .lw').textContent = '';
-      first.querySelector('.bpick').classList.remove('on');
+      if (!first.querySelector('.divide')) big.insertAdjacentHTML('beforebegin', corner());
       first.classList.remove('active');
       function fit(t) { t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; }
       if (state === 'one') {
@@ -123,29 +118,22 @@ const TAIL = 'She turns from the window and walks to the door, the hallway brigh
         prompt.setSelectionRange(HEAD.length + 1, HEAD.length + 1);
         return;
       }
+      if (state === 'after') {
+        // the first half taken off with its ✕ — the second half is the one box left
+        prompt.value = TAIL; fit(prompt);
+        prompt.blur();
+        return;
+      }
       panel.classList.add('many');
       prompt.value = HEAD; fit(prompt);
-      first.querySelector('.bfold .lw').textContent = HEAD.split(' ').slice(0, 5).join(' ') + '…';
-      const row = document.createElement('div');
-      row.className = 'joinrow';
-      row.innerHTML = '<button type="button" class="joinb" aria-label="Join these two">' + ICONS.join + '</button>';
-      first.insertAdjacentElement('afterend', row);
       const w2 = document.createElement('div');
-      w2.className = 'promptwrap mock' + (state === 'two' ? ' active' : '');
-      w2.innerHTML = head(2, TAIL.split(' ').slice(0, 5).join(' ') + '…', state === 'ticked')
-        + '<textarea class="pblock"></textarea>' + corner()
+      w2.className = 'promptwrap mock active';
+      w2.innerHTML = '<textarea class="pblock"></textarea>' + corner()
         + '<button type="button" class="boxbtn bigger" aria-label="Bigger box">' + big.innerHTML + '</button>';
-      row.insertAdjacentElement('afterend', w2);
+      first.insertAdjacentElement('afterend', w2);
       const t2 = w2.querySelector('.pblock');
       t2.value = TAIL; fit(t2);
-      if (state === 'ticked') {
-        first.querySelector('.bpick').classList.add('on');
-        first.classList.add('active');
-        go.insertAdjacentHTML('beforeend', '<span class="gocount">2</span>');
-      } else {
-        t2.focus();
-      }
-      prompt.blur(); if (state === 'ticked') t2.blur();
+      prompt.blur(); t2.focus();
     }, { state, ICONS, HEAD, TAIL });
     await page.waitForTimeout(250);
     const top = await page.evaluate(() => (document.querySelector('.promptwrap').closest('.panel') || document.body).getBoundingClientRect().top + window.scrollY);
@@ -157,7 +145,7 @@ const TAIL = 'She turns from the window and walks to the door, the hallway brigh
   }
   await paint('one');
   await paint('two');
-  await paint('ticked');
+  await paint('after');
   await browser.close();
   server.close();
 })().catch((e) => { console.error(e); process.exit(1); });
