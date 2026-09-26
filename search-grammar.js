@@ -125,4 +125,4 @@ function feedMatches(hay, groups) {
   return groups.every((g) => (g.terms.some((rx) => rx.test(s)) ? !g.neg : g.neg));
 }
 
-module.exports = { parseQuery, plain, compileFeed, feedMatches, termPattern, termRegex };
+module.exports = { parseQuery, plain, compileFeed, feedMatches, termPattern, termRegex, escRe };
