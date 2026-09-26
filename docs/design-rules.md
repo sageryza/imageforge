@@ -2316,6 +2316,13 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
     ones a poll lands, so a card she paged to that still passes never
     blinks, and a chip change starts the walk over (`refeed`) without
     throwing away what she has.
+  - **A clip still drawing rides through the funnel** (a fresh clip has no
+    heart and no part, so every row would drop it from the polled page and the
+    poll would fetch each one by name, eight at a time) — the page's own
+    "a clip she just sent is never filtered away" rule, on the server. And
+    **the walk carries a sequence** (`feedSeq`): a chip or a mark starts a new
+    feed, and an answer still in flight under the old funnel is dropped rather
+    than landing its cursor on the new one — the search's `qSeq` rule.
   - **Nothing on the query is no filter at all** — a page cached from before
     this sends nothing and reads exactly as it did. And the count of matches
     outside the project (`elsewhere`) is of clips the funnel would show, so

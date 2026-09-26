@@ -2493,6 +2493,10 @@ function forgetSent() { justSent = {}; }
 // is tracked on its own: the newest read sets it while she has not paged,
 // each `… older` answer moves it down, and a search never touches it.
 var feedMore = false, olderAt = null, walkAt = '', loadingOlder = false;
+// THE WALK'S OWN SEQUENCE (2026-09-26): a chip or a mark starts a new feed, and
+// a /jobs answer still in flight under the OLD funnel must not land its
+// cursor or its `more` on the new one — the search's `qSeq` rule
+var feedSeq = 0;
 var pollT = null;
 function loadCtl() {
   try {
@@ -6236,8 +6240,8 @@ paintStitch();
 // A MARK IS A FILTER TOO, AND IT RE-ASKS THE SERVER (2026-09-26) — hearts
 // only used to be the hearts among the loaded 40; it is the newest forty
 // hearts now, and `… older` walks the hearts.
-$('v-liked').addEventListener('click', function () { try { localStorage.setItem('footage_liked', likedOnly() ? '' : '1'); } catch (e) {} forgetSent(); paintFilt(); applyFilt(); refeed(); if (searchQ) runSearch(); });
-$('v-hidex').addEventListener('click', function () { try { localStorage.setItem('footage_hidex', hideX() ? '' : '1'); } catch (e) {} forgetSent(); paintFilt(); applyFilt(); refeed(); if (searchQ) runSearch(); });
+$('v-liked').addEventListener('click', function () { try { localStorage.setItem('footage_liked', likedOnly() ? '' : '1'); } catch (e) {} forgetSent(); paintFilt(); applyFilt(); refeed(); });
+$('v-hidex').addEventListener('click', function () { try { localStorage.setItem('footage_hidex', hideX() ? '' : '1'); } catch (e) {} forgetSent(); paintFilt(); applyFilt(); refeed(); });
 
 // ── THE SEARCH (2026-09-11, Sophie: "add a search button and filter like
 // playground" · "single magnifying glass button that expands" · "yea
@@ -6413,7 +6417,7 @@ var FILT = SF ? SF.build($('feedfilters'), [
   { key: 'trim', kind: 'chips', label: 'Trimmed', vals: ['trimmed', 'whole'], words: ['Trimmed', 'Not trimmed'],
     get: function () { try { return localStorage.getItem('footage_filt_trim') || ''; } catch (e) { return ''; } },
     set: function (v) { try { localStorage.setItem('footage_filt_trim', v || ''); } catch (e) {} } },
-], function () { forgetSent(); paintSearchBtn(); refeed(); if (searchQ) runSearch(); },
+], function () { forgetSent(); paintSearchBtn(); refeed(); },
    // THE ROWS ARE DROP-DOWNS HERE (2026-09-18, Sophie, looking at the three
    // rows open on a 390pt phone: "buttons shud be drop downs to minimize
    // space"). `layout:'drop'` is the shell's, so the chips inside are the
@@ -7668,9 +7672,12 @@ function filtQ() {
 // in `jobsById` (hidden by `shown` when it no longer passes), so nothing she
 // paged to is thrown away and a card that still passes never blinks.
 function refeed() {
+  feedSeq++;
   olderAt = null; walkAt = ''; feedMore = false;
   paintFeed(); paintOlder();
-  loadJobs();
+  // while a search stands the search IS the feed — re-ask it, not the plain
+  // page nobody can see behind it
+  if (searchQ) runSearch(); else loadJobs();
 }
 function viewKey() { return S.project + '/' + (S.project ? S.folder : ''); }
 // A CLIP THE NEWEST PAGE NO LONGER HOLDS IS ASKED FOR BY NAME (2026-09-13,
@@ -7688,9 +7695,9 @@ function unresolvedOffPage(seen) {
   }).slice(0, 8);
 }
 function loadJobs() {
-  var asked = viewKey();
+  var asked = viewKey(), seq = feedSeq;
   return api('/jobs?limit=40' + projQ() + filtQ()).then(function (d) {
-    if (asked !== viewKey()) return;
+    if (asked !== viewKey() || seq !== feedSeq) return;   // she moved, or re-lit the funnel
     takeFolders(d);
     var jobs = (d && d.jobs) || [];
     var seen = {};
@@ -7787,14 +7794,14 @@ function loadOlder() {
   var at = walkAt || oldestSentAt();
   if (!at) return Promise.resolve();
   loadingOlder = true; paintOlder();
-  var asked = viewKey();
+  var asked = viewKey(), seq = feedSeq;
   // AND THE ID OF THE CLIP THE CURSOR STANDS ON (2026-09-14) — two clips sent
   // in one millisecond share a sentAt, and a cursor by time alone skipped the
   // twin. `walkId` is the lowest id at that sentAt among what the page holds.
   var bid = '';
   Object.keys(jobsById).forEach(function (k) { var j = jobsById[k]; if (String(j.sentAt || '') === at && (!bid || k < bid)) bid = k; });
   return api('/jobs?limit=40&before=' + encodeURIComponent(at) + (bid ? '&beforeId=' + encodeURIComponent(bid) : '') + projQ() + filtQ()).then(function (d) {
-    if (asked !== viewKey()) return;
+    if (asked !== viewKey() || seq !== feedSeq) return;
     takeFolders(d);
     var jobs = (d && d.jobs) || [];
     olderAt = at;

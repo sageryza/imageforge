@@ -8456,14 +8456,17 @@ function openChat(name, keepScroll, focusId, noFetch){
             if(show) shown++;
           });
           none.style.display=(shown||!cells.length)?'none':'';
-          var narrow=!!(filter||q||(SF&&((afilt.get('quality')||[]).length||afilt.get('when'))));
-          var key=[filter,q,SF?(afilt.get('quality')||[]).join():'',SF?afilt.get('when'):''].join('|');
+          // the search box is NOT a walk trigger — it fires on every dictated
+          // letter, and walking eight pages per keystroke is the Meta Assets
+          // page's own reason for leaving `q` out
+          var narrow=!!(filter||(SF&&((afilt.get('quality')||[]).length||afilt.get('when'))));
+          var key=[filter,SF?(afilt.get('quality')||[]).join():'',SF?afilt.get('when'):''].join('|');
           if(key!==fillKey){ fillKey=key; fillPasses=0; }
           // a tick later, and ONE tick however many tiles land: applyFilter
           // runs once per tile as a page arrives, inside nextPage's own answer
           // while its busy flag is still up — so the pass is counted when a
           // page is really asked for, never per call
-          if(narrow && shown<PAGE && !fillTick && fillPasses<FILL_PASSES && typeof nextPage==='function'){
+          if(narrow && !q && shown<PAGE && !fillTick && fillPasses<FILL_PASSES && typeof nextPage==='function'){
             fillTick=setTimeout(function(){ fillTick=0; if(busy) return; fillPasses++; nextPage(); },0);
           }
         }

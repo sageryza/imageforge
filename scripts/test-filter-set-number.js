@@ -77,20 +77,22 @@ const feedFilter = typeof F.feedFilter === 'function' ? F.feedFilter : () => ({ 
   const route = fj.slice(fj.indexOf("router.get('/jobs'"), fj.indexOf("router.post('/jobs/:id/vote'"));
   ok('Footage: the feed route narrows the whole log with feedFilter BEFORE the page is cut',
     route.indexOf('feedFilter(req.query)') >= 0 && route.indexOf('feedFilter(req.query)') < route.indexOf('pageJobs(all'));
-  ok('Footage: the count outside the project is of clips the funnel would show', /hit: \(x\) => hit\(x\) && filt\.keep/.test(route));
+  ok('Footage: the count outside the project is of clips the funnel would show', /hit: \(x\) => hit\(x\) && keepRow\(x\)/.test(route));
   const fh = read('public/footage.html');
   ok('Footage page: filtQ carries every row and both marks',
     /function filtQ\(\)/.test(fh) && /&model=/.test(fh) && /&res=/.test(fh) && /&since=/.test(fh) && /&trim=/.test(fh) && /&liked=1/.test(fh) && /&hidex=1/.test(fh));
   ok('Footage page: the newest page, the older walk and the search all carry it',
     /\/jobs\?limit=40' \+ projQ\(\) \+ filtQ\(\)/.test(fh) && /beforeId=' \+ encodeURIComponent\(bid\) : ''\) \+ projQ\(\) \+ filtQ\(\)/.test(fh) && /\+ projQ\(\) \+ filtQ\(\)\)\.then\(function \(d\) \{\n    if \(seq !== qSeq/.test(fh));
-  ok('Footage page: a chip or a mark starts the walk over (refeed)', /function refeed\(\)/.test(fh) && /paintSearchBtn\(\); refeed\(\);/.test(fh) && (fh.match(/applyFilt\(\); refeed\(\);/g) || []).length === 2);
+  ok('Footage page: a chip or a mark starts the walk over (refeed)', /function refeed\(\)/.test(fh) && /paintSearchBtn\(\); refeed\(\);/.test(fh) && (fh.match(/applyFilt\(\); refeed\(\); \}\);/g) || []).length === 2);
+  ok('Footage page: a stale feed answer is dropped by the walk\'s sequence', /seq !== feedSeq/.test(fh) && (fh.match(/seq !== feedSeq/g) || []).length === 2 && /feedSeq\+\+;/.test(fh));
+  ok('Footage route: a clip still drawing rides through the funnel', /WATCH_STATUSES\.includes\(String\(x\.d\.status/.test(route) && /const cardFor = /.test(route));
 
   const sj = read('stitch.js');
   const sroute = sj.slice(sj.indexOf("router.get('/clips'"), sj.indexOf('function titleFor'));
   ok('Stitch: the picks route narrows with the same rule before it pages', /footage\.feedFilter\(req\.query\)/.test(sroute) && sroute.indexOf('feedFilter') < sroute.indexOf('pickables(cards)'));
   const sh = read('public/stitch.html');
   ok('Stitch page: the query carries the funnel and the marks, and a change re-asks',
-    /function filtQ\(\)/.test(sh) && /\+ filtQ\(\);\n\}/.test(sh) && /paintSearchBtn\(\); loadPicks\(false\); \}, \{ label: 'Filters' \}/.test(sh) && (sh.match(/paintPicks\(\); loadPicks\(false\); \}\);/g) || []).length === 2);
+    /function filtQ\(\)/.test(sh) && /\+ filtQ\(\);\n\}/.test(sh) && /paintSearchBtn\(\); loadPicks\(false\); \}, \{ label: 'Filters' \}/.test(sh) && (sh.match(/paintMarks\(\); loadPicks\(false\); \}\);/g) || []).length === 2);
 
   const pl = read('public/promptlab.html');
   ok('Playground: the first page fills to PAGE pictures while anything narrows (fillFirst)',
@@ -99,7 +101,7 @@ const feedFilter = typeof F.feedFilter === 'function' ? F.feedFilter : () => ({ 
   ok('Playground: the Older walk still counts to its own cap', /walkMore\(0, shownPics\)/.test(pl) && /items\.length < target/.test(pl));
 
   const ch = read('public/chats.html');
-  ok('Chats Assets tab: a narrowed grid pulls the next page until it holds one', /narrow && shown<PAGE && !fillTick && fillPasses<FILL_PASSES/.test(ch) && /fillTick=setTimeout\(function\(\)\{ fillTick=0; if\(busy\) return; fillPasses\+\+; nextPage\(\); \},0\);/.test(ch));
+  ok('Chats Assets tab: a narrowed grid pulls the next page until it holds one', /narrow && !q && shown<PAGE && !fillTick && fillPasses<FILL_PASSES/.test(ch) && /fillTick=setTimeout\(function\(\)\{ fillTick=0; if\(busy\) return; fillPasses\+\+; nextPage\(\); \},0\);/.test(ch));
   const ma = read('public/assets.html');
   ok('Meta Assets: the same, and never during a server search', /narrow && !q && shown<PAGE && !fillTick && fillPasses<FILL_PASSES/.test(ma) && /fillTick=setTimeout\(function\(\)\{ fillTick=0; if\(busy\) return; fillPasses\+\+; nextPage\(\); \},0\);/.test(ma));
 }

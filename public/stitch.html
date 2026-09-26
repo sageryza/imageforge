@@ -847,7 +847,7 @@ var FILT = SF ? SF.build($('feedfilters'), [
   { key: 'when', kind: 'chips', label: SF.WHEN.label, vals: SF.WHEN.vals, words: SF.WHEN.words,
     get: function () { try { return localStorage.getItem('stitch_filt_when') || ''; } catch (e) { return ''; } },
     set: function (v) { try { localStorage.setItem('stitch_filt_when', v || ''); } catch (e) {} } },
-], function () { paintPicks(); paintSearchBtn(); loadPicks(false); }, { label: 'Filters' }) : null;
+], function () { paintSearchBtn(); loadPicks(false); }, { label: 'Filters' }) : null;
 paintSearchBtn();
 
 // HER ♥ AND ✕, WHICH THE PICKER USED TO CARRY AND IGNORE — 174 of her
@@ -867,8 +867,8 @@ function paintMarks() {
 }
 // a mark re-asks the server too (2026-09-26): the newest sixty hearts, not
 // the hearts among the newest sixty
-$('v-liked').addEventListener('click', function () { onlyLiked = !onlyLiked; markSet('stitch_liked', onlyLiked); paintMarks(); paintPicks(); loadPicks(false); });
-$('v-hidex').addEventListener('click', function () { hideX = !hideX; markSet('stitch_hidex', hideX); paintMarks(); paintPicks(); loadPicks(false); });
+$('v-liked').addEventListener('click', function () { onlyLiked = !onlyLiked; markSet('stitch_liked', onlyLiked); paintMarks(); loadPicks(false); });
+$('v-hidex').addEventListener('click', function () { hideX = !hideX; markSet('stitch_hidex', hideX); paintMarks(); loadPicks(false); });
 paintMarks();
 
 function passes(p) {
