@@ -48,6 +48,9 @@ const MANAGED_KEYS = [
   // APIFRAME (Midjourney deck art + Seedance video) — was env-only, which left
   // the live server unconfigured; manage it so the Firestore doc can carry it.
   'APIFRAME_KEY',
+  // Gelato (print on demand: the Fruit Calendar 2027 wall calendar). Stored on
+  // config/pipeline 2026-09-26; nothing calls it from the server yet.
+  'GELATO_API_KEY',
   // OpenRouter — the second Seedance door (openrouter.js): ByteDance's own
   // price for jobs with no video reference.
   'OPENROUTER_API_KEY',
