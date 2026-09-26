@@ -3252,6 +3252,16 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   a box fitted to its words fills the band, so there is no page left to drag
   either. While a box is focused the page now borrows the keyboard itself.
   Same section of the doc; `node scripts/test-caret-room.js`.**
+  **AND THE PAGE IS SCROLLED WHERE SHE IS LOOKING (2026-09-26, "always has
+  the same bug of screen moving every time i type or put the cursor delete
+  etc" — the fourth report): with the keyboard up iOS PANS the visual
+  viewport inside the layout one, `scrollY` reports the layout viewport and
+  `scrollTo` moves the visual one, so `scrollTo(scrollY + d)` moved the view
+  the wrong way by the pan and the phone panned back — on every keystroke.
+  The target is the visual viewport's page position now, and a correction
+  the browser undoes twice is not made a third time. Never scroll a page
+  from `scrollY + d` while a box is focused — read `__caretKeep.pageTop()`.
+  Same section of the doc; `node scripts/test-caret-pan.js`.**
 
 - **THE WAY OUT OF A BIG BOX STAYS ON SCREEN — `/stickybox.js`, ONE FILE,
   EVERY PAGE (2026-09-10, Sophie: "can we get a floating or sticky/pinned
@@ -4561,6 +4571,10 @@ before working on that module. Nothing was deleted — the moved text is verbati
     merges: the trailer and a PR number are on nearly all of them, and
     `scripts/test-waiting.js` reads THIS repo's real commits so a drifted
     trailer format fails there instead of quietly emptying the page.
+  - **A ROW OPENS THE CHAT THAT MADE IT, NEVER ITS PR (2026-09-26, Sophie:
+    "merged waiting shud go to chats not pr").** `/chats?chat=<slug>`, through
+    `__openThread` when the page is inside the Chats app; an untraced row is
+    not a link.
   - **A chat MAY say what its change means in her words** —
     `POST /api/waiting {chat, session, pr, line}` (200 chars) — and that line
     leads the row with the commit subject quiet underneath. Keyed by PR (or
@@ -4626,6 +4640,29 @@ before working on that module. Nothing was deleted — the moved text is verbati
     secret into a store is refused in a session container. **The chat-side
     rule this retires is in *ASK BEFORE YOU DEPLOY* — stop asking; say it is
     merged and not live in one line.**
+  - **OR THE BUTTON OPENS A FRESH OPUS CHAT THAT DEPLOYS — THE DOOR THAT WINS
+    WHEN ITS TOKEN IS THERE (2026-09-26, Sophie: "deploy waiting button opens
+    a random opus chat w deploy preseeded if possible").** A Routine on
+    account 3, `deploy: the Waiting page's button`
+    (`trig_016m75WtT9x8dzsosuYCWX5j`, fresh session per fire, model
+    `claude-opus-5-5`), carries the deploy as its prompt: clone main shallow,
+    run `scripts/render-deploy.js` (never `--now`), rename the chat `deploy`,
+    one-line reply. The tap fires it over the public Routines API with an
+    EMPTY body (chat-wake.js's own endpoint and beta header; text on a fire
+    spawns a stray), the fire answers `session_id: cse_…`, and the page shows
+    **open the chat** beside the note — a link, never a navigation. Measured
+    with a probe fire the day it was built: the spawned session ran on Opus,
+    carried `RENDER_API_KEY`, and had NO checkout (a create_trigger routine
+    has no sources — hence the clone in the prompt); the probe cost 11¢.
+    **What it needs is `DEPLOY_FIRE_TOKEN`** — the routine's own API-trigger
+    token, per-routine, minted only by her on account 3 (claude.ai →
+    Routines → that routine → API trigger → Generate token) and pasted into
+    Render env; `DEPLOY_TRIGGER` overrides the committed id and is not a
+    secret. The chat door beats the hook and the key because it is what she
+    asked for and the smallest secret of the three; it costs a session
+    where the hook costs nothing — hers to pick by which key she pastes.
+    Tests: the two above (`deployDoor`, `chatFromFire`, and the page's link
+    measured).
 
 - **THE WORK LOG** (`GET /api/chatfeed/worklog`, page at `/worklog`, no
   iOS tile — 2026-09-02, Sophie: "i want to make a timeline of what i worked

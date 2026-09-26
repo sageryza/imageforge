@@ -160,12 +160,12 @@ function chromiumExe() {
   ok('a change with no filed line shows its subject alone',
     await second.locator('.said').count() === 0 && (await second.locator('.t').innerText()).length > 0);
 
-  console.log('a change opens its own pull request');
-  ok('the PR link', (await first.getAttribute('href')) === 'https://github.com/sageryza/imageforge/pull/2424',
-    await first.getAttribute('href'));
-  const nopr = page.locator('.ch').nth(2);
-  ok('a merge with no PR opens its commit instead',
-    String(await nopr.getAttribute('href')).includes('/commit/dddd'), await nopr.getAttribute('href'));
+  console.log('a change opens the chat that made it, never its PR (2026-09-26)');
+  const firstHref = String(await first.getAttribute('href'));
+  ok('it links the chat', firstHref.startsWith('/chats?chat='), firstHref);
+  ok('…not GitHub', !(await page.locator('.ch[href*="github.com"]').count()));
+  const untraced = page.locator('.grp').filter({ hasText: 'not traced to a chat' }).locator('.ch').first();
+  ok('a change traced to no chat is a plain row', await untraced.evaluate((n) => n.tagName) === 'DIV');
 
   console.log('the unclaimed pile is named, never dropped');
   const heads = await page.locator('.who').allInnerTexts();
@@ -292,6 +292,43 @@ function chromiumExe() {
     (await page.locator('#go').innerText()).trim() === 'Deploy', await page.locator('#go').innerText());
   await page.locator('#go').click();
   ok('so the next tap only re-arms — it does not send', fired.length === 0, fired);
+
+  console.log('a routine door opens a chat, and hands her the chat');
+  // (2026-09-26, Sophie: "deploy waiting button opens a random opus chat w
+  // deploy preseeded if possible".) MEASURED: the link is a real anchor with
+  // the chat's url, shown only once the fire has answered with one, and the
+  // page is still here — a tap that navigated away would lose the count.
+  payload = Object.assign({}, DATA, { deploy: { key: true, how: 'chat', cooling: 0 } });
+  deployReply = { code: 200, body: { ok: true, how: 'chat', ahead: 3,
+    session: 'session_01AbCdEfGhIjKlMnOpQrSt', url: 'https://claude.ai/code/session_01AbCdEfGhIjKlMnOpQrSt' } };
+  await page.reload({ waitUntil: 'networkidle' });
+  fired.length = 0;
+  ok('it still reads Deploy', (await page.locator('#go').innerText()).trim() === 'Deploy');
+  ok('…and says it goes through a chat', /Opus chat/.test(await page.locator('#gonote').innerText()),
+    await page.locator('#gonote').innerText());
+  ok('no link before anything was opened', await page.locator('#golink:visible').count() === 0);
+  await page.locator('#go').click();
+  ok('the arm says a chat opens', /opens an Opus chat/.test(await page.locator('#gonote').innerText()),
+    await page.locator('#gonote').innerText());
+  ok('and nothing was sent yet', fired.length === 0, fired);
+  await page.locator('#go').click();
+  await page.waitForFunction(() => /Chat opened/.test(document.getElementById('go').textContent));
+  ok('one POST', fired.length === 1, fired);
+  ok('it says a chat is deploying', /Opus chat is deploying/.test(await page.locator('#gonote').innerText()),
+    await page.locator('#gonote').innerText());
+  ok('the link to the chat is on screen', await page.locator('#golink:visible').count() === 1);
+  ok('…and it is the chat\'s own url',
+    (await page.locator('#golink').getAttribute('href')) === 'https://claude.ai/code/session_01AbCdEfGhIjKlMnOpQrSt',
+    await page.locator('#golink').getAttribute('href'));
+  ok('…while the page is still the page', await page.locator('.count').count() === 1 && page.url().includes('/waiting'));
+  // A fire that answered with no id: the note alone, no link to nowhere.
+  deployReply = { code: 200, body: { ok: true, how: 'chat', ahead: 3, session: '', url: '' } };
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.locator('#go').click();
+  await page.locator('#go').click();
+  await page.waitForFunction(() => /Chat opened/.test(document.getElementById('go').textContent));
+  ok('no url on the answer → no link', await page.locator('#golink:visible').count() === 0);
+  payload = DATA;
 
   console.log('a refusal is said in words, and the button comes back');
   deployReply = { code: 429, body: { error: 'cooling', cooling: 120000 } };

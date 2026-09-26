@@ -1206,6 +1206,51 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
     caret clear of something she cannot see. The injected pill is in the set
     and narrows nothing, because every box on these pages already reserves its
     column (measured: box x 25–316, pill x 324–374).
+  - **AND THE PAGE IS SCROLLED WHERE SHE IS LOOKING, NOT WHERE THE LAYOUT
+    VIEWPORT IS (2026-09-26, Sophie, on Footage: "always has the same bug of
+    screen moving every time i type or put the cursor delete etc" — the
+    fourth report of the one bug, after 09-12, 09-14 and 09-23, with the
+    09-23 fixes measured live on the server that morning).** With the
+    keyboard up iOS keeps the LAYOUT viewport where it was and PANS the
+    VISUAL viewport inside it to reveal the caret (`visualViewport
+    .offsetTop`, ~115pt on her Footage screenshot), and the two window
+    scroll APIs disagree about which one they mean: **`window.scrollY`
+    reports the layout viewport, `window.scrollTo` moves the scroll view —
+    the visual one.** So `scrollTo(0, scrollY + d)` with a 115pt pan and a
+    caret 30px too low did not move the view DOWN 30px: it set the visual
+    viewport to the layout viewport's top plus 30, i.e. UP 85px, the caret
+    went off the bottom, the phone panned back to reveal it, and the next
+    keystroke — or the next keep of the tap's burst — did it again. Every
+    keystroke, every tap, every delete: her words exactly. A headless
+    browser never pans (offsetTop is 0 without a pinch zoom), so the two
+    numbers were the same here and every earlier test was green; the three
+    earlier fixes each removed a real per-keystroke relayout and left this
+    one standing.
+    - **The target is the VISUAL viewport's page position plus the
+      correction** (`pageTop()`: `visualViewport.pageTop`, else `scrollY +
+      offsetTop`) — the same number as before wherever there is no pan, the
+      right one where there is. stickybox's follow-back reads the same.
+    - **THE KEEPER WATCHES ITS OWN WORK.** Having to make the SAME
+      correction a third time — same caret line, same band (in the visual
+      frame), same direction, within 1.5s — when the earlier ones never
+      moved the layout viewport (`took`, read off `scrollY` right after the
+      scroll) means the browser is undoing it, and a keeper fighting the
+      browser IS the flicker: it stands down for the rest of that focus
+      (`fight`; a focus, a blur or the keyboard opening or closing calms
+      it), and the phone's own reveal keeps the caret. Two things keep it
+      honest: her finger can undo one (a `touchmove` calms it anyway), never
+      three; and a page that clamps its own scroll for a frame (a box fitted
+      through `height:auto` — the Playground's, the Chats app's) undoes a
+      correction that DID move the layout viewport, so it is re-corrected on
+      every keystroke exactly as it always was. In a headless browser every
+      correction moves the layout viewport, so nothing there can ever stand
+      down.
+    - Test: `node scripts/test-caret-pan.js` — `window.scrollTo` replaced
+      with iOS's own arithmetic and `__caretKeep.vv` reporting that visual
+      viewport, the phone revealing a strayed caret a beat after every
+      keystroke, every assertion a measurement of how far the view she sees
+      moved. Against the old keeper nine letters on one line moved it 27
+      times (5,337px), four deletes 14 times.
   - **compare.js loads it on the first focus**, so every Compare page ever
     posted has it with nothing re-posted; chats.html, the Playground, the
     Story Room, Freeform, Voice Studio and the Story Timeline link it. A new

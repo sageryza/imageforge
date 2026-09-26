@@ -91,6 +91,16 @@
     margin:0 0 14px; }
   .deprow .note{ font-size:12px; color:var(--dim); }
   #go.armed{ background:var(--danger); }
+  /* THE CHAT IT OPENED (2026-09-26, Sophie: "deploy waiting button opens a
+     random opus chat w deploy preseeded if possible"). When the server's
+     deploy door is a Routine, the tap spawns a fresh Opus chat that runs the
+     deploy, and the fire answers with that chat's id — so the link to it
+     rides beside the note. A LINK, never a navigation: the page must not
+     leave from under her thumb the moment she taps. An ordinary claude.ai url
+     opens the Claude app on her phone by itself. */
+  .deprow .golink{ font-size:12px; color:var(--ink); text-decoration:underline;
+    text-underline-offset:2px; }
+  .deprow .golink[hidden]{ display:none !important; }
 
   /* THE WAY OUT (2026-09-16, Sophie: "there's no way to exit the page").
      This page shipped with none: pagehead.js only draws its chevron when
@@ -124,13 +134,16 @@
   a Compare page that is already in your tab — sit shut under the list, and an
   iOS change waits on a build instead. Under that, the last five deploys — tap
   one to see what rode in it. <b>Deploy</b> at the top sends everything live —
-  tap it twice. If something is being drawn, the deploy waits for it by itself.
+  tap it twice. It opens a fresh Opus chat that runs the deploy (or sends it
+  straight to Render, whichever key the server holds). If something is being
+  drawn, the deploy waits for it by itself.
 </div>
 
 <main class="wrap">
   <div class="deprow" id="deprow" hidden>
     <button class="btn" id="go" type="button"></button>
     <span class="note" id="gonote"></span>
+    <a class="golink" id="golink" href="#" hidden>open the chat</a>
   </div>
   <div id="body"><div class="empty">Reading&hellip;</div></div>
 </main>
@@ -142,7 +155,6 @@
 (function(){
   'use strict';
   var bodyEl = document.getElementById('body');
-  var REPO = 'sageryza/imageforge';
 
   function esc(s){
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -159,7 +171,11 @@
     } catch (e) { return ''; }
   }
 
-  function change(it){
+  /* A CHANGE OPENS THE CHAT THAT MADE IT, never its pull request (2026-09-26,
+     Sophie: "merged waiting shud go to chats not pr"). The chat is where she
+     can ask about it; the PR is a record she has no use for on a phone. A
+     change traced to no chat has nowhere to go, so it is a plain row. */
+  function change(it, chat){
     var meta = [it.pr ? '#' + it.pr : '', when(it.at), it.draft ? 'draft' : '',
       it.kind === 'ios' ? 'iOS · a build, not a deploy' : '']
       .filter(Boolean).join(' · ');
@@ -167,12 +183,10 @@
       ? '<span class="said">' + esc(it.line) + '</span>' +
         (it.title ? '<span class="t">' + esc(it.title) + '</span>' : '')
       : '<span class="t">' + esc(it.title || ('commit ' + String(it.sha).slice(0,7))) + '</span>';
-    var href = it.pr ? 'https://github.com/' + REPO + '/pull/' + it.pr
-      : (it.sha ? 'https://github.com/' + REPO + '/commit/' + it.sha : '');
-    var tag = href ? 'a href="' + esc(href) + '" target="_blank" rel="noopener"' : 'div';
+    var tag = chat ? 'a href="/chats?chat=' + encodeURIComponent(chat) + '" data-chat="' + esc(chat) + '"' : 'div';
     return '<' + tag + ' class="ch' + (it.draft ? ' draft' : '') + '">' + inner +
       (meta ? '<span class="m">' + esc(meta) + '</span>' : '') +
-      '</' + (href ? 'a' : 'div') + '>';
+      '</' + (chat ? 'a' : 'div') + '>';
   }
 
   /* One block per chat. A change whose chat could not be worked out is never
@@ -185,7 +199,7 @@
       return '<div class="grp"><div class="who">' +
         esc(g.name || g.chat || 'not traced to a chat') +
         (n > 1 ? '<span class="n">' + n + ' changes</span>' : '') +
-        '</div>' + g.items.map(change).join('') + '</div>';
+        '</div>' + g.items.map(function(it){ return change(it, g.chat); }).join('') + '</div>';
     }).join('');
   }
 
@@ -227,6 +241,21 @@
       '<svg class="cv" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>' +
       '</button><div class="depbody" id="quietbody" hidden>' + groups(list) + '</div>';
   }
+
+  /* Inside the Chats app a page runs in an IFRAME; a plain link there loads
+     the whole app inside the viewer. The parent's bridge opens the thread
+     instead; a browser and the native tool follow the href (worklog's rule). */
+  bodyEl.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a.ch[data-chat]');
+    if (!a) return;
+    try {
+      if (window.parent && window.parent !== window
+          && typeof window.parent.__openThread === 'function'
+          && window.parent.__openThread(a.getAttribute('data-chat')) === true) {
+        e.preventDefault();
+      }
+    } catch (err) { /* cross-origin parent — the href stands */ }
+  });
 
   /* The way out. Shown only when nothing else is drawing one — embedded in a
      native tool the bar owns it, and on the build that hands the header over
@@ -270,20 +299,26 @@
   var row = document.getElementById('deprow');
   var go  = document.getElementById('go');
   var note= document.getElementById('gonote');
-  var armed = 0, armT = 0, lastN = 0;
+  var link= document.getElementById('golink');
+  var armed = 0, armT = 0, lastN = 0, how = '';
 
   function setNote(t){ note.textContent = t || ''; }
+  function setLink(u){ if (u) { link.href = u; link.hidden = false; } else { link.hidden = true; link.href = '#'; } }
+  function nChanges(){ return lastN + (lastN === 1 ? ' change' : ' changes'); }
 
   function disarm(){
     armed = 0; clearTimeout(armT);
     go.classList.remove('armed');
     go.textContent = 'Deploy';
-    setNote(lastN ? (lastN === 1 ? '1 change goes live' : lastN + ' changes go live') : '');
+    setNote(lastN ? (lastN === 1 ? '1 change goes live' : lastN + ' changes go live') +
+      (how === 'chat' ? ' \u2014 through a fresh Opus chat' : '') : '');
   }
 
   function showDeploy(j){
     var d = j.deploy || {};
     lastN = forYou(j);
+    how = String(d.how || '');
+    setLink('');
     if (!d.key || !lastN || j.error) { row.hidden = true; return; }
     row.hidden = false;
     go.disabled = false;
@@ -298,7 +333,8 @@
       armed = 1;
       go.classList.add('armed');
       go.textContent = 'Tap again to deploy';
-      setNote('sends ' + lastN + (lastN === 1 ? ' change' : ' changes') + ' live');
+      setNote(how === 'chat' ? 'opens an Opus chat that sends ' + nChanges() + ' live'
+        : 'sends ' + nChanges() + ' live');
       armT = setTimeout(disarm, 8000);
       return;
     }
@@ -311,6 +347,14 @@
     fetch('/api/waiting/deploy', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:'{}' })
       .then(function(r){ return r.json().then(function(j){ j.__s = r.status; return j; }); })
       .then(function(j){
+        if (j && j.ok && j.how === 'chat') {
+          /* The chat is the thing deploying now; the link is how she watches
+             it. No url on the answer → the note alone, honestly. */
+          go.textContent = 'Chat opened';
+          setNote('an Opus chat is deploying \u2014 live in a few minutes, it waits by itself if anything is drawing');
+          setLink(j.url || '');
+          return;
+        }
         if (j && j.ok) {
           go.textContent = 'Deploying';
           setNote('live in a few minutes \u2014 it waits by itself if anything is drawing');
