@@ -68,6 +68,10 @@ const MANAGED_KEYS = [
   // token); the tokens are, and only Sophie can mint them (claude.ai routines
   // UI → the routine → API trigger → Generate token).
   'WAKE_TRIGGER_1', 'WAKE_TRIGGER_2', 'WAKE_FIRE_TOKEN_1', 'WAKE_FIRE_TOKEN_2',
+  // The Waiting page's Deploy button opening an Opus chat (waiting.js): the
+  // deploy routine's id (not a secret; committed default) and its API-trigger
+  // token (a secret, and per-routine — only Sophie can mint it).
+  'DEPLOY_TRIGGER', 'DEPLOY_FIRE_TOKEN',
 ];
 
 // The Anthropic key already lives in its OWN Firestore doc (`config/anthropic`,

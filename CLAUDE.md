@@ -4626,6 +4626,29 @@ before working on that module. Nothing was deleted — the moved text is verbati
     secret into a store is refused in a session container. **The chat-side
     rule this retires is in *ASK BEFORE YOU DEPLOY* — stop asking; say it is
     merged and not live in one line.**
+  - **OR THE BUTTON OPENS A FRESH OPUS CHAT THAT DEPLOYS — THE DOOR THAT WINS
+    WHEN ITS TOKEN IS THERE (2026-09-26, Sophie: "deploy waiting button opens
+    a random opus chat w deploy preseeded if possible").** A Routine on
+    account 3, `deploy: the Waiting page's button`
+    (`trig_016m75WtT9x8dzsosuYCWX5j`, fresh session per fire, model
+    `claude-opus-5-5`), carries the deploy as its prompt: clone main shallow,
+    run `scripts/render-deploy.js` (never `--now`), rename the chat `deploy`,
+    one-line reply. The tap fires it over the public Routines API with an
+    EMPTY body (chat-wake.js's own endpoint and beta header; text on a fire
+    spawns a stray), the fire answers `session_id: cse_…`, and the page shows
+    **open the chat** beside the note — a link, never a navigation. Measured
+    with a probe fire the day it was built: the spawned session ran on Opus,
+    carried `RENDER_API_KEY`, and had NO checkout (a create_trigger routine
+    has no sources — hence the clone in the prompt); the probe cost 11¢.
+    **What it needs is `DEPLOY_FIRE_TOKEN`** — the routine's own API-trigger
+    token, per-routine, minted only by her on account 3 (claude.ai →
+    Routines → that routine → API trigger → Generate token) and pasted into
+    Render env; `DEPLOY_TRIGGER` overrides the committed id and is not a
+    secret. The chat door beats the hook and the key because it is what she
+    asked for and the smallest secret of the three; it costs a session
+    where the hook costs nothing — hers to pick by which key she pastes.
+    Tests: the two above (`deployDoor`, `chatFromFire`, and the page's link
+    measured).
 
 - **THE WORK LOG** (`GET /api/chatfeed/worklog`, page at `/worklog`, no
   iOS tile — 2026-09-02, Sophie: "i want to make a timeline of what i worked
