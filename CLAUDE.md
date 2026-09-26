@@ -161,6 +161,15 @@ still every time the work wraps up.
    is meant to play goes where it plays inline — the pin, a Compare page
    with a player, the Assets tab — and the save link rides underneath for
    keeping a copy.
+3d2b. **FOUND IT SOMEWHERE ELSE? PULL IT INTO YOUR OWN TABS — NEVER LINK
+   ANOTHER CHAT'S PAGE (2026-09-26, Sophie, handed a link to the crystal
+   poster mockups on another chat's Compare page: "always pull to ur own
+   assets/ compare tab").** Pictures you dig up go into YOUR chat's Assets
+   tab, labeled (`POST /api/gallery {assetsOnly:true, chat, url,
+   description}` — an outside url is refused, so host it first through
+   `/api/drop/upload-file?from=claude`), and a set of them is re-posted as a
+   Compare page in YOUR chat (a stock `grid` is one call; copy the other
+   page's `__pageData`). It costs nothing and it is the only place she looks.
 3d3. **SUPERSEDE WHAT SHE NO LONGER NEEDS — HER COMPARE TAB HOLDS ONLY THE
    CURRENT THINGS (2026-09-22, Sophie, looking at nine live pattern pages:
    "supercede irrelevant and make that more strict for other chats").**
