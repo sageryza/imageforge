@@ -348,6 +348,27 @@ cd ~/Downloads/fruit-flashcards-mpc && autofill --directory .
   else. The tool stops at the saved project on purpose.
 - **Queued:** 2026-09-20 by male-playing-cards-auto
 
+### Upload the ANIMAL deck (63 cards) to MakePlayingCards with MPC Autofill
+- **Why:** the hearts-only animal deck is print-ready (63 fronts A to Z, the
+  cream stand-in back, order.xml on Superior Smooth, in one zip) and the only
+  step left is the browser upload into your MPC account, which the cloud
+  cannot sign into (reCAPTCHA). Same shape as the fruit entry above; on the
+  phone, MPC's own Upload images takes fronts/ in filename order instead.
+- **Where:** ~/Downloads, then the MPC Autofill desktop tool
+- **Run:**
+```
+cd ~/Downloads && curl -sL -o animal-deck-mpc.zip "https://imageforge-q125.onrender.com/api/drop/file/rgd2BFjXOdyxLODMhOwm" && rm -rf animal-deck-mpc && mkdir animal-deck-mpc && cd animal-deck-mpc && unzip -q ../animal-deck-mpc.zip && ls
+```
+```
+cd ~/Downloads/animal-deck-mpc && autofill --directory .
+```
+  It opens Chrome, asks you to sign in to MPC, fills all 63 fronts and the
+  shared back (S33 Superior Smooth, 72-card bracket), and saves the project.
+  Review it under Saved Projects and order by hand.
+- **Needs from her:** sign into MPC in the Chrome window it opens; nothing
+  else. The tool stops at the saved project on purpose.
+- **Queued:** 2026-09-26 by animal-deck-mpc-upload
+
 ## DONE
 
 ### Hand Apple's Voice Memos transcripts to the archive — SUPERSEDED, then solved another way
