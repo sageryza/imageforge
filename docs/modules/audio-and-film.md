@@ -937,6 +937,33 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       active block and paints somewhere else, a cast that reads back right and
       never reaches the door, and a join mark hidden by the wrap that moved
       between two blocks all look identical in the source).
+      **AND THE STAR'S OWN LINE NAMES WHAT RIDES ON TOP (2026-09-26, Sophie,
+      a $2.06 2.5 clip that went with a whole other scene in front of her
+      block: "spent a bunch of money on this 2.5 flip only to see it was sent
+      with extra words · why??").** MEASURED off the log that night: the moon
+      block went at 04:10 with nothing in front of it, and at 04:15 and 04:16
+      the same block went twice (a 30s Wan, then the $2.06 2.5) with the
+      ENTIRE Newton scene — "no music / maintain the exact imperfect hand
+      drawn illustration style… / shot 1: newton sits under an apple tree…" —
+      in front of it, and the job's own `blocks` holding only the moon words.
+      That shape is `withHeads`: the scene was sitting in the Characters
+      box (or the Setting box — the log cannot tell the two apart, and
+      nothing in the page writes scene text into either; the box sits directly
+      above the block with a textarea the same shape as a block's). The
+      2026-09-24 rule shuts the fold after EVERY send, so from then on the
+      only thing on screen saying so was the shut heading's one truncated line
+      — "· no music maintain t…" — which is not a disclosure anyone reads
+      before a $2 tap. So the ONE place she looks before the tap says it now:
+      under the price, `+ characters & setting on top · 118 words` (`.rides`,
+      `paintRides`, drawn by `paintHeadBlocks` and put back by `paintGo` after
+      the estimate rewrites `#cost`), the house inline opener's underlined
+      word, a tap opening the fold and walking to it; only the heads THIS send
+      would carry (a marked send names the setting alone, `withSetting`'s own
+      rule); nothing drawn while both boxes are empty. **What is SENT did not
+      change** — the shut box still rides, exactly as her 09-14 and 09-24 asks
+      have it. The test measures the line under the price, its count, the tap
+      opening the fold, its absence with both boxes empty, and "setting" alone
+      once the cast is emptied.
     - **WHAT CHANGED — THE COMPARE PANEL (2026-09-11, Sophie: "is there an
       easy way I can diff video clips like I can't remember what I changed for
       example sometimes it's a single line or a reference for the model the

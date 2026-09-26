@@ -147,6 +147,7 @@ const read = () => {
     panelHasFold: !!document.getElementById('panelfold'),
     panelShut: panel.classList.contains('shut'),
     pill: pill ? pill.getBoundingClientRect().left : null,
+    rides: (() => { const r = document.querySelector('#cost .rides'); return r ? { text: r.textContent, seen: seen(r) } : null; })(),
     draft: JSON.parse(localStorage.getItem('footage_draft') || '{}'),
   };
 };
@@ -215,6 +216,8 @@ const send = async (page, btn) => {
   let got = await send(page, '#go');
   ok('an unwritten box adds nothing at all — the prompt is exactly her box',
     got.prompt === SCENE);
+  s = await page.evaluate(read);
+  ok('and the star says nothing about riding words while both boxes are empty', s.rides === null);
 
   // ── 5. OPENING IT FITS BOTH BOXES ──────────────────────────────────────
   await page.evaluate(tapHead);
@@ -248,6 +251,21 @@ const send = async (page, btn) => {
   ok('the cast comes first, since that is the half that changes block to block',
     s.lw.indexOf('Sophie') < s.lw.indexOf('green-tiled'));
   ok('the words are not lost by folding', s.hvals[0] === CAST && s.hvals[1] === ROOM);
+  // ── 7b. THE STAR'S OWN LINE SAYS WHAT RIDES (2026-09-26, "sent with extra
+  // words · why??") — measured under the price, not merely in the markup
+  const nw = (t) => t.trim().split(/\s+/).length;
+  ok('under the price a line names what rides — "' + (s.rides && s.rides.text) + '"',
+    !!s.rides && /^\+ characters & setting on top/.test(s.rides.text));
+  ok('and counts the words that will ride (' + (nw(CAST) + nw(ROOM)) + ')',
+    !!s.rides && new RegExp('\\b' + (nw(CAST) + nw(ROOM)) + ' words$').test(s.rides.text));
+  ok('it is on screen and a tap reaches it', !!s.rides && s.rides.seen.h > 0 && s.rides.seen.reaches);
+  await page.click('#cost .rides');
+  await page.waitForTimeout(300);
+  s = await page.evaluate(read);
+  ok('tapping it opens the folded box so the words are in view', s.shut === false);
+  ok('open, the line still stands — it is about the send, not the fold', !!s.rides);
+  await page.evaluate(tapHead);
+  await page.waitForTimeout(200);
 
   // ── 8. THEY RIDE AT THE TOP OF THE CLIP SHE SENDS ──────────────────────
   got = await send(page, '#go');
@@ -340,6 +358,9 @@ const send = async (page, btn) => {
   got = await send(page, '#go');
   ok('an emptied cast stops riding, and the room still does',
     got.prompt === ROOM + '\n\n' + SCENE);
+  s = await page.evaluate(read);
+  ok('and the line says only the setting rides now — "' + (s.rides && s.rides.text) + '"',
+    !!s.rides && /^\+ setting on top/.test(s.rides.text) && !/characters/.test(s.rides.text));
 
   // ── 16. A DRAFT FROM THE TWO-BLOCK DAY SEEDS EVERY BLOCK ───────────────
   // A shipped fix to a WRITE path leaves the records already on file wrong —

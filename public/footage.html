@@ -435,6 +435,18 @@
      their own (MEASURED). A block inside #cost grows the row's HEIGHT by one
      small line and never its width, so nothing beside it moves. */
   .drew{display:block;font-size:11.5px;color:#9a8f7d}
+  /* WHAT RIDES ON TOP OF THIS CLIP (2026-09-26, Sophie, a $2.06 2.5 clip that
+     went with a whole other scene in front of her block: "spent a bunch of
+     money on this 2.5 flip only to see it was sent with extra words · why??").
+     The Characters & setting box is folded shut after every send and its
+     words go at the top of every clip — so the ONE place she looks before the
+     tap, the star's own price line, names them and counts them. The house
+     inline opener's paint: an underlined word on its own small line, never a
+     boxed button; a tap opens the fold and walks to it. Drawn only while
+     something would ride, so a page with both boxes empty shows nothing. */
+  .rides{display:block;border:0;background:none;padding:0;margin:0;font:inherit;font-size:11.5px;
+        color:#9a8f7d;text-decoration:underline;line-height:1.3;text-align:left;
+        -webkit-tap-highlight-color:transparent}
   /* CLEAR AND UNDO — the house inline opener's paint (`.moretxt`, `.olderbtn`):
      an underlined WORD, never a boxed button, so the one filled thing on this
      row stays the star. Hard right, so the star keeps its place whether one
@@ -1425,6 +1437,7 @@
   <p><b>Say what the clip is.</b> Add references &mdash; a picture, a clip, a sound &mdash; and name each one in the prompt by its slot: <b>[Image1]</b>, <b>[Video1]</b>, <b>[Audio1]</b>. Tap a slot name to drop it into the box. Never describe what a reference shows; the picture is the point.</p>
   <p><b>The star sends it.</b> One tap, and the line beside it says what that tap costs. With a reference video that figure is the closest the door will say up front; the real charge lands on the card when the clip finishes.</p>
   <p><b>Every clip says how long it took.</b> <i>drew in 2m 34s</i> on the card is the door's own figure, not how long you were watching — close the app and it keeps drawing, and the time it reports is still the real one. A clip drawn before this says nothing rather than guessing.</p>
+  <p><b>And it says what rides on top.</b> Whatever is in <i>Characters &amp; setting</i> goes at the top of the clip, folded away or not &mdash; so under the price a line says <i>+ characters &amp; setting on top &middot; 40 words</i>, and a tap on it opens the box. A whole scene left in there rides in front of the block you send.</p>
   <p><b>And the line under the star says how long this one will take.</b> <i>usually ~1m 10s</i> is the middle of what this exact model, size, shape and length has really taken on this door &mdash; the middle rather than the average, so one clip that sat in a queue cannot drag it. A shape nothing has drawn yet says nothing at all.</p>
   <p><b>Whichever door is cheapest</b> &mdash; the line beside the star names it. Right now that is <b>Atlas Cloud</b> for Mini and Fast and <b>OpenRouter</b> for 2.0 and 2.5, but nothing here is written down: the three doors are priced for the exact clip you have set up and the cheapest one gets it. If that door refuses a reference &mdash; free, before anything draws &mdash; the job stops there and the error says why, with the other doors that would still take it underneath it, priced. Tapping one sends that same job &mdash; your words, your references, that door. Nothing is ever sent through another door on its own, and never drawn without its references. OpenRouter refuses any person in a reference, Atlas Cloud takes a person and refuses only a famous face.</p>
   <p><b>Four models.</b> <b>2.0 Mini</b> is the default and much the cheapest. <b>2.0 Fast</b>, <b>2.0</b> and <b>2.5</b> climb from there &mdash; the line beside the star says what the tap costs before you make it. Two things worth knowing: <b>Fast is the strict one</b> (a plain prompt with no reference at all has come back refused there with a copyright line, free and unbilled, where the same words drew on Mini), and <b>2.0 is the only Seedance that does 1080p</b>.</p>
@@ -4602,6 +4615,8 @@ function paintGo() {
       : 'Send the ' + n + ' marked block' + (n === 1 ? '' : 's') + ' as ONE clip, appended');
   if (b.title !== tip) b.title = tip;
   if (b.classList.contains('armed') !== !!armed) b.classList.toggle('armed', !!armed);
+  // the estimate rewrites #cost's text, so the rides line is put back here
+  if (typeof paintRides === 'function') paintRides();
 }
 // A CHANGED PICK IS A CHANGED JOB — the price, the keyframe note and the star
 // all re-read, and an armed star goes down rather than sending a set she has
@@ -5357,7 +5372,49 @@ function paintHeadBlock(w) {
     + ' — who is in this block, and where every clip is.'
     + ' What is written here rides at the top of the clip this block sends.';
 }
-function paintHeadBlocks() { heads().forEach(paintHeadBlock); }
+function paintHeadBlocks() { heads().forEach(paintHeadBlock); if (typeof paintRides === 'function') paintRides(); }
+// THE STAR'S LINE NAMES WHAT RIDES ON TOP (2026-09-26). `withHeads` puts the
+// block's cast and the project's setting in front of her words, and since
+// 2026-09-24 the box they live in shuts itself after every send — so a whole
+// scene left in it rides, unseen, at the top of the next clip. Measured that
+// night: two clips, a 30s Wan and a $2.06 2.5, each went with an entire other
+// scene in front of the block she sent. This is the disclosure at the moment
+// of the tap: under the price, the words that will ride and how many of them,
+// a tap opening the fold and walking to it. `sendingJob()`'s own rule for
+// WHICH heads: an appended send carries only the setting (`withSetting`), a
+// single block its own cast and the setting (`headWords`). Nothing about what
+// is SENT changes here — the shut box still rides, exactly as her 09-14 and
+// 09-24 asks have it — only what the star says before it goes.
+function ridesNow() {
+  var picked = typeof pickedBlocks === 'function' ? pickedBlocks() : [];
+  var cast = picked.length ? '' : String(charsOf(activeWrap()) || '').trim();
+  var room = String(settingVal() || '').trim();
+  var parts = [], words = 0;
+  if (cast) { parts.push('characters'); words += cast.split(/\s+/).length; }
+  if (room) { parts.push('setting'); words += room.split(/\s+/).length; }
+  return parts.length ? { parts: parts, words: words } : null;
+}
+function paintRides() {
+  var cost = $('cost');
+  if (!cost) return;
+  var r = ridesNow(), el = cost.querySelector('.rides');
+  if (!r) { if (el) el.remove(); return; }
+  if (!el) {
+    el = document.createElement('button');
+    el.type = 'button'; el.className = 'rides';
+    el.addEventListener('click', function () {
+      var hw = headWrap();
+      if (!hw) return;
+      if (hw.classList.contains('shut')) toggleHead(hw);
+      var top = hw.getBoundingClientRect().top + (window.scrollY || 0) - 12;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    });
+    cost.appendChild(el);
+  }
+  var t = '+ ' + r.parts.join(' & ') + ' on top \u00b7 ' + r.words + (r.words === 1 ? ' word' : ' words');
+  if (el.textContent !== t) el.textContent = t;
+  el.title = 'These words go at the top of the clip the star sends \u2014 tap to see them';
+}
 function toggleHead(w) {
   w.classList.toggle('shut');
   if (!w.classList.contains('shut')) headRows().forEach(function (r) { fitBox(r.querySelector('.hblock')); });
