@@ -6475,3 +6475,15 @@ The older reading below stands for 2.0 and for reference VIDEOS:
 The "go" rule above applies to both doors word for word. A no-video job
 sent to APIFRAME is not wrong, it is 16% dearer. Full note: *OpenRouter for
 Seedance* in `docs/modules/audio-and-film.md`.
+
+**A TAP ON THE FEED BAR NEVER MOVES THE PAGE (2026-09-26, Sophie: "clicking
+list or tiles in footage or any button in the bar brings me down to it").**
+The bar is sticky at both ends, so in the prompt block it is drawn at the
+bottom of the screen while its seat is far below, and iOS WebKit reveals the
+tapped (focused) button at that SEAT — on the tap and again as the keyboard
+drops. Chromium never does it (measured: scrollY held on every bar button), so
+the guard in `footage.html` holds whatever the engine does: the tapped button
+gives its focus back, and for 900ms the page is put back where she was
+(clamped), unless she scrolls, taps anywhere else, or the tap opened a box to
+type in (the glass's search field). Test: `node scripts/test-footage-bar-still.js`
+(plays WebKit's part and measures the page stays put; verified failing 16 pre-fix).
