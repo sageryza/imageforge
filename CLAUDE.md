@@ -3268,8 +3268,11 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   `scrollTo` moves the visual one, so `scrollTo(scrollY + d)` moved the view
   the wrong way by the pan and the phone panned back — on every keystroke.
   The target is the visual viewport's page position now, and a correction
-  the browser undoes twice is not made a third time. Never scroll a page
-  from `scrollY + d` while a box is focused — read `__caretKeep.pageTop()`.
+  the browser undoes twice is not made a third time. AND A SELECTION IS
+  NEVER KEPT (her recording the same day, the block selected whole and the
+  screen flipping on its own): iOS reveals a selection's start, the keeper
+  chased its end. Never scroll a page from `scrollY + d` while a box is
+  focused — read `__caretKeep.pageTop()`.
   Same section of the doc; `node scripts/test-caret-pan.js`.**
 
 - **THE WAY OUT OF A BIG BOX STAYS ON SCREEN — `/stickybox.js`, ONE FILE,

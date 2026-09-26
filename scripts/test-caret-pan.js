@@ -20,6 +20,12 @@
  * caret that has left the visual viewport, a beat later, as the UI process
  * does. EVERY ASSERTION IS A MEASUREMENT of how far the view she sees moved.
  *
+ * Section 5b/5c (the same day, her recording after the first fix went live:
+ * the whole block SELECTED, nothing typed, the screen flipping twice a
+ * second): a selection is never kept, and the loop-check ignores the band
+ * pinned chrome narrows, since a fixed button rides the phone's pan and so
+ * narrowed a different band on every pass.
+ *
  * Verified failing 7 against the pre-fix keeper (CARETKEEP_FILE=<that copy>):
  * nine letters on one line moved the view 27 times, 5,337px in all; four
  * deletes moved it 14 times; a Return flipped it 1310 → 1020 → 1286 and back
@@ -228,6 +234,58 @@ const server = http.createServer((req, res) => {
   await page.evaluate(() => { document.getElementById('a').focus(); });
   await page.waitForTimeout(200);
   ok((await page.evaluate(() => (window.__caretKeep.fighting || function () { return null; })())) === false, 'a new focus calms it');
+
+  // ── 5b. a SELECTION is never kept (her recording, 2026-09-26): the whole
+  //       block selected, nothing typed, the phone revealing the START while
+  //       the keeper lifted the END — it moved twice a second on its own ──
+  await page.evaluate(() => { document.getElementById('a').blur(); });
+  await page.waitForTimeout(500);
+  await land('end');
+  await page.waitForTimeout(1300);
+  const sel = await page.evaluate(() => {
+    const el = document.getElementById('a');
+    // the page where the phone leaves it: the selection's START at the top of
+    // what she sees, its END (the scene's last line) far below the band
+    window.__phone.iosScroll(0, 0); window.__phone.setPan(0);
+    el.setSelectionRange(0, el.value.length);
+    window.__phone.reset();
+    let scrolls = 0;
+    const o = window.scrollTo;
+    window.scrollTo = function () { scrolls += 1; return o.apply(window, arguments); };
+    for (let i = 0; i < 6; i += 1) window.__caretKeep.keep();
+    document.dispatchEvent(new Event('selectionchange'));
+    window.scrollTo = o;
+    return { scrolls, kept: window.__caretKeep.keep() };
+  });
+  await page.waitForTimeout(200);
+  const selMoves = await page.evaluate(() => window.__phone.moves().length);
+  ok(sel.scrolls === 0 && sel.kept === 0 && selMoves === 0,
+    'with the whole scene selected the keeper scrolls nothing, six keeps running (' + sel.scrolls + ' scrolls, ' + selMoves + ' moves)');
+
+  // ── 5c. THE PINNED BUTTONS RIDE THE PHONE'S PAN, so the band they narrow is
+  //       a different band on every pass — the loop-check must still catch a
+  //       phone that undoes every correction ──
+  await page.evaluate(() => { document.getElementById('a').blur(); });
+  await page.waitForTimeout(500);
+  await land('end');
+  await page.evaluate(() => {
+    const b = document.createElement('button');
+    b.id = 'ridepin'; b.setAttribute('data-stickybox', ''); b.className = 'sbx-pin';
+    b.style.cssText = 'position:fixed;left:300px;width:26px;height:26px;top:400px';
+    document.body.appendChild(b);
+    // a phone that undoes every correction, and a button that lands somewhere
+    // new each time it does (as a fixed button does under a pan)
+    const o = window.__phone.iosScroll;
+    let k = 0;
+    window.scrollTo = function () { k += 1; b.style.top = (400 - (k % 5) * 17) + 'px'; window.__phone.log().push; };
+    window.__phone.reset();
+  });
+  await page.waitForTimeout(1300);
+  await page.type('#a', ' and more', { delay: 70 });
+  await page.waitForTimeout(300);
+  const ride = await page.evaluate(() => ({ f: window.__caretKeep.fighting(), n: (window.__caretKeep.lastFix() || {}).n }));
+  ok(ride.f === true, 'against a phone that undoes every correction while the pinned buttons move, the keeper still stands down (fighting ' + ride.f + ')');
+  await page.evaluate(() => { document.getElementById('ridepin').remove(); window.scrollTo = window.__phone.iosScroll; });
 
   // ── 6. without a pan the target is exactly what it always was ──
   await page.evaluate(() => { document.getElementById('a').blur(); });
