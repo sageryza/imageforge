@@ -1655,7 +1655,7 @@ async function bakeTrim(id, plan) {
       const [exists] = await f.exists();
       if (exists) {
         const [pExists] = await bucket.file(plan.posterPath).exists().catch(() => [false]);
-        return write({ status: 'ready', url: pub(plan.path), poster: pExists ? pub(plan.posterPath) : '' });
+        return write({ status: 'ready', url: pub(plan.path), poster: pExists ? pub(plan.posterPath) : '', error: '' });
       }
     } catch { /* fall through and bake */ }
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'trim-'));
@@ -1710,7 +1710,9 @@ async function bakeTrim(id, plan) {
 
       // `seconds` is the FILE's length — whole frames — and `end` stays her
       // mark (clamped), so the row's span puts her marks back where she set them
-      return write({ status: 'ready', url: pub(plan.path), poster, seconds: fr.seconds, end });
+      // `error: ''` — a part baked again after a failure must not keep the
+      // old failure's words on its record (found 2026-09-26 re-baking six)
+      return write({ status: 'ready', url: pub(plan.path), poster, seconds: fr.seconds, end, error: '' });
     } catch (e) {
       return write({ status: 'failed', error: String((e && e.message) || e).slice(0, 200) });
     } finally {
