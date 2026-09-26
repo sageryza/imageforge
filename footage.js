@@ -869,6 +869,17 @@ function buildJob(b) {
   const blocks = (Array.isArray(b.blocks) ? b.blocks : [])
     .filter((t) => typeof t === 'string' && t.trim()).slice(0, 60).map((t) => t.slice(0, 6000));
   if (blocks.length) body.blocks = blocks;
+  // AND WHICH HEADS THE PAGE PUT IN FRONT OF THEM (2026-09-26): Characters
+  // and Setting, each as sent, so a prefix on the log can be placed — the
+  // night a whole scene rode in the Setting box, the log could show it but
+  // not say which box it came from. Strings only, each capped, never empty.
+  if (b.heads && typeof b.heads === 'object') {
+    const heads = {};
+    for (const k of ['characters', 'setting']) {
+      if (typeof b.heads[k] === 'string' && b.heads[k].trim()) heads[k] = b.heads[k].slice(0, 6000);
+    }
+    if (Object.keys(heads).length) body.heads = heads;
+  }
   return { body, refs, m, res, ratio, seconds, audio, first: kfFirst, last: kfLast };
 }
 function titleOf(prompt) {
@@ -1254,6 +1265,8 @@ function cardOf(id, d) {
     // EVERY BLOCK'S OWN WORDS as they stood in the box (2026-09-23) — what the
     // red sent mark matches, since the prompt may carry renumbered names
     blocks: Array.isArray(d.blocks) ? d.blocks.filter((t) => typeof t === 'string' && t) : [],
+    // and the heads that went in front of them (2026-09-26), {characters?, setting?}
+    heads: d.heads && typeof d.heads === 'object' ? d.heads : null,
   };
 }
 
@@ -2030,7 +2043,7 @@ async function logRefusal({ body, refs, m, res, ratio, seconds, first, last, doo
     // is deliberately not sticky, so after any reload that is what is showing).
     jobId: crypto.randomUUID(), prompt: body.prompt, model: (m && m.id) || '', params,
     tag: { chat: body.chat || CHAT, title: titleOf(body.prompt), project: body.project, folder: body.folder,
-      story: body.story, unit: body.unit, words: body.words, blocks: body.blocks },
+      story: body.story, unit: body.unit, words: body.words, blocks: body.blocks, heads: body.heads },
     door, refusal: err && err.refusal, error: (err && err.message) || '',
     why: (err && err.why) || (ex && ex.line) || '',
   });
@@ -2114,6 +2127,7 @@ async function startJobInner(b) {
   if (body.unit) extra.unit = body.unit;
   if (body.words) extra.words = body.words;
   if (body.blocks) extra.blocks = body.blocks;
+  if (body.heads) extra.heads = body.heads;
   const mod = getDoors()[d.door];
   // THE LAST FRAME RIDES ALONG ON ATLAS, AND ONLY THERE (2026-09-10,
   // Sophie: "on"). It is FREE — measured 2026-09-09, billed to the token

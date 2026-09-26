@@ -3856,6 +3856,15 @@ before working on that module. Nothing was deleted — the moved text is verbati
   needed (51MB, not 150), and a refused part could not be retried. Now:
   need by pixels off the probe, anonymous memory not RSS, and **Try again**
   on the card. Full note under *SHE TRIMS A CLIP AS IT COMES OUT* in the doc.
+  **A HEAD THAT IS A BLOCK'S WORDS NEVER RIDES SILENTLY (2026-09-26, Sophie,
+  a $2.06 2.5 clip that went with a whole other scene on top: "something
+  moved there!"): WebKit's form restore put block 2's words into the SETTING
+  box by position when the killed web view came back, and the folded box rode
+  on top of every clip. `autocomplete="off"` on every box, the load fills a
+  parser-made box from the draft or empties it, `headTrouble` holds the star
+  on a head equal to a block or over 80 words (tap again sends), the star's
+  price line names what rides, and the log files `heads`. Full note under
+  *CHARACTERS & SETTING* in the doc; `node scripts/test-footage-heads.js`.
   **Full details: *Footage* in `docs/modules/audio-and-film.md` (moved from CLAUDE.md).**
 
 - **Stitch** (`stitch.js`, `/api/stitch`, page at `/stitch`, iOS tile under the

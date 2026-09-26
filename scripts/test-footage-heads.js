@@ -63,7 +63,15 @@ const server = http.createServer((req, res) => {
   req.on('end', () => {
     const json = (o, code) => { res.writeHead(code || 200, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
     if (u.pathname === '/footage') {
-      const html = fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8').replace('__STUDIO_TOKEN__', '') + PILL;
+      let html = fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8').replace('__STUDIO_TOKEN__', '') + PILL;
+      // WHAT A BACK-FORWARD RESTORE LEAVES IN THE PARSER-MADE BOXES (2026-09-26):
+      // block 1's words in Characters, block 2's in Setting, block 3's in #prompt
+      if (u.searchParams.get('restored')) {
+        html = html.replace(/(class="hblock"[^>]*aria-label="Characters[^>]*>)<\/textarea>/, '$1RESTORED BLOCK ONE</textarea>')
+          .replace(/(class="hblock"[^>]*aria-label="Setting[^>]*>)<\/textarea>/, '$1RESTORED BLOCK TWO a whole scene</textarea>')
+          .replace(/(<textarea id="prompt"[^>]*>)<\/textarea>/, '$1RESTORED BLOCK THREE</textarea>');
+        if (!/RESTORED BLOCK TWO/.test(html) || !/RESTORED BLOCK THREE/.test(html)) throw new Error('the restored fixture did not land');
+      }
       res.writeHead(200, { 'content-type': 'text/html' }); return res.end(html);
     }
     if (u.pathname === '/api/footage/status') {
@@ -88,6 +96,18 @@ const server = http.createServer((req, res) => {
     res.writeHead(404); res.end('nope');
   });
 });
+
+// ── PURE: THE HEADS RIDE TO THE LOG (2026-09-26) ─────────────────────────
+{
+  const VL = require('../video-log');
+  const bj = F.buildJob({ prompt: 'x', refs: [], heads: { characters: ' A ', setting: 'B', junk: 'z' } });
+  ok('buildJob keeps characters and setting and drops the rest',
+    !!bj.body && bj.body.heads && bj.body.heads.characters === ' A ' && bj.body.heads.setting === 'B' && !('junk' in bj.body.heads));
+  ok('an empty heads object is not filed', !F.buildJob({ prompt: 'x', refs: [], heads: { characters: '  ' } }).body.heads);
+  const rec = VL.refusedRecord({ jobId: 'j', prompt: 'p', model: 'mini', params: {}, tag: { heads: { setting: 'ROOM', characters: '' } }, door: 'atlascloud' });
+  ok('the log record carries heads.setting and never an empty half', rec.heads && rec.heads.setting === 'ROOM' && !('characters' in rec.heads));
+  ok('cardOf reads them back', F.cardOf && (F.cardOf('id', { prompt: 'p', heads: { setting: 'ROOM' } }).heads || {}).setting === 'ROOM');
+}
 
 const CAST = 'Sophie is the woman in [Image1]. Nurse Edna is the woman in [Image2].';
 const ROOM = 'A green-tiled ward corridor at night, one strip light out.';
@@ -137,6 +157,7 @@ const read = () => {
       ? wrap.getBoundingClientRect().top < wrap.nextElementSibling.getBoundingClientRect().top : null,
     nBlocks: ws.length,
     firstIsPrompt: !!(ws[0] && ws[0].querySelector('#prompt')),
+    firstVal: ws[0] ? ws[0].querySelector('.pblock').value : '',
     many: panel.classList.contains('many'),
     blockLabs: ws.map((w) => (w.querySelector('.bflab') || {}).textContent || ''),
     blockActive: ws.map((w) => w.classList.contains('active')),
@@ -148,6 +169,8 @@ const read = () => {
     panelShut: panel.classList.contains('shut'),
     pill: pill ? pill.getBoundingClientRect().left : null,
     rides: (() => { const r = document.querySelector('#cost .rides'); return r ? { text: r.textContent, seen: seen(r) } : null; })(),
+    noauto: Array.from(document.querySelectorAll('.panel .pblock, .panel .hblock')).map((t) => t.getAttribute('autocomplete')),
+    toast: (document.querySelector('.toast, #toast') || {}).textContent || '',
     draft: JSON.parse(localStorage.getItem('footage_draft') || '{}'),
   };
 };
@@ -273,6 +296,9 @@ const send = async (page, btn) => {
     got.prompt === CAST + '\n\n' + ROOM + '\n\n' + SCENE);
   ok('and it rode while it was folded away — nothing about a fold changes the job',
     /Sophie is the woman/.test(got.prompt));
+  ok('and the body says which box each head came from', !!got.heads && got.heads.characters === CAST && got.heads.setting === ROOM);
+  ok('every scene and head box refuses browser restoration — autocomplete=off on all '
+    + s.noauto.length, s.noauto.length >= 3 && s.noauto.every((v) => v === 'off'));
 
   // ── 9. A DIVIDE, AND THE WRAP FOLLOWS THE GOLD LINE ────────────────────
   const cut = SCENE.indexOf('scene line 4');
@@ -361,6 +387,48 @@ const send = async (page, btn) => {
   s = await page.evaluate(read);
   ok('and the line says only the setting rides now — "' + (s.rides && s.rides.text) + '"',
     !!s.rides && /^\+ setting on top/.test(s.rides.text) && !/characters/.test(s.rides.text));
+
+  // ── 15b. A HEAD THAT IS A BLOCK'S OWN WORDS DOES NOT RIDE ON THE FIRST TAP
+  // (2026-09-26, "i never put anything in that block · something moved there!")
+  await page.evaluate(writeHead, ['setting', SCENE]);   // the Setting box holds the block's whole scene
+  await page.waitForTimeout(200);
+  let n0 = posted.length;
+  await page.click('#go');
+  await page.waitForTimeout(500);
+  s = await page.evaluate(read);
+  ok('the first tap sends NOTHING', posted.length === n0);
+  ok('it opens the fold so the words are in view', s.shut === false);
+  ok('and says which box — "' + s.toast + '"', /Setting holds a whole block/.test(s.toast));
+  got = await send(page, '#go');
+  ok('the second tap sends it anyway — the >$3 ask\'s own shape', posted.length === n0 + 1 && got.prompt === SCENE + '\n\n' + SCENE);
+  await page.evaluate(writeHead, ['setting', Array.from({ length: 90 }, (_, i) => 'w' + i).join(' ')]);
+  await page.waitForTimeout(200);
+  n0 = posted.length;
+  await page.click('#go');
+  await page.waitForTimeout(500);
+  s = await page.evaluate(read);
+  ok('a 90-word head is named and held too — "' + s.toast + '"', posted.length === n0 && /Setting is 90 words long/.test(s.toast));
+  await page.evaluate(writeHead, ['setting', ROOM]);
+  await page.waitForTimeout(200);
+  got = await send(page, '#go');
+  ok('a real room sends on one tap as always', got.prompt === ROOM + '\n\n' + SCENE);
+
+  // ── 15c. WHAT A RESTORE LEFT IN THE BOXES IS NOT KEPT (2026-09-26) ─────
+  await page.evaluate(() => { localStorage.setItem('footage_draft', JSON.stringify({ prompt: 'her real block one', blocks: ['her real block two'] })); localStorage.removeItem('footage_heads'); });
+  await page.goto(base + '/footage?restored=1');
+  await page.waitForFunction(() => document.querySelectorAll('#ratio option').length > 0);
+  await page.waitForTimeout(300);
+  s = await page.evaluate(read);
+  ok('the Setting box is EMPTY — the draft has no setting, so the restored scene is gone', s.hvals[1] === '');
+  ok('the Characters box is empty too', s.hvals[0] === '');
+  ok('block 1 is the draft\'s, not the restored words', s.firstVal === 'her real block one');
+  ok('and nothing rides', s.rides === null);
+  await page.evaluate(() => { localStorage.setItem('footage_draft', JSON.stringify({ prompt: 'shot one', heads: { setting: 'THE REAL ROOM' } })); });
+  await page.goto(base + '/footage?restored=1');
+  await page.waitForFunction(() => document.querySelectorAll('#ratio option').length > 0);
+  await page.waitForTimeout(300);
+  s = await page.evaluate(read);
+  ok('with a setting on file, that is what the box holds', s.hvals[1] === 'THE REAL ROOM');
 
   // ── 16. A DRAFT FROM THE TWO-BLOCK DAY SEEDS EVERY BLOCK ───────────────
   // A shipped fix to a WRITE path leaves the records already on file wrong —
