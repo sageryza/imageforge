@@ -16,8 +16,7 @@
 // v2 (2026-09-26, Sophie: "i want to upload animal deck mpc"): --rec picks the
 // record file (the hearts-only deck, 63, is what she is uploading), the name
 // wears the face the hearts page and the mockups wear (Lemon Hand caps,
-// 52px/.24em — the flash-card page's 12px/.22em at print size, the same
-// numbers animal-mockup-scenes.js uses), and the zip carries order.xml from
+// 44px/.24em — the hearts page's 10px on a 172px card, at trim width), and the zip carries order.xml from
 // mpc_order_builder.py beside fronts/ and back.png, the way the fruit zips do
 // — so MPC Autofill on her Mac reads it whole, and MPC's own Upload images on
 // her phone takes fronts/ in filename order. The back is still the cream
@@ -41,9 +40,15 @@ const REC = path.join(__dirname, 'decks', 'animals-drawn.json');
 const OUT = flag('out', path.join(process.env.CLAUDE_SCRATCH || '/tmp', 'animal-cards'));
 const REC_FILE = flag('rec', REC);
 const CAPS = args.includes('--caps');
-const SIZE = flag('size', CAPS ? '52' : '64');
+const SIZE = flag('size', CAPS ? '44' : '64');
 const TRACK = flag('track', CAPS ? '0.24' : '0.12');
 const STOCK = flag('stock', 'superior');
+// --pic --gap --bottom: the page's proportions (see flashcard-compose.py); v3
+// defaults to the hearts page as measured, 2026-09-26.
+const PIC = flag('pic', '0.70'), GAP = flag('gap', '0.227'), BOTTOM = flag('bottom', '0.137');
+// --lead <html file>: a block under the save link, before the cards (a
+// before/after row).
+const LEAD = flag('lead', '');
 
 const recs = JSON.parse(fs.readFileSync(REC_FILE, 'utf8')).sort((a, b) => a.name.localeCompare(b.name));
 console.log(`${recs.length} cards · ${path.basename(REC_FILE)} · ${path.basename(FONT)}${CAPS ? ' caps' : ''} ${SIZE}px/${TRACK}em · ${STOCK} · v${VERSION}`);
@@ -71,7 +76,7 @@ const upload = async (buf, filename, ct, media) => {
   fs.writeFileSync(path.join(OUT, 'cards.txt'), lines.join('\n'));
   const deck = path.join(OUT, `animals-v${VERSION}`);
   fs.rmSync(deck, { recursive: true, force: true });
-  execFileSync('python3', [path.join(__dirname, 'flashcard-compose.py'), path.join(OUT, 'cards.txt'), '--src', full, '--full', full, '--font', FONT, '--out', deck, ...(CAPS ? ['--caps'] : []), '--size', String(SIZE), '--track', String(TRACK)], { stdio: 'inherit' });
+  execFileSync('python3', [path.join(__dirname, 'flashcard-compose.py'), path.join(OUT, 'cards.txt'), '--src', full, '--full', full, '--font', FONT, '--out', deck, ...(CAPS ? ['--caps'] : []), '--size', String(SIZE), '--track', String(TRACK), '--pic', PIC, '--gap', GAP, '--bottom', BOTTOM], { stdio: 'inherit' });
   // order.xml beside the fronts, so the zip is the whole MPC Autofill order.
   execFileSync('python3', [path.join(__dirname, 'mpc_order_builder.py'), deck, '--stock', STOCK, '--out', path.join(deck, 'order.xml')], { stdio: 'inherit' });
 
@@ -106,6 +111,7 @@ const upload = async (buf, filename, ct, media) => {
 <div class="wrap">
   <h1>${esc(title)}</h1>
   <p class="save"><a href="${save}">save the animal deck (zip, ${mb}MB)</a></p>
+  ${LEAD ? fs.readFileSync(LEAD, 'utf8') : ''}
   ${rows.join('\n')}
 </div>
 <script src="/compare.js"></script>
