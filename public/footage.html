@@ -6458,6 +6458,57 @@ var VS = window.__viewSwitch({
   // re-measured on the tap — `applyFilt` is not called by a column change
   onCols: function () { if (curView() === 'tiles') paintShortTiles(); },
 });
+// A TAP ON THE BAR NEVER MOVES THE PAGE (2026-09-26, Sophie: "clicking list
+// or tiles in footage or any button in the bar brings me down to it"). The
+// bar is sticky at BOTH ends, so in the prompt block it is pinned to the
+// bottom of the screen while its real seat is far below — and iOS WebKit,
+// revealing the button the tap focused (on the tap itself, and again when the
+// keyboard goes down and the viewport resizes), scrolls to that SEAT, not to
+// where the bar is drawn. Nothing in this page scrolls on those taps: it does
+// not happen in Chromium (MEASURED at 390x844 — scrollY held on every bar
+// button, bar pinned top or bottom, prompt focused or not), so it is the
+// engine, and the guard is two halves that hold whatever the engine does. The
+// tapped button gives its focus back, so there is nothing left to reveal; and
+// for a short window after the tap the page is put back where she was —
+// clamped, because Tiles and the filters make the page shorter — unless she
+// scrolled herself (a drag, a wheel or a tap anywhere else stops it), or the tap opened a box to
+// type in (the glass focuses the search field on purpose, and iOS lifting it
+// over the keyboard is the right move). Test:
+// node scripts/test-footage-bar-still.js
+(function () {
+  var bar = $('feedbar'), hold = null;
+  function stop() { hold = null; }
+  bar.addEventListener('pointerdown', function (e) {
+    var b = e.target && e.target.closest && e.target.closest('button');
+    hold = b && bar.contains(b) ? { y: window.scrollY || 0 } : null;
+  }, true);
+  ['touchmove', 'wheel'].forEach(function (ev) {
+    document.addEventListener(ev, stop, { capture: true, passive: true });
+  });
+  // …and her NEXT tap anywhere else is hers too: a card tapped on the wall
+  // a moment after Tiles scrolls to that clip on purpose (`goToCard`)
+  document.addEventListener('pointerdown', function (e) {
+    if (!(e.target && bar.contains(e.target))) stop();
+  }, true);
+  function typing() {
+    var a = document.activeElement;
+    return !!(a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA') && bar.contains(a));
+  }
+  bar.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest && e.target.closest('button');
+    if (!b || !bar.contains(b) || !hold) return;
+    var h = hold, until = Date.now() + 900;
+    // after the button's own handler, which may move the focus on purpose
+    setTimeout(function () { if (document.activeElement === b) b.blur(); }, 0);
+    (function keep() {
+      if (hold !== h || Date.now() > until || typing()) return;
+      var max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      var to = Math.min(h.y, max), y = window.scrollY || 0;
+      if (Math.abs(y - to) > 2) window.scrollTo(0, to);
+      requestAnimationFrame(keep);
+    })();
+  });
+})();
 function curView() { return VS.view(); }
 function curCols() { return VS.cols(); }
 function applyCols() { VS.applyCols(); }
