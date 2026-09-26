@@ -369,6 +369,35 @@ cd ~/Downloads/animal-deck-mpc && autofill --directory .
   else. The tool stops at the saved project on purpose.
 - **Queued:** 2026-09-26 by animal-deck-mpc-upload
 
+### Find the two crystal poster mockup templates (the Photoshop files)
+- **Why:** the fruit posters can go into the same two rooms the Crystals poster
+  used, with the real light and shadow on top — but only from the original
+  Photoshop files, and those are probably already downloaded on this Mac.
+  1. The frame leaning on the floor = Mockupnest's free "Wooden Poster Frame
+     Mockup In Indoor Soft Light" (4500x3000, shadow as its own layer). If it
+     isn't on the Mac, download it by hand (free, a button tap):
+     https://mockupnest.com/free-wooden-poster-frame-mockup-in-indoor-soft-light/
+  2. The sunny living room (curved cream sofa, pleated floor lamp, two round
+     tables, palm in a vase) = a paid template; the seller is unknown. Look for
+     it on the Mac — likely bought on Etsy or Creative Market around Aug 2025.
+  Both pictures are in the crystal-poster-mockups chat's Assets tab to compare.
+- **Where:** her Mac — Downloads, Desktop, and any Mockups folder
+- **Run:**
+  ```bash
+  mdfind -onlyin ~ 'kMDItemFSName == "*.psd"c && (kMDItemFSName == "*mockup*"c || kMDItemFSName == "*frame*"c || kMDItemFSName == "*poster*"c)'
+  mdfind -onlyin ~ 'kMDItemFSName == "*.zip"c && kMDItemFSName == "*mockup*"c'
+  ```
+  Then drop each template's folder (zip it first) into the Dump from the phone
+  share sheet, or upload it:
+  ```bash
+  cd ~/imageforge && curl -sS -X POST "https://imageforge-q125.onrender.com/api/drop/upload-file?from=sophie&bundle=poster%20mockup%20templates&filename=<name>.zip" -H 'content-type: application/zip' --data-binary @"<path to the zip>"
+  ```
+  and tell the crystal-poster-mockups chat they are in.
+- **Needs from her:** a look at the search results — which file is which room.
+  If the living room is not on the Mac, check her Etsy / Creative Market
+  purchase history for "mockup".
+- **Queued:** 2026-09-26 by crystal-poster-mockups
+
 ## DONE
 
 ### Hand Apple's Voice Memos transcripts to the archive — SUPERSEDED, then solved another way
