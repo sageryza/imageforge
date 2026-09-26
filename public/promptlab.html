@@ -140,6 +140,30 @@
     display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
     border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; cursor: pointer; }
   #bigprompt svg { width: 14px; height: 14px; }
+  /* THE BOX CARRIES FOOTAGE'S THREE CORNER BUTTONS (2026-09-26, Sophie: "i
+     want to add the divide and cut delete thing to playground" → "let's start
+     simpler · use case is divide then cut then delete 1 half · there are the
+     2 icons the x next to expand" → "1 icon playground · 3 footage → same 3
+     in my playground"). DIVIDE HERE cuts the box at her cursor into two boxes
+     (at the end, an empty one under it), the ✕ takes a box off, and Bigger
+     box is what it always was. Footage's own corner, in Footage's own order
+     save one thing she named: the ✕ sits NEXT TO expand (right:88), the
+     divide beyond it (right:120). A second box is the same `.promptwrap`
+     again, so it gets the same corner; `#prompt` stays the FIRST box's node
+     (every reader by id, the tests and the ported prompt read as before),
+     and with two or more boxes the one she is in wears the star's gold line
+     — Generate draws THAT box. One box wears nothing: the page looks exactly
+     as it did, plus two small buttons. No headings, no ticks, no join mark —
+     her "start simpler". */
+  .promptwrap .boxbtn { position: absolute; bottom: 6px; width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
+    border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; cursor: pointer; }
+  .promptwrap .boxbtn svg { width: 14px; height: 14px; }
+  .promptwrap .bigger { right: 56px; }
+  .promptwrap .wipeb { right: 88px; }
+  .promptwrap .divide { right: 120px; }
+  .promptwrap textarea.big { min-height: 24vh; max-height: 52vh; }
+  .pmany .promptwrap.active textarea { border-color: #c9a96a; box-shadow: 0 0 0 1px #c9a96a; }
   /* WRAPS (Aug 2026): the row gained a Prompt button and a canvas toggle, and
      on a 390pt phone flex squeezed the toggle to 50px — "Portrait" bled out of
      its box and the Square half was clipped off the row entirely, which is why
@@ -1027,7 +1051,7 @@
   </div>
   <div id="beattag"></div>
   <div id="promptpanel"></div>
-  <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
+  <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second box; at the end, an empty one"></button><button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this box off" title="Take this box off"></button><button type="button" id="bigprompt" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
   <div id="panelrow" hidden><button type="button" id="panelfold" aria-expanded="true" aria-controls="panelgrid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg><span id="panelfoldlab">Panels</span></button><button type="button" id="panelclear" hidden>Clear</button></div>
   <div id="panelgrid" hidden></div>
   <div class="controls">
@@ -1175,6 +1199,9 @@
     // The bigger-prompt-box toggle — Lucide `maximize-2` / `minimize-2`.
     maximize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
     minimize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
+    // Divide here (Lucide separator-horizontal) — footage.html's own glyph,
+    // verbatim, so the corner reads the same on both pages (the ✕ is `x` above).
+    divide: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 16-4 4-4-4"/><path d="M3 12h18"/><path d="m8 8 4-4 4 4"/></svg>',
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
     // THE SEED STEPPERS — Lucide `chevron-up` / `chevron-down`. They replaced
     // the SPROUT (2026-09-15, Sophie: "wtr seed up down text box"): the sprout
@@ -1951,10 +1978,10 @@
 
   // The copy button beside a run's words: puts that prompt back into the box.
   function copyPromptIn(text) {
-    var box = document.getElementById('prompt');
+    var box = promptBox();
     box.value = text || '';
     // Setting `.value` fires no `input` event, so the big box has to be told.
-    if (window.__fitBigPrompt) window.__fitBigPrompt();
+    fitPromptBox(box);
     // A prompt put back IS a drawn one — it came off a run — so clearing it
     // asks nothing, exactly as the panels copy-back stamps its grid.
     savePromptDrawn(String(text || '').trim());
@@ -3721,7 +3748,7 @@
       ? ((document.querySelector('#panelgrid textarea[data-story]') || {}).value || '').trim() || '(the story box below)'
       : onPanels()
         ? (panelVals().map(function (s) { return s.trim(); }).filter(Boolean).join(' / ') || '(the boxes below, one per panel)')
-        : (document.getElementById('prompt').value.trim() || '(the box below)');
+        : (promptBox().value.trim() || '(the box below)');
     el.appendChild(y); el.appendChild(yv);
     field('After your words', p.suffix, 'suffix');
     // The sheet swap, disclosed like the no-text one: on a panel sheet the
@@ -4305,7 +4332,7 @@
     // second/last attached image" for ONE picture, and the ladders draw the
     // SAME prompt at several qualities, which on a sheet is several sheets.
     var panels = onPanels();
-    document.querySelector('.promptwrap').hidden = panels;
+    promptWraps().forEach(function (w) { w.hidden = panels; });
     paintPromptClear();        // the box she cannot see must not offer a clear
     document.getElementById('charpick').hidden = !gpt || panels || !!STYLES[styleKey].noCharacter;
     // HER CAST rides gpt-image-2's edits call like the photo does, so the LoRA
@@ -4442,20 +4469,19 @@
     try { localStorage.setItem(PROMPTDRAWNKEY, t || ''); } catch (e) { /* private mode */ }
   }
   function paintPromptClear() {
-    var box = document.getElementById('prompt');
+    var box = promptBox();
     var wrap = document.querySelector('.promptwrap');
     document.getElementById('promptclear').hidden = wrap.hidden || !box.value.trim();
   }
   function wipePrompt() {
-    var box = document.getElementById('prompt');
+    var box = promptBox();
     box.value = '';
-    if (window.__fitBigPrompt) window.__fitBigPrompt();
+    fitPromptBox(box);
     paintPromptClear();
     box.focus();                       // she taps it in order to write the next one
   }
-  document.getElementById('prompt').addEventListener('input', paintPromptClear);
-  document.getElementById('promptclear').addEventListener('click', function () {
-    var words = document.getElementById('prompt').value.trim();
+  function clearPromptAsk() {
+    var words = promptBox().value.trim();
     if (!words) return;
     if (words === promptDrawn()) { wipePrompt(); return; }
     askOpen({
@@ -4464,12 +4490,112 @@
       no: 'Keep them', yes: 'Clear',
       onYes: wipePrompt,
     });
-  });
+  }
+  document.getElementById('promptclear').addEventListener('click', clearPromptAsk);
+
+  // ── THE BOXES — divide here and the ✕ (2026-09-26; the CSS note above
+  // `.promptwrap .boxbtn` has her words). Footage's blocks, cut down to the
+  // use case she named: divide, then take one half off. Three rules:
+  //   - `#prompt` IS ALWAYS THE FIRST BOX. Taking the first box off is the
+  //     words below moving UP into it and the node below going instead, so
+  //     nothing that reads the box by id ever meets a different node.
+  //   - GENERATE DRAWS THE BOX SHE IS IN — `promptBox()` is the active box,
+  //     and every reader that used to say `getElementById('prompt')` on the
+  //     way to a run reads it instead. With one box they are the same node.
+  //   - THE ✕ ON THE ONLY BOX IS THE CLEAR WORD — same ask, same rule about
+  //     words never drawn — so a lone box never gains a second way to lose
+  //     its words that behaves differently from the one it already had.
+  //   Nothing is sent by dividing; the boxes are not saved across a reload
+  //   (the Picture tab's box never was).
+  function promptWraps() { return Array.prototype.slice.call(document.querySelectorAll('.promptwrap')); }
+  function promptBox() {
+    return document.querySelector('.pmany .promptwrap.active textarea') || document.getElementById('prompt');
+  }
+  function fitPromptBox(t) {
+    if (t.id === 'prompt') { if (window.__fitBigPrompt) window.__fitBigPrompt(); return; }
+    if (!t.classList.contains('big')) return;
+    t.style.height = 'auto';
+    t.style.height = (t.scrollHeight + (t.offsetHeight - t.clientHeight)) + 'px';
+  }
+  function paintMany() {
+    var ws = promptWraps(), host = ws[0].parentElement;
+    host.classList.toggle('pmany', ws.length > 1);
+    if (ws.length > 1 && !host.querySelector('.promptwrap.active')) ws[0].classList.add('active');
+  }
+  function setActiveWrap(w) {
+    promptWraps().forEach(function (x) { x.classList.toggle('active', x === w); });
+    paintPromptClear();
+  }
+  var BOX_CORNER = '<button type="button" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second box; at the end, an empty one"></button>'
+    + '<button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this box off" title="Take this box off"></button>';
+  function wireWrap(w) {
+    var t = w.querySelector('textarea');
+    w.querySelector('.divide').innerHTML = ICONS.divide;
+    w.querySelector('.wipeb').innerHTML = ICONS.x;
+    w.querySelector('.divide').addEventListener('click', function () { divideBox(t); });
+    w.querySelector('.wipeb').addEventListener('click', function () { dropBox(t); });
+    t.addEventListener('focus', function () { setActiveWrap(w); });
+    t.addEventListener('input', paintPromptClear);
+    if (t.id === 'prompt') return;     // its bigger-box toggle is the IIFE above
+    var b = w.querySelector('.bigger');
+    b.innerHTML = ICONS.maximize;
+    b.addEventListener('click', function () {
+      t.classList.toggle('big'); t.style.height = ''; fitPromptBox(t);
+      b.innerHTML = t.classList.contains('big') ? ICONS.minimize : ICONS.maximize;
+    });
+    t.addEventListener('input', function () { fitPromptBox(t); });
+  }
+  function addBox(text, after) {
+    var w = document.createElement('div');
+    w.className = 'promptwrap';
+    w.innerHTML = '<textarea aria-label="Prompt"></textarea>' + BOX_CORNER
+      + '<button type="button" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button>';
+    w.querySelector('textarea').value = text;
+    after.insertAdjacentElement('afterend', w);
+    wireWrap(w);
+    paintMany();
+    return w;
+  }
+  function divideBox(t) {
+    var all = t.value, cut = t.selectionStart == null ? all.length : t.selectionStart;
+    var head = all.slice(0, cut).replace(/\s+$/, ''), tail = all.slice(cut).replace(/^\s+/, '');
+    if (!head) { toast('Put the cursor where the second box should start'); return false; }
+    var w = t.closest('.promptwrap'), first = promptWraps().length === 1;
+    t.value = head; fitPromptBox(t);
+    // PHOTO'd: the small box keeps the scroll it had at the cut, so the head
+    // showed from its second line with the first clipped off the top
+    t.scrollTop = 0;
+    var nw = addBox(tail, w);
+    // the empty one is the box she asked for, so she lands in it; a real cut
+    // leaves her standing where her words are
+    setActiveWrap(tail ? w : nw);
+    if (!tail) nw.querySelector('textarea').focus();
+    if (first) toast(tail ? 'Two boxes — Generate draws the one with the gold line' : 'An empty box — Generate draws the one with the gold line');
+    return true;
+  }
+  function dropBox(t) {
+    var ws = promptWraps(), w = t.closest('.promptwrap'), i = ws.indexOf(w);
+    if (ws.length < 2) { clearPromptAsk(); return; }
+    var wasActive = w.classList.contains('active');
+    if (i === 0) {
+      var next = ws[1];
+      t.value = next.querySelector('textarea').value;
+      if (next.classList.contains('active')) wasActive = true;
+      next.remove();
+      fitPromptBox(t);
+    } else {
+      w.remove();
+    }
+    paintMany();
+    if (wasActive) { var rest = promptWraps(); setActiveWrap(rest[Math.min(i, rest.length - 1)]); }
+    paintPromptClear();
+  }
+  wireWrap(document.querySelector('.promptwrap'));
   // `promptText` overrides the box for one run — a {curly brackets} tap starts
   // one run per expansion, and each run's doc carries ITS prompt, not the
   // braces (the stored prompt must be the text actually sent).
   function startRun(scale, q, promptText) {
-    var prompt = promptText != null ? promptText : document.getElementById('prompt').value.trim();
+    var prompt = promptText != null ? promptText : promptBox().value.trim();
     var S = STYLES[styleKey];
     var gpt = S.engine === 'gptimage';
     var seed = curSeed();
@@ -4536,7 +4662,7 @@
       // A {curly brackets} run stamps the BOX's braces — that is what she
       // drew from, so its Clear asks nothing after a permutation tap either.
       savePromptDrawn(promptText != null
-        ? document.getElementById('prompt').value.trim() : prompt);
+        ? promptBox().value.trim() : prompt);
       renderPendings(); startPolling();
       confirmStarted(d);
     });
@@ -4545,7 +4671,7 @@
   function checkPrompt() {
     var err = document.getElementById('err');
     err.hidden = true;
-    if (!document.getElementById('prompt').value.trim()) {
+    if (!promptBox().value.trim()) {
       err.textContent = 'Type a prompt first.'; err.hidden = false; return false;
     }
     return true;
@@ -4587,7 +4713,7 @@
   // prompts × tiers so a ladder on a big set is refused rather than fired.
   var PERM_CAP = 12;
   function expandBox() {
-    var text = document.getElementById('prompt').value.trim();
+    var text = promptBox().value.trim();
     if (window.permutePrompt) return window.permutePrompt(text);
     // Stale cache with no /permute.js: braces go through literally, as before.
     return { prompts: [text], clipped: false };
@@ -6095,7 +6221,7 @@
     if (Date.now() - plTouchedAt < 10000) return true;      // under her thumb
     var el = document.activeElement;
     if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) return true;
-    if (document.getElementById('prompt').value.trim()) return true;
+    if (promptWraps().some(function (w) { return w.querySelector('textarea').value.trim(); })) return true;   // any box
     if (photoRefs.length) return true;
     if (pickedChars.length) return true;
     if (quality !== plQ0 || resTier !== plR0) return true;

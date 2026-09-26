@@ -1116,9 +1116,9 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
         cut is a no-op. Four things not to undo:
         - **A TRIMMED CLIP OPENS ON ITS PART AND PLAYS JUST THAT (2026-09-25,
           Sophie: "change default to play just trimmed part").** The marks
-          open on the first part she cut and loop it; "Whole clip" and "Play
-          it all" are right there for the rest, and a clip with nothing cut
-          still opens on the whole; the button says Add part — the next tap
+          open on the first part she cut and loop it; "Whole clip" is right
+          there for the rest, and a clip with nothing cut still opens on the
+          whole; the button says Add part — the next tap
           is a second bit. (From 09-10 to 09-25 the marks opened on the WHOLE
           clip every time, which made every trimmed clip play its off-cuts
           first.) What she has cut is the dim bands on the strip and a row
@@ -1141,13 +1141,17 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
           dropped when the slower bake lands.
       - **AND SHE CAN PLAY THE WHOLE CLIP TO CHECK THE CUT (2026-09-10, her
         first ask that morning: "can you make it possible to play the whole
-        clip to make sure I cut the right part?").** *Play it all* is ONE PASS
-        past the out mark, never a mode: it ends when the clip does, and any
-        mark she moves ends it too; tapping it again goes back to the part and
-        plays that. It is drawn only while the span is narrower than the clip
-        — with the marks at the two ends, play already plays it all. **The
-        label is short on purpose** (PHOTOgraphed beside "Whole clip", which
-        resets the MARKS: two long labels there read as one thing said twice).
+        clip to make sure I cut the right part?").** *Whole clip* takes the
+        marks off and plays the clip straight through from the start; a
+        part's row puts her back on that part. It is drawn only while the
+        span is narrower than the clip — with the marks at the two ends, play
+        already plays it all. **It was TWO buttons until 2026-09-26** —
+        *Whole clip* (marks off) beside *Play it all* (one pass past the out
+        mark with the marks kept, a mode ended by the clip's end or any mark
+        she moved) — and she called it: "doesn't that seem redundant?" Once a
+        trimmed clip opens on its part and a part is never re-cut, whether
+        the marks stay is a difference nothing needs, so *Play it all* is
+        gone and its `TR.all` plumbing with it.
       - **A TRIMMED CLIP SAYS SO ON THE WALL TOO (2026-09-10, Sophie: "can
         you put a little icon on clips that have been trimmed even in the tile
         view?").** A small scissors chip in the tile's TOP-LEFT corner — the
