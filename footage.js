@@ -2436,6 +2436,11 @@ router.get('/jobs', async (req, res) => {
     // AND IT SAYS HOW MANY IT FOUND OUTSIDE THIS PROJECT (`outsideCount`) —
     // free, since the whole collection is already read and the matcher built
     let elsewhere = 0, hit = () => true;
+    // ONE CARD PER ROW PER READ — the search, the funnel and the count outside
+    // the project all judge the card, and building it four times over 500 rows
+    // on every 7s poll is the kind of work the 0.5 vCPU notices
+    const cardCache = new Map();
+    const cardFor = (x) => { let c = cardCache.get(x.id); if (!c) { c = cardOf(x.id, x.d); cardCache.set(x.id, c); } return c; };
     if (q) {
       // THE PROJECT'S NAME IS IN THE HAY HERE TOO (2026-09-14) — the page put
       // it in its own client-side pass and the server did not, so typing "the
@@ -2443,7 +2448,7 @@ router.get('/jobs', async (req, res) => {
       const names = await cast.filmNames().catch(() => ({}));
       const groups = grammar.compileFeed(q);
       hit = (x) => {
-        const c = cardOf(x.id, x.d);
+        const c = cardFor(x);
         if (c.project && names[c.project]) c.projectName = names[c.project];
         return grammar.feedMatches(hayOf(c), groups);
       };
@@ -2451,11 +2456,16 @@ router.get('/jobs', async (req, res) => {
     }
     // THE FUNNEL, over the whole log and before the page is cut (2026-09-26)
     // — so a page is a set number of matches, never a date's worth
+    // A CLIP STILL DRAWING RIDES THROUGH — the page's own "a clip she just
+    // sent is never filtered away" rule: it has no heart and no part yet, so
+    // every row would drop it from the polled page and the poll would have to
+    // fetch each one by name (capped at eight) until it finished
     const filt = feedFilter(req.query);
-    if (filt.on) all = all.filter((x) => filt.keep(cardOf(x.id, x.d)));
+    const keepRow = (x) => !filt.on || filt.keep(cardFor(x)) || WATCH_STATUSES.includes(String(x.d.status || 'sent').toLowerCase());
+    if (filt.on) all = all.filter(keepRow);
     // the count outside the project is of clips the funnel would show too —
     // a number promising clips the feed would hide sends her to All for nothing
-    if (q) elsewhere = outsideCount(rows, { project, folder, hit: (x) => hit(x) && filt.keep(cardOf(x.id, x.d)) });
+    if (q) elsewhere = outsideCount(rows, { project, folder, hit: (x) => hit(x) && keepRow(x) });
     const { docs, more } = pageJobs(all, { limit: q ? Math.min(Number(req.query.limit) || 40, 300) : req.query.limit, before: req.query.before, beforeId: req.query.beforeId, max: q ? 300 : undefined });
     // ask the doors about the ones still drawing — throttled per job, so a
     // page polling every few seconds is one provider read per job per 12s
