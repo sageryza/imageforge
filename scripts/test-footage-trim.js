@@ -221,27 +221,41 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
     const a = F.cutArgs('in.mp4', 'out.mp4', 1, 3, true, 24);
     const s = a.join(' ');
     ok('the decoder is held to one thread', /^-y -threads 1 -i in\.mp4 /.test(s));
-    ok('x264 is held to one thread with a short lookahead and one reference — the Film Editor\'s measured cap',
-      /-c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p -threads 1 -x264-params rc-lookahead=10:ref=1 -movflags \+faststart out\.mp4$/.test(s)
-      && F.TRIM_CAP.join(' ') === '-threads 1 -x264-params rc-lookahead=10:ref=1');
+    ok('x264 is held to one thread, one reference, no lookahead and no B-frames — 51MB peak on a 480p clip, measured 2026-09-26',
+      /-c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p -threads 1 -x264-params rc-lookahead=0:ref=1:bframes=0:sync-lookahead=0 -movflags \+faststart out\.mp4$/.test(s)
+      && F.TRIM_CAP.join(' ') === '-threads 1 -x264-params rc-lookahead=0:ref=1:bframes=0:sync-lookahead=0');
     ok('and the frame-rate rule is untouched by it', /-fps_mode cfr -r 24 /.test(s)
       && /-fps_mode passthrough /.test(F.cutArgs('in.mp4', 'out.mp4', 1, 3, false, 0).join(' ')));
-    ok('the same cap the Film Editor measured', /RENDER_CAP = \['-threads', '1', '-x264-params', 'rc-lookahead=10:ref=1'\]/.test(fs.readFileSync(path.join(ROOT, 'filmeditor.js'), 'utf8')));
+    ok('the Film Editor\'s own cap is untouched by it', /RENDER_CAP = \['-threads', '1', '-x264-params', 'rc-lookahead=10:ref=1'\]/.test(fs.readFileSync(path.join(ROOT, 'filmeditor.js'), 'utf8')));
 
     const mb = (n) => n * 1048576;
-    ok('a box with 212MB free has room', F.trimRoom(mb(300)).ok && F.trimRoom(mb(300)).free === 212);
-    ok('a box with 112MB free has not — the minute before the hang Node held 367MB', !F.trimRoom(mb(400)).ok && F.trimRoom(mb(400)).free === 112);
-    ok('the need is above the measured 131MB peak', F.TRIM_NEED_MB > 131 && F.BOX_MB === 512);
+    // THE NEED IS THE CLIP'S OWN (2026-09-26): the encode's peak, measured
+    // with the cap above on her real clips — 51MB at 496x864 and 560x752,
+    // 79MB at 720x1280 — with a margin over each
+    ok('a 480p 9:16 clip needs about 60MB — over its measured 51 and under the 86 the box had when it was refused',
+      F.trimNeedMB(496, 864) > 51 && F.trimNeedMB(496, 864) <= 70);
+    ok('a 480p 3:4 clip the same', F.trimNeedMB(560, 752) > 51 && F.trimNeedMB(560, 752) <= 70);
+    ok('a 720p clip needs about 90 — over its measured 79', F.trimNeedMB(720, 1280) > 79 && F.trimNeedMB(720, 1280) <= 100);
+    ok('a clip the probe cannot size is treated as 720p', F.trimNeedMB(0, 0) === F.TRIM_NEED_MB && F.TRIM_NEED_MB >= F.trimNeedMB(720, 1280));
+    ok('the need still leaves a 4K frame out: it grows with the pixels', F.trimNeedMB(2160, 3840) > F.trimNeedMB(720, 1280) * 3);
+    ok('a box with 212MB free has room', F.trimRoom(mb(300), 150).ok && F.trimRoom(mb(300), 150).free === 212);
+    ok('a box with 112MB free has not for 150 — the minute before the hang Node held 367MB', !F.trimRoom(mb(400), 150).ok && F.trimRoom(mb(400), 150).free === 112);
+    ok('and HAS for a 480p clip — the six refused on 2026-09-25 had 86 to 130MB free', F.trimRoom(mb(512 - 86), F.trimNeedMB(496, 864)).ok && F.BOX_MB === 512);
+    ok('the room is read as anonymous memory, never RSS — code pages are the kernel\'s to reclaim',
+      /const rss = \(o && o\.rss\) \|\| require\('\.\/memwatch'\)\.anonBytes;/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
+    const MW = require(path.join(ROOT, 'memwatch.js'));
+    const anon = MW.anonBytes();
+    ok('memwatch.anonBytes answers a number no bigger than the RSS', Number.isFinite(anon) && anon > 0 && anon <= process.memoryUsage().rss);
     // the wait: memory that comes back (a draw finishing) is waited for…
     let reads = 0; let waited = 0; let clock = 0;
-    const freeing = await F.waitTrimRoom({ rss: () => { reads += 1; return mb(reads < 3 ? 420 : 250); }, wait: async (ms) => { waited += ms; clock += ms; }, now: () => clock });
-    ok('a bake waits for room that comes back, and then goes', freeing.ok && reads === 3 && waited === 10000);
+    const freeing = await F.waitTrimRoom({ need: 150, rss: () => { reads += 1; return mb(reads < 3 ? 420 : 250); }, wait: async (ms) => { waited += ms; clock += ms; }, now: () => clock });
+    ok('a bake waits for room that comes back, and then goes', freeing.ok && reads === 3 && waited === 10000 && freeing.need === 150);
     // …and memory that never does is refused, not started
     reads = 0; waited = 0; clock = 0;
-    const never = await F.waitTrimRoom({ rss: () => { reads += 1; return mb(420); }, wait: async (ms) => { waited += ms; clock += ms; }, now: () => clock });
+    const never = await F.waitTrimRoom({ need: 150, rss: () => { reads += 1; return mb(420); }, wait: async (ms) => { waited += ms; clock += ms; }, now: () => clock });
     ok('room that never comes is a refusal after the cap, never an encode that pins the box', !never.ok && never.free === 92 && waited >= 90000 && waited < 100000);
-    ok('the bake asks for room AFTER the baked-once read and BEFORE the fetch',
-      /const \[exists\] = await f\.exists\(\);[\s\S]*const room = await waitTrimRoom\(\);\s*if \(!room\.ok\) \{\s*return write\(\{ status: 'failed'[\s\S]*fetch\(plan\.source/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
+    ok('the bake asks for room AFTER the baked-once read and AFTER the probe, for this clip\'s own size, and BEFORE the cut',
+      /const \[exists\] = await f\.exists\(\);[\s\S]*fetch\(plan\.source[\s\S]*await probeMedia\(src\);[\s\S]*const room = await waitTrimRoom\(\{ need: trimNeedMB\(width, height\) \}\);\s*if \(!room\.ok\) \{\s*return write\(\{ status: 'failed'[\s\S]*await cutSpan\(/.test(fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8')));
 
     const ago = (min) => new Date(Date.now() - min * 60000).toISOString();
     ok('a part baking for sixteen minutes is dead', F.bakeStale({ status: 'baking', at: ago(16) }));
@@ -250,9 +264,16 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
     ok('and a part with no date is not judged', !F.bakeStale({ status: 'baking' }));
     ok('the server\'s fifteen minutes are the page\'s', F.BAKE_STALE_MS === 15 * 60 * 1000
       && /var BAKE_STALE_MS = 15 \* 60 \* 1000;/.test(fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8')));
+    ok('a FAILED part is baked again too, whatever its age', F.bakeAgain({ status: 'failed', at: ago(1) }) && F.bakeAgain({ status: 'failed' })
+      && F.bakeAgain({ status: 'baking', at: ago(16) }) && !F.bakeAgain({ status: 'baking', at: ago(5) }) && !F.bakeAgain({ status: 'ready', at: ago(600) }));
     const routeSrc = fs.readFileSync(path.join(ROOT, 'footage.js'), 'utf8');
-    ok('a re-tap on a stale part bakes it again, on both no-op roads',
-      /if \(bakeStale\(already\)\) bakeTrim\(id, plan\)/.test(routeSrc) && /if \(bakeStale\(stuck\)\) bakeTrim\(id, plan\)/.test(routeSrc));
+    ok('a re-tap on a stale or failed part bakes it again, on both no-op roads, re-armed to baking first',
+      /if \(bakeAgain\(already\)\) \{\s*const re = await rearmPart\(id, plan\.key\);\s*bakeTrim\(id, plan\)/.test(routeSrc)
+      && /if \(bakeAgain\(stuck\)\) \{\s*const re = await rearmPart\(id, plan\.key\);\s*bakeTrim\(id, plan\)/.test(routeSrc));
+    const pageSrc = fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8');
+    ok('the card offers Try again on a failed part and on one that never finished',
+      /class="tagain" data-key=/.test(pageSrc) && /that trim never finished ' \+ again/.test(pageSrc) && /that trim did not bake'[^\n]*\+ again/.test(pageSrc)
+      && /querySelectorAll\('\.tagain'\)/.test(pageSrc));
     ok('Node\'s heap is capped under the box, so it collects before the box thrashes',
       /"start": "node --max-old-space-size=256 server\.js"/.test(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')));
   }

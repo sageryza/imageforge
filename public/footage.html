@@ -983,6 +983,12 @@
   .seedrow button svg{width:13px;height:13px;display:block}
   .st{font-size:12px;color:#6f675e;margin-top:3px;overflow-wrap:anywhere}
   .st.bad{color:#a0402a}
+  /* TRY AGAIN on a part that failed or never finished (2026-09-26): a word
+     in the failure line, in the line's own ink, underlined like save and
+     upscale — the same paint, so the line reads as one sentence */
+  .st .tagain{width:auto;height:auto;padding:0;border:0;background:none;font:inherit;color:inherit;
+              text-decoration:underline;text-underline-offset:2px;cursor:pointer;white-space:nowrap}
+  .st .tagain[disabled]{opacity:.5}
   .st.raw{font-size:11px;opacity:.75}
   /* A CARD'S OWN PICTURE ROW HONOURS `--cols` TOO — the Playground's rule:
      ONE number drives the tile wall and the row inside a card, so the two can
@@ -6719,9 +6725,13 @@ function trimLine(j) {
   if (!ps.length) return '';
   return ps.map(function (t, i) {
     var n = ps.length > 1 ? 'part ' + (i + 1) + ' · ' : '';
-    if (bakeStale(t)) return '<div class="st bad">' + n + 'that trim never finished — take it off and cut it again</div>';
+    // A PART THAT FAILED OR NEVER FINISHED CARRIES ITS OWN TRY AGAIN
+    // (2026-09-26): the same span sent again is the same part, baked once
+    // more — no marks to place, and the original is untouched either way.
+    var again = '<button type="button" class="tagain" data-key="' + esc(t.key || '') + '" data-start="' + esc(t.start) + '" data-end="' + esc(t.end) + '">Try again</button>';
+    if (bakeStale(t)) return '<div class="st bad">' + n + 'that trim never finished ' + again + '</div>';
     if (t.status === 'baking') return '<div class="trimtag">' + ICONS.scissors + '<span>' + n + 'trimming to ' + esc(fsec(t.start)) + '–' + esc(fsec(t.end)) + 's…</span></div>';
-    if (t.status === 'failed') return '<div class="st bad">' + n + 'that trim did not bake' + (t.error ? ' — ' + esc(t.error) : '') + '</div>';
+    if (t.status === 'failed') return '<div class="st bad">' + n + 'that trim did not bake' + (t.error ? ' — ' + esc(t.error) : '') + ' ' + again + '</div>';
     return '<div class="trimtag">' + ICONS.scissors + '<span>' + n + 'trimmed ' + esc(fsec(t.start)) + '–' + esc(fsec(t.end)) + 's · keeping ' + esc(fsec(t.seconds)) + 's</span></div>';
   }).join('');
 }
@@ -6894,6 +6904,20 @@ function jobCard(j) {
     // star is the one tap that spends, so nothing else may send.
     var again = el.querySelector('.again');
     if (again) again.addEventListener('click', function () { copyBack(j); });
+    // a failed or never-finished PART is baked again from the card — the
+    // same span, the same part, no marks to place (free: ffmpeg on our box)
+    el.querySelectorAll('.tagain').forEach(function (b) {
+      b.addEventListener('click', function (e) {
+        e.stopPropagation();
+        b.disabled = true;
+        api('/jobs/' + encodeURIComponent(j.id) + '/trim', { method: 'POST', body: JSON.stringify({ start: Number(b.dataset.start), end: Number(b.dataset.end) }) }).then(function (d) {
+          if (!d || d.error) { b.disabled = false; return toast((d && d.error) || 'That trim was refused'); }
+          if (d.job) { jobCard(d.job); paintRecent(); }
+          toast('Trimming again\u2026');
+          schedulePoll(true);
+        }).catch(function () { b.disabled = false; toast('The server did not answer \u2014 the clip is untouched'); });
+      });
+    });
     var nb = el.querySelector('.acts .note');
     if (nb) nb.addEventListener('click', function () { toggleNoteBox(el, jobsById[j.id] || j); });
     // PRIME ON POINTERDOWN, SAVE ON THE CLICK. Outside the app the share

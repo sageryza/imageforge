@@ -1174,6 +1174,44 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       - **ONE DECODE AT A TIME** (`gateTrim`). A video decode is the one thing
         that has actually killed this 512MB box (the panels-cut ledger in
         CLAUDE.md), and a trim is never urgent.
+      - **THE ROOM GUARD ASKS FOR THIS CLIP'S OWN ROOM, AND A REFUSED PART
+        CAN BE TRIED AGAIN (2026-09-26, Sophie: "i'm worried not all my trims
+        have been going through in footage").** Measured on the live log that
+        morning: 43 trims ever, 33 baked — and of the 7 she cut on 09-25, **6
+        were refused** by the 09-15 room guard with "the server is too full to
+        trim right now (86 to 130MB free, a trim needs 150)", the box idling at
+        427MB with nothing running (fresh boot ~200). Three things were wrong
+        and all three moved:
+        - **The 150 was a 720p clip's peak and every clip she trims is 480p.**
+          Measured here on her own refused clip (496x864): 81MB with the old
+          cap, **51MB with lookahead and B-frames off** (`rc-lookahead=0:ref=1:
+          bframes=0:sync-lookahead=0`, `TRIM_CAP`); 720p 129 → 79. Same crf,
+          the same frames out, the file ~40% bigger — a draft's clip. So the
+          need is `trimNeedMB(width, height)` off the PROBE (35MB + 60 per
+          million pixels: 61 for 480p, 91 for 720p, 100 for a clip the probe
+          cannot size), and the room is asked for after the probe, not before
+          the fetch. `ultrafast` would be 42MB and throws subpixel search and
+          adaptive quantisation away — not taken.
+        - **The guard read RSS, and ~60MB of RSS is code pages the kernel
+          reclaims** (fresh boot measured: RssAnon 142MB, RssFile 59MB of
+          201). `memwatch.anonBytes` (RssAnon + RssShmem off /proc, the RSS
+          where /proc is not readable) is what the guard reads now, and
+          `GET /api/promptlab/inflight` answers `memory.anon` beside `rss` so
+          the live split can be measured rather than assumed.
+        - **A failed part could never be retried.** Its span is its key, so
+          re-tapping the same span found the part and started nothing — the
+          message said "try again in a minute" and trying again did nothing.
+          `bakeAgain` (stale OR failed) re-bakes on both no-op roads, after
+          `rearmPart` puts the part back to `baking` dated now (so the card
+          says "trimming…" and the stale clock restarts); and the card's
+          failure line carries its own **Try again** (`.tagain`), for a
+          failed part and for one that never finished. Storage is checked
+          first, so a re-bake of a span that DID land costs no encode.
+        Test: `node scripts/test-footage-trim.js` (the need per clip size, the
+        anon reader, the order probe → room → cut pinned in source, the
+        re-arm on both roads, the card's word). Not touched: the Film
+        Editor's own `RENDER_CAP` keeps its lookahead — its renders are
+        deliveries, not drafts.
       - **A LATE BAKE NEVER SPEAKS FOR A TRIM SHE HAS MOVED ON FROM** — the
         doc's own `trim.key` is the authority. Trims queue, so a second tap
         lands while the first is still encoding; the write that matters is the
