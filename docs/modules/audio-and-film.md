@@ -964,6 +964,44 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
       have it. The test measures the line under the price, its count, the tap
       opening the fold, its absence with both boxes empty, and "setting" alone
       once the cast is emptied.
+      **AND THE CAUSE, FOUND THE SAME NIGHT (Sophie: "i never put anything in
+      that block · that's a real bug · something moved there!").** Nothing on
+      the page writes a block's words into a head — every writer of the two
+      boxes and of `__chars` was read, and a headless fuzz over the block
+      actions (type · tap · send · put back · try again · divide · join ·
+      wipe · clear · undo · new block · tick · fold · reload · re-hand-off ·
+      the ‹ › walk) never put a scene in a head. What does is WEBKIT'S FORM
+      RESTORE: it banks what she typed in every textarea and puts it back BY
+      POSITION when the page comes back through the back-forward list — a
+      back, or the app's own `reload()` after iOS has killed the web view
+      (`ForgeWebRevive`, measured at once every ~10s under pressure). The
+      parser-made boxes are [Characters, Setting, `#prompt`] while the banked
+      order was block 1, block 2, block 3, … (the head wrap sits ABOVE the
+      block she is in), so block 1's words landed in Characters, block 2's in
+      SETTING and block 3's in `#prompt`. `loadCtl` then overwrote Characters
+      (`loadChars`) and `#prompt` (`d.prompt`) from the draft — but the
+      Setting box ONLY when a setting was on file, so block 2's whole scene
+      stood there, folded shut, and the next keystroke banked it into the
+      draft and `footage_heads` as her setting. The head on her two clips was
+      the Newton block's text byte for byte (trailing newlines trimmed by
+      `headWords`), which is that shape exactly. Three layers now, each
+      enough on its own: **`autocomplete="off"` on every scene and head box**
+      (WebKit banks nothing for those); **the load writes every parser-made
+      box from the draft, empty when the draft has none** — a value the
+      browser left in a box is never kept; and **`headTrouble`: a head equal
+      to any block's words, or over `HEAD_MAX_WORDS` (80), is named, the fold
+      opened on it, and the star does not send** — the same tap again within
+      `ARM_MS` sends it anyway, the >$3 ask's shape, so a deliberate long
+      setting costs one tap and is never refused. **And the log says which
+      box a prefix came from**: the page sends `heads: {characters?,
+      setting?}` as sent, `buildJob` whitelists it, it rides `extra` (sent)
+      and the `tag` (refused) onto the doc, `cardOf` reads it back. Her
+      phone still holds the Newton scene in `footage_heads['']` and the
+      draft's `heads.setting` until she opens the fold and clears the box —
+      the guard stops it riding before she does. The test's `?restored=1`
+      page is the restore, simulated: the three boxes pre-filled in the
+      markup, and the load measured to leave the draft's words and nothing
+      else.
     - **WHAT CHANGED — THE COMPARE PANEL (2026-09-11, Sophie: "is there an
       easy way I can diff video clips like I can't remember what I changed for
       example sometimes it's a single line or a reference for the model the

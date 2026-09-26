@@ -60,6 +60,16 @@ function sentRecord({ jobId, prompt, model, params, tag }) {
     const bl = t.blocks.filter((x) => typeof x === 'string' && x.trim()).slice(0, 60).map((x) => x.slice(0, 6000));
     if (bl.length) doc.blocks = bl;
   }
+  // AND THE HEADS THE PAGE PUT IN FRONT OF THE BLOCKS (2026-09-26): which
+  // box a prefix on `prompt` came from, Characters or Setting — the one thing
+  // the record could not say the night a whole scene rode in the Setting box.
+  if (t.heads && typeof t.heads === 'object') {
+    const heads = {};
+    for (const k of ['characters', 'setting']) {
+      if (typeof t.heads[k] === 'string' && t.heads[k].trim()) heads[k] = t.heads[k].slice(0, 6000);
+    }
+    if (Object.keys(heads).length) doc.heads = heads;
+  }
   return doc;
 }
 

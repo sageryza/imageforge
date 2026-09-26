@@ -1478,15 +1478,15 @@
        standing value. Shut, the heading says both. -->
   <div class="headwrap shut" data-head="heads">
     <button type="button" class="fold hfold shut" aria-expanded="false"><span class="chev"></span><span class="bflab">Characters &amp; setting</span><span class="lw"></span></button>
-    <div class="hpart" data-head="characters"><label class="hlab">Characters &middot; this block</label><textarea class="hblock" aria-label="Characters — who is in this block"></textarea><button type="button" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
-    <div class="hpart" data-head="setting"><label class="hlab">Setting &middot; every clip</label><textarea class="hblock" aria-label="Setting — where every clip is"></textarea><button type="button" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
+    <div class="hpart" data-head="characters"><label class="hlab">Characters &middot; this block</label><textarea class="hblock" autocomplete="off" aria-label="Characters — who is in this block"></textarea><button type="button" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
+    <div class="hpart" data-head="setting"><label class="hlab">Setting &middot; every clip</label><textarea class="hblock" autocomplete="off" aria-label="Setting — where every clip is"></textarea><button type="button" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
   </div>
 
   <!-- ONE BLOCK IS ONE CLIP (2026-09-11). Divide here cuts the block at the
        cursor into two; the second half becomes a block of its own right under
        this one, with a join mark in the gap. The star sends the block she is
        in — the one with the gold line — once there is more than one. -->
-  <div class="promptwrap active"><button type="button" class="fold bfold" aria-expanded="true"><span class="bpick" role="checkbox" aria-checked="false" tabindex="0"></span><span class="chev"></span><span class="bflab">Block 1</span><span class="lw"></span><span class="bref"><span class="ic"></span><span class="n"></span></span><span class="bsent"></span></button><div class="hrow" hidden><button type="button" class="hprev" aria-label="An older prompt" title="An older prompt sent from this part">‹</button><span class="hpos"></span><button type="button" class="hnext" aria-label="A newer prompt" title="A newer prompt, back toward now">›</button></div><div class="hpast" hidden><div class="hwords"></div><div class="hmeta"><button type="button" class="hcard" title="Open that clip"></button><button type="button" class="wipe huse">use this</button></div></div><textarea id="prompt" class="pblock"></textarea><button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this block off" title="Take this block off — undo puts it back"></button><button type="button" id="divide" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block; at the end, an empty one"></button><button type="button" id="bigprompt" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
+  <div class="promptwrap active"><button type="button" class="fold bfold" aria-expanded="true"><span class="bpick" role="checkbox" aria-checked="false" tabindex="0"></span><span class="chev"></span><span class="bflab">Block 1</span><span class="lw"></span><span class="bref"><span class="ic"></span><span class="n"></span></span><span class="bsent"></span></button><div class="hrow" hidden><button type="button" class="hprev" aria-label="An older prompt" title="An older prompt sent from this part">‹</button><span class="hpos"></span><button type="button" class="hnext" aria-label="A newer prompt" title="A newer prompt, back toward now">›</button></div><div class="hpast" hidden><div class="hwords"></div><div class="hmeta"><button type="button" class="hcard" title="Open that clip"></button><button type="button" class="wipe huse">use this</button></div></div><textarea id="prompt" class="pblock" autocomplete="off"></textarea><button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this block off" title="Take this block off — undo puts it back"></button><button type="button" id="divide" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block; at the end, an empty one"></button><button type="button" id="bigprompt" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button></div>
   <!-- A NEW BLOCK AT THE BOTTOM (2026-09-17) — see `.newrow` and `newBlockBelow`. -->
   <div class="newrow"><button type="button" class="newb" id="newblock" aria-label="New block" title="New block — an empty block under the last one; every other block folds away"></button></div>
 
@@ -2464,7 +2464,25 @@ function loadCtl() {
     // opens on Mini every load; Fast is her own tap. Sticky is hers to ask for.
     if (c.ratio) S.ratio = c.ratio;
     var d = JSON.parse(localStorage.getItem('footage_draft') || '{}');
-    if (d.prompt) $('prompt').value = d.prompt;
+    // THE DRAFT IS THE ONLY THING THAT FILLS A BOX THE PARSER MADE (2026-09-26,
+    // Sophie, a $2.06 2.5 clip that went with a whole other scene on top of
+    // her block: "i never put anything in that block · that's a real bug ·
+    // something moved there!"). WebKit banks what she typed in every textarea
+    // and PUTS IT BACK BY POSITION when the page comes back through the
+    // back-forward list — a back, or the app's own `reload()` after iOS has
+    // killed the web view (ForgeWebRevive; measured that night at once every
+    // ~10s under pressure). At that moment the parser-made boxes are
+    // [characters, setting, #prompt] while the banked order was block 1,
+    // block 2, block 3, … with the head wrap sitting above the block she was
+    // in — so block 1's words landed in Characters, block 2's in SETTING, and
+    // block 3's here. Characters and this box were then overwritten from the
+    // draft; the Setting box was overwritten ONLY when a setting was on file,
+    // so block 2's whole scene sat there, folded shut, riding on top of every
+    // clip, and the next keystroke banked it into the draft as her setting.
+    // `autocomplete="off"` on every box (above) tells WebKit not to bank them
+    // at all; this is the belt-and-braces: a parser-made box holds exactly
+    // what the draft says, or nothing.
+    $('prompt').value = typeof d.prompt === 'string' ? d.prompt : '';
     // the blocks after the first, in order, and which one she was in
     if (Array.isArray(d.blocks)) d.blocks.forEach(function (t) { if (typeof t === 'string') addBlock(t); });
     // the story the blocks are parts of, when they are (2026-09-14)
@@ -2519,10 +2537,10 @@ function loadCtl() {
     // reload that emptied it would send the next clip without the room. It
     // comes back SHUT whatever she left it: shut is its default, and the
     // heading says the words.
-    if (d.heads && typeof d.heads === 'object' && typeof d.heads.setting === 'string') {
-      var sb = headBox('setting');
-      if (sb) sb.value = d.heads.setting;
-    }
+    // …AND ALWAYS WRITTEN, empty when the draft has none (2026-09-26, above):
+    // a value the browser put back into this box is never left standing.
+    var sb = headBox('setting');
+    if (sb) sb.value = (d.heads && typeof d.heads === 'object' && typeof d.heads.setting === 'string') ? d.heads.setting : '';
     // AND EVERY BLOCK'S OWN CAST (2026-09-14) — `chars` when the page that
     // wrote the draft had them, and otherwise the ONE `heads.characters` it
     // saved, given to EVERY block: that is what it meant back when the cast
@@ -4877,7 +4895,7 @@ function addBlock(text, after, job, chars, pick) {
   w.className = 'promptwrap';
   w.innerHTML = '<button type="button" class="fold bfold" aria-expanded="true"><span class="bpick" role="checkbox" aria-checked="false" tabindex="0"></span><span class="chev"></span><span class="bflab">Block</span><span class="lw"></span><span class="bref"><span class="ic"></span><span class="n"></span></span><span class="bsent"></span></button>'
     + HROW_HTML
-    + '<textarea class="pblock" aria-label="Another block"></textarea>'
+    + '<textarea class="pblock" autocomplete="off" aria-label="Another block"></textarea>'
     + '<button type="button" class="boxbtn wipeb" data-stickybox="nofollow" aria-label="Take this block off" title="Take this block off — undo puts it back"></button>'
     + '<button type="button" class="boxbtn divide" data-stickybox="nofollow" aria-label="Divide here" title="Divide here — the words after the cursor become a second block; at the end, an empty one"></button>'
     + '<button type="button" class="boxbtn bigger" data-stickybox aria-label="Bigger box" title="Bigger box"></button>';
@@ -5394,6 +5412,40 @@ function ridesNow() {
   if (room) { parts.push('setting'); words += room.split(/\s+/).length; }
   return parts.length ? { parts: parts, words: words } : null;
 }
+// A HEAD THAT IS A WHOLE BLOCK'S WORDS IS NOT A CAST, AND THE STAR SAYS SO
+// BEFORE IT SENDS (2026-09-26, the same night: the words WebKit put back into
+// the Setting box were block 2's entire scene, byte for byte). Whatever put
+// them there — a restore, a paste, a wrong box — a head equal to the words
+// in any block on the page, or longer than a cast and a room could be
+// (`HEAD_MAX_WORDS`), is named, the fold is opened on it and the star does
+// not send; the SAME tap again within `ARM_MS` sends it anyway, the >$3 ask's
+// own shape, so a deliberate long setting is one extra tap and never
+// refused. Only the heads THIS send would carry are judged (`ridesNow`'s
+// rule: a marked send carries the setting alone). Answers the trouble as
+// words, or '' when the heads are fine.
+var HEAD_MAX_WORDS = 80;
+function headTrouble(picked) {
+  var texts = blocks().map(function (w) { return String(w.querySelector('.pblock').value || '').trim(); })
+    .filter(function (t) { return t; });
+  var heads = [['Setting', String(settingVal() || '').trim()]];
+  if (!picked) heads.unshift(['Characters', String(charsOf(activeWrap()) || '').trim()]);
+  for (var i = 0; i < heads.length; i++) {
+    var lab = heads[i][0], t = heads[i][1];
+    if (!t) continue;
+    if (texts.indexOf(t) >= 0) return lab + ' holds a whole block\u2019s words';
+    var n = t.split(/\s+/).length;
+    if (n > HEAD_MAX_WORDS) return lab + ' is ' + n + ' words long';
+  }
+  return '';
+}
+var headArm = 0;
+function openHeads() {
+  var hw = headWrap();
+  if (!hw) return;
+  if (hw.classList.contains('shut')) toggleHead(hw);
+  var top = hw.getBoundingClientRect().top + (window.scrollY || 0) - 12;
+  window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+}
 function paintRides() {
   var cost = $('cost');
   if (!cost) return;
@@ -5402,13 +5454,7 @@ function paintRides() {
   if (!el) {
     el = document.createElement('button');
     el.type = 'button'; el.className = 'rides';
-    el.addEventListener('click', function () {
-      var hw = headWrap();
-      if (!hw) return;
-      if (hw.classList.contains('shut')) toggleHead(hw);
-      var top = hw.getBoundingClientRect().top + (window.scrollY || 0) - 12;
-      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
-    });
+    el.addEventListener('click', openHeads);
     cost.appendChild(el);
   }
   var t = '+ ' + r.parts.join(' & ') + ' on top \u00b7 ' + r.words + (r.words === 1 ? ' word' : ' words');
@@ -5590,6 +5636,19 @@ function postJob(pin, box, job, resend) {
   // of a clip, never the clip, so an empty box with a cast written in it is
   // still nothing to draw.
   if (!words.trim()) { toast('Say what the clip is first'); return Promise.resolve(false); }
+  // A HEAD THAT IS A BLOCK'S WORDS, OR A PARAGRAPH, IS SHOWN AND NOT SENT ON
+  // THE FIRST TAP (2026-09-26, `headTrouble`). A door word's re-send carries
+  // the exact body that was refused and is not judged again.
+  if (!resend) {
+    var trouble = headTrouble(!!job);
+    if (trouble && !(headArm && Date.now() - headArm < ARM_MS)) {
+      headArm = Date.now();
+      openHeads();
+      toast(trouble + ' \u2014 it would ride on top of this clip. Take it out, or tap the star again to send it anyway.');
+      return Promise.resolve(false);
+    }
+    headArm = 0;
+  }
   // AND THE CAST AND THE ROOM RIDE AT THE TOP OF IT — this block's own
   // characters, then the project's setting. One place, so the star and a
   // refusal's door words send the same shape, and the log, the card and the
@@ -5639,6 +5698,11 @@ function postJob(pin, box, job, resend) {
   if (!resend) {
     body.blocks = (Array.isArray(sentWords) ? sentWords : [sentWords])
       .filter(function (t) { return typeof t === 'string' && t.trim(); });
+    // AND WHICH HEADS WENT IN FRONT OF THEM (2026-09-26): the log held the
+    // prompt and the blocks, so a prefix could be seen but never placed —
+    // Characters or Setting, the one question the night's failure needed.
+    var hc = job ? '' : String(charsOf(pw) || '').trim(), hr = String(settingVal() || '').trim();
+    if (hc || hr) { body.heads = {}; if (hc) body.heads.characters = hc; if (hr) body.heads.setting = hr; }
   }
   return api('/jobs', { method: 'POST', body: JSON.stringify(body) }).then(function (d) {
     if (!d || !d.jobId) {
