@@ -340,6 +340,16 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
       if(since && !(Date.parse(it.created||'')>=since)) return false;
       return true;
     }
+    // A FILTER LOADS A SET NUMBER, NEVER A PAGE'S WORTH (2026-09-26, Sophie:
+    // "filters ex trimmed shud always load a set number not by a set date").
+    // The marks and the drawer run over the loaded tiles — the newest 150 —
+    // so ♥ showed the hearts among those, and the scroll only pulls the next
+    // page once the grid's LAST tile nears the screen, which a narrowed grid
+    // never brings near. So while a mark or a chip narrows the grid to fewer
+    // than a page, the next page is pulled until it holds one, the history
+    // ends, or FILL_PASSES pages have been walked. A search is the server's
+    // whole answer already and never walks.
+    var FILL_PASSES=8, fillPasses=0, fillKey='', fillTick=0;
     function applyFilter(){
       var shown=0, groups=q?qparse(q):[];
       cells.forEach(function(c){
@@ -364,6 +374,16 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
       else if(q&&searchErr) none.textContent='Search couldn\u2019t reach the server \u2014 press Return to try again.';
       else none.textContent='No images match that.';
       none.style.display=(shown||(!cells.length&&!q))?'none':'';
+      var narrow=!!(filter||(FILT.get('quality')||[]).length||FILT.get('when'));
+      var key=[filter,(FILT.get('quality')||[]).join(),FILT.get('when')].join('|');
+      if(key!==fillKey){ fillKey=key; fillPasses=0; }
+      // a tick later, and ONE tick however many tiles land: applyFilter runs
+      // once per tile as a page arrives, inside nextPage's own answer while
+      // its busy flag is still up — so the pass is counted when a page is
+      // really asked for, never per call
+      if(narrow && !q && shown<PAGE && !fillTick && fillPasses<FILL_PASSES && typeof nextPage==='function'){
+        fillTick=setTimeout(function(){ fillTick=0; if(busy) return; fillPasses++; nextPage(); },0);
+      }
     }
     // THE MARK SEGMENT IS BACK EXACTLY WHERE IT WAS (2026-09-02, Sophie:
     // "actually put the heart x thing exactly where it was"). New · ♥ · Hide ✕

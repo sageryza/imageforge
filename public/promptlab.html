@@ -1300,7 +1300,7 @@
   function likedOnly() { return localStorage.getItem('promptlab_liked') === '1'; }
   function applyLiked(repaint) {
     document.getElementById('v-liked').classList.toggle('on', likedOnly());
-    if (repaint) renderFeed();
+    if (repaint) { renderFeed(); fillFirst(); }
   }
   document.getElementById('v-liked').addEventListener('click', function () {
     localStorage.setItem('promptlab_liked', likedOnly() ? '' : '1');
@@ -1327,7 +1327,7 @@
   function hideX() { return localStorage.getItem('promptlab_hidex') === '1'; }
   function applyHideX(repaint) {
     document.getElementById('v-hidex').classList.toggle('on', hideX());
-    if (repaint) renderFeed();
+    if (repaint) { renderFeed(); fillFirst(); }
   }
   document.getElementById('v-hidex').addEventListener('click', function () {
     localStorage.setItem('promptlab_hidex', hideX() ? '' : '1');
@@ -1344,7 +1344,7 @@
       vals: SF.WHEN.vals, words: SF.WHEN.words,
       get: function () { return localStorage.getItem('promptlab_filt_when') || ''; },
       set: function (v) { localStorage.setItem('promptlab_filt_when', v || ''); } },
-  ], function () { renderPendings(); renderFeed(); }, { label: 'Filters' });
+  ], function () { renderPendings(); renderFeed(); fillFirst(); }, { label: 'Filters' });
   function readList(k) {
     return (localStorage.getItem(k) || '').split(',').filter(Boolean);
   }
@@ -5219,6 +5219,7 @@
       if (feed.length <= PAGE) feedMore = !!d.more;
       mergeRuns(runs);
       renderFeed();
+      fillFirst();
     }).catch(function () {});
   }
 
@@ -5313,9 +5314,9 @@
     shownPics = feedCells().items.length + MORE;
     if (feedCells().capped || !feedMore || pastDateFloor()) { renderFeed(); return; }
     paging = true; renderMoreBtn();
-    walkMore(0);
+    walkMore(0, shownPics);
   }
-  function walkMore(pass) {
+  function walkMore(pass, target) {
     var oldest = oldestSingleAt();
     if (!oldest) { paging = false; renderMoreBtn(); return; }
     fetch('/api/promptlab?limit=' + PAGE + '&before=' + oldest + '&kind=single')
@@ -5324,11 +5325,30 @@
         feedMore = !!d.more;
         mergeRuns((d.runs || []).filter(function (r) { return r.status !== 'running'; }));
         renderFeed();
-        var short = feedCells().items.length < shownPics;
-        if (short && feedMore && !pastDateFloor() && pass + 1 < MORE_PASSES) return walkMore(pass + 1);
+        var short = feedCells().items.length < target;
+        if (short && feedMore && !pastDateFloor() && pass + 1 < MORE_PASSES) return walkMore(pass + 1, target);
         paging = false; renderMoreBtn();
       })
       .catch(function () { paging = false; renderMoreBtn(); });
+  }
+  // AND THE FIRST PAGE FILLS THE SAME WAY (2026-09-26, Sophie: "filters ex
+  // trimmed shud always load a set number not by a set date"). Older has
+  // revealed a set number since 2026-09-21, but the page she OPENS on was
+  // still the server's newest 40 runs with the heart, the ✕ and the drawer's
+  // chips run over them — a hearts-only wall opened on however many hearts
+  // the last 40 runs held, three or none, with Older the only way to the
+  // rest. So while anything narrows the feed, the first page walks behind
+  // the cursor until it holds PAGE pictures, exactly as a tap of Older
+  // would, and stops at the history's end or the date floor. Nothing
+  // narrowing → the server's page, exactly as it always was.
+  function narrowing() {
+    return !!(likedOnly() || hideX() || (FILT.get('quality') || []).length || FILT.get('when'));
+  }
+  function fillFirst() {
+    if (paging || onPanels() || qGroups.length || !narrowing()) return;
+    if (!feedMore || pastDateFloor() || feedCells().items.length >= PAGE) return;
+    paging = true; renderMoreBtn();
+    walkMore(0, PAGE);
   }
 
   // Is Older's cap in force? Only on the walk it governs: the Picture tab's

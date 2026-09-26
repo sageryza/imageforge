@@ -2184,3 +2184,46 @@ CLAUDE.md keeps a one-sentence pointer per entry. Nothing was reworded.
       that opens a feed hands over a nav hook, and a new picture surface joins
       it by linking the shared file.
 
+- **A FILTER LOADS A SET NUMBER, NEVER A DATE'S WORTH (2026-09-26, Sophie:
+  "filters ex trimmed shud always load a set number not by a set date · audit
+  elsewhere").** Every feed here reads a PAGE — Footage's newest 40 clips, the
+  Playground's 40 runs, Stitch's 60 picks, the two assets grids' 150 tiles —
+  and every filter over it ran over THAT page only. So Footage's new Trimmed
+  chip showed the trimmed clips among about half a day's sends (8 of the
+  newest 40), hearts-only on Stitch was the hearts among the newest sixty, and
+  `… older` under either walked the UNFILTERED log. The search's own lesson
+  (2026-09-11, "a box that only filters the loaded page answers nothing for
+  everything behind the first 40"), arriving through a chip: **a filter over a
+  truncated page is a filter over a date.** Measured on her log the day it
+  landed: 300 clips, one in five trimmed — the lit chip drew 8 where forty
+  were asked for.
+  - **Two shapes, by where the whole collection already is.** Footage and
+    Stitch read every clip on the server for each page anyway, so the funnel
+    RIDES THE QUERY — `model=` · `res=` · `since=` · `trim=` · `liked=1` ·
+    `hidex=1` — and ONE pure rule, `feedFilter` in `footage.js`, narrows the
+    log BEFORE `pageJobs` cuts it: a page is a set number of MATCHES and
+    `… older` walks the matches. The Playground's first page, the chat's
+    Assets tab and Meta Assets keep the server as it was and WALK: while a
+    mark or a chip narrows the wall to fewer than a page, the next page is
+    pulled until it holds one, the history ends, or eight pages have been
+    walked (`fillFirst` in promptlab.html — the same walk its Older has done
+    since 2026-09-21, now on the page she opens on too; `FILL_PASSES` in the
+    two grids). A second tap walks on from there.
+  - **The page keeps its own copy of the rule** (`passesFilt`/`shown` on
+    Footage, `passes` on Stitch): it judges the cards already loaded and the
+    ones a poll lands, so a card she paged to that still passes never
+    blinks, and a chip change starts the walk over (`refeed`) without
+    throwing away what she has.
+  - **Nothing on the query is no filter at all** — a page cached from before
+    this sends nothing and reads exactly as it did. And the count of matches
+    outside the project (`elsewhere`) is of clips the funnel would show, so
+    the way out never promises clips the feed would hide.
+  - **A new feed with a filter inherits this**: either send the filter to a
+    route that holds the whole collection, or walk pages until the narrowed
+    view holds a page. A filter that only runs over the loaded page is the
+    bug, however honest each of its chips is.
+  - Test: `node scripts/test-filter-set-number.js` (the rule pure, every
+    surface pinned in source, and Footage and Meta Assets driven headless —
+    the count of cards on screen MEASURED, since forty filtered and forty
+    matches loaded look identical in the source). `test-playground-older-
+    count.js` scenario B carries the Playground's first-page fill.
