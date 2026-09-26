@@ -3252,6 +3252,16 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   a box fitted to its words fills the band, so there is no page left to drag
   either. While a box is focused the page now borrows the keyboard itself.
   Same section of the doc; `node scripts/test-caret-room.js`.**
+  **AND THE PAGE IS SCROLLED WHERE SHE IS LOOKING (2026-09-26, "always has
+  the same bug of screen moving every time i type or put the cursor delete
+  etc" — the fourth report): with the keyboard up iOS PANS the visual
+  viewport inside the layout one, `scrollY` reports the layout viewport and
+  `scrollTo` moves the visual one, so `scrollTo(scrollY + d)` moved the view
+  the wrong way by the pan and the phone panned back — on every keystroke.
+  The target is the visual viewport's page position now, and a correction
+  the browser undoes twice is not made a third time. Never scroll a page
+  from `scrollY + d` while a box is focused — read `__caretKeep.pageTop()`.
+  Same section of the doc; `node scripts/test-caret-pan.js`.**
 
 - **THE WAY OUT OF A BIG BOX STAYS ON SCREEN — `/stickybox.js`, ONE FILE,
   EVERY PAGE (2026-09-10, Sophie: "can we get a floating or sticky/pinned

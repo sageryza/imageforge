@@ -90,6 +90,34 @@
    it, sit behind the keys with no page left to scroll. See ROOM UNDER THE
    LAST LINE below for the measurement and the three rules the floor keeps.
 
+   AND THE PAGE IS SCROLLED WHERE SHE IS LOOKING, NOT WHERE THE LAYOUT
+   VIEWPORT IS (2026-09-26, Sophie, on Footage: "always has the same bug of
+   screen moving every time i type or put the cursor delete etc" — the fourth
+   report of the one bug, after 09-12, 09-14 and 09-23). With the keyboard up,
+   iOS keeps the LAYOUT viewport where it was and PANS the VISUAL viewport
+   inside it to reveal the caret (`visualViewport.offsetTop`, ~115pt on her
+   Footage screenshot), and the two window scroll APIs do not agree on which
+   one they mean: `window.scrollY` reports the layout viewport, `window
+   .scrollTo` moves the scroll view — the visual one. So `scrollTo(0, scrollY
+   + d)` with a 115pt pan and a caret 30px too low did not move the view DOWN
+   30px: it set the visual viewport to the layout viewport's top plus 30,
+   i.e. UP 85px, the caret went off the bottom, iOS panned back to reveal it,
+   and the next keystroke — or the next keep of the tap's burst — did it
+   again. Every keystroke, every tap, every delete: exactly her words. A
+   headless browser never pans (offsetTop is 0 without a pinch zoom), so the
+   two coordinates were the same number here and every test was green.
+   Now the target is the VISUAL viewport's own page position plus the
+   correction (`pageTop()`), which is the same number as before wherever
+   there is no pan and the right one where there is. And the keeper WATCHES
+   ITS OWN WORK: a correction that had to be made again for the same caret
+   line, the same band and the same direction within a second and a half was
+   undone by the browser, and a keeper fighting the browser is the epilepsy —
+   it stands down for the rest of that focus (`fight`), and the phone's own
+   reveal, which is what undid it, keeps the caret. Test:
+   `node scripts/test-caret-pan.js` — the phone's own arithmetic stood in
+   for `scrollTo` and `visualViewport`; against the old keeper nine letters
+   on one line moved the view 27 times.
+
    Include it once, anywhere: `<script src="/caretkeep.js"></script>`. It
    wires itself to every text box on the page, present and future, and takes
    `data-nocaret` on a box (or any ancestor) as an opt-out. compare.js loads
@@ -137,6 +165,14 @@
   }
   function touch() {
     try { return window.matchMedia('(hover: none)').matches; } catch (_) { return false; }
+  }
+  // where the VISUAL viewport is on the page — what she is looking at, and
+  // the number `window.scrollTo` sets on iOS. `scrollY` is the layout
+  // viewport; with the keyboard up and iOS panned they differ by `offsetTop`.
+  function pageTop() {
+    var vv = window.__caretKeep && window.__caretKeep.vv ? window.__caretKeep.vv : window.visualViewport;
+    if (vv && typeof vv.pageTop === 'number' && vv.height) return vv.pageTop;
+    return window.scrollY + (vv && vv.height ? (vv.offsetTop || 0) : 0);
   }
 
   // ── the band the CARET aims at: the visible one, minus anything pinned or
@@ -249,9 +285,9 @@
     var r = el.getBoundingClientRect();
     var cs = window.getComputedStyle(el);
     var lh = parseFloat(cs.lineHeight) || (parseFloat(cs.fontSize) || 16) * 1.4;
-    if (el.tagName !== 'TEXTAREA') return { top: r.top, bottom: r.bottom };
+    if (el.tagName !== 'TEXTAREA') return { top: r.top, bottom: r.bottom, line: 0 };
     var i = el.selectionEnd;
-    if (i == null || !document.body) return { top: r.top, bottom: r.bottom };
+    if (i == null || !document.body) return { top: r.top, bottom: r.bottom, line: 0 };
     var m = ensureMirror();
     for (var k = 0; k < COPY.length; k += 1) {
       try { m.style[COPY[k]] = cs[COPY[k]]; } catch (_) { /* a property this browser has not got */ }
@@ -268,7 +304,9 @@
     // to copy something must not send the page anywhere
     if (top < r.top - 4) top = r.top;
     if (top > r.bottom) top = Math.max(r.top, r.bottom - lh);
-    return { top: top, bottom: top + lh };
+    // `line` is the caret's line in the WORDS (typing along a line keeps it,
+    // a wrap or a Return moves it) — what `keep` tells a repeat by
+    return { top: top, bottom: top + lh, line: Math.round(off / lh) };
   }
 
   // ── who scrolls: the nearest box that really can, else the window ──
@@ -353,6 +391,42 @@
     return gap > FLOOR_MIN ? Math.round(gap) : 0;
   }
 
+  // ── THE KEEPER WATCHES ITS OWN WORK (2026-09-26) ──
+  // A window correction is remembered: the caret's line, the direction, and
+  // the band it was aimed at (in the VISUAL frame, so a pan does not change
+  // it). Having to make the SAME correction again — same line, same band,
+  // same way — within a second and a half means the browser undid the first,
+  // and a keeper that scrolls back is a page taking turns with the phone.
+  // It stands down for the rest of this focus instead; the phone's own reveal
+  // is what undid it, and that keeps the caret. A band that changed (a
+  // button pinned over the line) is a new correction and is allowed; a
+  // different line is her typing on. `fight` is reset by a focus, a blur and
+  // the keyboard opening or closing.
+  // Two things keep it from mistaking anything else for that. It takes the
+  // THIRD identical correction, not the second: her own finger can undo one
+  // (a drag between a tap and the first letter lands the caret back where it
+  // was, once), and a `touchmove` calms it anyway; a browser undoing it does
+  // so every time. And the correction it repeats must be one that never moved
+  // the LAYOUT viewport (`took`, read off `scrollY` right after the scroll):
+  // the phone's reveal is a PAN of the visual viewport inside a layout
+  // viewport that stays put, and so is the scroll that fights it. A page that
+  // clamps its own scroll for a frame (a box fitted through `height:auto`
+  // shortens the document for one layout — the Playground's, the Chats app's)
+  // undoes a correction that DID move the layout viewport, and is re-corrected
+  // on every keystroke exactly as it always was.
+  var FIGHT_MS = 1500, FIGHT_PX = 6, FIGHT_N = 3;
+  var lastFix = null, fight = false;
+  function repeat(c, b, d, pan, now) {
+    var dir = d > 0 ? 1 : -1, bt = b.top - pan, bb = b.bottom - pan, ly = window.scrollY;
+    var same = !!lastFix && lastFix.took === false && lastFix.line === c.line && lastFix.dir === dir
+      && Math.abs(lastFix.bt - bt) < 3 && Math.abs(lastFix.bb - bb) < 3
+      && now - lastFix.at < FIGHT_MS && Math.abs(d) >= FIGHT_PX;
+    var n = same ? lastFix.n + 1 : 1;
+    lastFix = { line: c.line, dir: dir, bt: bt, bb: bb, ly: ly, at: now, n: n, took: null };
+    return n >= FIGHT_N;
+  }
+  function calm() { lastFix = null; fight = false; }
+
   function keep(el) {
     el = el || focused;
     if (!el || el !== document.activeElement || !boxy(el)) return 0;
@@ -370,7 +444,10 @@
       h.scrollTop = Math.max(0, Math.min(h.scrollHeight - h.clientHeight, was + d));
       return h.scrollTop - was;
     }
-    var y = window.scrollY;
+    if (fight) return 0;                    // the browser has the caret; a scroll here is the flicker
+    var y = pageTop();                      // where she is LOOKING — never `scrollY` while iOS has panned
+    var pan = y - window.scrollY;
+    if (repeat(c, b, d, pan, Date.now())) { fight = true; return 0; }
     var want = y + d;
     var max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
     if (want > max) {
@@ -381,6 +458,7 @@
     var to = Math.max(0, Math.min(max, want));
     if (Math.abs(to - y) < 1) return 0;
     window.scrollTo(0, to);                 // the window only: never the deck
+    if (lastFix) lastFix.took = Math.abs(window.scrollY - lastFix.ly) >= 1;   // did the LAYOUT viewport move?
     return to - y;
   }
 
@@ -418,6 +496,7 @@
   var pending = 0;
   function arm(el) {
     clearTimers();
+    calm();
     clearTimeout(pending);
     pending = setTimeout(function () { pending = 0; if (focused === el) burst(el); }, 150);
   }
@@ -441,6 +520,7 @@
     if (e.target !== focused) return;
     focused = null;
     clearTimers();
+    calm();
     clearTimeout(pending); pending = 0;
     // the borrowed room goes back with the keyboard, after it has gone: a
     // page that shortens under her thumb mid-blur jumps the words she is
@@ -448,6 +528,9 @@
     setTimeout(function () { if (!focused) { extra = 0; setRoom(0); } }, 400);
   }, true);
   window.addEventListener('pagehide', function () { extra = 0; setRoom(0); });
+  // her finger on the page is never the browser undoing a correction
+  document.addEventListener('touchmove', function () { lastFix = null; }, { capture: true, passive: true });
+  document.addEventListener('wheel', function () { lastFix = null; }, { capture: true, passive: true });
   document.addEventListener('input', function (e) {
     if (e.target === focused) soon();
   }, true);
@@ -457,12 +540,16 @@
   }, true);
   if (window.visualViewport) {
     // the keyboard opening or closing, and a rotation
-    window.visualViewport.addEventListener('resize', function () { stuckFor = null; if (focused) burst(focused); });
+    window.visualViewport.addEventListener('resize', function () { stuckFor = null; calm(); if (focused) burst(focused); });
   }
 
   window.__caretKeep = {
-    version: 1,
+    version: 2,
     keep: keep,
+    pageTop: pageTop,        // the visual viewport's page position — what scrollTo sets on iOS
+    fighting: function () { return fight; },   // stood down for this focus (the test's read)
+    lastFix: function () { return lastFix; },
+    calm: calm,
     // compare.js calls this on EVERY focusin (it is how the lazily loaded
     // keeper learns about the box the fetch was started for), so it arms
     // exactly as focusin does — a burst run here would measure the tap's
