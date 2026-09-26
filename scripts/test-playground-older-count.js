@@ -124,11 +124,19 @@ async function scenario(browser, name, ALL, init) {
       localStorage.setItem('promptlab_view', 'tiles');
       localStorage.setItem('promptlab_hidex', '1');
     });
-    if (await t.tiles() !== 10) fail(`B: first page showed ${await t.tiles()} keepers, expected 10`);
+    // THE FIRST PAGE FILLS THE SAME WAY (2026-09-26, Sophie: "filters ex
+    // trimmed shud always load a set number not by a set date"): the page she
+    // opens on walks until it holds PAGE keepers — four pages here — where it
+    // used to show the ten the newest forty runs happened to hold.
+    await t.page.waitForFunction((n) => document.querySelectorAll('#tiles .cell:not(.ph)').length >= n, PAGE).catch(() => {});
+    await t.page.waitForFunction(() => !document.querySelector('#more .morebtn[disabled]')).catch(() => {});
+    await t.page.waitForTimeout(150);
+    if (await t.tiles() !== PAGE) fail(`B: first page showed ${await t.tiles()} keepers, expected ${PAGE} — it must walk pages until it has a page's worth`);
+    if (await t.calls() !== 4) fail(`B: ${await t.calls()} requests to fill the first page, expected 4`);
     if (await t.older().count() !== 1) fail('B: no Older button with history behind the page');
     await t.tap();
     if (await t.tiles() !== 50) fail(`B: one Older showed ${await t.tiles()} keepers, expected 50 — it must walk pages until it has its 40`);
-    if (await t.calls() !== 5) fail(`B: ${await t.calls()} requests, expected 5 (one first page + four pages walked)`);
+    if (await t.calls() !== 5) fail(`B: ${await t.calls()} requests, expected 5 (four for the first page + one walked)`);
     if (await t.older().count() !== 0) fail('B: Older is still offered at the end of the history');
     await close();
   }

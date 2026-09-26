@@ -2296,6 +2296,50 @@ function pageJobs(all, { limit, before, beforeId, max } = {}) {
   return { docs, more: under.length > docs.length };
 }
 
+// ── THE FUNNEL IS ANSWERED BY THE SERVER, OVER THE WHOLE LOG (2026-09-26,
+// Sophie: "filters ex trimmed shud always load a set number not by a set
+// date") ────────────────────────────────────────────────────────────────
+// The page's funnel (model · resolution · when · trimmed) and its ♥/✕ ran
+// over the loaded page only — the newest 40 — so "Trimmed" showed the
+// trimmed clips among about half a day's sends rather than forty trimmed
+// clips, and `… older` walked the UNFILTERED log underneath. The search's
+// own lesson (2026-09-11), arriving through a chip: a filter over a
+// truncated page is a filter over a date. So the funnel rides the query,
+// the whole collection the route already holds is narrowed here BEFORE the
+// page is cut, and a page is a set number of MATCHES, with `… older`
+// walking the matches. The page keeps its own copy of the rule for the
+// cards it already holds. Pure, so the page's exact reading is testable:
+//   model=mini,2.5   res=480p,2k   since=<ms floor>   trim=trimmed|whole
+//   liked=1 (hearts only)   hidex=1 (drop the crossed-out)
+// Nothing on the query → `on:false` and every card keeps, so a page cached
+// from before this sends nothing and reads exactly as it did.
+function feedFilter(q) {
+  q = q || {};
+  const list = (v) => String(v || '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
+  const models = list(q.model), res = list(q.res);
+  const since = Number(q.since) || 0;
+  const trim = q.trim === 'trimmed' || q.trim === 'whole' ? q.trim : '';
+  const liked = String(q.liked || '') === '1', hidex = String(q.hidex || '') === '1';
+  const on = !!(models.length || res.length || since || trim || liked || hidex);
+  const keep = (c) => {
+    if (!on) return true;
+    if (models.length && models.indexOf(String(c.model || '').toLowerCase()) < 0) return false;
+    // the rung is case-folded — MiniMax files `480P` (the page's own note)
+    if (res.length && res.indexOf(String(c.resolution || '').trim().toLowerCase()) < 0) return false;
+    if (since && !(Date.parse(c.sentAt || '') >= since)) return false;
+    if (trim) {
+      // ONE rule for "trimmed" — a part that really baked, the page's
+      // `bakedParts`; a part still baking has cut nothing yet
+      const baked = (c.trims || []).filter((t) => t && t.status === 'ready' && t.url).length > 0;
+      if (baked !== (trim === 'trimmed')) return false;
+    }
+    if (liked && c.vote !== 'like') return false;
+    if (hidex && c.vote === 'dislike') return false;
+    return true;
+  };
+  return { on, keep, models, res, since, trim, liked, hidex };
+}
+
 // HOW MANY MATCHES ARE OUTSIDE THE PROJECT SHE IS STANDING IN (2026-09-15,
 // Sophie, inside "Secretly a Witch" with `cider` typed and "Nothing matches
 // that." under it: "where r the rest of my clips???"). Measured that morning:
@@ -2375,21 +2419,27 @@ router.get('/jobs', async (req, res) => {
     const q = String(req.query.q || '').trim();
     // AND IT SAYS HOW MANY IT FOUND OUTSIDE THIS PROJECT (`outsideCount`) —
     // free, since the whole collection is already read and the matcher built
-    let elsewhere = 0;
+    let elsewhere = 0, hit = () => true;
     if (q) {
       // THE PROJECT'S NAME IS IN THE HAY HERE TOO (2026-09-14) — the page put
       // it in its own client-side pass and the server did not, so typing "the
       // ward" showed the loaded hits and then the server's answer blanked them
       const names = await cast.filmNames().catch(() => ({}));
       const groups = grammar.compileFeed(q);
-      const hit = (x) => {
+      hit = (x) => {
         const c = cardOf(x.id, x.d);
         if (c.project && names[c.project]) c.projectName = names[c.project];
         return grammar.feedMatches(hayOf(c), groups);
       };
       all = all.filter(hit);
-      elsewhere = outsideCount(rows, { project, folder, hit });
     }
+    // THE FUNNEL, over the whole log and before the page is cut (2026-09-26)
+    // — so a page is a set number of matches, never a date's worth
+    const filt = feedFilter(req.query);
+    if (filt.on) all = all.filter((x) => filt.keep(cardOf(x.id, x.d)));
+    // the count outside the project is of clips the funnel would show too —
+    // a number promising clips the feed would hide sends her to All for nothing
+    if (q) elsewhere = outsideCount(rows, { project, folder, hit: (x) => hit(x) && filt.keep(cardOf(x.id, x.d)) });
     const { docs, more } = pageJobs(all, { limit: q ? Math.min(Number(req.query.limit) || 40, 300) : req.query.limit, before: req.query.before, beforeId: req.query.beforeId, max: q ? 300 : undefined });
     // ask the doors about the ones still drawing — throttled per job, so a
     // page polling every few seconds is one provider read per job per 12s
@@ -2823,7 +2873,7 @@ module.exports = {
   discounts, discountOf, endpointDiscount, atlasPrices, atlasPerSecOf, atlasCacheBust,
   drawStats, drawTimeFor, drawTimeFrom, drawKeyOf, medianOf,
   startJob, bakePoster, watchJob, watchTick, sweepUnfinished, WATCH_EVERY_MS, WATCH_SWEEP_MS, WATCH_STATUSES, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf, pausedNow,
-  canvasFrom, pageJobs, outsideCount, hayOf, foldersOf, shelfOf, folderSlug, statusOf, staleJob, STALE_MS, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, cutArgs, TRIM_CAP, frameSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
+  canvasFrom, pageJobs, feedFilter, outsideCount, hayOf, foldersOf, shelfOf, folderSlug, statusOf, staleJob, STALE_MS, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, cutArgs, TRIM_CAP, frameSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
   trimRoom, waitTrimRoom, trimNeedMB, TRIM_NEED_MB, TRIM_NEED_BASE_MB, TRIM_NEED_PER_MPX, BOX_MB, bakeStale, bakeAgain, BAKE_STALE_MS,
   framePlan, framePath, pullFrame, grabFrame, FRAME_FOLDER, FRAME_END_PAD,
   upscalePlan, upscaleLabel, UPSCALE_MODEL, UPSCALE_CENTS_PER_SEC,

@@ -527,6 +527,13 @@ router.get('/clips', async (req, res) => {
       const groups = grammar.compileFeed(q);
       cards = cards.filter((c) => grammar.feedMatches(footage.hayOf(c), groups));
     }
+    // THE FUNNEL AND THE ♥/✕ ARE ANSWERED HERE, OVER EVERY CLIP (2026-09-26,
+    // Sophie: "filters ex trimmed shud always load a set number not by a set
+    // date") — Footage's own rule (`feedFilter`), so a page of picks is sixty
+    // MATCHES and `… older` walks the matches, never sixty clips with the
+    // page hiding most of them
+    const filt = footage.feedFilter(req.query);
+    if (filt.on) cards = cards.filter(filt.keep);
     const all = pickables(cards);
     const lim = Math.max(1, Math.min(Number(req.query.limit) || PICK_LIMIT, PICK_MAX));
     const offset = Math.max(0, Math.floor(Number(req.query.offset) || 0));

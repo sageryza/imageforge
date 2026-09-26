@@ -6071,8 +6071,11 @@ $('stclear').addEventListener('click', function () { ST.order = []; stSave(); pa
 $('stsend').addEventListener('click', stSend);
 paintStitch();
 
-$('v-liked').addEventListener('click', function () { try { localStorage.setItem('footage_liked', likedOnly() ? '' : '1'); } catch (e) {} forgetSent(); paintFilt(); applyFilt(); });
-$('v-hidex').addEventListener('click', function () { try { localStorage.setItem('footage_hidex', hideX() ? '' : '1'); } catch (e) {} forgetSent(); paintFilt(); applyFilt(); });
+// A MARK IS A FILTER TOO, AND IT RE-ASKS THE SERVER (2026-09-26) — hearts
+// only used to be the hearts among the loaded 40; it is the newest forty
+// hearts now, and `… older` walks the hearts.
+$('v-liked').addEventListener('click', function () { try { localStorage.setItem('footage_liked', likedOnly() ? '' : '1'); } catch (e) {} forgetSent(); paintFilt(); applyFilt(); refeed(); if (searchQ) runSearch(); });
+$('v-hidex').addEventListener('click', function () { try { localStorage.setItem('footage_hidex', hideX() ? '' : '1'); } catch (e) {} forgetSent(); paintFilt(); applyFilt(); refeed(); if (searchQ) runSearch(); });
 
 // ── THE SEARCH (2026-09-11, Sophie: "add a search button and filter like
 // playground" · "single magnifying glass button that expands" · "yea
@@ -6131,7 +6134,7 @@ function runSearch(before) {
   // switch mid-flight could land folder A's answer on folder B's screen
   var asked = viewKey();
   return api('/jobs?limit=300&q=' + encodeURIComponent(want)
-      + (before ? '&before=' + encodeURIComponent(before) : '') + projQ()).then(function (d) {
+      + (before ? '&before=' + encodeURIComponent(before) : '') + projQ() + filtQ()).then(function (d) {
     if (seq !== qSeq || asked !== viewKey()) return;      // she typed on, or moved
     var jobs = (d && d.jobs) || [];
     // a hit may be a clip the feed itself has never paged in — it lands as
@@ -6248,7 +6251,7 @@ var FILT = SF ? SF.build($('feedfilters'), [
   { key: 'trim', kind: 'chips', label: 'Trimmed', vals: ['trimmed', 'whole'], words: ['Trimmed', 'Not trimmed'],
     get: function () { try { return localStorage.getItem('footage_filt_trim') || ''; } catch (e) { return ''; } },
     set: function (v) { try { localStorage.setItem('footage_filt_trim', v || ''); } catch (e) {} } },
-], function () { forgetSent(); paintFeed(); paintSearchBtn(); },
+], function () { forgetSent(); paintSearchBtn(); refeed(); if (searchQ) runSearch(); },
    // THE ROWS ARE DROP-DOWNS HERE (2026-09-18, Sophie, looking at the three
    // rows open on a 390pt phone: "buttons shud be drop downs to minimize
    // space"). `layout:'drop'` is the shell's, so the chips inside are the
@@ -7423,6 +7426,39 @@ function loadStatus() {
 // project the page is on NOW, so a switch mid-flight cannot land the old
 // project's cards on the new one's screen
 function projQ() { return (S.project ? '&project=' + encodeURIComponent(S.project) : '') + (S.project && S.folder ? '&folder=' + encodeURIComponent(S.folder) : ''); }
+// THE FUNNEL RIDES THE QUERY (2026-09-26, Sophie: "filters ex trimmed shud
+// always load a set number not by a set date"). The chips and the ♥/✕ ran
+// over the loaded page only — the newest 40, about half a day of sends — so
+// "Trimmed" showed the trimmed clips among today's rather than forty trimmed
+// clips, and `… older` walked the unfiltered log underneath. The server
+// narrows the whole log before it cuts the page (`feedFilter` in footage.js,
+// the same words `passesFilt`/`shown` read here), so a page is a set number
+// of MATCHES and the walk is over matches. `passesFilt` stays: it judges the
+// cards the page already holds and the ones a poll lands.
+function filtQ() {
+  var out = '';
+  if (FILT) {
+    var ms = FILT.get('model') || [], rs = FILT.get('res') || [];
+    if (ms.length) out += '&model=' + encodeURIComponent(ms.join(','));
+    if (rs.length) out += '&res=' + encodeURIComponent(rs.join(','));
+    var since = SF.sinceMs(FILT.get('when'));
+    if (since) out += '&since=' + since;
+    var tr = FILT.get('trim');
+    if (tr) out += '&trim=' + encodeURIComponent(tr);
+  }
+  if (likedOnly()) out += '&liked=1';
+  if (hideX()) out += '&hidex=1';
+  return out;
+}
+// A FILTER CHANGE IS A NEW FEED: the walk starts over from the newest match
+// and the first answer's `more` speaks again. What is already loaded stays
+// in `jobsById` (hidden by `shown` when it no longer passes), so nothing she
+// paged to is thrown away and a card that still passes never blinks.
+function refeed() {
+  olderAt = null; walkAt = ''; feedMore = false;
+  paintFeed(); paintOlder();
+  loadJobs();
+}
 function viewKey() { return S.project + '/' + (S.project ? S.folder : ''); }
 // A CLIP THE NEWEST PAGE NO LONGER HOLDS IS ASKED FOR BY NAME (2026-09-13,
 // found auditing the page). The poll reads the newest 40 of the view she is
@@ -7440,7 +7476,7 @@ function unresolvedOffPage(seen) {
 }
 function loadJobs() {
   var asked = viewKey();
-  return api('/jobs?limit=40' + projQ()).then(function (d) {
+  return api('/jobs?limit=40' + projQ() + filtQ()).then(function (d) {
     if (asked !== viewKey()) return;
     takeFolders(d);
     var jobs = (d && d.jobs) || [];
@@ -7544,7 +7580,7 @@ function loadOlder() {
   // twin. `walkId` is the lowest id at that sentAt among what the page holds.
   var bid = '';
   Object.keys(jobsById).forEach(function (k) { var j = jobsById[k]; if (String(j.sentAt || '') === at && (!bid || k < bid)) bid = k; });
-  return api('/jobs?limit=40&before=' + encodeURIComponent(at) + (bid ? '&beforeId=' + encodeURIComponent(bid) : '') + projQ()).then(function (d) {
+  return api('/jobs?limit=40&before=' + encodeURIComponent(at) + (bid ? '&beforeId=' + encodeURIComponent(bid) : '') + projQ() + filtQ()).then(function (d) {
     if (asked !== viewKey()) return;
     takeFolders(d);
     var jobs = (d && d.jobs) || [];

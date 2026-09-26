@@ -3178,6 +3178,18 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   **AND A PAGE CAN NAME STOPS ON THE WAY (2026-09-14): `window.__pillStops`
   → the ↑/↓ jumps go to the nearest stop first, then all the way. Footage
   names its references bar. Same section of the doc.**
+- **A FILTER LOADS A SET NUMBER, NEVER A DATE'S WORTH (2026-09-26, Sophie:
+  "filters ex trimmed shud always load a set number not by a set date · audit
+  elsewhere").** Every feed reads a page and every filter ran over that page
+  only, so Footage's Trimmed chip showed the trimmed clips among today's
+  sends and `… older` walked the unfiltered log. A filter over a truncated
+  page is a filter over a date. Two shapes now: Footage and Stitch send the
+  funnel to the server (`feedFilter` in `footage.js` narrows the whole log
+  before the page is cut, so a page is forty MATCHES); the Playground's first
+  page, the chat's Assets tab and Meta Assets walk pages until the narrowed
+  wall holds one. A new feed with a filter does one or the other — never a
+  filter over the loaded page. Test: `node scripts/test-filter-set-number.js`.
+  **Full details: *A FILTER LOADS A SET NUMBER* in `docs/design-rules.md`.**
 
 - **A LONG PAGE KEEPS HER PLACE AND NAMES ITS CHAPTERS (2026-09-02, Sophie,
   on the Similitude inventory — 97 cards under 75 headings: "long scroll pages

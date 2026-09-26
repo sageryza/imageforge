@@ -847,7 +847,7 @@ var FILT = SF ? SF.build($('feedfilters'), [
   { key: 'when', kind: 'chips', label: SF.WHEN.label, vals: SF.WHEN.vals, words: SF.WHEN.words,
     get: function () { try { return localStorage.getItem('stitch_filt_when') || ''; } catch (e) { return ''; } },
     set: function (v) { try { localStorage.setItem('stitch_filt_when', v || ''); } catch (e) {} } },
-], function () { paintPicks(); paintSearchBtn(); }, { label: 'Filters' }) : null;
+], function () { paintPicks(); paintSearchBtn(); loadPicks(false); }, { label: 'Filters' }) : null;
 paintSearchBtn();
 
 // HER ♥ AND ✕, WHICH THE PICKER USED TO CARRY AND IGNORE — 174 of her
@@ -865,8 +865,10 @@ function paintMarks() {
   $('v-liked').classList.toggle('on', onlyLiked);
   $('v-hidex').classList.toggle('on', hideX);
 }
-$('v-liked').addEventListener('click', function () { onlyLiked = !onlyLiked; markSet('stitch_liked', onlyLiked); paintMarks(); paintPicks(); });
-$('v-hidex').addEventListener('click', function () { hideX = !hideX; markSet('stitch_hidex', hideX); paintMarks(); paintPicks(); });
+// a mark re-asks the server too (2026-09-26): the newest sixty hearts, not
+// the hearts among the newest sixty
+$('v-liked').addEventListener('click', function () { onlyLiked = !onlyLiked; markSet('stitch_liked', onlyLiked); paintMarks(); paintPicks(); loadPicks(false); });
+$('v-hidex').addEventListener('click', function () { hideX = !hideX; markSet('stitch_hidex', hideX); paintMarks(); paintPicks(); loadPicks(false); });
 paintMarks();
 
 function passes(p) {
@@ -883,11 +885,30 @@ function passes(p) {
 }
 
 var picksMore = false, picksTotal = 0, loadSeq = 0;
+// THE FUNNEL AND THE MARKS RIDE THE QUERY (2026-09-26, Sophie: "filters ex
+// trimmed shud always load a set number not by a set date") — Footage's own
+// rule. They ran over the loaded sixty only, so hearts-only was the hearts
+// among the newest sixty clips and `… older` walked the rest unfiltered; the
+// server narrows every clip first now (`feedFilter` in footage.js), so a page
+// of picks is sixty MATCHES. `passes` stays as the page's own reading of the
+// same words over what it holds.
+function filtQ() {
+  var out = '';
+  if (FILT) {
+    var ms = FILT.get('model') || [];
+    if (ms.length) out += '&model=' + encodeURIComponent(ms.join(','));
+    var since = SF ? SF.sinceMs(FILT.get('when')) : 0;
+    if (since) out += '&since=' + since;
+  }
+  if (onlyLiked) out += '&liked=1';
+  if (hideX) out += '&hidex=1';
+  return out;
+}
 function pickQuery(offset) {
   var cur = projectSaved(), p = cur.split('/')[0], f = cur.split('/')[1] || '';
   return '?limit=60&offset=' + (offset || 0)
     + (p ? '&project=' + encodeURIComponent(p) + (f ? '&folder=' + encodeURIComponent(f) : '') : '')
-    + (searchQ ? '&q=' + encodeURIComponent(searchQ) : '');
+    + (searchQ ? '&q=' + encodeURIComponent(searchQ) : '') + filtQ();
 }
 function loadPicks(more) {
   var seq = ++loadSeq, offset = more ? PICKS.length : 0;
