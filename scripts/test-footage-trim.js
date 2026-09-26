@@ -689,27 +689,36 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
   }
   ok('the card lists both', /part 1 · trimmed 1\.2–3\.6s/.test(await page.textContent('#job-clip1')) && /part 2 · trimming to 0\.5–1\.2s/.test(await page.textContent('#job-clip1')));
 
-  // ── a part's own row puts its marks back, and REPLACES it in place ─────
+  // ── a part's own row PLAYS that part (2026-09-26, Sophie: "plays only
+  // that when clicked" · "i would never probly trim within an existing
+  // trim") — no Replace mode, no red row ───────────────────────────────
   await page.click('.trimbar .tpart:first-child .tpspan');
   await page.waitForTimeout(150);
   ok('tapping a part puts its own marks back', /^1\.2s – 3\.6s/.test((await page.textContent('#tspan')).trim()));
-  ok('and the button says it will replace that part', (await page.textContent('#tgo')).trim() === 'Replace');
+  {
+    const run = await page.evaluate(async () => {
+      const v = document.querySelector('#player .pstage video');
+      const out = []; const t0 = Date.now();
+      while (Date.now() - t0 < 1500) { out.push(v.currentTime); await new Promise((r) => setTimeout(r, 60)); }
+      return { seen: out, paused: v.paused };
+    });
+    ok('and PLAYS it, inside its own span', !run.paused && run.seen.some((t) => t > 1.4) && run.seen.slice(2).every((t) => t >= 1.1 && t <= 3.7));
+  }
+  ok('the button still says Add part — nothing is being re-cut', (await page.textContent('#tgo')).trim() === 'Add part');
+  ok('and no row is lit as "editing"', !(await page.$('.trimbar .tpart.on')));
   await seek(1.5);
   await page.click('#tin');
   await page.waitForTimeout(120);
   await page.click('#tgo');
   await page.waitForTimeout(400);
-  ok('a replace names the part it is replacing', got.length === 3 && got[2].replace === 'k1.2-3.6' && near(got[2].start, 1.5, 0.02));
-  ok('and it keeps its PLACE in the order rather than jumping to the end',
-    (await page.$$eval('.trimbar .tpart', (n) => n.length)) === 2 && /part 1 · 1\.5–3\.6s/.test(await page.textContent('.trimbar .tparts')));
+  ok('a cut from there is a NEW part, never a replace', got.length === 3 && !got[2].replace && near(got[2].start, 1.5, 0.02));
+  ok('so the clip now carries three', (await page.$$eval('.trimbar .tpart', (n) => n.length)) === 3);
 
   // ── the ✕ on a row is the undo, and it can only mean that part ─────────
   await page.click('.trimbar .tpart:last-child .tpx');
   await page.waitForTimeout(400);
-  ok('a ✕ takes off exactly the part it sits on', got.length === 4 && got[3].remove === 'k0.5-1.2');
-  ok('and the one she kept is still there', (await page.$$eval('.trimbar .tpart', (n) => n.length)) === 1);
-  ok('with no number on it any more, because there is only one',
-    !/part 1/.test(await page.textContent('.trimbar .tparts')));
+  ok('a ✕ takes off exactly the part it sits on', got.length === 4 && got[3].remove === 'k1.5-3.6');
+  ok('and the ones she kept are still there', (await page.$$eval('.trimbar .tpart', (n) => n.length)) === 2);
 
   // ── the backdrop still closes ──────────────────────────────────────────
   // (the player has been open through every part of this — that IS the point)
