@@ -54,7 +54,7 @@ const DATA = {
         at: '2026-09-15T01:00:00Z', draft: true, line: '' },
     ] },
   ],
-  deploy: { key: true, cooling: 0 },
+  deploy: { key: true, cooling: 0, chat: 'https://claude.ai/code/session_01AbCdEfGhIjKlMnOpQrSt' },
   deploys: [
     { sha: 'ae189c3', at: '2026-09-16T00:18:18Z', n: 2, groups: [
       { chat: 'chats-unread', name: 'chats unread', at: '2026-09-16T00:10:00Z', items: [
@@ -251,6 +251,25 @@ function chromiumExe() {
   // FIRST tap, one whose arm never gives itself up, and one drawn on a page
   // with nothing to ship all look correct in the markup — and the first of
   // those restarts her server by mis-scroll.
+  // THE ORANGE BUTTON (2026-09-26, Sophie: "no it can just link to the same
+  // chat · any account · button top waiting · orange"). MEASURED: a real
+  // anchor to the chat, orange, at the very top, and still there with
+  // nothing to ship — the chat is where she talks, not a dead control.
+  console.log('the orange button opens the deploy chat');
+  ok('it is on screen', await page.locator('#gochat:visible').count() === 1);
+  ok('it reads Deploy', (await page.locator('#gochat').innerText()).trim() === 'Deploy',
+    await page.locator('#gochat').innerText());
+  ok('it is a link to the chat', (await page.locator('#gochat').getAttribute('href')) === 'https://claude.ai/code/session_01AbCdEfGhIjKlMnOpQrSt',
+    await page.locator('#gochat').getAttribute('href'));
+  const orange = await page.locator('#gochat').evaluate((el) => getComputedStyle(el).backgroundColor);
+  ok('it is the Claude orange', orange === 'rgb(217, 119, 87)', orange);
+  const chatBox = await page.locator('#gochat').boundingBox();
+  const goBox0 = await page.locator('#go').boundingBox();
+  ok('it sits above the direct Deploy button', chatBox.y + chatBox.height <= goBox0.y + 1, { chatBox, goBox0 });
+  ok('it hugs its words', chatBox.width < 160, chatBox);
+  ok('the note says what a deploy there carries', /3 changes go live/.test(await page.locator('#chatnote').innerText()),
+    await page.locator('#chatnote').innerText());
+
   console.log('the deploy button leads the page');
   ok('it is on screen', await page.locator('#go:visible').count() === 1);
   ok('it reads Deploy', (await page.locator('#go').innerText()).trim() === 'Deploy',
@@ -293,43 +312,6 @@ function chromiumExe() {
   await page.locator('#go').click();
   ok('so the next tap only re-arms — it does not send', fired.length === 0, fired);
 
-  console.log('a routine door opens a chat, and hands her the chat');
-  // (2026-09-26, Sophie: "deploy waiting button opens a random opus chat w
-  // deploy preseeded if possible".) MEASURED: the link is a real anchor with
-  // the chat's url, shown only once the fire has answered with one, and the
-  // page is still here — a tap that navigated away would lose the count.
-  payload = Object.assign({}, DATA, { deploy: { key: true, how: 'chat', cooling: 0 } });
-  deployReply = { code: 200, body: { ok: true, how: 'chat', ahead: 3,
-    session: 'session_01AbCdEfGhIjKlMnOpQrSt', url: 'https://claude.ai/code/session_01AbCdEfGhIjKlMnOpQrSt' } };
-  await page.reload({ waitUntil: 'networkidle' });
-  fired.length = 0;
-  ok('it still reads Deploy', (await page.locator('#go').innerText()).trim() === 'Deploy');
-  ok('…and says it goes through a chat', /Opus chat/.test(await page.locator('#gonote').innerText()),
-    await page.locator('#gonote').innerText());
-  ok('no link before anything was opened', await page.locator('#golink:visible').count() === 0);
-  await page.locator('#go').click();
-  ok('the arm says a chat opens', /opens an Opus chat/.test(await page.locator('#gonote').innerText()),
-    await page.locator('#gonote').innerText());
-  ok('and nothing was sent yet', fired.length === 0, fired);
-  await page.locator('#go').click();
-  await page.waitForFunction(() => /Chat opened/.test(document.getElementById('go').textContent));
-  ok('one POST', fired.length === 1, fired);
-  ok('it says a chat is deploying', /Opus chat is deploying/.test(await page.locator('#gonote').innerText()),
-    await page.locator('#gonote').innerText());
-  ok('the link to the chat is on screen', await page.locator('#golink:visible').count() === 1);
-  ok('…and it is the chat\'s own url',
-    (await page.locator('#golink').getAttribute('href')) === 'https://claude.ai/code/session_01AbCdEfGhIjKlMnOpQrSt',
-    await page.locator('#golink').getAttribute('href'));
-  ok('…while the page is still the page', await page.locator('.count').count() === 1 && page.url().includes('/waiting'));
-  // A fire that answered with no id: the note alone, no link to nowhere.
-  deployReply = { code: 200, body: { ok: true, how: 'chat', ahead: 3, session: '', url: '' } };
-  await page.reload({ waitUntil: 'networkidle' });
-  await page.locator('#go').click();
-  await page.locator('#go').click();
-  await page.waitForFunction(() => /Chat opened/.test(document.getElementById('go').textContent));
-  ok('no url on the answer → no link', await page.locator('#golink:visible').count() === 0);
-  payload = DATA;
-
   console.log('a refusal is said in words, and the button comes back');
   deployReply = { code: 429, body: { error: 'cooling', cooling: 120000 } };
   await page.reload({ waitUntil: 'networkidle' });
@@ -345,6 +327,8 @@ function chromiumExe() {
   payload = Object.assign({}, DATA, { ahead: 0, forYou: 0, groups: [], quiet: [] });
   await page.reload({ waitUntil: 'networkidle' });
   ok('nothing waiting → no button at all', await page.locator('#go:visible').count() === 0);
+  ok('…but the orange chat link stays, saying so', await page.locator('#gochat:visible').count() === 1
+    && /nothing waiting/.test(await page.locator('#chatnote').innerText()), await page.locator('#chatnote').innerText());
   // Five merged and none of them hers: the button would deploy nothing she
   // could notice, so it is not drawn, and the count says why it is zero.
   payload = Object.assign({}, DATA, { ahead: 5, forYou: 0, groups: [] });
@@ -357,6 +341,7 @@ function chromiumExe() {
   await page.reload({ waitUntil: 'networkidle' });
   ok('no Render key on the server → no dead control either',
     await page.locator('#go:visible').count() === 0);
+  ok('and no chat named → no orange link either', await page.locator('#gochat:visible').count() === 0);
   payload = DATA;
 
   console.log('a box with no commit of its own says so rather than inventing one');
