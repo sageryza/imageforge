@@ -74,6 +74,7 @@ const FOLDERS = ['doctor', 'school-lecture', 'normal-girl', 'travel-kit', 'home-
   .concat('abcdefghijklmnopqrstuvwxyz'.split('').map((c) => c + c));
 const FILMS = [{ slug: 'witch', name: 'Secretly a Witch', order: 0 }, { slug: 'ward', name: 'The ward', order: 1 }];
 let shelfReads = 0;
+const filmPosts = [];
 const jobs = [
   { id: 'j1', prompt: 'a clip', model: 'mini', modelLabel: '2.0 Mini', door: 'atlascloud', seconds: 4,
     resolution: '480p', ratio: '16:9', sound: true, status: 'done', video: '', poster: '',
@@ -95,6 +96,10 @@ const server = http.createServer((req, res) => {
     if (u.pathname === '/api/footage/status') {
       return json({ ok: true, doors: { atlascloud: true }, balances: { atlascloud: { configured: true } },
         models: F.publicModels(), ratios: F.RATIOS, sizes: F.SIZES, fee: F.OR_FEE, chat: 'footage' });
+    }
+    if (u.pathname === '/api/cast/films' && req.method === 'POST') {
+      const d = JSON.parse(body || '{}'); filmPosts.push(d); FILMS.push({ slug: d.slug, name: d.name });
+      return json({ ok: true, films: FILMS });
     }
     if (u.pathname === '/api/cast/films') return json({ ok: true, films: FILMS });
     if (u.pathname === '/api/footage/estimate') return json({ ok: true, cents: 4, door: 'atlascloud', exact: true });
@@ -235,6 +240,35 @@ const server = http.createServer((req, res) => {
   await page.waitForSelector('#shgrid .shtile');
   const held = await page.evaluate(() => { if (!window.__ftHeal) return 'no heal'; window.__ftHeal.reset(); return window.__ftHeal.holding(); });
   ok('a silent reload is held while the sheet is open — ' + held, /folder sheet/.test(String(held)));
+
+  // ── NEW PROJECT WITH prompt() DEAD (2026-09-26, "footage new project button
+  // does nothing") — the app's web view answers every prompt() with null, so
+  // the page must ask in its own box. Dismissing any native dialog here is
+  // what the phone does.
+  page.on('dialog', (d) => d.dismiss());
+  await page.evaluate(() => { window.__navBack(); });
+  await page.click('#projwrap');
+  await page.waitForSelector('#shgrid .shtile');
+  if (await page.$eval('#shback', (e) => !e.hidden)) await page.click('#shback');
+  await page.waitForSelector('#shgrid .shtile[data-go="__new"]');
+  await page.click('#shgrid .shtile[data-go="__new"]');
+  await page.waitForTimeout(150);
+  ok('New project opens the page\'s own name box', !(await page.$eval('#askname', (e) => e.hidden)));
+  await page.fill('#aninput', 'Moon Milk');
+  await page.click('#anform button[type=submit]');
+  await page.waitForTimeout(400);
+  ok('the box goes away on Make it', await page.$eval('#askname', (e) => e.hidden));
+  ok('the film was made — ' + JSON.stringify(filmPosts), filmPosts.length === 1 && filmPosts[0].slug === 'moon-milk' && filmPosts[0].name === 'Moon Milk');
+  ok('the header takes its name', /Moon Milk/.test(await page.$eval('#title', (e) => e.textContent)));
+  await page.click('#projwrap');
+  await page.waitForSelector('#shgrid .shtile');
+  if (await page.$eval('#shback', (e) => !e.hidden)) await page.click('#shback');
+  await page.waitForSelector('#shgrid .shtile[data-go="__new"]');
+  await page.click('#shgrid .shtile[data-go="__new"]');
+  await page.waitForTimeout(150);
+  await page.click('#ancancel');
+  await page.waitForTimeout(200);
+  ok('Cancel makes nothing', filmPosts.length === 1 && await page.$eval('#askname', (e) => e.hidden));
 
   ok('still no page errors', errors.length === 0);
   await browser.close(); server.close();
