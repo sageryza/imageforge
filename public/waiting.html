@@ -155,7 +155,6 @@
 (function(){
   'use strict';
   var bodyEl = document.getElementById('body');
-  var REPO = 'sageryza/imageforge';
 
   function esc(s){
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -172,7 +171,11 @@
     } catch (e) { return ''; }
   }
 
-  function change(it){
+  /* A CHANGE OPENS THE CHAT THAT MADE IT, never its pull request (2026-09-26,
+     Sophie: "merged waiting shud go to chats not pr"). The chat is where she
+     can ask about it; the PR is a record she has no use for on a phone. A
+     change traced to no chat has nowhere to go, so it is a plain row. */
+  function change(it, chat){
     var meta = [it.pr ? '#' + it.pr : '', when(it.at), it.draft ? 'draft' : '',
       it.kind === 'ios' ? 'iOS · a build, not a deploy' : '']
       .filter(Boolean).join(' · ');
@@ -180,12 +183,10 @@
       ? '<span class="said">' + esc(it.line) + '</span>' +
         (it.title ? '<span class="t">' + esc(it.title) + '</span>' : '')
       : '<span class="t">' + esc(it.title || ('commit ' + String(it.sha).slice(0,7))) + '</span>';
-    var href = it.pr ? 'https://github.com/' + REPO + '/pull/' + it.pr
-      : (it.sha ? 'https://github.com/' + REPO + '/commit/' + it.sha : '');
-    var tag = href ? 'a href="' + esc(href) + '" target="_blank" rel="noopener"' : 'div';
+    var tag = chat ? 'a href="/chats?chat=' + encodeURIComponent(chat) + '" data-chat="' + esc(chat) + '"' : 'div';
     return '<' + tag + ' class="ch' + (it.draft ? ' draft' : '') + '">' + inner +
       (meta ? '<span class="m">' + esc(meta) + '</span>' : '') +
-      '</' + (href ? 'a' : 'div') + '>';
+      '</' + (chat ? 'a' : 'div') + '>';
   }
 
   /* One block per chat. A change whose chat could not be worked out is never
@@ -198,7 +199,7 @@
       return '<div class="grp"><div class="who">' +
         esc(g.name || g.chat || 'not traced to a chat') +
         (n > 1 ? '<span class="n">' + n + ' changes</span>' : '') +
-        '</div>' + g.items.map(change).join('') + '</div>';
+        '</div>' + g.items.map(function(it){ return change(it, g.chat); }).join('') + '</div>';
     }).join('');
   }
 
@@ -240,6 +241,21 @@
       '<svg class="cv" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>' +
       '</button><div class="depbody" id="quietbody" hidden>' + groups(list) + '</div>';
   }
+
+  /* Inside the Chats app a page runs in an IFRAME; a plain link there loads
+     the whole app inside the viewer. The parent's bridge opens the thread
+     instead; a browser and the native tool follow the href (worklog's rule). */
+  bodyEl.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a.ch[data-chat]');
+    if (!a) return;
+    try {
+      if (window.parent && window.parent !== window
+          && typeof window.parent.__openThread === 'function'
+          && window.parent.__openThread(a.getAttribute('data-chat')) === true) {
+        e.preventDefault();
+      }
+    } catch (err) { /* cross-origin parent — the href stands */ }
+  });
 
   /* The way out. Shown only when nothing else is drawing one — embedded in a
      native tool the bar owns it, and on the build that hands the header over

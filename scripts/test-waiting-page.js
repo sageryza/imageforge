@@ -160,12 +160,12 @@ function chromiumExe() {
   ok('a change with no filed line shows its subject alone',
     await second.locator('.said').count() === 0 && (await second.locator('.t').innerText()).length > 0);
 
-  console.log('a change opens its own pull request');
-  ok('the PR link', (await first.getAttribute('href')) === 'https://github.com/sageryza/imageforge/pull/2424',
-    await first.getAttribute('href'));
-  const nopr = page.locator('.ch').nth(2);
-  ok('a merge with no PR opens its commit instead',
-    String(await nopr.getAttribute('href')).includes('/commit/dddd'), await nopr.getAttribute('href'));
+  console.log('a change opens the chat that made it, never its PR (2026-09-26)');
+  const firstHref = String(await first.getAttribute('href'));
+  ok('it links the chat', firstHref.startsWith('/chats?chat='), firstHref);
+  ok('…not GitHub', !(await page.locator('.ch[href*="github.com"]').count()));
+  const untraced = page.locator('.grp').filter({ hasText: 'not traced to a chat' }).locator('.ch').first();
+  ok('a change traced to no chat is a plain row', await untraced.evaluate((n) => n.tagName) === 'DIV');
 
   console.log('the unclaimed pile is named, never dropped');
   const heads = await page.locator('.who').allInnerTexts();

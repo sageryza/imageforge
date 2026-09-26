@@ -4571,6 +4571,10 @@ before working on that module. Nothing was deleted — the moved text is verbati
     merges: the trailer and a PR number are on nearly all of them, and
     `scripts/test-waiting.js` reads THIS repo's real commits so a drifted
     trailer format fails there instead of quietly emptying the page.
+  - **A ROW OPENS THE CHAT THAT MADE IT, NEVER ITS PR (2026-09-26, Sophie:
+    "merged waiting shud go to chats not pr").** `/chats?chat=<slug>`, through
+    `__openThread` when the page is inside the Chats app; an untraced row is
+    not a link.
   - **A chat MAY say what its change means in her words** —
     `POST /api/waiting {chat, session, pr, line}` (200 chars) — and that line
     leads the row with the commit subject quiet underneath. Keyed by PR (or
