@@ -7903,7 +7903,10 @@ app.get('/api/promptlab/inflight', (req, res) => {
     work: inflight.counts(), working: inflight.total(),
     paused: pausedNow() ? { until: drawPause.until, note: drawPause.note } : null,
     slots: drawGate.slots(), waiting: drawGate.waiting(),
-    memory: { rss: m.rss, heapUsed: m.heapUsed, external: m.external, limit: 512 * 1048576 },
+    // `anon` is what the process holds that the kernel cannot reclaim — the
+    // number the footage trim guard reads (memwatch.anonBytes); rss − anon
+    // is file-backed code pages
+    memory: { rss: m.rss, anon: memwatch.anonBytes(), heapUsed: m.heapUsed, external: m.external, limit: 512 * 1048576 },
     uptime: Math.round(process.uptime()),
   });
 });

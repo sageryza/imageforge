@@ -988,6 +988,16 @@ function bakeStale(t, now) {
   const at = Date.parse(t.at || '');
   return Number.isFinite(at) && (now == null ? Date.now() : now) - at > BAKE_STALE_MS;
 }
+// A PART THAT FAILED IS BAKED AGAIN ON THE NEXT TAP TOO (2026-09-26). The
+// same span is the same key, so a re-tap on a span that had failed — "the
+// server is too full … try again in a minute" — answered the failed list and
+// started nothing: the message told her to try again and trying again did
+// nothing. A failed part costs no encode to re-plan (Storage is checked
+// first), so a tap on its span, or the card's Try again, runs the bake once
+// more; a part that baked is still never encoded twice.
+function bakeAgain(t, now) {
+  return bakeStale(t, now) || Boolean(t && t.status === 'failed');
+}
 function trimCard(t) {
   return {
     start: Number(t.start) || 0, end: Number(t.end) || 0,
@@ -1452,7 +1462,7 @@ function gateTrim(fn) {
 // last frame, so an out-mark clamped to it would name a frame that is not
 // there.
 async function probeMedia(file) {
-  const out = await runBin(ffprobeBin(), ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type,avg_frame_rate,duration', '-of', 'json', file], 60000);
+  const out = await runBin(ffprobeBin(), ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type,avg_frame_rate,duration,width,height', '-of', 'json', file], 60000);
   const info = JSON.parse(out || '{}');
   const streams = info.streams || [];
   const video = streams.find((x) => x.codec_type === 'video');
@@ -1463,6 +1473,9 @@ async function probeMedia(file) {
     total: vdur || parseFloat((info.format || {}).duration || '0') || 0,
     withAudio: streams.some((x) => x.codec_type === 'audio'),
     fps: Number.isFinite(fps) && fps > 0 ? fps : 0,
+    // the picture's size, for the room the encode will need
+    width: Number((video && video.width) || 0) || 0,
+    height: Number((video && video.height) || 0) || 0,
   };
 }
 
@@ -1524,7 +1537,23 @@ function frameSpan(start, end, fps, total) {
 // 2026-09-02 (`RENDER_CAP` in filmeditor.js); this is its cap, and the
 // decoder is held to one thread too. `cutArgs` is PURE so the recipe is pinned
 // by test-footage-trim.js rather than read back off the process.
-const TRIM_CAP = ['-threads', '1', '-x264-params', 'rc-lookahead=10:ref=1'];
+//
+// AND THEN CAPPED AGAIN — NO LOOKAHEAD, NO B-FRAMES (2026-09-26, Sophie: "i'm
+// worried not all my trims have been going through"). Measured on the live
+// log that morning: 6 of the 7 trims she cut the day before were REFUSED by
+// the room guard below ("the server is too full to trim right now — 86 to
+// 130MB free, a trim needs 150"), and the box sat at 427MB idle with nothing
+// running, so the 150 could not come. Two things were wrong with the 150:
+// it was the 720p clip's peak, and every clip she trims is 480p. Measured
+// here on her own refused clip (496x864, 24fps, 15s), peak RSS of the encode
+// with the cap above: 81MB; with lookahead off (which also turns off
+// mb-tree's frame buffers) 67MB; with B-frames off as well 51MB. The 720p
+// clip: 129 → 106 → 79. Same crf, the same 204 frames out, and the file
+// grows ~40% (2.3MB → 3.2MB for 8.5s) because P-frames alone compress less —
+// the trim is a draft's clip, not a delivery. `ultrafast` would be 42MB but
+// throws subpixel motion search and adaptive quantisation away with it, so
+// no. The need is now sized from the clip's OWN pixels (`trimNeedMB`).
+const TRIM_CAP = ['-threads', '1', '-x264-params', 'rc-lookahead=0:ref=1:bframes=0:sync-lookahead=0'];
 function cutArgs(src, out, start, end, withAudio, fps) {
   const graph = require('./clips').chunkGraph(start, end, withAudio);
   const args = ['-y', '-threads', '1', '-i', src, '-filter_complex', graph, '-map', '[v]'];
@@ -1540,29 +1569,50 @@ async function cutSpan(src, out, start, end, withAudio, fps) {
 }
 
 // AND A BAKE THAT WOULD NOT FIT IS NOT STARTED (2026-09-15, the same hang).
-// The cap above makes one encode ~131MB; what is left of the box is whatever
-// Node is not holding, and Node drifts (367MB the minute before the hang,
-// 467MB earlier that evening). A box over its limit does not crash — it
-// THRASHES, at 10% CPU, for as long as nobody restarts it — so the honest
-// answer is to wait for the room and then refuse, never to start and hope.
-// Other work finishing (a draw, a sheet, a cut) gives memory back, so the
-// wait is real; when it never comes the part says so on its card instead of
-// "trimming…" for ever. PURE with its reader injected, for the test.
+// What is left of the box is whatever Node is not holding, and Node drifts
+// (367MB the minute before the hang, 467MB earlier that evening). A box over
+// its limit does not crash — it THRASHES, at 10% CPU, for as long as nobody
+// restarts it — so the honest answer is to wait for the room and then
+// refuse, never to start and hope. Other work finishing (a draw, a sheet, a
+// cut) gives memory back, so the wait is real; when it never comes the part
+// says so on its card instead of "trimming…" for ever. PURE with its reader
+// injected, for the test.
+//
+// THE NEED IS THE CLIP'S, NOT A CONSTANT (2026-09-26 — see TRIM_CAP). The
+// encode's peak is a straight line in the picture's pixels: 51MB at 496x864
+// and at 560x752, 79MB at 720x1280, measured with the cap above. So the room
+// is asked for AFTER the probe, for this clip's own size, with a margin over
+// the measured peak; a clip whose size the probe will not say is treated as
+// 720p. And what is "held" is the process's ANONYMOUS memory, not its RSS:
+// on a fresh boot 60 of the server's 201MB are file-backed code pages
+// (measured: RssAnon 142MB, RssFile 59MB), which the kernel reclaims under
+// pressure — counting them as taken was refusing trims for room that was
+// there. `memwatch.anonBytes` is the reader; where /proc is not readable it
+// is the RSS, exactly as before.
 const BOX_MB = 512;
-const TRIM_NEED_MB = 150;                 // the capped encode measured at 131MB
+const TRIM_NEED_BASE_MB = 35;             // the encode with no picture in it, plus margin
+const TRIM_NEED_PER_MPX = 60;             // per million pixels — 51MB at 0.43Mpx, 79MB at 0.92Mpx measured
+const TRIM_NEED_MB = 100;                 // a clip the probe cannot size is a 720p one
 const TRIM_ROOM_WAIT_MS = 90000;
-function trimRoom(rssBytes, need) {
-  const free = BOX_MB - Math.round((Number(rssBytes) || 0) / 1048576);
+function trimNeedMB(width, height) {
+  const mpx = (Number(width) || 0) * (Number(height) || 0) / 1e6;
+  if (!(mpx > 0)) return TRIM_NEED_MB;
+  return Math.ceil(TRIM_NEED_BASE_MB + TRIM_NEED_PER_MPX * mpx);
+}
+function trimRoom(usedBytes, need) {
+  const free = BOX_MB - Math.round((Number(usedBytes) || 0) / 1048576);
   return { free, ok: free >= (need == null ? TRIM_NEED_MB : need) };
 }
 async function waitTrimRoom(o) {
-  const rss = (o && o.rss) || (() => process.memoryUsage().rss);
+  const rss = (o && o.rss) || require('./memwatch').anonBytes;
   const wait = (o && o.wait) || ((ms) => new Promise((r) => setTimeout(r, ms)));
   const now = (o && o.now) || Date.now;
   const cap = (o && o.ms) != null ? o.ms : TRIM_ROOM_WAIT_MS;
+  const need = (o && o.need) != null ? o.need : TRIM_NEED_MB;
   const t0 = now();
   for (;;) {
-    const r = trimRoom(rss());
+    const r = trimRoom(rss(), need);
+    r.need = need;
     if (r.ok) return r;
     if (now() - t0 >= cap) return r;
     await wait(5000);
@@ -1608,12 +1658,6 @@ async function bakeTrim(id, plan) {
         return write({ status: 'ready', url: pub(plan.path), poster: pExists ? pub(plan.posterPath) : '' });
       }
     } catch { /* fall through and bake */ }
-    // the room check comes AFTER the baked-once read: a span already in
-    // Storage costs no encode and needs no room
-    const room = await waitTrimRoom();
-    if (!room.ok) {
-      return write({ status: 'failed', error: `the server is too full to trim right now (${room.free}MB free, a trim needs ${TRIM_NEED_MB}) — try again in a minute` });
-    }
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'trim-'));
     const src = path.join(dir, 'src.mp4');
     const out = path.join(dir, 'trim.mp4');
@@ -1631,7 +1675,14 @@ async function bakeTrim(id, plan) {
       // asked the door for: a clip is 24·s + 1 frames, so the real total
       // runs a frame past the ask. The end is CLAMPED rather than refused —
       // an out-mark she dragged to the very end must not fail the bake.
-      const { total, withAudio, fps } = await probeMedia(src);
+      const { total, withAudio, fps, width, height } = await probeMedia(src);
+      // the room check comes AFTER the baked-once read (a span already in
+      // Storage costs no encode and needs no room) and AFTER the probe, so
+      // the room asked for is this clip's own (see trimNeedMB)
+      const room = await waitTrimRoom({ need: trimNeedMB(width, height) });
+      if (!room.ok) {
+        return write({ status: 'failed', error: `the server is too full to trim right now (${room.free}MB free, this clip needs ${room.need}) — try again in a minute` });
+      }
       const end = total ? Math.min(plan.end, Math.round(total * 1000) / 1000) : plan.end;
       if (total && plan.start >= total) return write({ status: 'failed', error: `the clip is ${total.toFixed(1)}s — the trim starts after it ends` });
       // her marks, snapped onto the frames under them (see `frameSpan`)
@@ -2664,6 +2715,22 @@ const trimTx = (id, work) => db().runTransaction(async (tx) => {
   if (out && out.write) tx.set(ref, out.write, { merge: true });
   return out;
 });
+// A part baked again goes back to `baking` on the doc FIRST, dated now — so
+// the card says "trimming…" instead of the old failure while the encode
+// runs, and the fifteen-minute stale clock starts from this tap, not the
+// first one. Patched by key inside the transaction, like every other write.
+async function rearmPart(id, key) {
+  try {
+    return await trimTx(id, (now) => {
+      const live = trimsOf(now);
+      const i = live.findIndex((t) => t.key === key);
+      if (i < 0) return { now, next: live };
+      const next = live.slice();
+      next[i] = { ...next[i], status: 'baking', at: new Date().toISOString(), error: '' };
+      return { write: { trims: next, trim: admin.firestore.FieldValue.delete() }, now, next };
+    });
+  } catch { return {}; }
+}
 router.post('/jobs/:id/trim', async (req, res) => {
   try {
     const id = String(req.params.id);
@@ -2711,7 +2778,11 @@ router.post('/jobs/:id/trim', async (req, res) => {
     // runs the bake again; it checks Storage first, so an mp4 that DID land
     // costs no encode, and its write patches the part by key as ever.
     if (already && !replacing) {
-      if (bakeStale(already)) bakeTrim(id, plan).catch(() => {});
+      if (bakeAgain(already)) {
+        const re = await rearmPart(id, plan.key);
+        bakeTrim(id, plan).catch(() => {});
+        return res.json({ ok: true, job: cardOf(id, { ...(re.now || d), trims: re.next || kept, trim: null }) });
+      }
       return res.json({ ok: true, job: cardOf(id, { ...d, trims: kept, trim: null }) });
     }
     if (kept.length >= TRIM_MAX_PARTS) return res.status(400).json({ error: `that is ${TRIM_MAX_PARTS} parts already — take one off first` });
@@ -2737,7 +2808,11 @@ router.post('/jobs/:id/trim', async (req, res) => {
     if (r.code) return res.status(r.code).json({ error: r.error });
     if (r.already) {
       const stuck = r.next.find((t) => t.key === plan.key);
-      if (bakeStale(stuck)) bakeTrim(id, plan).catch(() => {});
+      if (bakeAgain(stuck)) {
+        const re = await rearmPart(id, plan.key);
+        bakeTrim(id, plan).catch(() => {});
+        return res.json({ ok: true, job: cardOf(id, { ...(re.now || r.now), trims: re.next || r.next, trim: null }) });
+      }
       return res.json({ ok: true, job: cardOf(id, { ...r.now, trims: r.next, trim: null }) });
     }
     bakeTrim(id, plan).catch(() => {});
@@ -2799,7 +2874,7 @@ module.exports = {
   drawStats, drawTimeFor, drawTimeFrom, drawKeyOf, medianOf,
   startJob, bakePoster, watchJob, watchTick, sweepUnfinished, WATCH_EVERY_MS, WATCH_SWEEP_MS, WATCH_STATUSES, ensureVideoFloor, floorDecided, refVideoTotalRefusal, whyOf, pausedNow,
   canvasFrom, pageJobs, feedFilter, outsideCount, hayOf, foldersOf, shelfOf, folderSlug, statusOf, staleJob, STALE_MS, trimsOf, trimCard, trimPlan, bakeTrim, cutSpan, cutArgs, TRIM_CAP, frameSpan, probeMedia, gateTrim, TRIM_MIN_SECONDS, TRIM_MAX_PARTS, TRIM_FOLDER,
-  trimRoom, waitTrimRoom, TRIM_NEED_MB, BOX_MB, bakeStale, BAKE_STALE_MS,
+  trimRoom, waitTrimRoom, trimNeedMB, TRIM_NEED_MB, TRIM_NEED_BASE_MB, TRIM_NEED_PER_MPX, BOX_MB, bakeStale, bakeAgain, BAKE_STALE_MS,
   framePlan, framePath, pullFrame, grabFrame, FRAME_FOLDER, FRAME_END_PAD,
   upscalePlan, upscaleLabel, UPSCALE_MODEL, UPSCALE_CENTS_PER_SEC,
   sentAmong, normWords, SENT_SEGS_MAX,
